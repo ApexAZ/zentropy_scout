@@ -397,6 +397,54 @@ Users can update their Persona at any time via:
 
 ---
 
+## 7b. Deletion Handling
+
+When user deletes Persona items that are referenced by other entities (Base Resumes, Cover Letters), the system uses a "flag for review" pattern.
+
+### 7b.1 Reference Check on Delete
+
+Before deleting a Persona item, system checks for references:
+
+| Deleted Item | Check For References In |
+|--------------|-------------------------|
+| Job (work history) | Base Resume `included_jobs` |
+| Bullet | Base Resume `job_bullet_selections`, `job_bullet_order` |
+| Skill | Base Resume `skills_emphasis` |
+| Education | Base Resume `included_education` |
+| Certification | Base Resume `included_certifications` |
+| Achievement Story | Cover Letter `achievement_stories_used` (approved letters are immutable — only check draft letters) |
+
+### 7b.2 Deletion Flow
+
+```
+User requests delete
+    │
+    ├── No references found → Delete immediately
+    │
+    └── References found → Flag for review
+            │
+            ├── Show user: "This item is used in [X] Base Resumes"
+            │
+            └── User chooses:
+                    ├── "Remove from all and delete" → Cascade remove, then delete
+                    ├── "Cancel" → No action
+                    └── "Review each" → Show list, user decides per item
+```
+
+### 7b.3 Immutable Entity Protection
+
+**Cannot delete if referenced by immutable entities:**
+
+| Immutable Entity | Behavior |
+|------------------|----------|
+| Approved Job Variant | Block delete — user must archive the Application first |
+| Approved Cover Letter | Block delete — user must archive the Application first |
+| Submitted PDF | N/A — PDFs are snapshots, don't hold live references |
+
+Agent should explain: "This bullet is part of an application you submitted to Acme Corp. You can archive that application first if you want to delete this bullet."
+
+---
+
 ## 8. Privacy & Security Notes
 
 ### 8.1 PII Fields
@@ -442,7 +490,8 @@ MVP: All data stored locally in PostgreSQL container on user's machine. No data 
 
 | Document | Dependency | Notes |
 |----------|------------|-------|
-| REQ-002 Resume Schema | `persona_id`, `job.id`, `bullet.id`, `skill.id` | Base Resume references Persona fields |
+| REQ-002 Resume Schema | `persona_id`, `job.id`, `bullet.id`, `skill.id`, `education.id`, `certification.id` | Base Resume references Persona fields |
+| REQ-002b Cover Letter Schema | `persona_id`, `achievement_stories[].id`, Voice Profile | Cover letters use stories and voice |
 | REQ-003 Job Posting Schema | `persona_id`, `skill.id` | Matching against Persona |
 | REQ-004 Application Schema | `persona_id` | Links applications to user |
 | REQ-005 Database Schema | All field definitions | ERD built from REQ-001 through REQ-004 |
@@ -455,3 +504,4 @@ MVP: All data stored locally in PostgreSQL container on user's machine. No data 
 |------|---------|---------|
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
 | 2025-01-25 | 0.2 | Added: Persona metadata, PII flags, display_order fields, custom non-negotiables structure, embedding versioning, onboarding steps enum, education as list, writing_sample_text field |
+| 2025-01-25 | 0.3 | Added: §7b Deletion Handling — reference check on delete, flag for review pattern, immutable entity protection |

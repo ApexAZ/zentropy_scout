@@ -152,10 +152,17 @@ Job discovered (≥90% match)
             │
             └── User reviews/edits → Approves
                     │
-                    └── Application marked "Applied"
+                    ├── Cover Letter status = Approved
+                    │   final_text = draft_text (locked)
+                    │
+                    └── User clicks "Download Cover Letter PDF"
                             │
-                            └── Submitted Cover Letter PDF generated
+                            └── Submitted Cover Letter PDF generated and stored
+                                    │
+                                    └── User applies externally, marks as "Applied"
 ```
+
+**Key timing:** PDF is generated when user downloads, NOT when they mark as "Applied". This matches the resume PDF workflow (REQ-002) and allows user to download, submit externally, then return to update status.
 
 ### 7.2 Agent Story Selection
 
@@ -185,16 +192,27 @@ Agent generates new `draft_text`, preserving edit history is out of scope for MV
 
 ### 7.4 Approval & PDF Generation
 
-When user approves:
+**Approval:**
 1. `final_text` = current `draft_text`
 2. `status` = "Approved"
 3. `approved_at` = now
 4. Cover letter becomes immutable (no further edits)
 
-When user marks Application as "Applied":
-1. Submitted Cover Letter PDF generated from `final_text`
-2. PDF stored with `application_id` link
-3. PDF is immutable snapshot
+**PDF Generation:**
+
+Trigger: User clicks "Download Cover Letter PDF" for an application.
+
+Process:
+1. Check Cover Letter status — must be Approved
+2. If still Draft, prompt user to approve first
+3. Generate PDF from `final_text`
+4. Store as Submitted Cover Letter PDF
+5. Link to Application record
+6. Return PDF to user for download
+
+**Subsequent downloads:** If Submitted Cover Letter PDF already exists, return stored version.
+
+**Regeneration:** Not allowed after approval — cover letter is locked.
 
 ---
 
@@ -291,3 +309,4 @@ Agent may NOT:
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
+| 2025-01-25 | 0.2 | Clarified PDF generation timing — triggered on download, not on "Applied" status (§7.1, §7.4). Aligned with REQ-002 workflow. |

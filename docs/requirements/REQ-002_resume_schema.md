@@ -52,7 +52,7 @@ Persona (source of truth)
 | Document | Dependency | Notes |
 |----------|------------|-------|
 | REQ-001 Persona Schema | `original_resume_file_id` | Links Persona to uploaded file |
-| REQ-002b Cover Letter Schema | `base_resume_id`, `job_variant_id` | Cover letters linked to resume context |
+| REQ-002b Cover Letter Schema | Pattern | Follows same draft → approved → PDF workflow |
 | REQ-004 Application Schema | `submitted_pdf_id`, `resume_source_type`, `resume_source_id` | Links Application to resume used |
 | REQ-005 Database Schema | All field definitions | ERD built from REQ-001 through REQ-004 |
 
@@ -135,6 +135,12 @@ A curated "master" resume for a specific role type. References Persona data.
 
 A tailored version of a Base Resume for a specific job application. Created when agent determines tailoring is needed.
 
+**IMPORTANT: Snapshot Behavior**
+
+When a Job Variant is in Draft status, it references the Base Resume for inherited fields. When approved, ALL fields are snapshotted (copied) to the Job Variant to ensure immutability. This prevents changes to the Base Resume from affecting approved Job Variants.
+
+#### 4.3.1 Fields (Draft Status)
+
 | Field | Type | Required | PII | Notes |
 |-------|------|----------|-----|-------|
 | id | UUID | ✅ | No | |
@@ -148,18 +154,38 @@ A tailored version of a Base Resume for a specific job application. Created when
 | approved_at | Timestamp | Optional | No | When user approved |
 | archived_at | Timestamp | Optional | No | When archived |
 
-**Notes:**
-- Job Variant is a snapshot — once approved, it's immutable
-- Inherits from Base Resume (not stored on Job Variant):
-  - `included_jobs`
-  - `job_bullet_selections`
-  - `included_education`
-  - `included_certifications`
-  - `skills_emphasis`
-- Stored on Job Variant (deltas from Base):
-  - `summary` (may be modified)
-  - `job_bullet_order` (reordered for this job)
-- Immutable after approval (snapshot for traceability)
+During Draft status, these fields are read from `base_resume_id` at render time:
+- `included_jobs`
+- `job_bullet_selections`
+- `included_education`
+- `included_certifications`
+- `skills_emphasis`
+
+#### 4.3.2 Snapshot Fields (Populated on Approval)
+
+When status changes to Approved, these fields are copied from the Base Resume:
+
+| Field | Type | Required | PII | Notes |
+|-------|------|----------|-----|-------|
+| snapshot_included_jobs | List of Job IDs | ✅ | No | Copied from Base Resume on approval |
+| snapshot_job_bullet_selections | JSONB | ✅ | No | Copied from Base Resume on approval |
+| snapshot_included_education | List of Education IDs | Optional | No | Copied from Base Resume on approval |
+| snapshot_included_certifications | List of Certification IDs | Optional | No | Copied from Base Resume on approval |
+| snapshot_skills_emphasis | List of Skill IDs | Optional | No | Copied from Base Resume on approval |
+
+#### 4.3.3 Rendering Logic
+
+```
+If status == Draft:
+    Use base_resume_id to fetch inherited fields
+    Apply job_bullet_order and summary overrides
+    
+If status == Approved:
+    Use snapshot_* fields (ignore base_resume_id for content)
+    Apply job_bullet_order and summary
+```
+
+This ensures approved Job Variants are fully self-contained and immutable.
 
 ---
 
@@ -181,6 +207,30 @@ The exact PDF file submitted with an application. Immutable snapshot.
 - One Submitted PDF per Application
 - Copied (not linked) to preserve exact state at application time
 - Follows Application retention policy
+
+---
+
+### 4.5 Persona Change Flag
+
+Tracks changes to Persona data that may need to be reflected in Base Resumes. Enables the "flag for review" sync mechanism.
+
+| Field | Type | Required | PII | Notes |
+|-------|------|----------|-----|-------|
+| id | UUID | ✅ | No | |
+| persona_id | UUID | ✅ | No | FK to Persona |
+| change_type | Enum | ✅ | No | job_added / bullet_added / skill_added / education_added / certification_added |
+| item_id | UUID | ✅ | No | ID of the new Persona item |
+| item_description | String | ✅ | No | Human-readable summary for display |
+| status | Enum | ✅ | No | Pending / Resolved |
+| created_at | Timestamp | ✅ | No | When the change occurred |
+| resolved_at | Timestamp | Optional | No | When user addressed the flag |
+| resolution | Enum | Optional | No | added_to_all / added_to_some / skipped |
+
+**Notes:**
+- Created automatically when user adds items to Persona
+- Flags are displayed in UI and/or surfaced by agent during conversation
+- Resolved when user decides what to do with the new item
+- Old resolved flags can be purged after 30 days (housekeeping)
 
 ---
 
@@ -243,20 +293,28 @@ Job discovered (≥90% match)
     │
     ├── Agent selects appropriate Base Resume (by role match)
     │
-    ├── Agent drafts Cover Letter
+    ├── Agent drafts Cover Letter (REQ-002b)
     │
     ├── Agent evaluates: "Does Base Resume need tailoring?"
     │       │
-    │       ├── No  → Application links to Base Resume directly
-    │       │         (Submitted PDF generated from Base Resume)
+    │       ├── No  → Use Base Resume directly
     │       │
     │       └── Yes → Job Variant created (Draft status)
     │                 Agent explains modifications
-    │                 User reviews/approves
-    │                 Submitted PDF generated from Job Variant
+    │                 User reviews/approves → Job Variant status = Approved
+    │                                         Snapshot fields populated
     │
-    └── User marks as Applied → Submitted PDF locked as immutable
+    ├── User clicks "Download Resume PDF"
+    │       │
+    │       └── Submitted PDF generated and stored
+    │           (from Base Resume or approved Job Variant)
+    │
+    └── User applies externally, then marks as "Applied"
+            │
+            └── Application status updated (PDF already exists)
 ```
+
+**Key timing:** PDF is generated when user downloads, NOT when they mark as "Applied". This allows user to download the PDF, submit it to the job portal, then return to mark the application status.
 
 ### 6.3 Persona → Base Resume Sync
 
@@ -279,28 +337,23 @@ When flag is raised, agent prompts user:
 
 User confirms per Base Resume. Agent updates `job_bullet_selections` accordingly.
 
-**Flag Storage:**
-
-| Field | Type | Notes |
-|-------|------|-------|
-| id | UUID | |
-| persona_id | UUID | FK to Persona |
-| change_type | Enum | job_added / bullet_added / skill_added / education_added / certification_added |
-| item_id | UUID | ID of the new item |
-| item_description | String | Human-readable summary for display |
-| created_at | Timestamp | |
-| resolved_at | Timestamp | When user addressed the flag |
-| resolution | Enum | added_to_all / added_to_some / skipped |
-
-Flags are displayed in UI and/or surfaced by agent during conversation.
+**Flag Storage:** See §4.5 Persona Change Flag for entity definition.
 
 ### 6.4 PDF Generation
 
-When user is ready to apply:
-1. System generates PDF from Base Resume or Job Variant
-2. PDF stored as Submitted PDF (copied, not linked)
-3. Application record links to Submitted PDF
-4. User downloads PDF to submit externally
+**Trigger:** User clicks "Download Resume PDF" for an application.
+
+**Process:**
+1. Determine source: Base Resume (if no tailoring) or approved Job Variant
+2. If Job Variant and status = Draft, prompt user to approve first
+3. Generate PDF from source
+4. Store as Submitted PDF (copied, not linked)
+5. Link Submitted PDF to Application record
+6. Return PDF to user for download
+
+**Subsequent downloads:** If Submitted PDF already exists for this Application, return the stored version (ensures consistency).
+
+**Regeneration:** User can request "Regenerate PDF" if they edited the Job Variant while still in Draft status. Once Job Variant is Approved and PDF is generated, no regeneration is allowed.
 
 ---
 
@@ -389,3 +442,4 @@ Agent may NOT:
 |------|---------|---------|
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
 | 2025-01-25 | 0.2 | Added: `included_education`, `included_certifications`, `display_order` to Base Resume. Added Persona → Base Resume sync mechanism (§6.3). Clarified Job Variant inheritance. Added REQ-002b dependency. |
+| 2025-01-25 | 0.3 | CRITICAL FIX: Job Variant now snapshots all fields on approval (§4.3.1–4.3.3) to ensure immutability. Clarified PDF generation timing — triggered on download, not on "Applied" status (§6.4). Promoted Persona Change Flag to proper entity (§4.5). |
