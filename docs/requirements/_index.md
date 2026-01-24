@@ -23,7 +23,7 @@ PRD Section (Why) → Requirement (What) → Feature (How) → Task (Do)
 |-------------|-------------|----------|--------|
 | §3 Persona Framework | [REQ-001](./REQ-001_persona_schema.md) Persona Schema | FEAT-001, FEAT-002 | 🟡 Draft |
 | §8 Document Management | [REQ-002](./REQ-002_resume_schema.md) Resume Schema | FEAT-010, FEAT-012 | 🟡 Draft |
-| §8 Document Management | [REQ-002b](./REQ-002b_cover_letter_schema.md) Cover Letter Schema | FEAT-011, FEAT-015 | 🔴 Not Started |
+| §8 Document Management | [REQ-002b](./REQ-002b_cover_letter_schema.md) Cover Letter Schema | FEAT-011, FEAT-015 | 🟡 Draft |
 | §4.2 Scouter | [REQ-003](./REQ-003_job_posting_schema.md) Job Posting Schema | FEAT-003, FEAT-004 | 🔴 Not Started |
 | §9 Application Lifecycle | [REQ-004](./REQ-004_application_schema.md) Application Schema | FEAT-013, FEAT-014 | 🔴 Not Started |
 | §6 Data Strategy | [REQ-005](./REQ-005_database_schema.md) Database Schema (ERD) | FEAT-005 | 🔴 Not Started |
@@ -38,11 +38,11 @@ PRD Section (Why) → Requirement (What) → Feature (How) → Task (Do)
 ## Requirement Dependencies
 
 ```
-REQ-001 Persona Schema
+REQ-001 Persona Schema ✅
     │
-    ├── REQ-002 Resume Schema (extracts into Persona)
+    ├── REQ-002 Resume Schema ✅
     │       │
-    │       └── REQ-002b Cover Letter Schema (linked to resume/application)
+    │       └── REQ-002b Cover Letter Schema ✅
     │
     ├── REQ-003 Job Posting Schema (matched against Persona)
     │
@@ -54,8 +54,8 @@ REQ-001 Persona Schema
 **Build Order:**
 1. REQ-001 Persona Schema ✅ Draft complete
 2. REQ-002 Resume Schema ✅ Draft complete
-3. REQ-002b Cover Letter Schema ← NEXT
-4. REQ-003 Job Posting Schema
+3. REQ-002b Cover Letter Schema ✅ Draft complete
+4. REQ-003 Job Posting Schema ← NEXT
 5. REQ-004 Application Schema
 6. REQ-005 Database Schema (ERD)
 
@@ -88,14 +88,16 @@ REQ-001 Persona Schema
 ```
 REQ-001 Persona Schema ✅
     └── REQ-002 Resume Schema ✅
-            └── REQ-002b Cover Letter Schema
-                    └── REQ-005 Database Schema (partial)
-                            └── FEAT-005 Database Migrations
-                                    │
-                                    ├── FEAT-002 Persona CRUD API
-                                    │
-                                    └── FEAT-006 FastAPI Scaffold
-                                            └── FEAT-001 Onboarding Interview Chat
+            └── REQ-002b Cover Letter Schema ✅
+                    └── REQ-003 Job Posting Schema
+                            └── REQ-004 Application Schema
+                                    └── REQ-005 Database Schema
+                                            └── FEAT-005 Database Migrations
+                                                    │
+                                                    ├── FEAT-002 Persona CRUD API
+                                                    │
+                                                    └── FEAT-006 FastAPI Scaffold
+                                                            └── FEAT-001 Onboarding Interview Chat
 ```
 
 ---
@@ -115,7 +117,7 @@ REQ-001 Persona Schema ✅
 
 1. ~~**Draft REQ-001** — Persona Schema~~ ✅ Complete
 2. ~~**Draft REQ-002** — Resume Schema~~ ✅ Complete
-3. **Draft REQ-002b** — Cover Letter Schema ← NEXT
-4. **Draft REQ-003** — Job Posting Schema
+3. ~~**Draft REQ-002b** — Cover Letter Schema~~ ✅ Complete
+4. **Draft REQ-003** — Job Posting Schema ← NEXT
 5. **Draft REQ-004** — Application Schema
 6. **Draft REQ-005** — Database Schema (ERD)
