@@ -1,6 +1,7 @@
 # REQ-007: Agent Behavior Specification
 
 **Status:** Draft  
+**Version:** 0.3  
 **PRD Reference:** §4 Core Agentic Capabilities  
 **Last Updated:** 2026-01-25
 
@@ -193,10 +194,14 @@ Tools are thin wrappers around API endpoints (REQ-006).
 |------|--------------|-------------|
 | `get_persona` | `GET /personas/{id}` | Get persona details |
 | `update_persona` | `PATCH /personas/{id}` | Update persona fields |
-| `add_skill` | `POST /personas/{id}/skills` | Add new skill |
-| `add_work_history` | `POST /personas/{id}/work-history` | Add job entry |
+| `add_skill` | `POST /personas/{id}/skills` | Add new skill → triggers embedding regen |
+| `add_work_history` | `POST /personas/{id}/work-history` | Add job entry → triggers embedding regen |
 | `get_change_flags` | `GET /persona-change-flags` | Get pending sync flags |
 | `resolve_change_flag` | `PATCH /persona-change-flags/{id}` | Resolve a flag |
+| `regenerate_embeddings` | `POST /personas/{id}/embeddings/regenerate` | Force embedding regeneration |
+| `rescore_all_jobs` | `POST /job-postings/rescore` | Re-run Strategist on all Discovered jobs |
+
+**Note:** `add_skill` and `add_work_history` automatically trigger embedding regeneration and job rescoring (see §5.5, §7.1). The explicit tools are available for manual/debug scenarios.
 
 #### 4.2.5 Search/Query Tools
 
@@ -448,6 +453,158 @@ User can update persona anytime via chat:
 
 Agent uses same interview patterns but for single sections.
 
+**CRITICAL: Embedding Regeneration**
+
+When Persona is updated post-onboarding, the system must:
+1. Update the Persona data (via API)
+2. Regenerate affected Persona Embeddings (see §7.1)
+3. Trigger Strategist to re-score all Discovered jobs
+
+**Example flow:**
+```
+User: "I learned Kubernetes"
+         │
+         ▼
+Chat Agent: add_skill(name="Kubernetes", type="Hard", proficiency="Familiar")
+         │
+         ▼
+API: POST /personas/{id}/skills → 201 Created
+         │
+         ▼
+System: Regenerate hard_skills embedding
+         │
+         ▼
+System: Invoke Strategist.rescore_all_jobs()
+         │
+         ▼
+Chat Agent: "Added Kubernetes to your skills. I'm re-analyzing your job 
+            matches — you might see new opportunities that need this skill!"
+```
+
+Without this flow, new skills won't be reflected in job matching until the next full embedding regeneration.
+
+### 5.6 Onboarding Prompt Templates
+
+The Onboarding Agent maintains a consistent interviewer persona throughout the conversation. These prompts prevent drift into generic chatbot behavior.
+
+#### 5.6.1 System Prompt (Interviewer Persona)
+
+```
+You are Scout, a friendly career coach conducting an onboarding interview for a job search assistant.
+
+Your personality:
+- Warm but efficient — you respect the user's time
+- Curious and encouraging — you draw out details with follow-up questions
+- Professional but not stiff — conversational, not corporate
+- You celebrate wins and accomplishments without being sycophantic
+
+Your job:
+- Guide the user through building their professional profile
+- Ask probing questions to surface quantifiable achievements
+- Help them articulate skills they might undersell
+- Capture their authentic voice for future cover letters
+
+Interview style:
+- One question at a time (never overwhelm with multiple questions)
+- Acknowledge their answer before moving on
+- Use their name occasionally
+- If they give a vague answer, probe for specifics ("Can you quantify that?")
+- If they seem stuck, offer examples or reframe the question
+
+You are NOT:
+- A therapist (stay focused on career)
+- A resume writer (you're gathering data, not writing yet)
+- Pushy (if they want to skip something, let them)
+
+Current step: {current_step}
+Gathered so far: {gathered_data_summary}
+```
+
+#### 5.6.2 Step-Specific Prompts
+
+**Work History Expansion:**
+```
+The user just told you about a role: {role_title} at {company}.
+
+Your task: Help them surface 2-3 strong bullet points for this role.
+
+Ask about:
+- Their biggest accomplishment in this role
+- A challenge they overcame
+- Impact they had (numbers, percentages, scale)
+
+If they give a vague answer like "I led projects", probe:
+- "How many projects? What was the scale?"
+- "What was the outcome? Did it save time/money/improve something?"
+
+Output: After gathering details, summarize what you'll record and ask for confirmation.
+```
+
+**Achievement Story Gathering:**
+```
+You're gathering achievement stories (STAR format: Situation, Task, Action, Result).
+
+Goal: Capture 3-5 stories that demonstrate different skills.
+
+For each story, you need:
+- Context: What was the situation/challenge?
+- Action: What specifically did THEY do (not their team)?
+- Outcome: What was the measurable result?
+- Skills demonstrated: Which skills does this showcase?
+
+Probing questions:
+- "What made this challenging?"
+- "What would have happened if you hadn't stepped in?"
+- "Can you put a number on the impact?"
+
+Stories already captured: {existing_stories}
+Skills already covered: {covered_skills}
+
+Ask for a story that demonstrates a DIFFERENT skill than what you already have.
+```
+
+**Voice Profile Derivation:**
+```
+Based on the conversation so far, analyze the user's communication style.
+
+Conversation transcript:
+{transcript}
+
+Assess:
+1. Tone: Formal/casual? Direct/diplomatic? Confident/humble?
+2. Sentence style: Short and punchy? Detailed and thorough?
+3. Vocabulary: Technical jargon? Plain English? Industry-specific terms?
+4. Patterns to avoid: Buzzwords they never use? Phrases they dislike?
+
+Output a Voice Profile summary (3-4 bullet points) and present it to the user:
+"Based on our conversation, here's how I'd describe your professional voice..."
+
+Ask them to confirm or adjust.
+```
+
+#### 5.6.3 Transition Prompts
+
+Between sections, use natural transitions:
+
+```
+Great, I've got a solid picture of your work history. 
+
+Next, let's talk about your skills — both the technical ones and the softer 
+interpersonal skills that are often just as important.
+
+What would you say are your strongest technical skills?
+```
+
+```
+Those are excellent stories — I can already see how they'll strengthen your 
+applications.
+
+Now let's define your non-negotiables — the things that would make you 
+immediately pass on a job, no matter how interesting it sounds.
+
+First: Are you looking for remote work, hybrid, or are you open to onsite?
+```
+
 ---
 
 ## 6. Scouter Agent
@@ -549,7 +706,9 @@ Job posting:
 Return JSON array of skills.
 ```
 
-**Model:** Haiku/GPT-4o-mini (fast, cheap, sufficient for extraction)
+**Model:** Haiku/GPT-4o-mini/Flash (fast, cheap, sufficient for extraction)
+
+**Note:** This is a Scouter-specific task (high volume, simple extraction). The Strategist uses Sonnet for scoring analysis (see §11.2). Don't confuse these — skill extraction happens during job discovery, scoring happens after.
 
 ### 6.5 Ghost Detection
 
@@ -608,8 +767,40 @@ Scores jobs against user's persona.
 | Trigger | Source |
 |---------|--------|
 | New job discovered | Invoked by Scouter |
-| Persona updated | Re-score affected jobs |
+| Persona updated | Regenerate embeddings → Re-score all jobs |
 | Manual request | "Re-analyze job 123" |
+
+**CRITICAL: Embedding Regeneration on Persona Update**
+
+When Persona data changes (new skill, updated work history, changed non-negotiables), existing Persona Embeddings become stale. The Strategist must use fresh embeddings to avoid the "cold start" problem where new skills don't match jobs.
+
+**Update Flow:**
+```
+Persona Updated (skill added, job added, etc.)
+         │
+         ▼
+┌─────────────────────────────────────┐
+│ 1. Regenerate Persona Embeddings    │
+│    • Recalculate hard_skills vector │
+│    • Recalculate soft_skills vector │
+│    • Recalculate logistics vector   │
+│    DELETE old embeddings            │
+│    POST /persona-embeddings         │
+└─────────────────┬───────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│ 2. Re-score All Discovered Jobs     │
+│    • Filter to status=Discovered    │
+│    • Invoke Strategist for each     │
+│    • Update fit_score, stretch_score│
+└─────────────────────────────────────┘
+```
+
+**Optimization:** Only regenerate affected embedding types:
+- Skill added → Regenerate `hard_skills` or `soft_skills` (based on skill_type)
+- Non-negotiable changed → Regenerate `logistics`
+- Work history added → Regenerate all (bullets may contain skill signals)
 
 ### 7.2 Scoring Flow
 
@@ -714,6 +905,84 @@ Measures growth opportunity alignment.
 | Target role alignment | Similarity between `job.job_title` and `persona.target_roles` |
 | Target skills exposure | Count of `persona.target_skills` present in `job.requirements` |
 
+### 7.6 Strategist Prompt Templates
+
+#### 7.6.1 Score Rationale Generation
+
+After calculating numeric scores, the Strategist generates a human-readable explanation.
+
+**System Prompt:**
+```
+You are a career match analyst explaining job fit to a job seeker.
+
+Your task: Given the match data, write a 2-3 sentence rationale that:
+1. Highlights the strongest alignment (what makes this a good/poor fit)
+2. Notes any significant gaps or stretch opportunities
+3. Uses specific skill names, not vague language
+
+Tone: Direct, helpful, specific. Avoid generic phrases like "great opportunity" or "good match."
+
+Output format: Plain text, 2-3 sentences max.
+```
+
+**User Prompt:**
+```
+Job: {job_title} at {company_name}
+
+Fit Score: {fit_score}/100
+- Hard skills match: {hard_skills_pct}% ({matched_hard_skills} of {required_hard_skills})
+- Soft skills match: {soft_skills_pct}%
+- Experience level: {experience_match} (job wants {job_years}, you have {persona_years})
+- Logistics: {logistics_match}
+
+Stretch Score: {stretch_score}/100
+- Target role alignment: {role_alignment_pct}%
+- Target skills in job: {target_skills_found}
+
+Missing required skills: {missing_skills}
+Bonus skills you have: {bonus_skills}
+
+Write a 2-3 sentence rationale for this candidate.
+```
+
+**Example Output:**
+```
+Strong technical fit — you have 4 of 5 required skills including the critical ones 
+(Python, PostgreSQL, FastAPI). The "Kubernetes" requirement is a stretch, but aligns 
+with your growth target. Salary range ($140-160k) exceeds your minimum.
+```
+
+#### 7.6.2 Non-Negotiables Explanation
+
+When a job fails non-negotiables, explain why clearly.
+
+**System Prompt:**
+```
+You explain why a job posting failed the user's non-negotiable requirements.
+
+Be direct and factual. Don't apologize or soften the message.
+One sentence per failed requirement.
+```
+
+**User Prompt:**
+```
+Job: {job_title} at {company_name}
+
+Failed requirements:
+{failed_list}
+
+User's settings:
+{user_non_negotiables}
+
+Explain each failure in one sentence.
+```
+
+**Example Output:**
+```
+• Remote: This role requires onsite presence in Austin, TX — you specified Remote Only.
+• Salary: Listed range ($90-110k) is below your $120k minimum.
+```
+
 ---
 
 ## 8. Ghostwriter Agent
@@ -730,8 +999,28 @@ Generates tailored application materials.
 
 ### 8.2 Generation Flow
 
+**CRITICAL: Duplicate Prevention**
+
+Before generating materials, the Ghostwriter must check for existing JobVariants to prevent race conditions (user clicking "Draft" multiple times while LLM is generating).
+
 ```
 [Job Posting] + [Persona] + [BaseResume]
+         │
+         ▼
+┌─────────────────────────────────────┐
+│ 0. Check Existing JobVariant        │
+│    GET /job-variants?job_posting_id=│
+│                                     │
+│    ├── None exists → Proceed        │
+│    │                                │
+│    ├── Draft exists → Resume/Update │
+│    │   "I'm already working on this.│
+│    │    Want me to start fresh?"    │
+│    │                                │
+│    └── Approved exists → STOP       │
+│        "You already have an approved│
+│         resume for this job."       │
+└─────────────────┬───────────────────┘
          │
          ▼
 ┌─────────────────────────────────────┐
@@ -784,6 +1073,15 @@ Generates tailored application materials.
 │    • Explain reasoning              │
 └─────────────────────────────────────┘
 ```
+
+**Race Condition Handling:**
+
+| Scenario | Behavior |
+|----------|----------|
+| User triggers draft while one is in progress | Return existing draft, show progress |
+| User triggers draft, previous draft exists | Ask: "Overwrite existing draft?" |
+| User triggers draft, approved variant exists | Block: "You already approved materials for this job" |
+| User explicitly asks to regenerate | Archive old draft, create new one |
 
 ### 8.3 Base Resume Selection
 
@@ -952,6 +1250,118 @@ Ready for you to review!"
 | LLM service down | Queue requests, notify user of delay |
 | External job API down | Use cached results, note staleness |
 
+### 10.4 Concurrency & Race Conditions
+
+**CRITICAL:** These scenarios can corrupt data or confuse users if not handled explicitly.
+
+#### 10.4.1 Stale Embeddings ("Cold Start" Problem)
+
+**Scenario:** User adds skill "Kubernetes" → Scouter runs → Strategist scores jobs using old embeddings (without Kubernetes) → User doesn't see Kubernetes-related matches.
+
+**Prevention:**
+```
+Persona Update Event
+         │
+         ▼
+┌─────────────────────────────────────┐
+│ 1. BLOCK: Pause any in-flight       │
+│    Scouter/Strategist runs          │
+└─────────────────┬───────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│ 2. Invalidate Persona Embeddings    │
+│    DELETE FROM persona_embeddings   │
+│    WHERE persona_id = ?             │
+└─────────────────┬───────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│ 3. Regenerate Embeddings            │
+│    POST /personas/{id}/embeddings   │
+└─────────────────┬───────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│ 4. UNBLOCK: Resume Scouter/Strategist│
+│    Now using fresh embeddings       │
+└─────────────────────────────────────┘
+```
+
+**Implementation:** Use a `persona_embedding_version` counter. Strategist checks version before scoring; if stale, waits for regeneration.
+
+#### 10.4.2 Duplicate JobVariant Generation
+
+**Scenario:** User clicks "Draft materials" → LLM takes 15 seconds → User thinks it's stuck, clicks again → Two Draft JobVariants created for same job.
+
+**Prevention:**
+```python
+def ghostwriter_start(job_posting_id: str):
+    # Check for existing variant
+    existing = db.query(JobVariant).filter(
+        job_posting_id=job_posting_id,
+        status__in=['Draft', 'Approved']
+    ).first()
+    
+    if existing and existing.status == 'Draft':
+        return {"action": "resume", "variant_id": existing.id,
+                "message": "Already drafting materials for this job."}
+    
+    if existing and existing.status == 'Approved':
+        return {"action": "block",
+                "message": "You already have approved materials for this job."}
+    
+    # Safe to proceed
+    return {"action": "create"}
+```
+
+**User Experience:**
+- If Draft exists: "I'm already working on this. Check back in a moment!"
+- If Approved exists: "You already have an approved resume for this job. Would you like to create a new version?"
+
+#### 10.4.3 Expired Job During Draft
+
+**Scenario:** User opens job, starts "Draft materials" → During generation, Scouter marks job as Expired (posting disappeared) → Ghostwriter finishes, but job is gone.
+
+**Prevention:**
+```python
+def ghostwriter_complete(job_posting_id: str, variant: JobVariant):
+    job = db.query(JobPosting).get(job_posting_id)
+    
+    if job.status == 'Expired':
+        return {
+            "variant": variant,  # Still save the work
+            "warning": "Heads up: This job posting appears to have been removed. "
+                       "Your materials are saved in case it reappears or you want "
+                       "to use them for a similar role."
+        }
+```
+
+#### 10.4.4 Concurrent Persona Edits
+
+**Scenario:** User says "Add Python to my skills" in chat → Meanwhile, user also edits Persona in UI → Race condition on Persona record.
+
+**Prevention:** Optimistic locking with `updated_at` check.
+```python
+def update_persona(persona_id: str, changes: dict, expected_version: datetime):
+    persona = db.query(Persona).get(persona_id)
+    
+    if persona.updated_at != expected_version:
+        raise ConflictError("Persona was modified. Please refresh and retry.")
+    
+    persona.update(changes)
+    persona.updated_at = now()
+```
+
+#### 10.4.5 Summary Table
+
+| Race Condition | Detection | Prevention | User Message |
+|----------------|-----------|------------|--------------|
+| Stale embeddings | Version counter mismatch | Block scoring until regen | "Updating your matches with new skills..." |
+| Duplicate variant | Existing Draft/Approved check | Return existing or block | "Already working on this job" |
+| Expired job | Status check on completion | Warn but save work | "Job may have been removed" |
+| Concurrent edits | `updated_at` mismatch | Optimistic locking | "Please refresh and retry" |
+
 ---
 
 ## 11. Configuration
@@ -984,11 +1394,11 @@ Ready for you to review!"
 
 | # | Question | Status | Notes |
 |---|----------|--------|-------|
-| 1 | LangGraph vs. custom state machine? | TBD | Leaning LangGraph for HITL checkpointing |
-| 2 | Embedding model choice? | TBD | OpenAI text-embedding-3-small vs. Cohere |
-| 3 | How to handle multi-turn clarification? | TBD | LangGraph interrupt + resume |
-| 4 | Batch vs. streaming for Scouter? | TBD | Batch likely sufficient |
-| 5 | Agent memory across sessions? | TBD | Chat history persistence strategy |
+| 1 | LangGraph vs. custom state machine? | **Resolved** | LangGraph confirmed. See §15 for graph specifications. |
+| 2 | Embedding model choice? | TBD | OpenAI text-embedding-3-small vs. Cohere. Defer to implementation. |
+| 3 | How to handle multi-turn clarification? | **Resolved** | LangGraph interrupt + resume. See §15.2 (Onboarding) for checkpoint pattern. |
+| 4 | Batch vs. streaming for Scouter? | **Resolved** | Batch. Scouter runs as background job, no streaming needed. |
+| 5 | Agent memory across sessions? | **Resolved** | Redis for LangGraph checkpoints (24h TTL). Chat history persisted via API. |
 
 ---
 
@@ -1024,3 +1434,415 @@ Ready for you to review!"
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-01-25 | 0.1 | Initial draft. Agent roster, architecture overview, LangGraph framework. Chat Agent tools mapped to REQ-006 endpoints. |
+| 2026-01-25 | 0.2 | **Critical fixes from peer review:** (1) Added embedding regeneration flow to §7.1 and §5.5 — fixes "cold start" problem where Persona updates weren't reflected in job matching. (2) Added duplicate JobVariant check to §8.2 step 0 — prevents race condition when user triggers draft multiple times. (3) Clarified model usage in §6.4 — Scouter uses Haiku for extraction, Strategist uses Sonnet for scoring. |
+| 2026-01-25 | 0.3 | **Coding agent support:** Added §5.6 Onboarding Prompt Templates (interviewer persona, step-specific prompts). Added §7.6 Strategist Prompt Templates (score rationale, non-negotiables explanation). Added §10.4 Concurrency & Race Conditions (stale embeddings, duplicate variants, expired jobs, concurrent edits). Added §15 Graph Specifications (LangGraph node/edge definitions for all agents). |
+
+---
+
+## 15. Graph Specifications (LangGraph)
+
+This section provides explicit node and edge definitions for implementing agents in LangGraph. These are prescriptive — the coding agent should implement these graphs as specified.
+
+### 15.1 Chat Agent Graph
+
+The Chat Agent is the main entry point for user interaction.
+
+```python
+from langgraph.graph import StateGraph, END
+
+chat_graph = StateGraph(ChatAgentState)
+
+# Nodes
+chat_graph.add_node("receive_message", receive_message)      # Parse user input
+chat_graph.add_node("classify_intent", classify_intent)      # Determine what user wants
+chat_graph.add_node("select_tools", select_tools)            # Pick appropriate tools
+chat_graph.add_node("execute_tools", execute_tools)          # Run selected tools
+chat_graph.add_node("generate_response", generate_response)  # Formulate reply
+chat_graph.add_node("stream_response", stream_response)      # Send via SSE
+chat_graph.add_node("delegate_onboarding", delegate_onboarding)  # Sub-graph
+chat_graph.add_node("delegate_ghostwriter", delegate_ghostwriter) # Sub-graph
+chat_graph.add_node("request_clarification", request_clarification)
+
+# Entry point
+chat_graph.set_entry_point("receive_message")
+
+# Edges
+chat_graph.add_edge("receive_message", "classify_intent")
+
+# Conditional edges from classify_intent
+chat_graph.add_conditional_edges(
+    "classify_intent",
+    route_by_intent,
+    {
+        "tool_call": "select_tools",
+        "onboarding": "delegate_onboarding",
+        "ghostwriter": "delegate_ghostwriter",
+        "clarification_needed": "request_clarification",
+        "direct_response": "generate_response"
+    }
+)
+
+# Tool execution flow
+chat_graph.add_edge("select_tools", "execute_tools")
+chat_graph.add_conditional_edges(
+    "execute_tools",
+    check_tool_result,
+    {
+        "success": "generate_response",
+        "needs_more_tools": "select_tools",
+        "error": "generate_response"
+    }
+)
+
+# Sub-graph returns
+chat_graph.add_edge("delegate_onboarding", "generate_response")
+chat_graph.add_edge("delegate_ghostwriter", "generate_response")
+chat_graph.add_edge("request_clarification", "stream_response")
+
+# Final output
+chat_graph.add_edge("generate_response", "stream_response")
+chat_graph.add_edge("stream_response", END)
+```
+
+**Routing Function:**
+```python
+def route_by_intent(state: ChatAgentState) -> str:
+    intent = state["classified_intent"]
+    
+    if intent.type == "onboarding_request":
+        return "onboarding"
+    if intent.type == "draft_materials":
+        return "ghostwriter"
+    if intent.confidence < 0.7:
+        return "clarification_needed"
+    if intent.requires_tools:
+        return "tool_call"
+    return "direct_response"
+```
+
+### 15.2 Onboarding Agent Graph
+
+Structured interview flow with HITL checkpoints.
+
+```python
+onboarding_graph = StateGraph(OnboardingState)
+
+# Nodes (one per interview step)
+onboarding_graph.add_node("check_resume_upload", check_resume_upload)
+onboarding_graph.add_node("gather_basic_info", gather_basic_info)
+onboarding_graph.add_node("gather_work_history", gather_work_history)
+onboarding_graph.add_node("expand_bullets", expand_bullets)
+onboarding_graph.add_node("gather_education", gather_education)
+onboarding_graph.add_node("gather_skills", gather_skills)
+onboarding_graph.add_node("gather_certifications", gather_certifications)
+onboarding_graph.add_node("gather_stories", gather_stories)
+onboarding_graph.add_node("gather_non_negotiables", gather_non_negotiables)
+onboarding_graph.add_node("gather_growth_targets", gather_growth_targets)
+onboarding_graph.add_node("derive_voice_profile", derive_voice_profile)
+onboarding_graph.add_node("review_persona", review_persona)
+onboarding_graph.add_node("setup_base_resume", setup_base_resume)
+onboarding_graph.add_node("complete_onboarding", complete_onboarding)
+
+# HITL checkpoint nodes
+onboarding_graph.add_node("wait_for_input", wait_for_input)  # Pause for user response
+
+# Entry point (resume checkpoint-aware)
+onboarding_graph.set_entry_point("check_resume_upload")
+
+# Linear flow with HITL pauses
+STEPS = [
+    ("check_resume_upload", "gather_basic_info"),
+    ("gather_basic_info", "gather_work_history"),
+    ("gather_work_history", "expand_bullets"),
+    ("expand_bullets", "gather_education"),
+    ("gather_education", "gather_skills"),
+    ("gather_skills", "gather_certifications"),
+    ("gather_certifications", "gather_stories"),
+    ("gather_stories", "gather_non_negotiables"),
+    ("gather_non_negotiables", "gather_growth_targets"),
+    ("gather_growth_targets", "derive_voice_profile"),
+    ("derive_voice_profile", "review_persona"),
+    ("review_persona", "setup_base_resume"),
+    ("setup_base_resume", "complete_onboarding"),
+]
+
+for from_node, to_node in STEPS:
+    # Each step waits for user input before proceeding
+    onboarding_graph.add_conditional_edges(
+        from_node,
+        check_step_complete,
+        {
+            "needs_input": "wait_for_input",
+            "complete": to_node,
+            "skip_requested": to_node  # User asked to skip optional section
+        }
+    )
+    onboarding_graph.add_edge("wait_for_input", from_node)  # Return after input
+
+onboarding_graph.add_edge("complete_onboarding", END)
+```
+
+**State Schema:**
+```python
+class OnboardingState(TypedDict):
+    persona_id: str
+    current_step: str  # Persisted for resume
+    gathered_data: dict  # Accumulated responses
+    conversation_history: List[dict]
+    pending_question: Optional[str]
+    user_response: Optional[str]
+    skipped_sections: List[str]
+```
+
+### 15.3 Scouter Agent Graph
+
+Job discovery pipeline with parallel source fetching.
+
+```python
+scouter_graph = StateGraph(ScouterState)
+
+# Nodes
+scouter_graph.add_node("get_enabled_sources", get_enabled_sources)
+scouter_graph.add_node("fetch_adzuna", fetch_adzuna)
+scouter_graph.add_node("fetch_muse", fetch_muse)
+scouter_graph.add_node("fetch_remoteok", fetch_remoteok)
+scouter_graph.add_node("fetch_usajobs", fetch_usajobs)
+scouter_graph.add_node("merge_results", merge_results)
+scouter_graph.add_node("deduplicate_jobs", deduplicate_jobs)
+scouter_graph.add_node("extract_skills", extract_skills)  # LLM call (Haiku)
+scouter_graph.add_node("calculate_ghost_score", calculate_ghost_score)
+scouter_graph.add_node("save_jobs", save_jobs)
+scouter_graph.add_node("invoke_strategist", invoke_strategist)  # Sub-graph
+scouter_graph.add_node("update_poll_state", update_poll_state)
+
+# Entry
+scouter_graph.set_entry_point("get_enabled_sources")
+
+# Parallel fetch (fan-out)
+scouter_graph.add_conditional_edges(
+    "get_enabled_sources",
+    get_source_nodes,
+    {
+        "adzuna": "fetch_adzuna",
+        "muse": "fetch_muse",
+        "remoteok": "fetch_remoteok",
+        "usajobs": "fetch_usajobs",
+    }
+)
+
+# Fan-in: all fetchers merge
+for source in ["fetch_adzuna", "fetch_muse", "fetch_remoteok", "fetch_usajobs"]:
+    scouter_graph.add_edge(source, "merge_results")
+
+# Processing pipeline
+scouter_graph.add_edge("merge_results", "deduplicate_jobs")
+
+scouter_graph.add_conditional_edges(
+    "deduplicate_jobs",
+    check_new_jobs,
+    {
+        "has_new_jobs": "extract_skills",
+        "no_new_jobs": "update_poll_state"
+    }
+)
+
+scouter_graph.add_edge("extract_skills", "calculate_ghost_score")
+scouter_graph.add_edge("calculate_ghost_score", "save_jobs")
+scouter_graph.add_edge("save_jobs", "invoke_strategist")
+scouter_graph.add_edge("invoke_strategist", "update_poll_state")
+scouter_graph.add_edge("update_poll_state", END)
+```
+
+**Routing Functions:**
+```python
+def get_source_nodes(state: ScouterState) -> List[str]:
+    """Return list of enabled source node names."""
+    return [s.source_name for s in state["enabled_sources"]]
+
+def check_new_jobs(state: ScouterState) -> str:
+    return "has_new_jobs" if len(state["new_jobs"]) > 0 else "no_new_jobs"
+```
+
+### 15.4 Strategist Agent Graph
+
+Scoring and matching (invoked as sub-graph by Scouter or Chat).
+
+```python
+strategist_graph = StateGraph(StrategistState)
+
+# Nodes
+strategist_graph.add_node("load_persona_embeddings", load_persona_embeddings)
+strategist_graph.add_node("check_embedding_freshness", check_embedding_freshness)
+strategist_graph.add_node("regenerate_embeddings", regenerate_embeddings)
+strategist_graph.add_node("filter_non_negotiables", filter_non_negotiables)
+strategist_graph.add_node("generate_job_embeddings", generate_job_embeddings)
+strategist_graph.add_node("calculate_fit_score", calculate_fit_score)
+strategist_graph.add_node("calculate_stretch_score", calculate_stretch_score)
+strategist_graph.add_node("generate_rationale", generate_rationale)  # LLM call (Sonnet)
+strategist_graph.add_node("save_scores", save_scores)
+strategist_graph.add_node("trigger_ghostwriter", trigger_ghostwriter)
+
+# Entry
+strategist_graph.set_entry_point("load_persona_embeddings")
+
+# Embedding freshness check (prevents cold start problem)
+strategist_graph.add_edge("load_persona_embeddings", "check_embedding_freshness")
+strategist_graph.add_conditional_edges(
+    "check_embedding_freshness",
+    is_embedding_stale,
+    {
+        "stale": "regenerate_embeddings",
+        "fresh": "filter_non_negotiables"
+    }
+)
+strategist_graph.add_edge("regenerate_embeddings", "filter_non_negotiables")
+
+# Non-negotiables filter (early exit for failed jobs)
+strategist_graph.add_conditional_edges(
+    "filter_non_negotiables",
+    check_non_negotiables_pass,
+    {
+        "pass": "generate_job_embeddings",
+        "fail": "save_scores"  # Save with failed_non_negotiables, skip scoring
+    }
+)
+
+# Scoring pipeline
+strategist_graph.add_edge("generate_job_embeddings", "calculate_fit_score")
+strategist_graph.add_edge("calculate_fit_score", "calculate_stretch_score")
+strategist_graph.add_edge("calculate_stretch_score", "generate_rationale")
+strategist_graph.add_edge("generate_rationale", "save_scores")
+
+# Auto-draft trigger
+strategist_graph.add_conditional_edges(
+    "save_scores",
+    check_auto_draft_threshold,
+    {
+        "above_threshold": "trigger_ghostwriter",
+        "below_threshold": END
+    }
+)
+strategist_graph.add_edge("trigger_ghostwriter", END)
+```
+
+**Routing Functions:**
+```python
+def is_embedding_stale(state: StrategistState) -> str:
+    """Check if persona embeddings are stale (version mismatch)."""
+    current_version = state["persona_embedding_version"]
+    expected_version = state["persona"].embedding_version
+    return "stale" if current_version != expected_version else "fresh"
+
+def check_auto_draft_threshold(state: StrategistState) -> str:
+    threshold = state["persona"].auto_draft_threshold
+    return "above_threshold" if state["fit_score"] >= threshold else "below_threshold"
+```
+
+### 15.5 Ghostwriter Agent Graph
+
+Content generation with duplicate prevention.
+
+```python
+ghostwriter_graph = StateGraph(GhostwriterState)
+
+# Nodes
+ghostwriter_graph.add_node("check_existing_variant", check_existing_variant)
+ghostwriter_graph.add_node("handle_duplicate", handle_duplicate)
+ghostwriter_graph.add_node("select_base_resume", select_base_resume)
+ghostwriter_graph.add_node("evaluate_tailoring_need", evaluate_tailoring_need)
+ghostwriter_graph.add_node("create_job_variant", create_job_variant)  # LLM call
+ghostwriter_graph.add_node("select_achievement_stories", select_achievement_stories)
+ghostwriter_graph.add_node("generate_cover_letter", generate_cover_letter)  # LLM call (Sonnet)
+ghostwriter_graph.add_node("check_job_still_active", check_job_still_active)
+ghostwriter_graph.add_node("present_for_review", present_for_review)
+
+# Entry
+ghostwriter_graph.set_entry_point("check_existing_variant")
+
+# Duplicate prevention (critical!)
+ghostwriter_graph.add_conditional_edges(
+    "check_existing_variant",
+    route_existing_variant,
+    {
+        "none_exists": "select_base_resume",
+        "draft_exists": "handle_duplicate",
+        "approved_exists": "handle_duplicate"
+    }
+)
+ghostwriter_graph.add_edge("handle_duplicate", END)  # Exit with message
+
+# Generation flow
+ghostwriter_graph.add_edge("select_base_resume", "evaluate_tailoring_need")
+ghostwriter_graph.add_conditional_edges(
+    "evaluate_tailoring_need",
+    needs_tailoring,
+    {
+        "needs_tailoring": "create_job_variant",
+        "no_tailoring": "select_achievement_stories"  # Use BaseResume as-is
+    }
+)
+ghostwriter_graph.add_edge("create_job_variant", "select_achievement_stories")
+ghostwriter_graph.add_edge("select_achievement_stories", "generate_cover_letter")
+
+# Check job status before presenting
+ghostwriter_graph.add_edge("generate_cover_letter", "check_job_still_active")
+ghostwriter_graph.add_conditional_edges(
+    "check_job_still_active",
+    is_job_active,
+    {
+        "active": "present_for_review",
+        "expired": "present_for_review"  # Still present, but with warning
+    }
+)
+ghostwriter_graph.add_edge("present_for_review", END)
+```
+
+**Routing Functions:**
+```python
+def route_existing_variant(state: GhostwriterState) -> str:
+    existing = state.get("existing_variant")
+    if not existing:
+        return "none_exists"
+    return "draft_exists" if existing.status == "Draft" else "approved_exists"
+
+def needs_tailoring(state: GhostwriterState) -> str:
+    """Check if BaseResume needs modification for this job."""
+    analysis = state["tailoring_analysis"]
+    return "needs_tailoring" if analysis.modification_needed else "no_tailoring"
+```
+
+### 15.6 Graph Invocation Patterns
+
+**Chat Agent invoking sub-graphs:**
+```python
+# In Chat Agent's delegate_ghostwriter node
+async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
+    ghostwriter_state = GhostwriterState(
+        job_posting_id=state["target_job_id"],
+        persona_id=state["persona_id"],
+        user_id=state["user_id"]
+    )
+    
+    result = await ghostwriter_graph.ainvoke(ghostwriter_state)
+    
+    state["tool_results"].append({
+        "tool": "ghostwriter",
+        "result": result
+    })
+    return state
+```
+
+**Scheduled Scouter invocation:**
+```python
+# Triggered by scheduler (e.g., Celery beat)
+async def scheduled_scouter_run(user_id: str):
+    persona = await get_persona(user_id)
+    
+    scouter_state = ScouterState(
+        user_id=user_id,
+        persona_id=persona.id,
+        enabled_sources=await get_enabled_sources(user_id)
+    )
+    
+    await scouter_graph.ainvoke(scouter_state)
+```

@@ -402,6 +402,8 @@ This ensures consistency — every download returns the exact same document that
 | `submitted-resume-pdfs/{id}/download` | GET | Download submitted resume PDF |
 | `submitted-cover-letter-pdfs/{id}/download` | GET | Download submitted cover letter PDF |
 | `persona-change-flags` | GET, PATCH | Pending Persona changes for HITL sync (see §5.4) |
+| `personas/{id}/embeddings/regenerate` | POST | Trigger Persona embedding regeneration (see REQ-007 §7.1) |
+| `job-postings/rescore` | POST | Re-run Strategist scoring on all Discovered jobs (see REQ-007 §7.1) |
 
 ### 5.3 Standard HTTP Methods
 
@@ -624,3 +626,4 @@ Query params for collections:
 | 2026-01-25 | 0.4 | Added §2.7 File Upload & Download (direct POST with multipart/form-data for uploads, direct GET for downloads). Resolved open question #5. Updated dependency versions (REQ-002 v0.7, REQ-005 v0.9). All open questions now resolved or deferred. |
 | 2026-01-25 | 0.5 | Peer review fixes: Added §5.4 Persona Change Flags endpoints (HITL sync for new skills/jobs). Added §5.5 Standard Filtering & Sorting (sort, filter query params). Updated dependency versions (REQ-004 v0.5, REQ-005 v0.10). |
 | 2026-01-25 | 0.6 | Peer review fixes (cont.): Added `custom-non-negotiables` CRUD endpoints to resource mapping. Added Base Resume Download clarification (serves stored blob, not on-demand generation). |
+| 2026-01-25 | 0.7 | Added embedding regeneration and job rescore endpoints to support REQ-007 agent flows: `POST /personas/{id}/embeddings/regenerate`, `POST /job-postings/rescore`. |

@@ -21,17 +21,17 @@ PRD Section (Why) → Requirement (What) → Feature (How) → Task (Do)
 
 | PRD Section | Requirement | Features | Status |
 |-------------|-------------|----------|--------|
-| §3 Persona Framework | [REQ-001](./REQ-001_persona_schema.md) Persona Schema v0.8 | FEAT-001, FEAT-002 | 🟡 Draft |
-| §8 Document Management | [REQ-002](./REQ-002_resume_schema.md) Resume Schema v0.6 | FEAT-010, FEAT-012 | 🟡 Draft |
-| §8 Document Management | [REQ-002b](./REQ-002b_cover_letter_schema.md) Cover Letter Schema v0.5 | FEAT-011, FEAT-015 | 🟡 Draft |
-| §4.2 Scouter | [REQ-003](./REQ-003_job_posting_schema.md) Job Posting Schema v0.3 | FEAT-003, FEAT-004 | 🟡 Draft |
-| §9 Application Lifecycle | [REQ-004](./REQ-004_application_schema.md) Application Schema v0.4 | FEAT-013, FEAT-014 | 🟡 Draft |
-| §6 Data Strategy | [REQ-005](./REQ-005_database_schema.md) Database Schema (ERD) v0.7 | FEAT-005 | 🟡 Draft |
-| §5 Architecture | [REQ-006](./REQ-006_api_contract.md) API Contract | FEAT-006, FEAT-007 | 🔴 Not Started |
-| §3.2 Discovery Interview | [REQ-007](./REQ-007_onboarding_flow.md) Onboarding Flow | FEAT-001 | 🔴 Not Started |
-| §4.3 Strategist | [REQ-008](./REQ-008_scoring_algorithm.md) Scoring Algorithm | FEAT-008 | 🔴 Not Started |
-| §5 Architecture | [REQ-009](./REQ-009_provider_abstraction.md) Provider Abstraction | FEAT-009 | 🔴 Not Started |
-| §4.4 Ghostwriter | [REQ-010](./REQ-010_content_generation.md) Content Generation | FEAT-010, FEAT-011 | 🔴 Not Started |
+| §3 Persona Framework | [REQ-001](./REQ-001_persona_schema.md) Persona Schema v0.8 | FEAT-001, FEAT-002 | 🟢 Complete |
+| §8 Document Management | [REQ-002](./REQ-002_resume_schema.md) Resume Schema v0.7 | FEAT-010, FEAT-012 | 🟢 Complete |
+| §8 Document Management | [REQ-002b](./REQ-002b_cover_letter_schema.md) Cover Letter Schema v0.5 | FEAT-011, FEAT-015 | 🟢 Complete |
+| §4.2 Scouter | [REQ-003](./REQ-003_job_posting_schema.md) Job Posting Schema v0.3 | FEAT-003, FEAT-004 | 🟢 Complete |
+| §9 Application Lifecycle | [REQ-004](./REQ-004_application_schema.md) Application Schema v0.5 | FEAT-013, FEAT-014 | 🟢 Complete |
+| §6 Data Strategy | [REQ-005](./REQ-005_database_schema.md) Database Schema (ERD) v0.10 | FEAT-005 | 🟢 Complete |
+| §5 Architecture | [REQ-006](./REQ-006_api_contract.md) API Contract v0.7 | FEAT-006, FEAT-007 | 🟢 Complete |
+| §4 Agentic Capabilities | [REQ-007](./REQ-007_agent_behavior.md) Agent Behavior v0.3 | FEAT-001, FEAT-016 | 🟢 Complete |
+| §4.3 Strategist | REQ-008 Scoring Algorithm | FEAT-008 | 🔴 Not Started |
+| §5 Architecture | REQ-009 Provider Abstraction | FEAT-009 | 🔴 Not Started |
+| §4.4 Ghostwriter | REQ-010 Content Generation | FEAT-010, FEAT-011 | 🔴 Not Started |
 
 ---
 
