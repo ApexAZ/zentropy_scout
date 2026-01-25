@@ -93,6 +93,7 @@ Job Posting (REQ-003)
 | cover_letter_id | UUID | Optional | No | FK to Cover Letter (if one was generated) |
 | submitted_resume_pdf_id | UUID | Optional | No | FK to Submitted PDF (REQ-002 §4.4) |
 | submitted_cover_letter_pdf_id | UUID | Optional | No | FK to Submitted Cover Letter PDF (REQ-002b §4.2) |
+| job_snapshot | JSONB | ✅ | No | Frozen copy of JobPosting at application time (see §4.1a) |
 | status | Enum | ✅ | No | Applied / Interviewing / Offer / Accepted / Rejected / Withdrawn |
 | current_interview_stage | Enum | Optional | No | Phone Screen / Onsite / Final Round (tracked during Interviewing status) |
 | offer_details | JSONB | Optional | No | Populated when offer received (see §4.3) |
@@ -102,6 +103,33 @@ Job Posting (REQ-003)
 | notes | Text | Optional | No | Free-form notes, agent-populated from chat |
 | created_at | Timestamp | ✅ | No | |
 | updated_at | Timestamp | ✅ | No | |
+
+### 4.1a Job Snapshot
+
+**Purpose:** Preserves the exact job posting details at the moment of application. Job postings can change or disappear after application — this ensures historical integrity.
+
+**Snapshot Contents:**
+
+```json
+{
+  "title": "Senior Scrum Master",
+  "company_name": "Acme Corp",
+  "company_url": "https://acme.com",
+  "description": "Full job description text...",
+  "requirements": ["5+ years experience", "CSM certification"],
+  "salary_min": 120000,
+  "salary_max": 150000,
+  "salary_currency": "USD",
+  "location": "Austin, TX",
+  "work_model": "Hybrid",
+  "source_url": "https://linkedin.com/jobs/12345",
+  "captured_at": "2026-01-25T10:00:00Z"
+}
+```
+
+**When Captured:** Automatically populated when Application is created (user marks "Applied").
+
+**Rationale:** PRD §8.3 requires full traceability: *"Every application record maintains references to... the job posting snapshot (in case the posting changes/disappears)."* The FK to JobPosting tracks the relationship; the snapshot preserves what the user actually applied to.
 
 **Cardinality Rules:**
 - One Application per Job Posting per Persona (can't apply to same job twice)
@@ -334,6 +362,28 @@ Offer → Accepted (user accepts)
 ---
 
 ## 7. Workflow Integration
+
+### 7.0 Clarification: "Pending Review" vs "Draft" vs Application Status
+
+**Important:** The PRD references "Draft" and "Pending Review" states, but the Application schema starts at "Applied." This is intentional.
+
+| PRD Term | Schema Entity | Status | Notes |
+|----------|---------------|--------|-------|
+| "Discovered" | JobPosting | `status = Discovered` | Job found, no action taken |
+| "Drafted" | JobVariant | `status = Draft` | Materials generated, not yet reviewed |
+| "Pending Review" | JobVariant | `status = Approved`, no linked Application | Materials approved, awaiting external submission |
+| "Applied" | Application | `status = Applied` | User has submitted externally |
+
+**Key insight:** The "Pending Review" UI state is populated by querying:
+```sql
+SELECT * FROM JobVariant 
+WHERE status = 'Approved' 
+AND id NOT IN (SELECT job_variant_id FROM Application)
+```
+
+This returns approved JobVariants that haven't been linked to an Application yet — i.e., materials ready but not yet submitted externally.
+
+**The Application record is only created when the user marks "Applied" after external submission.** Before that, the work exists as JobVariant records (and optionally CoverLetter records), not Application records.
 
 ### 7.1 Application Creation
 
@@ -580,3 +630,4 @@ This section preserves context for implementation.
 | 2025-01-25 | 0.2 | Added: `cover_letter_id` and `current_interview_stage` fields. Added `interview_stage` to Timeline Event. Clarified bidirectional FK relationships. Clarified Application creation trigger (on "Mark Applied"). Added cardinality rules (1:1 for Job Variant). Added reapplication scenarios (§4.1b). Updated dependency cross-references. Added Decision Log entries for relationships, creation trigger, interview stage, and reapplication. |
 | 2025-01-25 | 0.3 | Fixed PDF timing issue: `application_id` on Submitted PDFs is Optional (NULL until user marks Applied). Added linking flow diagram (§4.2). Added orphan cleanup note (7-day purge). Added §13.10 PDF Timing Decisions. Cross-updated REQ-002 §4.4 and REQ-002b §4.2 to match. |
 | 2025-01-25 | 0.4 | Added missing fields to Application table (§4.1): `offer_details`, `rejection_details`, `submitted_resume_pdf_id`, `submitted_cover_letter_pdf_id`. Fields were documented in subsections but not in main table. |
+| 2026-01-25 | 0.5 | Added `job_snapshot` (JSONB) to Application (§4.1, §4.1a). Captures frozen copy of JobPosting at application time for historical integrity. Added §7.0 clarifying "Pending Review" is a UI state (approved JobVariant without Application), not an Application status. |

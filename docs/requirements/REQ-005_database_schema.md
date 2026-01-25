@@ -20,7 +20,7 @@ This document consolidates all entity definitions from REQ-001 through REQ-004 i
 | REQ-002 Resume Schema | ResumeFile, BaseResume, JobVariant, SubmittedResumePDF, PersonaChangeFlag | 0.7 |
 | REQ-002b Cover Letter Schema | CoverLetter, SubmittedCoverLetterPDF | 0.5 |
 | REQ-003 Job Posting Schema | JobSource, UserSourcePreference, JobPosting, ExtractedSkill, PollingConfiguration | 0.3 |
-| REQ-004 Application Schema | Application, TimelineEvent | 0.4 |
+| REQ-004 Application Schema | Application, TimelineEvent | 0.5 |
 
 ---
 
@@ -34,7 +34,7 @@ This document consolidates all entity definitions from REQ-001 through REQ-004 i
 | REQ-002 Resume Schema v0.7 | Source | ResumeFile, BaseResume, JobVariant, SubmittedResumePDF, PersonaChangeFlag |
 | REQ-002b Cover Letter Schema v0.5 | Source | CoverLetter, SubmittedCoverLetterPDF |
 | REQ-003 Job Posting Schema v0.3 | Source | JobSource, UserSourcePreference, JobPosting, ExtractedSkill, PollingConfiguration |
-| REQ-004 Application Schema v0.4 | Source | Application, TimelineEvent |
+| REQ-004 Application Schema v0.5 | Source | Application, TimelineEvent |
 
 ### 2.2 Other Documents Depend On This
 
@@ -48,6 +48,12 @@ This document consolidates all entity definitions from REQ-001 through REQ-004 i
 
 ```mermaid
 erDiagram
+    %% ============================================
+    %% USER (Auth Foundation)
+    %% ============================================
+    
+    User ||--|| Persona : "owns"
+    
     %% ============================================
     %% PERSONA DOMAIN (REQ-001)
     %% ============================================
@@ -112,6 +118,28 @@ erDiagram
 ---
 
 ## 4. Table Definitions
+
+### 4.0 User (Auth Foundation)
+
+#### User
+
+Minimal user table for authentication. Required for `user_id` FK in Persona.
+
+| Column | Type | Nullable | Default | Constraints |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | gen_random_uuid() | PK |
+| email | VARCHAR(255) | NO | | UNIQUE |
+| created_at | TIMESTAMPTZ | NO | now() | |
+
+**Indexes:**
+- `idx_user_email` on (email) — UNIQUE
+
+**Notes:**
+- MVP (local mode): Pre-populated with single default user. `DEFAULT_USER_ID` env var references this.
+- Future (hosted mode): Expanded with password hash, OAuth provider fields, etc.
+- Kept minimal intentionally — auth system may be replaced/extended later.
+
+---
 
 ### 4.1 Persona Domain (REQ-001)
 
@@ -678,6 +706,7 @@ Skills extracted from job posting for matching.
 | cover_letter_id | UUID | YES | | FK → CoverLetter ON DELETE SET NULL |
 | submitted_resume_pdf_id | UUID | YES | | FK → SubmittedResumePDF ON DELETE SET NULL |
 | submitted_cover_letter_pdf_id | UUID | YES | | FK → SubmittedCoverLetterPDF ON DELETE SET NULL |
+| job_snapshot | JSONB | NO | | Frozen copy of JobPosting at application time |
 | status | VARCHAR(20) | NO | 'Applied' | CHECK (Applied, Interviewing, Offer, Accepted, Rejected, Withdrawn) |
 | current_interview_stage | VARCHAR(30) | YES | | CHECK (Phone Screen, Onsite, Final Round) |
 | offer_details | JSONB | YES | | |
@@ -686,7 +715,9 @@ Skills extracted from job posting for matching.
 | applied_at | TIMESTAMPTZ | NO | now() | |
 | status_updated_at | TIMESTAMPTZ | NO | now() | |
 | created_at | TIMESTAMPTZ | NO | now() | |
-| updated_at | TIMESTAMPTZ | NO | now() | |
+| updated_at | TIMESTAMPTZ | NO | now() |
+
+**Note:** `job_snapshot` stores title, company, description, requirements, salary, URL at application time. See REQ-004 §4.1a for schema.
 
 **Indexes:**
 - `idx_application_persona` on (persona_id)
@@ -810,6 +841,24 @@ Skills extracted from job posting for matching.
 ---
 
 ### 5.4 Application Domain
+
+**job_snapshot:**
+```json
+{
+  "title": "Senior Scrum Master",
+  "company_name": "Acme Corp",
+  "company_url": "https://acme.com",
+  "description": "Full job description text...",
+  "requirements": ["5+ years experience", "CSM certification"],
+  "salary_min": 120000,
+  "salary_max": 150000,
+  "salary_currency": "USD",
+  "location": "Austin, TX",
+  "work_model": "Hybrid",
+  "source_url": "https://linkedin.com/jobs/12345",
+  "captured_at": "2026-01-25T10:00:00Z"
+}
+```
 
 **offer_details:**
 ```json
@@ -944,3 +993,4 @@ Application ↔ SubmittedResumePDF has bidirectional FKs:
 | 2025-01-25 | 0.7 | Added missing timestamps: JobVariant (updated_at), JobSource (created_at, updated_at), PollingConfiguration (created_at, updated_at), ExtractedSkill (created_at). |
 | 2025-01-25 | 0.8 | Updated source document version references in §1.1 and §2.1 to match current versions after coherence audit completion. |
 | 2026-01-25 | 0.9 | Added `rendered_document` (BYTEA) and `rendered_at` (TIMESTAMPTZ) to BaseResume table. BaseResume now stores actual PDF as anchor document to prevent formatting/style drift. Updated REQ-002 version reference to 0.7. |
+| 2026-01-25 | 0.10 | Added §4.0 User table (auth foundation). Added `job_snapshot` (JSONB) to Application table. Added job_snapshot schema to §5.4. Updated REQ-004 version reference to 0.5. |

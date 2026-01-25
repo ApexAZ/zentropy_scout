@@ -309,6 +309,17 @@ GET /api/v1/base-resumes/{id}/download
 
 Returns binary file with appropriate `Content-Type` and `Content-Disposition` headers.
 
+**Base Resume Download Clarification:**
+
+`GET /base-resumes/{id}/download` returns the **stored `rendered_document` blob** (see REQ-002 §4.2, REQ-005 BaseResume table). It does NOT generate the PDF on-demand.
+
+- The PDF is rendered once when the BaseResume is created/updated
+- User reviews and approves the rendered document
+- The approved PDF is stored in `rendered_document`
+- Download endpoint serves that stored blob
+
+This ensures consistency — every download returns the exact same document that was approved as the anchor.
+
 ---
 
 ## 3. Dependencies
@@ -321,8 +332,8 @@ Returns binary file with appropriate `Content-Type` and `Content-Disposition` he
 | REQ-002 Resume Schema v0.7 | Entity definitions | BaseResume (with rendered_document), JobVariant, SubmittedPDF |
 | REQ-002b Cover Letter Schema v0.5 | Entity definitions | CoverLetter, SubmittedCoverLetterPDF |
 | REQ-003 Job Posting Schema v0.3 | Entity definitions | JobPosting, JobSource, ExtractedSkill |
-| REQ-004 Application Schema v0.4 | Entity definitions | Application, TimelineEvent |
-| REQ-005 Database Schema v0.9 | Complete ERD | All tables, relationships, constraints |
+| REQ-004 Application Schema v0.5 | Entity definitions | Application, TimelineEvent |
+| REQ-005 Database Schema v0.10 | Complete ERD | All tables, relationships, constraints |
 
 ### 3.2 Other Documents Depend On This
 
@@ -370,6 +381,7 @@ Returns binary file with appropriate `Content-Type` and `Content-Disposition` he
 | `personas/{id}/certifications` | CRUD | Nested under persona |
 | `personas/{id}/achievement-stories` | CRUD | Nested under persona |
 | `personas/{id}/voice-profile` | Read/Update | 1:1 with persona, no create/delete |
+| `personas/{id}/custom-non-negotiables` | CRUD | Custom filters (e.g., "No Amazon subsidiaries") |
 | `base-resumes` | CRUD | Filtered by current user's persona |
 | `job-variants` | CRUD | |
 | `job-postings` | CRUD | Chrome extension POSTs here |
@@ -389,6 +401,7 @@ Returns binary file with appropriate `Content-Type` and `Content-Disposition` he
 | `base-resumes/{id}/download` | GET | Download rendered anchor PDF |
 | `submitted-resume-pdfs/{id}/download` | GET | Download submitted resume PDF |
 | `submitted-cover-letter-pdfs/{id}/download` | GET | Download submitted cover letter PDF |
+| `persona-change-flags` | GET, PATCH | Pending Persona changes for HITL sync (see §5.4) |
 
 ### 5.3 Standard HTTP Methods
 
@@ -399,6 +412,81 @@ Returns binary file with appropriate `Content-Type` and `Content-Disposition` he
 | PUT | Full replace | Yes |
 | PATCH | Partial update | Yes |
 | DELETE | Remove resource | Yes |
+
+### 5.4 Persona Change Flags (HITL Sync)
+
+When a user adds new skills, jobs, or other Persona data, the system flags pending changes that may need to be synced to BaseResumes. See REQ-002 §6.3.
+
+**Endpoints:**
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/persona-change-flags?status=Pending` | List pending sync flags |
+| PATCH | `/persona-change-flags/{id}` | Resolve a flag |
+
+**GET Response:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "change_type": "Skill",
+      "change_id": "skill-uuid",
+      "change_summary": "Added skill: Kubernetes",
+      "suggested_action": "Add to all Base Resumes",
+      "status": "Pending",
+      "created_at": "2026-01-25T10:00:00Z"
+    }
+  ]
+}
+```
+
+**PATCH Request (resolve):**
+```json
+{
+  "status": "Resolved",
+  "resolution": "added_to_all"  // or "added_to_some", "skipped"
+}
+```
+
+**Resolution Values:**
+- `added_to_all` — Applied to all BaseResumes
+- `added_to_some` — Applied to selected BaseResumes (agent tracks which)
+- `skipped` — User declined to add
+
+### 5.5 Standard Filtering & Sorting
+
+All GET collection endpoints support standard query parameters for filtering and sorting.
+
+**Sorting:**
+
+| Parameter | Example | Notes |
+|-----------|---------|-------|
+| `sort` | `?sort=created_at` | Ascending by field |
+| `sort` | `?sort=-created_at` | Descending (prefix with `-`) |
+| `sort` | `?sort=-fit_score,title` | Multiple fields, comma-separated |
+
+**Filtering:**
+
+| Parameter | Example | Notes |
+|-----------|---------|-------|
+| `{field}` | `?status=Applied` | Exact match |
+| `{field}` | `?status=Applied,Interviewing` | Match any (OR) |
+
+**Common Filters by Resource:**
+
+| Resource | Useful Filters |
+|----------|----------------|
+| `job-postings` | `status`, `is_favorite`, `fit_score_min`, `company_name` |
+| `applications` | `status`, `applied_after`, `applied_before` |
+| `job-variants` | `status`, `base_resume_id` |
+| `persona-change-flags` | `status` |
+
+**Example:**
+```
+GET /job-postings?status=Discovered&is_favorite=true&sort=-fit_score
+```
+Returns discovered, favorited jobs sorted by highest fit score first.
 
 ---
 
@@ -534,3 +622,5 @@ Query params for collections:
 | 2026-01-25 | 0.2 | Added §2.4 Chat Agent with Tools (LangGraph agent as API client, tool categories). Added §2.5 Real-Time Communication (SSE for chat streaming and data events, polling + manual refresh for background updates). Resolved open questions: rate limiting deferred, webhooks deferred, real-time resolved. |
 | 2026-01-25 | 0.3 | Added §2.6 Bulk Operations (Stripe philosophy — explicit endpoints where needed). MVP bulk endpoints: bulk-dismiss, bulk-favorite, bulk-archive. Added bulk endpoints to resource mapping. |
 | 2026-01-25 | 0.4 | Added §2.7 File Upload & Download (direct POST with multipart/form-data for uploads, direct GET for downloads). Resolved open question #5. Updated dependency versions (REQ-002 v0.7, REQ-005 v0.9). All open questions now resolved or deferred. |
+| 2026-01-25 | 0.5 | Peer review fixes: Added §5.4 Persona Change Flags endpoints (HITL sync for new skills/jobs). Added §5.5 Standard Filtering & Sorting (sort, filter query params). Updated dependency versions (REQ-004 v0.5, REQ-005 v0.10). |
+| 2026-01-25 | 0.6 | Peer review fixes (cont.): Added `custom-non-negotiables` CRUD endpoints to resource mapping. Added Base Resume Download clarification (serves stored blob, not on-demand generation). |
