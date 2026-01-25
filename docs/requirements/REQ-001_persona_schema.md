@@ -284,6 +284,23 @@ Skills and roles the user wants to develop toward.
 
 ---
 
+### 3.10 Discovery Preferences
+
+User settings that control how jobs are discovered and presented.
+
+| Field | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| minimum_fit_threshold | Integer | ✅ | 50 | Jobs below this Fit Score not shown by default (0-100) |
+| polling_frequency | Enum | ✅ | Daily | Daily / Twice Daily / Weekly / Manual Only |
+| auto_draft_threshold | Integer | ✅ | 90 | Fit Score threshold for auto-drafting cover letter |
+
+**Behavior:**
+- Jobs below `minimum_fit_threshold` are discovered but not surfaced unless user opts to "Show all"
+- Jobs at or above `auto_draft_threshold` trigger automatic cover letter drafting
+- User can always manually trigger discovery regardless of `polling_frequency`
+
+---
+
 ## 4. Embeddings
 
 Generated from Persona data for semantic matching. Stored separately but linked to Persona.
@@ -492,16 +509,61 @@ MVP: All data stored locally in PostgreSQL container on user's machine. No data 
 |----------|------------|-------|
 | REQ-002 Resume Schema | `persona_id`, `job.id`, `bullet.id`, `skill.id`, `education.id`, `certification.id` | Base Resume references Persona fields |
 | REQ-002b Cover Letter Schema | `persona_id`, `achievement_stories[].id`, Voice Profile | Cover letters use stories and voice |
-| REQ-003 Job Posting Schema | `persona_id`, `skill.id` | Matching against Persona |
+| REQ-003 Job Posting Schema | `persona_id`, Skills, Non-Negotiables, Growth Targets, Discovery Preferences | Matching and filtering jobs |
 | REQ-004 Application Schema | `persona_id` | Links applications to user |
 | REQ-005 Database Schema | All field definitions | ERD built from REQ-001 through REQ-004 |
 
 ---
 
-## 11. Change Log
+## 11. Design Decisions & Rationale
+
+This section preserves context for implementation.
+
+### 11.1 Data Ownership Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Where professional data lives | Resume stores data / Persona stores data / Both | Persona is source of truth | Resume is a "view" of Persona. Avoids duplication. User updates one place. Base Resumes select/order from Persona data. |
+
+### 11.2 Skill Structure Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Skill proficiency scale | 1-10 / 1-5 / 4-level named | 4-level: Learning, Familiar, Proficient, Expert | Named levels are more meaningful than arbitrary numbers. 4 levels provides enough granularity without false precision. |
+| Hard vs Soft skills | Separate lists / Single list with type | Single list with `skill_type` enum | Same structure, easier to query, agent can filter by type when needed. |
+
+### 11.3 Achievement Story Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Story structure | Freeform text / Structured (Context, Action, Outcome) | Structured | Easier for agents to parse and use for content generation. Ensures completeness. User still writes in their own words. |
+
+### 11.4 Voice Profile Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Voice capture method | Direct questions / Derived from conversation / Writing samples | Combination: derived + optional samples | Direct questions feel awkward. Deriving from natural conversation is more authentic. Writing samples add richness if user has them. Agent extracts traits, user reviews. |
+
+### 11.5 Sync & Deletion Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| When Persona changes, update Base Resumes? | Auto-add / Flag for review / Manual only | Flag for review | Auto-add could clutter resumes with irrelevant items. Manual is easy to forget. Flag lets user decide per-resume with agent assistance. |
+| Deletion handling | Block if referenced / Cascade delete / Flag for review | Flag for review + block for immutable | Consistent pattern with additions. But can't delete items referenced by approved Job Variants (immutable snapshots). |
+
+### 11.6 Retention Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Retention thresholds | 30/90 days / 60/180 days / User-configurable | 60 days to archive, 180 days to delete | 60 days gives user time to revisit. 180 days is long enough to not lose important history but short enough to manage storage. |
+
+---
+
+## 12. Change Log
 
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
 | 2025-01-25 | 0.2 | Added: Persona metadata, PII flags, display_order fields, custom non-negotiables structure, embedding versioning, onboarding steps enum, education as list, writing_sample_text field |
 | 2025-01-25 | 0.3 | Added: §7b Deletion Handling — reference check on delete, flag for review pattern, immutable entity protection |
+| 2025-01-25 | 0.4 | Added: §3.10 Discovery Preferences (minimum_fit_threshold, polling_frequency, auto_draft_threshold). Added: §11 Design Decisions & Rationale for context preservation. |

@@ -89,16 +89,17 @@ The exact PDF file submitted with an application. Immutable snapshot.
 |-------|------|----------|-----|-------|
 | id | UUID | ✅ | No | |
 | cover_letter_id | UUID | ✅ | No | FK to Cover Letter |
-| application_id | UUID | ✅ | No | FK to Application (REQ-004) |
+| application_id | UUID | Optional | No | FK to Application (REQ-004) — NULL until user marks "Applied" |
 | file_name | String | ✅ | No | Generated filename |
 | file_binary | Binary | ✅ | ✅ | The PDF file (may contain PII from letter content) |
 | generated_at | Timestamp | ✅ | No | |
 
 **Notes:**
-- One Submitted Cover Letter PDF per Application
-- Generated from `final_text` when user marks application as "Applied"
-- Immutable after creation — snapshot for traceability
-- Follows Application retention policy (same as Submitted Resume PDF)
+- One Submitted Cover Letter PDF per Application (once linked)
+- Created when user downloads PDF (before Application exists)
+- `application_id` is NULL initially, set when user marks "Applied"
+- Orphan PDFs (NULL `application_id` older than 7 days) are purged by cleanup job
+- Follows Application retention policy once linked
 
 ---
 
@@ -304,9 +305,44 @@ Agent may NOT:
 
 ---
 
-## 12. Change Log
+## 12. Design Decisions & Rationale
+
+This section preserves context for implementation.
+
+### 12.1 Template Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Cover letter templates | Templates per role / Templates per company type / No templates | No templates | Achievement stories provide reusable content. Fresh generation ensures tailoring to specific job. Templates encourage lazy, generic letters. Agent + stories = better quality than templates. |
+
+### 12.2 Generation Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Auto-draft trigger | All matches / High matches only / Manual only | High matches (≥90% Fit Score) | Low matches probably won't apply. High matches are worth the compute. User can always manually trigger for any job. Configurable threshold in Persona preferences. |
+| Generation approach | Full generation / Section-by-section / User writes + agent edits | Agent drafts full letter, user edits | Faster for user. Agent has context from Persona, job, stories. User reviews and tweaks voice/emphasis. |
+
+### 12.3 Content Source Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Story selection | User picks stories / Agent picks stories / Hybrid | Agent suggests, user approves | Agent can match stories to job requirements. User knows which stories resonate best. Hybrid respects both. |
+| Voice consistency | Formal template voice / User's natural voice / Configurable | User's voice from Voice Profile | Cover letter should sound like user, not generic corporate speak. Voice Profile captures user's actual communication style. Authenticity matters. |
+
+### 12.4 Workflow Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Cover letter lifecycle | Standalone / Tied to Job Variant / Tied to Application | Tied to Job Variant | Cover letter and resume submitted together. Makes sense to link at that level. Application links to both via Job Variant. |
+| PDF generation timing | On approval / On "Applied" status / On download | On download | Same rationale as resume: user needs PDF before external submission. They download, submit to ATS, then mark status. |
+
+---
+
+## 13. Change Log
 
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
 | 2025-01-25 | 0.2 | Clarified PDF generation timing — triggered on download, not on "Applied" status (§7.1, §7.4). Aligned with REQ-002 workflow. |
+| 2025-01-25 | 0.3 | Added: §12 Design Decisions & Rationale for context preservation. |
+| 2025-01-25 | 0.4 | Fixed Submitted Cover Letter PDF timing: `application_id` is now Optional (§4.2). PDF created on download with NULL `application_id`, linked when user marks "Applied". Added orphan cleanup note (7-day purge). |

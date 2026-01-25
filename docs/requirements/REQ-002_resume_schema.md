@@ -53,7 +53,7 @@ Persona (source of truth)
 |----------|------------|-------|
 | REQ-001 Persona Schema | `original_resume_file_id` | Links Persona to uploaded file |
 | REQ-002b Cover Letter Schema | Pattern | Follows same draft → approved → PDF workflow |
-| REQ-004 Application Schema | `submitted_pdf_id`, `resume_source_type`, `resume_source_id` | Links Application to resume used |
+| REQ-004 Application Schema | `job_variant_id`, `submitted_resume_pdf_id` | Application links to Job Variant and Submitted Resume PDF. Bidirectional: Submitted PDF has `application_id`. |
 | REQ-005 Database Schema | All field definitions | ERD built from REQ-001 through REQ-004 |
 
 ---
@@ -196,7 +196,7 @@ The exact PDF file submitted with an application. Immutable snapshot.
 | Field | Type | Required | PII | Notes |
 |-------|------|----------|-----|-------|
 | id | UUID | ✅ | No | |
-| application_id | UUID | ✅ | No | FK to Application (REQ-004) |
+| application_id | UUID | Optional | No | FK to Application (REQ-004) — NULL until user marks "Applied" |
 | resume_source_type | Enum | ✅ | No | Base / Variant |
 | resume_source_id | UUID | ✅ | No | FK to Base Resume or Job Variant |
 | file_name | String | ✅ | No | Generated filename |
@@ -204,9 +204,11 @@ The exact PDF file submitted with an application. Immutable snapshot.
 | generated_at | Timestamp | ✅ | No | |
 
 **Notes:**
-- One Submitted PDF per Application
-- Copied (not linked) to preserve exact state at application time
-- Follows Application retention policy
+- One Submitted PDF per Application (once linked)
+- Created when user downloads PDF (before Application exists)
+- `application_id` is NULL initially, set when user marks "Applied"
+- Orphan PDFs (NULL `application_id` older than 7 days) are purged by cleanup job
+- Follows Application retention policy once linked
 
 ---
 
@@ -436,10 +438,46 @@ Agent may NOT:
 
 ---
 
-## 11. Change Log
+## 11. Design Decisions & Rationale
+
+This section preserves context for implementation.
+
+### 11.1 Resume Architecture Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Resume data ownership | Resume stores all data / Resume references Persona | Resume references Persona | Persona is source of truth. Base Resume selects which items to include. Avoids duplication, ensures consistency. |
+| Base Resume vs Job Variant | Single resume type / Two-tier system | Two-tier: Base Resume → Job Variant | Base Resume captures role-type targeting (PM resume, Scrum Master resume). Job Variant tailors for specific job. Clean separation of concerns. |
+
+### 11.2 Inheritance & Immutability Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Job Variant inheritance | Always inherit from Base Resume / Snapshot on creation / Snapshot on approval | Snapshot on approval | Drafts should reflect Base Resume edits (user iterating). Approved variants must be immutable (legal/audit trail). Snapshot captures state at moment of commitment. |
+| What gets snapshotted | Everything / Only overrides / Inherited fields only | All inherited fields + overrides | Approved Job Variant must be fully self-contained. Cannot depend on Base Resume state. User might edit Base Resume after approval. |
+
+### 11.3 PDF Generation Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| When to generate PDF | On approval / On "Applied" status / On download | On download | User needs PDF before submitting externally. They download, submit to ATS, then return to mark "Applied." Can't generate on status change — too late. |
+| PDF regeneration | Always regenerate / Store and reuse / Version tracking | Store first generation, block regeneration after approval | Approved resume = legal document. Must preserve exact version submitted. Draft can regenerate freely. |
+
+### 11.4 Sync Mechanism Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| When Persona changes | Auto-update Base Resumes / Flag for review / Ignore | Flag for review | New skill might be relevant to some resumes, not others. Agent prompts user: "You added Kubernetes to your skills. Add it to your PM resume?" User decides. |
+| Sync flag lifecycle | Keep forever / Auto-resolve / TTL | 30-day TTL, purge resolved | Keeps table clean. User has time to act. Old resolved flags have no value. |
+
+---
+
+## 12. Change Log
 
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
 | 2025-01-25 | 0.2 | Added: `included_education`, `included_certifications`, `display_order` to Base Resume. Added Persona → Base Resume sync mechanism (§6.3). Clarified Job Variant inheritance. Added REQ-002b dependency. |
 | 2025-01-25 | 0.3 | CRITICAL FIX: Job Variant now snapshots all fields on approval (§4.3.1–4.3.3) to ensure immutability. Clarified PDF generation timing — triggered on download, not on "Applied" status (§6.4). Promoted Persona Change Flag to proper entity (§4.5). |
+| 2025-01-25 | 0.4 | Added: §11 Design Decisions & Rationale for context preservation. |
+| 2025-01-25 | 0.5 | Fixed Submitted PDF timing: `application_id` is now Optional (§4.4). PDF created on download with NULL `application_id`, linked when user marks "Applied". Added orphan cleanup note (7-day purge). |
