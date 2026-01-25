@@ -91,8 +91,12 @@ Job Posting (REQ-003)
 | job_posting_id | UUID | ✅ | No | FK to Job Posting |
 | job_variant_id | UUID | ✅ | No | FK to Job Variant (approved) |
 | cover_letter_id | UUID | Optional | No | FK to Cover Letter (if one was generated) |
+| submitted_resume_pdf_id | UUID | Optional | No | FK to Submitted PDF (REQ-002 §4.4) |
+| submitted_cover_letter_pdf_id | UUID | Optional | No | FK to Submitted Cover Letter PDF (REQ-002b §4.2) |
 | status | Enum | ✅ | No | Applied / Interviewing / Offer / Accepted / Rejected / Withdrawn |
 | current_interview_stage | Enum | Optional | No | Phone Screen / Onsite / Final Round (tracked during Interviewing status) |
+| offer_details | JSONB | Optional | No | Populated when offer received (see §4.3) |
+| rejection_details | JSONB | Optional | No | Populated when rejected (see §4.4) |
 | applied_at | Timestamp | ✅ | No | When user marked as applied |
 | status_updated_at | Timestamp | ✅ | No | Last status change |
 | notes | Text | Optional | No | Free-form notes, agent-populated from chat |
@@ -575,3 +579,4 @@ This section preserves context for implementation.
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
 | 2025-01-25 | 0.2 | Added: `cover_letter_id` and `current_interview_stage` fields. Added `interview_stage` to Timeline Event. Clarified bidirectional FK relationships. Clarified Application creation trigger (on "Mark Applied"). Added cardinality rules (1:1 for Job Variant). Added reapplication scenarios (§4.1b). Updated dependency cross-references. Added Decision Log entries for relationships, creation trigger, interview stage, and reapplication. |
 | 2025-01-25 | 0.3 | Fixed PDF timing issue: `application_id` on Submitted PDFs is Optional (NULL until user marks Applied). Added linking flow diagram (§4.2). Added orphan cleanup note (7-day purge). Added §13.10 PDF Timing Decisions. Cross-updated REQ-002 §4.4 and REQ-002b §4.2 to match. |
+| 2025-01-25 | 0.4 | Added missing fields to Application table (§4.1): `offer_details`, `rejection_details`, `submitted_resume_pdf_id`, `submitted_cover_letter_pdf_id`. Fields were documented in subsections but not in main table. |

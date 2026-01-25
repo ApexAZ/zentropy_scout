@@ -59,7 +59,7 @@ Job Sources (APIs, Extension, Manual)
 
 | Dependency | Type | Fields Used |
 |------------|------|-------------|
-| REQ-001 Persona Schema | Matching | Skills (§3.5), Non-Negotiables (§3.8), Growth Targets (§3.9), Discovery Preferences (§3.10) |
+| REQ-001 Persona Schema | Matching | Skills (§3.4), Non-Negotiables (§3.8), Growth Targets (§3.9), Discovery Preferences (§3.10) |
 
 ### 3.2 Other Documents Depend On This
 

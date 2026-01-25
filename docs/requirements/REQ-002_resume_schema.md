@@ -45,7 +45,7 @@ Persona (source of truth)
 | Dependency | Type | Fields Used |
 |------------|------|-------------|
 | REQ-001 Persona Schema | Foreign Key | `persona_id` |
-| REQ-001 Persona Schema | References | `work_history[].id`, `work_history[].bullets[].id`, `skills[].id` |
+| REQ-001 Persona Schema | References | `work_history[].id`, `work_history[].bullets[].id`, `skills[].id`, `education[].id`, `certification[].id` |
 
 ### 3.2 Other Documents Depend On This
 

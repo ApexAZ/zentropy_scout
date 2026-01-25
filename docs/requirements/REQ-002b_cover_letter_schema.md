@@ -64,7 +64,7 @@ The cover letter content — draft and final versions.
 |-------|------|----------|-----|-------|
 | id | UUID | ✅ | No | |
 | persona_id | UUID | ✅ | No | FK to Persona (owner) |
-| application_id | UUID | ✅ | No | FK to Application (REQ-004) |
+| application_id | UUID | Optional | No | FK to Application (REQ-004) — NULL until application created |
 | job_posting_id | UUID | ✅ | No | FK to Job Posting (REQ-003) |
 | achievement_stories_used | List of Story IDs | ✅ | No | Which stories from Persona were referenced |
 | draft_text | String | ✅ | No | Agent-generated draft content |
@@ -346,3 +346,4 @@ This section preserves context for implementation.
 | 2025-01-25 | 0.2 | Clarified PDF generation timing — triggered on download, not on "Applied" status (§7.1, §7.4). Aligned with REQ-002 workflow. |
 | 2025-01-25 | 0.3 | Added: §12 Design Decisions & Rationale for context preservation. |
 | 2025-01-25 | 0.4 | Fixed Submitted Cover Letter PDF timing: `application_id` is now Optional (§4.2). PDF created on download with NULL `application_id`, linked when user marks "Applied". Added orphan cleanup note (7-day purge). |
+| 2025-01-25 | 0.5 | Fixed CoverLetter `application_id` to Optional (§4.1) — cover letters can be auto-drafted before Application exists. |

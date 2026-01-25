@@ -70,6 +70,17 @@ Top-level fields for the Persona record itself.
 | home_state | String | ✅ | ✅ | e.g., "Arizona" |
 | home_country | String | ✅ | No | e.g., "USA" |
 
+### 3.1b Professional Overview
+
+High-level professional identity fields used for display and job matching.
+
+| Field | Type | Required | PII | Notes |
+|-------|------|----------|-----|-------|
+| professional_summary | String | Optional | No | General career overview (2-4 sentences). Source material for role-specific Base Resume summaries. May be extracted from uploaded resume. |
+| years_experience | Integer | Optional | No | Self-reported total years of professional experience. Used for job matching against requirements like "5+ years required". |
+| current_role | String | Optional | No | How user identifies professionally — may differ from literal job title in Work History. e.g., "Scrum Master" even if title is "Delivery Lead". |
+| current_company | String | Optional | No | Current employer for quick display. May differ from Work History if user has multiple concurrent roles. |
+
 ---
 
 ### 3.2 Work History
@@ -567,3 +578,4 @@ This section preserves context for implementation.
 | 2025-01-25 | 0.2 | Added: Persona metadata, PII flags, display_order fields, custom non-negotiables structure, embedding versioning, onboarding steps enum, education as list, writing_sample_text field |
 | 2025-01-25 | 0.3 | Added: §7b Deletion Handling — reference check on delete, flag for review pattern, immutable entity protection |
 | 2025-01-25 | 0.4 | Added: §3.10 Discovery Preferences (minimum_fit_threshold, polling_frequency, auto_draft_threshold). Added: §11 Design Decisions & Rationale for context preservation. |
+| 2025-01-25 | 0.5 | Added: §3.1b Professional Overview — `professional_summary`, `years_experience`, `current_role`, `current_company`. These support job matching and display without requiring computation from Work History. |
