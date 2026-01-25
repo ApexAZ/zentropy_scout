@@ -84,7 +84,15 @@ The original uploaded PDF/DOCX. Extraction populates Persona fields directly.
 
 ### 4.2 Base Resume
 
-A curated "master" resume for a specific role type. References Persona data.
+A curated "master" resume for a specific role type. References Persona data and stores a rendered document as an anchor.
+
+**Key Concept: BaseResume as Anchor**
+
+The BaseResume serves two purposes:
+1. **Content Selection:** Defines which Persona data to include (jobs, bullets, skills, etc.)
+2. **Document Anchor:** Stores an actual rendered document to ensure formatting, style, and tone remain consistent across job applications
+
+Without the stored document, each render could produce slightly different formatting or wording. The stored document acts as an anchor — JobVariants are compared against this actual document, not regenerated each time.
 
 | Field | Type | Required | PII | Notes |
 |-------|------|----------|-----|-------|
@@ -99,6 +107,8 @@ A curated "master" resume for a specific role type. References Persona data.
 | included_education | List of Education IDs | Optional | No | Which education entries to show (null = show all) |
 | included_certifications | List of Certification IDs | Optional | No | Which certs to show (null = show all) |
 | skills_emphasis | List of Skill IDs | Optional | No | Which skills to highlight |
+| rendered_document | Binary | Optional | ✅ | Stored PDF of the rendered BaseResume (anchor document) |
+| rendered_at | Timestamp | Optional | No | When the document was last rendered |
 | is_primary | Boolean | ✅ | No | If true, default for new applications without clear role match |
 | status | Enum | ✅ | No | Active / Archived |
 | display_order | Integer | ✅ | No | For ordering multiple Base Resumes in UI |
@@ -110,6 +120,14 @@ A curated "master" resume for a specific role type. References Persona data.
 - At least one Base Resume per Persona (created during onboarding)
 - Exactly one Base Resume should have `is_primary = true`
 - `name` must be unique per Persona
+- `rendered_document` should be generated after initial creation and whenever content selection changes
+
+**Rendering Workflow:**
+1. User (or agent during onboarding) creates BaseResume with content selections
+2. System renders the document (PDF) from selected Persona data
+3. User reviews and approves the rendered document
+4. Document is stored in `rendered_document` — this becomes the anchor
+5. If user updates content selections, system re-renders and user re-approves
 
 **JSONB Structure Examples:**
 
@@ -167,11 +185,11 @@ When status changes to Approved, these fields are copied from the Base Resume:
 
 | Field | Type | Required | PII | Notes |
 |-------|------|----------|-----|-------|
-| snapshot_included_jobs | List of Job IDs | ✅ | No | Copied from Base Resume on approval |
-| snapshot_job_bullet_selections | JSONB | ✅ | No | Copied from Base Resume on approval |
-| snapshot_included_education | List of Education IDs | Optional | No | Copied from Base Resume on approval |
-| snapshot_included_certifications | List of Certification IDs | Optional | No | Copied from Base Resume on approval |
-| snapshot_skills_emphasis | List of Skill IDs | Optional | No | Copied from Base Resume on approval |
+| snapshot_included_jobs | List of Job IDs | Optional | No | NULL until approval, then populated from Base Resume |
+| snapshot_job_bullet_selections | JSONB | Optional | No | NULL until approval, then populated from Base Resume |
+| snapshot_included_education | List of Education IDs | Optional | No | NULL until approval, then populated from Base Resume |
+| snapshot_included_certifications | List of Certification IDs | Optional | No | NULL until approval, then populated from Base Resume |
+| snapshot_skills_emphasis | List of Skill IDs | Optional | No | NULL until approval, then populated from Base Resume |
 
 #### 4.3.3 Rendering Logic
 
@@ -416,6 +434,7 @@ Agent may NOT:
 | Entity | PII Fields | Notes |
 |--------|------------|-------|
 | Resume File | `file_binary` | Contains full resume with contact info |
+| Base Resume | `rendered_document` | Contains full resume with contact info |
 | Submitted PDF | `file_binary` | Contains full resume with contact info |
 
 ### 9.2 Data Residency
@@ -456,7 +475,28 @@ This section preserves context for implementation.
 | Job Variant inheritance | Always inherit from Base Resume / Snapshot on creation / Snapshot on approval | Snapshot on approval | Drafts should reflect Base Resume edits (user iterating). Approved variants must be immutable (legal/audit trail). Snapshot captures state at moment of commitment. |
 | What gets snapshotted | Everything / Only overrides / Inherited fields only | All inherited fields + overrides | Approved Job Variant must be fully self-contained. Cannot depend on Base Resume state. User might edit Base Resume after approval. |
 
-### 11.3 PDF Generation Decisions
+### 11.3 BaseResume as Document Anchor
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| BaseResume storage | Metadata only (render on demand) / Store rendered document | Store rendered document | Without stored document, each render could drift in formatting, tone, or style. Stored document acts as anchor — JobVariants compare against actual document, not regenerated content. Ensures two jobs at same company receive recognizably similar resumes. |
+| When to render | On creation only / On every content change / On user request | On content change with user approval | Content selection changes require re-render. User reviews and approves the new anchor. Prevents accidental drift. |
+
+**JobVariant Modification Limits:**
+
+To prevent drift from the BaseResume anchor, JobVariants have strict limits:
+
+| Allowed | NOT Allowed |
+|---------|-------------|
+| Reorder bullets within a job | Add new content not in Persona |
+| Adjust summary wording (tone, emphasis) | Rewrite summary completely |
+| Highlight different skills from BaseResume's list | Add skills not in BaseResume |
+| Minor keyword alignment | Change job history |
+| Reorder sections | Fundamentally restructure layout |
+
+**Guideline:** A JobVariant should be recognizably the same resume as its BaseResume. If printed side-by-side, a recruiter would see them as minor variations, not different documents.
+
+### 11.4 PDF Generation Decisions
 
 | Decision | Options Considered | Chosen | Rationale |
 |----------|-------------------|--------|-----------|
@@ -481,3 +521,5 @@ This section preserves context for implementation.
 | 2025-01-25 | 0.3 | CRITICAL FIX: Job Variant now snapshots all fields on approval (§4.3.1–4.3.3) to ensure immutability. Clarified PDF generation timing — triggered on download, not on "Applied" status (§6.4). Promoted Persona Change Flag to proper entity (§4.5). |
 | 2025-01-25 | 0.4 | Added: §11 Design Decisions & Rationale for context preservation. |
 | 2025-01-25 | 0.5 | Fixed Submitted PDF timing: `application_id` is now Optional (§4.4). PDF created on download with NULL `application_id`, linked when user marks "Applied". Added orphan cleanup note (7-day purge). |
+| 2025-01-25 | 0.6 | Coherence fix: JobVariant snapshot fields now marked Optional (NULL until approval) instead of Required. |
+| 2026-01-25 | 0.7 | Added `rendered_document` and `rendered_at` fields to BaseResume (§4.2). BaseResume now stores actual PDF as anchor document to prevent formatting/style drift across JobVariants. Added §11.3 BaseResume as Document Anchor with JobVariant modification limits. Updated PII fields list. |

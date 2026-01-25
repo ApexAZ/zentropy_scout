@@ -16,11 +16,11 @@ This document consolidates all entity definitions from REQ-001 through REQ-004 i
 
 | Document | Entities | Version |
 |----------|----------|---------|
-| REQ-001 Persona Schema | Persona, WorkHistory, Bullet, Skill, Education, Certification, AchievementStory, VoiceProfile, CustomNonNegotiable, PersonaEmbedding | 0.4 |
-| REQ-002 Resume Schema | ResumeFile, BaseResume, JobVariant, SubmittedResumePDF, PersonaChangeFlag | 0.5 |
-| REQ-002b Cover Letter Schema | CoverLetter, SubmittedCoverLetterPDF | 0.4 |
-| REQ-003 Job Posting Schema | JobSource, UserSourcePreference, JobPosting, ExtractedSkill, PollingConfiguration | 0.2 |
-| REQ-004 Application Schema | Application, TimelineEvent | 0.3 |
+| REQ-001 Persona Schema | Persona, WorkHistory, Bullet, Skill, Education, Certification, AchievementStory, VoiceProfile, CustomNonNegotiable, PersonaEmbedding | 0.7 |
+| REQ-002 Resume Schema | ResumeFile, BaseResume, JobVariant, SubmittedResumePDF, PersonaChangeFlag | 0.7 |
+| REQ-002b Cover Letter Schema | CoverLetter, SubmittedCoverLetterPDF | 0.5 |
+| REQ-003 Job Posting Schema | JobSource, UserSourcePreference, JobPosting, ExtractedSkill, PollingConfiguration | 0.3 |
+| REQ-004 Application Schema | Application, TimelineEvent | 0.4 |
 
 ---
 
@@ -30,11 +30,11 @@ This document consolidates all entity definitions from REQ-001 through REQ-004 i
 
 | Dependency | Type | Notes |
 |------------|------|-------|
-| REQ-001 Persona Schema v0.4 | Source | Persona, WorkHistory, Bullet, Skill, Education, Certification, AchievementStory, VoiceProfile, CustomNonNegotiable, PersonaEmbedding |
-| REQ-002 Resume Schema v0.5 | Source | ResumeFile, BaseResume, JobVariant, SubmittedResumePDF, PersonaChangeFlag |
-| REQ-002b Cover Letter Schema v0.4 | Source | CoverLetter, SubmittedCoverLetterPDF |
-| REQ-003 Job Posting Schema v0.2 | Source | JobSource, UserSourcePreference, JobPosting, ExtractedSkill, PollingConfiguration |
-| REQ-004 Application Schema v0.3 | Source | Application, TimelineEvent |
+| REQ-001 Persona Schema v0.7 | Source | Persona, WorkHistory, Bullet, Skill, Education, Certification, AchievementStory, VoiceProfile, CustomNonNegotiable, PersonaEmbedding |
+| REQ-002 Resume Schema v0.7 | Source | ResumeFile, BaseResume, JobVariant, SubmittedResumePDF, PersonaChangeFlag |
+| REQ-002b Cover Letter Schema v0.5 | Source | CoverLetter, SubmittedCoverLetterPDF |
+| REQ-003 Job Posting Schema v0.3 | Source | JobSource, UserSourcePreference, JobPosting, ExtractedSkill, PollingConfiguration |
+| REQ-004 Application Schema v0.4 | Source | Application, TimelineEvent |
 
 ### 2.2 Other Documents Depend On This
 
@@ -152,7 +152,7 @@ erDiagram
 | auto_draft_threshold | INTEGER | NO | 90 | CHECK (0-100) |
 | onboarding_complete | BOOLEAN | NO | false | |
 | onboarding_step | VARCHAR(50) | YES | | Current step if incomplete |
-| original_resume_file_id | UUID | YES | | FK → ResumeFile |
+| original_resume_file_id | UUID | YES | | FK → ResumeFile ON DELETE SET NULL |
 | created_at | TIMESTAMPTZ | NO | now() | |
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
@@ -388,6 +388,8 @@ erDiagram
 | included_education | JSONB | YES | '[]' | Array of Education IDs |
 | included_certifications | JSONB | YES | '[]' | Array of Certification IDs |
 | skills_emphasis | JSONB | YES | '[]' | Array of Skill IDs |
+| rendered_document | BYTEA | YES | | Stored PDF anchor document (prevents formatting drift) |
+| rendered_at | TIMESTAMPTZ | YES | | When document was last rendered |
 | is_primary | BOOLEAN | NO | false | |
 | status | VARCHAR(20) | NO | 'Active' | CHECK (Active, Archived) |
 | display_order | INTEGER | NO | 0 | |
@@ -399,6 +401,8 @@ erDiagram
 - `idx_baseresume_persona` on (persona_id)
 - `idx_baseresume_primary` on (persona_id) WHERE is_primary = true
 - UNIQUE constraint: one name per persona
+
+**Note:** `rendered_document` stores the actual PDF file of the BaseResume. This serves as an anchor to ensure JobVariants don't drift in formatting, style, or tone. See REQ-002 §11.3 for rationale.
 
 ---
 
@@ -419,6 +423,7 @@ erDiagram
 | snapshot_included_certifications | JSONB | YES | | Populated on approval |
 | snapshot_skills_emphasis | JSONB | YES | | Populated on approval |
 | created_at | TIMESTAMPTZ | NO | now() | |
+| updated_at | TIMESTAMPTZ | NO | now() | |
 | approved_at | TIMESTAMPTZ | YES | | |
 | archived_at | TIMESTAMPTZ | YES | | |
 
@@ -531,6 +536,8 @@ Global registry of job sources. System-managed.
 | api_endpoint | VARCHAR(500) | YES | | |
 | is_active | BOOLEAN | NO | true | |
 | display_order | INTEGER | NO | 0 | |
+| created_at | TIMESTAMPTZ | NO | now() | |
+| updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
 - `idx_jobsource_name` on (source_name) UNIQUE
@@ -571,9 +578,12 @@ Per-user source settings.
 |--------|------|----------|---------|-------------|
 | id | UUID | NO | gen_random_uuid() | PK |
 | persona_id | UUID | NO | | FK → Persona ON DELETE CASCADE, UNIQUE |
-| polling_frequency | VARCHAR(20) | NO | 'Daily' | CHECK (Daily, Twice Daily, Weekly, Manual Only) |
 | last_poll_at | TIMESTAMPTZ | YES | | |
-| next_poll_at | TIMESTAMPTZ | YES | | |
+| next_poll_at | TIMESTAMPTZ | YES | | Calculated from Persona.polling_frequency |
+| created_at | TIMESTAMPTZ | NO | now() | |
+| updated_at | TIMESTAMPTZ | NO | now() | |
+
+**Note:** Polling frequency preference is on Persona table. This table only stores operational state.
 
 **Indexes:**
 - `idx_pollingconfig_persona` on (persona_id) UNIQUE
@@ -588,13 +598,13 @@ Per-user source settings.
 | id | UUID | NO | gen_random_uuid() | PK |
 | persona_id | UUID | NO | | FK → Persona ON DELETE CASCADE |
 | external_id | VARCHAR(255) | YES | | |
-| source_id | UUID | NO | | FK → JobSource |
+| source_id | UUID | NO | | FK → JobSource ON DELETE RESTRICT |
 | also_found_on | JSONB | YES | '{"sources":[]}' | |
 | job_title | VARCHAR(255) | NO | | |
 | company_name | VARCHAR(255) | NO | | |
 | company_url | VARCHAR(500) | YES | | |
 | location | VARCHAR(255) | YES | | |
-| work_model | VARCHAR(20) | YES | | CHECK (Remote, Hybrid, On-site) |
+| work_model | VARCHAR(20) | YES | | CHECK (Remote, Hybrid, Onsite) |
 | seniority_level | VARCHAR(20) | YES | | CHECK (Entry, Mid, Senior, Lead, Executive) |
 | salary_min | INTEGER | YES | | |
 | salary_max | INTEGER | YES | | |
@@ -648,6 +658,7 @@ Skills extracted from job posting for matching.
 | skill_type | VARCHAR(20) | NO | | CHECK (Hard, Soft) |
 | is_required | BOOLEAN | NO | true | |
 | years_requested | INTEGER | YES | | |
+| created_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
 - `idx_extractedskill_jobposting` on (job_posting_id)
@@ -665,8 +676,8 @@ Skills extracted from job posting for matching.
 | job_posting_id | UUID | NO | | FK → JobPosting ON DELETE RESTRICT |
 | job_variant_id | UUID | NO | | FK → JobVariant ON DELETE RESTRICT |
 | cover_letter_id | UUID | YES | | FK → CoverLetter ON DELETE SET NULL |
-| submitted_resume_pdf_id | UUID | YES | | FK → SubmittedResumePDF |
-| submitted_cover_letter_pdf_id | UUID | YES | | FK → SubmittedCoverLetterPDF |
+| submitted_resume_pdf_id | UUID | YES | | FK → SubmittedResumePDF ON DELETE SET NULL |
+| submitted_cover_letter_pdf_id | UUID | YES | | FK → SubmittedCoverLetterPDF ON DELETE SET NULL |
 | status | VARCHAR(20) | NO | 'Applied' | CHECK (Applied, Interviewing, Offer, Accepted, Rejected, Withdrawn) |
 | current_interview_stage | VARCHAR(30) | YES | | CHECK (Phone Screen, Onsite, Final Round) |
 | offer_details | JSONB | YES | | |
@@ -770,7 +781,7 @@ Skills extracted from job posting for matching.
 {
   "filters_failed": [
     {"filter": "minimum_base_salary", "job_value": 90000, "persona_value": 120000},
-    {"filter": "remote_preference", "job_value": "On-site", "persona_value": "Remote Only"}
+    {"filter": "remote_preference", "job_value": "Onsite", "persona_value": "Remote Only"}
   ]
 }
 ```
@@ -928,3 +939,8 @@ Application ↔ SubmittedResumePDF has bidirectional FKs:
 | 2025-01-25 | 0.2 | Fixed field mismatches to match source documents (REQ-001 as source of truth). Persona: `location_*` → `home_*`, `phone` now required. WorkHistory: added `company_industry`, `work_model`. Bullet: added `skills_demonstrated`, `metrics`. Skill: added `category`, renamed `years_experience` → `years_used`. Education: changed `start_date`/`end_date` → `graduation_year`, `degree`/`field_of_study` now required. Certification: renamed fields to match REQ-001. AchievementStory: renamed `related_work_history_id` → `related_job_id`. VoiceProfile: restructured to match REQ-001 (text fields instead of enums). Added §2 Dependencies section. Renumbered all sections. |
 | 2025-01-25 | 0.3 | Added `user_id` FK to Persona (for multi-user support). Fixed onboarding: `onboarding_status` enum → `onboarding_complete` boolean to match REQ-001. Fixed PersonaEmbedding: corrected `embedding_type` values (hard_skills, soft_skills, logistics), added `model_name`, `source_hash` fields to match REQ-001. Fixed WorkHistory `location` to required (not nullable). |
 | 2025-01-25 | 0.4 | Added definitions for Persona fields: `professional_summary`, `years_experience`, `current_role`, `current_company`. These were present but undocumented; now have notes explaining their purpose. |
+| 2025-01-25 | 0.5 | Coherence fixes: Removed `polling_frequency` from PollingConfiguration (now only on Persona). Fixed JobPosting `work_model` enum: "On-site" → "Onsite". |
+| 2025-01-25 | 0.6 | Added explicit ON DELETE behavior: Application.submitted_resume_pdf_id and submitted_cover_letter_pdf_id → SET NULL. JobPosting.source_id → RESTRICT. |
+| 2025-01-25 | 0.7 | Added missing timestamps: JobVariant (updated_at), JobSource (created_at, updated_at), PollingConfiguration (created_at, updated_at), ExtractedSkill (created_at). |
+| 2025-01-25 | 0.8 | Updated source document version references in §1.1 and §2.1 to match current versions after coherence audit completion. |
+| 2026-01-25 | 0.9 | Added `rendered_document` (BYTEA) and `rendered_at` (TIMESTAMPTZ) to BaseResume table. BaseResume now stores actual PDF as anchor document to prevent formatting/style drift. Updated REQ-002 version reference to 0.7. |

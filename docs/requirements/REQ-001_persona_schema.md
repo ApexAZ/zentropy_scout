@@ -41,6 +41,8 @@ Persona
 
 ## 3. Field Definitions
 
+**Note on timestamps:** All entities in this document have `created_at` and `updated_at` timestamps. These are only listed explicitly for top-level entities; child entities (WorkHistory, Bullet, Skill, etc.) also have them but they're omitted for brevity. See REQ-005 for complete schema.
+
 ### 3.0 Persona Metadata
 
 Top-level fields for the Persona record itself.
@@ -98,7 +100,8 @@ A list of job entries. Ordered by `start_date` descending (most recent first) by
 | location | String | ✅ | No | City, State/Country |
 | work_model | Enum | ✅ | No | Remote / Hybrid / Onsite |
 | start_date | Month/Year | ✅ | No | |
-| end_date | Month/Year or "Current" | ✅ | No | |
+| end_date | Month/Year | Optional | No | NULL if is_current = true |
+| is_current | Boolean | ✅ | No | Default: false. If true, end_date should be NULL. |
 | description | String | Optional | No | High-level role summary |
 | bullets | List of Accomplishment | ✅ | No | At least 1 required |
 | display_order | Integer | ✅ | No | For manual reordering |
@@ -142,7 +145,7 @@ A single list containing both Hard Skills and Soft Skills, distinguished by `ski
 | skill_name | String | ✅ | No | e.g., "Python", "Conflict Resolution" |
 | skill_type | Enum | ✅ | No | Hard / Soft |
 | category | String | ✅ | No | Predefined + custom allowed |
-| proficiency | Enum (1-4) | ✅ | No | Learning / Familiar / Proficient / Expert |
+| proficiency | Enum | ✅ | No | Learning / Familiar / Proficient / Expert |
 | years_used | Integer | ✅ | No | |
 | last_used | "Current" or Year | ✅ | No | |
 | display_order | Integer | ✅ | No | For manual reordering within type |
@@ -187,7 +190,7 @@ A list of professional certifications.
 | certification_name | String | ✅ | No | e.g., "AWS Solutions Architect" |
 | issuing_organization | String | ✅ | No | e.g., "Amazon Web Services" |
 | date_obtained | Date | ✅ | No | |
-| expiration_date | Date or "No Expiration" | ✅ | No | |
+| expiration_date | Date | Optional | No | NULL = No Expiration |
 | credential_id | String | Optional | No | |
 | verification_url | URL | Optional | No | |
 | display_order | Integer | ✅ | No | For manual reordering |
@@ -229,17 +232,21 @@ Guides the Ghostwriter to write in the user's authentic tone. All fields are der
 
 **How captured:** Derived from interview conversation + optional writing samples. User can edit.
 
+**Storage:** Implemented as a separate VoiceProfile table with 1:1 relationship to Persona (see REQ-005).
+
 ---
 
 ### 3.8 Non-Negotiables
 
 Hard filters that exclude jobs from consideration.
 
+**Storage:** Location, Compensation, and Other Filters (§3.8.1-3.8.3) are stored as columns on the Persona table. Custom Non-Negotiables (§3.8.4) are stored in a separate CustomNonNegotiable table. See REQ-005.
+
 #### 3.8.1 Location
 
 | Field | Type | Required | PII | Notes |
 |-------|------|----------|-----|-------|
-| commutable_cities | List of String | ✅ | No | Cities user is willing to commute to |
+| commutable_cities | List of String | Optional | No | Cities user is willing to commute to. Empty if remote-only. |
 | max_commute_minutes | Integer | Optional | No | |
 | remote_preference | Enum | ✅ | No | Remote Only / Hybrid OK / Onsite OK / No Preference |
 | relocation_open | Boolean | ✅ | No | |
@@ -250,7 +257,7 @@ Hard filters that exclude jobs from consideration.
 | Field | Type | Required | PII | Notes |
 |-------|------|----------|-----|-------|
 | minimum_base_salary | Integer | Optional | ✅ | Annual, in user's currency |
-| currency | String | Optional | No | Default: USD |
+| salary_currency | String | Optional | No | Default: USD |
 
 #### 3.8.3 Other Filters
 
@@ -579,3 +586,6 @@ This section preserves context for implementation.
 | 2025-01-25 | 0.3 | Added: §7b Deletion Handling — reference check on delete, flag for review pattern, immutable entity protection |
 | 2025-01-25 | 0.4 | Added: §3.10 Discovery Preferences (minimum_fit_threshold, polling_frequency, auto_draft_threshold). Added: §11 Design Decisions & Rationale for context preservation. |
 | 2025-01-25 | 0.5 | Added: §3.1b Professional Overview — `professional_summary`, `years_experience`, `current_role`, `current_company`. These support job matching and display without requiring computation from Work History. |
+| 2025-01-25 | 0.6 | Coherence fixes: Renamed `currency` → `salary_currency`. WorkHistory: added `is_current` boolean, `end_date` now nullable. Certification: `expiration_date` now nullable (NULL = no expiration). Added storage notes for VoiceProfile and Non-Negotiables. Added general note about timestamps. |
+| 2025-01-25 | 0.7 | Changed `commutable_cities` from Required to Optional (can be empty for remote-only users). |
+| 2025-01-25 | 0.8 | Fixed Skill `proficiency` type from "Enum (1-4)" to "Enum" — values are strings (Learning/Familiar/Proficient/Expert), not integers. |

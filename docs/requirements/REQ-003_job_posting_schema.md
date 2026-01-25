@@ -73,6 +73,8 @@ Job Sources (APIs, Extension, Manual)
 
 ## 4. Job Sources
 
+**Note on timestamps:** All entities in this document have `created_at` and `updated_at` timestamps unless otherwise noted. These are omitted from field tables for brevity. See REQ-005 for complete schema including all standard timestamps.
+
 ### 4.1 MVP Sources
 
 | Source | Type | Coverage | Best For |
@@ -126,15 +128,16 @@ Agent explains reasoning to user.
 
 ### 4.4 Polling Configuration
 
+Operational state for job polling. The user's frequency preference is stored on Persona (REQ-001 §3.10).
+
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | id | UUID | ✅ | |
-| persona_id | UUID | ✅ | FK to Persona |
-| polling_frequency | Enum | ✅ | Daily / Twice Daily / Weekly / Manual Only |
-| last_poll_at | Timestamp | Optional | |
-| next_poll_at | Timestamp | Optional | Calculated from frequency |
+| persona_id | UUID | ✅ | FK to Persona (1:1) |
+| last_poll_at | Timestamp | Optional | When polling last ran |
+| next_poll_at | Timestamp | Optional | Calculated from Persona.polling_frequency |
 
-**Default:** Daily polling. User can change frequency or trigger manual poll.
+**Note:** Frequency preference lives on Persona. This table only tracks operational state.
 
 ---
 
@@ -153,7 +156,7 @@ Agent explains reasoning to user.
 | company_name | String | ✅ | No | |
 | company_url | String | Optional | No | Company website |
 | location | String | Optional | No | City, state, country |
-| work_model | Enum | Optional | No | Remote / Hybrid / On-site |
+| work_model | Enum | Optional | No | Remote / Hybrid / Onsite |
 | seniority_level | Enum | Optional | No | Entry / Mid / Senior / Lead / Executive |
 | salary_min | Integer | Optional | No | |
 | salary_max | Integer | Optional | No | |
@@ -415,7 +418,7 @@ Jobs are filtered against Persona Non-Negotiables (REQ-001 §3.6) before being s
 |----------------|-----------------|
 | `minimum_base_salary` | Exclude if `salary_max < minimum_base_salary` (if salary disclosed) |
 | `remote_preference = "Remote Only"` | Exclude if `work_model != Remote` |
-| `remote_preference = "Hybrid OK"` | Exclude if `work_model = On-site` |
+| `remote_preference = "Hybrid OK"` | Exclude if `work_model = Onsite` |
 | `commutable_cities` | Exclude if `location` not in list AND `work_model != Remote` |
 | `custom_non_negotiables` (Exclude type) | Exclude if `company_name` matches filter value |
 
@@ -423,14 +426,14 @@ Jobs are filtered against Persona Non-Negotiables (REQ-001 §3.6) before being s
 - Are NOT shown in default job list
 - Stored in `failed_non_negotiables` JSONB field for transparency
 - User can opt to "Show all jobs" to see filtered jobs with warnings
-- Agent explains: "I filtered out 12 jobs that didn't meet your requirements (salary below minimum, on-site only, etc.)"
+- Agent explains: "I filtered out 12 jobs that didn't meet your requirements (salary below minimum, onsite only, etc.)"
 
 **`failed_non_negotiables` JSONB structure:**
 ```json
 {
   "filters_failed": [
     {"filter": "minimum_base_salary", "job_value": 90000, "persona_value": 120000},
-    {"filter": "remote_preference", "job_value": "On-site", "persona_value": "Remote Only"}
+    {"filter": "remote_preference", "job_value": "Onsite", "persona_value": "Remote Only"}
   ]
 }
 ```
@@ -670,3 +673,4 @@ This section preserves context for implementation. Future developers (including 
 |------|---------|---------|
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
 | 2025-01-25 | 0.2 | Added: Problem context (§1.1), Source Registry split into global + user prefs (§4.2b), Cross-source dedup with `also_found_on` (§9.2), Non-Negotiables filtering (§10.4), Minimum fit threshold (§10.5), Expiration detection (§12.2), `seniority_level` and `years_experience` fields, "similar title" definition (§8.1), Decision Log (§18). Fixed: Retention conflict with favorites (§12.1). |
+| 2025-01-25 | 0.3 | Coherence fixes: Removed duplicate `polling_frequency` from PollingConfiguration (now only on Persona). Fixed `work_model` enum: "On-site" → "Onsite" for consistency with REQ-001. |
