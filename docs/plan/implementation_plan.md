@@ -178,7 +178,7 @@ These steps require user action outside Claude Code:
 | 3.1 | Layer Diagram | `structure, plan` | ✅ |
 | 3.2 | Key Components | `structure, plan` | ✅ |
 | 6.1 | ProviderConfig Class | `provider, tdd, plan` | ✅ |
-| 6.2 | Environment Variables | `provider, tdd, plan` | ⬜ |
+| 6.2 | Environment Variables | `provider, tdd, plan` | ✅ |
 | 6.3 | Provider Factory | `provider, structure, tdd, plan` | ⬜ |
 | 4.1 | LLM Abstract Interface | `provider, tdd, plan` | ⬜ |
 | 4.2 | Provider-Specific Adapters (Claude, OpenAI, Gemini) | `provider, tdd, plan` | ⬜ |
