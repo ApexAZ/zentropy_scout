@@ -18,6 +18,104 @@ Requirements location: `docs/requirements/`
 
 ---
 
+## Phase 0: Project Bootstrap
+
+**Status:** ⬜ Incomplete
+
+*One-time setup. Creates folder structure, installs dependencies, initializes database tooling.*
+
+### 0.1 Manual Prerequisites (User)
+**Status:** ⬜ Incomplete
+
+These steps require user action outside Claude Code:
+
+| Task | Command / Action | Status |
+|------|------------------|--------|
+| Enable Docker in WSL | Docker Desktop → Settings → Resources → WSL Integration → Enable Ubuntu | ⬜ |
+| Start Docker Desktop | Launch Docker Desktop application | ⬜ |
+| Copy environment file | `cp .env.example .env` | ⬜ |
+
+### 0.2 Project Scaffold (Agent)
+**Status:** ⬜ Incomplete
+
+*Creates backend folder structure and configuration files.*
+
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read `zentropy-structure` skill for folder layout and `pyproject.toml` template |
+| 📂 **Create** | Create all folders per `zentropy-structure` skill |
+| 📝 **Config** | Create `pyproject.toml`, `alembic.ini` from skill templates |
+| ▶️ **Commands** | See `zentropy-commands` for alembic init |
+| ✅ **Verify** | Folder structure matches skill diagram |
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 0.2.1 | Create `backend/` folder structure | `structure, commands` | ⬜ |
+| 0.2.2 | Create `backend/pyproject.toml` | `structure` | ⬜ |
+| 0.2.3 | Create `backend/alembic.ini` | `db, commands` | ⬜ |
+| 0.2.4 | Initialize alembic (`alembic init migrations`) | `db, commands` | ⬜ |
+| 0.2.5 | Create `backend/app/__init__.py` (empty) | `structure` | ⬜ |
+| 0.2.6 | Create `backend/app/core/__init__.py` | `structure` | ⬜ |
+| 0.2.7 | Create `backend/app/core/config.py` (Settings class) | `structure, tdd` | ⬜ |
+| 0.2.8 | Create `backend/app/core/database.py` (engine, session) | `db, structure, tdd` | ⬜ |
+| 0.2.9 | Create `backend/app/models/__init__.py` | `structure` | ⬜ |
+| 0.2.10 | Create `backend/app/models/base.py` (Base class, mixins) | `db, structure, tdd` | ⬜ |
+| 0.2.11 | Create `backend/tests/conftest.py` | `test, structure` | ⬜ |
+
+### 0.3 Dependency Installation (Agent)
+**Status:** ⬜ Incomplete
+
+*Installs Python packages and verifies environment.*
+
+#### Workflow
+| Step | Action |
+|------|--------|
+| ▶️ **Commands** | See `zentropy-commands` for venv and pip commands |
+| ✅ **Verify** | `pip list` shows all required packages |
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 0.3.1 | Create virtual environment (`python -m venv .venv`) | `commands` | ⬜ |
+| 0.3.2 | Install dependencies (`pip install -e ".[dev]"`) | `commands` | ⬜ |
+| 0.3.3 | Verify ruff installed (`ruff --version`) | `commands` | ⬜ |
+| 0.3.4 | Verify pytest installed (`pytest --version`) | `commands` | ⬜ |
+
+### 0.4 Database Setup (Agent)
+**Status:** ⬜ Incomplete
+
+*Starts PostgreSQL and verifies connection.*
+
+#### Workflow
+| Step | Action |
+|------|--------|
+| ▶️ **Commands** | See `zentropy-commands` for docker compose |
+| ✅ **Verify** | Can connect to database with psql |
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 0.4.1 | Start PostgreSQL (`docker compose up -d`) | `commands` | ⬜ |
+| 0.4.2 | Verify PostgreSQL running (`docker compose ps`) | `commands` | ⬜ |
+| 0.4.3 | Test connection (`docker compose exec postgres psql ...`) | `db, commands` | ⬜ |
+| 0.4.4 | Verify pgvector extension available | `db, commands` | ⬜ |
+
+### 0.5 Smoke Test (Agent)
+**Status:** ⬜ Incomplete
+
+*Verifies everything works together.*
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 0.5.1 | Run `alembic current` (should show no migrations) | `db, commands` | ⬜ |
+| 0.5.2 | Run `pytest` (should pass with 0 tests collected) | `test, commands` | ⬜ |
+| 0.5.3 | Run `ruff check backend/` (should pass) | `commands` | ⬜ |
+
+---
+
 ## Phase 1: Foundation
 
 ### 1.1 Database Schema (REQ-005)
@@ -68,7 +166,7 @@ Requirements location: `docs/requirements/`
 |------|--------|
 | 📖 **Before** | Use `req-reader` agent to load REQ-009 section for current task |
 | 🧪 **TDD** | Write interface test first, then implement — follow `zentropy-tdd` (red-green-refactor) |
-| 🤖 **Patterns** | Use `zentropy-provider` for Claude SDK, provider abstraction, embeddings |
+| 🤖 **Patterns** | Use `zentropy-provider` for Claude SDK, provider abstraction, embeddings; `zentropy-structure` for ABC folder organization |
 | 🧪 **Mocking** | Use `zentropy-test` for mock providers and pytest fixtures |
 | ✅ **Verify** | Use `test-runner` agent to run provider tests with mocked responses |
 | 🔍 **Review** | Use `code-reviewer` agent to check interface consistency |
