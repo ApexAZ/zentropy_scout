@@ -33,7 +33,7 @@ These steps require user action outside Claude Code:
 |------|------------------|--------|
 | Enable Docker in WSL | Docker Desktop → Settings → Resources → WSL Integration → Enable Ubuntu | ⬜ |
 | Start Docker Desktop | Launch Docker Desktop application | ⬜ |
-| Copy environment file | `cp .env.example .env` | ⬜ |
+| Copy environment file | `cp .env.example .env, plan` | ⬜ |
 
 ### 0.2 Project Scaffold (Agent)
 **Status:** ⬜ Incomplete
@@ -52,17 +52,17 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 0.2.1 | Create `backend/` folder structure | `structure, commands` | ⬜ |
-| 0.2.2 | Create `backend/pyproject.toml` | `structure` | ⬜ |
-| 0.2.3 | Create `backend/alembic.ini` | `db, commands` | ⬜ |
-| 0.2.4 | Initialize alembic (`alembic init migrations`) | `db, commands` | ⬜ |
-| 0.2.5 | Create `backend/app/__init__.py` (empty) | `structure` | ⬜ |
-| 0.2.6 | Create `backend/app/core/__init__.py` | `structure` | ⬜ |
-| 0.2.7 | Create `backend/app/core/config.py` (Settings class) | `structure, tdd` | ⬜ |
-| 0.2.8 | Create `backend/app/core/database.py` (engine, session) | `db, structure, tdd` | ⬜ |
-| 0.2.9 | Create `backend/app/models/__init__.py` | `structure` | ⬜ |
-| 0.2.10 | Create `backend/app/models/base.py` (Base class, mixins) | `db, structure, tdd` | ⬜ |
-| 0.2.11 | Create `backend/tests/conftest.py` | `test, structure` | ⬜ |
+| 0.2.1 | Create `backend/` folder structure | `structure, commands, plan` | ⬜ |
+| 0.2.2 | Create `backend/pyproject.toml` | `structure, plan` | ⬜ |
+| 0.2.3 | Create `backend/alembic.ini` | `db, commands, plan` | ⬜ |
+| 0.2.4 | Initialize alembic (`alembic init migrations`) | `db, commands, plan` | ⬜ |
+| 0.2.5 | Create `backend/app/__init__.py` (empty) | `structure, plan` | ⬜ |
+| 0.2.6 | Create `backend/app/core/__init__.py` | `structure, plan` | ⬜ |
+| 0.2.7 | Create `backend/app/core/config.py` (Settings class) | `structure, tdd, plan` | ⬜ |
+| 0.2.8 | Create `backend/app/core/database.py` (engine, session) | `db, structure, tdd, plan` | ⬜ |
+| 0.2.9 | Create `backend/app/models/__init__.py` | `structure, plan` | ⬜ |
+| 0.2.10 | Create `backend/app/models/base.py` (Base class, mixins) | `db, structure, tdd, plan` | ⬜ |
+| 0.2.11 | Create `backend/tests/conftest.py` | `test, structure, plan` | ⬜ |
 
 ### 0.3 Dependency Installation (Agent)
 **Status:** ⬜ Incomplete
@@ -78,10 +78,10 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 0.3.1 | Create virtual environment (`python -m venv .venv`) | `commands` | ⬜ |
-| 0.3.2 | Install dependencies (`pip install -e ".[dev]"`) | `commands` | ⬜ |
-| 0.3.3 | Verify ruff installed (`ruff --version`) | `commands` | ⬜ |
-| 0.3.4 | Verify pytest installed (`pytest --version`) | `commands` | ⬜ |
+| 0.3.1 | Create virtual environment (`python -m venv .venv`) | `commands, plan` | ⬜ |
+| 0.3.2 | Install dependencies (`pip install -e ".[dev]"`) | `commands, plan` | ⬜ |
+| 0.3.3 | Verify ruff installed (`ruff --version`) | `commands, plan` | ⬜ |
+| 0.3.4 | Verify pytest installed (`pytest --version`) | `commands, plan` | ⬜ |
 
 ### 0.4 Database Setup (Agent)
 **Status:** ⬜ Incomplete
@@ -97,10 +97,10 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 0.4.1 | Start PostgreSQL (`docker compose up -d`) | `commands` | ⬜ |
-| 0.4.2 | Verify PostgreSQL running (`docker compose ps`) | `commands` | ⬜ |
-| 0.4.3 | Test connection (`docker compose exec postgres psql ...`) | `db, commands` | ⬜ |
-| 0.4.4 | Verify pgvector extension available | `db, commands` | ⬜ |
+| 0.4.1 | Start PostgreSQL (`docker compose up -d`) | `commands, plan` | ⬜ |
+| 0.4.2 | Verify PostgreSQL running (`docker compose ps`) | `commands, plan` | ⬜ |
+| 0.4.3 | Test connection (`docker compose exec postgres psql ...`) | `db, commands, plan` | ⬜ |
+| 0.4.4 | Verify pgvector extension available | `db, commands, plan` | ⬜ |
 
 ### 0.5 Smoke Test (Agent)
 **Status:** ⬜ Incomplete
@@ -110,16 +110,16 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 0.5.1 | Run `alembic current` (should show no migrations) | `db, commands` | ⬜ |
-| 0.5.2 | Run `pytest` (should pass with 0 tests collected) | `test, commands` | ⬜ |
-| 0.5.3 | Run `ruff check backend/` (should pass) | `commands` | ⬜ |
+| 0.5.1 | Run `alembic current` (should show no migrations) | `db, commands, plan` | ⬜ |
+| 0.5.2 | Run `pytest` (should pass with 0 tests collected) | `test, commands, plan` | ⬜ |
+| 0.5.3 | Run `ruff check backend/` (should pass) | `commands, plan` | ⬜ |
 
 ---
 
 ## Phase 1: Foundation
 
 ### 1.1 Database Schema (REQ-005)
-**Status:** ⬜ Incomplete
+**Status:** 🟡 In Progress
 
 *Creates all database tables and migrations. Must complete before any other implementation.*
 
@@ -137,22 +137,22 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 8 | Extensions Required (pgvector) | `db, commands, tdd` | ⬜ |
-| 9.1 | Migration Order | `db, tdd` | ⬜ |
-| 9.2 | Circular Reference Note | `db, tdd` | ⬜ |
-| 4.0 | User (Auth Foundation) | `db, tdd` | ⬜ |
-| 4.1 | Persona Domain Tables | `db, tdd` | ⬜ |
-| 4.2 | Resume Domain Tables | `db, tdd` | ⬜ |
-| 4.3 | Cover Letter Domain Tables | `db, tdd` | ⬜ |
-| 4.4 | Job Posting Domain Tables | `db, tdd` | ⬜ |
-| 4.5 | Application Domain Tables | `db, tdd` | ⬜ |
-| 5.1 | JSONB Schema — Persona Domain | `db` | ⬜ |
-| 5.2 | JSONB Schema — Resume Domain | `db` | ⬜ |
-| 5.3 | JSONB Schema — Job Posting Domain | `db` | ⬜ |
-| 5.4 | JSONB Schema — Application Domain | `db` | ⬜ |
-| 6 | Archive Implementation | `db, tdd` | ⬜ |
-| 7 | Cleanup Jobs | `db, tdd, test` | ⬜ |
-| 3 | Entity Relationship Diagram (validation) | `db` | ⬜ |
+| 8 | Extensions Required (pgvector) | `db, commands, tdd, plan` | ✅ |
+| 9.1 | Migration Order | `db, tdd, plan` | ✅ |
+| 9.2 | Circular Reference Note | `db, tdd, plan` | ✅ |
+| 4.0 | User (Auth Foundation) | `db, tdd, plan` | ✅ |
+| 4.1 | Persona Domain Tables | `db, tdd, plan` | ✅ |
+| 4.2 | Resume Domain Tables | `db, tdd, plan` | ✅ |
+| 4.3 | Cover Letter Domain Tables | `db, tdd, plan` | ✅ |
+| 4.4 | Job Posting Domain Tables | `db, tdd, plan` | ✅ |
+| 4.5 | Application Domain Tables | `db, tdd, plan` | 🟡 |
+| 5.1 | JSONB Schema — Persona Domain | `db, plan` | ✅ |
+| 5.2 | JSONB Schema — Resume Domain | `db, plan` | ✅ |
+| 5.3 | JSONB Schema — Job Posting Domain | `db, plan` | ✅ |
+| 5.4 | JSONB Schema — Application Domain | `db, plan` | ✅ |
+| 6 | Archive Implementation | `db, tdd, plan` | ✅ |
+| 7 | Cleanup Jobs | `db, tdd, test, plan` | ⬜ |
+| 3 | Entity Relationship Diagram (validation) | `db, plan` | ⬜ |
 
 ---
 
@@ -175,29 +175,29 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 3.1 | Layer Diagram | `structure` | ⬜ |
-| 3.2 | Key Components | `structure` | ⬜ |
-| 6.1 | ProviderConfig Class | `provider, tdd` | ⬜ |
-| 6.2 | Environment Variables | `provider, tdd` | ⬜ |
-| 6.3 | Provider Factory | `provider, structure, tdd` | ⬜ |
-| 4.1 | LLM Abstract Interface | `provider, tdd` | ⬜ |
-| 4.2 | Provider-Specific Adapters (Claude, OpenAI, Gemini) | `provider, tdd` | ⬜ |
-| 4.3 | Model Routing Table | `provider` | ⬜ |
-| 4.4 | Cost Estimates by Task | `provider` | ⬜ |
-| 4.5 | Tool Calling Patterns | `provider, tdd` | ⬜ |
-| 4.6 | JSON Mode Patterns | `provider, tdd` | ⬜ |
-| 5.1 | Embedding Abstract Interface | `provider, db, tdd` | ⬜ |
-| 5.2 | OpenAI Embedding Adapter | `provider, tdd` | ⬜ |
-| 5.3 | Embedding Model Comparison | `provider` | ⬜ |
-| 7.1 | Error Taxonomy | `provider, structure, tdd` | ⬜ |
-| 7.2 | Retry Strategy | `provider, test, tdd` | ⬜ |
-| 7.3 | Error Mapping | `provider, tdd` | ⬜ |
-| 8.1 | Logging | `provider, structure` | ⬜ |
-| 9.1 | Mock Provider | `provider, test, tdd` | ⬜ |
-| 9.2 | Test Fixtures | `test, tdd` | ⬜ |
-| 8.2 | Metrics (Future) | `provider` | ⬜ |
-| 8.3 | Cost Tracking (Future) | `provider` | ⬜ |
-| 10 | BYOK Support (Future) | `provider` | ⬜ |
+| 3.1 | Layer Diagram | `structure, plan` | ⬜ |
+| 3.2 | Key Components | `structure, plan` | ⬜ |
+| 6.1 | ProviderConfig Class | `provider, tdd, plan` | ⬜ |
+| 6.2 | Environment Variables | `provider, tdd, plan` | ⬜ |
+| 6.3 | Provider Factory | `provider, structure, tdd, plan` | ⬜ |
+| 4.1 | LLM Abstract Interface | `provider, tdd, plan` | ⬜ |
+| 4.2 | Provider-Specific Adapters (Claude, OpenAI, Gemini) | `provider, tdd, plan` | ⬜ |
+| 4.3 | Model Routing Table | `provider, plan` | ⬜ |
+| 4.4 | Cost Estimates by Task | `provider, plan` | ⬜ |
+| 4.5 | Tool Calling Patterns | `provider, tdd, plan` | ⬜ |
+| 4.6 | JSON Mode Patterns | `provider, tdd, plan` | ⬜ |
+| 5.1 | Embedding Abstract Interface | `provider, db, tdd, plan` | ⬜ |
+| 5.2 | OpenAI Embedding Adapter | `provider, tdd, plan` | ⬜ |
+| 5.3 | Embedding Model Comparison | `provider, plan` | ⬜ |
+| 7.1 | Error Taxonomy | `provider, structure, tdd, plan` | ⬜ |
+| 7.2 | Retry Strategy | `provider, test, tdd, plan` | ⬜ |
+| 7.3 | Error Mapping | `provider, tdd, plan` | ⬜ |
+| 8.1 | Logging | `provider, structure, plan` | ⬜ |
+| 9.1 | Mock Provider | `provider, test, tdd, plan` | ⬜ |
+| 9.2 | Test Fixtures | `test, tdd, plan` | ⬜ |
+| 8.2 | Metrics (Future) | `provider, plan` | ⬜ |
+| 8.3 | Cost Tracking (Future) | `provider, plan` | ⬜ |
+| 10 | BYOK Support (Future) | `provider, plan` | ⬜ |
 
 ---
 
@@ -220,26 +220,26 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 2.1 | API Style: REST | `structure, docs` | ⬜ |
-| 2.2 | Deployment Model: Local-First | `structure` | ⬜ |
-| 6.1 | Authentication | `structure, tdd` | ⬜ |
-| 6.2 | Authorization | `structure, tdd` | ⬜ |
-| 7.1 | Content Type | `structure, tdd` | ⬜ |
-| 7.2 | Response Envelope | `structure, tdd` | ⬜ |
-| 7.3 | Pagination | `structure, tdd` | ⬜ |
-| 8.1 | HTTP Status Codes | `structure, tdd` | ⬜ |
-| 8.2 | Error Codes | `structure, tdd` | ⬜ |
-| 5.1 | URL Structure | `structure, tdd` | ⬜ |
-| 5.2 | Resource Mapping | `structure, tdd, docs` | ⬜ |
-| 5.3 | Standard HTTP Methods | `structure, tdd` | ⬜ |
-| 5.5 | Standard Filtering & Sorting | `structure, tdd` | ⬜ |
-| 2.3 | Architecture: API-Mediated Agents | `structure, docs` | ⬜ |
-| 2.6 | Bulk Operations | `structure, tdd` | ⬜ |
-| 2.7 | File Upload & Download | `structure, tdd, db` | ⬜ |
-| 5.4 | Persona Change Flags (HITL Sync) | `structure, tdd, db` | ⬜ |
-| 2.5 | Real-Time Communication: SSE | `structure, tdd, provider` | ⬜ |
-| 2.4 | Chat Agent with Tools | `structure, tdd, provider` | ⬜ |
-| 5.6 | Job Posting Ingest Endpoint | `structure, tdd, db` | ⬜ |
+| 2.1 | API Style: REST | `structure, docs, plan` | ⬜ |
+| 2.2 | Deployment Model: Local-First | `structure, plan` | ⬜ |
+| 6.1 | Authentication | `structure, tdd, plan` | ⬜ |
+| 6.2 | Authorization | `structure, tdd, plan` | ⬜ |
+| 7.1 | Content Type | `structure, tdd, plan` | ⬜ |
+| 7.2 | Response Envelope | `structure, tdd, plan` | ⬜ |
+| 7.3 | Pagination | `structure, tdd, plan` | ⬜ |
+| 8.1 | HTTP Status Codes | `structure, tdd, plan` | ⬜ |
+| 8.2 | Error Codes | `structure, tdd, plan` | ⬜ |
+| 5.1 | URL Structure | `structure, tdd, plan` | ⬜ |
+| 5.2 | Resource Mapping | `structure, tdd, docs, plan` | ⬜ |
+| 5.3 | Standard HTTP Methods | `structure, tdd, plan` | ⬜ |
+| 5.5 | Standard Filtering & Sorting | `structure, tdd, plan` | ⬜ |
+| 2.3 | Architecture: API-Mediated Agents | `structure, docs, plan` | ⬜ |
+| 2.6 | Bulk Operations | `structure, tdd, plan` | ⬜ |
+| 2.7 | File Upload & Download | `structure, tdd, db, plan` | ⬜ |
+| 5.4 | Persona Change Flags (HITL Sync) | `structure, tdd, db, plan` | ⬜ |
+| 2.5 | Real-Time Communication: SSE | `structure, tdd, provider, plan` | ⬜ |
+| 2.4 | Chat Agent with Tools | `structure, tdd, provider, plan` | ⬜ |
+| 5.6 | Job Posting Ingest Endpoint | `structure, tdd, db, plan` | ⬜ |
 
 ---
 
@@ -264,9 +264,9 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 3.1 | Why LangGraph | `docs` | ⬜ |
-| 3.2 | State Schema | `provider, structure, tdd` | ⬜ |
-| 3.3 | Checkpointing & HITL | `provider, db, tdd` | ⬜ |
+| 3.1 | Why LangGraph | `docs, plan` | ⬜ |
+| 3.2 | State Schema | `provider, structure, tdd, plan` | ⬜ |
+| 3.3 | Checkpointing & HITL | `provider, db, tdd, plan` | ⬜ |
 
 ---
 
@@ -290,12 +290,12 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4.1 | Chat Agent — Responsibilities | `provider, docs` | ⬜ |
-| 4.2 | Chat Agent — Tool Categories | `provider, structure, tdd` | ⬜ |
-| 4.3 | Chat Agent — Intent Recognition | `provider, tdd` | ⬜ |
-| 4.4 | Chat Agent — Ambiguity Resolution | `provider, tdd` | ⬜ |
-| 4.5 | Chat Agent — Response Formatting | `provider, tdd` | ⬜ |
-| 15.1 | Graph Spec — Chat Agent | `provider, structure, tdd` | ⬜ |
+| 4.1 | Chat Agent — Responsibilities | `provider, docs, plan` | ⬜ |
+| 4.2 | Chat Agent — Tool Categories | `provider, structure, tdd, plan` | ⬜ |
+| 4.3 | Chat Agent — Intent Recognition | `provider, tdd, plan` | ⬜ |
+| 4.4 | Chat Agent — Ambiguity Resolution | `provider, tdd, plan` | ⬜ |
+| 4.5 | Chat Agent — Response Formatting | `provider, tdd, plan` | ⬜ |
+| 15.1 | Graph Spec — Chat Agent | `provider, structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -319,13 +319,13 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 5.1 | Onboarding Agent — Trigger Conditions | `provider, tdd` | ⬜ |
-| 5.2 | Onboarding Agent — Interview Flow | `provider, tdd` | ⬜ |
-| 5.3 | Onboarding Agent — Step Behaviors | `provider, db, tdd` | ⬜ |
-| 5.4 | Onboarding Agent — Checkpoint Handling | `provider, db, tdd` | ⬜ |
-| 5.5 | Onboarding Agent — Post-Onboarding Updates | `provider, db, tdd` | ⬜ |
-| 5.6 | Onboarding Agent — Prompt Templates | `provider, docs, tdd` | ⬜ |
-| 15.2 | Graph Spec — Onboarding Agent | `provider, structure, tdd` | ⬜ |
+| 5.1 | Onboarding Agent — Trigger Conditions | `provider, tdd, plan` | ⬜ |
+| 5.2 | Onboarding Agent — Interview Flow | `provider, tdd, plan` | ⬜ |
+| 5.3 | Onboarding Agent — Step Behaviors | `provider, db, tdd, plan` | ⬜ |
+| 5.4 | Onboarding Agent — Checkpoint Handling | `provider, db, tdd, plan` | ⬜ |
+| 5.5 | Onboarding Agent — Post-Onboarding Updates | `provider, db, tdd, plan` | ⬜ |
+| 5.6 | Onboarding Agent — Prompt Templates | `provider, docs, tdd, plan` | ⬜ |
+| 15.2 | Graph Spec — Onboarding Agent | `provider, structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -350,40 +350,40 @@ These steps require user action outside Claude Code:
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 6.1 | Scouter Agent — Trigger Conditions | `provider, tdd` | ⬜ |
-| 6.2 | Scouter Agent — Polling Flow | `provider, db, tdd` | ⬜ |
-| 6.3 | Scouter Agent — Source Adapters | `provider, structure, tdd` | ⬜ |
-| 6.4 | Scouter Agent — Skill & Culture Extraction | `provider, tdd` | ⬜ |
-| 6.5 | Scouter Agent — Ghost Detection | `db, test, tdd` | ⬜ |
-| 6.6 | Scouter Agent — Deduplication Logic | `db, test, tdd` | ⬜ |
-| 6.7 | Scouter Agent — Error Handling | `provider, test, tdd` | ⬜ |
-| 15.3 | Graph Spec — Scouter Agent | `provider, structure, tdd` | ⬜ |
+| 6.1 | Scouter Agent — Trigger Conditions | `provider, tdd, plan` | ⬜ |
+| 6.2 | Scouter Agent — Polling Flow | `provider, db, tdd, plan` | ⬜ |
+| 6.3 | Scouter Agent — Source Adapters | `provider, structure, tdd, plan` | ⬜ |
+| 6.4 | Scouter Agent — Skill & Culture Extraction | `provider, tdd, plan` | ⬜ |
+| 6.5 | Scouter Agent — Ghost Detection | `db, test, tdd, plan` | ⬜ |
+| 6.6 | Scouter Agent — Deduplication Logic | `db, test, tdd, plan` | ⬜ |
+| 6.7 | Scouter Agent — Error Handling | `provider, test, tdd, plan` | ⬜ |
+| 15.3 | Graph Spec — Scouter Agent | `provider, structure, tdd, plan` | ⬜ |
 
 **From REQ-003 (Job Posting Schema):**
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4.1 | MVP Sources | `provider, docs` | ⬜ |
-| 4.2 | Source Registry (Global) | `db, tdd` | ⬜ |
-| 4.2b | User Source Preferences | `db, tdd` | ⬜ |
-| 4.3 | Agent Source Selection | `provider, db, tdd` | ⬜ |
-| 4.4 | Polling Configuration | `db, tdd` | ⬜ |
-| 6.1 | Status Transitions | `db, tdd` | ⬜ |
-| 7.1 | Ghost Detection — Purpose | `docs` | ⬜ |
-| 7.2 | Ghost Detection — Signals | `provider, tdd` | ⬜ |
-| 7.3 | Ghost Detection — Score Interpretation | `provider, tdd` | ⬜ |
-| 7.4 | Ghost Detection — Agent Communication | `provider, tdd` | ⬜ |
-| 7.5 | Ghost Detection — JSONB Structure | `db, tdd` | ⬜ |
-| 8.1 | Repost Detection — Criteria | `db, tdd` | ⬜ |
-| 8.2 | Repost Detection — Handling | `db, tdd` | ⬜ |
-| 8.3 | Repost Detection — Agent Context | `provider, tdd` | ⬜ |
-| 9.1 | Deduplication — Within Same Source | `db, test, tdd` | ⬜ |
-| 9.2 | Deduplication — Across Sources | `db, test, tdd` | ⬜ |
-| 9.3 | Deduplication — Priority | `db, tdd` | ⬜ |
-| 12.1 | Retention — Favorites Override | `db, tdd` | ⬜ |
-| 12.2 | Retention — Expiration Detection | `db, tdd` | ⬜ |
-| 13.1 | Workflow — Discovery Flow | `provider, structure, tdd` | ⬜ |
-| 13.2 | Workflow — User Review Flow | `structure, tdd` | ⬜ |
+| 4.1 | MVP Sources | `provider, docs, plan` | ⬜ |
+| 4.2 | Source Registry (Global) | `db, tdd, plan` | ⬜ |
+| 4.2b | User Source Preferences | `db, tdd, plan` | ⬜ |
+| 4.3 | Agent Source Selection | `provider, db, tdd, plan` | ⬜ |
+| 4.4 | Polling Configuration | `db, tdd, plan` | ⬜ |
+| 6.1 | Status Transitions | `db, tdd, plan` | ⬜ |
+| 7.1 | Ghost Detection — Purpose | `docs, plan` | ⬜ |
+| 7.2 | Ghost Detection — Signals | `provider, tdd, plan` | ⬜ |
+| 7.3 | Ghost Detection — Score Interpretation | `provider, tdd, plan` | ⬜ |
+| 7.4 | Ghost Detection — Agent Communication | `provider, tdd, plan` | ⬜ |
+| 7.5 | Ghost Detection — JSONB Structure | `db, tdd, plan` | ⬜ |
+| 8.1 | Repost Detection — Criteria | `db, tdd, plan` | ⬜ |
+| 8.2 | Repost Detection — Handling | `db, tdd, plan` | ⬜ |
+| 8.3 | Repost Detection — Agent Context | `provider, tdd, plan` | ⬜ |
+| 9.1 | Deduplication — Within Same Source | `db, test, tdd, plan` | ⬜ |
+| 9.2 | Deduplication — Across Sources | `db, test, tdd, plan` | ⬜ |
+| 9.3 | Deduplication — Priority | `db, tdd, plan` | ⬜ |
+| 12.1 | Retention — Favorites Override | `db, tdd, plan` | ⬜ |
+| 12.2 | Retention — Expiration Detection | `db, tdd, plan` | ⬜ |
+| 13.1 | Workflow — Discovery Flow | `provider, structure, tdd, plan` | ⬜ |
+| 13.2 | Workflow — User Review Flow | `structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -407,44 +407,44 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1.1 | Score Types | `docs` | ⬜ |
-| 1.2 | Scoring Philosophy | `docs` | ⬜ |
-| 6.1 | Embeddings — What Gets Embedded | `db, docs` | ⬜ |
-| 6.2 | Embeddings — Model | `provider, docs` | ⬜ |
-| 6.3 | Embeddings — Persona Generation | `provider, db, tdd` | ⬜ |
-| 6.4 | Embeddings — Job Generation | `provider, db, tdd` | ⬜ |
-| 6.5 | Embeddings — Storage | `db, tdd` | ⬜ |
-| 6.6 | Embeddings — Freshness Check | `db, tdd` | ⬜ |
-| 3.1 | Non-Negotiables — Filter Rules | `db, tdd` | ⬜ |
-| 3.2 | Non-Negotiables — Undisclosed Data Handling | `tdd` | ⬜ |
-| 3.3 | Non-Negotiables — Filter Output | `structure, tdd` | ⬜ |
-| 4.1 | Fit Score — Component Weights | `docs` | ⬜ |
-| 4.2 | Fit Score — Hard Skills Match (40%) | `db, tdd` | ⬜ |
-| 4.3 | Fit Score — Soft Skills Match (15%) | `db, tdd` | ⬜ |
-| 4.4 | Fit Score — Experience Level (25%) | `tdd` | ⬜ |
-| 4.5 | Fit Score — Role Title Match (10%) | `db, tdd` | ⬜ |
-| 4.6 | Fit Score — Location/Logistics (10%) | `tdd` | ⬜ |
-| 4.7 | Fit Score — Aggregation | `tdd` | ⬜ |
-| 5.1 | Stretch Score — Component Weights | `docs` | ⬜ |
-| 5.2 | Stretch Score — Target Role Alignment (50%) | `provider, db, tdd` | ⬜ |
-| 5.3 | Stretch Score — Target Skills Exposure (40%) | `provider, db, tdd` | ⬜ |
-| 5.4 | Stretch Score — Growth Trajectory (10%) | `provider, tdd` | ⬜ |
-| 5.5 | Stretch Score — Aggregation | `tdd` | ⬜ |
-| 7.1 | Interpretation — Fit Score Thresholds | `tdd` | ⬜ |
-| 7.2 | Interpretation — Stretch Score Thresholds | `tdd` | ⬜ |
-| 7.3 | Interpretation — Combined | `tdd` | ⬜ |
-| 7.4 | Interpretation — Auto-Draft Threshold | `tdd` | ⬜ |
-| 8.1 | Explanation — Components | `provider, tdd` | ⬜ |
-| 8.2 | Explanation — Generation Logic | `provider, tdd` | ⬜ |
-| 9.1 | Edge Cases — Missing Data | `test, tdd` | ⬜ |
-| 9.2 | Edge Cases — Career Changers | `test, tdd` | ⬜ |
-| 9.3 | Edge Cases — Entry-Level Users | `test, tdd` | ⬜ |
-| 9.4 | Edge Cases — Executive Roles | `test, tdd` | ⬜ |
-| 10.1 | Performance — Batch Scoring | `db, test, tdd` | ⬜ |
-| 10.2 | Performance — Caching | `db, tdd` | ⬜ |
-| 10.3 | Performance — Embedding Costs | `provider, docs` | ⬜ |
-| 11.1 | Testing — Test Cases | `test, tdd` | ⬜ |
-| 11.2 | Testing — Validation Approach | `test, docs` | ⬜ |
+| 1.1 | Score Types | `docs, plan` | ⬜ |
+| 1.2 | Scoring Philosophy | `docs, plan` | ⬜ |
+| 6.1 | Embeddings — What Gets Embedded | `db, docs, plan` | ⬜ |
+| 6.2 | Embeddings — Model | `provider, docs, plan` | ⬜ |
+| 6.3 | Embeddings — Persona Generation | `provider, db, tdd, plan` | ⬜ |
+| 6.4 | Embeddings — Job Generation | `provider, db, tdd, plan` | ⬜ |
+| 6.5 | Embeddings — Storage | `db, tdd, plan` | ⬜ |
+| 6.6 | Embeddings — Freshness Check | `db, tdd, plan` | ⬜ |
+| 3.1 | Non-Negotiables — Filter Rules | `db, tdd, plan` | ⬜ |
+| 3.2 | Non-Negotiables — Undisclosed Data Handling | `tdd, plan` | ⬜ |
+| 3.3 | Non-Negotiables — Filter Output | `structure, tdd, plan` | ⬜ |
+| 4.1 | Fit Score — Component Weights | `docs, plan` | ⬜ |
+| 4.2 | Fit Score — Hard Skills Match (40%) | `db, tdd, plan` | ⬜ |
+| 4.3 | Fit Score — Soft Skills Match (15%) | `db, tdd, plan` | ⬜ |
+| 4.4 | Fit Score — Experience Level (25%) | `tdd, plan` | ⬜ |
+| 4.5 | Fit Score — Role Title Match (10%) | `db, tdd, plan` | ⬜ |
+| 4.6 | Fit Score — Location/Logistics (10%) | `tdd, plan` | ⬜ |
+| 4.7 | Fit Score — Aggregation | `tdd, plan` | ⬜ |
+| 5.1 | Stretch Score — Component Weights | `docs, plan` | ⬜ |
+| 5.2 | Stretch Score — Target Role Alignment (50%) | `provider, db, tdd, plan` | ⬜ |
+| 5.3 | Stretch Score — Target Skills Exposure (40%) | `provider, db, tdd, plan` | ⬜ |
+| 5.4 | Stretch Score — Growth Trajectory (10%) | `provider, tdd, plan` | ⬜ |
+| 5.5 | Stretch Score — Aggregation | `tdd, plan` | ⬜ |
+| 7.1 | Interpretation — Fit Score Thresholds | `tdd, plan` | ⬜ |
+| 7.2 | Interpretation — Stretch Score Thresholds | `tdd, plan` | ⬜ |
+| 7.3 | Interpretation — Combined | `tdd, plan` | ⬜ |
+| 7.4 | Interpretation — Auto-Draft Threshold | `tdd, plan` | ⬜ |
+| 8.1 | Explanation — Components | `provider, tdd, plan` | ⬜ |
+| 8.2 | Explanation — Generation Logic | `provider, tdd, plan` | ⬜ |
+| 9.1 | Edge Cases — Missing Data | `test, tdd, plan` | ⬜ |
+| 9.2 | Edge Cases — Career Changers | `test, tdd, plan` | ⬜ |
+| 9.3 | Edge Cases — Entry-Level Users | `test, tdd, plan` | ⬜ |
+| 9.4 | Edge Cases — Executive Roles | `test, tdd, plan` | ⬜ |
+| 10.1 | Performance — Batch Scoring | `db, test, tdd, plan` | ⬜ |
+| 10.2 | Performance — Caching | `db, tdd, plan` | ⬜ |
+| 10.3 | Performance — Embedding Costs | `provider, docs, plan` | ⬜ |
+| 11.1 | Testing — Test Cases | `test, tdd, plan` | ⬜ |
+| 11.2 | Testing — Validation Approach | `test, docs, plan` | ⬜ |
 
 ---
 
@@ -468,13 +468,13 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 7.1 | Strategist Agent — Trigger Conditions | `provider, tdd` | ⬜ |
-| 7.2 | Strategist Agent — Scoring Flow | `provider, structure, tdd` | ⬜ |
-| 7.3 | Strategist Agent — Non-Negotiables Filtering | `db, tdd` | ⬜ |
-| 7.4 | Strategist Agent — Embedding-Based Matching | `db, provider, tdd` | ⬜ |
-| 7.5 | Strategist Agent — Stretch Score | `provider, tdd` | ⬜ |
-| 7.6 | Strategist Agent — Prompt Templates | `provider, docs, tdd` | ⬜ |
-| 15.4 | Graph Spec — Strategist Agent | `provider, structure, tdd` | ⬜ |
+| 7.1 | Strategist Agent — Trigger Conditions | `provider, tdd, plan` | ⬜ |
+| 7.2 | Strategist Agent — Scoring Flow | `provider, structure, tdd, plan` | ⬜ |
+| 7.3 | Strategist Agent — Non-Negotiables Filtering | `db, tdd, plan` | ⬜ |
+| 7.4 | Strategist Agent — Embedding-Based Matching | `db, provider, tdd, plan` | ⬜ |
+| 7.5 | Strategist Agent — Stretch Score | `provider, tdd, plan` | ⬜ |
+| 7.6 | Strategist Agent — Prompt Templates | `provider, docs, tdd, plan` | ⬜ |
+| 15.4 | Graph Spec — Strategist Agent | `provider, structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -499,47 +499,47 @@ These steps require user action outside Claude Code:
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 8.1 | Ghostwriter Agent — Trigger Conditions | `provider, tdd` | ⬜ |
-| 8.2 | Ghostwriter Agent — Generation Flow | `provider, structure, tdd` | ⬜ |
-| 8.3 | Ghostwriter Agent — Base Resume Selection | `db, tdd` | ⬜ |
-| 8.4 | Ghostwriter Agent — Tailoring Decision | `provider, tdd` | ⬜ |
-| 8.5 | Ghostwriter Agent — Cover Letter Generation | `provider, tdd` | ⬜ |
-| 8.6 | Ghostwriter Agent — Story Selection Logic | `db, provider, tdd` | ⬜ |
-| 8.7 | Ghostwriter Agent — Reasoning Explanation | `provider, tdd` | ⬜ |
-| 15.5 | Graph Spec — Ghostwriter Agent | `provider, structure, tdd` | ⬜ |
+| 8.1 | Ghostwriter Agent — Trigger Conditions | `provider, tdd, plan` | ⬜ |
+| 8.2 | Ghostwriter Agent — Generation Flow | `provider, structure, tdd, plan` | ⬜ |
+| 8.3 | Ghostwriter Agent — Base Resume Selection | `db, tdd, plan` | ⬜ |
+| 8.4 | Ghostwriter Agent — Tailoring Decision | `provider, tdd, plan` | ⬜ |
+| 8.5 | Ghostwriter Agent — Cover Letter Generation | `provider, tdd, plan` | ⬜ |
+| 8.6 | Ghostwriter Agent — Story Selection Logic | `db, provider, tdd, plan` | ⬜ |
+| 8.7 | Ghostwriter Agent — Reasoning Explanation | `provider, tdd, plan` | ⬜ |
+| 15.5 | Graph Spec — Ghostwriter Agent | `provider, structure, tdd, plan` | ⬜ |
 
 **From REQ-010 (Content Generation):**
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 3.1 | Voice Profile Fields | `db, docs` | ⬜ |
-| 3.2 | Voice Application Rules | `provider, tdd` | ⬜ |
-| 3.3 | Voice Profile System Prompt Block | `provider, docs, tdd` | ⬜ |
-| 4.1 | Resume — Tailoring Decision Logic | `provider, tdd` | ⬜ |
-| 4.2 | Resume — Summary Tailoring Prompt | `provider, docs, tdd` | ⬜ |
-| 4.3 | Resume — Bullet Reordering Logic | `tdd` | ⬜ |
-| 4.4 | Resume — Modification Limits (Guardrails) | `provider, test, tdd` | ⬜ |
-| 5.1 | Cover Letter — Structure | `docs` | ⬜ |
-| 5.2 | Cover Letter — Achievement Story Selection | `db, provider, tdd` | ⬜ |
-| 5.3 | Cover Letter — Generation Prompt | `provider, docs, tdd` | ⬜ |
-| 5.4 | Cover Letter — Validation | `provider, test, tdd` | ⬜ |
-| 5.5 | Cover Letter — Output Schema | `structure, tdd` | ⬜ |
-| 6.1 | Utility Functions — Implementation Strategy | `structure, docs` | ⬜ |
-| 6.2 | Utility Functions — extract_keywords | `provider, tdd` | ⬜ |
-| 6.3 | Utility Functions — extract_skills_from_text | `provider, tdd` | ⬜ |
-| 6.4 | Utility Functions — has_metrics/extract_metrics | `tdd` | ⬜ |
-| 6.5 | Utility Functions — Caching Strategy | `db, tdd` | ⬜ |
-| 7.1 | Regeneration — Feedback Categories | `docs` | ⬜ |
-| 7.2 | Regeneration — Feedback Sanitization | `provider, tdd` | ⬜ |
-| 7.3 | Regeneration — Prompt Modifier | `provider, tdd` | ⬜ |
-| 8.1 | Edge Cases — Insufficient Data | `test, tdd` | ⬜ |
-| 8.2 | Edge Cases — Expired Job | `test, tdd` | ⬜ |
-| 8.3 | Edge Cases — Persona Changed | `db, test, tdd` | ⬜ |
-| 8.4 | Edge Cases — Duplicate Story Selection | `test, tdd` | ⬜ |
-| 9.1 | Agent Reasoning — Template | `provider, docs, tdd` | ⬜ |
-| 9.2 | Agent Reasoning — Example Output | `docs` | ⬜ |
-| 10.1 | Quality Metrics — Tracking | `db, tdd` | ⬜ |
-| 10.2 | Quality Metrics — Feedback Loop | `db, structure, tdd` | ⬜ |
+| 3.1 | Voice Profile Fields | `db, docs, plan` | ⬜ |
+| 3.2 | Voice Application Rules | `provider, tdd, plan` | ⬜ |
+| 3.3 | Voice Profile System Prompt Block | `provider, docs, tdd, plan` | ⬜ |
+| 4.1 | Resume — Tailoring Decision Logic | `provider, tdd, plan` | ⬜ |
+| 4.2 | Resume — Summary Tailoring Prompt | `provider, docs, tdd, plan` | ⬜ |
+| 4.3 | Resume — Bullet Reordering Logic | `tdd, plan` | ⬜ |
+| 4.4 | Resume — Modification Limits (Guardrails) | `provider, test, tdd, plan` | ⬜ |
+| 5.1 | Cover Letter — Structure | `docs, plan` | ⬜ |
+| 5.2 | Cover Letter — Achievement Story Selection | `db, provider, tdd, plan` | ⬜ |
+| 5.3 | Cover Letter — Generation Prompt | `provider, docs, tdd, plan` | ⬜ |
+| 5.4 | Cover Letter — Validation | `provider, test, tdd, plan` | ⬜ |
+| 5.5 | Cover Letter — Output Schema | `structure, tdd, plan` | ⬜ |
+| 6.1 | Utility Functions — Implementation Strategy | `structure, docs, plan` | ⬜ |
+| 6.2 | Utility Functions — extract_keywords | `provider, tdd, plan` | ⬜ |
+| 6.3 | Utility Functions — extract_skills_from_text | `provider, tdd, plan` | ⬜ |
+| 6.4 | Utility Functions — has_metrics/extract_metrics | `tdd, plan` | ⬜ |
+| 6.5 | Utility Functions — Caching Strategy | `db, tdd, plan` | ⬜ |
+| 7.1 | Regeneration — Feedback Categories | `docs, plan` | ⬜ |
+| 7.2 | Regeneration — Feedback Sanitization | `provider, tdd, plan` | ⬜ |
+| 7.3 | Regeneration — Prompt Modifier | `provider, tdd, plan` | ⬜ |
+| 8.1 | Edge Cases — Insufficient Data | `test, tdd, plan` | ⬜ |
+| 8.2 | Edge Cases — Expired Job | `test, tdd, plan` | ⬜ |
+| 8.3 | Edge Cases — Persona Changed | `db, test, tdd, plan` | ⬜ |
+| 8.4 | Edge Cases — Duplicate Story Selection | `test, tdd, plan` | ⬜ |
+| 9.1 | Agent Reasoning — Template | `provider, docs, tdd, plan` | ⬜ |
+| 9.2 | Agent Reasoning — Example Output | `docs, plan` | ⬜ |
+| 10.1 | Quality Metrics — Tracking | `db, tdd, plan` | ⬜ |
+| 10.2 | Quality Metrics — Feedback Loop | `db, structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -563,16 +563,16 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 9.1 | Communication — Agent-to-User | `provider, structure, tdd` | ⬜ |
-| 9.2 | Communication — Agent-to-Agent | `provider, structure, tdd` | ⬜ |
-| 9.3 | Communication — SSE Event Types | `structure, tdd` | ⬜ |
-| 10.1 | Error Handling — Transient Errors | `provider, test, tdd` | ⬜ |
-| 10.2 | Error Handling — Permanent Errors | `provider, test, tdd` | ⬜ |
-| 10.3 | Error Handling — Graceful Degradation | `provider, test, tdd` | ⬜ |
-| 10.4 | Error Handling — Concurrency & Race Conditions | `db, test, tdd` | ⬜ |
-| 11.1 | Configuration — Environment Variables | `structure, docs` | ⬜ |
-| 11.2 | Configuration — Model Routing | `provider, tdd` | ⬜ |
-| 15.6 | Graph Spec — Invocation Patterns | `provider, structure, tdd` | ⬜ |
+| 9.1 | Communication — Agent-to-User | `provider, structure, tdd, plan` | ⬜ |
+| 9.2 | Communication — Agent-to-Agent | `provider, structure, tdd, plan` | ⬜ |
+| 9.3 | Communication — SSE Event Types | `structure, tdd, plan` | ⬜ |
+| 10.1 | Error Handling — Transient Errors | `provider, test, tdd, plan` | ⬜ |
+| 10.2 | Error Handling — Permanent Errors | `provider, test, tdd, plan` | ⬜ |
+| 10.3 | Error Handling — Graceful Degradation | `provider, test, tdd, plan` | ⬜ |
+| 10.4 | Error Handling — Concurrency & Race Conditions | `db, test, tdd, plan` | ⬜ |
+| 11.1 | Configuration — Environment Variables | `structure, docs, plan` | ⬜ |
+| 11.2 | Configuration — Model Routing | `provider, tdd, plan` | ⬜ |
+| 15.6 | Graph Spec — Invocation Patterns | `provider, structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -598,20 +598,20 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4.1 | Resume File — Upload Handling | `db, structure, tdd` | ⬜ |
-| 4.2 | Base Resume — Rendered Document Storage | `db, tdd` | ⬜ |
-| 4.3 | Job Variant — Snapshot Logic | `db, tdd` | ⬜ |
-| 4.4 | Submitted PDF — Immutable Storage | `db, tdd` | ⬜ |
-| 4.5 | Persona Change Flag — HITL Sync | `db, tdd` | ⬜ |
-| 5.1 | Retention Rules | `db, tdd` | ⬜ |
-| 5.4 | User Actions (Archive/Restore) | `db, tdd` | ⬜ |
-| 6.1 | Workflow — Onboarding Flow | `structure, tdd` | ⬜ |
-| 6.2 | Workflow — Application Flow (Auto-Draft) | `structure, tdd` | ⬜ |
-| 6.3 | Workflow — Persona → Base Resume Sync | `db, tdd` | ⬜ |
-| 6.4 | Workflow — PDF Generation (ReportLab) | `structure, test, tdd` | ⬜ |
-| 7.1 | Agent — Base Resume Selection | `provider, db, tdd` | ⬜ |
-| 7.2 | Agent — Tailoring Decision | `provider, tdd` | ⬜ |
-| 7.3 | Agent — Modification Limits | `provider, test, tdd` | ⬜ |
+| 4.1 | Resume File — Upload Handling | `db, structure, tdd, plan` | ⬜ |
+| 4.2 | Base Resume — Rendered Document Storage | `db, tdd, plan` | ⬜ |
+| 4.3 | Job Variant — Snapshot Logic | `db, tdd, plan` | ⬜ |
+| 4.4 | Submitted PDF — Immutable Storage | `db, tdd, plan` | ⬜ |
+| 4.5 | Persona Change Flag — HITL Sync | `db, tdd, plan` | ⬜ |
+| 5.1 | Retention Rules | `db, tdd, plan` | ⬜ |
+| 5.4 | User Actions (Archive/Restore) | `db, tdd, plan` | ⬜ |
+| 6.1 | Workflow — Onboarding Flow | `structure, tdd, plan` | ⬜ |
+| 6.2 | Workflow — Application Flow (Auto-Draft) | `structure, tdd, plan` | ⬜ |
+| 6.3 | Workflow — Persona → Base Resume Sync | `db, tdd, plan` | ⬜ |
+| 6.4 | Workflow — PDF Generation (ReportLab) | `structure, test, tdd, plan` | ⬜ |
+| 7.1 | Agent — Base Resume Selection | `provider, db, tdd, plan` | ⬜ |
+| 7.2 | Agent — Tailoring Decision | `provider, tdd, plan` | ⬜ |
+| 7.3 | Agent — Modification Limits | `provider, test, tdd, plan` | ⬜ |
 
 ---
 
@@ -635,15 +635,15 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4.1 | Cover Letter — Field Implementation | `db, tdd` | ⬜ |
-| 4.2 | Submitted Cover Letter PDF — Immutable Storage | `db, tdd` | ⬜ |
-| 7.1 | Workflow — Generation Flow (Auto-Draft) | `structure, tdd` | ⬜ |
-| 7.2 | Workflow — Agent Story Selection | `provider, db, tdd` | ⬜ |
-| 7.3 | Workflow — User Editing | `structure, tdd` | ⬜ |
-| 7.4 | Workflow — Approval & PDF Generation | `structure, test, tdd` | ⬜ |
-| 8.1 | Agent — Cover Letter Structure | `provider, docs, tdd` | ⬜ |
-| 8.2 | Agent — Voice Profile Application | `provider, tdd` | ⬜ |
-| 8.3 | Agent — Modification Limits | `provider, test, tdd` | ⬜ |
+| 4.1 | Cover Letter — Field Implementation | `db, tdd, plan` | ⬜ |
+| 4.2 | Submitted Cover Letter PDF — Immutable Storage | `db, tdd, plan` | ⬜ |
+| 7.1 | Workflow — Generation Flow (Auto-Draft) | `structure, tdd, plan` | ⬜ |
+| 7.2 | Workflow — Agent Story Selection | `provider, db, tdd, plan` | ⬜ |
+| 7.3 | Workflow — User Editing | `structure, tdd, plan` | ⬜ |
+| 7.4 | Workflow — Approval & PDF Generation | `structure, test, tdd, plan` | ⬜ |
+| 8.1 | Agent — Cover Letter Structure | `provider, docs, tdd, plan` | ⬜ |
+| 8.2 | Agent — Voice Profile Application | `provider, tdd, plan` | ⬜ |
+| 8.3 | Agent — Modification Limits | `provider, test, tdd, plan` | ⬜ |
 
 ---
 
@@ -669,23 +669,23 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 3.1 | Architecture — Component Overview | `structure, docs` | ⬜ |
-| 3.2 | Architecture — Data Flow | `structure, docs` | ⬜ |
-| 4.1 | UI — Extension States | `playwright, tdd` | ⬜ |
-| 4.2 | UI — Popup Layout | `playwright, tdd` | ⬜ |
-| 4.3 | UI — URL Badge System | `playwright, tdd` | ⬜ |
-| 5.1 | Extraction — Text Extraction Strategy | `test, tdd` | ⬜ |
-| 5.2 | Extraction — Page Detection Heuristics | `test, tdd` | ⬜ |
-| 6.1 | API — Ingest Flow | `structure, tdd` | ⬜ |
-| 6.2 | API — Duplicate Detection | `db, tdd` | ⬜ |
-| 6.3 | API — Error Handling | `test, tdd` | ⬜ |
-| 7.1 | Auth — Local Mode (MVP) | `structure, tdd` | ⬜ |
-| 7.2 | Auth — Future Hosted Mode | `docs` | ⬜ |
-| 8.1 | Permissions — Required | `docs` | ⬜ |
-| 8.2 | Permissions — Optional | `docs` | ⬜ |
-| 9.1 | Edge Cases — Content Extraction Failures | `test, tdd` | ⬜ |
-| 9.2 | Edge Cases — Network Issues | `test, tdd` | ⬜ |
-| 9.3 | Edge Cases — Duplicate Handling | `db, test, tdd` | ⬜ |
+| 3.1 | Architecture — Component Overview | `structure, docs, plan` | ⬜ |
+| 3.2 | Architecture — Data Flow | `structure, docs, plan` | ⬜ |
+| 4.1 | UI — Extension States | `playwright, tdd, plan` | ⬜ |
+| 4.2 | UI — Popup Layout | `playwright, tdd, plan` | ⬜ |
+| 4.3 | UI — URL Badge System | `playwright, tdd, plan` | ⬜ |
+| 5.1 | Extraction — Text Extraction Strategy | `test, tdd, plan` | ⬜ |
+| 5.2 | Extraction — Page Detection Heuristics | `test, tdd, plan` | ⬜ |
+| 6.1 | API — Ingest Flow | `structure, tdd, plan` | ⬜ |
+| 6.2 | API — Duplicate Detection | `db, tdd, plan` | ⬜ |
+| 6.3 | API — Error Handling | `test, tdd, plan` | ⬜ |
+| 7.1 | Auth — Local Mode (MVP) | `structure, tdd, plan` | ⬜ |
+| 7.2 | Auth — Future Hosted Mode | `docs, plan` | ⬜ |
+| 8.1 | Permissions — Required | `docs, plan` | ⬜ |
+| 8.2 | Permissions — Optional | `docs, plan` | ⬜ |
+| 9.1 | Edge Cases — Content Extraction Failures | `test, tdd, plan` | ⬜ |
+| 9.2 | Edge Cases — Network Issues | `test, tdd, plan` | ⬜ |
+| 9.3 | Edge Cases — Duplicate Handling | `db, test, tdd, plan` | ⬜ |
 
 ---
 
