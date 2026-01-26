@@ -1,0 +1,81 @@
+"""SQLAlchemy ORM models for Zentropy Scout.
+
+All models are exported from this module for convenient imports:
+    from app.models import User, Persona, JobPosting, ...
+
+Models are organized by domain:
+- user.py: User (Tier 0)
+- job_source.py: JobSource, UserSourcePreference, PollingConfiguration
+- persona.py: Persona (Tier 1)
+- persona_content.py: WorkHistory, Bullet, Skill, Education, Certification, AchievementStory
+- persona_settings.py: VoiceProfile, CustomNonNegotiable, PersonaEmbedding, PersonaChangeFlag
+- resume.py: ResumeFile, BaseResume, JobVariant, SubmittedResumePDF
+- job_posting.py: JobPosting, ExtractedSkill
+- cover_letter.py: CoverLetter, SubmittedCoverLetterPDF
+- application.py: Application, TimelineEvent
+"""
+
+from app.models.application import Application, TimelineEvent
+from app.models.base import Base, SoftDeleteMixin, TimestampMixin
+from app.models.cover_letter import CoverLetter, SubmittedCoverLetterPDF
+from app.models.job_posting import ExtractedSkill, JobPosting
+from app.models.job_source import JobSource, PollingConfiguration, UserSourcePreference
+from app.models.persona import Persona
+from app.models.persona_content import (
+    AchievementStory,
+    Bullet,
+    Certification,
+    Education,
+    Skill,
+    WorkHistory,
+)
+from app.models.persona_settings import (
+    CustomNonNegotiable,
+    PersonaChangeFlag,
+    PersonaEmbedding,
+    VoiceProfile,
+)
+from app.models.resume import BaseResume, JobVariant, ResumeFile, SubmittedResumePDF
+from app.models.user import User
+
+__all__ = [
+    # Base classes
+    "Base",
+    "TimestampMixin",
+    "SoftDeleteMixin",
+    # Tier 0
+    "User",
+    "JobSource",
+    # Tier 1
+    "Persona",
+    # Tier 2 - Persona content
+    "WorkHistory",
+    "Skill",
+    "Education",
+    "Certification",
+    "AchievementStory",
+    # Tier 2 - Persona settings
+    "VoiceProfile",
+    "CustomNonNegotiable",
+    "PersonaEmbedding",
+    "PersonaChangeFlag",
+    # Tier 2 - Resume domain
+    "ResumeFile",
+    "BaseResume",
+    # Tier 2 - Job source preferences
+    "UserSourcePreference",
+    "PollingConfiguration",
+    # Tier 2 - Job posting
+    "JobPosting",
+    # Tier 3
+    "Bullet",
+    "JobVariant",
+    "ExtractedSkill",
+    "CoverLetter",
+    # Tier 4
+    "Application",
+    "SubmittedResumePDF",
+    "SubmittedCoverLetterPDF",
+    # Tier 5
+    "TimelineEvent",
+]
