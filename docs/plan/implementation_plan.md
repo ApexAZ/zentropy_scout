@@ -145,7 +145,7 @@ These steps require user action outside Claude Code:
 | 4.2 | Resume Domain Tables | `db, tdd, plan` | ✅ |
 | 4.3 | Cover Letter Domain Tables | `db, tdd, plan` | ✅ |
 | 4.4 | Job Posting Domain Tables | `db, tdd, plan` | ✅ |
-| 4.5 | Application Domain Tables | `db, tdd, plan` | 🟡 |
+| 4.5 | Application Domain Tables | `db, tdd, plan` | ✅ |
 | 5.1 | JSONB Schema — Persona Domain | `db, plan` | ✅ |
 | 5.2 | JSONB Schema — Resume Domain | `db, plan` | ✅ |
 | 5.3 | JSONB Schema — Job Posting Domain | `db, plan` | ✅ |
