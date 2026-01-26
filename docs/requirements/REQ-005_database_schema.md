@@ -638,6 +638,7 @@ Per-user source settings.
 | salary_max | INTEGER | YES | | |
 | salary_currency | VARCHAR(10) | YES | | |
 | description | TEXT | NO | | |
+| culture_text | TEXT | YES | | LLM-extracted culture/values text (REQ-007 §6.4) |
 | requirements | TEXT | YES | | |
 | years_experience_min | INTEGER | YES | | |
 | years_experience_max | INTEGER | YES | | |

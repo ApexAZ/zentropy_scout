@@ -1,7 +1,7 @@
 # REQ-008: Scoring Algorithm Specification
 
 **Status:** Draft  
-**Version:** 0.1  
+**Version:** 0.2  
 **PRD Reference:** §4.3 Strategist Agent  
 **Last Updated:** 2026-01-25
 
@@ -118,6 +118,9 @@ The Fit Score measures how well the user's current qualifications match the job 
 def calculate_hard_skills_score(persona_skills: List[Skill], job_skills: List[ExtractedSkill]) -> float:
     """
     Returns 0-100 score for hard skills match.
+    
+    IMPORTANT: This function applies proficiency weighting (§4.2.3).
+    A "Learning" level skill does NOT count as a full match for a senior role.
     """
     required_skills = [s for s in job_skills if s.is_required and s.skill_type == "Hard"]
     nice_to_have_skills = [s for s in job_skills if not s.is_required and s.skill_type == "Hard"]
@@ -125,25 +128,93 @@ def calculate_hard_skills_score(persona_skills: List[Skill], job_skills: List[Ex
     if not required_skills and not nice_to_have_skills:
         return 70.0  # No skills specified = neutral score
     
-    # Exact match scoring
-    persona_skill_names = {normalize(s.skill_name) for s in persona_skills if s.skill_type == "Hard"}
+    # Build persona skill lookup: {normalized_name: Skill}
+    persona_skill_map = {
+        normalize(s.skill_name): s 
+        for s in persona_skills 
+        if s.skill_type == "Hard"
+    }
     
-    required_matches = sum(1 for s in required_skills if normalize(s.skill_name) in persona_skill_names)
-    nice_matches = sum(1 for s in nice_to_have_skills if normalize(s.skill_name) in persona_skill_names)
+    # Calculate weighted matches for required skills
+    required_weighted_score = 0.0
+    for job_skill in required_skills:
+        norm_name = normalize(job_skill.skill_name)
+        if norm_name in persona_skill_map:
+            persona_skill = persona_skill_map[norm_name]
+            # Apply proficiency weighting (see §4.2.3)
+            weight = get_proficiency_weight(
+                persona_proficiency=persona_skill.proficiency_level,
+                job_years_requested=job_skill.years_experience  # May be None
+            )
+            required_weighted_score += weight
+    
+    # Calculate weighted matches for nice-to-have skills
+    nice_weighted_score = 0.0
+    for job_skill in nice_to_have_skills:
+        norm_name = normalize(job_skill.skill_name)
+        if norm_name in persona_skill_map:
+            persona_skill = persona_skill_map[norm_name]
+            weight = get_proficiency_weight(
+                persona_proficiency=persona_skill.proficiency_level,
+                job_years_requested=job_skill.years_experience
+            )
+            nice_weighted_score += weight
     
     # Required skills are critical (80% of component)
     if required_skills:
-        required_score = (required_matches / len(required_skills)) * 80
+        required_score = (required_weighted_score / len(required_skills)) * 80
     else:
         required_score = 80  # No required = full credit
     
     # Nice-to-have adds bonus (20% of component)
     if nice_to_have_skills:
-        nice_score = (nice_matches / len(nice_to_have_skills)) * 20
+        nice_score = (nice_weighted_score / len(nice_to_have_skills)) * 20
     else:
         nice_score = 0
     
     return required_score + nice_score
+
+
+def get_proficiency_weight(
+    persona_proficiency: str,  # "Learning", "Familiar", "Proficient", "Expert"
+    job_years_requested: Optional[int]
+) -> float:
+    """
+    Returns a weight (0.0-1.0) based on how well user's proficiency matches job requirements.
+    
+    WHY NOT JUST 0/1:
+    A user with "Familiar" Python shouldn't get 0% for a "5+ years Python" role,
+    but they also shouldn't get 100%. This graduated weighting reflects reality:
+    they HAVE the skill, just not at the required depth.
+    
+    Proficiency levels (from REQ-001):
+    - "Learning": <1 year, currently acquiring
+    - "Familiar": 1-2 years, can use with guidance  
+    - "Proficient": 2-5 years, independent
+    - "Expert": 5+ years, can teach others
+    """
+    # If job doesn't specify years, any proficiency counts as full match
+    if job_years_requested is None:
+        return 1.0
+    
+    # Map proficiency to approximate years
+    PROFICIENCY_YEARS = {
+        "Learning": 0.5,
+        "Familiar": 1.5,
+        "Proficient": 3.5,
+        "Expert": 6.0,
+    }
+    
+    user_years = PROFICIENCY_YEARS.get(persona_proficiency, 2.0)  # Default to mid-range
+    
+    if user_years >= job_years_requested:
+        return 1.0  # Meets or exceeds requirement
+    
+    # Calculate penalty based on gap
+    # Each year under = 15% penalty, minimum 0.2 (they still have the skill)
+    gap = job_years_requested - user_years
+    penalty = gap * 0.15
+    return max(0.2, 1.0 - penalty)
 ```
 
 #### 4.2.2 Skill Normalization
@@ -159,16 +230,39 @@ To handle variations in skill naming:
 
 **Implementation:** Use a skill synonym dictionary + fuzzy matching for unknown skills.
 
-#### 4.2.3 Proficiency Weighting (Optional Enhancement)
+#### 4.2.3 Proficiency Weighting
 
-If job specifies years/proficiency:
+**This logic is INTEGRATED into §4.2.1 via `get_proficiency_weight()`.**
 
-| Job Requirement | User Proficiency | Multiplier |
-|-----------------|------------------|------------|
-| "5+ years Python" | Expert (5+ years) | 1.0 |
-| "5+ years Python" | Proficient (2-5 years) | 0.7 |
-| "5+ years Python" | Familiar (1-2 years) | 0.4 |
-| "5+ years Python" | Learning (<1 year) | 0.2 |
+| Job Requirement | User Proficiency | Weight | Rationale |
+|-----------------|------------------|--------|-----------|
+| "5+ years Python" | Expert (5+ years) | 1.0 | Meets requirement |
+| "5+ years Python" | Proficient (2-5 years) | 0.78 | 1.5 year gap → 22% penalty |
+| "5+ years Python" | Familiar (1-2 years) | 0.48 | 3.5 year gap → 52% penalty |
+| "5+ years Python" | Learning (<1 year) | 0.33 | 4.5 year gap → capped at 0.2 min + partial |
+| "Python" (no years) | Any | 1.0 | No requirement specified |
+
+**Example Scoring:**
+
+Job requires: Python (5+ years, required), SQL (required), Kubernetes (nice-to-have)
+
+User has: Python (Familiar), SQL (Expert), Docker (Expert)
+
+```
+Python:     present, Familiar vs 5+ years → weight 0.48
+SQL:        present, Expert, no years specified → weight 1.0
+Kubernetes: missing → weight 0.0
+
+Required weighted score: 0.48 + 1.0 = 1.48 out of 2 = 74%
+Required component: 74% × 80 = 59.2
+
+Nice-to-have: 0 out of 1 = 0%
+Nice component: 0% × 20 = 0
+
+Total Hard Skills Score: 59.2
+```
+
+Compare to naive "exists/doesn't exist" approach which would give: (2/2) × 80 = 80. The proficiency-aware approach correctly penalizes the Python gap.
 
 ### 4.3 Soft Skills Match (15%)
 
@@ -215,7 +309,9 @@ def calculate_experience_score(persona: Persona, job: JobPosting) -> float:
     """
     Returns 0-100 score for experience level match.
     """
-    user_years = persona.years_experience
+    # GUARD: persona.years_experience is Optional in REQ-001
+    # New users may not have set this yet; default to 0
+    user_years = persona.years_experience or 0
     
     # Extract job's experience requirement
     job_min_years = job.years_experience_min  # May be None
@@ -497,13 +593,40 @@ def calculate_stretch_score(persona: Persona, job: JobPosting) -> StretchScoreRe
 
 ### 6.1 What Gets Embedded
 
-| Entity | Embedding Type | Content |
-|--------|----------------|---------|
-| Persona Hard Skills | `persona_hard_skills` | Concatenated skill names + proficiency |
-| Persona Soft Skills | `persona_soft_skills` | Concatenated skill names |
-| Persona Logistics | `persona_logistics` | Location prefs, work model, values |
-| Job Requirements | `job_requirements` | Required + preferred skills, experience |
-| Job Culture | `job_culture` | Company values, team description, benefits |
+| Entity | Embedding Type | Content | Source |
+|--------|----------------|---------|--------|
+| Persona Hard Skills | `persona_hard_skills` | Concatenated skill names + proficiency | Structured `Skill` records |
+| Persona Soft Skills | `persona_soft_skills` | Concatenated skill names | Structured `Skill` records |
+| Persona Logistics | `persona_logistics` | Location prefs, work model, values | Structured `NonNegotiables` |
+| Job Requirements | `job_requirements` | Required + preferred skills, experience | Structured `ExtractedSkill` records |
+| Job Culture | `job_culture` | Company values, team description, benefits | **LLM-extracted from description** |
+
+**CRITICAL: Job Culture Extraction**
+
+The `job_culture` embedding does NOT come from a structured field. The Scouter extracts `ExtractedSkills` (structured) but culture information is buried in the raw `description` text.
+
+**Why this matters:**
+- If we embed the entire `description`, technical keywords pollute the culture vector
+- A job with "Python, AWS, Kubernetes" in the description would match a user with "Python" as a soft skill similarity — incorrect
+- We must SEPARATE culture/values text from requirements text
+
+**Solution:** The Scouter must extract `culture_text` during skill extraction (see REQ-007 §6.4). This is an LLM task:
+
+```
+From the job description, extract ONLY the text about:
+- Company culture and values
+- Team description and work environment
+- Benefits and perks
+- "About Us" content
+
+Do NOT include:
+- Technical requirements
+- Skills lists
+- Experience requirements
+- Responsibilities
+
+Return the extracted culture text, or empty string if none found.
+```
 
 ### 6.2 Embedding Model
 
@@ -557,7 +680,68 @@ async def generate_persona_embeddings(persona: Persona) -> PersonaEmbeddings:
     )
 ```
 
-### 6.4 Embedding Storage
+### 6.4 Job Embedding Generation
+
+```python
+async def generate_job_embeddings(job: JobPosting) -> JobEmbeddings:
+    """
+    Generate embeddings for a JobPosting.
+    Called by: Strategist during scoring (see REQ-007 §7).
+    
+    IMPORTANT: job.culture_text must be populated by the Scouter (REQ-007 §6.4).
+    If culture_text is empty/None, we fall back to a neutral embedding.
+    """
+    # Requirements text from structured ExtractedSkills
+    requirements_text = " | ".join([
+        f"{s.skill_name} ({s.years_experience}+ years)" if s.years_experience else s.skill_name
+        for s in job.extracted_skills
+        if s.is_required
+    ])
+    
+    preferred_text = " | ".join([
+        s.skill_name for s in job.extracted_skills if not s.is_required
+    ])
+    
+    full_requirements = f"""
+    Required: {requirements_text}
+    Preferred: {preferred_text}
+    Experience: {job.years_experience_min or 'Not specified'}-{job.years_experience_max or 'Not specified'} years
+    """
+    
+    # Culture text - MUST come from LLM extraction, not raw description
+    # See §6.1 for why this separation is critical
+    culture_text = job.culture_text or ""
+    
+    if not culture_text:
+        # Fallback: Use empty string which produces a neutral embedding
+        # This is INTENTIONAL - we don't want to pollute culture matching
+        # with technical requirements from the description
+        logger.warning(f"Job {job.id} has no culture_text - culture matching will be neutral")
+    
+    # Generate embeddings
+    requirements_embedding = await embed(full_requirements)
+    culture_embedding = await embed(culture_text) if culture_text else get_neutral_embedding()
+    
+    return JobEmbeddings(
+        job_posting_id=job.id,
+        requirements=requirements_embedding,
+        culture=culture_embedding,
+    )
+
+
+def get_neutral_embedding() -> List[float]:
+    """
+    Returns a zero vector for jobs without culture text.
+    
+    WHY ZERO VECTOR:
+    - Cosine similarity with any vector = 0 (orthogonal)
+    - This gives a neutral soft skills score (50), not a penalty
+    - Better than embedding random text or the full description
+    """
+    return [0.0] * 1536  # Match embedding dimensions
+```
+
+### 6.5 Embedding Storage
 
 ```sql
 CREATE TABLE persona_embeddings (
@@ -574,7 +758,7 @@ CREATE TABLE persona_embeddings (
 CREATE INDEX idx_persona_embeddings_persona ON persona_embeddings(persona_id);
 ```
 
-### 6.5 Embedding Freshness Check
+### 6.6 Embedding Freshness Check
 
 ```python
 def is_embedding_fresh(persona: Persona, embeddings: PersonaEmbeddings) -> bool:
@@ -834,3 +1018,4 @@ async def batch_score_jobs(jobs: List[JobPosting], persona: Persona) -> List[Sco
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-01-25 | 0.1 | Initial draft. Non-negotiables filter, Fit Score calculation (5 components), Stretch Score calculation (3 components), embedding strategy, score interpretation. |
+| 2026-01-25 | 0.2 | **Bug fixes from review:** (1) Integrated proficiency weighting into §4.2.1 — "Learning" level skills no longer count as full matches for senior roles. (2) Clarified job culture embedding requires LLM extraction from description (§6.1, §6.4) — prevents polluting soft skills matching with technical keywords. (3) Added null guard for `persona.years_experience` in §4.4.1 — prevents crash for new users. |

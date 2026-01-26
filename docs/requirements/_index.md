@@ -1,104 +1,100 @@
-# Zentropy Scout — Traceability Index
+# Zentropy Scout — Requirements Index
 
-This document maps PRD sections to Requirements to Features to Tasks, enabling Claude Code to build incrementally while maintaining full traceability.
+This document maps PRD sections to Requirements documents and defines the implementation order.
 
 ---
 
 ## Document Hierarchy
 
 ```
-PRD Section (Why) → Requirement (What) → Feature (How) → Task (Do)
+PRD Section (Why) → Requirement (What) → Implementation (GitHub Issues)
 ```
 
-- **PRD:** High-level vision and goals
-- **REQ:** Detailed specifications that must be true for the system to work
-- **FEAT:** Implementable chunks of functionality
-- **TASK:** Atomic work items for Claude Code (tracked in GitHub Issues)
+- **PRD:** High-level vision and goals (`/docs/prd/zentropy_scout_prd.md`)
+- **REQ:** Detailed specifications — source of truth for implementation
+- **GitHub Issues:** Atomic work items for coding agent
 
 ---
 
-## Traceability Matrix
+## Requirements Matrix
 
-| PRD Section | Requirement | Features | Status |
-|-------------|-------------|----------|--------|
-| §3 Persona Framework | [REQ-001](./REQ-001_persona_schema.md) Persona Schema v0.8 | FEAT-001, FEAT-002 | 🟢 Complete |
-| §8 Document Management | [REQ-002](./REQ-002_resume_schema.md) Resume Schema v0.7 | FEAT-010, FEAT-012 | 🟢 Complete |
-| §8 Document Management | [REQ-002b](./REQ-002b_cover_letter_schema.md) Cover Letter Schema v0.5 | FEAT-011, FEAT-015 | 🟢 Complete |
-| §4.2 Scouter | [REQ-003](./REQ-003_job_posting_schema.md) Job Posting Schema v0.3 | FEAT-003, FEAT-004 | 🟢 Complete |
-| §9 Application Lifecycle | [REQ-004](./REQ-004_application_schema.md) Application Schema v0.5 | FEAT-013, FEAT-014 | 🟢 Complete |
-| §6 Data Strategy | [REQ-005](./REQ-005_database_schema.md) Database Schema (ERD) v0.10 | FEAT-005 | 🟢 Complete |
-| §5 Architecture | [REQ-006](./REQ-006_api_contract.md) API Contract v0.7 | FEAT-006, FEAT-007 | 🟢 Complete |
-| §4 Agentic Capabilities | [REQ-007](./REQ-007_agent_behavior.md) Agent Behavior v0.3 | FEAT-001, FEAT-016 | 🟢 Complete |
-| §4.3 Strategist | [REQ-008](./REQ-008_scoring_algorithm.md) Scoring Algorithm v0.1 | FEAT-008 | 🟢 Complete |
-| §5 Architecture | REQ-009 Provider Abstraction | FEAT-009 | 🔴 Not Started |
-| §4.4 Ghostwriter | REQ-010 Content Generation | FEAT-010, FEAT-011 | 🔴 Not Started |
+| PRD Section | Requirement | Status |
+|-------------|-------------|--------|
+| §3 Persona Framework | [REQ-001](./REQ-001_persona_schema.md) Persona Schema v0.8 | 🟢 Complete |
+| §8 Document Management | [REQ-002](./REQ-002_resume_schema.md) Resume Schema v0.7 | 🟢 Complete |
+| §8 Document Management | [REQ-002b](./REQ-002b_cover_letter_schema.md) Cover Letter Schema v0.5 | 🟢 Complete |
+| §4.2 Scouter | [REQ-003](./REQ-003_job_posting_schema.md) Job Posting Schema v0.4 | 🟢 Complete |
+| §9 Application Lifecycle | [REQ-004](./REQ-004_application_schema.md) Application Schema v0.5 | 🟢 Complete |
+| §6 Data Strategy | [REQ-005](./REQ-005_database_schema.md) Database Schema v0.10 | 🟢 Complete |
+| §5 Architecture | [REQ-006](./REQ-006_api_contract.md) API Contract v0.8 | 🟢 Complete |
+| §4 Agentic Capabilities | [REQ-007](./REQ-007_agent_behavior.md) Agent Behavior v0.5 | 🟢 Complete |
+| §4.3 Strategist | [REQ-008](./REQ-008_scoring_algorithm.md) Scoring Algorithm v0.2 | 🟢 Complete |
+| §5 Architecture | [REQ-009](./REQ-009_provider_abstraction.md) Provider Abstraction v0.2 | 🟢 Complete |
+| §4.4 Ghostwriter | [REQ-010](./REQ-010_content_generation.md) Content Generation v0.1 | 🟢 Complete |
+| §4.2 Scouter (Manual) | [REQ-011](./REQ-011_chrome_extension.md) Chrome Extension v0.1 | 🟢 Complete |
 
 ---
 
 ## Requirement Dependencies
 
 ```
-REQ-001 Persona Schema ✅ v0.8
+REQ-001 Persona Schema
     │
-    ├── REQ-002 Resume Schema ✅ v0.6
-    │       │
-    │       └── REQ-002b Cover Letter Schema ✅ v0.5
+    ├── REQ-002 Resume Schema
+    │       └── REQ-002b Cover Letter Schema
     │
-    ├── REQ-003 Job Posting Schema ✅ v0.3 (matched against Persona)
+    ├── REQ-003 Job Posting Schema (matched against Persona)
+    │       └── REQ-008 Scoring Algorithm
     │
-    └── REQ-004 Application Schema ✅ v0.4 (links Resume + Cover Letter + Job)
-            │
-            └── REQ-005 Database Schema ✅ v0.7 (ERD combining all)
-```
+    └── REQ-004 Application Schema (links Resume + Cover Letter + Job)
 
-**Build Order:**
-1. REQ-001 Persona Schema ✅ Draft complete (v0.8)
-2. REQ-002 Resume Schema ✅ Draft complete (v0.6)
-3. REQ-002b Cover Letter Schema ✅ Draft complete (v0.5)
-4. REQ-003 Job Posting Schema ✅ Draft complete (v0.3)
-5. REQ-004 Application Schema ✅ Draft complete (v0.4)
-6. REQ-005 Database Schema (ERD) ✅ Draft complete (v0.7)
+REQ-005 Database Schema (consolidates all entity definitions)
+    └── depends on: REQ-001, REQ-002, REQ-002b, REQ-003, REQ-004
+
+REQ-006 API Contract
+    └── depends on: REQ-005 (entity definitions)
+
+REQ-007 Agent Behavior
+    └── depends on: REQ-006 (API endpoints), REQ-008 (scoring), REQ-009 (providers)
+
+REQ-009 Provider Abstraction
+    └── standalone (infrastructure)
+
+REQ-010 Content Generation
+    └── depends on: REQ-001 (Voice Profile), REQ-002 (Resume), REQ-007 (Ghostwriter flow)
+
+REQ-011 Chrome Extension
+    └── depends on: REQ-006 (ingest endpoint), REQ-003 (JobPosting schema)
+```
 
 ---
 
-## Feature Registry
+## Implementation Order
 
-| Feature ID | Name | Requirements | Phase | Status |
-|------------|------|--------------|-------|--------|
-| FEAT-001 | Onboarding Interview Chat | REQ-001, REQ-007 | 1 | 🔴 Not Started |
-| FEAT-002 | Persona CRUD API | REQ-001, REQ-005 | 1 | 🔴 Not Started |
-| FEAT-003 | Job Ingestion Pipeline | REQ-003, REQ-005 | 2 | 🔴 Not Started |
-| FEAT-004 | Ghost Job Detection | REQ-003 | 2 | 🔴 Not Started |
-| FEAT-005 | Database Migrations | REQ-005 | 1 | 🔴 Not Started |
-| FEAT-006 | FastAPI Scaffold | REQ-006 | 1 | 🔴 Not Started |
-| FEAT-007 | Authentication Layer | REQ-006 | 1 | 🔴 Not Started |
-| FEAT-008 | Vector Scoring Engine | REQ-008, REQ-005 | 2 | 🔴 Not Started |
-| FEAT-009 | LLM Provider Router | REQ-009 | 1 | 🔴 Not Started |
-| FEAT-010 | Resume Redlining | REQ-002, REQ-010 | 3 | 🔴 Not Started |
-| FEAT-011 | Cover Letter Generation | REQ-002b, REQ-010 | 3 | 🔴 Not Started |
-| FEAT-012 | Resume Version Control | REQ-002, REQ-005 | 2 | 🔴 Not Started |
-| FEAT-013 | Application Tracking | REQ-004, REQ-005 | 3 | 🔴 Not Started |
-| FEAT-014 | Status Pipeline UI | REQ-004 | 3 | 🔴 Not Started |
-| FEAT-015 | Cover Letter Version Control | REQ-002b, REQ-005 | 2 | 🔴 Not Started |
+**Phase 1: Foundation**
+1. **REQ-005** → Database migrations (PostgreSQL + pgvector)
+2. **REQ-009** → Provider abstraction layer
+3. **REQ-006** → FastAPI scaffold with basic CRUD
+
+**Phase 2: Core Logic**
+4. **REQ-007** → Agent orchestration (LangGraph)
+5. **REQ-008** → Scoring engine (embeddings)
+6. **REQ-003** → Job ingestion pipeline
+
+**Phase 3: Content & UI**
+7. **REQ-010** → Ghostwriter prompts
+8. **REQ-002/002b** → Resume & cover letter generation
+9. **REQ-011** → Chrome extension
 
 ---
 
-## Phase 1 (Foundation) Critical Path
+## Implementation Notes for Coding Agent
 
-```
-REQ-001 Persona Schema ✅
-    └── REQ-002 Resume Schema ✅
-            └── REQ-002b Cover Letter Schema ✅
-                    └── REQ-003 Job Posting Schema ✅
-                            └── REQ-004 Application Schema ✅
-                                    └── REQ-005 Database Schema ✅
-                                            └── FEAT-005 Database Migrations ← NEXT
-                                                    │
-                                                    ├── FEAT-002 Persona CRUD API
-                                                    │
-                                                    └── FEAT-006 FastAPI Scaffold
-                                                            └── FEAT-001 Onboarding Interview Chat
-```
+1. **TaskType enum (REQ-009):** Add generic `EXTRACTION` value to support utility functions in REQ-010. The spec defines `SKILL_EXTRACTION` but REQ-010 references `TaskType.EXTRACTION` for keyword/metrics extraction.
+
+2. **Shared extraction service (REQ-007 §6.4):** The `extract_job_data()` function must be callable by both the Scouter polling loop AND the `/job-postings/ingest` API endpoint.
+
+3. **All code examples are prescriptive:** Python code in REQ-007, REQ-008, REQ-009, REQ-010 should be implemented as written (including `# WHY` comments).
 
 ---
 
@@ -109,16 +105,16 @@ REQ-001 Persona Schema ✅
 | 🔴 | Not Started |
 | 🟡 | In Progress |
 | 🟢 | Complete |
-| 🔵 | Blocked |
 
 ---
 
 ## Next Actions
 
-1. ~~**Draft REQ-001** — Persona Schema~~ ✅ Complete
-2. ~~**Draft REQ-002** — Resume Schema~~ ✅ Complete
-3. ~~**Draft REQ-002b** — Cover Letter Schema~~ ✅ Complete
-4. ~~**Draft REQ-003** — Job Posting Schema~~ ✅ Complete
-5. ~~**Draft REQ-004** — Application Schema~~ ✅ Complete
-6. ~~**Draft REQ-005** — Database Schema (ERD)~~ ✅ Complete
-7. **Review & Begin Implementation** ← NEXT
+**Requirements Phase: ✅ COMPLETE**
+
+All 12 requirement documents drafted and reviewed.
+
+**Implementation Phase: 🔴 NOT STARTED**
+
+1. **Cross-document audit** (optional) — Verify field name consistency across REQ-001↔REQ-005↔REQ-006
+2. **Begin implementation** — Start with REQ-005 (Database Schema)

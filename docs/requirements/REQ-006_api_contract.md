@@ -384,7 +384,8 @@ This ensures consistency — every download returns the exact same document that
 | `personas/{id}/custom-non-negotiables` | CRUD | Custom filters (e.g., "No Amazon subsidiaries") |
 | `base-resumes` | CRUD | Filtered by current user's persona |
 | `job-variants` | CRUD | |
-| `job-postings` | CRUD | Chrome extension POSTs here |
+| `job-postings` | CRUD | Standard job posting operations |
+| `job-postings/ingest` | POST | Chrome extension submits raw job text for parsing (see §5.6) |
 | `job-postings/{id}/extracted-skills` | Read | Extracted by Scouter, read-only for clients |
 | `applications` | CRUD | |
 | `applications/{id}/timeline` | CRUD | |
@@ -489,6 +490,99 @@ All GET collection endpoints support standard query parameters for filtering and
 GET /job-postings?status=Discovered&is_favorite=true&sort=-fit_score
 ```
 Returns discovered, favorited jobs sorted by highest fit score first.
+
+### 5.6 Job Posting Ingest Endpoint
+
+The Chrome Extension submits raw job posting text for server-side parsing and skill extraction.
+
+**Why a separate endpoint?**
+- Standard `POST /job-postings` expects structured data (already parsed)
+- `/ingest` accepts raw text and returns a preview before saving
+- Allows user to review extracted data before committing
+- Extraction logic (LLM calls) stays server-side, not in extension
+
+**Endpoint:** `POST /api/v1/job-postings/ingest`
+
+**Request:**
+```json
+{
+  "raw_text": "Senior Software Engineer at Acme Corp...[full job description]...",
+  "source_url": "https://linkedin.com/jobs/view/12345",
+  "source_name": "LinkedIn"
+}
+```
+
+**Response (Preview):**
+```json
+{
+  "data": {
+    "preview": {
+      "job_title": "Senior Software Engineer",
+      "company_name": "Acme Corp",
+      "location": "San Francisco, CA (Hybrid)",
+      "salary_min": 150000,
+      "salary_max": 200000,
+      "salary_currency": "USD",
+      "employment_type": "Full-time",
+      "extracted_skills": [
+        { "skill_name": "Python", "importance_level": "Required" },
+        { "skill_name": "Kubernetes", "importance_level": "Required" },
+        { "skill_name": "AWS", "importance_level": "Preferred" }
+      ],
+      "culture_text": "Fast-paced startup environment, collaborative team",
+      "description_snippet": "First 500 chars of description..."
+    },
+    "confirmation_token": "temp-token-uuid",
+    "expires_at": "2026-01-25T10:15:00Z"
+  }
+}
+```
+
+**Confirmation:** `POST /api/v1/job-postings/ingest/confirm`
+
+```json
+{
+  "confirmation_token": "temp-token-uuid",
+  "modifications": {
+    "job_title": "Sr. Software Engineer"
+  }
+}
+```
+
+**Returns:** Full `JobPosting` object (same as `GET /job-postings/{id}`)
+
+**Flow:**
+```
+Chrome Extension                    API                          Scouter Service
+      │                              │                                  │
+      │  POST /ingest {raw_text}     │                                  │
+      │─────────────────────────────>│                                  │
+      │                              │   extract_job_data(raw_text)     │
+      │                              │─────────────────────────────────>│
+      │                              │<─────────────────────────────────│
+      │                              │   {parsed fields}                │
+      │   {preview + token}          │                                  │
+      │<─────────────────────────────│                                  │
+      │                              │                                  │
+      │ [User reviews in extension]  │                                  │
+      │                              │                                  │
+      │  POST /ingest/confirm        │                                  │
+      │─────────────────────────────>│                                  │
+      │                              │  [Create JobPosting]             │
+      │                              │  [Queue Strategist scoring]      │
+      │   {JobPosting}               │                                  │
+      │<─────────────────────────────│                                  │
+```
+
+**Error Cases:**
+
+| Error | HTTP | Response |
+|-------|------|----------|
+| Parsing failed | 422 | `{ "error": { "code": "EXTRACTION_FAILED", "message": "Could not extract job details" } }` |
+| Duplicate URL | 409 | `{ "error": { "code": "DUPLICATE_JOB", "message": "Job from this URL already exists", "existing_id": "uuid" } }` |
+| Token expired | 410 | `{ "error": { "code": "TOKEN_EXPIRED", "message": "Preview expired, please re-submit" } }` |
+
+**Implementation Note:** The extraction logic in Scouter (REQ-007 §6.4) is exposed as a shared service function callable by both the background poller and this synchronous endpoint.
 
 ---
 

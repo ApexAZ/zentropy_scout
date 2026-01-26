@@ -1,8 +1,9 @@
 # REQ-003: Job Posting Schema
 
 **Status:** Draft  
+**Version:** 0.4  
 **PRD Reference:** §4.2 Scouter Agent, §7 Job Discovery  
-**Last Updated:** 2025-01-25
+**Last Updated:** 2026-01-25
 
 ---
 
@@ -162,6 +163,7 @@ Operational state for job polling. The user's frequency preference is stored on 
 | salary_max | Integer | Optional | No | |
 | salary_currency | String | Optional | No | USD, EUR, etc. |
 | description | String | ✅ | No | Full job description |
+| culture_text | String | Optional | No | Extracted culture/values text for embedding (see REQ-007 §6.4, REQ-008 §6.1) |
 | requirements | String | Optional | No | Skills, experience, education |
 | years_experience_min | Integer | Optional | No | Minimum years requested |
 | years_experience_max | Integer | Optional | No | Maximum years (if range specified) |
@@ -674,3 +676,4 @@ This section preserves context for implementation. Future developers (including 
 | 2025-01-25 | 0.1 | Initial draft from discovery interview |
 | 2025-01-25 | 0.2 | Added: Problem context (§1.1), Source Registry split into global + user prefs (§4.2b), Cross-source dedup with `also_found_on` (§9.2), Non-Negotiables filtering (§10.4), Minimum fit threshold (§10.5), Expiration detection (§12.2), `seniority_level` and `years_experience` fields, "similar title" definition (§8.1), Decision Log (§18). Fixed: Retention conflict with favorites (§12.1). |
 | 2025-01-25 | 0.3 | Coherence fixes: Removed duplicate `polling_frequency` from PollingConfiguration (now only on Persona). Fixed `work_model` enum: "On-site" → "Onsite" for consistency with REQ-001. |
+| 2026-01-25 | 0.4 | Added `culture_text` field to JobPosting (§5.1) — LLM-extracted culture/values text for soft skills embedding (see REQ-007 §6.4, REQ-008 §6.1). |

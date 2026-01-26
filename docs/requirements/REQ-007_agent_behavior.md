@@ -1,7 +1,7 @@
 # REQ-007: Agent Behavior Specification
 
 **Status:** Draft  
-**Version:** 0.3  
+**Version:** 0.4  
 **PRD Reference:** §4 Core Agentic Capabilities  
 **Last Updated:** 2026-01-25
 
@@ -688,27 +688,74 @@ class JobSourceAdapter:
     def normalize(self, raw: RawJob) -> JobPostingCreate
 ```
 
-### 6.4 Skill Extraction
+### 6.4 Skill & Culture Extraction
 
-LLM extracts skills from job description.
+LLM extracts structured data from job description in a single pass.
+
+**CRITICAL:** We extract BOTH skills AND culture text. The culture text is required for soft skills matching (see REQ-008 §6.1). Without it, the Strategist cannot properly score culture fit.
 
 **Prompt template:**
 ```
-Extract skills from this job posting. For each skill:
-- skill_name: The skill (normalize common variations)
-- skill_type: "Hard" or "Soft"
-- is_required: true if explicitly required, false if nice-to-have
-- years_requested: number if specified, null otherwise
+Analyze this job posting and extract:
+
+1. SKILLS: For each skill mentioned:
+   - skill_name: The skill (normalize common variations)
+   - skill_type: "Hard" (technical) or "Soft" (interpersonal)
+   - is_required: true if explicitly required, false if nice-to-have
+   - years_requested: number if specified, null otherwise
+
+2. CULTURE_TEXT: Extract ONLY text about company culture, values, team environment, 
+   benefits, and "About Us" content. Do NOT include requirements, responsibilities, 
+   or technical skills in this section.
 
 Job posting:
 {description}
 
-Return JSON array of skills.
+Return JSON:
+{
+  "skills": [...],
+  "culture_text": "..."  // Empty string if no culture content found
+}
+```
+
+**Example extraction:**
+
+Input:
+```
+About Acme Corp: We're a fast-paced startup that values innovation and work-life balance.
+Our engineering team is collaborative and loves solving hard problems.
+
+Requirements:
+- 5+ years Python experience
+- Strong communication skills
+- Experience with AWS
+
+Benefits: Unlimited PTO, remote-first, equity
+```
+
+Output:
+```json
+{
+  "skills": [
+    {"skill_name": "Python", "skill_type": "Hard", "is_required": true, "years_requested": 5},
+    {"skill_name": "Communication", "skill_type": "Soft", "is_required": true, "years_requested": null},
+    {"skill_name": "AWS", "skill_type": "Hard", "is_required": true, "years_requested": null}
+  ],
+  "culture_text": "We're a fast-paced startup that values innovation and work-life balance. Our engineering team is collaborative and loves solving hard problems. Benefits: Unlimited PTO, remote-first, equity"
+}
 ```
 
 **Model:** Haiku/GPT-4o-mini/Flash (fast, cheap, sufficient for extraction)
 
+**Storage:** The `culture_text` is stored on the JobPosting record and used by the Strategist to generate the `job_culture` embedding (see REQ-008 §6.4).
+
 **Note:** This is a Scouter-specific task (high volume, simple extraction). The Strategist uses Sonnet for scoring analysis (see §11.2). Don't confuse these — skill extraction happens during job discovery, scoring happens after.
+
+**Implementation Note (Shared Service):** The extraction logic in §6.3 and §6.4 MUST be abstracted into a shared service function (e.g., `extract_job_data(raw_text) -> ParsedJob`) that can be called by:
+1. The Scouter's background polling loop (async, batch processing)
+2. The `/job-postings/ingest` API endpoint (sync, single job from Chrome Extension — see REQ-006 §5.6)
+
+This enables on-demand job ingestion without duplicating extraction logic.
 
 ### 6.5 Ghost Detection
 
@@ -1436,6 +1483,7 @@ def update_persona(persona_id: str, changes: dict, expected_version: datetime):
 | 2026-01-25 | 0.1 | Initial draft. Agent roster, architecture overview, LangGraph framework. Chat Agent tools mapped to REQ-006 endpoints. |
 | 2026-01-25 | 0.2 | **Critical fixes from peer review:** (1) Added embedding regeneration flow to §7.1 and §5.5 — fixes "cold start" problem where Persona updates weren't reflected in job matching. (2) Added duplicate JobVariant check to §8.2 step 0 — prevents race condition when user triggers draft multiple times. (3) Clarified model usage in §6.4 — Scouter uses Haiku for extraction, Strategist uses Sonnet for scoring. |
 | 2026-01-25 | 0.3 | **Coding agent support:** Added §5.6 Onboarding Prompt Templates (interviewer persona, step-specific prompts). Added §7.6 Strategist Prompt Templates (score rationale, non-negotiables explanation). Added §10.4 Concurrency & Race Conditions (stale embeddings, duplicate variants, expired jobs, concurrent edits). Added §15 Graph Specifications (LangGraph node/edge definitions for all agents). |
+| 2026-01-25 | 0.4 | **Culture text extraction:** Updated §6.4 to extract `culture_text` alongside skills — required for soft skills embedding (REQ-008 §6.1). Without this, Strategist would pollute culture matching with technical keywords from job description. |
 
 ---
 
