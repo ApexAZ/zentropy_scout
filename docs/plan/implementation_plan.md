@@ -180,8 +180,8 @@ These steps require user action outside Claude Code:
 | 6.1 | ProviderConfig Class | `provider, tdd, plan` | ✅ |
 | 6.2 | Environment Variables | `provider, tdd, plan` | ✅ |
 | 6.3 | Provider Factory | `provider, structure, tdd, plan` | ✅ |
-| 4.1 | LLM Abstract Interface | `provider, tdd, plan` | ⬜ |
-| 4.2 | Provider-Specific Adapters (Claude, OpenAI, Gemini) | `provider, tdd, plan` | ⬜ |
+| 4.1 | LLM Abstract Interface | `provider, tdd, plan` | ✅ |
+| 4.2 | Provider-Specific Adapters (Claude, OpenAI, Gemini) | `provider, tdd, plan` ⚠️ Remove underscore prefix from stub params in `claude_adapter.py` (added in §4.1) | ⬜ |
 | 4.3 | Model Routing Table | `provider, plan` | ⬜ |
 | 4.4 | Cost Estimates by Task | `provider, plan` | ⬜ |
 | 4.5 | Tool Calling Patterns | `provider, tdd, plan` | ⬜ |
