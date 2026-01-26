@@ -451,9 +451,9 @@ Agent may NOT:
 | # | Question | Status |
 |---|----------|--------|
 | 1 | Max file size for uploads? | TBD — suggest 10MB |
-| 2 | PDF generation library? | TBD — WeasyPrint, ReportLab, or similar |
+| 2 | PDF generation library? | **DECIDED: ReportLab** — pure Python, no system dependencies, fits local-first MVP |
 | 3 | Should we support other export formats (DOCX)? | TBD — PDF only for MVP |
-| 4 | Template system for PDF styling? | TBD — defer to implementation |
+| 4 | Template system for PDF styling? | **DECIDED: ReportLab Platypus** — high-level layout API (Paragraph, Table, Spacer) with stylesheets |
 
 ---
 

@@ -162,6 +162,7 @@ class TaskType(Enum):
     CHAT_RESPONSE = "chat_response"           # Conversational replies
     ONBOARDING_INTERVIEW = "onboarding"       # Persona gathering
     SKILL_EXTRACTION = "skill_extraction"     # Extract skills from job postings
+    EXTRACTION = "extraction"                 # Generic extraction (keywords, metrics) — REQ-010 utility functions
     GHOST_DETECTION = "ghost_detection"       # Classify posting legitimacy
     SCORE_RATIONALE = "score_rationale"       # Explain job match scores
     COVER_LETTER = "cover_letter"             # Generate cover letters
@@ -673,6 +674,7 @@ This optimizes cost without sacrificing quality where it matters.
 CLAUDE_MODEL_ROUTING: Dict[TaskType, str] = {
     # High volume, simple tasks → Haiku (fast, cheap)
     TaskType.SKILL_EXTRACTION: "claude-3-haiku-20240307",
+    TaskType.EXTRACTION: "claude-3-haiku-20240307",  # Generic extraction (keywords, metrics)
     TaskType.GHOST_DETECTION: "claude-3-haiku-20240307",
     
     # Quality-critical tasks → Sonnet (balanced)
@@ -688,6 +690,7 @@ CLAUDE_MODEL_ROUTING: Dict[TaskType, str] = {
 OPENAI_MODEL_ROUTING: Dict[TaskType, str] = {
     # High volume → GPT-4o-mini
     TaskType.SKILL_EXTRACTION: "gpt-4o-mini",
+    TaskType.EXTRACTION: "gpt-4o-mini",  # Generic extraction (keywords, metrics)
     TaskType.GHOST_DETECTION: "gpt-4o-mini",
     
     # Quality-critical → GPT-4o
@@ -703,6 +706,7 @@ OPENAI_MODEL_ROUTING: Dict[TaskType, str] = {
 GEMINI_MODEL_ROUTING: Dict[TaskType, str] = {
     # High volume → Flash
     TaskType.SKILL_EXTRACTION: "gemini-1.5-flash",
+    TaskType.EXTRACTION: "gemini-1.5-flash",  # Generic extraction (keywords, metrics)
     TaskType.GHOST_DETECTION: "gemini-1.5-flash",
     
     # Quality-critical → Pro

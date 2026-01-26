@@ -692,6 +692,21 @@ class JobSourceAdapter:
 
 LLM extracts structured data from job description in a single pass.
 
+**Input Truncation:** Job posting `raw_text` can be massive (50k+ chars with embedded HTML/scripts). Before sending to the LLM:
+1. Store full `raw_text` in database (for audit/debugging)
+2. Truncate to **15,000 characters** for LLM extraction
+3. Truncate at word boundary to avoid mid-word cuts
+
+```python
+def truncate_for_extraction(raw_text: str, max_chars: int = 15000) -> str:
+    """Truncate raw text for LLM extraction while preserving word boundaries."""
+    if len(raw_text) <= max_chars:
+        return raw_text
+    # Find last space before limit
+    truncated = raw_text[:max_chars].rsplit(' ', 1)[0]
+    return truncated + "..."
+```
+
 **CRITICAL:** We extract BOTH skills AND culture text. The culture text is required for soft skills matching (see REQ-008 §6.1). Without it, the Strategist cannot properly score culture fit.
 
 **Prompt template:**
