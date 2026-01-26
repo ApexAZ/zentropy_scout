@@ -151,7 +151,7 @@ These steps require user action outside Claude Code:
 | 5.3 | JSONB Schema — Job Posting Domain | `db, plan` | ✅ |
 | 5.4 | JSONB Schema — Application Domain | `db, plan` | ✅ |
 | 6 | Archive Implementation | `db, tdd, plan` | ✅ |
-| 7 | Cleanup Jobs | `db, tdd, test, plan` | ⬜ |
+| 7 | Cleanup Jobs | `db, tdd, test, plan` | ✅ |
 | 3 | Entity Relationship Diagram (validation) | `db, plan` | ⬜ |
 
 ---
