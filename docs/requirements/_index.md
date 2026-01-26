@@ -29,7 +29,7 @@ PRD Section (Why) → Requirement (What) → Feature (How) → Task (Do)
 | §6 Data Strategy | [REQ-005](./REQ-005_database_schema.md) Database Schema (ERD) v0.10 | FEAT-005 | 🟢 Complete |
 | §5 Architecture | [REQ-006](./REQ-006_api_contract.md) API Contract v0.7 | FEAT-006, FEAT-007 | 🟢 Complete |
 | §4 Agentic Capabilities | [REQ-007](./REQ-007_agent_behavior.md) Agent Behavior v0.3 | FEAT-001, FEAT-016 | 🟢 Complete |
-| §4.3 Strategist | REQ-008 Scoring Algorithm | FEAT-008 | 🔴 Not Started |
+| §4.3 Strategist | [REQ-008](./REQ-008_scoring_algorithm.md) Scoring Algorithm v0.1 | FEAT-008 | 🟢 Complete |
 | §5 Architecture | REQ-009 Provider Abstraction | FEAT-009 | 🔴 Not Started |
 | §4.4 Ghostwriter | REQ-010 Content Generation | FEAT-010, FEAT-011 | 🔴 Not Started |
 
