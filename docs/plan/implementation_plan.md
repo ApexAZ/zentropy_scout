@@ -119,7 +119,7 @@ These steps require user action outside Claude Code:
 ## Phase 1: Foundation
 
 ### 1.1 Database Schema (REQ-005)
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
 *Creates all database tables and migrations. Must complete before any other implementation.*
 
@@ -152,7 +152,7 @@ These steps require user action outside Claude Code:
 | 5.4 | JSONB Schema — Application Domain | `db, plan` | ✅ |
 | 6 | Archive Implementation | `db, tdd, plan` | ✅ |
 | 7 | Cleanup Jobs | `db, tdd, test, plan` | ✅ |
-| 3 | Entity Relationship Diagram (validation) | `db, plan` | ⬜ |
+| 3 | Entity Relationship Diagram (validation) | `db, plan` | ✅ |
 
 ---
 
