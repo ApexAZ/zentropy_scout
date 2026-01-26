@@ -417,6 +417,37 @@ Requirements location: `docs/requirements/`
 
 ## Implementation Notes for Coding Agent
 
+### Critical: Claude Agent SDK for Local Mode (REQ-009 §1.5)
+
+**MVP uses Claude Agent SDK, not direct API calls.** The SDK wraps the user's Claude subscription.
+
+**Package:** `pip install claude-agent-sdk`
+
+**Key documentation (read before implementing REQ-009):**
+- Overview: https://platform.claude.com/docs/en/agent-sdk/overview
+- Python SDK: https://platform.claude.com/docs/en/agent-sdk/python
+- Structured outputs: https://platform.claude.com/docs/en/agent-sdk/structured-outputs
+- Custom tools (MCP): https://platform.claude.com/docs/en/agent-sdk/custom-tools
+
+**Key patterns:**
+```python
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+# Structured output with Pydantic
+async for message in query(
+    prompt="...",
+    options=ClaudeAgentOptions(
+        system_prompt="...",
+        max_turns=1,
+        output_format={"type": "json_schema", "schema": MyModel.model_json_schema()}
+    )
+):
+    if message.type == "result" and message.structured_output:
+        result = MyModel.model_validate(message.structured_output)
+```
+
+**Note:** Embeddings still require OpenAI API key (`OPENAI_API_KEY`) even in local mode — there is no subscription-based embedding option.
+
 ### Critical: File Storage (REQ-005)
 
 **Strict adherence required:** Files (resumes, PDFs) MUST be stored in PostgreSQL `BYTEA` columns. Do NOT refactor to filesystem paths or S3/object storage.

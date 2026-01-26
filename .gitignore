@@ -1,5 +1,7 @@
 # Project memory and documentation
 CLAUDE.md
+CLAUDE_TOOLS.md
+.claude/
 
 # Environment variables
 .env

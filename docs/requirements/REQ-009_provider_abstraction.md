@@ -73,6 +73,122 @@ vectors = await embedder.embed(["text1", "text2"])
 | **Self-hosted models** | Ollama/vLLM support deferred to v2 |
 | **Prompt caching** | Provider-specific feature; add later if needed |
 
+### 1.5 Dual-Mode Architecture: Local vs Hosted
+
+Zentropy Scout supports two operating modes with different LLM access patterns:
+
+| Mode | Auth | LLM Interface | Embeddings | Use Case |
+|------|------|---------------|------------|----------|
+| **Local (MVP)** | User's Claude subscription | Claude Agent SDK | OpenAI API (key required) | Personal use on user's machine |
+| **Hosted (Future)** | BYOK — user provides API keys | Anthropic/OpenAI APIs | OpenAI API (user's key) | Multi-tenant hosted service |
+
+**WHY TWO MODES:**
+- Local mode leverages the user's existing Claude Pro/Max subscription — no separate API key for LLM
+- Hosted mode requires API keys because Anthropic does not permit third-party apps to use Claude.ai subscriptions
+
+#### 1.5.1 Local Mode: Claude Agent SDK
+
+The Claude Agent SDK (`claude-agent-sdk` package) wraps Claude Code and provides:
+- Streaming completions via `query()`
+- Built-in tools (Read, Write, Bash, Glob)
+- Structured output via `output_format` option
+- Custom tools via MCP integration
+
+```python
+# Local mode uses Claude Agent SDK
+from claude_agent_sdk import query, ClaudeAgentOptions
+from pydantic import BaseModel
+
+class ExtractedSkills(BaseModel):
+    skills: list[dict]
+    culture_text: str
+
+async def extract_skills_local(job_description: str) -> ExtractedSkills:
+    """Extract skills using Claude Agent SDK (local mode)."""
+    options = ClaudeAgentOptions(
+        system_prompt="You are a job posting analyzer.",
+        max_turns=1,
+        output_format={
+            "type": "json_schema",
+            "schema": ExtractedSkills.model_json_schema()
+        }
+    )
+    
+    async for message in query(
+        prompt=f"Extract skills and culture text from:\n\n{job_description}",
+        options=options
+    ):
+        if message.type == "result" and message.structured_output:
+            return ExtractedSkills.model_validate(message.structured_output)
+```
+
+**Key differences from API:**
+- No API key needed (uses Claude subscription)
+- Always streaming (`async for message in query()`)
+- Structured output via `output_format` option, returned in `message.structured_output`
+- Tools defined via MCP, not API tool schema
+
+**Documentation:** https://platform.claude.com/docs/en/agent-sdk/overview
+
+#### 1.5.2 Hosted Mode: Direct API
+
+For hosted/multi-tenant deployment, use the standard Anthropic Python SDK:
+
+```python
+# Hosted mode uses Anthropic API
+from anthropic import AsyncAnthropic
+
+async def extract_skills_hosted(job_description: str, api_key: str) -> ExtractedSkills:
+    """Extract skills using Anthropic API (hosted mode with BYOK)."""
+    client = AsyncAnthropic(api_key=api_key)
+    
+    response = await client.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=1024,
+        system="You are a job posting analyzer.",
+        messages=[{
+            "role": "user",
+            "content": f"Extract skills and culture text from:\n\n{job_description}"
+        }]
+    )
+    # Parse JSON from response.content[0].text
+```
+
+#### 1.5.3 Provider Abstraction Must Handle Both
+
+The `LLMProvider` interface (§4.1) must abstract over both modes:
+
+```python
+class LLMProvider(ABC):
+    @abstractmethod
+    async def complete(
+        self,
+        messages: List[LLMMessage],
+        task: TaskType,
+        output_schema: Optional[Type[BaseModel]] = None,  # For structured output
+        tools: Optional[List[ToolDefinition]] = None,
+        stream: bool = False,
+    ) -> LLMResponse:
+        """
+        Unified interface for both modes.
+        
+        Local mode: Translates to claude_agent_sdk.query()
+        Hosted mode: Translates to anthropic.messages.create()
+        """
+        pass
+
+# Factory returns appropriate implementation
+def get_llm_provider() -> LLMProvider:
+    if settings.PROVIDER_MODE == "local":
+        return ClaudeAgentSDKProvider()  # Uses claude-agent-sdk
+    else:
+        return AnthropicAPIProvider(api_key=settings.ANTHROPIC_API_KEY)
+```
+
+**Implementation priority:**
+1. **MVP:** Implement `ClaudeAgentSDKProvider` only
+2. **Future:** Add `AnthropicAPIProvider` and `OpenAIAPIProvider` for BYOK
+
 ---
 
 ## 2. Dependencies
