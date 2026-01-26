@@ -71,6 +71,7 @@ The unified interface that all agents call. Contains:
 | `LLMProvider` | Abstract interface for chat completions |
 | `EmbeddingProvider` | Abstract interface for text embeddings |
 | `ProviderConfig` | Centralized configuration (keys, models, limits) |
+| `*Adapter` | Provider-specific SDK wrappers |
 | `ModelRouter` | Maps task types to specific models |
 
 ### Provider Adapters
