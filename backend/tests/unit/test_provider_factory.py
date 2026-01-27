@@ -59,16 +59,24 @@ class TestGetEmbeddingProvider:
 
     def test_returns_embedding_provider_instance(self):
         """Factory should return an EmbeddingProvider instance."""
-        config = ProviderConfig(embedding_provider="openai")
-        provider = get_embedding_provider(config)
-        assert provider is not None
+        config = ProviderConfig(
+            embedding_provider="openai",
+            openai_api_key="test-key",  # Required for OpenAI client
+        )
+        with patch("app.providers.embedding.openai_adapter.AsyncOpenAI"):
+            provider = get_embedding_provider(config)
+            assert provider is not None
 
     def test_singleton_returns_same_instance(self):
         """Subsequent calls should return the same instance."""
-        config = ProviderConfig(embedding_provider="openai")
-        provider1 = get_embedding_provider(config)
-        provider2 = get_embedding_provider()  # No config, uses cached
-        assert provider1 is provider2
+        config = ProviderConfig(
+            embedding_provider="openai",
+            openai_api_key="test-key",
+        )
+        with patch("app.providers.embedding.openai_adapter.AsyncOpenAI"):
+            provider1 = get_embedding_provider(config)
+            provider2 = get_embedding_provider()  # No config, uses cached
+            assert provider1 is provider2
 
     def test_raises_for_unknown_provider(self):
         """Should raise ValueError for unknown provider."""
@@ -93,9 +101,13 @@ class TestResetProviders:
 
     def test_reset_clears_embedding_singleton(self):
         """reset_providers should clear the embedding singleton."""
-        config = ProviderConfig(embedding_provider="openai")
-        provider1 = get_embedding_provider(config)
-        reset_providers()
-        provider2 = get_embedding_provider(config)
-        # After reset, should be a new instance
-        assert provider1 is not provider2
+        config = ProviderConfig(
+            embedding_provider="openai",
+            openai_api_key="test-key",
+        )
+        with patch("app.providers.embedding.openai_adapter.AsyncOpenAI"):
+            provider1 = get_embedding_provider(config)
+            reset_providers()
+            provider2 = get_embedding_provider(config)
+            # After reset, should be a new instance
+            assert provider1 is not provider2
