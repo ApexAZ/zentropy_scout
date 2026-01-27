@@ -1,22 +1,43 @@
-"""Abstract base class for embedding providers.
+"""Abstract base class and types for embedding providers.
 
-REQ-009 §5.1: EmbeddingProvider abstract interface.
+REQ-009 §5.1: EmbeddingProvider abstract interface with batch-first API.
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.providers.config import ProviderConfig
 
 
-class EmbeddingProvider(ABC):
-    """Abstract interface for embedding providers.
+@dataclass
+class EmbeddingResult:
+    """Result of embedding operation.
 
-    WHY ABC:
-    - Enforces consistent interface across providers
-    - Enables dependency injection for testing
-    - Allows swapping providers without code changes
+    WHY DATACLASS: Simple data container with clear fields.
+    Enables type checking and IDE autocomplete.
+
+    Attributes:
+        vectors: One embedding vector per input text, in same order.
+        model: Model identifier used for embedding.
+        dimensions: Number of dimensions in each vector.
+        total_tokens: Total tokens processed across all inputs.
+    """
+
+    vectors: list[list[float]]
+    model: str
+    dimensions: int
+    total_tokens: int
+
+
+class EmbeddingProvider(ABC):
+    """Abstract base class for embedding providers.
+
+    WHY SEPARATE FROM LLM PROVIDER:
+    - Different API patterns (batch-oriented vs conversational)
+    - Different providers may be optimal (OpenAI embeddings are excellent)
+    - Embeddings are stateless; LLM may need conversation context
     """
 
     def __init__(self, config: "ProviderConfig") -> None:
@@ -28,30 +49,34 @@ class EmbeddingProvider(ABC):
         self.config = config
 
     @abstractmethod
-    async def embed(self, text: str) -> list[float]:
-        """Generate embedding for a single text.
+    async def embed(self, texts: list[str]) -> EmbeddingResult:
+        """Generate embeddings for a list of texts.
+
+        WHY BATCH BY DEFAULT:
+        - Embedding APIs are optimized for batch calls
+        - Reduces round trips and latency
+        - Single-text embedding is just batch of 1: embed(["text"])
 
         Args:
-            text: The text to embed.
+            texts: List of strings to embed.
 
         Returns:
-            List of floats representing the embedding vector.
+            EmbeddingResult with vectors in same order as input.
+
+        Raises:
+            ProviderError: On API failure after retries.
         """
         ...
 
+    @property
     @abstractmethod
-    async def embed_batch(
-        self,
-        texts: list[str],
-        batch_size: int = 100,
-    ) -> list[list[float]]:
-        """Generate embeddings for multiple texts.
+    def dimensions(self) -> int:
+        """Return the embedding dimensions.
 
-        Args:
-            texts: List of texts to embed.
-            batch_size: Number of texts to process per API call.
+        WHY PROPERTY: Database schema needs to know vector size
+        at table creation time. This makes it queryable.
 
         Returns:
-            List of embedding vectors, one per input text.
+            Number of dimensions in the embedding vectors (e.g., 1536).
         """
         ...

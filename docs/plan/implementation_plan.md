@@ -183,10 +183,10 @@ These steps require user action outside Claude Code:
 | 4.1 | LLM Abstract Interface | `provider, tdd, plan` | ✅ |
 | 4.2 | Provider-Specific Adapters (Claude, OpenAI, Gemini) | `provider, tdd, plan` | ✅ |
 | 4.3 | Model Routing Table | `provider, plan` | ✅ |
-| 4.4 | Cost Estimates by Task | `provider, plan` | ⬜ |
-| 4.5 | Tool Calling Patterns | `provider, tdd, plan` | ⬜ |
-| 4.6 | JSON Mode Patterns | `provider, tdd, plan` | ⬜ |
-| 5.1 | Embedding Abstract Interface | `provider, db, tdd, plan` | ⬜ |
+| 4.4 | Cost Estimates by Task | `provider, plan` | ✅ |
+| 4.5 | Tool Calling Patterns | `provider, tdd, plan` | ✅ |
+| 4.6 | JSON Mode Patterns | `provider, tdd, plan` | ✅ |
+| 5.1 | Embedding Abstract Interface | `provider, db, tdd, plan` | ✅ |
 | 5.2 | OpenAI Embedding Adapter | `provider, tdd, plan` | ⬜ |
 | 5.3 | Embedding Model Comparison | `provider, plan` | ⬜ |
 | 7.1 | Error Taxonomy | `provider, structure, tdd, plan` | ⬜ |
