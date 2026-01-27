@@ -13,6 +13,7 @@ from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
 import google.generativeai as genai
+import structlog
 from google.api_core import exceptions as google_exceptions
 
 from app.providers.errors import (
@@ -34,6 +35,8 @@ from app.providers.llm.base import (
 
 if TYPE_CHECKING:
     from app.providers.config import ProviderConfig
+
+logger = structlog.get_logger()
 
 
 # Default model routing table per REQ-009 §4.3
@@ -192,6 +195,15 @@ class GeminiAdapter(LLMProvider):
             tools=gemini_tools,
         )
 
+        # Log request start
+        logger.info(
+            "llm_request_start",
+            provider="gemini",
+            model=model_name,
+            task=task.value,
+            message_count=len(messages),
+        )
+
         start_time = time.monotonic()
 
         try:
@@ -200,12 +212,44 @@ class GeminiAdapter(LLMProvider):
                 generation_config=generation_config,
             )
         except google_exceptions.ResourceExhausted as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise RateLimitError(str(e)) from e
         except google_exceptions.PermissionDenied as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise AuthenticationError(str(e)) from e
         except google_exceptions.Unauthenticated as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise AuthenticationError(str(e)) from e
         except google_exceptions.InvalidArgument as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             error_msg = str(e).lower()
             if "context" in error_msg:
                 raise ContextLengthError(str(e)) from e
@@ -213,6 +257,14 @@ class GeminiAdapter(LLMProvider):
                 raise ContentFilterError(str(e)) from e
             raise ProviderError(str(e)) from e
         except google_exceptions.ServiceUnavailable as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise TransientError(str(e)) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
@@ -246,15 +298,32 @@ class GeminiAdapter(LLMProvider):
         else:
             finish_reason = "UNKNOWN"
 
+        # Get token counts for logging
+        input_tokens = (
+            response.usage_metadata.prompt_token_count if response.usage_metadata else 0
+        )
+        output_tokens = (
+            response.usage_metadata.candidates_token_count
+            if response.usage_metadata
+            else 0
+        )
+
+        # Log request complete
+        logger.info(
+            "llm_request_complete",
+            provider="gemini",
+            model=model_name,
+            task=task.value,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            latency_ms=latency_ms,
+        )
+
         return LLMResponse(
             content=content,
             model=model_name,
-            input_tokens=response.usage_metadata.prompt_token_count
-            if response.usage_metadata
-            else 0,
-            output_tokens=response.usage_metadata.candidates_token_count
-            if response.usage_metadata
-            else 0,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
             finish_reason=finish_reason,
             latency_ms=latency_ms,
             tool_calls=tool_calls,
@@ -312,6 +381,15 @@ class GeminiAdapter(LLMProvider):
             system_instruction=system_msg,
         )
 
+        # Log request start
+        logger.info(
+            "llm_request_start",
+            provider="gemini",
+            model=model_name,
+            task=task.value,
+            message_count=len(messages),
+        )
+
         try:
             response = await model.generate_content_async(
                 contents,
@@ -323,12 +401,44 @@ class GeminiAdapter(LLMProvider):
                 if chunk.text:
                     yield chunk.text
         except google_exceptions.ResourceExhausted as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise RateLimitError(str(e)) from e
         except google_exceptions.PermissionDenied as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise AuthenticationError(str(e)) from e
         except google_exceptions.Unauthenticated as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise AuthenticationError(str(e)) from e
         except google_exceptions.InvalidArgument as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             error_msg = str(e).lower()
             if "context" in error_msg:
                 raise ContextLengthError(str(e)) from e
@@ -336,6 +446,14 @@ class GeminiAdapter(LLMProvider):
                 raise ContentFilterError(str(e)) from e
             raise ProviderError(str(e)) from e
         except google_exceptions.ServiceUnavailable as e:
+            logger.error(
+                "llm_request_failed",
+                provider="gemini",
+                model=model_name,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise TransientError(str(e)) from e
 
     def get_model_for_task(self, task: TaskType) -> str:

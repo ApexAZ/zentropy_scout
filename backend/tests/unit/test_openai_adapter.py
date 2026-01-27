@@ -735,3 +735,168 @@ class TestOpenAIAdapterErrorMapping:
             with pytest.raises(RateLimitError):
                 async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
                     pass
+
+
+class TestOpenAIAdapterLogging:
+    """Test structured logging in OpenAI adapter (REQ-009 §8.1)."""
+
+    @pytest.mark.asyncio
+    async def test_logs_request_start(self, config, mock_openai_response):
+        """Should log llm_request_start before making API call."""
+        with (
+            patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls,
+            patch("app.providers.llm.openai_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Verify llm_request_start was logged with correct fields
+            mock_logger.info.assert_any_call(
+                "llm_request_start",
+                provider="openai",
+                model=adapter.get_model_for_task(TaskType.CHAT_RESPONSE),
+                task="chat_response",
+                message_count=1,
+            )
+
+    @pytest.mark.asyncio
+    async def test_logs_request_complete(self, config, mock_openai_response):
+        """Should log llm_request_complete after successful API call."""
+        with (
+            patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls,
+            patch("app.providers.llm.openai_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Find the llm_request_complete call
+            complete_calls = [
+                call
+                for call in mock_logger.info.call_args_list
+                if call[0][0] == "llm_request_complete"
+            ]
+            assert len(complete_calls) == 1
+
+            call_kwargs = complete_calls[0][1]
+            assert call_kwargs["provider"] == "openai"
+            assert call_kwargs["task"] == "chat_response"
+            assert call_kwargs["input_tokens"] == 10
+            assert call_kwargs["output_tokens"] == 20
+            assert "latency_ms" in call_kwargs
+
+    @pytest.mark.asyncio
+    async def test_logs_request_failed_on_error(self, config):
+        """Should log llm_request_failed when API call fails."""
+        import openai
+
+        with (
+            patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls,
+            patch("app.providers.llm.openai_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+            mock_error = openai.RateLimitError(
+                message="Rate limit exceeded",
+                response=MagicMock(status_code=429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            from app.providers.errors import RateLimitError as ZentropyRateLimitError
+
+            with pytest.raises(ZentropyRateLimitError):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Verify llm_request_failed was logged
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert call_args[0][0] == "llm_request_failed"
+            assert call_args[1]["provider"] == "openai"
+            assert call_args[1]["task"] == "chat_response"
+            assert "error" in call_args[1]
+            assert call_args[1]["error_type"] == "RateLimitError"
+
+    @pytest.mark.asyncio
+    async def test_stream_logs_request_start(self, config):
+        """stream() should log llm_request_start."""
+        with (
+            patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls,
+            patch("app.providers.llm.openai_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+
+            async def mock_stream():
+                chunk = MagicMock()
+                chunk.choices = [MagicMock()]
+                chunk.choices[0].delta = MagicMock()
+                chunk.choices[0].delta.content = "Hello"
+                yield chunk
+
+            mock_client.chat.completions.create = AsyncMock(return_value=mock_stream())
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                pass
+
+            # Verify llm_request_start was logged
+            mock_logger.info.assert_any_call(
+                "llm_request_start",
+                provider="openai",
+                model=adapter.get_model_for_task(TaskType.CHAT_RESPONSE),
+                task="chat_response",
+                message_count=1,
+            )
+
+    @pytest.mark.asyncio
+    async def test_stream_logs_request_failed_on_error(self, config):
+        """stream() should log llm_request_failed on error."""
+        import openai
+
+        with (
+            patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls,
+            patch("app.providers.llm.openai_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+            mock_error = openai.RateLimitError(
+                message="Rate limit exceeded",
+                response=MagicMock(status_code=429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            from app.providers.errors import RateLimitError as ZentropyRateLimitError
+
+            with pytest.raises(ZentropyRateLimitError):
+                async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                    pass
+
+            # Verify llm_request_failed was logged
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert call_args[0][0] == "llm_request_failed"

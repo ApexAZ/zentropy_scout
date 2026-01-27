@@ -38,6 +38,9 @@ dependencies = [
     # Utilities
     "python-dotenv>=1.0.0",
     "tenacity>=8.2.0",
+
+    # Logging
+    "structlog>=24.1.0",
 ]
 
 [project.optional-dependencies]

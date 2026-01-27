@@ -15,6 +15,7 @@ from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
 import anthropic
+import structlog
 from anthropic import AsyncAnthropic
 
 from app.providers.errors import (
@@ -36,6 +37,8 @@ from app.providers.llm.base import (
 
 if TYPE_CHECKING:
     from app.providers.config import ProviderConfig
+
+logger = structlog.get_logger()
 
 
 # Default model routing table per REQ-009 §4.3
@@ -172,6 +175,15 @@ class ClaudeAdapter(LLMProvider):
                 for tool in tools
             ]
 
+        # Log request start
+        logger.info(
+            "llm_request_start",
+            provider="claude",
+            model=model,
+            task=task.value,
+            message_count=len(messages),
+        )
+
         start_time = time.monotonic()
 
         try:
@@ -189,6 +201,14 @@ class ClaudeAdapter(LLMProvider):
                 tools=api_tools,
             )
         except anthropic.RateLimitError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="claude",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             retry_after = None
             if hasattr(e, "response") and e.response is not None:
                 retry_header = e.response.headers.get("retry-after")
@@ -197,8 +217,24 @@ class ClaudeAdapter(LLMProvider):
                         retry_after = float(retry_header)
             raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
         except anthropic.AuthenticationError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="claude",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise AuthenticationError(str(e)) from e
         except anthropic.BadRequestError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="claude",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             error_msg = str(e).lower()
             if "context_length" in error_msg:
                 raise ContextLengthError(str(e)) from e
@@ -206,6 +242,14 @@ class ClaudeAdapter(LLMProvider):
                 raise ContentFilterError(str(e)) from e
             raise ProviderError(str(e)) from e
         except anthropic.APIConnectionError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="claude",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise TransientError(str(e)) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
@@ -227,6 +271,17 @@ class ClaudeAdapter(LLMProvider):
                         arguments=block.input,
                     )
                 )
+
+        # Log request complete
+        logger.info(
+            "llm_request_complete",
+            provider="claude",
+            model=model,
+            task=task.value,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            latency_ms=latency_ms,
+        )
 
         return LLMResponse(
             content=content,
@@ -268,6 +323,15 @@ class ClaudeAdapter(LLMProvider):
             else:
                 api_messages.append({"role": msg.role, "content": msg.content})
 
+        # Log request start
+        logger.info(
+            "llm_request_start",
+            provider="claude",
+            model=model,
+            task=task.value,
+            message_count=len(messages),
+        )
+
         try:
             async with self.client.messages.stream(
                 model=model,
@@ -283,6 +347,14 @@ class ClaudeAdapter(LLMProvider):
                 async for text in stream.text_stream:
                     yield text
         except anthropic.RateLimitError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="claude",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             retry_after = None
             if hasattr(e, "response") and e.response is not None:
                 retry_header = e.response.headers.get("retry-after")
@@ -291,8 +363,24 @@ class ClaudeAdapter(LLMProvider):
                         retry_after = float(retry_header)
             raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
         except anthropic.AuthenticationError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="claude",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise AuthenticationError(str(e)) from e
         except anthropic.BadRequestError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="claude",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             error_msg = str(e).lower()
             if "context_length" in error_msg:
                 raise ContextLengthError(str(e)) from e
@@ -300,6 +388,14 @@ class ClaudeAdapter(LLMProvider):
                 raise ContentFilterError(str(e)) from e
             raise ProviderError(str(e)) from e
         except anthropic.APIConnectionError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="claude",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise TransientError(str(e)) from e
 
     def get_model_for_task(self, task: TaskType) -> str:

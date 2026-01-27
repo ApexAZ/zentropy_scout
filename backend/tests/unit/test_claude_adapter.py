@@ -927,3 +927,184 @@ class TestClaudeAdapterErrorMapping:
             with pytest.raises(RateLimitError):
                 async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
                     pass
+
+
+class TestClaudeAdapterLogging:
+    """Test structured logging in Claude adapter (REQ-009 §8.1)."""
+
+    @pytest.mark.asyncio
+    async def test_logs_request_start(self, config, mock_anthropic_response):
+        """Should log llm_request_start before making API call."""
+        with (
+            patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls,
+            patch("app.providers.llm.claude_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Verify llm_request_start was logged with correct fields
+            mock_logger.info.assert_any_call(
+                "llm_request_start",
+                provider="claude",
+                model=adapter.get_model_for_task(TaskType.CHAT_RESPONSE),
+                task="chat_response",
+                message_count=1,
+            )
+
+    @pytest.mark.asyncio
+    async def test_logs_request_complete(self, config, mock_anthropic_response):
+        """Should log llm_request_complete after successful API call."""
+        with (
+            patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls,
+            patch("app.providers.llm.claude_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Find the llm_request_complete call
+            complete_calls = [
+                call
+                for call in mock_logger.info.call_args_list
+                if call[0][0] == "llm_request_complete"
+            ]
+            assert len(complete_calls) == 1
+
+            call_kwargs = complete_calls[0][1]
+            assert call_kwargs["provider"] == "claude"
+            assert "sonnet" in call_kwargs["model"].lower()
+            assert call_kwargs["task"] == "chat_response"
+            assert call_kwargs["input_tokens"] == 10
+            assert call_kwargs["output_tokens"] == 20
+            assert "latency_ms" in call_kwargs
+
+    @pytest.mark.asyncio
+    async def test_logs_request_failed_on_error(self, config):
+        """Should log llm_request_failed when API call fails."""
+        import anthropic
+
+        with (
+            patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls,
+            patch("app.providers.llm.claude_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+            mock_error = anthropic.RateLimitError(
+                message="Rate limit exceeded",
+                response=MagicMock(status_code=429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+            mock_client.messages.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            from app.providers.errors import RateLimitError as ZentropyRateLimitError
+
+            with pytest.raises(ZentropyRateLimitError):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Verify llm_request_failed was logged
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert call_args[0][0] == "llm_request_failed"
+            assert call_args[1]["provider"] == "claude"
+            assert call_args[1]["task"] == "chat_response"
+            assert "error" in call_args[1]
+            assert call_args[1]["error_type"] == "RateLimitError"
+
+    @pytest.mark.asyncio
+    async def test_stream_logs_request_start(self, config):
+        """stream() should log llm_request_start."""
+        with (
+            patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls,
+            patch("app.providers.llm.claude_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+
+            class MockStreamContext:
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, *args):
+                    pass
+
+                @property
+                def text_stream(self):
+                    async def gen():
+                        yield "Hello"
+
+                    return gen()
+
+            mock_client.messages.stream = MagicMock(return_value=MockStreamContext())
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                pass
+
+            # Verify llm_request_start was logged
+            mock_logger.info.assert_any_call(
+                "llm_request_start",
+                provider="claude",
+                model=adapter.get_model_for_task(TaskType.CHAT_RESPONSE),
+                task="chat_response",
+                message_count=1,
+            )
+
+    @pytest.mark.asyncio
+    async def test_stream_logs_request_failed_on_error(self, config):
+        """stream() should log llm_request_failed on error."""
+        import anthropic
+
+        with (
+            patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls,
+            patch("app.providers.llm.claude_adapter.logger") as mock_logger,
+        ):
+            mock_client = AsyncMock()
+            mock_error = anthropic.RateLimitError(
+                message="Rate limit exceeded",
+                response=MagicMock(status_code=429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+
+            class MockStreamContext:
+                async def __aenter__(self):
+                    raise mock_error
+
+                async def __aexit__(self, *args):
+                    pass
+
+            mock_client.messages.stream = MagicMock(return_value=MockStreamContext())
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            from app.providers.errors import RateLimitError as ZentropyRateLimitError
+
+            with pytest.raises(ZentropyRateLimitError):
+                async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                    pass
+
+            # Verify llm_request_failed was logged
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert call_args[0][0] == "llm_request_failed"

@@ -681,3 +681,160 @@ class TestGeminiAdapterErrorMapping:
             with pytest.raises(RateLimitError):
                 async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
                     pass
+
+
+class TestGeminiAdapterLogging:
+    """Test structured logging in Gemini adapter (REQ-009 §8.1)."""
+
+    @pytest.mark.asyncio
+    async def test_logs_request_start(self, config, mock_gemini_response):
+        """Should log llm_request_start before making API call."""
+        with (
+            patch("app.providers.llm.gemini_adapter.genai") as mock_genai,
+            patch("app.providers.llm.gemini_adapter.logger") as mock_logger,
+        ):
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Verify llm_request_start was logged with correct fields
+            mock_logger.info.assert_any_call(
+                "llm_request_start",
+                provider="gemini",
+                model=adapter.get_model_for_task(TaskType.CHAT_RESPONSE),
+                task="chat_response",
+                message_count=1,
+            )
+
+    @pytest.mark.asyncio
+    async def test_logs_request_complete(self, config, mock_gemini_response):
+        """Should log llm_request_complete after successful API call."""
+        with (
+            patch("app.providers.llm.gemini_adapter.genai") as mock_genai,
+            patch("app.providers.llm.gemini_adapter.logger") as mock_logger,
+        ):
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Find the llm_request_complete call
+            complete_calls = [
+                call
+                for call in mock_logger.info.call_args_list
+                if call[0][0] == "llm_request_complete"
+            ]
+            assert len(complete_calls) == 1
+
+            call_kwargs = complete_calls[0][1]
+            assert call_kwargs["provider"] == "gemini"
+            assert call_kwargs["task"] == "chat_response"
+            assert call_kwargs["input_tokens"] == 10
+            assert call_kwargs["output_tokens"] == 20
+            assert "latency_ms" in call_kwargs
+
+    @pytest.mark.asyncio
+    async def test_logs_request_failed_on_error(self, config):
+        """Should log llm_request_failed when API call fails."""
+        from google.api_core.exceptions import ResourceExhausted
+
+        with (
+            patch("app.providers.llm.gemini_adapter.genai") as mock_genai,
+            patch("app.providers.llm.gemini_adapter.logger") as mock_logger,
+        ):
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=ResourceExhausted("Rate limit exceeded")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            from app.providers.errors import RateLimitError as ZentropyRateLimitError
+
+            with pytest.raises(ZentropyRateLimitError):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Verify llm_request_failed was logged
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert call_args[0][0] == "llm_request_failed"
+            assert call_args[1]["provider"] == "gemini"
+            assert call_args[1]["task"] == "chat_response"
+            assert "error" in call_args[1]
+            assert call_args[1]["error_type"] == "ResourceExhausted"
+
+    @pytest.mark.asyncio
+    async def test_stream_logs_request_start(self, config):
+        """stream() should log llm_request_start."""
+        with (
+            patch("app.providers.llm.gemini_adapter.genai") as mock_genai,
+            patch("app.providers.llm.gemini_adapter.logger") as mock_logger,
+        ):
+            mock_model = MagicMock()
+
+            async def mock_stream():
+                chunk = MagicMock()
+                chunk.text = "Hello"
+                yield chunk
+
+            mock_model.generate_content_async = AsyncMock(return_value=mock_stream())
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                pass
+
+            # Verify llm_request_start was logged
+            mock_logger.info.assert_any_call(
+                "llm_request_start",
+                provider="gemini",
+                model=adapter.get_model_for_task(TaskType.CHAT_RESPONSE),
+                task="chat_response",
+                message_count=1,
+            )
+
+    @pytest.mark.asyncio
+    async def test_stream_logs_request_failed_on_error(self, config):
+        """stream() should log llm_request_failed on error."""
+        from google.api_core.exceptions import ResourceExhausted
+
+        with (
+            patch("app.providers.llm.gemini_adapter.genai") as mock_genai,
+            patch("app.providers.llm.gemini_adapter.logger") as mock_logger,
+        ):
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=ResourceExhausted("Rate limit exceeded")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello!")]
+
+            from app.providers.errors import RateLimitError as ZentropyRateLimitError
+
+            with pytest.raises(ZentropyRateLimitError):
+                async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                    pass
+
+            # Verify llm_request_failed was logged
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert call_args[0][0] == "llm_request_failed"

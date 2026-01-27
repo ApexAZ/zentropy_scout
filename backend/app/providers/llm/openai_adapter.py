@@ -15,6 +15,7 @@ from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
 import openai
+import structlog
 from openai import AsyncOpenAI
 
 from app.providers.errors import (
@@ -36,6 +37,8 @@ from app.providers.llm.base import (
 
 if TYPE_CHECKING:
     from app.providers.config import ProviderConfig
+
+logger = structlog.get_logger()
 
 
 # Default model routing table per REQ-009 §4.3
@@ -163,6 +166,15 @@ class OpenAIAdapter(LLMProvider):
         if json_mode:
             response_format = {"type": "json_object"}
 
+        # Log request start
+        logger.info(
+            "llm_request_start",
+            provider="openai",
+            model=model,
+            task=task.value,
+            message_count=len(messages),
+        )
+
         start_time = time.monotonic()
 
         try:
@@ -180,6 +192,14 @@ class OpenAIAdapter(LLMProvider):
                 response_format=response_format,
             )
         except openai.RateLimitError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="openai",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             retry_after = None
             if hasattr(e, "response") and e.response is not None:
                 retry_header = e.response.headers.get("retry-after")
@@ -188,8 +208,24 @@ class OpenAIAdapter(LLMProvider):
                         retry_after = float(retry_header)
             raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
         except openai.AuthenticationError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="openai",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise AuthenticationError(str(e)) from e
         except openai.BadRequestError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="openai",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             error_msg = str(e).lower()
             if "context_length" in error_msg:
                 raise ContextLengthError(str(e)) from e
@@ -197,6 +233,14 @@ class OpenAIAdapter(LLMProvider):
                 raise ContentFilterError(str(e)) from e
             raise ProviderError(str(e)) from e
         except openai.APIConnectionError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="openai",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise TransientError(str(e)) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
@@ -214,6 +258,17 @@ class OpenAIAdapter(LLMProvider):
                 )
                 for tc in choice.message.tool_calls
             ]
+
+        # Log request complete
+        logger.info(
+            "llm_request_complete",
+            provider="openai",
+            model=model,
+            task=task.value,
+            input_tokens=response.usage.prompt_tokens,
+            output_tokens=response.usage.completion_tokens,
+            latency_ms=latency_ms,
+        )
 
         return LLMResponse(
             content=choice.message.content,
@@ -250,6 +305,15 @@ class OpenAIAdapter(LLMProvider):
         for msg in messages:
             api_messages.append({"role": msg.role, "content": msg.content})
 
+        # Log request start
+        logger.info(
+            "llm_request_start",
+            provider="openai",
+            model=model,
+            task=task.value,
+            message_count=len(messages),
+        )
+
         try:
             response = await self.client.chat.completions.create(
                 model=model,
@@ -267,6 +331,14 @@ class OpenAIAdapter(LLMProvider):
                 if chunk.choices and chunk.choices[0].delta.content is not None:
                     yield chunk.choices[0].delta.content
         except openai.RateLimitError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="openai",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             retry_after = None
             if hasattr(e, "response") and e.response is not None:
                 retry_header = e.response.headers.get("retry-after")
@@ -275,8 +347,24 @@ class OpenAIAdapter(LLMProvider):
                         retry_after = float(retry_header)
             raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
         except openai.AuthenticationError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="openai",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise AuthenticationError(str(e)) from e
         except openai.BadRequestError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="openai",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             error_msg = str(e).lower()
             if "context_length" in error_msg:
                 raise ContextLengthError(str(e)) from e
@@ -284,6 +372,14 @@ class OpenAIAdapter(LLMProvider):
                 raise ContentFilterError(str(e)) from e
             raise ProviderError(str(e)) from e
         except openai.APIConnectionError as e:
+            logger.error(
+                "llm_request_failed",
+                provider="openai",
+                model=model,
+                task=task.value,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise TransientError(str(e)) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
