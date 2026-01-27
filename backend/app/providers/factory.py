@@ -8,6 +8,8 @@ from app.providers.embedding.base import EmbeddingProvider
 from app.providers.embedding.openai_adapter import OpenAIEmbeddingAdapter
 from app.providers.llm.base import LLMProvider
 from app.providers.llm.claude_adapter import ClaudeAdapter
+from app.providers.llm.gemini_adapter import GeminiAdapter
+from app.providers.llm.openai_adapter import OpenAIAdapter
 
 _llm_provider: LLMProvider | None = None
 _embedding_provider: EmbeddingProvider | None = None
@@ -44,11 +46,9 @@ def get_llm_provider(config: ProviderConfig | None = None) -> LLMProvider:
         if config.llm_provider == "claude":
             _llm_provider = ClaudeAdapter(config)
         elif config.llm_provider == "openai":
-            # OpenAI LLM adapter will be added in §4.2
-            raise NotImplementedError("OpenAI LLM adapter not yet implemented")
+            _llm_provider = OpenAIAdapter(config)
         elif config.llm_provider == "gemini":
-            # Gemini adapter will be added in §4.2
-            raise NotImplementedError("Gemini adapter not yet implemented")
+            _llm_provider = GeminiAdapter(config)
         else:
             raise ValueError(f"Unknown LLM provider: {config.llm_provider}")
 

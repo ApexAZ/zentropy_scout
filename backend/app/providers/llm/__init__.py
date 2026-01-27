@@ -14,8 +14,12 @@ from app.providers.llm.base import (
     ToolParameter,
     ToolResult,
 )
+from app.providers.llm.claude_adapter import ClaudeAdapter
+from app.providers.llm.gemini_adapter import GeminiAdapter
+from app.providers.llm.openai_adapter import OpenAIAdapter
 
 __all__ = [
+    # Base types
     "CompletionResult",
     "LLMMessage",
     "LLMProvider",
@@ -25,4 +29,8 @@ __all__ = [
     "ToolDefinition",
     "ToolParameter",
     "ToolResult",
+    # Adapters
+    "ClaudeAdapter",
+    "GeminiAdapter",
+    "OpenAIAdapter",
 ]

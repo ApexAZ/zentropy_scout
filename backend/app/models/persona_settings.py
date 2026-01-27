@@ -6,6 +6,8 @@ REQ-005 §4.1 - Tier 2 tables for persona metadata and settings.
 import uuid
 from datetime import datetime
 
+# pgvector import for vector column type
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
@@ -19,9 +21,6 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
-
-# pgvector import for vector column type
-from pgvector.sqlalchemy import Vector
 
 
 class VoiceProfile(Base):
