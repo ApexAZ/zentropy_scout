@@ -28,7 +28,25 @@ if TYPE_CHECKING:
     from app.providers.config import ProviderConfig
 
 
-# Default model routing - used when no routing provided in config
+# Default model routing table per REQ-009 §4.3
+# WHY TASK-BASED ROUTING: Optimizes cost without sacrificing quality
+# - High-volume extraction tasks use gpt-4o-mini (cheaper, faster)
+# - Quality-critical tasks use gpt-4o (better reasoning)
+DEFAULT_OPENAI_ROUTING: dict[str, str] = {
+    # High-volume, simple extraction tasks → gpt-4o-mini (cheaper, faster)
+    "skill_extraction": "gpt-4o-mini",
+    "extraction": "gpt-4o-mini",
+    "ghost_detection": "gpt-4o-mini",
+    # Quality-critical tasks → gpt-4o (better reasoning)
+    "chat_response": "gpt-4o",
+    "onboarding": "gpt-4o",
+    "score_rationale": "gpt-4o",
+    "cover_letter": "gpt-4o",
+    "resume_tailoring": "gpt-4o",
+    "story_selection": "gpt-4o",
+}
+
+# Fallback if task type not in routing table
 DEFAULT_OPENAI_MODEL = "gpt-4o"
 
 
@@ -49,7 +67,10 @@ class OpenAIAdapter(LLMProvider):
         """
         super().__init__(config)
         self.client = AsyncOpenAI(api_key=config.openai_api_key)
-        self.model_routing = config.openai_model_routing or {}
+        # Merge config routing on top of defaults (config overrides defaults)
+        self.model_routing = {**DEFAULT_OPENAI_ROUTING}
+        if config.openai_model_routing:
+            self.model_routing.update(config.openai_model_routing)
 
     async def complete(
         self,

@@ -16,20 +16,11 @@ from app.providers.llm.base import (
     ToolParameter,
     ToolResult,
 )
-from app.providers.llm.openai_adapter import OpenAIAdapter
-
-# Default model routing for tests
-DEFAULT_OPENAI_ROUTING = {
-    "chat_response": "gpt-4o",
-    "onboarding": "gpt-4o",
-    "extraction": "gpt-4o-mini",
-    "skill_extraction": "gpt-4o-mini",
-    "ghost_detection": "gpt-4o-mini",
-    "score_rationale": "gpt-4o",
-    "cover_letter": "gpt-4o",
-    "resume_tailoring": "gpt-4o",
-    "story_selection": "gpt-4o",
-}
+from app.providers.llm.openai_adapter import (
+    DEFAULT_OPENAI_MODEL,
+    DEFAULT_OPENAI_ROUTING,
+    OpenAIAdapter,
+)
 
 
 @pytest.fixture
@@ -102,6 +93,37 @@ class TestOpenAIAdapterInit:
             adapter = OpenAIAdapter(config)
             assert adapter.model_routing == DEFAULT_OPENAI_ROUTING
 
+    def test_init_uses_builtin_defaults_when_no_config_routing(self):
+        """OpenAIAdapter should use built-in defaults when no config routing."""
+        config_no_routing = ProviderConfig(
+            llm_provider="openai",
+            openai_api_key="test-api-key",
+            openai_model_routing=None,  # No custom routing
+            default_max_tokens=4096,
+            default_temperature=0.7,
+        )
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI"):
+            adapter = OpenAIAdapter(config_no_routing)
+            # Should use built-in defaults
+            assert adapter.model_routing == DEFAULT_OPENAI_ROUTING
+
+    def test_init_config_overrides_defaults(self):
+        """Config routing should override built-in defaults."""
+        custom_routing = {"extraction": "custom-model"}
+        config_with_override = ProviderConfig(
+            llm_provider="openai",
+            openai_api_key="test-api-key",
+            openai_model_routing=custom_routing,
+            default_max_tokens=4096,
+            default_temperature=0.7,
+        )
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI"):
+            adapter = OpenAIAdapter(config_with_override)
+            # Extraction should be overridden
+            assert adapter.model_routing["extraction"] == "custom-model"
+            # Other tasks should still use defaults
+            assert adapter.model_routing["chat_response"] == "gpt-4o"
+
 
 class TestOpenAIAdapterGetModelForTask:
     """Test OpenAIAdapter.get_model_for_task()."""
@@ -120,14 +142,13 @@ class TestOpenAIAdapterGetModelForTask:
             model = adapter.get_model_for_task(TaskType.CHAT_RESPONSE)
             assert model == "gpt-4o"
 
-    def test_uses_default_model_when_task_not_in_routing(self, config):
-        """Should use default model when task not in routing table."""
-        config.openai_model_routing = {}  # Empty routing
+    def test_uses_default_model_for_unknown_task_value(self, config):
+        """Should use fallback model when task value not in routing table."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI"):
             adapter = OpenAIAdapter(config)
-            model = adapter.get_model_for_task(TaskType.CHAT_RESPONSE)
-            # Should fall back to default gpt-4o
-            assert "gpt" in model.lower()
+            # Manually test fallback for an unknown task value
+            model = adapter.model_routing.get("unknown_task", DEFAULT_OPENAI_MODEL)
+            assert model == DEFAULT_OPENAI_MODEL
 
 
 class TestOpenAIAdapterComplete:

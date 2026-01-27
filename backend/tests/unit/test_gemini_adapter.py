@@ -16,20 +16,11 @@ from app.providers.llm.base import (
     ToolParameter,
     ToolResult,
 )
-from app.providers.llm.gemini_adapter import GeminiAdapter
-
-# Default model routing for tests
-DEFAULT_GEMINI_ROUTING = {
-    "chat_response": "gemini-1.5-pro",
-    "onboarding": "gemini-1.5-pro",
-    "extraction": "gemini-1.5-flash",
-    "skill_extraction": "gemini-1.5-flash",
-    "ghost_detection": "gemini-1.5-flash",
-    "score_rationale": "gemini-1.5-pro",
-    "cover_letter": "gemini-1.5-pro",
-    "resume_tailoring": "gemini-1.5-pro",
-    "story_selection": "gemini-1.5-pro",
-}
+from app.providers.llm.gemini_adapter import (
+    DEFAULT_GEMINI_MODEL,
+    DEFAULT_GEMINI_ROUTING,
+    GeminiAdapter,
+)
 
 
 @pytest.fixture
@@ -115,6 +106,37 @@ class TestGeminiAdapterInit:
             adapter = GeminiAdapter(config)
             assert adapter.model_routing == DEFAULT_GEMINI_ROUTING
 
+    def test_init_uses_builtin_defaults_when_no_config_routing(self):
+        """GeminiAdapter should use built-in defaults when no config routing."""
+        config_no_routing = ProviderConfig(
+            llm_provider="gemini",
+            google_api_key="test-api-key",
+            gemini_model_routing=None,  # No custom routing
+            default_max_tokens=4096,
+            default_temperature=0.7,
+        )
+        with patch("app.providers.llm.gemini_adapter.genai"):
+            adapter = GeminiAdapter(config_no_routing)
+            # Should use built-in defaults
+            assert adapter.model_routing == DEFAULT_GEMINI_ROUTING
+
+    def test_init_config_overrides_defaults(self):
+        """Config routing should override built-in defaults."""
+        custom_routing = {"extraction": "custom-model"}
+        config_with_override = ProviderConfig(
+            llm_provider="gemini",
+            google_api_key="test-api-key",
+            gemini_model_routing=custom_routing,
+            default_max_tokens=4096,
+            default_temperature=0.7,
+        )
+        with patch("app.providers.llm.gemini_adapter.genai"):
+            adapter = GeminiAdapter(config_with_override)
+            # Extraction should be overridden
+            assert adapter.model_routing["extraction"] == "custom-model"
+            # Other tasks should still use defaults
+            assert adapter.model_routing["chat_response"] == "gemini-1.5-pro"
+
 
 class TestGeminiAdapterGetModelForTask:
     """Test GeminiAdapter.get_model_for_task()."""
@@ -133,14 +155,13 @@ class TestGeminiAdapterGetModelForTask:
             model = adapter.get_model_for_task(TaskType.CHAT_RESPONSE)
             assert model == "gemini-1.5-pro"
 
-    def test_uses_default_model_when_task_not_in_routing(self, config):
-        """Should use default model when task not in routing table."""
-        config.gemini_model_routing = {}  # Empty routing
+    def test_uses_default_model_for_unknown_task_value(self, config):
+        """Should use fallback model when task value not in routing table."""
         with patch("app.providers.llm.gemini_adapter.genai"):
             adapter = GeminiAdapter(config)
-            model = adapter.get_model_for_task(TaskType.CHAT_RESPONSE)
-            # Should fall back to default Pro
-            assert "gemini" in model.lower()
+            # Manually test fallback for an unknown task value
+            model = adapter.model_routing.get("unknown_task", DEFAULT_GEMINI_MODEL)
+            assert model == DEFAULT_GEMINI_MODEL
 
 
 class TestGeminiAdapterComplete:

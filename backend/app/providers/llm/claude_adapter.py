@@ -28,7 +28,25 @@ if TYPE_CHECKING:
     from app.providers.config import ProviderConfig
 
 
-# Default model routing - used when no routing provided in config
+# Default model routing table per REQ-009 §4.3
+# WHY TASK-BASED ROUTING: Optimizes cost without sacrificing quality
+# - High-volume extraction tasks use Haiku (~$0.0002/call)
+# - Quality-critical tasks use Sonnet (~$0.01/call for cover letters)
+DEFAULT_CLAUDE_ROUTING: dict[str, str] = {
+    # High-volume, simple extraction tasks → Claude 3.5 Haiku (cheaper, faster)
+    "skill_extraction": "claude-3-5-haiku-20241022",
+    "extraction": "claude-3-5-haiku-20241022",
+    "ghost_detection": "claude-3-5-haiku-20241022",
+    # Quality-critical tasks → Claude 3.5 Sonnet (better reasoning, persona maintenance)
+    "chat_response": "claude-3-5-sonnet-20241022",
+    "onboarding": "claude-3-5-sonnet-20241022",
+    "score_rationale": "claude-3-5-sonnet-20241022",
+    "cover_letter": "claude-3-5-sonnet-20241022",
+    "resume_tailoring": "claude-3-5-sonnet-20241022",
+    "story_selection": "claude-3-5-sonnet-20241022",
+}
+
+# Fallback if task type not in routing table
 DEFAULT_CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
 
 
@@ -49,7 +67,10 @@ class ClaudeAdapter(LLMProvider):
         """
         super().__init__(config)
         self.client = AsyncAnthropic(api_key=config.anthropic_api_key)
-        self.model_routing = config.claude_model_routing or {}
+        # Merge config routing on top of defaults (config overrides defaults)
+        self.model_routing = {**DEFAULT_CLAUDE_ROUTING}
+        if config.claude_model_routing:
+            self.model_routing.update(config.claude_model_routing)
 
     async def complete(
         self,

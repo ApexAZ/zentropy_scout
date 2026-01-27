@@ -27,7 +27,25 @@ if TYPE_CHECKING:
     from app.providers.config import ProviderConfig
 
 
-# Default model routing - used when no routing provided in config
+# Default model routing table per REQ-009 §4.3
+# WHY TASK-BASED ROUTING: Optimizes cost without sacrificing quality
+# - High-volume extraction tasks use Flash (cheaper, faster)
+# - Quality-critical tasks use Pro (better reasoning)
+DEFAULT_GEMINI_ROUTING: dict[str, str] = {
+    # High-volume, simple extraction tasks → Flash (cheaper, faster)
+    "skill_extraction": "gemini-1.5-flash",
+    "extraction": "gemini-1.5-flash",
+    "ghost_detection": "gemini-1.5-flash",
+    # Quality-critical tasks → Pro (better reasoning)
+    "chat_response": "gemini-1.5-pro",
+    "onboarding": "gemini-1.5-pro",
+    "score_rationale": "gemini-1.5-pro",
+    "cover_letter": "gemini-1.5-pro",
+    "resume_tailoring": "gemini-1.5-pro",
+    "story_selection": "gemini-1.5-pro",
+}
+
+# Fallback if task type not in routing table
 DEFAULT_GEMINI_MODEL = "gemini-1.5-pro"
 
 
@@ -48,7 +66,10 @@ class GeminiAdapter(LLMProvider):
         """
         super().__init__(config)
         genai.configure(api_key=config.google_api_key)
-        self.model_routing = config.gemini_model_routing or {}
+        # Merge config routing on top of defaults (config overrides defaults)
+        self.model_routing = {**DEFAULT_GEMINI_ROUTING}
+        if config.gemini_model_routing:
+            self.model_routing.update(config.gemini_model_routing)
 
     async def complete(
         self,
