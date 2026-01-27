@@ -345,6 +345,8 @@ class GeminiAdapter(LLMProvider):
             message_count=len(messages),
         )
 
+        start_time = time.monotonic()
+
         try:
             async for chunk in self.client.aio.models.generate_content_stream(
                 model=model_name,
@@ -354,6 +356,7 @@ class GeminiAdapter(LLMProvider):
                 if chunk.text:
                     yield chunk.text
         except Exception as e:
+            latency_ms = (time.monotonic() - start_time) * 1000
             logger.error(
                 "llm_request_failed",
                 provider="gemini",
@@ -361,6 +364,7 @@ class GeminiAdapter(LLMProvider):
                 task=task.value,
                 error=str(e),
                 error_type=type(e).__name__,
+                latency_ms=latency_ms,
             )
             # Map errors to our error taxonomy
             error_msg = str(e).lower()
