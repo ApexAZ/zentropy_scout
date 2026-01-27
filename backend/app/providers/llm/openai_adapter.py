@@ -8,13 +8,23 @@ WHY SUPPORT OPENAI:
 - Fallback option if Anthropic has outage (future)
 """
 
+import contextlib
 import json
 import time
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
+import openai
 from openai import AsyncOpenAI
 
+from app.providers.errors import (
+    AuthenticationError,
+    ContentFilterError,
+    ContextLengthError,
+    ProviderError,
+    RateLimitError,
+    TransientError,
+)
 from app.providers.llm.base import (
     LLMMessage,
     LLMProvider,
@@ -155,19 +165,39 @@ class OpenAIAdapter(LLMProvider):
 
         start_time = time.monotonic()
 
-        response = await self.client.chat.completions.create(
-            model=model,
-            max_tokens=max_tokens
-            if max_tokens is not None
-            else self.config.default_max_tokens,
-            temperature=temperature
-            if temperature is not None
-            else self.config.default_temperature,
-            messages=api_messages,
-            stop=stop_sequences,
-            tools=api_tools,
-            response_format=response_format,
-        )
+        try:
+            response = await self.client.chat.completions.create(
+                model=model,
+                max_tokens=max_tokens
+                if max_tokens is not None
+                else self.config.default_max_tokens,
+                temperature=temperature
+                if temperature is not None
+                else self.config.default_temperature,
+                messages=api_messages,
+                stop=stop_sequences,
+                tools=api_tools,
+                response_format=response_format,
+            )
+        except openai.RateLimitError as e:
+            retry_after = None
+            if hasattr(e, "response") and e.response is not None:
+                retry_header = e.response.headers.get("retry-after")
+                if retry_header is not None:
+                    with contextlib.suppress(ValueError):
+                        retry_after = float(retry_header)
+            raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
+        except openai.AuthenticationError as e:
+            raise AuthenticationError(str(e)) from e
+        except openai.BadRequestError as e:
+            error_msg = str(e).lower()
+            if "context_length" in error_msg:
+                raise ContextLengthError(str(e)) from e
+            if "content_policy" in error_msg:
+                raise ContentFilterError(str(e)) from e
+            raise ProviderError(str(e)) from e
+        except openai.APIConnectionError as e:
+            raise TransientError(str(e)) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
 
@@ -220,21 +250,41 @@ class OpenAIAdapter(LLMProvider):
         for msg in messages:
             api_messages.append({"role": msg.role, "content": msg.content})
 
-        response = await self.client.chat.completions.create(
-            model=model,
-            max_tokens=max_tokens
-            if max_tokens is not None
-            else self.config.default_max_tokens,
-            temperature=temperature
-            if temperature is not None
-            else self.config.default_temperature,
-            messages=api_messages,
-            stream=True,
-        )
+        try:
+            response = await self.client.chat.completions.create(
+                model=model,
+                max_tokens=max_tokens
+                if max_tokens is not None
+                else self.config.default_max_tokens,
+                temperature=temperature
+                if temperature is not None
+                else self.config.default_temperature,
+                messages=api_messages,
+                stream=True,
+            )
 
-        async for chunk in response:
-            if chunk.choices and chunk.choices[0].delta.content is not None:
-                yield chunk.choices[0].delta.content
+            async for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content is not None:
+                    yield chunk.choices[0].delta.content
+        except openai.RateLimitError as e:
+            retry_after = None
+            if hasattr(e, "response") and e.response is not None:
+                retry_header = e.response.headers.get("retry-after")
+                if retry_header is not None:
+                    with contextlib.suppress(ValueError):
+                        retry_after = float(retry_header)
+            raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
+        except openai.AuthenticationError as e:
+            raise AuthenticationError(str(e)) from e
+        except openai.BadRequestError as e:
+            error_msg = str(e).lower()
+            if "context_length" in error_msg:
+                raise ContextLengthError(str(e)) from e
+            if "content_policy" in error_msg:
+                raise ContentFilterError(str(e)) from e
+            raise ProviderError(str(e)) from e
+        except openai.APIConnectionError as e:
+            raise TransientError(str(e)) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
         """Get model for task using routing table.

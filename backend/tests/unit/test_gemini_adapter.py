@@ -516,3 +516,168 @@ class TestGeminiAdapterMessageConversion:
             tool_result_msg = contents[-1]
             assert tool_result_msg["role"] == "user"
             assert "function_response" in tool_result_msg["parts"][0]
+
+
+class TestGeminiAdapterErrorMapping:
+    """Test error mapping from Google AI SDK to unified errors (REQ-009 §7.3)."""
+
+    @pytest.mark.asyncio
+    async def test_resource_exhausted_error_mapped_to_rate_limit(self, config):
+        """Should map ResourceExhausted to RateLimitError."""
+        from google.api_core.exceptions import ResourceExhausted
+
+        from app.providers.errors import RateLimitError
+
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=ResourceExhausted("Rate limit exceeded")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(RateLimitError, match="Rate limit exceeded"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_permission_denied_error_mapped_to_authentication(self, config):
+        """Should map PermissionDenied to AuthenticationError."""
+        from google.api_core.exceptions import PermissionDenied
+
+        from app.providers.errors import AuthenticationError
+
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=PermissionDenied("Invalid API key")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(AuthenticationError, match="Invalid API key"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_unauthenticated_error_mapped_to_authentication(self, config):
+        """Should map Unauthenticated to AuthenticationError."""
+        from google.api_core.exceptions import Unauthenticated
+
+        from app.providers.errors import AuthenticationError
+
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=Unauthenticated("Credentials not valid")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(AuthenticationError, match="Credentials not valid"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_invalid_argument_with_context_length_mapped(self, config):
+        """Should map InvalidArgument with 'context' to ContextLengthError."""
+        from google.api_core.exceptions import InvalidArgument
+
+        from app.providers.errors import ContextLengthError
+
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=InvalidArgument("Request exceeds context window limit")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ContextLengthError, match="context"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_invalid_argument_with_safety_mapped_to_content_filter(self, config):
+        """Should map InvalidArgument with 'safety' to ContentFilterError."""
+        from google.api_core.exceptions import InvalidArgument
+
+        from app.providers.errors import ContentFilterError
+
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=InvalidArgument("Blocked due to safety settings")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ContentFilterError, match="safety"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_generic_invalid_argument_mapped_to_provider_error(self, config):
+        """Should map generic InvalidArgument to ProviderError."""
+        from google.api_core.exceptions import InvalidArgument
+
+        from app.providers.errors import ProviderError
+
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=InvalidArgument("Invalid request parameters")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ProviderError, match="Invalid request parameters"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_service_unavailable_mapped_to_transient_error(self, config):
+        """Should map ServiceUnavailable to TransientError (safe to retry)."""
+        from google.api_core.exceptions import ServiceUnavailable
+
+        from app.providers.errors import TransientError
+
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=ServiceUnavailable("Service temporarily unavailable")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(TransientError, match="Service temporarily unavailable"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_stream_maps_errors_same_as_complete(self, config):
+        """stream() should map errors the same way as complete()."""
+        from google.api_core.exceptions import ResourceExhausted
+
+        from app.providers.errors import RateLimitError
+
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_model = MagicMock()
+            mock_model.generate_content_async = AsyncMock(
+                side_effect=ResourceExhausted("Rate limit exceeded")
+            )
+            mock_genai.GenerativeModel.return_value = mock_model
+
+            adapter = GeminiAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(RateLimitError):
+                async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                    pass

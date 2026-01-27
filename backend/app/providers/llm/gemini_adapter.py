@@ -13,7 +13,16 @@ from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
 import google.generativeai as genai
+from google.api_core import exceptions as google_exceptions
 
+from app.providers.errors import (
+    AuthenticationError,
+    ContentFilterError,
+    ContextLengthError,
+    ProviderError,
+    RateLimitError,
+    TransientError,
+)
 from app.providers.llm.base import (
     LLMMessage,
     LLMProvider,
@@ -185,10 +194,26 @@ class GeminiAdapter(LLMProvider):
 
         start_time = time.monotonic()
 
-        response = await model.generate_content_async(
-            contents,
-            generation_config=generation_config,
-        )
+        try:
+            response = await model.generate_content_async(
+                contents,
+                generation_config=generation_config,
+            )
+        except google_exceptions.ResourceExhausted as e:
+            raise RateLimitError(str(e)) from e
+        except google_exceptions.PermissionDenied as e:
+            raise AuthenticationError(str(e)) from e
+        except google_exceptions.Unauthenticated as e:
+            raise AuthenticationError(str(e)) from e
+        except google_exceptions.InvalidArgument as e:
+            error_msg = str(e).lower()
+            if "context" in error_msg:
+                raise ContextLengthError(str(e)) from e
+            if "safety" in error_msg:
+                raise ContentFilterError(str(e)) from e
+            raise ProviderError(str(e)) from e
+        except google_exceptions.ServiceUnavailable as e:
+            raise TransientError(str(e)) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
 
@@ -287,15 +312,31 @@ class GeminiAdapter(LLMProvider):
             system_instruction=system_msg,
         )
 
-        response = await model.generate_content_async(
-            contents,
-            generation_config=generation_config,
-            stream=True,
-        )
+        try:
+            response = await model.generate_content_async(
+                contents,
+                generation_config=generation_config,
+                stream=True,
+            )
 
-        async for chunk in response:
-            if chunk.text:
-                yield chunk.text
+            async for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except google_exceptions.ResourceExhausted as e:
+            raise RateLimitError(str(e)) from e
+        except google_exceptions.PermissionDenied as e:
+            raise AuthenticationError(str(e)) from e
+        except google_exceptions.Unauthenticated as e:
+            raise AuthenticationError(str(e)) from e
+        except google_exceptions.InvalidArgument as e:
+            error_msg = str(e).lower()
+            if "context" in error_msg:
+                raise ContextLengthError(str(e)) from e
+            if "safety" in error_msg:
+                raise ContentFilterError(str(e)) from e
+            raise ProviderError(str(e)) from e
+        except google_exceptions.ServiceUnavailable as e:
+            raise TransientError(str(e)) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
         """Get model for task using routing table.

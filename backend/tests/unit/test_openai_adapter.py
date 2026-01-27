@@ -570,3 +570,168 @@ class TestOpenAIAdapterMessageConversion:
                 assistant_msg["tool_calls"][0]["function"]["arguments"]
                 == '{"job_id": "uuid"}'
             )
+
+
+class TestOpenAIAdapterErrorMapping:
+    """Test error mapping from OpenAI SDK to unified errors (REQ-009 §7.3)."""
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_error_mapped(self, config):
+        """Should map openai.RateLimitError to RateLimitError."""
+        import openai
+
+        from app.providers.errors import RateLimitError
+
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = openai.RateLimitError(
+                message="Rate limit exceeded",
+                response=MagicMock(status_code=429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(RateLimitError, match="Rate limit exceeded"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_authentication_error_mapped(self, config):
+        """Should map openai.AuthenticationError to AuthenticationError."""
+        import openai
+
+        from app.providers.errors import AuthenticationError
+
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = openai.AuthenticationError(
+                message="Invalid API key",
+                response=MagicMock(status_code=401),
+                body={"error": {"message": "Invalid API key"}},
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(AuthenticationError, match="Invalid API key"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_context_length_error_mapped(self, config):
+        """Should map BadRequestError with 'context_length' to ContextLengthError."""
+        import openai
+
+        from app.providers.errors import ContextLengthError
+
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = openai.BadRequestError(
+                message="Request exceeds context_length limit",
+                response=MagicMock(status_code=400),
+                body={"error": {"message": "Request exceeds context_length limit"}},
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ContextLengthError, match="context_length"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_content_filter_error_mapped(self, config):
+        """Should map BadRequestError with 'content_policy' to ContentFilterError."""
+        import openai
+
+        from app.providers.errors import ContentFilterError
+
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = openai.BadRequestError(
+                message="Blocked due to content_policy violation",
+                response=MagicMock(status_code=400),
+                body={"error": {"message": "Blocked due to content_policy violation"}},
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ContentFilterError, match="content_policy"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_generic_bad_request_mapped_to_provider_error(self, config):
+        """Should map generic BadRequestError to ProviderError."""
+        import openai
+
+        from app.providers.errors import ProviderError
+
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = openai.BadRequestError(
+                message="Invalid request parameters",
+                response=MagicMock(status_code=400),
+                body={"error": {"message": "Invalid request parameters"}},
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ProviderError, match="Invalid request parameters"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_api_connection_error_mapped_to_transient_error(self, config):
+        """Should map openai.APIConnectionError to TransientError (safe to retry)."""
+        import openai
+
+        from app.providers.errors import TransientError
+
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = openai.APIConnectionError(
+                message="Connection failed",
+                request=MagicMock(),
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(TransientError, match="Connection failed"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_stream_maps_errors_same_as_complete(self, config):
+        """stream() should map errors the same way as complete()."""
+        import openai
+
+        from app.providers.errors import RateLimitError
+
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = openai.RateLimitError(
+                message="Rate limit exceeded",
+                response=MagicMock(status_code=429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+            mock_client.chat.completions.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = OpenAIAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(RateLimitError):
+                async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                    pass

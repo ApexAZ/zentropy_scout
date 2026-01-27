@@ -191,7 +191,7 @@ These steps require user action outside Claude Code:
 | 5.3 | Embedding Model Comparison | `provider, plan` | ✅ |
 | 7.1 | Error Taxonomy | `provider, structure, tdd, plan` | ✅ |
 | 7.2 | Retry Strategy | `provider, test, tdd, plan` | ✅ |
-| 7.3 | Error Mapping | `provider, tdd, plan` | ⬜ |
+| 7.3 | Error Mapping | `provider, tdd, plan` | ✅ |
 | 8.1 | Logging | `provider, structure, plan` | ⬜ |
 | 9.1 | Mock Provider | `provider, test, tdd, plan` | ⬜ |
 | 9.2 | Test Fixtures | `test, tdd, plan` | ⬜ |

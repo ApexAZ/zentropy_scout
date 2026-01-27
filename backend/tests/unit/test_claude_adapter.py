@@ -710,3 +710,220 @@ class TestClaudeAdapterMessageConversion:
             tool_result_msg = call_kwargs["messages"][-1]
 
             assert tool_result_msg["content"][0]["is_error"] is True
+
+
+class TestClaudeAdapterErrorMapping:
+    """Test error mapping from Anthropic SDK to unified errors (REQ-009 §7.3)."""
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_error_mapped(self, config):
+        """Should map anthropic.RateLimitError to RateLimitError."""
+        import anthropic
+
+        from app.providers.errors import RateLimitError
+
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = anthropic.RateLimitError(
+                message="Rate limit exceeded",
+                response=MagicMock(status_code=429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+            mock_client.messages.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(RateLimitError, match="Rate limit exceeded"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_error_includes_retry_after(self, config):
+        """Should include retry_after_seconds from Anthropic error."""
+        import anthropic
+
+        from app.providers.errors import RateLimitError
+
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_response = MagicMock(status_code=429)
+            mock_response.headers = {"retry-after": "30"}
+            mock_error = anthropic.RateLimitError(
+                message="Rate limit exceeded",
+                response=mock_response,
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+            mock_client.messages.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(RateLimitError) as exc_info:
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+            # Should extract retry_after from headers if available
+            assert exc_info.value.retry_after_seconds is not None
+
+    @pytest.mark.asyncio
+    async def test_authentication_error_mapped(self, config):
+        """Should map anthropic.AuthenticationError to AuthenticationError."""
+        import anthropic
+
+        from app.providers.errors import AuthenticationError
+
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = anthropic.AuthenticationError(
+                message="Invalid API key",
+                response=MagicMock(status_code=401),
+                body={"error": {"message": "Invalid API key"}},
+            )
+            mock_client.messages.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(AuthenticationError, match="Invalid API key"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_context_length_error_mapped(self, config):
+        """Should map BadRequestError with 'context_length' to ContextLengthError."""
+        import anthropic
+
+        from app.providers.errors import ContextLengthError
+
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = anthropic.BadRequestError(
+                message="Request exceeds context_length limit",
+                response=MagicMock(status_code=400),
+                body={"error": {"message": "Request exceeds context_length limit"}},
+            )
+            mock_client.messages.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ContextLengthError, match="context_length"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_content_filter_error_mapped(self, config):
+        """Should map BadRequestError with 'content_policy' to ContentFilterError."""
+        import anthropic
+
+        from app.providers.errors import ContentFilterError
+
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = anthropic.BadRequestError(
+                message="Blocked due to content_policy violation",
+                response=MagicMock(status_code=400),
+                body={"error": {"message": "Blocked due to content_policy violation"}},
+            )
+            mock_client.messages.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ContentFilterError, match="content_policy"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_generic_bad_request_mapped_to_provider_error(self, config):
+        """Should map generic BadRequestError to ProviderError."""
+        import anthropic
+
+        from app.providers.errors import ProviderError
+
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = anthropic.BadRequestError(
+                message="Invalid request parameters",
+                response=MagicMock(status_code=400),
+                body={"error": {"message": "Invalid request parameters"}},
+            )
+            mock_client.messages.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(ProviderError, match="Invalid request parameters"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_api_error_mapped_to_transient_error(self, config):
+        """Should map anthropic.APIError to TransientError (safe to retry)."""
+        import anthropic
+
+        from app.providers.errors import TransientError
+
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = anthropic.APIConnectionError(
+                message="Connection failed",
+                request=MagicMock(),
+            )
+            mock_client.messages.create = AsyncMock(side_effect=mock_error)
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(TransientError, match="Connection failed"):
+                await adapter.complete(messages, TaskType.CHAT_RESPONSE)
+
+    @pytest.mark.asyncio
+    async def test_stream_maps_errors_same_as_complete(self, config):
+        """stream() should map errors the same way as complete()."""
+        import anthropic
+
+        from app.providers.errors import RateLimitError
+
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_error = anthropic.RateLimitError(
+                message="Rate limit exceeded",
+                response=MagicMock(status_code=429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+
+            class MockStreamContext:
+                async def __aenter__(self):
+                    raise mock_error
+
+                async def __aexit__(self, *args):
+                    pass
+
+            mock_client.messages.stream = MagicMock(return_value=MockStreamContext())
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            with pytest.raises(RateLimitError):
+                async for _ in adapter.stream(messages, TaskType.CHAT_RESPONSE):
+                    pass

@@ -9,12 +9,22 @@ WHY ANTHROPIC AS PRIMARY:
 - Competitive pricing with Haiku for high-volume tasks
 """
 
+import contextlib
 import time
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
+import anthropic
 from anthropic import AsyncAnthropic
 
+from app.providers.errors import (
+    AuthenticationError,
+    ContentFilterError,
+    ContextLengthError,
+    ProviderError,
+    RateLimitError,
+    TransientError,
+)
 from app.providers.llm.base import (
     LLMMessage,
     LLMProvider,
@@ -164,19 +174,39 @@ class ClaudeAdapter(LLMProvider):
 
         start_time = time.monotonic()
 
-        response = await self.client.messages.create(
-            model=model,
-            max_tokens=max_tokens
-            if max_tokens is not None
-            else self.config.default_max_tokens,
-            temperature=temperature
-            if temperature is not None
-            else self.config.default_temperature,
-            system=system_msg,
-            messages=api_messages,
-            stop_sequences=stop_sequences,
-            tools=api_tools,
-        )
+        try:
+            response = await self.client.messages.create(
+                model=model,
+                max_tokens=max_tokens
+                if max_tokens is not None
+                else self.config.default_max_tokens,
+                temperature=temperature
+                if temperature is not None
+                else self.config.default_temperature,
+                system=system_msg,
+                messages=api_messages,
+                stop_sequences=stop_sequences,
+                tools=api_tools,
+            )
+        except anthropic.RateLimitError as e:
+            retry_after = None
+            if hasattr(e, "response") and e.response is not None:
+                retry_header = e.response.headers.get("retry-after")
+                if retry_header is not None:
+                    with contextlib.suppress(ValueError):
+                        retry_after = float(retry_header)
+            raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
+        except anthropic.AuthenticationError as e:
+            raise AuthenticationError(str(e)) from e
+        except anthropic.BadRequestError as e:
+            error_msg = str(e).lower()
+            if "context_length" in error_msg:
+                raise ContextLengthError(str(e)) from e
+            if "content_policy" in error_msg:
+                raise ContentFilterError(str(e)) from e
+            raise ProviderError(str(e)) from e
+        except anthropic.APIConnectionError as e:
+            raise TransientError(str(e)) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
 
@@ -238,19 +268,39 @@ class ClaudeAdapter(LLMProvider):
             else:
                 api_messages.append({"role": msg.role, "content": msg.content})
 
-        async with self.client.messages.stream(
-            model=model,
-            max_tokens=max_tokens
-            if max_tokens is not None
-            else self.config.default_max_tokens,
-            temperature=temperature
-            if temperature is not None
-            else self.config.default_temperature,
-            system=system_msg,
-            messages=api_messages,
-        ) as stream:
-            async for text in stream.text_stream:
-                yield text
+        try:
+            async with self.client.messages.stream(
+                model=model,
+                max_tokens=max_tokens
+                if max_tokens is not None
+                else self.config.default_max_tokens,
+                temperature=temperature
+                if temperature is not None
+                else self.config.default_temperature,
+                system=system_msg,
+                messages=api_messages,
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield text
+        except anthropic.RateLimitError as e:
+            retry_after = None
+            if hasattr(e, "response") and e.response is not None:
+                retry_header = e.response.headers.get("retry-after")
+                if retry_header is not None:
+                    with contextlib.suppress(ValueError):
+                        retry_after = float(retry_header)
+            raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
+        except anthropic.AuthenticationError as e:
+            raise AuthenticationError(str(e)) from e
+        except anthropic.BadRequestError as e:
+            error_msg = str(e).lower()
+            if "context_length" in error_msg:
+                raise ContextLengthError(str(e)) from e
+            if "content_policy" in error_msg:
+                raise ContentFilterError(str(e)) from e
+            raise ProviderError(str(e)) from e
+        except anthropic.APIConnectionError as e:
+            raise TransientError(str(e)) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
         """Get model for task using routing table.
