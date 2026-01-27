@@ -6,15 +6,17 @@ WHY SUPPORT GEMINI:
 - Alternative for BYOK users with Google Cloud credits
 - Competitive pricing for high-volume tasks
 - Good multimodal capabilities (future)
+
+Uses the unified google-genai SDK (successor to google-generativeai).
 """
 
 import time
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
-import google.generativeai as genai
 import structlog
-from google.api_core import exceptions as google_exceptions
+from google import genai
+from google.genai import types
 
 from app.providers.errors import (
     AuthenticationError,
@@ -45,24 +47,24 @@ logger = structlog.get_logger()
 # - Quality-critical tasks use Pro (better reasoning)
 DEFAULT_GEMINI_ROUTING: dict[str, str] = {
     # High-volume, simple extraction tasks → Flash (cheaper, faster)
-    "skill_extraction": "gemini-1.5-flash",
-    "extraction": "gemini-1.5-flash",
-    "ghost_detection": "gemini-1.5-flash",
+    "skill_extraction": "gemini-2.0-flash",
+    "extraction": "gemini-2.0-flash",
+    "ghost_detection": "gemini-2.0-flash",
     # Quality-critical tasks → Pro (better reasoning)
-    "chat_response": "gemini-1.5-pro",
-    "onboarding": "gemini-1.5-pro",
-    "score_rationale": "gemini-1.5-pro",
-    "cover_letter": "gemini-1.5-pro",
-    "resume_tailoring": "gemini-1.5-pro",
-    "story_selection": "gemini-1.5-pro",
+    "chat_response": "gemini-2.0-flash",  # Flash is now recommended default
+    "onboarding": "gemini-2.0-flash",
+    "score_rationale": "gemini-2.0-flash",
+    "cover_letter": "gemini-2.0-flash",
+    "resume_tailoring": "gemini-2.0-flash",
+    "story_selection": "gemini-2.0-flash",
 }
 
 # Fallback if task type not in routing table
-DEFAULT_GEMINI_MODEL = "gemini-1.5-pro"
+DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
 
 
 class GeminiAdapter(LLMProvider):
-    """Google Gemini adapter using Google AI SDK.
+    """Google Gemini adapter using unified google-genai SDK.
 
     WHY SEPARATE ADAPTER:
     - Isolates provider-specific code
@@ -77,7 +79,8 @@ class GeminiAdapter(LLMProvider):
             config: Provider configuration with Google API key.
         """
         super().__init__(config)
-        genai.configure(api_key=config.google_api_key)
+        # Create client with API key
+        self.client = genai.Client(api_key=config.google_api_key)
         # Merge config routing on top of defaults (config overrides defaults)
         self.model_routing = {**DEFAULT_GEMINI_ROUTING}
         if config.gemini_model_routing:
@@ -109,90 +112,80 @@ class GeminiAdapter(LLMProvider):
         """
         model_name = self.get_model_for_task(task)
 
-        # Extract system message for system_instruction
-        system_msg = None
-        contents = []
+        # Extract system message and build contents
+        system_instruction = None
+        contents: list[types.Content] = []
 
         for msg in messages:
             if msg.role == "system":
-                system_msg = msg.content
-            elif msg.role == "tool":
+                system_instruction = msg.content
+            elif msg.role == "tool" and msg.tool_result:
                 # WHY: Gemini uses function_response format
+                func_name = (
+                    msg.tool_result.tool_call_id.split("_")[-1]
+                    if "_" in msg.tool_result.tool_call_id
+                    else "function"
+                )
                 contents.append(
-                    {
-                        "role": "user",
-                        "parts": [
-                            {
-                                "function_response": {
-                                    "name": msg.tool_result.tool_call_id.split("_")[-1]
-                                    if "_" in msg.tool_result.tool_call_id
-                                    else "function",
-                                    "response": {"result": msg.tool_result.content},
-                                }
-                            }
+                    types.Content(
+                        role="user",
+                        parts=[
+                            types.Part(
+                                function_response=types.FunctionResponse(
+                                    name=func_name,
+                                    response={"result": msg.tool_result.content},
+                                )
+                            )
                         ],
-                    }
+                    )
                 )
             elif msg.tool_calls:
                 # WHY: Assistant message with function calls
-                parts = []
+                parts: list[types.Part] = []
                 if msg.content:
-                    parts.append({"text": msg.content})
+                    parts.append(types.Part(text=msg.content))
                 for tc in msg.tool_calls:
                     parts.append(
-                        {
-                            "function_call": {
-                                "name": tc.name,
-                                "args": tc.arguments,
-                            }
-                        }
+                        types.Part(
+                            function_call=types.FunctionCall(
+                                name=tc.name,
+                                args=tc.arguments,
+                            )
+                        )
                     )
-                contents.append({"role": "model", "parts": parts})
+                contents.append(types.Content(role="model", parts=parts))
             else:
                 # WHY: Gemini uses "model" instead of "assistant"
                 role = "model" if msg.role == "assistant" else msg.role
                 contents.append(
-                    {
-                        "role": role,
-                        "parts": [{"text": msg.content}],
-                    }
+                    types.Content(
+                        role=role,
+                        parts=[types.Part(text=msg.content or "")],
+                    )
                 )
 
         # Convert tools to Gemini format
         gemini_tools = None
         if tools:
             function_declarations = [
-                {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "parameters": tool.to_json_schema(),
-                }
+                types.FunctionDeclaration(
+                    name=tool.name,
+                    description=tool.description,
+                    parameters=tool.to_json_schema(),
+                )
                 for tool in tools
             ]
-            gemini_tools = [{"function_declarations": function_declarations}]
+            gemini_tools = [types.Tool(function_declarations=function_declarations)]
 
         # Build generation config
-        generation_config = {
-            "max_output_tokens": max_tokens
-            if max_tokens is not None
-            else self.config.default_max_tokens,
-            "temperature": temperature
-            if temperature is not None
-            else self.config.default_temperature,
-        }
-
-        if stop_sequences:
-            generation_config["stop_sequences"] = stop_sequences
-
-        # WHY: Gemini has native JSON mode via response_mime_type
-        if json_mode:
-            generation_config["response_mime_type"] = "application/json"
-
-        # Create model with system instruction and tools
-        model = genai.GenerativeModel(
-            model_name,
-            system_instruction=system_msg,
+        gen_config = types.GenerateContentConfig(
+            max_output_tokens=max_tokens or self.config.default_max_tokens,
+            temperature=temperature or self.config.default_temperature,
+            stop_sequences=stop_sequences or [],
+            system_instruction=system_instruction,
             tools=gemini_tools,
+            # WHY: Gemini has native JSON mode via response_mime_type
+            response_mime_type="application/json" if json_mode else None,
         )
 
         # Log request start
@@ -207,11 +200,13 @@ class GeminiAdapter(LLMProvider):
         start_time = time.monotonic()
 
         try:
-            response = await model.generate_content_async(
-                contents,
-                generation_config=generation_config,
+            response = await self.client.aio.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=gen_config,
             )
-        except google_exceptions.ResourceExhausted as e:
+        except Exception as e:
+            latency_ms = (time.monotonic() - start_time) * 1000
             logger.error(
                 "llm_request_failed",
                 provider="gemini",
@@ -219,53 +214,21 @@ class GeminiAdapter(LLMProvider):
                 task=task.value,
                 error=str(e),
                 error_type=type(e).__name__,
+                latency_ms=latency_ms,
             )
-            raise RateLimitError(str(e)) from e
-        except google_exceptions.PermissionDenied as e:
-            logger.error(
-                "llm_request_failed",
-                provider="gemini",
-                model=model_name,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise AuthenticationError(str(e)) from e
-        except google_exceptions.Unauthenticated as e:
-            logger.error(
-                "llm_request_failed",
-                provider="gemini",
-                model=model_name,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise AuthenticationError(str(e)) from e
-        except google_exceptions.InvalidArgument as e:
-            logger.error(
-                "llm_request_failed",
-                provider="gemini",
-                model=model_name,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
+            # Map errors to our error taxonomy
             error_msg = str(e).lower()
-            if "context" in error_msg:
+            if "resource" in error_msg and "exhausted" in error_msg:
+                raise RateLimitError(str(e)) from e
+            if "permission" in error_msg or "unauthenticated" in error_msg:
+                raise AuthenticationError(str(e)) from e
+            if "context" in error_msg or "token" in error_msg:
                 raise ContextLengthError(str(e)) from e
-            if "safety" in error_msg:
+            if "safety" in error_msg or "blocked" in error_msg:
                 raise ContentFilterError(str(e)) from e
+            if "unavailable" in error_msg or "503" in error_msg:
+                raise TransientError(str(e)) from e
             raise ProviderError(str(e)) from e
-        except google_exceptions.ServiceUnavailable as e:
-            logger.error(
-                "llm_request_failed",
-                provider="gemini",
-                model=model_name,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise TransientError(str(e)) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
 
@@ -275,22 +238,23 @@ class GeminiAdapter(LLMProvider):
 
         if response.candidates:
             candidate = response.candidates[0]
-            for part in candidate.content.parts:
-                if hasattr(part, "text") and part.text:
-                    content = part.text
-                elif hasattr(part, "function_call") and part.function_call:
-                    if tool_calls is None:
-                        tool_calls = []
-                    fc = part.function_call
-                    # Generate a unique ID for the tool call
-                    tool_id = f"call_{fc.name}_{len(tool_calls)}"
-                    tool_calls.append(
-                        ToolCall(
-                            id=tool_id,
-                            name=fc.name,
-                            arguments=dict(fc.args) if fc.args else {},
+            if candidate.content and candidate.content.parts:
+                for part in candidate.content.parts:
+                    if part.text:
+                        content = part.text
+                    elif part.function_call:
+                        if tool_calls is None:
+                            tool_calls = []
+                        fc = part.function_call
+                        # Generate a unique ID for the tool call
+                        tool_id = f"call_{fc.name}_{len(tool_calls)}"
+                        tool_calls.append(
+                            ToolCall(
+                                id=tool_id,
+                                name=fc.name,
+                                arguments=dict(fc.args) if fc.args else {},
+                            )
                         )
-                    )
 
             finish_reason = (
                 candidate.finish_reason.name if candidate.finish_reason else "UNKNOWN"
@@ -350,35 +314,26 @@ class GeminiAdapter(LLMProvider):
         model_name = self.get_model_for_task(task)
 
         # Extract system message and convert messages
-        system_msg = None
-        contents = []
+        system_instruction = None
+        contents: list[types.Content] = []
 
         for msg in messages:
             if msg.role == "system":
-                system_msg = msg.content
+                system_instruction = msg.content
             else:
                 role = "model" if msg.role == "assistant" else msg.role
                 contents.append(
-                    {
-                        "role": role,
-                        "parts": [{"text": msg.content}],
-                    }
+                    types.Content(
+                        role=role,
+                        parts=[types.Part(text=msg.content or "")],
+                    )
                 )
 
         # Build generation config
-        generation_config = {
-            "max_output_tokens": max_tokens
-            if max_tokens is not None
-            else self.config.default_max_tokens,
-            "temperature": temperature
-            if temperature is not None
-            else self.config.default_temperature,
-        }
-
-        # Create model with system instruction
-        model = genai.GenerativeModel(
-            model_name,
-            system_instruction=system_msg,
+        gen_config = types.GenerateContentConfig(
+            max_output_tokens=max_tokens or self.config.default_max_tokens,
+            temperature=temperature or self.config.default_temperature,
+            system_instruction=system_instruction,
         )
 
         # Log request start
@@ -391,16 +346,14 @@ class GeminiAdapter(LLMProvider):
         )
 
         try:
-            response = await model.generate_content_async(
-                contents,
-                generation_config=generation_config,
-                stream=True,
-            )
-
-            async for chunk in response:
+            async for chunk in self.client.aio.models.generate_content_stream(
+                model=model_name,
+                contents=contents,
+                config=gen_config,
+            ):
                 if chunk.text:
                     yield chunk.text
-        except google_exceptions.ResourceExhausted as e:
+        except Exception as e:
             logger.error(
                 "llm_request_failed",
                 provider="gemini",
@@ -409,52 +362,19 @@ class GeminiAdapter(LLMProvider):
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            raise RateLimitError(str(e)) from e
-        except google_exceptions.PermissionDenied as e:
-            logger.error(
-                "llm_request_failed",
-                provider="gemini",
-                model=model_name,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise AuthenticationError(str(e)) from e
-        except google_exceptions.Unauthenticated as e:
-            logger.error(
-                "llm_request_failed",
-                provider="gemini",
-                model=model_name,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise AuthenticationError(str(e)) from e
-        except google_exceptions.InvalidArgument as e:
-            logger.error(
-                "llm_request_failed",
-                provider="gemini",
-                model=model_name,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
+            # Map errors to our error taxonomy
             error_msg = str(e).lower()
-            if "context" in error_msg:
+            if "resource" in error_msg and "exhausted" in error_msg:
+                raise RateLimitError(str(e)) from e
+            if "permission" in error_msg or "unauthenticated" in error_msg:
+                raise AuthenticationError(str(e)) from e
+            if "context" in error_msg or "token" in error_msg:
                 raise ContextLengthError(str(e)) from e
-            if "safety" in error_msg:
+            if "safety" in error_msg or "blocked" in error_msg:
                 raise ContentFilterError(str(e)) from e
+            if "unavailable" in error_msg or "503" in error_msg:
+                raise TransientError(str(e)) from e
             raise ProviderError(str(e)) from e
-        except google_exceptions.ServiceUnavailable as e:
-            logger.error(
-                "llm_request_failed",
-                provider="gemini",
-                model=model_name,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise TransientError(str(e)) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
         """Get model for task using routing table.
@@ -463,6 +383,6 @@ class GeminiAdapter(LLMProvider):
             task: The task type to get the model for.
 
         Returns:
-            Model identifier string (e.g., "gemini-1.5-pro").
+            Model identifier string (e.g., "gemini-2.0-flash").
         """
         return self.model_routing.get(task.value, DEFAULT_GEMINI_MODEL)
