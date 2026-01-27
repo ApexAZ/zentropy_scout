@@ -37,24 +37,23 @@ def mock_openai_client():
         yield mock_client
 
 
+@pytest.mark.usefixtures("mock_openai_client")
 class TestOpenAIEmbeddingAdapterInitialization:
     """Test adapter initialization."""
 
-    def test_initializes_with_config(self, config, _mock_openai_client):
+    def test_initializes_with_config(self, config):
         """Adapter should initialize with config and create client."""
         adapter = OpenAIEmbeddingAdapter(config)
         assert adapter.config == config
         assert adapter._model == "text-embedding-3-small"
         assert adapter._dimensions == 1536
 
-    def test_dimensions_property_returns_configured_value(
-        self, config, _mock_openai_client
-    ):
+    def test_dimensions_property_returns_configured_value(self, config):
         """dimensions property should return the configured embedding dimensions."""
         adapter = OpenAIEmbeddingAdapter(config)
         assert adapter.dimensions == 1536
 
-    def test_dimensions_respects_config(self, _mock_openai_client):
+    def test_dimensions_respects_config(self):
         """dimensions should match config value (behavior, not hardcoded)."""
         config_3072 = ProviderConfig(
             openai_api_key="test",
@@ -201,7 +200,7 @@ class TestOpenAIEmbeddingAdapterBatching:
             return mock_response
 
         # Side effect to return appropriate response for each chunk
-        async def mock_create(_model, input):
+        async def mock_create(*, model, input):  # noqa: ARG001
             return create_mock_response(input)
 
         mock_openai_client.embeddings.create = AsyncMock(side_effect=mock_create)
@@ -227,7 +226,7 @@ class TestOpenAIEmbeddingAdapterBatching:
             mock_response.usage.total_tokens = len(input_texts) * 5
             return mock_response
 
-        async def mock_create(_model, input):
+        async def mock_create(*, model, input):  # noqa: ARG001
             return create_mock_response(input)
 
         mock_openai_client.embeddings.create = AsyncMock(side_effect=mock_create)

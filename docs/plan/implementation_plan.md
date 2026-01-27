@@ -188,8 +188,8 @@ These steps require user action outside Claude Code:
 | 4.6 | JSON Mode Patterns | `provider, tdd, plan` | ✅ |
 | 5.1 | Embedding Abstract Interface | `provider, db, tdd, plan` | ✅ |
 | 5.2 | OpenAI Embedding Adapter | `provider, tdd, plan` | ✅ |
-| 5.3 | Embedding Model Comparison | `provider, plan` | ⬜ |
-| 7.1 | Error Taxonomy | `provider, structure, tdd, plan` | ⬜ |
+| 5.3 | Embedding Model Comparison | `provider, plan` | ✅ |
+| 7.1 | Error Taxonomy | `provider, structure, tdd, plan` | ✅ |
 | 7.2 | Retry Strategy | `provider, test, tdd, plan` | ⬜ |
 | 7.3 | Error Mapping | `provider, tdd, plan` | ⬜ |
 | 8.1 | Logging | `provider, structure, plan` | ⬜ |
