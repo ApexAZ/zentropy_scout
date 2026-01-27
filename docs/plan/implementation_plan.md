@@ -193,7 +193,7 @@ These steps require user action outside Claude Code:
 | 7.2 | Retry Strategy | `provider, test, tdd, plan` | ✅ |
 | 7.3 | Error Mapping | `provider, tdd, plan` | ✅ |
 | 8.1 | Logging | `provider, structure, plan` | ✅ |
-| 9.1 | Mock Provider | `provider, test, tdd, plan` | ⬜ |
+| 9.1 | Mock Provider | `provider, test, tdd, plan` | ✅ |
 | 9.2 | Test Fixtures | `test, tdd, plan` | ⬜ |
 | 8.2 | Metrics (Future) | `provider, plan` | ⬜ |
 | 8.3 | Cost Tracking (Future) | `provider, plan` | ⬜ |
