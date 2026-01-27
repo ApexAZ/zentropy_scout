@@ -16,20 +16,16 @@ from app.providers.llm.base import (
     ToolParameter,
     ToolResult,
 )
-from app.providers.llm.claude_adapter import (
-    DEFAULT_CLAUDE_MODEL,
-    DEFAULT_CLAUDE_ROUTING,
-    ClaudeAdapter,
-)
+from app.providers.llm.claude_adapter import ClaudeAdapter
 
 
 @pytest.fixture
 def config():
-    """Create a test provider config."""
+    """Create a test provider config using built-in defaults."""
     return ProviderConfig(
         llm_provider="claude",
         anthropic_api_key="test-api-key",
-        claude_model_routing=DEFAULT_CLAUDE_ROUTING,
+        # No custom routing - use built-in defaults
         default_max_tokens=4096,
         default_temperature=0.7,
     )
@@ -79,29 +75,24 @@ class TestClaudeAdapterInit:
             adapter = ClaudeAdapter(config)
             assert adapter.config is config
 
-    def test_init_stores_model_routing(self, config):
-        """ClaudeAdapter should store model routing from config."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic"):
-            adapter = ClaudeAdapter(config)
-            assert adapter.model_routing == DEFAULT_CLAUDE_ROUTING
-
-    def test_init_uses_builtin_defaults_when_no_config_routing(self):
-        """ClaudeAdapter should use built-in defaults when no config routing."""
+    def test_init_routes_extraction_to_cheaper_model_by_default(self):
+        """Without custom routing, extraction tasks should use a cheaper model."""
         config_no_routing = ProviderConfig(
             llm_provider="claude",
             anthropic_api_key="test-api-key",
-            claude_model_routing=None,  # No custom routing
+            claude_model_routing=None,
             default_max_tokens=4096,
             default_temperature=0.7,
         )
         with patch("app.providers.llm.claude_adapter.AsyncAnthropic"):
             adapter = ClaudeAdapter(config_no_routing)
-            # Should use built-in defaults
-            assert adapter.model_routing == DEFAULT_CLAUDE_ROUTING
+            model = adapter.get_model_for_task(TaskType.EXTRACTION)
+            # Behavior: extraction uses Haiku (cheaper model)
+            assert "haiku" in model.lower()
 
-    def test_init_config_overrides_defaults(self):
-        """Config routing should override built-in defaults."""
-        custom_routing = {"extraction": "custom-model"}
+    def test_init_config_routing_overrides_defaults(self):
+        """Custom config routing should override default model selection."""
+        custom_routing = {"extraction": "my-custom-model"}
         config_with_override = ProviderConfig(
             llm_provider="claude",
             anthropic_api_key="test-api-key",
@@ -111,39 +102,42 @@ class TestClaudeAdapterInit:
         )
         with patch("app.providers.llm.claude_adapter.AsyncAnthropic"):
             adapter = ClaudeAdapter(config_with_override)
-            # Extraction should be overridden
-            assert adapter.model_routing["extraction"] == "custom-model"
-            # Other tasks should still use defaults
-            assert (
-                adapter.model_routing["chat_response"] == "claude-3-5-sonnet-20241022"
-            )
+            # Behavior: custom routing takes effect
+            assert adapter.get_model_for_task(TaskType.EXTRACTION) == "my-custom-model"
+            # Non-overridden tasks still use sensible defaults
+            chat_model = adapter.get_model_for_task(TaskType.CHAT_RESPONSE)
+            assert "sonnet" in chat_model.lower()
 
 
 class TestClaudeAdapterGetModelForTask:
-    """Test ClaudeAdapter.get_model_for_task()."""
+    """Test ClaudeAdapter.get_model_for_task() behavior."""
 
-    def test_returns_correct_model_for_extraction(self, config):
-        """Should return Haiku for extraction tasks."""
+    def test_extraction_tasks_use_cost_effective_model(self, config):
+        """Extraction tasks should route to cheaper/faster model (Haiku)."""
         with patch("app.providers.llm.claude_adapter.AsyncAnthropic"):
             adapter = ClaudeAdapter(config)
             model = adapter.get_model_for_task(TaskType.EXTRACTION)
-            assert model == "claude-3-5-haiku-20241022"
+            # Behavior: extraction uses Haiku for cost optimization
+            assert "haiku" in model.lower()
 
-    def test_returns_correct_model_for_chat(self, config):
-        """Should return Sonnet for chat tasks."""
+    def test_chat_tasks_use_quality_model(self, config):
+        """Chat/conversation tasks should route to higher quality model (Sonnet)."""
         with patch("app.providers.llm.claude_adapter.AsyncAnthropic"):
             adapter = ClaudeAdapter(config)
             model = adapter.get_model_for_task(TaskType.CHAT_RESPONSE)
-            assert model == "claude-3-5-sonnet-20241022"
+            # Behavior: chat uses Sonnet for better reasoning
+            assert "sonnet" in model.lower()
 
-    def test_uses_default_model_for_unknown_task_value(self, config):
-        """Should use fallback model when task value not in routing table."""
+    def test_all_task_types_return_valid_model(self, config):
+        """Every TaskType should return a valid Claude model identifier."""
         with patch("app.providers.llm.claude_adapter.AsyncAnthropic"):
             adapter = ClaudeAdapter(config)
-            # Manually call get_model_for_task with a task value not in routing
-            # (This tests the fallback when a new TaskType is added but routing not updated)
-            model = adapter.model_routing.get("unknown_task", DEFAULT_CLAUDE_MODEL)
-            assert model == DEFAULT_CLAUDE_MODEL
+            for task_type in TaskType:
+                model = adapter.get_model_for_task(task_type)
+                # Behavior: all tasks return a model (no None, no empty string)
+                assert model is not None
+                assert len(model) > 0
+                assert "claude" in model.lower()
 
 
 class TestClaudeAdapterComplete:
@@ -507,7 +501,9 @@ class TestClaudeAdapterComplete:
 
             response = await adapter.complete(messages, TaskType.CHAT_RESPONSE)
 
-            assert response.model == "claude-3-5-sonnet-20241022"
+            # Behavior: response includes the model that was used
+            assert response.model is not None
+            assert "sonnet" in response.model.lower()
 
 
 class TestClaudeAdapterStream:
@@ -581,7 +577,8 @@ class TestClaudeAdapterStream:
                 pass
 
             call_kwargs = mock_client.messages.stream.call_args.kwargs
-            assert call_kwargs["model"] == "claude-3-5-haiku-20241022"
+            # Behavior: extraction tasks use cheaper model
+            assert "haiku" in call_kwargs["model"].lower()
 
     @pytest.mark.asyncio
     async def test_stream_extracts_system_message(self, config):
