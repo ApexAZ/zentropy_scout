@@ -52,6 +52,9 @@ dev = [
     "ruff>=0.2.0",
     "mypy>=1.8.0",
 
+    # Pre-commit hooks
+    "pre-commit>=3.6.0",
+
     # Type Stubs
     "types-python-dateutil",
 ]

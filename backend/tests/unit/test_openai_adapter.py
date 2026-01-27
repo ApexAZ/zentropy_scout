@@ -159,7 +159,9 @@ class TestOpenAIAdapterComplete:
         """Should make API call and return LLMResponse."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -174,11 +176,15 @@ class TestOpenAIAdapterComplete:
             assert response.latency_ms >= 0
 
     @pytest.mark.asyncio
-    async def test_complete_keeps_system_message_in_array(self, config, mock_openai_response):
+    async def test_complete_keeps_system_message_in_array(
+        self, config, mock_openai_response
+    ):
         """OpenAI keeps system message in messages array (unlike Claude)."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -193,14 +199,18 @@ class TestOpenAIAdapterComplete:
             # System message should be in messages array
             assert len(call_kwargs["messages"]) == 2
             assert call_kwargs["messages"][0]["role"] == "system"
-            assert call_kwargs["messages"][0]["content"] == "You are a helpful assistant."
+            assert (
+                call_kwargs["messages"][0]["content"] == "You are a helpful assistant."
+            )
 
     @pytest.mark.asyncio
     async def test_complete_with_tool_response(self, config, mock_openai_tool_response):
         """Should parse tool calls from response."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_tool_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_tool_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -230,11 +240,15 @@ class TestOpenAIAdapterComplete:
             assert response.tool_calls[0].arguments == {"job_id": "job-uuid-456"}
 
     @pytest.mark.asyncio
-    async def test_complete_converts_tools_to_openai_format(self, config, mock_openai_response):
+    async def test_complete_converts_tools_to_openai_format(
+        self, config, mock_openai_response
+    ):
         """Should convert ToolDefinition to OpenAI function format."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -263,11 +277,15 @@ class TestOpenAIAdapterComplete:
             assert "parameters" in call_kwargs["tools"][0]["function"]
 
     @pytest.mark.asyncio
-    async def test_complete_handles_tool_result_message(self, config, mock_openai_response):
+    async def test_complete_handles_tool_result_message(
+        self, config, mock_openai_response
+    ):
         """Should convert tool result messages to OpenAI format."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -304,11 +322,15 @@ class TestOpenAIAdapterComplete:
             assert tool_result_msg["content"] == '{"success": true}'
 
     @pytest.mark.asyncio
-    async def test_complete_json_mode_uses_response_format(self, config, mock_openai_response):
+    async def test_complete_json_mode_uses_response_format(
+        self, config, mock_openai_response
+    ):
         """JSON mode should use native response_format."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -317,19 +339,21 @@ class TestOpenAIAdapterComplete:
                 LLMMessage(role="user", content="Python, JavaScript"),
             ]
 
-            await adapter.complete(
-                messages, TaskType.EXTRACTION, json_mode=True
-            )
+            await adapter.complete(messages, TaskType.EXTRACTION, json_mode=True)
 
             call_kwargs = mock_client.chat.completions.create.call_args.kwargs
             assert call_kwargs["response_format"] == {"type": "json_object"}
 
     @pytest.mark.asyncio
-    async def test_complete_no_response_format_when_json_mode_false(self, config, mock_openai_response):
+    async def test_complete_no_response_format_when_json_mode_false(
+        self, config, mock_openai_response
+    ):
         """Should not set response_format when json_mode is False."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -345,7 +369,9 @@ class TestOpenAIAdapterComplete:
         """Should use config defaults when not overridden."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -358,19 +384,21 @@ class TestOpenAIAdapterComplete:
             assert call_kwargs["temperature"] == 0.7
 
     @pytest.mark.asyncio
-    async def test_complete_allows_override_max_tokens(self, config, mock_openai_response):
+    async def test_complete_allows_override_max_tokens(
+        self, config, mock_openai_response
+    ):
         """Should allow overriding max_tokens."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
             messages = [LLMMessage(role="user", content="Hello")]
 
-            await adapter.complete(
-                messages, TaskType.CHAT_RESPONSE, max_tokens=1000
-            )
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE, max_tokens=1000)
 
             call_kwargs = mock_client.chat.completions.create.call_args.kwargs
             assert call_kwargs["max_tokens"] == 1000
@@ -380,7 +408,9 @@ class TestOpenAIAdapterComplete:
         """Should pass stop_sequences to API as 'stop' parameter."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -394,11 +424,15 @@ class TestOpenAIAdapterComplete:
             assert call_kwargs["stop"] == ["END", "STOP"]
 
     @pytest.mark.asyncio
-    async def test_complete_includes_model_in_response(self, config, mock_openai_response):
+    async def test_complete_includes_model_in_response(
+        self, config, mock_openai_response
+    ):
         """Response should include the model used."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -495,11 +529,15 @@ class TestOpenAIAdapterMessageConversion:
     """Test message conversion to OpenAI format."""
 
     @pytest.mark.asyncio
-    async def test_converts_assistant_message_with_tool_calls(self, config, mock_openai_response):
+    async def test_converts_assistant_message_with_tool_calls(
+        self, config, mock_openai_response
+    ):
         """Should convert assistant messages with tool calls to OpenAI format."""
         with patch("app.providers.llm.openai_adapter.AsyncOpenAI") as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response)
+            mock_client.chat.completions.create = AsyncMock(
+                return_value=mock_openai_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = OpenAIAdapter(config)
@@ -530,4 +568,7 @@ class TestOpenAIAdapterMessageConversion:
             assert assistant_msg["tool_calls"][0]["type"] == "function"
             assert assistant_msg["tool_calls"][0]["function"]["name"] == "favorite_job"
             # Arguments should be JSON-encoded string
-            assert assistant_msg["tool_calls"][0]["function"]["arguments"] == '{"job_id": "uuid"}'
+            assert (
+                assistant_msg["tool_calls"][0]["function"]["arguments"]
+                == '{"job_id": "uuid"}'
+            )

@@ -1,7 +1,7 @@
 # REQ-002: Resume Schema
 
-**Status:** Draft  
-**PRD Reference:** §8 Document Management  
+**Status:** Draft
+**PRD Reference:** §8 Document Management
 **Last Updated:** 2025-01-25
 
 ---
@@ -197,7 +197,7 @@ When status changes to Approved, these fields are copied from the Base Resume:
 If status == Draft:
     Use base_resume_id to fetch inherited fields
     Apply job_bullet_order and summary overrides
-    
+
 If status == Approved:
     Use snapshot_* fields (ignore base_resume_id for content)
     Apply job_bullet_order and summary

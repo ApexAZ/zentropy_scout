@@ -107,27 +107,33 @@ class ClaudeAdapter(LLMProvider):
                 system_msg = msg.content
             elif msg.role == "tool":
                 # WHY: Anthropic uses tool_result content blocks within user messages
-                api_messages.append({
-                    "role": "user",
-                    "content": [{
-                        "type": "tool_result",
-                        "tool_use_id": msg.tool_result.tool_call_id,
-                        "content": msg.tool_result.content,
-                        "is_error": msg.tool_result.is_error,
-                    }]
-                })
+                api_messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": msg.tool_result.tool_call_id,
+                                "content": msg.tool_result.content,
+                                "is_error": msg.tool_result.is_error,
+                            }
+                        ],
+                    }
+                )
             elif msg.tool_calls:
                 # WHY: Assistant message with tool calls needs content blocks format
                 content_blocks = []
                 if msg.content:
                     content_blocks.append({"type": "text", "text": msg.content})
                 for tc in msg.tool_calls:
-                    content_blocks.append({
-                        "type": "tool_use",
-                        "id": tc.id,
-                        "name": tc.name,
-                        "input": tc.arguments,
-                    })
+                    content_blocks.append(
+                        {
+                            "type": "tool_use",
+                            "id": tc.id,
+                            "name": tc.name,
+                            "input": tc.arguments,
+                        }
+                    )
                 api_messages.append({"role": "assistant", "content": content_blocks})
             else:
                 api_messages.append({"role": msg.role, "content": msg.content})
@@ -135,8 +141,7 @@ class ClaudeAdapter(LLMProvider):
         # WHY: Anthropic doesn't have native JSON mode, so we modify system prompt
         if json_mode and system_msg:
             system_msg = (
-                system_msg
-                + "\n\nIMPORTANT: Respond ONLY with valid JSON. "
+                system_msg + "\n\nIMPORTANT: Respond ONLY with valid JSON. "
                 "No explanations, no markdown, just the JSON object."
             )
         elif json_mode:
@@ -161,8 +166,12 @@ class ClaudeAdapter(LLMProvider):
 
         response = await self.client.messages.create(
             model=model,
-            max_tokens=max_tokens if max_tokens is not None else self.config.default_max_tokens,
-            temperature=temperature if temperature is not None else self.config.default_temperature,
+            max_tokens=max_tokens
+            if max_tokens is not None
+            else self.config.default_max_tokens,
+            temperature=temperature
+            if temperature is not None
+            else self.config.default_temperature,
             system=system_msg,
             messages=api_messages,
             stop_sequences=stop_sequences,
@@ -181,11 +190,13 @@ class ClaudeAdapter(LLMProvider):
             elif block.type == "tool_use":
                 if tool_calls is None:
                     tool_calls = []
-                tool_calls.append(ToolCall(
-                    id=block.id,
-                    name=block.name,
-                    arguments=block.input,
-                ))
+                tool_calls.append(
+                    ToolCall(
+                        id=block.id,
+                        name=block.name,
+                        arguments=block.input,
+                    )
+                )
 
         return LLMResponse(
             content=content,
@@ -229,8 +240,12 @@ class ClaudeAdapter(LLMProvider):
 
         async with self.client.messages.stream(
             model=model,
-            max_tokens=max_tokens if max_tokens is not None else self.config.default_max_tokens,
-            temperature=temperature if temperature is not None else self.config.default_temperature,
+            max_tokens=max_tokens
+            if max_tokens is not None
+            else self.config.default_max_tokens,
+            temperature=temperature
+            if temperature is not None
+            else self.config.default_temperature,
             system=system_msg,
             messages=api_messages,
         ) as stream:

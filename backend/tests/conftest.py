@@ -14,8 +14,7 @@ from app.models.base import Base
 
 # Use separate test database
 TEST_DATABASE_URL = settings.database_url.replace(
-    settings.database_name,
-    f"{settings.database_name}_test"
+    settings.database_name, f"{settings.database_name}_test"
 )
 
 

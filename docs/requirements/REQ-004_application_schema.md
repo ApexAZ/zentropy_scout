@@ -1,7 +1,7 @@
 # REQ-004: Application Schema
 
-**Status:** Draft  
-**PRD Reference:** §4.4 Application Tracking, §6 Workflow  
+**Status:** Draft
+**PRD Reference:** §4.4 Application Tracking, §6 Workflow
 **Last Updated:** 2025-01-25
 
 ---
@@ -298,22 +298,22 @@ Chronological log of application activity. Displayed in expandable card UI.
 ```
 2025-01-15 — Applied
     Submitted resume v2.3 and cover letter to Acme Corp ATS
-    
+
 2025-01-18 — Response received
     Acknowledgment email received, recruiter Jane Smith
-    
+
 2025-01-20 — Interview scheduled
     Phone screen with Jane Smith on Jan 22 at 2pm
-    
+
 2025-01-22 — Interview completed
     Phone screen went well, discussed team structure and role expectations
-    
+
 2025-01-25 — Status changed: Interviewing
     Moving to onsite round
-    
+
 2025-01-28 — Interview scheduled
     Onsite on Feb 3, 4-hour panel
-    
+
 ...
 ```
 
@@ -376,8 +376,8 @@ Offer → Accepted (user accepts)
 
 **Key insight:** The "Pending Review" UI state is populated by querying:
 ```sql
-SELECT * FROM JobVariant 
-WHERE status = 'Approved' 
+SELECT * FROM JobVariant
+WHERE status = 'Approved'
 AND id NOT IN (SELECT job_variant_id FROM Application)
 ```
 
@@ -510,7 +510,7 @@ When user has multiple offers:
 | Rejected | 90 days after rejected | 365 days after archive |
 | Withdrawn | 90 days after withdrawn | 365 days after archive |
 
-**Rationale:** 
+**Rationale:**
 - Active applications need longer retention (user may return)
 - Accepted offers are career milestones — keep indefinitely
 - Rejected/Withdrawn are learning data but less valuable over time

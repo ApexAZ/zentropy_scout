@@ -1,7 +1,7 @@
 # 🌀 PRD: Zentropy Scout
 
-**Version:** 2.2 (Final Review Pass)  
-**License:** AGPL-3.0  
+**Version:** 2.2 (Final Review Pass)
+**License:** AGPL-3.0
 **Status:** Approved for Development
 
 ---

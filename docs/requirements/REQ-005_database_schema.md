@@ -1,7 +1,7 @@
 # REQ-005: Database Schema (ERD)
 
-**Status:** Draft  
-**PRD Reference:** §6 Data Strategy  
+**Status:** Draft
+**PRD Reference:** §6 Data Strategy
 **Last Updated:** 2025-01-25
 
 ---
@@ -51,13 +51,13 @@ erDiagram
     %% ============================================
     %% USER (Auth Foundation)
     %% ============================================
-    
+
     User ||--|| Persona : "owns"
-    
+
     %% ============================================
     %% PERSONA DOMAIN (REQ-001)
     %% ============================================
-    
+
     Persona ||--o{ WorkHistory : "has"
     Persona ||--o{ Skill : "has"
     Persona ||--o{ Education : "has"
@@ -66,50 +66,50 @@ erDiagram
     Persona ||--o| VoiceProfile : "has"
     Persona ||--o{ CustomNonNegotiable : "has"
     Persona ||--o{ PersonaEmbedding : "has"
-    
+
     WorkHistory ||--o{ Bullet : "has"
     AchievementStory }o--o| WorkHistory : "related_to"
-    
+
     %% ============================================
     %% RESUME DOMAIN (REQ-002)
     %% ============================================
-    
+
     Persona ||--o| ResumeFile : "uploaded"
     Persona ||--o{ BaseResume : "has"
     Persona ||--o{ PersonaChangeFlag : "has"
-    
+
     BaseResume ||--o{ JobVariant : "spawns"
     JobVariant ||--o| SubmittedResumePDF : "generates"
-    
+
     %% ============================================
     %% COVER LETTER DOMAIN (REQ-002b)
     %% ============================================
-    
+
     Persona ||--o{ CoverLetter : "has"
     CoverLetter ||--o| SubmittedCoverLetterPDF : "generates"
-    
+
     %% ============================================
     %% JOB POSTING DOMAIN (REQ-003)
     %% ============================================
-    
+
     JobSource ||--o{ UserSourcePreference : "configured_by"
     JobSource ||--o{ JobPosting : "provides"
     Persona ||--o{ UserSourcePreference : "has"
     Persona ||--o| PollingConfiguration : "has"
     Persona ||--o{ JobPosting : "discovered_for"
-    
+
     JobPosting ||--o{ ExtractedSkill : "has"
     JobPosting }o--o{ JobPosting : "previous_posting"
-    
+
     %% ============================================
     %% APPLICATION DOMAIN (REQ-004)
     %% ============================================
-    
+
     Persona ||--o{ Application : "has"
     JobPosting ||--o| Application : "applied_to"
     JobVariant ||--o| Application : "used_in"
     CoverLetter ||--o| Application : "used_in"
-    
+
     Application ||--o{ TimelineEvent : "has"
     Application ||--o| SubmittedResumePDF : "links"
     Application ||--o| SubmittedCoverLetterPDF : "links"

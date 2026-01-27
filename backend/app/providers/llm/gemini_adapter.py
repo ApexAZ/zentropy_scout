@@ -106,35 +106,45 @@ class GeminiAdapter(LLMProvider):
                 system_msg = msg.content
             elif msg.role == "tool":
                 # WHY: Gemini uses function_response format
-                contents.append({
-                    "role": "user",
-                    "parts": [{
-                        "function_response": {
-                            "name": msg.tool_result.tool_call_id.split("_")[-1] if "_" in msg.tool_result.tool_call_id else "function",
-                            "response": {"result": msg.tool_result.content},
-                        }
-                    }]
-                })
+                contents.append(
+                    {
+                        "role": "user",
+                        "parts": [
+                            {
+                                "function_response": {
+                                    "name": msg.tool_result.tool_call_id.split("_")[-1]
+                                    if "_" in msg.tool_result.tool_call_id
+                                    else "function",
+                                    "response": {"result": msg.tool_result.content},
+                                }
+                            }
+                        ],
+                    }
+                )
             elif msg.tool_calls:
                 # WHY: Assistant message with function calls
                 parts = []
                 if msg.content:
                     parts.append({"text": msg.content})
                 for tc in msg.tool_calls:
-                    parts.append({
-                        "function_call": {
-                            "name": tc.name,
-                            "args": tc.arguments,
+                    parts.append(
+                        {
+                            "function_call": {
+                                "name": tc.name,
+                                "args": tc.arguments,
+                            }
                         }
-                    })
+                    )
                 contents.append({"role": "model", "parts": parts})
             else:
                 # WHY: Gemini uses "model" instead of "assistant"
                 role = "model" if msg.role == "assistant" else msg.role
-                contents.append({
-                    "role": role,
-                    "parts": [{"text": msg.content}],
-                })
+                contents.append(
+                    {
+                        "role": role,
+                        "parts": [{"text": msg.content}],
+                    }
+                )
 
         # Convert tools to Gemini format
         gemini_tools = None
@@ -151,8 +161,12 @@ class GeminiAdapter(LLMProvider):
 
         # Build generation config
         generation_config = {
-            "max_output_tokens": max_tokens if max_tokens is not None else self.config.default_max_tokens,
-            "temperature": temperature if temperature is not None else self.config.default_temperature,
+            "max_output_tokens": max_tokens
+            if max_tokens is not None
+            else self.config.default_max_tokens,
+            "temperature": temperature
+            if temperature is not None
+            else self.config.default_temperature,
         }
 
         if stop_sequences:
@@ -193,21 +207,29 @@ class GeminiAdapter(LLMProvider):
                     fc = part.function_call
                     # Generate a unique ID for the tool call
                     tool_id = f"call_{fc.name}_{len(tool_calls)}"
-                    tool_calls.append(ToolCall(
-                        id=tool_id,
-                        name=fc.name,
-                        arguments=dict(fc.args) if fc.args else {},
-                    ))
+                    tool_calls.append(
+                        ToolCall(
+                            id=tool_id,
+                            name=fc.name,
+                            arguments=dict(fc.args) if fc.args else {},
+                        )
+                    )
 
-            finish_reason = candidate.finish_reason.name if candidate.finish_reason else "UNKNOWN"
+            finish_reason = (
+                candidate.finish_reason.name if candidate.finish_reason else "UNKNOWN"
+            )
         else:
             finish_reason = "UNKNOWN"
 
         return LLMResponse(
             content=content,
             model=model_name,
-            input_tokens=response.usage_metadata.prompt_token_count if response.usage_metadata else 0,
-            output_tokens=response.usage_metadata.candidates_token_count if response.usage_metadata else 0,
+            input_tokens=response.usage_metadata.prompt_token_count
+            if response.usage_metadata
+            else 0,
+            output_tokens=response.usage_metadata.candidates_token_count
+            if response.usage_metadata
+            else 0,
             finish_reason=finish_reason,
             latency_ms=latency_ms,
             tool_calls=tool_calls,
@@ -242,15 +264,21 @@ class GeminiAdapter(LLMProvider):
                 system_msg = msg.content
             else:
                 role = "model" if msg.role == "assistant" else msg.role
-                contents.append({
-                    "role": role,
-                    "parts": [{"text": msg.content}],
-                })
+                contents.append(
+                    {
+                        "role": role,
+                        "parts": [{"text": msg.content}],
+                    }
+                )
 
         # Build generation config
         generation_config = {
-            "max_output_tokens": max_tokens if max_tokens is not None else self.config.default_max_tokens,
-            "temperature": temperature if temperature is not None else self.config.default_temperature,
+            "max_output_tokens": max_tokens
+            if max_tokens is not None
+            else self.config.default_max_tokens,
+            "temperature": temperature
+            if temperature is not None
+            else self.config.default_temperature,
         }
 
         # Create model with system instruction

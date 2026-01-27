@@ -117,7 +117,9 @@ class UserSourcePreference(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("persona_id", "source_id", name="uq_usersourcepref_persona_source"),
+        UniqueConstraint(
+            "persona_id", "source_id", name="uq_usersourcepref_persona_source"
+        ),
     )
 
     # Relationships

@@ -1,8 +1,8 @@
 # REQ-011: Chrome Extension
 
-**Status:** Draft  
-**Version:** 0.1  
-**PRD Reference:** §4.2 Scouter (Manual Job Submission)  
+**Status:** Draft
+**Version:** 0.1
+**PRD Reference:** §4.2 Scouter (Manual Job Submission)
 **Last Updated:** 2026-01-25
 
 ---
@@ -214,7 +214,7 @@ function extractJobText() {
       }
     } catch (e) { /* fall through */ }
   }
-  
+
   // Strategy 2: Look for common job description containers
   const selectors = [
     '[data-testid="job-description"]',  // LinkedIn
@@ -224,14 +224,14 @@ function extractJobText() {
     'article',
     'main'
   ];
-  
+
   for (const selector of selectors) {
     const el = document.querySelector(selector);
     if (el && el.textContent.length > 500) {
       return { type: 'text', data: el.textContent };
     }
   }
-  
+
   // Strategy 3: Fallback to body text
   return { type: 'text', data: document.body.innerText };
 }
@@ -280,11 +280,11 @@ async function submitJob(rawText, sourceUrl) {
       source_name: detectSourceName(sourceUrl)
     })
   });
-  
+
   if (!response.ok) {
     throw new ApiError(await response.json());
   }
-  
+
   return response.json();  // { preview, confirmation_token, expires_at }
 }
 ```
@@ -304,7 +304,7 @@ async function confirmJob(token, modifications = {}) {
       modifications
     })
   });
-  
+
   return response.json();  // Full JobPosting
 }
 ```
@@ -319,7 +319,7 @@ async function checkExisting(url) {
     `${API_BASE}/job-postings?source_url=${encodeURIComponent(url)}`,
     { headers: { 'Authorization': `Bearer ${await getToken()}` } }
   );
-  
+
   const { data } = await response.json();
   return data.length > 0 ? data[0] : null;
 }

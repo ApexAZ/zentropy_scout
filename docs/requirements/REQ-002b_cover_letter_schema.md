@@ -1,7 +1,7 @@
 # REQ-002b: Cover Letter Schema
 
-**Status:** Draft  
-**PRD Reference:** §8 Document Management, §4.4 Ghostwriter  
+**Status:** Draft
+**PRD Reference:** §8 Document Management, §4.4 Ghostwriter
 **Last Updated:** 2025-01-25
 
 ---

@@ -1,0 +1,48 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+#
+# Install hooks: pre-commit install --hook-type pre-commit --hook-type pre-push
+# Run manually: pre-commit run --all-files
+# Skip (emergency): git commit --no-verify -m "message"
+#
+# Hook stages:
+# - commit: Fast checks (linting, formatting) - runs on every commit
+# - push: Full test suite - runs before pushing to remote
+
+repos:
+  # Ruff - fast Python linter and formatter (runs on COMMIT)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.2.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  # Standard pre-commit hooks (runs on COMMIT)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  # Pytest - full test suite (runs on PUSH only)
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (full suite)
+        entry: bash -c 'cd backend && .venv/bin/python -m pytest tests/ -v --tb=short'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+# Summary:
+# ON COMMIT: ruff lint, ruff format, trailing whitespace, YAML check, etc. (fast)
+# ON PUSH: Full pytest suite (comprehensive - all tests must pass)

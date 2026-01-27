@@ -8,16 +8,16 @@ REQ-005 §4.1 Persona - Central user profile table.
 Note: original_resume_file_id FK added later when ResumeFile table exists.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "002_tier1_persona"
-down_revision: Union[str, None] = "001_tier0_user_jobsource"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "001_tier0_user_jobsource"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -49,29 +49,99 @@ def upgrade() -> None:
         sa.Column("current_role", sa.String(255), nullable=True),
         sa.Column("current_company", sa.String(255), nullable=True),
         # Career targets (JSONB arrays)
-        sa.Column("target_roles", JSONB(), nullable=True, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("target_skills", JSONB(), nullable=True, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("stretch_appetite", sa.String(20), nullable=False, server_default=sa.text("'Medium'")),
+        sa.Column(
+            "target_roles",
+            JSONB(),
+            nullable=True,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "target_skills",
+            JSONB(),
+            nullable=True,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "stretch_appetite",
+            sa.String(20),
+            nullable=False,
+            server_default=sa.text("'Medium'"),
+        ),
         # Compensation
         sa.Column("minimum_base_salary", sa.Integer(), nullable=True),
-        sa.Column("salary_currency", sa.String(10), nullable=True, server_default=sa.text("'USD'")),
+        sa.Column(
+            "salary_currency",
+            sa.String(10),
+            nullable=True,
+            server_default=sa.text("'USD'"),
+        ),
         # Location preferences (JSONB arrays)
-        sa.Column("commutable_cities", JSONB(), nullable=True, server_default=sa.text("'[]'::jsonb")),
+        sa.Column(
+            "commutable_cities",
+            JSONB(),
+            nullable=True,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
         sa.Column("max_commute_minutes", sa.Integer(), nullable=True),
-        sa.Column("remote_preference", sa.String(30), nullable=False, server_default=sa.text("'No Preference'")),
-        sa.Column("relocation_open", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("relocation_cities", JSONB(), nullable=True, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("visa_sponsorship_required", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column(
+            "remote_preference",
+            sa.String(30),
+            nullable=False,
+            server_default=sa.text("'No Preference'"),
+        ),
+        sa.Column(
+            "relocation_open",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("false"),
+        ),
+        sa.Column(
+            "relocation_cities",
+            JSONB(),
+            nullable=True,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "visa_sponsorship_required",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("false"),
+        ),
         # Work preferences
-        sa.Column("industry_exclusions", JSONB(), nullable=True, server_default=sa.text("'[]'::jsonb")),
+        sa.Column(
+            "industry_exclusions",
+            JSONB(),
+            nullable=True,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
         sa.Column("company_size_preference", sa.String(30), nullable=True),
         sa.Column("max_travel_percent", sa.String(20), nullable=True),
         # Agent settings
-        sa.Column("minimum_fit_threshold", sa.Integer(), nullable=False, server_default=sa.text("50")),
-        sa.Column("polling_frequency", sa.String(20), nullable=False, server_default=sa.text("'Daily'")),
-        sa.Column("auto_draft_threshold", sa.Integer(), nullable=False, server_default=sa.text("90")),
+        sa.Column(
+            "minimum_fit_threshold",
+            sa.Integer(),
+            nullable=False,
+            server_default=sa.text("50"),
+        ),
+        sa.Column(
+            "polling_frequency",
+            sa.String(20),
+            nullable=False,
+            server_default=sa.text("'Daily'"),
+        ),
+        sa.Column(
+            "auto_draft_threshold",
+            sa.Integer(),
+            nullable=False,
+            server_default=sa.text("90"),
+        ),
         # Onboarding state
-        sa.Column("onboarding_complete", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column(
+            "onboarding_complete",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("false"),
+        ),
         sa.Column("onboarding_step", sa.String(50), nullable=True),
         # Timestamps
         sa.Column(

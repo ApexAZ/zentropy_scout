@@ -8,15 +8,15 @@ REQ-005 §4.0 User - Auth foundation (minimal for MVP)
 REQ-005 §4.4 JobSource - Global registry of job sources
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "001_tier0_user_jobsource"
-down_revision: Union[str, None] = "000_enable_extensions"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "000_enable_extensions"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -76,7 +76,8 @@ def upgrade() -> None:
     op.create_index("idx_jobsource_name", "job_sources", ["source_name"], unique=True)
 
     # Seed data for MVP job sources - REQ-005 §4.4
-    op.execute("""
+    op.execute(
+        """
         INSERT INTO job_sources (source_name, source_type, description, display_order)
         VALUES
             ('Adzuna', 'API', 'Adzuna job aggregator API', 1),
@@ -85,13 +86,16 @@ def upgrade() -> None:
             ('USAJobs', 'API', 'US Government jobs API', 4),
             ('Chrome Extension', 'Extension', 'Browser extension job capture', 5),
             ('Manual', 'Manual', 'User-entered job postings', 6)
-    """)
+    """
+    )
 
     # Seed default user for MVP local mode
-    op.execute("""
+    op.execute(
+        """
         INSERT INTO users (id, email)
         VALUES ('00000000-0000-0000-0000-000000000001', 'default@local.dev')
-    """)
+    """
+    )
 
 
 def downgrade() -> None:

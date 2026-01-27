@@ -1,7 +1,7 @@
 # Zentropy Scout — Implementation Plan
 
-**Created:** 2026-01-25  
-**Last Updated:** 2026-01-25  
+**Created:** 2026-01-25
+**Last Updated:** 2026-01-25
 **Status:** Ready for Implementation
 
 ---

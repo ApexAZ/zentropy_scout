@@ -119,7 +119,9 @@ class Application(Base, TimestampMixin):
     )
 
     __table_args__ = (
-        UniqueConstraint("persona_id", "job_posting_id", name="uq_application_persona_job"),
+        UniqueConstraint(
+            "persona_id", "job_posting_id", name="uq_application_persona_job"
+        ),
         CheckConstraint(
             "status IN ('Applied', 'Interviewing', 'Offer', 'Accepted', 'Rejected', 'Withdrawn')",
             name="ck_application_status",

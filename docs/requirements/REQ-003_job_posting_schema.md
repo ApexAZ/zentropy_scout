@@ -1,8 +1,8 @@
 # REQ-003: Job Posting Schema
 
-**Status:** Draft  
-**Version:** 0.4  
-**PRD Reference:** §4.2 Scouter Agent, §7 Job Discovery  
+**Status:** Draft
+**Version:** 0.4
+**PRD Reference:** §4.2 Scouter Agent, §7 Job Discovery
 **Last Updated:** 2026-01-25
 
 ---
@@ -299,7 +299,7 @@ Agent explains reasoning:
   - Levenshtein distance ≤ 3 characters, OR
   - One title contains the other (e.g., "Senior Scrum Master" contains "Scrum Master"), OR
   - Titles share ≥80% of words (ignoring order)
-  
+
 Examples:
 | Title A | Title B | Similar? |
 |---------|---------|----------|
@@ -551,7 +551,7 @@ User reviews Discovered jobs
     │
     ├── Favorite → is_favorite = true (no status change)
     │
-    ├── Apply → 
+    ├── Apply →
     │       │
     │       ├── Status = Applied
     │       ├── Application record created (REQ-004)

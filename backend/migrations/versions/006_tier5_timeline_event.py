@@ -8,29 +8,41 @@ REQ-005 §4.5 Application Domain - TimelineEvent table
 Final tier in the dependency chain.
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 
 revision: str = "006_tier5_timeline_event"
-down_revision: Union[str, None] = "005_tier4_application"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "005_tier4_application"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     op.create_table(
         "timeline_events",
-        sa.Column("id", sa.UUID(), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            sa.UUID(),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("application_id", sa.UUID(), nullable=False),
         sa.Column("event_type", sa.String(30), nullable=False),
         sa.Column("event_date", sa.DateTime(timezone=True), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("interview_stage", sa.String(30), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
         # Foreign keys
-        sa.ForeignKeyConstraint(["application_id"], ["applications.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["application_id"], ["applications.id"], ondelete="CASCADE"
+        ),
         # Check constraints
         sa.CheckConstraint(
             "event_type IN ('applied', 'status_changed', 'note_added', 'interview_scheduled', "
@@ -43,8 +55,14 @@ def upgrade() -> None:
             name="ck_timelineevent_interview_stage",
         ),
     )
-    op.create_index("idx_timelineevent_application", "timeline_events", ["application_id"])
-    op.create_index("idx_timelineevent_date", "timeline_events", ["application_id", sa.text("event_date DESC")])
+    op.create_index(
+        "idx_timelineevent_application", "timeline_events", ["application_id"]
+    )
+    op.create_index(
+        "idx_timelineevent_date",
+        "timeline_events",
+        ["application_id", sa.text("event_date DESC")],
+    )
 
 
 def downgrade() -> None:

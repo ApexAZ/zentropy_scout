@@ -104,28 +104,32 @@ class OpenAIAdapter(LLMProvider):
         for msg in messages:
             if msg.role == "tool":
                 # WHY: OpenAI uses dedicated tool role with tool_call_id
-                api_messages.append({
-                    "role": "tool",
-                    "tool_call_id": msg.tool_result.tool_call_id,
-                    "content": msg.tool_result.content,
-                })
+                api_messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": msg.tool_result.tool_call_id,
+                        "content": msg.tool_result.content,
+                    }
+                )
             elif msg.tool_calls:
                 # WHY: Assistant message with tool calls needs function format
-                api_messages.append({
-                    "role": "assistant",
-                    "content": msg.content,
-                    "tool_calls": [
-                        {
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.name,
-                                "arguments": json.dumps(tc.arguments),
+                api_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": msg.content,
+                        "tool_calls": [
+                            {
+                                "id": tc.id,
+                                "type": "function",
+                                "function": {
+                                    "name": tc.name,
+                                    "arguments": json.dumps(tc.arguments),
+                                },
                             }
-                        }
-                        for tc in msg.tool_calls
-                    ]
-                })
+                            for tc in msg.tool_calls
+                        ],
+                    }
+                )
             else:
                 api_messages.append({"role": msg.role, "content": msg.content})
 
@@ -139,7 +143,7 @@ class OpenAIAdapter(LLMProvider):
                         "name": tool.name,
                         "description": tool.description,
                         "parameters": tool.to_json_schema(),
-                    }
+                    },
                 }
                 for tool in tools
             ]
@@ -153,8 +157,12 @@ class OpenAIAdapter(LLMProvider):
 
         response = await self.client.chat.completions.create(
             model=model,
-            max_tokens=max_tokens if max_tokens is not None else self.config.default_max_tokens,
-            temperature=temperature if temperature is not None else self.config.default_temperature,
+            max_tokens=max_tokens
+            if max_tokens is not None
+            else self.config.default_max_tokens,
+            temperature=temperature
+            if temperature is not None
+            else self.config.default_temperature,
             messages=api_messages,
             stop=stop_sequences,
             tools=api_tools,
@@ -214,8 +222,12 @@ class OpenAIAdapter(LLMProvider):
 
         response = await self.client.chat.completions.create(
             model=model,
-            max_tokens=max_tokens if max_tokens is not None else self.config.default_max_tokens,
-            temperature=temperature if temperature is not None else self.config.default_temperature,
+            max_tokens=max_tokens
+            if max_tokens is not None
+            else self.config.default_max_tokens,
+            temperature=temperature
+            if temperature is not None
+            else self.config.default_temperature,
             messages=api_messages,
             stream=True,
         )

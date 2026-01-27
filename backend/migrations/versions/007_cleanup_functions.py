@@ -11,14 +11,14 @@ REQ-005 §7: Cleanup Jobs
 - Hard delete expired jobs (weekly): 180 days, unless favorited
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
 
 revision: str = "007_cleanup_functions"
-down_revision: Union[str, None] = "006_tier5_timeline_event"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "006_tier5_timeline_event"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -27,7 +27,8 @@ def upgrade() -> None:
     # SubmittedResumePDF and SubmittedCoverLetterPDF with no application link
     # Retention: 7 days
     # =========================================================================
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION cleanup_orphan_pdfs()
         RETURNS TABLE(deleted_resume_pdfs BIGINT, deleted_cover_letter_pdfs BIGINT)
         LANGUAGE plpgsql
@@ -62,13 +63,15 @@ def upgrade() -> None:
 
         COMMENT ON FUNCTION cleanup_orphan_pdfs() IS
             'REQ-005 §7: Daily cleanup of orphan PDFs not linked to applications (7-day retention)';
-    """)
+    """
+    )
 
     # =========================================================================
     # CLEANUP FUNCTION 2: Resolved PersonaChangeFlags (Daily)
     # Retention: 30 days after resolution
     # =========================================================================
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION cleanup_resolved_change_flags()
         RETURNS BIGINT
         LANGUAGE plpgsql
@@ -90,13 +93,15 @@ def upgrade() -> None:
 
         COMMENT ON FUNCTION cleanup_resolved_change_flags() IS
             'REQ-005 §7: Daily cleanup of resolved PersonaChangeFlags (30-day retention after resolution)';
-    """)
+    """
+    )
 
     # =========================================================================
     # CLEANUP FUNCTION 3: Hard Delete Archived Records (Weekly)
     # JobVariant and CoverLetter archived for 180+ days
     # =========================================================================
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION cleanup_archived_records()
         RETURNS TABLE(deleted_job_variants BIGINT, deleted_cover_letters BIGINT)
         LANGUAGE plpgsql
@@ -131,14 +136,16 @@ def upgrade() -> None:
 
         COMMENT ON FUNCTION cleanup_archived_records() IS
             'REQ-005 §7: Weekly hard delete of archived JobVariants and CoverLetters (180-day retention)';
-    """)
+    """
+    )
 
     # =========================================================================
     # CLEANUP FUNCTION 4: Hard Delete Expired/Dismissed Jobs (Weekly)
     # JobPosting with status Expired or Dismissed, not favorited
     # Retention: 180 days
     # =========================================================================
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION cleanup_expired_jobs()
         RETURNS BIGINT
         LANGUAGE plpgsql
@@ -162,13 +169,15 @@ def upgrade() -> None:
 
         COMMENT ON FUNCTION cleanup_expired_jobs() IS
             'REQ-005 §7: Weekly hard delete of expired/dismissed JobPostings (180-day retention, favorites protected)';
-    """)
+    """
+    )
 
     # =========================================================================
     # MASTER CLEANUP FUNCTION: Run all cleanups
     # Convenience function to run all cleanup jobs at once
     # =========================================================================
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION run_all_cleanups()
         RETURNS TABLE(
             orphan_resume_pdfs BIGINT,
@@ -211,7 +220,8 @@ def upgrade() -> None:
 
         COMMENT ON FUNCTION run_all_cleanups() IS
             'REQ-005 §7: Master function to run all cleanup jobs and return deletion counts';
-    """)
+    """
+    )
 
 
 def downgrade() -> None:

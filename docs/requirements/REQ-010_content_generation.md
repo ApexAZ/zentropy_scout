@@ -1,8 +1,8 @@
 # REQ-010: Content Generation Specification
 
-**Status:** Draft  
-**Version:** 0.1  
-**PRD Reference:** §4.4 Ghostwriter, §8 Document Management  
+**Status:** Draft
+**Version:** 0.1
+**PRD Reference:** §4.4 Ghostwriter, §8 Document Management
 **Last Updated:** 2026-01-25
 
 ---
@@ -146,25 +146,25 @@ def evaluate_tailoring_need(
 ) -> TailoringDecision:
     """
     Determine if/how to tailor the resume.
-    
+
     Returns:
         TailoringDecision with action and reasoning
     """
     signals = []
-    
+
     # Signal 1: Keyword gaps in summary
     job_keywords = extract_keywords(job_posting.description)
     summary_keywords = extract_keywords(base_resume.summary)
     missing_keywords = job_keywords - summary_keywords
     keyword_gap = len(missing_keywords) / len(job_keywords) if job_keywords else 0
-    
+
     if keyword_gap > 0.3:  # More than 30% of job keywords missing
         signals.append(TailoringSignal(
             type="keyword_gap",
             priority=keyword_gap,
             detail=f"Summary missing {len(missing_keywords)} key terms: {list(missing_keywords)[:5]}"
         ))
-    
+
     # Signal 2: Bullet relevance mismatch
     job_skills = {s.skill_name.lower() for s in job_posting.extracted_skills}
     for job_id, bullet_order in base_resume.job_bullet_order.items():
@@ -177,21 +177,21 @@ def evaluate_tailoring_need(
                     priority=0.5 - (idx * 0.1),  # Higher priority for position 1
                     detail=f"Top bullet in {job_id} doesn't highlight required skills"
                 ))
-    
+
     # Decision matrix
     if not signals:
         return TailoringDecision(
             action="use_base",
             reasoning="BaseResume aligns well with job requirements. No tailoring needed."
         )
-    
+
     total_priority = sum(s.priority for s in signals)
     if total_priority < 0.3:
         return TailoringDecision(
             action="use_base",
             reasoning=f"Minor gaps detected but not significant enough to warrant tailoring."
         )
-    
+
     return TailoringDecision(
         action="create_variant",
         signals=signals,
@@ -284,30 +284,30 @@ def calculate_bullet_relevance(
 ) -> float:
     """
     Score a bullet's relevance to the job posting.
-    
+
     Returns:
         Float 0.0-1.0 where higher = more relevant
     """
     score = 0.0
     job_skills = {s.skill_name.lower() for s in job_posting.extracted_skills}
-    
+
     # Factor 1: Skill overlap (40%)
     bullet_skills = extract_skills_from_text(bullet.text)
     if job_skills:
         skill_overlap = len(bullet_skills & job_skills) / len(job_skills)
         score += skill_overlap * 0.4
-    
+
     # Factor 2: Keyword presence (30%)
     job_keywords = extract_keywords(job_posting.description)
     bullet_keywords = extract_keywords(bullet.text)
     if job_keywords:
         keyword_overlap = len(bullet_keywords & job_keywords) / len(job_keywords)
         score += keyword_overlap * 0.3
-    
+
     # Factor 3: Quantified outcome bonus (20%)
     if has_metrics(bullet.text):
         score += 0.2
-    
+
     # Factor 4: Recency boost (10%)
     # Bullets from current/recent jobs get a boost
     if bullet.job_id:
@@ -316,7 +316,7 @@ def calculate_bullet_relevance(
             score += 0.1
         elif job_entry.end_date and is_recent(job_entry.end_date, months=24):
             score += 0.05
-    
+
     return min(score, 1.0)
 
 def reorder_bullets_for_job(
@@ -326,23 +326,23 @@ def reorder_bullets_for_job(
 ) -> dict[str, list[str]]:
     """
     Return new bullet ordering per job entry.
-    
+
     Returns:
         Dict mapping job_id → ordered list of bullet_ids
     """
     new_order = {}
-    
+
     for job_id, bullet_ids in base_resume.job_bullet_order.items():
         scored_bullets = []
         for bullet_id in bullet_ids:
             bullet = get_bullet(bullet_id)
             relevance = calculate_bullet_relevance(bullet, job_posting, persona)
             scored_bullets.append((bullet_id, relevance))
-        
+
         # Sort by relevance descending, but preserve relative order for ties
         scored_bullets.sort(key=lambda x: -x[1])
         new_order[job_id] = [b[0] for b in scored_bullets]
-    
+
     return new_order
 # WHY: The most relevant accomplishment should be position 1 since many
 # recruiters only read the first bullet. We're not changing content, just
@@ -373,39 +373,39 @@ def validate_variant_modifications(
 ) -> list[str]:
     """
     Validate that variant doesn't exceed modification limits.
-    
+
     Returns:
         List of violation messages (empty = valid)
     """
     violations = []
-    
+
     # Check 1: Bullet IDs must be subset of base
     base_bullets = set()
     for bullets in base_resume.job_bullet_selections.values():
         base_bullets.update(bullets)
-    
+
     variant_bullets = set()
     for bullets in job_variant.job_bullet_order.values():
         variant_bullets.update(bullets)
-    
+
     new_bullets = variant_bullets - base_bullets
     if new_bullets:
         violations.append(f"Variant contains bullets not in BaseResume: {new_bullets}")
-    
+
     # Check 2: Summary length within ±20%
     base_words = len(base_resume.summary.split())
     variant_words = len(job_variant.summary.split())
     length_change = abs(variant_words - base_words) / base_words
     if length_change > 0.2:
         violations.append(f"Summary length changed by {length_change:.0%} (max 20%)")
-    
+
     # Check 3: Summary doesn't contain skills not in Persona
     persona_skills = {s.skill_name.lower() for s in persona.skills}
     summary_skills = extract_skills_from_text(job_variant.summary)
     new_skills = summary_skills - persona_skills
     if new_skills:
         violations.append(f"Summary mentions skills not in Persona: {new_skills}")
-    
+
     return violations
 # WHY: These guardrails prevent the Ghostwriter from overstepping. The user
 # trusts that their resume accurately reflects their experience.
@@ -440,21 +440,21 @@ def select_achievement_stories(
 ) -> list[ScoredStory]:
     """
     Select the best achievement stories for a cover letter.
-    
+
     WHY: 2 stories is optimal — enough to show a pattern of success
     without overwhelming. 3 max for senior/executive roles.
-    
+
     Returns:
         List of ScoredStory with story, score, and selection rationale
     """
     job_skills = {s.skill_name.lower() for s in job_posting.extracted_skills}
     recent_apps = get_recent_applications(persona.id, days=30)
-    
+
     scored_stories = []
     for story in persona.achievement_stories:
         score = 0.0
         rationale_parts = []
-        
+
         # Factor 1: Skills match (0-40 points)
         story_skills = {s.lower() for s in story.skills_demonstrated}
         overlap = job_skills & story_skills
@@ -462,7 +462,7 @@ def select_achievement_stories(
         score += skill_score
         if overlap:
             rationale_parts.append(f"Demonstrates {', '.join(list(overlap)[:3])}")
-        
+
         # Factor 2: Recency (0-20 points)
         if story.related_job_id:
             job_entry = get_work_history(persona, story.related_job_id)
@@ -475,12 +475,12 @@ def select_achievement_stories(
                     rationale_parts.append("Recent experience (last 2 years)")
                 elif is_recent(job_entry.end_date, months=48):
                     score += 10
-        
+
         # Factor 3: Quantified outcome (0-15 points)
         if has_metrics(story.outcome):
             score += 15
             rationale_parts.append("Quantified impact")
-        
+
         # Factor 4: Culture alignment (0-15 points)
         # WHY: culture_text is LLM-extracted (REQ-007 §6.4), not raw description
         if job_posting.culture_text:
@@ -491,24 +491,24 @@ def select_achievement_stories(
             score += culture_score
             if culture_matches > 0:
                 rationale_parts.append("Aligns with company culture")
-        
+
         # Factor 5: Freshness penalty (-10 points)
         # WHY: Avoid repetition across applications
         recent_uses = count_story_uses(story.id, recent_apps, days=30)
         if recent_uses >= 3:
             score -= 10
             rationale_parts.append(f"Used {recent_uses}x recently (penalty)")
-        
+
         rationale = "; ".join(rationale_parts) if rationale_parts else "General match"
         scored_stories.append(ScoredStory(
             story=story,
             score=score,
             rationale=rationale
         ))
-    
+
     # Sort by score descending
     scored_stories.sort(key=lambda x: x.score, reverse=True)
-    
+
     return scored_stories[:max_stories]
 ```
 
@@ -621,13 +621,13 @@ def validate_cover_letter(
 ) -> CoverLetterValidation:
     """
     Validate generated cover letter before presenting to user.
-    
+
     WHY: Catching issues automatically improves trust in the system
     and reduces regeneration cycles.
     """
     issues = []
     word_count = len(draft_text.split())
-    
+
     # Rule 1: Length check (250-350 words)
     if word_count < 250:
         issues.append(ValidationIssue(
@@ -641,7 +641,7 @@ def validate_cover_letter(
             rule="length_max",
             message=f"Long: {word_count} words (target 250-350)"
         ))
-    
+
     # Rule 2: Voice adherence — no blacklisted phrases
     if voice_profile.things_to_avoid:
         for phrase in voice_profile.things_to_avoid:
@@ -651,7 +651,7 @@ def validate_cover_letter(
                     rule="blacklist_violation",
                     message=f"Contains avoided phrase: '{phrase}'"
                 ))
-    
+
     # Rule 3: Company specificity — name in opening
     first_paragraph = draft_text.split('\n\n')[0] if '\n\n' in draft_text else draft_text[:500]
     if job_posting.company_name.lower() not in first_paragraph.lower():
@@ -660,7 +660,7 @@ def validate_cover_letter(
             rule="company_specificity",
             message="Company name not in opening paragraph"
         ))
-    
+
     # Rule 4: Story accuracy — spot-check metrics
     for scored_story in selected_stories:
         metrics = extract_metrics(scored_story.story.outcome)
@@ -673,14 +673,14 @@ def validate_cover_letter(
                         rule="metric_accuracy",
                         message=f"Metric '{metric}' may be misattributed"
                     ))
-    
+
     # Rule 5: No fabrication — check for skills not in persona
     # (This is a heuristic; full verification requires LLM)
     draft_skills = extract_skills_from_text(draft_text)
     story_skills = set()
     for ss in selected_stories:
         story_skills.update(s.lower() for s in ss.story.skills_demonstrated)
-    
+
     suspicious_skills = draft_skills - story_skills
     if len(suspicious_skills) > 3:  # Allow some flexibility
         issues.append(ValidationIssue(
@@ -688,9 +688,9 @@ def validate_cover_letter(
             rule="potential_fabrication",
             message=f"Draft mentions skills not in selected stories: {list(suspicious_skills)[:3]}"
         ))
-    
+
     passed = not any(issue.severity == "error" for issue in issues)
-    
+
     return CoverLetterValidation(
         passed=passed,
         issues=issues,
@@ -711,7 +711,7 @@ class GeneratedCoverLetter:
     word_count: int
     stories_used: list[UUID]  # For traceability (REQ-002b §4.1)
     validation: CoverLetterValidation
-    
+
     def to_cover_letter_record(self, persona_id: UUID, job_posting_id: UUID) -> dict:
         """Convert to database record format."""
         return {
@@ -753,26 +753,26 @@ async def extract_keywords(
 ) -> set[str]:
     """
     Extract meaningful keywords from text using LLM.
-    
+
     WHY: Regex/NLTK miss semantic meaning. "distributed systems" should be
     one keyword, not two. "K8s" should normalize to "Kubernetes".
-    
+
     Args:
         text: Source text (job description, resume summary, etc.)
         max_keywords: Maximum keywords to return
-    
+
     Returns:
         Set of lowercase normalized keywords
     """
     llm = get_llm_provider()
-    
+
     response = await llm.complete(
         task=TaskType.EXTRACTION,  # Routes to Haiku
         messages=[
             {
                 "role": "system",
                 "content": """Extract the most important keywords from the text.
-                
+
 RULES:
 1. Include technical skills, tools, methodologies
 2. Normalize variants (K8s → Kubernetes, JS → JavaScript)
@@ -789,7 +789,7 @@ Example: ["kubernetes", "python", "distributed systems", "team leadership"]"""
         ],
         max_tokens=500
     )
-    
+
     try:
         keywords = json.loads(response.content)
         return set(k.lower() for k in keywords[:max_keywords])
@@ -807,23 +807,23 @@ async def extract_skills_from_text(
 ) -> set[str]:
     """
     Extract skill mentions from free text using LLM.
-    
+
     WHY: Skills appear in many forms. "Led Python development" contains
     "Python" and "Leadership". Regex can't reliably extract these.
-    
+
     Args:
         text: Text to analyze
         persona_skills: Optional set of known skills to bias toward
-    
+
     Returns:
         Set of lowercase skill names found
     """
     llm = get_llm_provider()
-    
+
     skill_hint = ""
     if persona_skills:
         skill_hint = f"\n\nKnown skills to look for: {', '.join(list(persona_skills)[:30])}"
-    
+
     response = await llm.complete(
         task=TaskType.EXTRACTION,
         messages=[
@@ -839,13 +839,13 @@ RULES:
 5. Output as JSON array only{skill_hint}"""
             },
             {
-                "role": "user", 
+                "role": "user",
                 "content": f"Extract skills from:\n\n{text[:1500]}"
             }
         ],
         max_tokens=300
     )
-    
+
     try:
         skills = json.loads(response.content)
         return set(s.lower() for s in skills)
@@ -872,7 +872,7 @@ METRIC_PATTERNS = [
 def has_metrics(text: str) -> bool:
     """
     Quick check if text contains quantified metrics.
-    
+
     WHY: Fast regex check handles 80% of cases. Avoids LLM call
     for obvious cases.
     """
@@ -885,10 +885,10 @@ def has_metrics(text: str) -> bool:
 async def extract_metrics(text: str) -> list[str]:
     """
     Extract specific metric values from text.
-    
+
     WHY: Need to verify metrics in generated content match source.
     "Reduced costs by 40%" should extract "40%" for comparison.
-    
+
     Returns:
         List of metric strings found (e.g., ["40%", "$1.2M", "500 users"])
     """
@@ -897,10 +897,10 @@ async def extract_metrics(text: str) -> list[str]:
     for pattern in METRIC_PATTERNS:
         matches = re.findall(pattern, text.lower())
         metrics.extend(matches)
-    
+
     if metrics:
         return list(set(metrics))
-    
+
     # Slow path: LLM for subtle metrics
     llm = get_llm_provider()
     response = await llm.complete(
@@ -910,7 +910,7 @@ async def extract_metrics(text: str) -> list[str]:
                 "role": "system",
                 "content": """Extract quantified metrics from the text.
 
-Look for: percentages, dollar amounts, user counts, time savings, 
+Look for: percentages, dollar amounts, user counts, time savings,
 multipliers (10x), team sizes, etc.
 
 Output as JSON array of strings. If no metrics found, output [].
@@ -923,7 +923,7 @@ Example: ["40%", "$1.2M", "500 users", "3x faster"]"""
         ],
         max_tokens=200
     )
-    
+
     try:
         return json.loads(response.content)
     except json.JSONDecodeError:
@@ -948,10 +948,10 @@ _keyword_cache: dict[str, set[str]] = {}
 async def extract_keywords_cached(text: str, max_keywords: int = 20) -> set[str]:
     """Cached version of extract_keywords."""
     cache_key = f"kw:{text_hash(text)}:{max_keywords}"
-    
+
     if cache_key in _keyword_cache:
         return _keyword_cache[cache_key]
-    
+
     result = await extract_keywords(text, max_keywords)
     _keyword_cache[cache_key] = result
     return result
@@ -982,7 +982,7 @@ When users request regeneration ("try a different approach"), the system modifie
 def sanitize_user_feedback(feedback: str) -> str:
     """
     Remove potential prompt injection from user feedback.
-    
+
     WHY: Feedback is inserted into prompts. Must prevent injection.
     """
     # Patterns that could hijack the prompt
@@ -997,11 +997,11 @@ def sanitize_user_feedback(feedback: str) -> str:
         r"IMPORTANT:",
         r"OVERRIDE:",
     ]
-    
+
     sanitized = feedback
     for pattern in dangerous_patterns:
         sanitized = re.sub(pattern, "[FILTERED]", sanitized, flags=re.IGNORECASE)
-    
+
     # Truncate to reasonable length
     return sanitized[:500]
 
@@ -1023,24 +1023,24 @@ def build_regeneration_context(
     """
     modifier_parts = ["\n\n<regeneration_context>"]
     modifier_parts.append("The user reviewed the previous draft and provided feedback.")
-    
+
     # Add sanitized feedback
     safe_feedback = sanitize_user_feedback(feedback)
     modifier_parts.append(f'\nFeedback: "{safe_feedback}"')
-    
+
     # Add specific overrides
     if excluded_story_ids:
         modifier_parts.append(f"\nDo NOT reference these story IDs: {excluded_story_ids}")
-    
+
     if tone_override:
         modifier_parts.append(f"\nTone adjustment: {tone_override}")
-    
+
     if word_count_target:
         modifier_parts.append(f"\nTarget length: {word_count_target[0]}-{word_count_target[1]} words")
-    
+
     modifier_parts.append("\nIncorporate this feedback while following all other rules.")
     modifier_parts.append("</regeneration_context>")
-    
+
     return original_prompt + "\n".join(modifier_parts)
 ```
 
@@ -1068,7 +1068,7 @@ async def generate_with_expiry_check(
     persona: Persona
 ) -> GenerationResult:
     """Handle job expiring mid-generation."""
-    
+
     # Check before starting
     if job_posting.status == "Expired":
         return GenerationResult(
@@ -1076,10 +1076,10 @@ async def generate_with_expiry_check(
             error="Job posting has expired",
             suggestion="Search for similar active postings?"
         )
-    
+
     # Generate content
     result = await generate_materials(job_posting, persona)
-    
+
     # Check after generation (may have expired during)
     job_posting = await refresh_job_posting(job_posting.id)
     if job_posting.status == "Expired":
@@ -1087,7 +1087,7 @@ async def generate_with_expiry_check(
             "Note: This job posting may no longer be active. "
             "Materials saved in case you have an alternative application path."
         )
-    
+
     return result
 
 # WHY: Don't waste the user's generated content. They may know a recruiter
@@ -1104,12 +1104,12 @@ async def generate_with_persona_version(
     persona: Persona
 ) -> GenerationResult:
     """Detect persona changes during generation."""
-    
+
     original_updated_at = persona.updated_at
-    
+
     # Generate content (may take 10-30 seconds)
     result = await generate_materials(job_posting, persona)
-    
+
     # Check if persona changed
     current_persona = await get_persona(persona.id)
     if current_persona.updated_at != original_updated_at:
@@ -1118,7 +1118,7 @@ async def generate_with_persona_version(
             "Your profile was updated during generation. "
             "Want to regenerate with your latest information?"
         )
-    
+
     return result
 ```
 
@@ -1147,12 +1147,12 @@ def format_agent_reasoning(
 ) -> str:
     """
     Generate user-facing explanation of generation choices.
-    
+
     WHY: Transparency helps users provide better feedback and builds
     trust that the system isn't making things up.
     """
     lines = [f"I've prepared materials for **{job_posting.job_title}** at **{job_posting.company_name}**:\n"]
-    
+
     # Resume tailoring explanation
     if tailoring_decision.action == "create_variant":
         lines.append("**Resume Adjustments:**")
@@ -1161,14 +1161,14 @@ def format_agent_reasoning(
         lines.append("")
     else:
         lines.append("**Resume:** Your base resume aligns well — no changes needed.\n")
-    
+
     # Cover letter explanation
     lines.append("**Cover Letter Stories:**")
     for ss in selected_stories:
         lines.append(f"- *{ss.story.title}* — {ss.rationale}")
-    
+
     lines.append("\nReady for your review!")
-    
+
     return "\n".join(lines)
 ```
 
@@ -1213,7 +1213,7 @@ async def log_generation_outcome(
 ):
     """
     Log outcome for quality tracking.
-    
+
     WHY: Aggregate data reveals prompt improvement opportunities.
     """
     await analytics.track("content_generation_outcome", {

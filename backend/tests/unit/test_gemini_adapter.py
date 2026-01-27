@@ -172,7 +172,9 @@ class TestGeminiAdapterComplete:
         """Should make API call and return LLMResponse."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -191,7 +193,9 @@ class TestGeminiAdapterComplete:
         """Should extract system message and pass as system_instruction."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -211,7 +215,9 @@ class TestGeminiAdapterComplete:
         """Should parse function calls from response."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_tool_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_tool_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -240,11 +246,15 @@ class TestGeminiAdapterComplete:
             assert response.tool_calls[0].arguments == {"job_id": "job-uuid-456"}
 
     @pytest.mark.asyncio
-    async def test_complete_converts_tools_to_gemini_format(self, config, mock_gemini_response):
+    async def test_complete_converts_tools_to_gemini_format(
+        self, config, mock_gemini_response
+    ):
         """Should convert ToolDefinition to Gemini function_declarations format."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -269,14 +279,21 @@ class TestGeminiAdapterComplete:
             call_kwargs = mock_genai.GenerativeModel.call_args.kwargs
             assert "tools" in call_kwargs
             # Gemini uses function_declarations
-            assert call_kwargs["tools"][0]["function_declarations"][0]["name"] == "test_tool"
+            assert (
+                call_kwargs["tools"][0]["function_declarations"][0]["name"]
+                == "test_tool"
+            )
 
     @pytest.mark.asyncio
-    async def test_complete_json_mode_uses_response_mime_type(self, config, mock_gemini_response):
+    async def test_complete_json_mode_uses_response_mime_type(
+        self, config, mock_gemini_response
+    ):
         """JSON mode should use response_mime_type for Gemini."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -285,20 +302,23 @@ class TestGeminiAdapterComplete:
                 LLMMessage(role="user", content="Python, JavaScript"),
             ]
 
-            await adapter.complete(
-                messages, TaskType.EXTRACTION, json_mode=True
-            )
+            await adapter.complete(messages, TaskType.EXTRACTION, json_mode=True)
 
             call_kwargs = mock_model.generate_content_async.call_args.kwargs
             # Check generation_config has response_mime_type
-            assert call_kwargs["generation_config"]["response_mime_type"] == "application/json"
+            assert (
+                call_kwargs["generation_config"]["response_mime_type"]
+                == "application/json"
+            )
 
     @pytest.mark.asyncio
     async def test_complete_uses_config_defaults(self, config, mock_gemini_response):
         """Should use config defaults when not overridden."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -311,19 +331,21 @@ class TestGeminiAdapterComplete:
             assert call_kwargs["generation_config"]["temperature"] == 0.7
 
     @pytest.mark.asyncio
-    async def test_complete_allows_override_max_tokens(self, config, mock_gemini_response):
+    async def test_complete_allows_override_max_tokens(
+        self, config, mock_gemini_response
+    ):
         """Should allow overriding max_tokens."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
             messages = [LLMMessage(role="user", content="Hello")]
 
-            await adapter.complete(
-                messages, TaskType.CHAT_RESPONSE, max_tokens=1000
-            )
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE, max_tokens=1000)
 
             call_kwargs = mock_model.generate_content_async.call_args.kwargs
             assert call_kwargs["generation_config"]["max_output_tokens"] == 1000
@@ -333,7 +355,9 @@ class TestGeminiAdapterComplete:
         """Should pass stop_sequences to generation config."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -347,11 +371,15 @@ class TestGeminiAdapterComplete:
             assert call_kwargs["generation_config"]["stop_sequences"] == ["END", "STOP"]
 
     @pytest.mark.asyncio
-    async def test_complete_includes_model_in_response(self, config, mock_gemini_response):
+    async def test_complete_includes_model_in_response(
+        self, config, mock_gemini_response
+    ):
         """Response should include the model used."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -420,11 +448,15 @@ class TestGeminiAdapterMessageConversion:
     """Test message conversion to Gemini format."""
 
     @pytest.mark.asyncio
-    async def test_converts_user_and_assistant_messages(self, config, mock_gemini_response):
+    async def test_converts_user_and_assistant_messages(
+        self, config, mock_gemini_response
+    ):
         """Should convert role names to Gemini format (assistant -> model)."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)
@@ -445,11 +477,15 @@ class TestGeminiAdapterMessageConversion:
             assert contents[2]["role"] == "user"
 
     @pytest.mark.asyncio
-    async def test_handles_tool_result_as_function_response(self, config, mock_gemini_response):
+    async def test_handles_tool_result_as_function_response(
+        self, config, mock_gemini_response
+    ):
         """Should convert tool results to function_response format."""
         with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
             mock_model = MagicMock()
-            mock_model.generate_content_async = AsyncMock(return_value=mock_gemini_response)
+            mock_model.generate_content_async = AsyncMock(
+                return_value=mock_gemini_response
+            )
             mock_genai.GenerativeModel.return_value = mock_model
 
             adapter = GeminiAdapter(config)

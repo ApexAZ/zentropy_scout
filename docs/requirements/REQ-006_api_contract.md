@@ -1,7 +1,7 @@
 # REQ-006: API Contract
 
-**Status:** Draft  
-**PRD Reference:** §6 Technical Architecture  
+**Status:** Draft
+**PRD Reference:** §6 Technical Architecture
 **Last Updated:** 2026-01-25
 
 ---
@@ -175,7 +175,7 @@ Server-Sent Events (SSE) provide real-time updates for agent chat and data chang
 ```
 SSE Stream
 ├── type: "chat_token"     → append to chat UI
-├── type: "chat_token"     → append to chat UI  
+├── type: "chat_token"     → append to chat UI
 ├── type: "tool_result"    → show "✓ Job favorited"
 ├── type: "data_changed"   → dashboard: update job 29583
 └── type: "chat_token"     → append to chat UI

@@ -1,8 +1,8 @@
 # REQ-009: Provider Abstraction Layer
 
-**Status:** Draft  
-**Version:** 0.2  
-**PRD Reference:** §6 Technical Architecture  
+**Status:** Draft
+**Version:** 0.2
+**PRD Reference:** §6 Technical Architecture
 **Last Updated:** 2026-01-25
 
 ---
@@ -113,7 +113,7 @@ async def extract_skills_local(job_description: str) -> ExtractedSkills:
             "schema": ExtractedSkills.model_json_schema()
         }
     )
-    
+
     async for message in query(
         prompt=f"Extract skills and culture text from:\n\n{job_description}",
         options=options
@@ -141,7 +141,7 @@ from anthropic import AsyncAnthropic
 async def extract_skills_hosted(job_description: str, api_key: str) -> ExtractedSkills:
     """Extract skills using Anthropic API (hosted mode with BYOK)."""
     client = AsyncAnthropic(api_key=api_key)
-    
+
     response = await client.messages.create(
         model="claude-3-5-sonnet-20241022",
         max_tokens=1024,
@@ -171,7 +171,7 @@ class LLMProvider(ABC):
     ) -> LLMResponse:
         """
         Unified interface for both modes.
-        
+
         Local mode: Translates to claude_agent_sdk.query()
         Hosted mode: Translates to anthropic.messages.create()
         """
@@ -271,7 +271,7 @@ from enum import Enum
 class TaskType(Enum):
     """
     Task types for model routing.
-    
+
     WHY ENUM: Explicit task types prevent typos and enable IDE autocomplete.
     The routing table (§4.3) maps these to specific models.
     """
@@ -302,12 +302,12 @@ class ToolParameter:
 class ToolDefinition:
     """
     Definition of a tool the LLM can call.
-    
+
     WHY EXPLICIT SCHEMA:
     - Enables IDE autocomplete for tool parameters
     - Provider adapters convert this to native format (OpenAI functions, Anthropic tools)
     - Single source of truth for tool capabilities
-    
+
     Maps to:
     - OpenAI: `tools[].function` schema
     - Anthropic: `tools[]` schema
@@ -316,12 +316,12 @@ class ToolDefinition:
     name: str                           # e.g., "favorite_job"
     description: str                    # What the tool does
     parameters: List[ToolParameter]     # Input parameters
-    
+
     def to_json_schema(self) -> dict:
         """Convert to JSON Schema format (used by OpenAI and Anthropic)."""
         properties = {}
         required = []
-        
+
         for param in self.parameters:
             properties[param.name] = {
                 "type": param.type,
@@ -331,7 +331,7 @@ class ToolDefinition:
                 properties[param.name]["enum"] = param.enum
             if param.required:
                 required.append(param.name)
-        
+
         return {
             "type": "object",
             "properties": properties,
@@ -343,7 +343,7 @@ class ToolDefinition:
 class ToolCall:
     """
     A tool call requested by the LLM.
-    
+
     WHY SEPARATE FROM TOOL RESULT:
     - Tool calls come FROM the LLM (in response)
     - Tool results go TO the LLM (in next message)
@@ -368,7 +368,7 @@ class ToolResult:
 class LLMMessage:
     """
     Provider-agnostic message format.
-    
+
     WHY CUSTOM CLASS: Decouples from provider-specific message formats.
     Anthropic uses {"role": "user", "content": [{"type": "text", ...}]}
     OpenAI uses {"role": "user", "content": "..."}
@@ -376,11 +376,11 @@ class LLMMessage:
     """
     role: str  # "system", "user", "assistant", "tool"
     content: Optional[str] = None
-    
+
     # Tool-related fields
     tool_calls: Optional[List[ToolCall]] = None    # For assistant messages requesting tool use
     tool_result: Optional[ToolResult] = None       # For tool role messages with results
-    
+
     # Future: images (for multimodal support)
 
 
@@ -401,13 +401,13 @@ class LLMResponse:
 class LLMProvider(ABC):
     """
     Abstract base class for LLM providers.
-    
-    WHY ABSTRACT CLASS: 
+
+    WHY ABSTRACT CLASS:
     - Enforces consistent interface across providers
     - Enables type checking and IDE support
     - Makes testing via mock implementations trivial
     """
-    
+
     @abstractmethod
     async def complete(
         self,
@@ -421,7 +421,7 @@ class LLMProvider(ABC):
     ) -> LLMResponse:
         """
         Generate a completion (non-streaming).
-        
+
         Args:
             messages: Conversation history
             task: Task type for model routing
@@ -430,33 +430,33 @@ class LLMProvider(ABC):
             stop_sequences: Custom stop sequences
             tools: Available tools the LLM can call (native function calling)
             json_mode: If True, enforce JSON output format
-            
+
         Returns:
             LLMResponse with content and/or tool_calls
-            
+
         Raises:
             ProviderError: On API failure after retries
             RateLimitError: If rate limited and no retry budget
-            
+
         Tool Calling Flow:
             1. Pass tools=[...] to enable tool calling
             2. If LLM wants to call a tool, response.tool_calls is populated
             3. Execute the tool(s) and create ToolResult objects
             4. Add assistant message (with tool_calls) and tool messages (with results)
             5. Call complete() again to get final response
-            
+
         JSON Mode:
             When json_mode=True:
             - OpenAI: Sets response_format={"type": "json_object"}
             - Anthropic: Adds "Respond only with valid JSON" to system prompt
             - Gemini: Sets response_mime_type="application/json"
-            
+
             WHY NOT ALWAYS JSON: Most tasks need natural language. JSON mode
             adds overhead and can cause issues if the model wants to explain
             something. Only use for structured extraction tasks.
         """
         pass
-    
+
     @abstractmethod
     async def stream(
         self,
@@ -467,25 +467,25 @@ class LLMProvider(ABC):
     ) -> AsyncIterator[str]:
         """
         Generate a streaming completion.
-        
+
         WHY SEPARATE METHOD: Streaming has fundamentally different
         return type (iterator vs single response). Combining them
         into one method with a flag creates awkward typing.
-        
+
         Yields:
             Content chunks as they arrive
-            
+
         Note:
             Token counts not available until stream completes.
             Use complete() if you need token counts immediately.
         """
         pass
-    
+
     @abstractmethod
     def get_model_for_task(self, task: TaskType) -> str:
         """
         Return the model identifier for a given task.
-        
+
         WHY EXPOSED: Allows callers to log which model will be used
         before making the call. Useful for debugging and cost tracking.
         """
@@ -502,19 +502,19 @@ from anthropic import AsyncAnthropic
 class ClaudeAdapter(LLMProvider):
     """
     Anthropic Claude implementation.
-    
+
     WHY ANTHROPIC AS PRIMARY:
     - Best instruction-following for agentic tasks
     - Superior at maintaining persona (onboarding)
     - Strong at structured extraction
     - Competitive pricing with Haiku for high-volume tasks
     """
-    
+
     def __init__(self, config: ProviderConfig):
         self.client = AsyncAnthropic(api_key=config.anthropic_api_key)
         self.config = config
         self.model_routing = config.claude_model_routing
-    
+
     async def complete(
         self,
         messages: List[LLMMessage],
@@ -526,7 +526,7 @@ class ClaudeAdapter(LLMProvider):
         json_mode: bool = False,
     ) -> LLMResponse:
         model = self.get_model_for_task(task)
-        
+
         # Convert to Anthropic format
         system_msg = None
         api_messages = []
@@ -559,13 +559,13 @@ class ClaudeAdapter(LLMProvider):
                 api_messages.append({"role": "assistant", "content": content_blocks})
             else:
                 api_messages.append({"role": msg.role, "content": msg.content})
-        
+
         # JSON mode: Anthropic doesn't have native JSON mode, so we modify system prompt
         if json_mode and system_msg:
             system_msg = system_msg + "\n\nIMPORTANT: Respond ONLY with valid JSON. No explanations, no markdown, just the JSON object."
         elif json_mode:
             system_msg = "Respond ONLY with valid JSON. No explanations, no markdown, just the JSON object."
-        
+
         # Convert tools to Anthropic format
         api_tools = None
         if tools:
@@ -577,9 +577,9 @@ class ClaudeAdapter(LLMProvider):
                 }
                 for tool in tools
             ]
-        
+
         start_time = time.monotonic()
-        
+
         response = await self.client.messages.create(
             model=model,
             max_tokens=max_tokens or self.config.default_max_tokens,
@@ -589,13 +589,13 @@ class ClaudeAdapter(LLMProvider):
             stop_sequences=stop_sequences,
             tools=api_tools,
         )
-        
+
         latency_ms = (time.monotonic() - start_time) * 1000
-        
+
         # Parse response content and tool calls
         content = None
         tool_calls = None
-        
+
         for block in response.content:
             if block.type == "text":
                 content = block.text
@@ -607,7 +607,7 @@ class ClaudeAdapter(LLMProvider):
                     name=block.name,
                     arguments=block.input,
                 ))
-        
+
         return LLMResponse(
             content=content,
             model=model,
@@ -617,7 +617,7 @@ class ClaudeAdapter(LLMProvider):
             latency_ms=latency_ms,
             tool_calls=tool_calls,
         )
-    
+
     async def stream(
         self,
         messages: List[LLMMessage],
@@ -626,7 +626,7 @@ class ClaudeAdapter(LLMProvider):
         temperature: Optional[float] = None,
     ) -> AsyncIterator[str]:
         model = self.get_model_for_task(task)
-        
+
         # Convert messages (same as above)
         system_msg = None
         api_messages = []
@@ -635,7 +635,7 @@ class ClaudeAdapter(LLMProvider):
                 system_msg = msg.content
             else:
                 api_messages.append({"role": msg.role, "content": msg.content})
-        
+
         async with self.client.messages.stream(
             model=model,
             max_tokens=max_tokens or self.config.default_max_tokens,
@@ -645,7 +645,7 @@ class ClaudeAdapter(LLMProvider):
         ) as stream:
             async for text in stream.text_stream:
                 yield text
-    
+
     def get_model_for_task(self, task: TaskType) -> str:
         return self.model_routing.get(task, self.config.default_claude_model)
 ```
@@ -658,18 +658,18 @@ from openai import AsyncOpenAI
 class OpenAIAdapter(LLMProvider):
     """
     OpenAI GPT implementation.
-    
+
     WHY SUPPORT OPENAI:
     - Some users may prefer GPT for specific tasks
     - BYOK scenarios where user has OpenAI credits
     - Fallback option if Anthropic has outage (future)
     """
-    
+
     def __init__(self, config: ProviderConfig):
         self.client = AsyncOpenAI(api_key=config.openai_api_key)
         self.config = config
         self.model_routing = config.openai_model_routing
-    
+
     async def complete(
         self,
         messages: List[LLMMessage],
@@ -681,7 +681,7 @@ class OpenAIAdapter(LLMProvider):
         json_mode: bool = False,
     ) -> LLMResponse:
         model = self.get_model_for_task(task)
-        
+
         # Convert to OpenAI format
         api_messages = []
         for msg in messages:
@@ -711,7 +711,7 @@ class OpenAIAdapter(LLMProvider):
                 })
             else:
                 api_messages.append({"role": msg.role, "content": msg.content})
-        
+
         # Convert tools to OpenAI format
         api_tools = None
         if tools:
@@ -726,14 +726,14 @@ class OpenAIAdapter(LLMProvider):
                 }
                 for tool in tools
             ]
-        
+
         # JSON mode: OpenAI has native support
         response_format = None
         if json_mode:
             response_format = {"type": "json_object"}
-        
+
         start_time = time.monotonic()
-        
+
         response = await self.client.chat.completions.create(
             model=model,
             max_tokens=max_tokens or self.config.default_max_tokens,
@@ -743,9 +743,9 @@ class OpenAIAdapter(LLMProvider):
             tools=api_tools,
             response_format=response_format,
         )
-        
+
         latency_ms = (time.monotonic() - start_time) * 1000
-        
+
         # Parse tool calls from response
         tool_calls = None
         choice = response.choices[0]
@@ -758,7 +758,7 @@ class OpenAIAdapter(LLMProvider):
                 )
                 for tc in choice.message.tool_calls
             ]
-        
+
         return LLMResponse(
             content=choice.message.content,
             model=model,
@@ -768,9 +768,9 @@ class OpenAIAdapter(LLMProvider):
             latency_ms=latency_ms,
             tool_calls=tool_calls,
         )
-    
+
     # stream() implementation similar...
-    
+
     def get_model_for_task(self, task: TaskType) -> str:
         return self.model_routing.get(task, self.config.default_openai_model)
 ```
@@ -792,7 +792,7 @@ CLAUDE_MODEL_ROUTING: Dict[TaskType, str] = {
     TaskType.SKILL_EXTRACTION: "claude-3-haiku-20240307",
     TaskType.EXTRACTION: "claude-3-haiku-20240307",  # Generic extraction (keywords, metrics)
     TaskType.GHOST_DETECTION: "claude-3-haiku-20240307",
-    
+
     # Quality-critical tasks → Sonnet (balanced)
     TaskType.CHAT_RESPONSE: "claude-3-5-sonnet-20241022",
     TaskType.ONBOARDING_INTERVIEW: "claude-3-5-sonnet-20241022",
@@ -808,7 +808,7 @@ OPENAI_MODEL_ROUTING: Dict[TaskType, str] = {
     TaskType.SKILL_EXTRACTION: "gpt-4o-mini",
     TaskType.EXTRACTION: "gpt-4o-mini",  # Generic extraction (keywords, metrics)
     TaskType.GHOST_DETECTION: "gpt-4o-mini",
-    
+
     # Quality-critical → GPT-4o
     TaskType.CHAT_RESPONSE: "gpt-4o",
     TaskType.ONBOARDING_INTERVIEW: "gpt-4o",
@@ -824,7 +824,7 @@ GEMINI_MODEL_ROUTING: Dict[TaskType, str] = {
     TaskType.SKILL_EXTRACTION: "gemini-1.5-flash",
     TaskType.EXTRACTION: "gemini-1.5-flash",  # Generic extraction (keywords, metrics)
     TaskType.GHOST_DETECTION: "gemini-1.5-flash",
-    
+
     # Quality-critical → Pro
     TaskType.CHAT_RESPONSE: "gemini-1.5-pro",
     TaskType.ONBOARDING_INTERVIEW: "gemini-1.5-pro",
@@ -878,7 +878,7 @@ CHAT_AGENT_TOOLS = [
         parameters=[
             ToolParameter(name="skill_name", type="string", description="Name of the skill"),
             ToolParameter(name="skill_type", type="string", description="Type of skill", enum=["Hard", "Soft", "Tool"]),
-            ToolParameter(name="proficiency_level", type="string", description="Proficiency level", 
+            ToolParameter(name="proficiency_level", type="string", description="Proficiency level",
                          enum=["Learning", "Familiar", "Proficient", "Expert"]),
         ]
     ),
@@ -899,7 +899,7 @@ CHAT_AGENT_TOOLS = [
 async def chat_with_tools(user_message: str, llm: LLMProvider):
     """
     Complete chat flow with tool calling.
-    
+
     WHY LOOP: The LLM may request multiple rounds of tool calls
     before generating a final response. We loop until it stops
     requesting tools.
@@ -908,27 +908,27 @@ async def chat_with_tools(user_message: str, llm: LLMProvider):
         LLMMessage(role="system", content=CHAT_AGENT_SYSTEM_PROMPT),
         LLMMessage(role="user", content=user_message),
     ]
-    
+
     max_tool_rounds = 5  # Prevent infinite loops
-    
+
     for _ in range(max_tool_rounds):
         response = await llm.complete(
             messages=messages,
             task=TaskType.CHAT_RESPONSE,
             tools=CHAT_AGENT_TOOLS,
         )
-        
+
         if not response.tool_calls:
             # No tool calls = final response
             return response.content
-        
+
         # Add assistant message with tool calls to history
         messages.append(LLMMessage(
             role="assistant",
             content=response.content,
             tool_calls=response.tool_calls,
         ))
-        
+
         # Execute each tool and add results
         for tool_call in response.tool_calls:
             result = await execute_tool(tool_call.name, tool_call.arguments)
@@ -940,7 +940,7 @@ async def chat_with_tools(user_message: str, llm: LLMProvider):
                     is_error=False,
                 ),
             ))
-    
+
     raise MaxToolRoundsExceeded("LLM kept requesting tools")
 ```
 
@@ -950,7 +950,7 @@ async def chat_with_tools(user_message: str, llm: LLMProvider):
 async def execute_tool(name: str, arguments: dict) -> dict:
     """
     Execute a tool by name and return the result.
-    
+
     WHY SEPARATE FUNCTION: Keeps tool execution logic separate from
     LLM interaction. Tools are just API calls (see REQ-007 §4).
     """
@@ -958,15 +958,15 @@ async def execute_tool(name: str, arguments: dict) -> dict:
         job_id = arguments["job_posting_id"]
         await api_client.post(f"/job-postings/{job_id}/favorite")
         return {"success": True, "message": f"Favorited job {job_id}"}
-    
+
     elif name == "update_persona_skill":
         await api_client.post("/personas/{persona_id}/skills", json=arguments)
         return {"success": True, "message": f"Added skill {arguments['skill_name']}"}
-    
+
     elif name == "search_jobs":
         results = await api_client.get("/job-postings", params=arguments)
         return {"jobs": results, "count": len(results)}
-    
+
     else:
         return {"error": f"Unknown tool: {name}"}
 ```
@@ -1012,13 +1012,13 @@ async def extract_skills(job_description: str, llm: LLMProvider) -> List[dict]:
         """),
         LLMMessage(role="user", content=job_description),
     ]
-    
+
     response = await llm.complete(
         messages=messages,
         task=TaskType.SKILL_EXTRACTION,
         json_mode=True,  # Enforce JSON output
     )
-    
+
     # Safe to parse - provider guaranteed valid JSON
     data = json.loads(response.content)
     return data["skills"]
@@ -1065,40 +1065,40 @@ class EmbeddingResult:
 class EmbeddingProvider(ABC):
     """
     Abstract base class for embedding providers.
-    
+
     WHY SEPARATE FROM LLM PROVIDER:
     - Different API patterns (batch-oriented vs conversational)
     - Different providers may be optimal (OpenAI embeddings are excellent)
     - Embeddings are stateless; LLM may need conversation context
     """
-    
+
     @abstractmethod
     async def embed(self, texts: List[str]) -> EmbeddingResult:
         """
         Generate embeddings for a list of texts.
-        
+
         WHY BATCH BY DEFAULT:
         - Embedding APIs are optimized for batch calls
         - Reduces round trips and latency
         - Single-text embedding is just batch of 1
-        
+
         Args:
             texts: List of strings to embed
-            
+
         Returns:
             EmbeddingResult with vectors in same order as input
-            
+
         Raises:
             ProviderError: On API failure after retries
         """
         pass
-    
+
     @property
     @abstractmethod
     def dimensions(self) -> int:
         """
         Return the embedding dimensions.
-        
+
         WHY PROPERTY: Database schema needs to know vector size
         at table creation time. This makes it queryable.
         """
@@ -1111,23 +1111,23 @@ class EmbeddingProvider(ABC):
 class OpenAIEmbeddingAdapter(EmbeddingProvider):
     """
     OpenAI embedding implementation.
-    
+
     WHY OPENAI FOR EMBEDDINGS (even when using Claude for LLM):
     - text-embedding-3-small has excellent quality/cost ratio
     - Well-documented, stable API
     - Good batch support (up to 2048 texts)
     - Anthropic doesn't offer embeddings (as of early 2025)
     """
-    
+
     def __init__(self, config: ProviderConfig):
         self.client = AsyncOpenAI(api_key=config.openai_api_key)
         self.model = config.embedding_model  # e.g., "text-embedding-3-small"
         self._dimensions = config.embedding_dimensions  # e.g., 1536
-    
+
     async def embed(self, texts: List[str]) -> EmbeddingResult:
         # OpenAI has a limit of 8191 tokens per text
         # and 2048 texts per batch
-        
+
         if len(texts) > 2048:
             # Chunk into batches
             results = []
@@ -1141,24 +1141,24 @@ class OpenAIEmbeddingAdapter(EmbeddingProvider):
                 dimensions=self._dimensions,
                 total_tokens=-1  # Unknown for chunked
             )
-        
+
         return await self._embed_batch(texts)
-    
+
     async def _embed_batch(self, texts: List[str]) -> EmbeddingResult:
         response = await self.client.embeddings.create(
             model=self.model,
             input=texts,
         )
-        
+
         vectors = [item.embedding for item in response.data]
-        
+
         return EmbeddingResult(
             vectors=vectors,
             model=self.model,
             dimensions=self._dimensions,
             total_tokens=response.usage.total_tokens,
         )
-    
+
     @property
     def dimensions(self) -> int:
         return self._dimensions
@@ -1191,49 +1191,49 @@ Rationale:
 class ProviderConfig:
     """
     Centralized provider configuration.
-    
+
     WHY DATACLASS:
     - Immutable after creation (frozen=True in production)
     - Clear schema for what's configurable
     - Easy to serialize/deserialize from env vars or JSON
     """
-    
+
     # Provider selection
     llm_provider: str = "claude"  # "claude", "openai", "gemini"
     embedding_provider: str = "openai"  # "openai", "cohere"
-    
+
     # API keys (loaded from environment)
     anthropic_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
     google_api_key: Optional[str] = None
-    
+
     # Model routing (can override defaults)
     claude_model_routing: Optional[Dict[TaskType, str]] = None
     openai_model_routing: Optional[Dict[TaskType, str]] = None
     gemini_model_routing: Optional[Dict[TaskType, str]] = None
-    
+
     # Embedding config
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
-    
+
     # Defaults
     default_max_tokens: int = 4096
     default_temperature: float = 0.7
-    
+
     # Retry policy
     max_retries: int = 3
     retry_base_delay_ms: int = 1000
     retry_max_delay_ms: int = 30000
-    
+
     # Rate limiting
     requests_per_minute: Optional[int] = None  # None = no limit
     tokens_per_minute: Optional[int] = None
-    
+
     @classmethod
     def from_env(cls) -> "ProviderConfig":
         """
         Load configuration from environment variables.
-        
+
         WHY FROM_ENV METHOD:
         - Standard 12-factor app pattern
         - Easy to override in different environments
@@ -1278,22 +1278,22 @@ _embedding_provider: Optional[EmbeddingProvider] = None
 def get_llm_provider(config: Optional[ProviderConfig] = None) -> LLMProvider:
     """
     Get or create the LLM provider singleton.
-    
+
     WHY SINGLETON:
     - Reuses HTTP connections (performance)
     - Centralized rate limiting
     - Consistent configuration across app
-    
+
     WHY OPTIONAL CONFIG:
     - First call sets the config (app startup)
     - Subsequent calls reuse (business logic)
     """
     global _llm_provider
-    
+
     if _llm_provider is None:
         if config is None:
             config = ProviderConfig.from_env()
-        
+
         if config.llm_provider == "claude":
             _llm_provider = ClaudeAdapter(config)
         elif config.llm_provider == "openai":
@@ -1302,7 +1302,7 @@ def get_llm_provider(config: Optional[ProviderConfig] = None) -> LLMProvider:
             _llm_provider = GeminiAdapter(config)
         else:
             raise ValueError(f"Unknown LLM provider: {config.llm_provider}")
-    
+
     return _llm_provider
 
 
@@ -1311,18 +1311,18 @@ def get_embedding_provider(config: Optional[ProviderConfig] = None) -> Embedding
     Get or create the embedding provider singleton.
     """
     global _embedding_provider
-    
+
     if _embedding_provider is None:
         if config is None:
             config = ProviderConfig.from_env()
-        
+
         if config.embedding_provider == "openai":
             _embedding_provider = OpenAIEmbeddingAdapter(config)
         elif config.embedding_provider == "cohere":
             _embedding_provider = CohereEmbeddingAdapter(config)
         else:
             raise ValueError(f"Unknown embedding provider: {config.embedding_provider}")
-    
+
     return _embedding_provider
 
 
@@ -1350,7 +1350,7 @@ class ProviderError(Exception):
 class RateLimitError(ProviderError):
     """
     Rate limit exceeded.
-    
+
     WHY SEPARATE CLASS:
     - Callers may want to handle differently (back off, queue)
     - Contains retry-after information
@@ -1363,7 +1363,7 @@ class RateLimitError(ProviderError):
 class AuthenticationError(ProviderError):
     """
     Invalid or expired API key.
-    
+
     WHY SEPARATE: No point retrying — need user intervention.
     """
     pass
@@ -1379,7 +1379,7 @@ class ModelNotFoundError(ProviderError):
 class ContentFilterError(ProviderError):
     """
     Content blocked by provider's safety filter.
-    
+
     WHY SEPARATE: May need to modify prompt, not just retry.
     """
     pass
@@ -1388,7 +1388,7 @@ class ContentFilterError(ProviderError):
 class ContextLengthError(ProviderError):
     """
     Input exceeded model's context window.
-    
+
     WHY SEPARATE: Need to truncate/summarize, not retry.
     """
     pass
@@ -1412,27 +1412,27 @@ async def with_retries(
 ) -> T:
     """
     Execute function with exponential backoff retry.
-    
+
     WHY EXPONENTIAL BACKOFF:
     - Prevents thundering herd on recovery
     - Respects provider rate limits
     - Industry standard pattern
-    
+
     WHY JITTER:
     - Prevents synchronized retries from multiple clients
     - Spreads load more evenly
     """
     last_error = None
-    
+
     for attempt in range(config.max_retries + 1):
         try:
             return await func()
         except retryable_errors as e:
             last_error = e
-            
+
             if attempt == config.max_retries:
                 break  # No more retries
-            
+
             # Calculate delay with exponential backoff + jitter
             if isinstance(e, RateLimitError) and e.retry_after_seconds:
                 delay = e.retry_after_seconds
@@ -1440,14 +1440,14 @@ async def with_retries(
                 base_delay = config.retry_base_delay_ms * (2 ** attempt)
                 jitter = random.uniform(0, base_delay * 0.1)
                 delay = min(base_delay + jitter, config.retry_max_delay_ms) / 1000
-            
+
             logger.warning(
                 f"Provider error (attempt {attempt + 1}/{config.max_retries + 1}): {e}. "
                 f"Retrying in {delay:.2f}s"
             )
-            
+
             await asyncio.sleep(delay)
-    
+
     raise last_error
 ```
 
@@ -1489,7 +1489,7 @@ logger = structlog.get_logger()
 # In adapter methods
 async def complete(self, messages, task, ...):
     model = self.get_model_for_task(task)
-    
+
     logger.info(
         "llm_request_start",
         provider="claude",
@@ -1497,10 +1497,10 @@ async def complete(self, messages, task, ...):
         task=task.value,
         message_count=len(messages),
     )
-    
+
     try:
         response = await self._call_api(...)
-        
+
         logger.info(
             "llm_request_complete",
             provider="claude",
@@ -1510,9 +1510,9 @@ async def complete(self, messages, task, ...):
             output_tokens=response.output_tokens,
             latency_ms=response.latency_ms,
         )
-        
+
         return response
-        
+
     except Exception as e:
         logger.error(
             "llm_request_failed",
@@ -1541,7 +1541,7 @@ async def complete(self, messages, task, ...):
 class UsageRecord:
     """
     Record of LLM/embedding usage for cost tracking.
-    
+
     WHY TRACK:
     - Per-user billing in hosted version
     - Cost optimization insights
@@ -1567,17 +1567,17 @@ class UsageRecord:
 class MockLLMProvider(LLMProvider):
     """
     Mock provider for testing.
-    
+
     WHY MOCK:
     - Unit tests shouldn't hit real APIs (cost, speed, flakiness)
     - Enables deterministic testing
     - Can simulate error conditions
     """
-    
+
     def __init__(self, responses: Optional[Dict[TaskType, str]] = None):
         self.responses = responses or {}
         self.calls: List[Dict] = []  # Record calls for assertions
-    
+
     async def complete(self, messages, task, **kwargs) -> LLMResponse:
         self.calls.append({
             "method": "complete",
@@ -1585,9 +1585,9 @@ class MockLLMProvider(LLMProvider):
             "task": task,
             "kwargs": kwargs,
         })
-        
+
         content = self.responses.get(task, f"Mock response for {task.value}")
-        
+
         return LLMResponse(
             content=content,
             model="mock-model",
@@ -1596,7 +1596,7 @@ class MockLLMProvider(LLMProvider):
             finish_reason="stop",
             latency_ms=10,
         )
-    
+
     async def stream(self, messages, task, **kwargs) -> AsyncIterator[str]:
         self.calls.append({
             "method": "stream",
@@ -1604,14 +1604,14 @@ class MockLLMProvider(LLMProvider):
             "task": task,
             "kwargs": kwargs,
         })
-        
+
         content = self.responses.get(task, f"Mock response for {task.value}")
         for word in content.split():
             yield word + " "
-    
+
     def get_model_for_task(self, task: TaskType) -> str:
         return "mock-model"
-    
+
     def assert_called_with_task(self, task: TaskType):
         """Test helper to verify task was called."""
         tasks_called = [c["task"] for c in self.calls]
@@ -1630,13 +1630,13 @@ def mock_llm():
         TaskType.SKILL_EXTRACTION: '{"skills": ["Python", "SQL"]}',
         TaskType.COVER_LETTER: "Dear Hiring Manager...",
     })
-    
+
     # Inject mock
     import zentropy.providers as providers
     providers._llm_provider = mock
-    
+
     yield mock
-    
+
     # Reset
     providers.reset_providers()
 
@@ -1644,9 +1644,9 @@ def mock_llm():
 # Usage in tests
 async def test_skill_extraction(mock_llm):
     from zentropy.agents.scouter import extract_skills
-    
+
     skills = await extract_skills("Job description...")
-    
+
     mock_llm.assert_called_with_task(TaskType.SKILL_EXTRACTION)
     assert "Python" in skills
 ```
@@ -1681,14 +1681,14 @@ class BYOKConfig:
 def get_llm_provider_for_user(user_id: str) -> LLMProvider:
     """
     Get LLM provider using user's API key if configured.
-    
+
     WHY PER-USER:
     - Different users may have different providers
     - API keys must be isolated
     - Usage tracking per user
     """
     byok_config = get_byok_config(user_id)
-    
+
     if byok_config:
         api_key = decrypt(byok_config.encrypted_api_key)
         config = ProviderConfig(
@@ -1698,7 +1698,7 @@ def get_llm_provider_for_user(user_id: str) -> LLMProvider:
             # ... etc
         )
         return create_provider(config)
-    
+
     # Fall back to system default
     return get_llm_provider()
 ```

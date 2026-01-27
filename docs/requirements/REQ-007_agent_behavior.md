@@ -1,8 +1,8 @@
 # REQ-007: Agent Behavior Specification
 
-**Status:** Draft  
-**Version:** 0.4  
-**PRD Reference:** §4 Core Agentic Capabilities  
+**Status:** Draft
+**Version:** 0.4
+**PRD Reference:** §4 Core Agentic Capabilities
 **Last Updated:** 2026-01-25
 
 ---
@@ -102,15 +102,15 @@ class BaseAgentState(TypedDict):
     # User context
     user_id: str
     persona_id: str
-    
+
     # Conversation
     messages: List[dict]  # Chat history
     current_message: Optional[str]
-    
+
     # Tool execution
     tool_calls: List[dict]
     tool_results: List[dict]
-    
+
     # Control flow
     next_action: Optional[str]
     requires_human_input: bool
@@ -477,7 +477,7 @@ System: Regenerate hard_skills embedding
 System: Invoke Strategist.rescore_all_jobs()
          │
          ▼
-Chat Agent: "Added Kubernetes to your skills. I'm re-analyzing your job 
+Chat Agent: "Added Kubernetes to your skills. I'm re-analyzing your job
             matches — you might see new opportunities that need this skill!"
 ```
 
@@ -587,19 +587,19 @@ Ask them to confirm or adjust.
 Between sections, use natural transitions:
 
 ```
-Great, I've got a solid picture of your work history. 
+Great, I've got a solid picture of your work history.
 
-Next, let's talk about your skills — both the technical ones and the softer 
+Next, let's talk about your skills — both the technical ones and the softer
 interpersonal skills that are often just as important.
 
 What would you say are your strongest technical skills?
 ```
 
 ```
-Those are excellent stories — I can already see how they'll strengthen your 
+Those are excellent stories — I can already see how they'll strengthen your
 applications.
 
-Now let's define your non-negotiables — the things that would make you 
+Now let's define your non-negotiables — the things that would make you
 immediately pass on a job, no matter how interesting it sounds.
 
 First: Are you looking for remote work, hybrid, or are you open to onsite?
@@ -719,8 +719,8 @@ Analyze this job posting and extract:
    - is_required: true if explicitly required, false if nice-to-have
    - years_requested: number if specified, null otherwise
 
-2. CULTURE_TEXT: Extract ONLY text about company culture, values, team environment, 
-   benefits, and "About Us" content. Do NOT include requirements, responsibilities, 
+2. CULTURE_TEXT: Extract ONLY text about company culture, values, team environment,
+   benefits, and "About Us" content. Do NOT include requirements, responsibilities,
    or technical skills in this section.
 
 Job posting:
@@ -789,23 +789,23 @@ Calculate ghost score based on signals (REQ-003 §7).
 ```python
 def is_duplicate(new_job, existing_jobs):
     # Same source, same external ID
-    if any(e.source_id == new_job.source_id 
-           and e.external_id == new_job.external_id 
+    if any(e.source_id == new_job.source_id
+           and e.external_id == new_job.external_id
            for e in existing_jobs):
         return "update_existing"
-    
+
     # Cross-source: same description hash
-    if any(e.description_hash == new_job.description_hash 
+    if any(e.description_hash == new_job.description_hash
            for e in existing_jobs):
         return "add_to_also_found_on"
-    
+
     # Likely repost: same company + similar title + >85% description similarity
     for e in existing_jobs:
-        if (e.company_name == new_job.company_name 
+        if (e.company_name == new_job.company_name
             and is_similar_title(e.job_title, new_job.job_title)
             and description_similarity(e.description, new_job.description) > 0.85):
             return "create_linked_repost"
-    
+
     return "create_new"
 ```
 
@@ -1009,8 +1009,8 @@ Write a 2-3 sentence rationale for this candidate.
 
 **Example Output:**
 ```
-Strong technical fit — you have 4 of 5 required skills including the critical ones 
-(Python, PostgreSQL, FastAPI). The "Kubernetes" requirement is a stretch, but aligns 
+Strong technical fit — you have 4 of 5 required skills including the critical ones
+(Python, PostgreSQL, FastAPI). The "Kubernetes" requirement is a stretch, but aligns
 with your growth target. Salary range ($140-160k) exceeds your minimum.
 ```
 
@@ -1153,7 +1153,7 @@ def select_base_resume(job, base_resumes):
     for br in base_resumes:
         if role_type_matches(br.role_type, job.job_title):
             return br
-    
+
     # Fall back to primary
     return next(br for br in base_resumes if br.is_primary)
 ```
@@ -1215,19 +1215,19 @@ def select_stories(persona, job, max_stories=2):
         job_skills = {s.skill_name for s in job.extracted_skills}
         story_skills = set(story.skills_demonstrated)
         score += len(job_skills & story_skills) * 10
-        
+
         # Recency (if linked to recent job)
         if story.related_job_id:
             job_entry = get_work_history(story.related_job_id)
             if job_entry.is_current or recent(job_entry.end_date):
                 score += 5
-        
+
         # Has quantified outcome
         if has_metrics(story.outcome):
             score += 3
-        
+
         scored_stories.append((story, score))
-    
+
     # Return top N, avoiding repetition from recent applications
     return dedupe_recent(sorted(scored_stories, key=lambda x: -x[1])[:max_stories])
 ```
@@ -1364,15 +1364,15 @@ def ghostwriter_start(job_posting_id: str):
         job_posting_id=job_posting_id,
         status__in=['Draft', 'Approved']
     ).first()
-    
+
     if existing and existing.status == 'Draft':
         return {"action": "resume", "variant_id": existing.id,
                 "message": "Already drafting materials for this job."}
-    
+
     if existing and existing.status == 'Approved':
         return {"action": "block",
                 "message": "You already have approved materials for this job."}
-    
+
     # Safe to proceed
     return {"action": "create"}
 ```
@@ -1389,7 +1389,7 @@ def ghostwriter_start(job_posting_id: str):
 ```python
 def ghostwriter_complete(job_posting_id: str, variant: JobVariant):
     job = db.query(JobPosting).get(job_posting_id)
-    
+
     if job.status == 'Expired':
         return {
             "variant": variant,  # Still save the work
@@ -1407,10 +1407,10 @@ def ghostwriter_complete(job_posting_id: str, variant: JobVariant):
 ```python
 def update_persona(persona_id: str, changes: dict, expected_version: datetime):
     persona = db.query(Persona).get(persona_id)
-    
+
     if persona.updated_at != expected_version:
         raise ConflictError("Persona was modified. Please refresh and retry.")
-    
+
     persona.update(changes)
     persona.updated_at = now()
 ```
@@ -1571,7 +1571,7 @@ chat_graph.add_edge("stream_response", END)
 ```python
 def route_by_intent(state: ChatAgentState) -> str:
     intent = state["classified_intent"]
-    
+
     if intent.type == "onboarding_request":
         return "onboarding"
     if intent.type == "draft_materials":
@@ -1885,9 +1885,9 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
         persona_id=state["persona_id"],
         user_id=state["user_id"]
     )
-    
+
     result = await ghostwriter_graph.ainvoke(ghostwriter_state)
-    
+
     state["tool_results"].append({
         "tool": "ghostwriter",
         "result": result
@@ -1900,12 +1900,12 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
 # Triggered by scheduler (e.g., Celery beat)
 async def scheduled_scouter_run(user_id: str):
     persona = await get_persona(user_id)
-    
+
     scouter_state = ScouterState(
         user_id=user_id,
         persona_id=persona.id,
         enabled_sources=await get_enabled_sources(user_id)
     )
-    
+
     await scouter_graph.ainvoke(scouter_state)
 ```

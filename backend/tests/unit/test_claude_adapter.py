@@ -114,7 +114,9 @@ class TestClaudeAdapterInit:
             # Extraction should be overridden
             assert adapter.model_routing["extraction"] == "custom-model"
             # Other tasks should still use defaults
-            assert adapter.model_routing["chat_response"] == "claude-3-5-sonnet-20241022"
+            assert (
+                adapter.model_routing["chat_response"] == "claude-3-5-sonnet-20241022"
+            )
 
 
 class TestClaudeAdapterGetModelForTask:
@@ -150,9 +152,13 @@ class TestClaudeAdapterComplete:
     @pytest.mark.asyncio
     async def test_complete_basic_message(self, config, mock_anthropic_response):
         """Should make API call and return LLMResponse."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -167,11 +173,17 @@ class TestClaudeAdapterComplete:
             assert response.latency_ms >= 0
 
     @pytest.mark.asyncio
-    async def test_complete_extracts_system_message(self, config, mock_anthropic_response):
+    async def test_complete_extracts_system_message(
+        self, config, mock_anthropic_response
+    ):
         """Should extract system message and pass separately to API."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -190,11 +202,17 @@ class TestClaudeAdapterComplete:
             assert call_kwargs["messages"][0]["role"] == "user"
 
     @pytest.mark.asyncio
-    async def test_complete_with_tool_response(self, config, mock_anthropic_tool_response):
+    async def test_complete_with_tool_response(
+        self, config, mock_anthropic_tool_response
+    ):
         """Should parse tool calls from response."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_tool_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_tool_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -224,11 +242,17 @@ class TestClaudeAdapterComplete:
             assert response.tool_calls[0].arguments == {"job_id": "job-uuid-456"}
 
     @pytest.mark.asyncio
-    async def test_complete_converts_tools_to_anthropic_format(self, config, mock_anthropic_response):
+    async def test_complete_converts_tools_to_anthropic_format(
+        self, config, mock_anthropic_response
+    ):
         """Should convert ToolDefinition to Anthropic tool format."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -256,11 +280,17 @@ class TestClaudeAdapterComplete:
             assert "input_schema" in call_kwargs["tools"][0]
 
     @pytest.mark.asyncio
-    async def test_complete_handles_tool_result_message(self, config, mock_anthropic_response):
+    async def test_complete_handles_tool_result_message(
+        self, config, mock_anthropic_response
+    ):
         """Should convert tool result messages to Anthropic format."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -297,11 +327,17 @@ class TestClaudeAdapterComplete:
             assert tool_result_msg["content"][0]["tool_use_id"] == "toolu_123"
 
     @pytest.mark.asyncio
-    async def test_complete_json_mode_modifies_system_prompt(self, config, mock_anthropic_response):
+    async def test_complete_json_mode_modifies_system_prompt(
+        self, config, mock_anthropic_response
+    ):
         """JSON mode should append instruction to system prompt."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -310,28 +346,30 @@ class TestClaudeAdapterComplete:
                 LLMMessage(role="user", content="Python, JavaScript"),
             ]
 
-            await adapter.complete(
-                messages, TaskType.EXTRACTION, json_mode=True
-            )
+            await adapter.complete(messages, TaskType.EXTRACTION, json_mode=True)
 
             call_kwargs = mock_client.messages.create.call_args.kwargs
             assert "JSON" in call_kwargs["system"]
             assert "Extract skills." in call_kwargs["system"]
 
     @pytest.mark.asyncio
-    async def test_complete_json_mode_without_system_message(self, config, mock_anthropic_response):
+    async def test_complete_json_mode_without_system_message(
+        self, config, mock_anthropic_response
+    ):
         """JSON mode should work even without system message."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
             messages = [LLMMessage(role="user", content="Extract: Python")]
 
-            await adapter.complete(
-                messages, TaskType.EXTRACTION, json_mode=True
-            )
+            await adapter.complete(messages, TaskType.EXTRACTION, json_mode=True)
 
             call_kwargs = mock_client.messages.create.call_args.kwargs
             assert "JSON" in call_kwargs["system"]
@@ -339,9 +377,13 @@ class TestClaudeAdapterComplete:
     @pytest.mark.asyncio
     async def test_complete_uses_config_defaults(self, config, mock_anthropic_response):
         """Should use config defaults when not overridden."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -354,47 +396,61 @@ class TestClaudeAdapterComplete:
             assert call_kwargs["temperature"] == 0.7
 
     @pytest.mark.asyncio
-    async def test_complete_allows_override_max_tokens(self, config, mock_anthropic_response):
+    async def test_complete_allows_override_max_tokens(
+        self, config, mock_anthropic_response
+    ):
         """Should allow overriding max_tokens."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
             messages = [LLMMessage(role="user", content="Hello")]
 
-            await adapter.complete(
-                messages, TaskType.CHAT_RESPONSE, max_tokens=1000
-            )
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE, max_tokens=1000)
 
             call_kwargs = mock_client.messages.create.call_args.kwargs
             assert call_kwargs["max_tokens"] == 1000
 
     @pytest.mark.asyncio
-    async def test_complete_allows_override_temperature(self, config, mock_anthropic_response):
+    async def test_complete_allows_override_temperature(
+        self, config, mock_anthropic_response
+    ):
         """Should allow overriding temperature."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
             messages = [LLMMessage(role="user", content="Hello")]
 
-            await adapter.complete(
-                messages, TaskType.CHAT_RESPONSE, temperature=0.0
-            )
+            await adapter.complete(messages, TaskType.CHAT_RESPONSE, temperature=0.0)
 
             call_kwargs = mock_client.messages.create.call_args.kwargs
             assert call_kwargs["temperature"] == 0.0
 
     @pytest.mark.asyncio
-    async def test_complete_passes_stop_sequences(self, config, mock_anthropic_response):
+    async def test_complete_passes_stop_sequences(
+        self, config, mock_anthropic_response
+    ):
         """Should pass stop_sequences to API."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -410,12 +466,16 @@ class TestClaudeAdapterComplete:
     @pytest.mark.asyncio
     async def test_complete_records_latency(self, config, mock_anthropic_response):
         """Should record response latency."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
+
             # Simulate some latency
             async def slow_create(**_kwargs):
                 await asyncio.sleep(0.01)  # 10ms
                 return mock_anthropic_response
+
             mock_client.messages.create = slow_create
             mock_client_cls.return_value = mock_client
 
@@ -423,16 +483,23 @@ class TestClaudeAdapterComplete:
             messages = [LLMMessage(role="user", content="Hello")]
 
             import asyncio
+
             response = await adapter.complete(messages, TaskType.CHAT_RESPONSE)
 
             assert response.latency_ms >= 10  # At least 10ms
 
     @pytest.mark.asyncio
-    async def test_complete_includes_model_in_response(self, config, mock_anthropic_response):
+    async def test_complete_includes_model_in_response(
+        self, config, mock_anthropic_response
+    ):
         """Response should include the model used."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -449,20 +516,25 @@ class TestClaudeAdapterStream:
     @pytest.mark.asyncio
     async def test_stream_yields_text_chunks(self, config):
         """Should yield text chunks from stream."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
 
             # Create async context manager for stream
             class MockStreamContext:
                 async def __aenter__(self):
                     return self
+
                 async def __aexit__(self, *args):
                     pass
+
                 @property
                 def text_stream(self):
                     async def gen():
                         for chunk in ["Hello", ", ", "world", "!"]:
                             yield chunk
+
                     return gen()
 
             mock_client.messages.stream = MagicMock(return_value=MockStreamContext())
@@ -480,18 +552,23 @@ class TestClaudeAdapterStream:
     @pytest.mark.asyncio
     async def test_stream_uses_correct_model(self, config):
         """Should use model from routing table."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
 
             class MockStreamContext:
                 async def __aenter__(self):
                     return self
+
                 async def __aexit__(self, *args):
                     pass
+
                 @property
                 def text_stream(self):
                     async def gen():
                         yield "text"
+
                     return gen()
 
             mock_client.messages.stream = MagicMock(return_value=MockStreamContext())
@@ -509,18 +586,23 @@ class TestClaudeAdapterStream:
     @pytest.mark.asyncio
     async def test_stream_extracts_system_message(self, config):
         """Should extract system message like complete()."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
 
             class MockStreamContext:
                 async def __aenter__(self):
                     return self
+
                 async def __aexit__(self, *args):
                     pass
+
                 @property
                 def text_stream(self):
                     async def gen():
                         yield "text"
+
                     return gen()
 
             mock_client.messages.stream = MagicMock(return_value=MockStreamContext())
@@ -544,11 +626,17 @@ class TestClaudeAdapterMessageConversion:
     """Test message conversion to Anthropic format."""
 
     @pytest.mark.asyncio
-    async def test_converts_assistant_message_with_tool_calls(self, config, mock_anthropic_response):
+    async def test_converts_assistant_message_with_tool_calls(
+        self, config, mock_anthropic_response
+    ):
         """Should convert assistant messages with tool calls to content blocks."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)
@@ -576,8 +664,12 @@ class TestClaudeAdapterMessageConversion:
             assert assistant_msg["role"] == "assistant"
             assert isinstance(assistant_msg["content"], list)
 
-            text_block = next(b for b in assistant_msg["content"] if b["type"] == "text")
-            tool_block = next(b for b in assistant_msg["content"] if b["type"] == "tool_use")
+            text_block = next(
+                b for b in assistant_msg["content"] if b["type"] == "text"
+            )
+            tool_block = next(
+                b for b in assistant_msg["content"] if b["type"] == "tool_use"
+            )
 
             assert text_block["text"] == "I'll star that job for you."
             assert tool_block["id"] == "toolu_123"
@@ -587,9 +679,13 @@ class TestClaudeAdapterMessageConversion:
     @pytest.mark.asyncio
     async def test_handles_tool_result_error(self, config, mock_anthropic_response):
         """Should pass is_error flag for tool results."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic") as mock_client_cls:
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
-            mock_client.messages.create = AsyncMock(return_value=mock_anthropic_response)
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
             mock_client_cls.return_value = mock_client
 
             adapter = ClaudeAdapter(config)

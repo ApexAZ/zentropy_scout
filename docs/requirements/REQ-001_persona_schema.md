@@ -1,7 +1,7 @@
 # REQ-001: Persona Schema
 
-**Status:** Draft  
-**PRD Reference:** §3 Persona Framework  
+**Status:** Draft
+**PRD Reference:** §3 Persona Framework
 **Last Updated:** 2025-01-25
 
 ---
