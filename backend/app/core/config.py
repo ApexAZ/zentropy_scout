@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +31,12 @@ class Settings(BaseSettings):
     # Application
     environment: str = "development"
     log_level: str = "INFO"
+
+    # Authentication (REQ-006 §6.1)
+    # Local-first mode: DEFAULT_USER_ID provides user context without token
+    # Future hosted mode: auth_enabled=True, JWT/session token required
+    default_user_id: uuid.UUID | None = None
+    auth_enabled: bool = False
 
     @property
     def database_url(self) -> str:
