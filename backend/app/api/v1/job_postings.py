@@ -17,6 +17,12 @@ from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user_id
 from app.core.responses import DataResponse, ListResponse
+from app.schemas.bulk import (
+    BulkDismissRequest,
+    BulkFailedItem,
+    BulkFavoriteRequest,
+    BulkOperationResult,
+)
 
 router = APIRouter()
 
@@ -108,24 +114,56 @@ async def ingest_job_posting(
 
 @router.post("/bulk-dismiss")
 async def bulk_dismiss_job_postings(
+    request: BulkDismissRequest,
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-) -> DataResponse[dict]:
+) -> DataResponse[BulkOperationResult]:
     """Bulk dismiss multiple job postings.
 
     REQ-006 §2.6: Bulk operations for efficiency.
+
+    Args:
+        request: List of job posting IDs to dismiss.
+
+    Returns:
+        Partial success result with succeeded and failed arrays.
     """
-    return DataResponse(data={"dismissed_count": 0})
+    # For empty request, return empty result
+    if not request.ids:
+        return DataResponse(data=BulkOperationResult())
+
+    # For now, report all IDs as NOT_FOUND (no DB implementation yet)
+    result = BulkOperationResult(
+        succeeded=[],
+        failed=[BulkFailedItem(id=str(id_), error="NOT_FOUND") for id_ in request.ids],
+    )
+    return DataResponse(data=result)
 
 
 @router.post("/bulk-favorite")
 async def bulk_favorite_job_postings(
+    request: BulkFavoriteRequest,
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-) -> DataResponse[dict]:
+) -> DataResponse[BulkOperationResult]:
     """Bulk favorite/unfavorite multiple job postings.
 
     REQ-006 §2.6: Bulk operations for efficiency.
+
+    Args:
+        request: List of job posting IDs and favorite flag.
+
+    Returns:
+        Partial success result with succeeded and failed arrays.
     """
-    return DataResponse(data={"updated_count": 0})
+    # For empty request, return empty result
+    if not request.ids:
+        return DataResponse(data=BulkOperationResult())
+
+    # For now, report all IDs as NOT_FOUND (no DB implementation yet)
+    result = BulkOperationResult(
+        succeeded=[],
+        failed=[BulkFailedItem(id=str(id_), error="NOT_FOUND") for id_ in request.ids],
+    )
+    return DataResponse(data=result)
 
 
 @router.post("/rescore")
