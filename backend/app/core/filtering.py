@@ -130,6 +130,8 @@ class FilterParams(BaseModel):
 
         Returns:
             Dict of field names to their values, excluding None.
+            Values use Any because filter types vary: str, bool, float,
+            list[str], date, uuid.UUID, etc.
         """
         return {
             field_name: value

@@ -2,6 +2,13 @@
 
 REQ-006 §5.2: Personas resource with nested sub-resources.
 
+NOTE: This file exceeds 300 lines due to the number of nested resources
+under /personas. Splitting would fragment the logical grouping. All persona
+sub-resources are kept together for cohesion.
+
+NOTE: Endpoint functions return stub responses. Full implementation will be
+added when repository and service layers are built in Phase 2+.
+
 Endpoints:
 - /personas - CRUD for user personas
 - /personas/{id}/work-history - Work history entries
@@ -37,7 +44,6 @@ async def list_personas(
 
     REQ-006 §5.2: Most users have exactly one persona.
     """
-    # TODO: Implement with repository
     return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
 
 
@@ -49,7 +55,6 @@ async def create_persona(
 
     REQ-006 §5.2: User profile creation.
     """
-    # TODO: Implement with repository
     return DataResponse(data={})
 
 
@@ -59,7 +64,6 @@ async def get_persona(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> DataResponse[dict]:
     """Get a persona by ID."""
-    # TODO: Implement with repository
     return DataResponse(data={})
 
 
@@ -69,7 +73,6 @@ async def update_persona(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> DataResponse[dict]:
     """Partially update a persona."""
-    # TODO: Implement with repository
     return DataResponse(data={})
 
 
@@ -79,7 +82,6 @@ async def delete_persona(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> None:
     """Delete a persona (soft delete)."""
-    # TODO: Implement with repository
     return None
 
 
