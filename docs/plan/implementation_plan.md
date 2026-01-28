@@ -220,18 +220,18 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 2.1 | API Style: REST | `structure, docs, plan` | ⬜ |
-| 2.2 | Deployment Model: Local-First | `structure, plan` | ⬜ |
-| 6.1 | Authentication | `structure, tdd, plan` | ⬜ |
-| 6.2 | Authorization | `structure, tdd, plan` | ⬜ |
-| 7.1 | Content Type | `structure, tdd, plan` | ⬜ |
-| 7.2 | Response Envelope | `structure, tdd, plan` | ⬜ |
-| 7.3 | Pagination | `structure, tdd, plan` | ⬜ |
-| 8.1 | HTTP Status Codes | `structure, tdd, plan` | ⬜ |
-| 8.2 | Error Codes | `structure, tdd, plan` | ⬜ |
-| 5.1 | URL Structure | `structure, tdd, plan` | ⬜ |
-| 5.2 | Resource Mapping | `structure, tdd, docs, plan` | ⬜ |
-| 5.3 | Standard HTTP Methods | `structure, tdd, plan` | ⬜ |
+| 2.1 | API Style: REST | `structure, docs, plan` | ✅ |
+| 2.2 | Deployment Model: Local-First | `structure, plan` | ✅ |
+| 6.1 | Authentication | `structure, tdd, plan` | ✅ |
+| 6.2 | Authorization | `structure, tdd, plan` | ✅ |
+| 7.1 | Content Type | `structure, tdd, plan` | ✅ |
+| 7.2 | Response Envelope | `structure, tdd, plan` | ✅ |
+| 7.3 | Pagination | `structure, tdd, plan` | ✅ |
+| 8.1 | HTTP Status Codes | `structure, tdd, plan` | ✅ |
+| 8.2 | Error Codes | `structure, tdd, plan` | ✅ |
+| 5.1 | URL Structure | `structure, tdd, plan` | ✅ |
+| 5.2 | Resource Mapping | `structure, tdd, docs, plan` | ✅ |
+| 5.3 | Standard HTTP Methods | `structure, tdd, plan` | ✅ |
 | 5.5 | Standard Filtering & Sorting | `structure, tdd, plan` | ⬜ |
 | 2.3 | Architecture: API-Mediated Agents | `structure, docs, plan` | ⬜ |
 | 2.6 | Bulk Operations | `structure, tdd, plan` | ⬜ |

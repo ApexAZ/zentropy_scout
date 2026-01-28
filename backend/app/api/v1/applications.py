@@ -1,0 +1,133 @@
+"""Applications API router.
+
+REQ-006 §5.2: Application tracking with timeline.
+"""
+
+import uuid
+
+from fastapi import APIRouter, Depends
+
+from app.api.deps import get_current_user_id
+from app.core.responses import DataResponse, ListResponse
+
+router = APIRouter()
+
+
+# =============================================================================
+# Applications CRUD
+# =============================================================================
+
+
+@router.get("")
+async def list_applications(
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> ListResponse[dict]:
+    """List applications for current user.
+
+    Supports filtering by status, applied_after, applied_before.
+    """
+    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+
+
+@router.post("")
+async def create_application(
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> DataResponse[dict]:
+    """Create a new application."""
+    return DataResponse(data={})
+
+
+@router.get("/{application_id}")
+async def get_application(
+    application_id: uuid.UUID,  # noqa: ARG001
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> DataResponse[dict]:
+    """Get an application by ID."""
+    return DataResponse(data={})
+
+
+@router.patch("/{application_id}")
+async def update_application(
+    application_id: uuid.UUID,  # noqa: ARG001
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> DataResponse[dict]:
+    """Partially update an application."""
+    return DataResponse(data={})
+
+
+@router.delete("/{application_id}")
+async def delete_application(
+    application_id: uuid.UUID,  # noqa: ARG001
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> None:
+    """Delete an application (soft delete)."""
+    return None
+
+
+# =============================================================================
+# Timeline (nested resource)
+# =============================================================================
+
+
+@router.get("/{application_id}/timeline")
+async def list_timeline_events(
+    application_id: uuid.UUID,  # noqa: ARG001
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> ListResponse[dict]:
+    """List timeline events for an application."""
+    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+
+
+@router.post("/{application_id}/timeline")
+async def create_timeline_event(
+    application_id: uuid.UUID,  # noqa: ARG001
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> DataResponse[dict]:
+    """Add a timeline event to an application."""
+    return DataResponse(data={})
+
+
+@router.get("/{application_id}/timeline/{event_id}")
+async def get_timeline_event(
+    application_id: uuid.UUID,  # noqa: ARG001
+    event_id: uuid.UUID,  # noqa: ARG001
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> DataResponse[dict]:
+    """Get a timeline event by ID."""
+    return DataResponse(data={})
+
+
+@router.patch("/{application_id}/timeline/{event_id}")
+async def update_timeline_event(
+    application_id: uuid.UUID,  # noqa: ARG001
+    event_id: uuid.UUID,  # noqa: ARG001
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> DataResponse[dict]:
+    """Update a timeline event."""
+    return DataResponse(data={})
+
+
+@router.delete("/{application_id}/timeline/{event_id}")
+async def delete_timeline_event(
+    application_id: uuid.UUID,  # noqa: ARG001
+    event_id: uuid.UUID,  # noqa: ARG001
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> None:
+    """Delete a timeline event."""
+    return None
+
+
+# =============================================================================
+# Bulk Operations
+# =============================================================================
+
+
+@router.post("/bulk-archive")
+async def bulk_archive_applications(
+    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+) -> DataResponse[dict]:
+    """Bulk archive multiple applications.
+
+    REQ-006 §2.6: Bulk operations for efficiency.
+    """
+    return DataResponse(data={"archived_count": 0})
