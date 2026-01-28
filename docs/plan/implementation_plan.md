@@ -232,7 +232,7 @@ These steps require user action outside Claude Code:
 | 5.1 | URL Structure | `structure, tdd, plan` | ✅ |
 | 5.2 | Resource Mapping | `structure, tdd, docs, plan` | ✅ |
 | 5.3 | Standard HTTP Methods | `structure, tdd, plan` | ✅ |
-| 5.5 | Standard Filtering & Sorting | `structure, tdd, plan` | ⬜ |
+| 5.5 | Standard Filtering & Sorting | `structure, tdd, plan` | ✅ |
 | 2.3 | Architecture: API-Mediated Agents | `structure, docs, plan` | ⬜ |
 | 2.6 | Bulk Operations | `structure, tdd, plan` | ⬜ |
 | 2.7 | File Upload & Download | `structure, tdd, db, plan` | ⬜ |
