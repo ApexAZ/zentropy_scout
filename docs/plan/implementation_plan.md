@@ -20,23 +20,23 @@ Requirements location: `docs/requirements/`
 
 ## Phase 0: Project Bootstrap
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *One-time setup. Creates folder structure, installs dependencies, initializes database tooling.*
 
 ### 0.1 Manual Prerequisites (User)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 These steps require user action outside Claude Code:
 
 | Task | Command / Action | Status |
 |------|------------------|--------|
-| Enable Docker in WSL | Docker Desktop → Settings → Resources → WSL Integration → Enable Ubuntu | ⬜ |
-| Start Docker Desktop | Launch Docker Desktop application | ⬜ |
-| Copy environment file | `cp .env.example .env, plan` | ⬜ |
+| Enable Docker in WSL | Docker Desktop → Settings → Resources → WSL Integration → Enable Ubuntu | ✅ |
+| Start Docker Desktop | Launch Docker Desktop application | ✅ |
+| Copy environment file | `cp .env.example .env, plan` | ✅ |
 
 ### 0.2 Project Scaffold (Agent)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Creates backend folder structure and configuration files.*
 
@@ -52,20 +52,20 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 0.2.1 | Create `backend/` folder structure | `structure, commands, plan` | ⬜ |
-| 0.2.2 | Create `backend/pyproject.toml` | `structure, plan` | ⬜ |
-| 0.2.3 | Create `backend/alembic.ini` | `db, commands, plan` | ⬜ |
-| 0.2.4 | Initialize alembic (`alembic init migrations`) | `db, commands, plan` | ⬜ |
-| 0.2.5 | Create `backend/app/__init__.py` (empty) | `structure, plan` | ⬜ |
-| 0.2.6 | Create `backend/app/core/__init__.py` | `structure, plan` | ⬜ |
-| 0.2.7 | Create `backend/app/core/config.py` (Settings class) | `structure, tdd, plan` | ⬜ |
-| 0.2.8 | Create `backend/app/core/database.py` (engine, session) | `db, structure, tdd, plan` | ⬜ |
-| 0.2.9 | Create `backend/app/models/__init__.py` | `structure, plan` | ⬜ |
-| 0.2.10 | Create `backend/app/models/base.py` (Base class, mixins) | `db, structure, tdd, plan` | ⬜ |
-| 0.2.11 | Create `backend/tests/conftest.py` | `test, structure, plan` | ⬜ |
+| 0.2.1 | Create `backend/` folder structure | `structure, commands, plan` | ✅ |
+| 0.2.2 | Create `backend/pyproject.toml` | `structure, plan` | ✅ |
+| 0.2.3 | Create `backend/alembic.ini` | `db, commands, plan` | ✅ |
+| 0.2.4 | Initialize alembic (`alembic init migrations`) | `db, commands, plan` | ✅ |
+| 0.2.5 | Create `backend/app/__init__.py` (empty) | `structure, plan` | ✅ |
+| 0.2.6 | Create `backend/app/core/__init__.py` | `structure, plan` | ✅ |
+| 0.2.7 | Create `backend/app/core/config.py` (Settings class) | `structure, tdd, plan` | ✅ |
+| 0.2.8 | Create `backend/app/core/database.py` (engine, session) | `db, structure, tdd, plan` | ✅ |
+| 0.2.9 | Create `backend/app/models/__init__.py` | `structure, plan` | ✅ |
+| 0.2.10 | Create `backend/app/models/base.py` (Base class, mixins) | `db, structure, tdd, plan` | ✅ |
+| 0.2.11 | Create `backend/tests/conftest.py` | `test, structure, plan` | ✅ |
 
 ### 0.3 Dependency Installation (Agent)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Installs Python packages and verifies environment.*
 
@@ -78,13 +78,13 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 0.3.1 | Create virtual environment (`python -m venv .venv`) | `commands, plan` | ⬜ |
-| 0.3.2 | Install dependencies (`pip install -e ".[dev]"`) | `commands, plan` | ⬜ |
-| 0.3.3 | Verify ruff installed (`ruff --version`) | `commands, plan` | ⬜ |
-| 0.3.4 | Verify pytest installed (`pytest --version`) | `commands, plan` | ⬜ |
+| 0.3.1 | Create virtual environment (`python -m venv .venv`) | `commands, plan` | ✅ |
+| 0.3.2 | Install dependencies (`pip install -e ".[dev]"`) | `commands, plan` | ✅ |
+| 0.3.3 | Verify ruff installed (`ruff --version`) | `commands, plan` | ✅ |
+| 0.3.4 | Verify pytest installed (`pytest --version`) | `commands, plan` | ✅ |
 
 ### 0.4 Database Setup (Agent)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Starts PostgreSQL and verifies connection.*
 
@@ -97,22 +97,22 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 0.4.1 | Start PostgreSQL (`docker compose up -d`) | `commands, plan` | ⬜ |
-| 0.4.2 | Verify PostgreSQL running (`docker compose ps`) | `commands, plan` | ⬜ |
-| 0.4.3 | Test connection (`docker compose exec postgres psql ...`) | `db, commands, plan` | ⬜ |
-| 0.4.4 | Verify pgvector extension available | `db, commands, plan` | ⬜ |
+| 0.4.1 | Start PostgreSQL (`docker compose up -d`) | `commands, plan` | ✅ |
+| 0.4.2 | Verify PostgreSQL running (`docker compose ps`) | `commands, plan` | ✅ |
+| 0.4.3 | Test connection (`docker compose exec postgres psql ...`) | `db, commands, plan` | ✅ |
+| 0.4.4 | Verify pgvector extension available | `db, commands, plan` | ✅ |
 
 ### 0.5 Smoke Test (Agent)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Verifies everything works together.*
 
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 0.5.1 | Run `alembic current` (should show no migrations) | `db, commands, plan` | ⬜ |
-| 0.5.2 | Run `pytest` (should pass with 0 tests collected) | `test, commands, plan` | ⬜ |
-| 0.5.3 | Run `ruff check backend/` (should pass) | `commands, plan` | ⬜ |
+| 0.5.1 | Run `alembic current` (should show no migrations) | `db, commands, plan` | ✅ |
+| 0.5.2 | Run `pytest` (should pass with 0 tests collected) | `test, commands, plan` | ✅ |
+| 0.5.3 | Run `ruff check backend/` (should pass) | `commands, plan` | ✅ |
 
 ---
 
