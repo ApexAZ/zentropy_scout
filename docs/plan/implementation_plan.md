@@ -202,7 +202,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 1.3 API Scaffold (REQ-006)
-**Status:** 🟡 In Progress (16/20 tasks complete)
+**Status:** 🟡 In Progress (17/20 tasks complete)
 
 *REST endpoints and auth. Required before agent tools can call the API.*
 
@@ -237,7 +237,7 @@ These steps require user action outside Claude Code:
 | 2.3 | Architecture: API-Mediated Agents | `api, structure, docs, plan` | ✅ |
 | 2.6 | Bulk Operations | `api, structure, tdd, plan` | ✅ |
 | 2.7 | File Upload & Download | `api, structure, tdd, db, plan` | ✅ |
-| 5.4 | Persona Change Flags (HITL Sync) | `api, structure, tdd, db, plan` | ⬜ |
+| 5.4 | Persona Change Flags (HITL Sync) | `api, structure, tdd, db, plan` | ✅ |
 | 2.5 | Real-Time Communication: SSE | `api, structure, tdd, provider, plan` | ⬜ |
 | 2.4 | Chat Agent with Tools | `api, agents, structure, tdd, provider, plan` | ⬜ |
 | 5.6 | Job Posting Ingest Endpoint | `api, structure, tdd, db, plan` | ⬜ |

@@ -8,7 +8,6 @@ WHY SEPARATE ERROR CLASSES:
 - Provider-agnostic error handling (adapters map to these)
 """
 
-
 __all__ = [
     "ProviderError",
     "RateLimitError",
