@@ -64,14 +64,25 @@ class Application(Base, TimestampMixin):
     )
 
     # Submitted PDF links (nullable for bidirectional FK - see REQ-005 §9.2)
+    # use_alter=True handles circular dependency at migration level
     submitted_resume_pdf_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        # FK added separately after SubmittedResumePDF exists
+        ForeignKey(
+            "submitted_resume_pdfs.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_application_submitted_resume_pdf",
+        ),
         nullable=True,
     )
     submitted_cover_letter_pdf_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        # FK added separately after SubmittedCoverLetterPDF exists
+        ForeignKey(
+            "submitted_cover_letter_pdfs.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_application_submitted_cover_letter_pdf",
+        ),
         nullable=True,
     )
 
@@ -145,9 +156,9 @@ class Application(Base, TimestampMixin):
         "JobVariant",
         back_populates="applications",
     )
+    # Note: CoverLetter.application is viewonly due to bidirectional FK pattern
     cover_letter: Mapped["CoverLetter | None"] = relationship(
         "CoverLetter",
-        back_populates="application",
         foreign_keys=[cover_letter_id],
     )
     submitted_resume_pdf: Mapped["SubmittedResumePDF | None"] = relationship(

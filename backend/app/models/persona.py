@@ -227,9 +227,15 @@ class Persona(Base, TimestampMixin):
     )
 
     # Original uploaded resume (nullable FK added in Tier 2)
+    # use_alter=True handles circular dependency with ResumeFile at migration level
     original_resume_file_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("resume_files.id", ondelete="SET NULL"),
+        ForeignKey(
+            "resume_files.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_persona_original_resume_file",
+        ),
         nullable=True,
     )
 

@@ -47,9 +47,15 @@ class CoverLetter(Base):
         nullable=False,
     )
     # Nullable until application created - see REQ-005 §9.2
+    # use_alter=True handles circular dependency with Application at migration level
     application_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        # FK added separately after Application exists
+        ForeignKey(
+            "applications.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_coverletter_application",
+        ),
         nullable=True,
     )
     job_posting_id: Mapped[uuid.UUID] = mapped_column(
@@ -124,10 +130,14 @@ class CoverLetter(Base):
         "JobPosting",
         back_populates="cover_letters",
     )
+    # Note: This is a bidirectional FK relationship (both tables have FKs to each other)
+    # Application.cover_letter uses cover_letter_id FK
+    # CoverLetter.application uses application_id FK
+    # viewonly=True prevents conflicts with the bidirectional FK pattern
     application: Mapped["Application | None"] = relationship(
         "Application",
-        back_populates="cover_letter",
         foreign_keys=[application_id],
+        viewonly=True,
     )
     submitted_pdfs: Mapped[list["SubmittedCoverLetterPDF"]] = relationship(
         "SubmittedCoverLetterPDF",
