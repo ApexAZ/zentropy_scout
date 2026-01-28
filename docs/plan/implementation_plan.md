@@ -157,7 +157,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 1.2 Provider Abstraction (REQ-009)
-**Status:** ⬜ Incomplete
+**Status:** 🟡 In Progress (17/20 tasks complete, 3 Future)
 
 *LLM and embedding interfaces. Required before any agent implementation.*
 
@@ -202,7 +202,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 1.3 API Scaffold (REQ-006)
-**Status:** ⬜ Incomplete
+**Status:** 🟡 In Progress (13/20 tasks complete)
 
 *REST endpoints and auth. Required before agent tools can call the API.*
 
