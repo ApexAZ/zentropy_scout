@@ -47,10 +47,16 @@ class BulkFailedItem(BaseModel):
     """Details about a failed item in a bulk operation.
 
     Attributes:
-        id: The UUID of the item that failed.
+        id: The UUID of the item that failed (as string for JSON serialization).
         error: Error code explaining why the operation failed.
+
+    Note:
+        The `id` field is typed as `str` rather than `UUID` for two reasons:
+        1. JSON responses serialize UUIDs as strings anyway
+        2. Allows returning error details for malformed UUIDs that couldn't be parsed
     """
 
+    # String type for serialization consistency and to support invalid UUID reporting
     id: str = Field(..., description="UUID of the failed item")
     error: str = Field(..., description="Error code (e.g., NOT_FOUND, FORBIDDEN)")
 

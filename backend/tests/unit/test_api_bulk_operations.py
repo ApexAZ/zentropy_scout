@@ -5,8 +5,10 @@ Tests the /bulk-dismiss, /bulk-favorite, and /bulk-archive endpoints.
 """
 
 import uuid
+from collections.abc import AsyncGenerator
 
 import pytest
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import settings
@@ -17,13 +19,13 @@ TEST_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 @pytest.fixture
-def app():
+def app() -> FastAPI:
     """Create test application instance."""
     return create_app()
 
 
 @pytest.fixture
-async def client(app):
+async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Create authenticated async HTTP client for testing.
 
     Sets DEFAULT_USER_ID to simulate authenticated user without
@@ -40,7 +42,7 @@ async def client(app):
 
 
 @pytest.fixture
-async def unauthenticated_client(app):
+async def unauthenticated_client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Create unauthenticated async HTTP client for testing."""
     original_user_id = settings.default_user_id
     settings.default_user_id = None

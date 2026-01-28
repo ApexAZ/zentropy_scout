@@ -126,6 +126,10 @@ async def bulk_dismiss_job_postings(
 
     Returns:
         Partial success result with succeeded and failed arrays.
+
+    Raises:
+        HTTPException: 400 if request validation fails (invalid UUIDs).
+        HTTPException: 401 if user is not authenticated.
     """
     # For empty request, return empty result
     if not request.ids:
@@ -153,6 +157,10 @@ async def bulk_favorite_job_postings(
 
     Returns:
         Partial success result with succeeded and failed arrays.
+
+    Raises:
+        HTTPException: 400 if request validation fails (invalid UUIDs, missing is_favorite).
+        HTTPException: 401 if user is not authenticated.
     """
     # For empty request, return empty result
     if not request.ids:
