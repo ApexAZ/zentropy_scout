@@ -1,7 +1,7 @@
 # Zentropy Scout — Implementation Plan
 
 **Created:** 2026-01-25
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-01-27
 **Status:** Ready for Implementation
 
 ---
@@ -212,6 +212,7 @@ These steps require user action outside Claude Code:
 | 📖 **Before** | Use `req-reader` agent to load REQ-006 section for current task |
 | 🧪 **TDD** | Write endpoint test first, then implement — follow `zentropy-tdd` (red-green-refactor) |
 | 📂 **Structure** | Use `zentropy-structure` for module organization (routers, services, repositories) |
+| 🌐 **API** | Use `zentropy-api` for FastAPI patterns, response envelopes, error handling |
 | 📝 **Docs** | Use `zentropy-docs` for docstrings on all public endpoints |
 | ✅ **Verify** | Use `test-runner` agent to run API tests with httpx AsyncClient |
 | 🔍 **Review** | Use `code-reviewer` agent to check REST conventions and response shapes |
@@ -233,13 +234,13 @@ These steps require user action outside Claude Code:
 | 5.2 | Resource Mapping | `structure, tdd, docs, plan` | ✅ |
 | 5.3 | Standard HTTP Methods | `structure, tdd, plan` | ✅ |
 | 5.5 | Standard Filtering & Sorting | `structure, tdd, plan` | ✅ |
-| 2.3 | Architecture: API-Mediated Agents | `structure, docs, plan` | ⬜ |
-| 2.6 | Bulk Operations | `structure, tdd, plan` | ⬜ |
-| 2.7 | File Upload & Download | `structure, tdd, db, plan` | ⬜ |
-| 5.4 | Persona Change Flags (HITL Sync) | `structure, tdd, db, plan` | ⬜ |
-| 2.5 | Real-Time Communication: SSE | `structure, tdd, provider, plan` | ⬜ |
-| 2.4 | Chat Agent with Tools | `structure, tdd, provider, plan` | ⬜ |
-| 5.6 | Job Posting Ingest Endpoint | `structure, tdd, db, plan` | ⬜ |
+| 2.3 | Architecture: API-Mediated Agents | `api, structure, docs, plan` | ⬜ |
+| 2.6 | Bulk Operations | `api, structure, tdd, plan` | ⬜ |
+| 2.7 | File Upload & Download | `api, structure, tdd, db, plan` | ⬜ |
+| 5.4 | Persona Change Flags (HITL Sync) | `api, structure, tdd, db, plan` | ⬜ |
+| 2.5 | Real-Time Communication: SSE | `api, structure, tdd, provider, plan` | ⬜ |
+| 2.4 | Chat Agent with Tools | `api, agents, structure, tdd, provider, plan` | ⬜ |
+| 5.6 | Job Posting Ingest Endpoint | `api, structure, tdd, db, plan` | ⬜ |
 
 ---
 
@@ -255,6 +256,7 @@ These steps require user action outside Claude Code:
 |------|--------|
 | 📖 **Before** | Use `req-reader` agent to load REQ-007 §3 for LangGraph patterns |
 | 🧪 **TDD** | Write state schema tests first — follow `zentropy-tdd` (red-green-refactor) |
+| 🤖 **Agents** | Use `zentropy-agents` for LangGraph graph structure, state schemas, HITL patterns |
 | 🤖 **Patterns** | Use `zentropy-provider` for LLM integration patterns |
 | 🧪 **Mocking** | Use `zentropy-test` for mock checkpointing and state fixtures |
 | ✅ **Verify** | Use `test-runner` agent to verify state transitions |
@@ -264,9 +266,9 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 3.1 | Why LangGraph | `docs, plan` | ⬜ |
-| 3.2 | State Schema | `provider, structure, tdd, plan` | ⬜ |
-| 3.3 | Checkpointing & HITL | `provider, db, tdd, plan` | ⬜ |
+| 3.1 | Why LangGraph | `agents, docs, plan` | ⬜ |
+| 3.2 | State Schema | `agents, provider, structure, tdd, plan` | ⬜ |
+| 3.3 | Checkpointing & HITL | `agents, provider, db, tdd, plan` | ⬜ |
 
 ---
 
@@ -280,6 +282,7 @@ These steps require user action outside Claude Code:
 |------|--------|
 | 📖 **Before** | Use `req-reader` agent to load REQ-007 §4 for chat agent spec |
 | 🧪 **TDD** | Write intent recognition tests first — follow `zentropy-tdd` (red-green-refactor) |
+| 🤖 **Agents** | Use `zentropy-agents` for graph structure, routing, tool calling patterns |
 | 🤖 **Patterns** | Use `zentropy-provider` for Claude SDK conversation patterns |
 | 📝 **Docs** | Use `zentropy-docs` for tool docstrings (agents read these) |
 | 🧪 **Mocking** | Use `zentropy-test` for mock tool responses |
@@ -290,12 +293,12 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4.1 | Chat Agent — Responsibilities | `provider, docs, plan` | ⬜ |
-| 4.2 | Chat Agent — Tool Categories | `provider, structure, tdd, plan` | ⬜ |
-| 4.3 | Chat Agent — Intent Recognition | `provider, tdd, plan` | ⬜ |
-| 4.4 | Chat Agent — Ambiguity Resolution | `provider, tdd, plan` | ⬜ |
-| 4.5 | Chat Agent — Response Formatting | `provider, tdd, plan` | ⬜ |
-| 15.1 | Graph Spec — Chat Agent | `provider, structure, tdd, plan` | ⬜ |
+| 4.1 | Chat Agent — Responsibilities | `agents, provider, docs, plan` | ⬜ |
+| 4.2 | Chat Agent — Tool Categories | `agents, api, provider, structure, tdd, plan` | ⬜ |
+| 4.3 | Chat Agent — Intent Recognition | `agents, provider, tdd, plan` | ⬜ |
+| 4.4 | Chat Agent — Ambiguity Resolution | `agents, provider, tdd, plan` | ⬜ |
+| 4.5 | Chat Agent — Response Formatting | `agents, provider, tdd, plan` | ⬜ |
+| 15.1 | Graph Spec — Chat Agent | `agents, provider, structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -309,6 +312,7 @@ These steps require user action outside Claude Code:
 |------|--------|
 | 📖 **Before** | Use `req-reader` agent to load REQ-007 §5 for onboarding flow |
 | 🧪 **TDD** | Write interview step tests first — follow `zentropy-tdd` (red-green-refactor) |
+| 🤖 **Agents** | Use `zentropy-agents` for HITL checkpointing, state persistence patterns |
 | 🤖 **Patterns** | Use `zentropy-provider` for conversational extraction prompts |
 | 🗃️ **Storage** | Use `zentropy-db` for persona creation and checkpoint persistence |
 | 🧪 **Mocking** | Use `zentropy-test` for mock user responses |
@@ -319,13 +323,13 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 5.1 | Onboarding Agent — Trigger Conditions | `provider, tdd, plan` | ⬜ |
-| 5.2 | Onboarding Agent — Interview Flow | `provider, tdd, plan` | ⬜ |
-| 5.3 | Onboarding Agent — Step Behaviors | `provider, db, tdd, plan` | ⬜ |
-| 5.4 | Onboarding Agent — Checkpoint Handling | `provider, db, tdd, plan` | ⬜ |
-| 5.5 | Onboarding Agent — Post-Onboarding Updates | `provider, db, tdd, plan` | ⬜ |
-| 5.6 | Onboarding Agent — Prompt Templates | `provider, docs, tdd, plan` | ⬜ |
-| 15.2 | Graph Spec — Onboarding Agent | `provider, structure, tdd, plan` | ⬜ |
+| 5.1 | Onboarding Agent — Trigger Conditions | `agents, provider, tdd, plan` | ⬜ |
+| 5.2 | Onboarding Agent — Interview Flow | `agents, provider, tdd, plan` | ⬜ |
+| 5.3 | Onboarding Agent — Step Behaviors | `agents, provider, db, tdd, plan` | ⬜ |
+| 5.4 | Onboarding Agent — Checkpoint Handling | `agents, provider, db, tdd, plan` | ⬜ |
+| 5.5 | Onboarding Agent — Post-Onboarding Updates | `agents, provider, db, tdd, plan` | ⬜ |
+| 5.6 | Onboarding Agent — Prompt Templates | `agents, provider, docs, tdd, plan` | ⬜ |
+| 15.2 | Graph Spec — Onboarding Agent | `agents, provider, structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -339,6 +343,7 @@ These steps require user action outside Claude Code:
 |------|--------|
 | 📖 **Before** | Use `req-reader` agent to load REQ-007 §6 AND REQ-003 for full context |
 | 🧪 **TDD** | Write extraction tests first — follow `zentropy-tdd` (red-green-refactor) |
+| 🤖 **Agents** | Use `zentropy-agents` for parallel fan-out/fan-in, sub-graph invocation |
 | 🤖 **Patterns** | Use `zentropy-provider` for skill/culture extraction prompts |
 | 🗃️ **Storage** | Use `zentropy-db` for job posting storage and deduplication queries |
 | 🧪 **Mocking** | Use `zentropy-test` for mock job board responses |
@@ -350,14 +355,14 @@ These steps require user action outside Claude Code:
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 6.1 | Scouter Agent — Trigger Conditions | `provider, tdd, plan` | ⬜ |
-| 6.2 | Scouter Agent — Polling Flow | `provider, db, tdd, plan` | ⬜ |
-| 6.3 | Scouter Agent — Source Adapters | `provider, structure, tdd, plan` | ⬜ |
-| 6.4 | Scouter Agent — Skill & Culture Extraction | `provider, tdd, plan` | ⬜ |
-| 6.5 | Scouter Agent — Ghost Detection | `db, test, tdd, plan` | ⬜ |
-| 6.6 | Scouter Agent — Deduplication Logic | `db, test, tdd, plan` | ⬜ |
-| 6.7 | Scouter Agent — Error Handling | `provider, test, tdd, plan` | ⬜ |
-| 15.3 | Graph Spec — Scouter Agent | `provider, structure, tdd, plan` | ⬜ |
+| 6.1 | Scouter Agent — Trigger Conditions | `agents, provider, tdd, plan` | ⬜ |
+| 6.2 | Scouter Agent — Polling Flow | `agents, provider, db, tdd, plan` | ⬜ |
+| 6.3 | Scouter Agent — Source Adapters | `agents, provider, structure, tdd, plan` | ⬜ |
+| 6.4 | Scouter Agent — Skill & Culture Extraction | `agents, provider, tdd, plan` | ⬜ |
+| 6.5 | Scouter Agent — Ghost Detection | `agents, db, test, tdd, plan` | ⬜ |
+| 6.6 | Scouter Agent — Deduplication Logic | `agents, db, test, tdd, plan` | ⬜ |
+| 6.7 | Scouter Agent — Error Handling | `agents, provider, test, tdd, plan` | ⬜ |
+| 15.3 | Graph Spec — Scouter Agent | `agents, provider, structure, tdd, plan` | ⬜ |
 
 **From REQ-003 (Job Posting Schema):**
 
@@ -458,6 +463,7 @@ These steps require user action outside Claude Code:
 |------|--------|
 | 📖 **Before** | Use `req-reader` agent to load REQ-007 §7 AND REQ-008 for scoring context |
 | 🧪 **TDD** | Write filtering/scoring tests first — follow `zentropy-tdd` (red-green-refactor) |
+| 🤖 **Agents** | Use `zentropy-agents` for embedding freshness checks, auto-trigger patterns |
 | 🗃️ **Queries** | Use `zentropy-db` for embedding similarity and non-negotiables filtering |
 | 🤖 **Patterns** | Use `zentropy-provider` for stretch score prompts |
 | 🧪 **Mocking** | Use `zentropy-test` for mock scoring engine responses |
@@ -468,13 +474,13 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 7.1 | Strategist Agent — Trigger Conditions | `provider, tdd, plan` | ⬜ |
-| 7.2 | Strategist Agent — Scoring Flow | `provider, structure, tdd, plan` | ⬜ |
-| 7.3 | Strategist Agent — Non-Negotiables Filtering | `db, tdd, plan` | ⬜ |
-| 7.4 | Strategist Agent — Embedding-Based Matching | `db, provider, tdd, plan` | ⬜ |
-| 7.5 | Strategist Agent — Stretch Score | `provider, tdd, plan` | ⬜ |
-| 7.6 | Strategist Agent — Prompt Templates | `provider, docs, tdd, plan` | ⬜ |
-| 15.4 | Graph Spec — Strategist Agent | `provider, structure, tdd, plan` | ⬜ |
+| 7.1 | Strategist Agent — Trigger Conditions | `agents, provider, tdd, plan` | ⬜ |
+| 7.2 | Strategist Agent — Scoring Flow | `agents, provider, structure, tdd, plan` | ⬜ |
+| 7.3 | Strategist Agent — Non-Negotiables Filtering | `agents, db, tdd, plan` | ⬜ |
+| 7.4 | Strategist Agent — Embedding-Based Matching | `agents, db, provider, tdd, plan` | ⬜ |
+| 7.5 | Strategist Agent — Stretch Score | `agents, provider, tdd, plan` | ⬜ |
+| 7.6 | Strategist Agent — Prompt Templates | `agents, provider, docs, tdd, plan` | ⬜ |
+| 15.4 | Graph Spec — Strategist Agent | `agents, provider, structure, tdd, plan` | ⬜ |
 
 ---
 
@@ -488,6 +494,7 @@ These steps require user action outside Claude Code:
 |------|--------|
 | 📖 **Before** | Use `req-reader` agent to load REQ-007 §8 AND REQ-010 for full context |
 | 🧪 **TDD** | Write content generation tests first — follow `zentropy-tdd` (red-green-refactor) |
+| 🤖 **Agents** | Use `zentropy-agents` for duplicate prevention, race condition handling |
 | 🤖 **Patterns** | Use `zentropy-provider` for generation prompts with voice profiles |
 | 📝 **Docs** | Use `zentropy-docs` for prompt template documentation |
 | 🧪 **Mocking** | Use `zentropy-test` for mock LLM responses |
@@ -499,14 +506,14 @@ These steps require user action outside Claude Code:
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 8.1 | Ghostwriter Agent — Trigger Conditions | `provider, tdd, plan` | ⬜ |
-| 8.2 | Ghostwriter Agent — Generation Flow | `provider, structure, tdd, plan` | ⬜ |
-| 8.3 | Ghostwriter Agent — Base Resume Selection | `db, tdd, plan` | ⬜ |
-| 8.4 | Ghostwriter Agent — Tailoring Decision | `provider, tdd, plan` | ⬜ |
-| 8.5 | Ghostwriter Agent — Cover Letter Generation | `provider, tdd, plan` | ⬜ |
-| 8.6 | Ghostwriter Agent — Story Selection Logic | `db, provider, tdd, plan` | ⬜ |
-| 8.7 | Ghostwriter Agent — Reasoning Explanation | `provider, tdd, plan` | ⬜ |
-| 15.5 | Graph Spec — Ghostwriter Agent | `provider, structure, tdd, plan` | ⬜ |
+| 8.1 | Ghostwriter Agent — Trigger Conditions | `agents, provider, tdd, plan` | ⬜ |
+| 8.2 | Ghostwriter Agent — Generation Flow | `agents, provider, structure, tdd, plan` | ⬜ |
+| 8.3 | Ghostwriter Agent — Base Resume Selection | `agents, db, tdd, plan` | ⬜ |
+| 8.4 | Ghostwriter Agent — Tailoring Decision | `agents, provider, tdd, plan` | ⬜ |
+| 8.5 | Ghostwriter Agent — Cover Letter Generation | `agents, provider, tdd, plan` | ⬜ |
+| 8.6 | Ghostwriter Agent — Story Selection Logic | `agents, db, provider, tdd, plan` | ⬜ |
+| 8.7 | Ghostwriter Agent — Reasoning Explanation | `agents, provider, tdd, plan` | ⬜ |
+| 15.5 | Graph Spec — Ghostwriter Agent | `agents, provider, structure, tdd, plan` | ⬜ |
 
 **From REQ-010 (Content Generation):**
 
@@ -553,6 +560,7 @@ These steps require user action outside Claude Code:
 |------|--------|
 | 📖 **Before** | Use `req-reader` agent to load REQ-007 §9-11 for communication patterns |
 | 🧪 **TDD** | Write SSE event tests first — follow `zentropy-tdd` (red-green-refactor) |
+| 🤖 **Agents** | Use `zentropy-agents` for agent-to-agent communication, sub-graph invocation |
 | 📂 **Structure** | Use `zentropy-structure` for shared module organization |
 | 🤖 **Patterns** | Use `zentropy-provider` for model routing configuration |
 | 🧪 **Mocking** | Use `zentropy-test` for mock event streams |
@@ -563,16 +571,16 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 9.1 | Communication — Agent-to-User | `provider, structure, tdd, plan` | ⬜ |
-| 9.2 | Communication — Agent-to-Agent | `provider, structure, tdd, plan` | ⬜ |
-| 9.3 | Communication — SSE Event Types | `structure, tdd, plan` | ⬜ |
-| 10.1 | Error Handling — Transient Errors | `provider, test, tdd, plan` | ⬜ |
-| 10.2 | Error Handling — Permanent Errors | `provider, test, tdd, plan` | ⬜ |
-| 10.3 | Error Handling — Graceful Degradation | `provider, test, tdd, plan` | ⬜ |
-| 10.4 | Error Handling — Concurrency & Race Conditions | `db, test, tdd, plan` | ⬜ |
-| 11.1 | Configuration — Environment Variables | `structure, docs, plan` | ⬜ |
-| 11.2 | Configuration — Model Routing | `provider, tdd, plan` | ⬜ |
-| 15.6 | Graph Spec — Invocation Patterns | `provider, structure, tdd, plan` | ⬜ |
+| 9.1 | Communication — Agent-to-User | `agents, api, provider, structure, tdd, plan` | ⬜ |
+| 9.2 | Communication — Agent-to-Agent | `agents, provider, structure, tdd, plan` | ⬜ |
+| 9.3 | Communication — SSE Event Types | `agents, api, structure, tdd, plan` | ⬜ |
+| 10.1 | Error Handling — Transient Errors | `agents, provider, test, tdd, plan` | ⬜ |
+| 10.2 | Error Handling — Permanent Errors | `agents, provider, test, tdd, plan` | ⬜ |
+| 10.3 | Error Handling — Graceful Degradation | `agents, provider, test, tdd, plan` | ⬜ |
+| 10.4 | Error Handling — Concurrency & Race Conditions | `agents, db, test, tdd, plan` | ⬜ |
+| 11.1 | Configuration — Environment Variables | `agents, structure, docs, plan` | ⬜ |
+| 11.2 | Configuration — Model Routing | `agents, provider, tdd, plan` | ⬜ |
+| 15.6 | Graph Spec — Invocation Patterns | `agents, provider, structure, tdd, plan` | ⬜ |
 
 ---
 
