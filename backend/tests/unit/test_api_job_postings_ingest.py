@@ -21,7 +21,10 @@ from httpx import AsyncClient
 
 
 class TestIngestRequestSchema:
-    """Tests for IngestJobPostingRequest validation."""
+    """Tests for IngestJobPostingRequest validation.
+
+    Verifies required fields, empty validation, and URL format checking.
+    """
 
     @pytest.mark.asyncio
     async def test_ingest_requires_auth(
@@ -107,7 +110,11 @@ class TestIngestRequestSchema:
 
 
 class TestIngestSuccess:
-    """Tests for successful ingest flow."""
+    """Tests for successful ingest flow.
+
+    Verifies preview response structure, extracted fields, token format,
+    and expiration timing.
+    """
 
     @pytest.mark.asyncio
     async def test_ingest_returns_preview(
@@ -204,7 +211,10 @@ class TestIngestSuccess:
 
 
 class TestIngestDuplicateDetection:
-    """Tests for duplicate URL detection."""
+    """Tests for duplicate URL detection.
+
+    Verifies 409 response when ingesting a URL that already exists.
+    """
 
     @pytest.mark.asyncio
     async def test_ingest_detects_duplicate_url(
@@ -255,7 +265,11 @@ class TestIngestDuplicateDetection:
 
 
 class TestIngestConfirm:
-    """Tests for POST /job-postings/ingest/confirm."""
+    """Tests for POST /job-postings/ingest/confirm.
+
+    Verifies auth requirement, token validation, job posting creation,
+    response structure, and modification support.
+    """
 
     @pytest.mark.asyncio
     async def test_confirm_requires_auth(
@@ -372,7 +386,10 @@ class TestIngestConfirm:
 
 
 class TestIngestTokenErrors:
-    """Tests for token-related error cases."""
+    """Tests for token-related error cases.
+
+    Verifies invalid token handling, token reuse prevention, and expiration.
+    """
 
     @pytest.mark.asyncio
     async def test_confirm_invalid_token_returns_404(self, client: AsyncClient) -> None:
@@ -413,3 +430,41 @@ class TestIngestTokenErrors:
             json={"confirmation_token": token},
         )
         assert second_confirm.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_confirm_expired_token_returns_404(
+        self,
+        client: AsyncClient,
+        mock_llm: Any,  # noqa: ARG002
+    ) -> None:
+        """Confirm with expired token returns 404.
+
+        Simulates token expiration by directly manipulating the stored data.
+        """
+        from datetime import UTC, datetime, timedelta
+
+        from app.services.ingest_token_store import get_token_store
+
+        # First, ingest to get a token
+        ingest_response = await client.post(
+            "/api/v1/job-postings/ingest",
+            json={
+                "raw_text": "Software Engineer at Test Corp",
+                "source_url": "https://example.com/job/token-expired",
+                "source_name": "Example",
+            },
+        )
+        token = ingest_response.json()["data"]["confirmation_token"]
+
+        # Manually expire the token by setting expires_at to the past
+        token_store = get_token_store()
+        stored_data = token_store._store.get(token)
+        if stored_data:
+            stored_data.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+
+        # Confirm with expired token should fail
+        confirm_response = await client.post(
+            "/api/v1/job-postings/ingest/confirm",
+            json={"confirmation_token": token},
+        )
+        assert confirm_response.status_code == 404

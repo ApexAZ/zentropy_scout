@@ -12,7 +12,8 @@ WHY IN-MEMORY:
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any
+
+from app.schemas.ingest import ExtractedJobData
 
 # Default TTL for preview tokens (15 minutes)
 DEFAULT_TOKEN_TTL_MINUTES = 15
@@ -35,12 +36,16 @@ class IngestPreviewData:
     raw_text: str
     source_url: str
     source_name: str
-    extracted_data: dict[str, Any]
-    expires_at: datetime = field(default_factory=datetime.now)
+    extracted_data: ExtractedJobData
+    expires_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class IngestTokenStore:
-    """Thread-safe in-memory store for ingest preview tokens.
+    """In-memory store for ingest preview tokens.
+
+    Note: This implementation is safe for async/await usage (single-threaded
+    event loop) but not for multi-threaded access. For multi-instance
+    deployments, replace with Redis-backed implementation.
 
     WHY CLASS:
     - Encapsulates token management logic
@@ -63,7 +68,7 @@ class IngestTokenStore:
         raw_text: str,
         source_url: str,
         source_name: str,
-        extracted_data: dict[str, Any],
+        extracted_data: ExtractedJobData,
     ) -> tuple[str, datetime]:
         """Create a new preview token.
 

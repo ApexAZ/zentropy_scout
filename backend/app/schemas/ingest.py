@@ -8,9 +8,39 @@ This module defines schemas for the two-step ingest workflow:
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
+
+# =============================================================================
+# TypedDicts for Extracted Data
+# =============================================================================
+
+
+class ExtractedSkill(TypedDict):
+    """A skill extracted from job posting text."""
+
+    skill_name: str
+    importance_level: str  # "Required" or "Preferred"
+
+
+class ExtractedJobData(TypedDict, total=False):
+    """Structured data extracted from raw job posting text.
+
+    All fields are optional (total=False) since extraction may not find them.
+    """
+
+    job_title: str | None
+    company_name: str | None
+    location: str | None
+    salary_min: int | None
+    salary_max: int | None
+    salary_currency: str | None
+    employment_type: str | None
+    extracted_skills: list[ExtractedSkill]
+    culture_text: str | None
+    description_snippet: str
+
 
 # =============================================================================
 # Request Schemas
@@ -69,15 +99,20 @@ class IngestConfirmRequest(BaseModel):
     Attributes:
         confirmation_token: Token from ingest preview response.
         modifications: Optional field overrides from user review.
+            Expected fields match ExtractedJobData: job_title, company_name,
+            location, salary_min, salary_max, salary_currency, employment_type,
+            extracted_skills, culture_text, description_snippet.
     """
 
     confirmation_token: str = Field(
         ...,
         description="Token from ingest preview",
     )
+    # Note: TypedDict can't be used directly with Pydantic validation.
+    # See ExtractedJobData TypedDict for expected field structure.
     modifications: dict[str, Any] | None = Field(
         default=None,
-        description="Optional field overrides",
+        description="Optional field overrides matching ExtractedJobData structure",
     )
 
 

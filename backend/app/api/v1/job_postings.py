@@ -15,6 +15,7 @@ Endpoints:
 import hashlib
 import uuid
 from datetime import date
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -245,7 +246,8 @@ async def confirm_ingest_job_posting(
         await db.flush()
 
     # Merge extracted data with any modifications
-    extracted = preview_data.extracted_data.copy()
+    # Cast to dict for merging since modifications is a generic dict
+    extracted: dict[str, Any] = dict(preview_data.extracted_data)
     if request.modifications:
         extracted.update(request.modifications)
 

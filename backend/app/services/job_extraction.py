@@ -11,15 +11,16 @@ WHY SEPARATE SERVICE:
 import json
 import logging
 import re
-from typing import Any
+from typing import Any, cast
 
 from app.providers import factory
 from app.providers.llm.base import TaskType
+from app.schemas.ingest import ExtractedJobData
 
 logger = logging.getLogger(__name__)
 
 
-async def extract_job_data(raw_text: str) -> dict[str, Any]:
+async def extract_job_data(raw_text: str) -> ExtractedJobData:
     """Extract structured job data from raw posting text.
 
     REQ-007 §6.4: Uses LLM to extract structured fields from raw text.
@@ -29,17 +30,9 @@ async def extract_job_data(raw_text: str) -> dict[str, Any]:
         raw_text: Raw job posting text to extract from.
 
     Returns:
-        Dictionary with extracted fields:
-        - job_title: str | None
-        - company_name: str | None
-        - location: str | None
-        - salary_min: int | None
-        - salary_max: int | None
-        - salary_currency: str | None
-        - employment_type: str | None
-        - extracted_skills: list[dict]
-        - culture_text: str | None
-        - description_snippet: str
+        ExtractedJobData with fields: job_title, company_name, location,
+        salary_min, salary_max, salary_currency, employment_type,
+        extracted_skills, culture_text, description_snippet.
     """
     # Truncate to 15k chars for LLM (per REQ-007 note)
     truncated_text = raw_text[:15000]
@@ -95,14 +88,14 @@ Job Posting:
 Return ONLY the JSON object, no explanation."""
 
 
-def _parse_extraction_response(response: str) -> dict[str, Any]:
+def _parse_extraction_response(response: str) -> ExtractedJobData:
     """Parse LLM response into structured data.
 
     Args:
         response: LLM response text.
 
     Returns:
-        Parsed dictionary with extracted fields.
+        ExtractedJobData with parsed fields.
     """
     # Try to extract JSON from response
     try:
@@ -112,7 +105,7 @@ def _parse_extraction_response(response: str) -> dict[str, Any]:
         elif "```" in response:
             response = response.split("```")[1].split("```")[0]
 
-        data = json.loads(response.strip())
+        data: dict[str, Any] = json.loads(response.strip())
 
         # Ensure extracted_skills is a list
         if "extracted_skills" not in data or not isinstance(
@@ -120,12 +113,12 @@ def _parse_extraction_response(response: str) -> dict[str, Any]:
         ):
             data["extracted_skills"] = []
 
-        return data
+        return cast(ExtractedJobData, data)
     except (json.JSONDecodeError, IndexError):
         return _basic_extraction("")
 
 
-def _basic_extraction(text: str) -> dict[str, Any]:
+def _basic_extraction(text: str) -> ExtractedJobData:
     """Basic regex-based extraction fallback.
 
     WHY FALLBACK:
@@ -136,9 +129,9 @@ def _basic_extraction(text: str) -> dict[str, Any]:
         text: Job posting text.
 
     Returns:
-        Dictionary with extracted fields.
+        ExtractedJobData with regex-extracted fields.
     """
-    result: dict[str, Any] = {
+    result: ExtractedJobData = {
         "job_title": None,
         "company_name": None,
         "location": None,
