@@ -48,6 +48,15 @@ from app.agents.checkpoint import (
     request_human_input,
     resume_from_checkpoint,
 )
+from app.agents.onboarding import (
+    ONBOARDING_STEPS,
+    OPTIONAL_SECTIONS,
+    create_onboarding_graph,
+    get_next_step,
+    get_onboarding_graph,
+    is_update_request,
+    should_start_onboarding,
+)
 from app.agents.state import (
     BaseAgentState,
     ChatAgentState,
@@ -88,4 +97,12 @@ __all__ = [
     "request_clarification",
     "route_by_intent",
     "select_tools",
+    # Onboarding Agent
+    "ONBOARDING_STEPS",
+    "OPTIONAL_SECTIONS",
+    "create_onboarding_graph",
+    "get_next_step",
+    "get_onboarding_graph",
+    "is_update_request",
+    "should_start_onboarding",
 ]

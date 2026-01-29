@@ -303,7 +303,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 2.3 Onboarding Agent (REQ-007 §5)
-**Status:** ⬜ Incomplete
+**Status:** 🟡 In Progress
 
 *Creates Persona from user interview. Required before job matching works.*
 
@@ -323,13 +323,13 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 5.1 | Onboarding Agent — Trigger Conditions | `agents, provider, tdd, plan` | ⬜ |
-| 5.2 | Onboarding Agent — Interview Flow | `agents, provider, tdd, plan` | ⬜ |
-| 5.3 | Onboarding Agent — Step Behaviors | `agents, provider, db, tdd, plan` | ⬜ |
-| 5.4 | Onboarding Agent — Checkpoint Handling | `agents, provider, db, tdd, plan` | ⬜ |
+| 5.1 | Onboarding Agent — Trigger Conditions | `agents, provider, tdd, plan` | ✅ |
+| 5.2 | Onboarding Agent — Interview Flow | `agents, provider, tdd, plan` | ✅ |
+| 5.3 | Onboarding Agent — Step Behaviors | `agents, provider, db, tdd, plan` | 🟡 |
+| 5.4 | Onboarding Agent — Checkpoint Handling | `agents, provider, db, tdd, plan` | ✅ |
 | 5.5 | Onboarding Agent — Post-Onboarding Updates | `agents, provider, db, tdd, plan` | ⬜ |
 | 5.6 | Onboarding Agent — Prompt Templates | `agents, provider, docs, tdd, plan` | ⬜ |
-| 15.2 | Graph Spec — Onboarding Agent | `agents, provider, structure, tdd, plan` | ⬜ |
+| 15.2 | Graph Spec — Onboarding Agent | `agents, provider, structure, tdd, plan` | ✅ |
 
 ---
 
