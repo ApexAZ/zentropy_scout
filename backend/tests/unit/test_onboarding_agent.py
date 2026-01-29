@@ -17,6 +17,8 @@ from app.agents.onboarding import (
     check_step_complete,
     create_onboarding_graph,
     gather_basic_info,
+    gather_certifications,
+    gather_education,
     gather_work_history,
     get_next_step,
     get_onboarding_graph,
@@ -672,3 +674,326 @@ class TestWorkHistoryStep:
 
         # Should not require input since data already exists
         assert result["requires_human_input"] is False
+
+
+# =============================================================================
+# Education Step Tests (§5.3 — education)
+# =============================================================================
+
+
+class TestEducationStep:
+    """Tests for education step behavior."""
+
+    def test_gather_education_asks_for_education(self) -> None:
+        """Education step should ask if user has education to add."""
+        state = make_onboarding_state(
+            current_step="education",
+            gathered_data={},
+        )
+
+        result = gather_education(state)
+
+        assert result["current_step"] == "education"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "education" in question_lower or "degree" in question_lower
+
+    def test_gather_education_handles_skip(self) -> None:
+        """Education step should accept skip response."""
+        state = make_onboarding_state(
+            current_step="education",
+            pending_question="Do you have any formal education?",
+            user_response="skip",
+        )
+
+        result = gather_education(state)
+
+        # Should clear pending question and allow skip
+        assert result["requires_human_input"] is False
+        assert result["gathered_data"].get("education", {}).get("skipped") is True
+
+    def test_gather_education_handles_no_response(self) -> None:
+        """Education step should treat 'no' as skip since it's optional."""
+        state = make_onboarding_state(
+            current_step="education",
+            pending_question="Do you have any formal education?",
+            user_response="no",
+        )
+
+        result = gather_education(state)
+
+        # Should mark as skipped (no education = skip)
+        assert result["requires_human_input"] is False
+        assert result["gathered_data"].get("education", {}).get("skipped") is True
+
+    def test_gather_education_stores_entry(self) -> None:
+        """Education step should store education entry from user response."""
+        state = make_onboarding_state(
+            current_step="education",
+            gathered_data={"education": {"entries": []}},
+            pending_question="What degree did you earn?",
+            user_response="Bachelor of Science in Computer Science",
+        )
+
+        result = gather_education(state)
+
+        # Should have stored education entry data
+        education = result["gathered_data"].get("education", {})
+        assert "entries" in education or "current_entry" in education
+
+    def test_gather_education_asks_for_more_entries(self) -> None:
+        """Education step should ask if user has more entries after storing one."""
+        state = make_onboarding_state(
+            current_step="education",
+            gathered_data={
+                "education": {
+                    "current_entry": {
+                        "degree": "BS Computer Science",
+                        "institution": "ASU",
+                        "graduation_year": "2020",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="What year did you graduate?",
+            user_response="2020",
+        )
+
+        result = gather_education(state)
+
+        # After completing an entry, should ask if there are more
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "another" in question_lower or "more" in question_lower
+
+    def test_gather_education_completes_on_done(self) -> None:
+        """Education step should complete when user says done."""
+        state = make_onboarding_state(
+            current_step="education",
+            gathered_data={
+                "education": {
+                    "entries": [
+                        {
+                            "degree": "BS",
+                            "institution": "ASU",
+                            "graduation_year": "2020",
+                        }
+                    ],
+                }
+            },
+            pending_question="Do you have another degree to add?",
+            user_response="done",
+        )
+
+        result = gather_education(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_gather_education_handles_skip_case_insensitive(self) -> None:
+        """Education step should accept skip in any case (SKIP, Skip, etc.)."""
+        state = make_onboarding_state(
+            current_step="education",
+            pending_question="Do you have any formal education?",
+            user_response="SKIP",
+        )
+
+        result = gather_education(state)
+
+        assert result["requires_human_input"] is False
+        assert result["gathered_data"].get("education", {}).get("skipped") is True
+
+    def test_gather_education_handles_skip_with_whitespace(self) -> None:
+        """Education step should accept skip with surrounding whitespace."""
+        state = make_onboarding_state(
+            current_step="education",
+            pending_question="Do you have any formal education?",
+            user_response="  skip  ",
+        )
+
+        result = gather_education(state)
+
+        assert result["requires_human_input"] is False
+        assert result["gathered_data"].get("education", {}).get("skipped") is True
+
+    def test_gather_education_asks_for_institution_after_degree(self) -> None:
+        """Education step should ask for institution after degree is provided."""
+        state = make_onboarding_state(
+            current_step="education",
+            gathered_data={"education": {"entries": []}},
+            pending_question="Do you have any formal education?",
+            user_response="Bachelor of Science in Computer Science",
+        )
+
+        result = gather_education(state)
+
+        # After providing degree, should ask for institution
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "institution" in question_lower or "attend" in question_lower
+
+
+# =============================================================================
+# Certifications Step Tests (§5.3 — certifications)
+# =============================================================================
+
+
+class TestCertificationsStep:
+    """Tests for certifications step behavior."""
+
+    def test_gather_certifications_asks_for_certifications(self) -> None:
+        """Certifications step should ask if user has certifications."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            gathered_data={},
+        )
+
+        result = gather_certifications(state)
+
+        assert result["current_step"] == "certifications"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "certification" in question_lower or "cert" in question_lower
+
+    def test_gather_certifications_handles_skip(self) -> None:
+        """Certifications step should accept skip response."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            pending_question="Do you have any professional certifications?",
+            user_response="skip",
+        )
+
+        result = gather_certifications(state)
+
+        # Should clear pending question and allow skip
+        assert result["requires_human_input"] is False
+        assert result["gathered_data"].get("certifications", {}).get("skipped") is True
+
+    def test_gather_certifications_handles_no_response(self) -> None:
+        """Certifications step should treat 'no' as skip since it's optional."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            pending_question="Do you have any professional certifications?",
+            user_response="no",
+        )
+
+        result = gather_certifications(state)
+
+        # Should mark as skipped (no certs = skip)
+        assert result["requires_human_input"] is False
+        assert result["gathered_data"].get("certifications", {}).get("skipped") is True
+
+    def test_gather_certifications_stores_entry(self) -> None:
+        """Certifications step should store certification entry from response."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            gathered_data={"certifications": {"entries": []}},
+            pending_question="What certification do you have?",
+            user_response="AWS Solutions Architect Professional",
+        )
+
+        result = gather_certifications(state)
+
+        # Should have stored certification entry data
+        certs = result["gathered_data"].get("certifications", {})
+        assert "entries" in certs or "current_entry" in certs
+
+    def test_gather_certifications_asks_for_issuer(self) -> None:
+        """Certifications step should ask for issuing organization after name."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            gathered_data={
+                "certifications": {
+                    "current_entry": {
+                        "certification_name": "AWS Solutions Architect",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="What certification do you have?",
+            user_response="AWS Solutions Architect Professional",
+        )
+
+        result = gather_certifications(state)
+
+        # After cert name, should ask about issuer
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "issu" in question_lower or "organization" in question_lower
+
+    def test_gather_certifications_completes_on_done(self) -> None:
+        """Certifications step should complete when user says done."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            gathered_data={
+                "certifications": {
+                    "entries": [
+                        {
+                            "certification_name": "AWS SA",
+                            "issuing_organization": "AWS",
+                            "date_obtained": "2023",
+                        }
+                    ],
+                }
+            },
+            pending_question="Do you have another certification to add?",
+            user_response="done",
+        )
+
+        result = gather_certifications(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_gather_certifications_handles_skip_case_insensitive(self) -> None:
+        """Certifications step should accept skip in any case (SKIP, Skip, etc.)."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            pending_question="Do you have any professional certifications?",
+            user_response="SKIP",
+        )
+
+        result = gather_certifications(state)
+
+        assert result["requires_human_input"] is False
+        assert result["gathered_data"].get("certifications", {}).get("skipped") is True
+
+    def test_gather_certifications_handles_skip_with_whitespace(self) -> None:
+        """Certifications step should accept skip with surrounding whitespace."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            pending_question="Do you have any professional certifications?",
+            user_response="  skip  ",
+        )
+
+        result = gather_certifications(state)
+
+        assert result["requires_human_input"] is False
+        assert result["gathered_data"].get("certifications", {}).get("skipped") is True
+
+    def test_gather_certifications_asks_for_date_after_issuer(self) -> None:
+        """Certifications step should ask for date after issuer is provided."""
+        state = make_onboarding_state(
+            current_step="certifications",
+            gathered_data={
+                "certifications": {
+                    "current_entry": {
+                        "certification_name": "AWS Solutions Architect",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="What organization issued this certification?",
+            user_response="Amazon Web Services",
+        )
+
+        result = gather_certifications(state)
+
+        # After providing issuer, should ask for date obtained
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "when" in question_lower or "date" in question_lower

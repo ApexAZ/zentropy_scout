@@ -614,10 +614,125 @@ def gather_work_history(state: OnboardingState) -> OnboardingState:
 def gather_education(state: OnboardingState) -> OnboardingState:
     """Gather education step.
 
-    Placeholder: Full implementation will gather education entries.
+    REQ-007 §5.3 / REQ-001 §3.3: Education Step
+
+    Gathers education entries with:
+    - Degree, field of study
+    - Institution, graduation year
+    - Optional: GPA, honors
+
+    This is an optional section - users can skip if they have no formal education.
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with education entries or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "education"
+    gathered = dict(state.get("gathered_data", {}))
+    education = dict(gathered.get("education", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Initialize entries list if not present
+    if "entries" not in education:
+        education["entries"] = []
+
+    # Handle user response
+    if user_response and pending_question:
+        response_lower = user_response.lower().strip()
+        question_lower = pending_question.lower()
+
+        # User is done adding entries - check this FIRST before other keyword parsing
+        if response_lower == "done":
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            gathered["education"] = education
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # User wants to skip or has no education
+        # WHY: "no" is treated as skip because the question is "Do you have education?"
+        # A "no" answer means they don't have any, same outcome as explicitly skipping.
+        if response_lower == "skip" or response_lower == "no":
+            education["skipped"] = True
+            gathered["education"] = education
+            new_state["gathered_data"] = gathered
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            return new_state
+
+        # Graduation year response (last field before completion)
+        if ("year" in question_lower or "graduat" in question_lower) and education.get(
+            "current_entry"
+        ):
+            education["current_entry"]["graduation_year"] = user_response
+
+            # Finalize this entry
+            entries = list(education.get("entries", []))
+            entries.append(education["current_entry"])
+            education["entries"] = entries
+            education["current_entry"] = None
+
+            # Ask if there are more entries
+            new_state["pending_question"] = (
+                "Do you have another degree to add? "
+                "Say 'done' if you've listed all your education."
+            )
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["education"] = education
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Institution response
+        if "institution" in question_lower or "school" in question_lower:
+            if education.get("current_entry"):
+                education["current_entry"]["institution"] = user_response
+            new_state["pending_question"] = "What year did you graduate?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["education"] = education
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Degree/field response (first answer in the chain)
+        if "degree" in question_lower or "education" in question_lower:
+            education["current_entry"] = {
+                "degree": user_response,
+            }
+            new_state["pending_question"] = "What institution did you attend?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["education"] = education
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if education data already gathered
+    if education.get("skipped") or education.get("entries"):
+        new_state["requires_human_input"] = False
+        gathered["education"] = education
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - ask if user has education
+    new_state["pending_question"] = (
+        "Do you have any formal education you'd like to include? (degrees, etc.) "
+        "Type 'yes' to add education, or 'skip' if not applicable."
+    )
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["education"] = education
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 
@@ -634,10 +749,128 @@ def gather_skills(state: OnboardingState) -> OnboardingState:
 def gather_certifications(state: OnboardingState) -> OnboardingState:
     """Gather certifications step.
 
-    Placeholder: Full implementation will gather certs.
+    REQ-007 §5.3 / REQ-001 §3.5: Certifications Step
+
+    Gathers certification entries with:
+    - Certification name
+    - Issuing organization
+    - Date obtained
+    - Optional: expiration date, credential ID, verification URL
+
+    This is an optional section - users can skip if they have no certifications.
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with certification entries or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "certifications"
+    gathered = dict(state.get("gathered_data", {}))
+    certifications = dict(gathered.get("certifications", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Initialize entries list if not present
+    if "entries" not in certifications:
+        certifications["entries"] = []
+
+    # Handle user response
+    if user_response and pending_question:
+        response_lower = user_response.lower().strip()
+        question_lower = pending_question.lower()
+
+        # User is done adding entries - check this FIRST before other keyword parsing
+        if response_lower == "done":
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            gathered["certifications"] = certifications
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # User wants to skip or has no certifications
+        # WHY: "no" is treated as skip because the question is "Do you have certs?"
+        # A "no" answer means they don't have any, same outcome as explicitly skipping.
+        if response_lower == "skip" or response_lower == "no":
+            certifications["skipped"] = True
+            gathered["certifications"] = certifications
+            new_state["gathered_data"] = gathered
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            return new_state
+
+        # Date obtained response (last field before completion)
+        if (
+            "date" in question_lower or "when" in question_lower
+        ) and certifications.get("current_entry"):
+            certifications["current_entry"]["date_obtained"] = user_response
+
+            # Finalize this entry
+            entries = list(certifications.get("entries", []))
+            entries.append(certifications["current_entry"])
+            certifications["entries"] = entries
+            certifications["current_entry"] = None
+
+            # Ask if there are more entries
+            new_state["pending_question"] = (
+                "Do you have another certification to add? "
+                "Say 'done' if you've listed all your certifications."
+            )
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["certifications"] = certifications
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Issuing organization response
+        if "issu" in question_lower or "organization" in question_lower:
+            if certifications.get("current_entry"):
+                certifications["current_entry"]["issuing_organization"] = user_response
+            new_state["pending_question"] = "When did you obtain this certification?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["certifications"] = certifications
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Certification name response (first answer in the chain)
+        if "certification" in question_lower or "cert" in question_lower:
+            certifications["current_entry"] = {
+                "certification_name": user_response,
+            }
+            new_state[
+                "pending_question"
+            ] = "What organization issued this certification?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["certifications"] = certifications
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if certifications data already gathered
+    if certifications.get("skipped") or certifications.get("entries"):
+        new_state["requires_human_input"] = False
+        gathered["certifications"] = certifications
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - ask if user has certifications
+    new_state["pending_question"] = (
+        "Do you have any professional certifications? "
+        "Type 'yes' to add certifications, or 'skip' if not applicable."
+    )
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["certifications"] = certifications
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 

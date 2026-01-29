@@ -326,7 +326,7 @@ These steps require user action outside Claude Code:
 | 5.1 | Onboarding Agent — Trigger Conditions | `agents, provider, tdd, plan` | ✅ |
 | 5.2 | Onboarding Agent — Interview Flow | `agents, provider, tdd, plan` | ✅ |
 | 5.3a | Step Behaviors — resume_upload + work_history | `agents, provider, db, tdd, plan` | ✅ |
-| 5.3b | Step Behaviors — education + certifications | `agents, provider, db, tdd, plan` | ⬜ |
+| 5.3b | Step Behaviors — education + certifications | `agents, provider, db, tdd, plan` | ✅ |
 | 5.3c | Step Behaviors — skills + stories | `agents, provider, db, tdd, plan` | ⬜ |
 | 5.3d | Step Behaviors — non_negotiables + growth_targets | `agents, provider, db, tdd, plan` | ⬜ |
 | 5.3e | Step Behaviors — voice_profile + base_resume | `agents, provider, db, tdd, plan` | ⬜ |
