@@ -133,6 +133,57 @@ class AgentAPIClient(Protocol):
         """
         ...
 
+    async def get_job_posting(
+        self,
+        job_posting_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Get a job posting by ID.
+
+        Args:
+            job_posting_id: The job posting's ID.
+            user_id: The user's ID (tenant isolation).
+
+        Returns:
+            Dict with 'data' containing the job posting.
+        """
+        ...
+
+    async def bulk_dismiss_job_postings(
+        self,
+        user_id: str,
+        job_ids: list[str],
+    ) -> dict[str, Any]:
+        """Bulk dismiss multiple job postings.
+
+        Args:
+            user_id: The user's ID (tenant isolation).
+            job_ids: List of job posting IDs to dismiss.
+
+        Returns:
+            Dict with bulk operation result.
+        """
+        ...
+
+    async def bulk_favorite_job_postings(
+        self,
+        user_id: str,
+        job_ids: list[str],
+        *,
+        is_favorite: bool = True,
+    ) -> dict[str, Any]:
+        """Bulk favorite/unfavorite multiple job postings.
+
+        Args:
+            user_id: The user's ID (tenant isolation).
+            job_ids: List of job posting IDs.
+            is_favorite: True to favorite, False to unfavorite.
+
+        Returns:
+            Dict with bulk operation result.
+        """
+        ...
+
     # -------------------------------------------------------------------------
     # Personas
     # -------------------------------------------------------------------------
@@ -175,6 +226,27 @@ class AgentAPIClient(Protocol):
     # Job Variants (Tailored Resumes)
     # -------------------------------------------------------------------------
 
+    async def list_job_variants(
+        self,
+        user_id: str,
+        *,
+        status: str | None = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict[str, Any]:
+        """List job variants for a user.
+
+        Args:
+            user_id: The user's ID (tenant isolation).
+            status: Filter by status (Draft, Approved, etc.).
+            page: Page number for pagination.
+            per_page: Items per page.
+
+        Returns:
+            Dict with 'data' (list) and 'meta' (pagination info).
+        """
+        ...
+
     async def create_job_variant(
         self,
         user_id: str,
@@ -207,9 +279,43 @@ class AgentAPIClient(Protocol):
         """
         ...
 
+    async def update_job_variant(
+        self,
+        job_variant_id: str | UUID,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing job variant.
+
+        Args:
+            job_variant_id: The variant's ID.
+            user_id: The user's ID (tenant isolation).
+            data: Fields to update.
+
+        Returns:
+            Dict with 'data' containing the updated variant.
+        """
+        ...
+
     # -------------------------------------------------------------------------
     # Cover Letters
     # -------------------------------------------------------------------------
+
+    async def get_cover_letter(
+        self,
+        cover_letter_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Get a cover letter by ID.
+
+        Args:
+            cover_letter_id: The cover letter's ID.
+            user_id: The user's ID (tenant isolation).
+
+        Returns:
+            Dict with 'data' containing the cover letter.
+        """
+        ...
 
     async def create_cover_letter(
         self,
@@ -224,6 +330,215 @@ class AgentAPIClient(Protocol):
 
         Returns:
             Dict with 'data' containing the created cover letter.
+        """
+        ...
+
+    async def update_cover_letter(
+        self,
+        cover_letter_id: str | UUID,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing cover letter.
+
+        Args:
+            cover_letter_id: The cover letter's ID.
+            user_id: The user's ID (tenant isolation).
+            data: Fields to update.
+
+        Returns:
+            Dict with 'data' containing the updated cover letter.
+        """
+        ...
+
+    async def regenerate_cover_letter(
+        self,
+        cover_letter_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Request regeneration of a cover letter.
+
+        Args:
+            cover_letter_id: The cover letter's ID.
+            user_id: The user's ID (tenant isolation).
+
+        Returns:
+            Dict with 'data' containing the regeneration status.
+        """
+        ...
+
+    # -------------------------------------------------------------------------
+    # Applications
+    # -------------------------------------------------------------------------
+
+    async def list_applications(
+        self,
+        user_id: str,
+        *,
+        status: str | None = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict[str, Any]:
+        """List applications for a user.
+
+        Args:
+            user_id: The user's ID (tenant isolation).
+            status: Filter by status (Applied, Interviewing, etc.).
+            page: Page number for pagination.
+            per_page: Items per page.
+
+        Returns:
+            Dict with 'data' (list) and 'meta' (pagination info).
+        """
+        ...
+
+    async def get_application(
+        self,
+        application_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Get an application by ID.
+
+        Args:
+            application_id: The application's ID.
+            user_id: The user's ID (tenant isolation).
+
+        Returns:
+            Dict with 'data' containing the application.
+        """
+        ...
+
+    async def create_application(
+        self,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Create a new application.
+
+        Args:
+            user_id: The user's ID (tenant isolation).
+            data: Application data including job_posting_id, status, etc.
+
+        Returns:
+            Dict with 'data' containing the created application.
+        """
+        ...
+
+    async def update_application(
+        self,
+        application_id: str | UUID,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing application.
+
+        Args:
+            application_id: The application's ID.
+            user_id: The user's ID (tenant isolation).
+            data: Fields to update.
+
+        Returns:
+            Dict with 'data' containing the updated application.
+        """
+        ...
+
+    # -------------------------------------------------------------------------
+    # Base Resumes
+    # -------------------------------------------------------------------------
+
+    async def list_base_resumes(
+        self,
+        user_id: str,
+        *,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict[str, Any]:
+        """List base resumes for a user.
+
+        Args:
+            user_id: The user's ID (tenant isolation).
+            page: Page number for pagination.
+            per_page: Items per page.
+
+        Returns:
+            Dict with 'data' (list) and 'meta' (pagination info).
+        """
+        ...
+
+    async def get_base_resume(
+        self,
+        base_resume_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Get a base resume by ID.
+
+        Args:
+            base_resume_id: The base resume's ID.
+            user_id: The user's ID (tenant isolation).
+
+        Returns:
+            Dict with 'data' containing the base resume.
+        """
+        ...
+
+    # -------------------------------------------------------------------------
+    # Persona Change Flags
+    # -------------------------------------------------------------------------
+
+    async def list_persona_change_flags(
+        self,
+        user_id: str,
+        *,
+        resolved: bool | None = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict[str, Any]:
+        """List persona change flags for a user.
+
+        Args:
+            user_id: The user's ID (tenant isolation).
+            resolved: Filter by resolved status.
+            page: Page number for pagination.
+            per_page: Items per page.
+
+        Returns:
+            Dict with 'data' (list) and 'meta' (pagination info).
+        """
+        ...
+
+    async def update_persona_change_flag(
+        self,
+        flag_id: str | UUID,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update a persona change flag.
+
+        Args:
+            flag_id: The flag's ID.
+            user_id: The user's ID (tenant isolation).
+            data: Fields to update (e.g., resolved=True).
+
+        Returns:
+            Dict with 'data' containing the updated flag.
+        """
+        ...
+
+    # -------------------------------------------------------------------------
+    # Refresh / Triggers
+    # -------------------------------------------------------------------------
+
+    async def trigger_refresh(
+        self,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Trigger a job refresh for the user.
+
+        Args:
+            user_id: The user's ID (tenant isolation).
+
+        Returns:
+            Dict with refresh status.
         """
         ...
 
@@ -305,6 +620,42 @@ class BaseAgentClient(ABC):
             data=data,
         )
 
+    async def get_job_posting(
+        self,
+        job_posting_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Get a job posting by ID."""
+        return await self._request("GET", f"/job-postings/{job_posting_id}", user_id)
+
+    async def bulk_dismiss_job_postings(
+        self,
+        user_id: str,
+        job_ids: list[str],
+    ) -> dict[str, Any]:
+        """Bulk dismiss multiple job postings."""
+        return await self._request(
+            "POST",
+            "/job-postings/bulk-dismiss",
+            user_id,
+            data={"ids": job_ids},
+        )
+
+    async def bulk_favorite_job_postings(
+        self,
+        user_id: str,
+        job_ids: list[str],
+        *,
+        is_favorite: bool = True,
+    ) -> dict[str, Any]:
+        """Bulk favorite/unfavorite multiple job postings."""
+        return await self._request(
+            "POST",
+            "/job-postings/bulk-favorite",
+            user_id,
+            data={"ids": job_ids, "is_favorite": is_favorite},
+        )
+
     # -------------------------------------------------------------------------
     # Personas Implementation
     # -------------------------------------------------------------------------
@@ -335,6 +686,20 @@ class BaseAgentClient(ABC):
     # Job Variants Implementation
     # -------------------------------------------------------------------------
 
+    async def list_job_variants(
+        self,
+        user_id: str,
+        *,
+        status: str | None = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict[str, Any]:
+        """List job variants for a user."""
+        params: dict[str, Any] = {"page": page, "per_page": per_page}
+        if status:
+            params["status"] = status
+        return await self._request("GET", "/job-variants", user_id, params=params)
+
     async def create_job_variant(
         self,
         user_id: str,
@@ -351,9 +716,31 @@ class BaseAgentClient(ABC):
         """Get a job variant by ID."""
         return await self._request("GET", f"/job-variants/{job_variant_id}", user_id)
 
+    async def update_job_variant(
+        self,
+        job_variant_id: str | UUID,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing job variant."""
+        return await self._request(
+            "PATCH",
+            f"/job-variants/{job_variant_id}",
+            user_id,
+            data=data,
+        )
+
     # -------------------------------------------------------------------------
     # Cover Letters Implementation
     # -------------------------------------------------------------------------
+
+    async def get_cover_letter(
+        self,
+        cover_letter_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Get a cover letter by ID."""
+        return await self._request("GET", f"/cover-letters/{cover_letter_id}", user_id)
 
     async def create_cover_letter(
         self,
@@ -362,6 +749,148 @@ class BaseAgentClient(ABC):
     ) -> dict[str, Any]:
         """Create a new cover letter."""
         return await self._request("POST", "/cover-letters", user_id, data=data)
+
+    async def update_cover_letter(
+        self,
+        cover_letter_id: str | UUID,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing cover letter."""
+        return await self._request(
+            "PATCH",
+            f"/cover-letters/{cover_letter_id}",
+            user_id,
+            data=data,
+        )
+
+    async def regenerate_cover_letter(
+        self,
+        cover_letter_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Request regeneration of a cover letter."""
+        return await self._request(
+            "POST",
+            f"/cover-letters/{cover_letter_id}/regenerate",
+            user_id,
+        )
+
+    # -------------------------------------------------------------------------
+    # Applications Implementation
+    # -------------------------------------------------------------------------
+
+    async def list_applications(
+        self,
+        user_id: str,
+        *,
+        status: str | None = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict[str, Any]:
+        """List applications for a user."""
+        params: dict[str, Any] = {"page": page, "per_page": per_page}
+        if status:
+            params["status"] = status
+        return await self._request("GET", "/applications", user_id, params=params)
+
+    async def get_application(
+        self,
+        application_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Get an application by ID."""
+        return await self._request("GET", f"/applications/{application_id}", user_id)
+
+    async def create_application(
+        self,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Create a new application."""
+        return await self._request("POST", "/applications", user_id, data=data)
+
+    async def update_application(
+        self,
+        application_id: str | UUID,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update an existing application."""
+        return await self._request(
+            "PATCH",
+            f"/applications/{application_id}",
+            user_id,
+            data=data,
+        )
+
+    # -------------------------------------------------------------------------
+    # Base Resumes Implementation
+    # -------------------------------------------------------------------------
+
+    async def list_base_resumes(
+        self,
+        user_id: str,
+        *,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict[str, Any]:
+        """List base resumes for a user."""
+        params: dict[str, Any] = {"page": page, "per_page": per_page}
+        return await self._request("GET", "/base-resumes", user_id, params=params)
+
+    async def get_base_resume(
+        self,
+        base_resume_id: str | UUID,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Get a base resume by ID."""
+        return await self._request("GET", f"/base-resumes/{base_resume_id}", user_id)
+
+    # -------------------------------------------------------------------------
+    # Persona Change Flags Implementation
+    # -------------------------------------------------------------------------
+
+    async def list_persona_change_flags(
+        self,
+        user_id: str,
+        *,
+        resolved: bool | None = None,
+        page: int = 1,
+        per_page: int = 20,
+    ) -> dict[str, Any]:
+        """List persona change flags for a user."""
+        params: dict[str, Any] = {"page": page, "per_page": per_page}
+        if resolved is not None:
+            params["resolved"] = resolved
+        return await self._request(
+            "GET", "/persona-change-flags", user_id, params=params
+        )
+
+    async def update_persona_change_flag(
+        self,
+        flag_id: str | UUID,
+        user_id: str,
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update a persona change flag."""
+        return await self._request(
+            "PATCH",
+            f"/persona-change-flags/{flag_id}",
+            user_id,
+            data=data,
+        )
+
+    # -------------------------------------------------------------------------
+    # Refresh Implementation
+    # -------------------------------------------------------------------------
+
+    async def trigger_refresh(
+        self,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Trigger a job refresh for the user."""
+        return await self._request("POST", "/refresh", user_id)
 
 
 class LocalAgentClient(BaseAgentClient):
