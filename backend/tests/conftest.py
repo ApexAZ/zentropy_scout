@@ -140,10 +140,77 @@ async def test_user(db_session: AsyncSession):
     yield user
 
 
+# Test persona ID (consistent for tests)
+TEST_PERSONA_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
+
+
+@pytest_asyncio.fixture
+async def test_persona(db_session: AsyncSession, test_user):
+    """Create a test persona for authenticated API tests.
+
+    REQ-006 §5.6: Ingest endpoint needs a persona to attach jobs to.
+
+    Args:
+        db_session: Database session.
+        test_user: Test user (owner of persona).
+
+    Yields:
+        Persona model instance.
+    """
+    from app.models.persona import Persona
+
+    persona = Persona(
+        id=TEST_PERSONA_ID,
+        user_id=test_user.id,
+        email="persona@example.com",
+        full_name="Test User",
+        phone="555-1234",
+        home_city="Test City",
+        home_state="Test State",
+        home_country="USA",
+    )
+    db_session.add(persona)
+    await db_session.commit()
+    await db_session.refresh(persona)
+    yield persona
+
+
+# Test job source ID
+TEST_JOB_SOURCE_ID = uuid.UUID("00000000-0000-0000-0000-000000000003")
+
+
+@pytest_asyncio.fixture
+async def test_job_source(db_session: AsyncSession):
+    """Create a test job source for ingest tests.
+
+    REQ-006 §5.6: Ingest creates jobs with source reference.
+
+    Args:
+        db_session: Database session.
+
+    Yields:
+        JobSource model instance.
+    """
+    from app.models.job_source import JobSource
+
+    source = JobSource(
+        id=TEST_JOB_SOURCE_ID,
+        source_name="Extension",
+        source_type="Extension",
+        description="Chrome extension job capture",
+    )
+    db_session.add(source)
+    await db_session.commit()
+    await db_session.refresh(source)
+    yield source
+
+
 @pytest_asyncio.fixture
 async def client(
     db_engine,
     test_user,  # noqa: ARG001 - ensures user exists
+    test_persona,  # noqa: ARG001 - ensures persona exists
+    test_job_source,  # noqa: ARG001 - ensures job source exists
 ) -> AsyncGenerator[AsyncClient, None]:
     """Async HTTP client for authenticated API tests.
 
@@ -157,6 +224,8 @@ async def client(
     Args:
         db_engine: Test database engine from db_engine fixture.
         test_user: Test user (ensures user exists in DB).
+        test_persona: Test persona (ensures persona exists).
+        test_job_source: Test job source (ensures source exists).
 
     Yields:
         Configured AsyncClient for making API requests.
@@ -213,3 +282,19 @@ async def unauthenticated_client() -> AsyncGenerator[AsyncClient, None]:
 
     # Restore original setting
     settings.default_user_id = original_user_id
+
+
+@pytest.fixture(autouse=True)
+def reset_ingest_token_store() -> Iterator[None]:
+    """Reset ingest token store before each test.
+
+    REQ-006 §5.6: Ensures clean token state between tests.
+
+    Yields:
+        None (autouse fixture).
+    """
+    from app.services.ingest_token_store import reset_token_store
+
+    reset_token_store()
+    yield
+    reset_token_store()
