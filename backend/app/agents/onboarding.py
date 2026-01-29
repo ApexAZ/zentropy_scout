@@ -74,8 +74,8 @@ OPTIONAL_SECTIONS = {
 REQUIRED_FIELDS: dict[str, list[str]] = {
     "basic_info": ["full_name", "email", "phone", "location"],
     "work_history": ["entries"],  # At least 1 job entry
-    "skills": ["skills"],  # At least 1 skill
-    "achievement_stories": ["stories"],  # At least 1 story
+    "skills": ["entries"],  # At least 1 skill entry
+    "achievement_stories": ["entries"],  # At least 1 story entry
     "non_negotiables": ["remote_preference"],  # At minimum
     "growth_targets": ["target_roles"],  # At minimum
     "voice_profile": ["tone"],  # At minimum
@@ -739,10 +739,142 @@ def gather_education(state: OnboardingState) -> OnboardingState:
 def gather_skills(state: OnboardingState) -> OnboardingState:
     """Gather skills step.
 
-    Placeholder: Full implementation will rate proficiency.
+    REQ-007 §5.3.4: Skills Step
+
+    Gathers skills with:
+    - Skill name
+    - Proficiency level (Learning / Familiar / Proficient / Expert)
+    - Skill type (Hard/technical or Soft/interpersonal)
+
+    If resume was uploaded, presents extracted skills for proficiency rating.
+    Otherwise, asks user to list skills manually.
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with skills entries or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "skills"
+    gathered = dict(state.get("gathered_data", {}))
+    skills = dict(gathered.get("skills", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Initialize entries list if not present
+    if "entries" not in skills:
+        skills["entries"] = []
+
+    # Check for extracted skills from resume
+    resume_data = gathered.get("resume_upload", {})
+    extracted_skills = resume_data.get("extracted_skills", [])
+
+    # Handle user response
+    if user_response and pending_question:
+        response_lower = user_response.lower().strip()
+        question_lower = pending_question.lower()
+
+        # User is done adding skills - check this FIRST before other keyword parsing
+        if response_lower == "done":
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            gathered["skills"] = skills
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Skill type response (last field before completion)
+        if (
+            "type" in question_lower
+            or "hard" in question_lower
+            or "soft" in question_lower
+        ) and skills.get("current_entry"):
+            skills["current_entry"]["skill_type"] = user_response
+
+            # Finalize this entry
+            entries = list(skills.get("entries", []))
+            entries.append(skills["current_entry"])
+            skills["entries"] = entries
+            skills["current_entry"] = None
+
+            # Ask if there are more skills
+            new_state["pending_question"] = (
+                "Do you have another skill to add? "
+                "Say 'done' if you've listed all your key skills."
+            )
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["skills"] = skills
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Proficiency response
+        if "proficiency" in question_lower or "rate" in question_lower:
+            if skills.get("current_entry"):
+                skills["current_entry"]["proficiency"] = user_response
+            skill_name = skills.get("current_entry", {}).get("skill_name", "this skill")
+            new_state[
+                "pending_question"
+            ] = f"Is {skill_name} a hard (technical) or soft (interpersonal) skill?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["skills"] = skills
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Skill name response (first answer in the chain)
+        if "skill" in question_lower and (
+            "what" in question_lower or "key" in question_lower
+        ):
+            skills["current_entry"] = {
+                "skill_name": user_response,
+            }
+            new_state["pending_question"] = (
+                f"How would you rate your {user_response} proficiency? "
+                "(Learning / Familiar / Proficient / Expert)"
+            )
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["skills"] = skills
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if skills data already gathered
+    if skills.get("entries"):
+        new_state["requires_human_input"] = False
+        gathered["skills"] = skills
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # If we have extracted skills from resume, present them for rating
+    if extracted_skills:
+        first_skill = extracted_skills[0]
+        skills["current_entry"] = {"skill_name": first_skill}
+        skills["remaining_extracted"] = extracted_skills[1:]
+        new_state["pending_question"] = (
+            f"I found '{first_skill}' in your resume. "
+            "How would you rate your proficiency? (Learning / Familiar / Proficient / Expert)"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        gathered["skills"] = skills
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - ask for skills
+    new_state[
+        "pending_question"
+    ] = "What is one of your key skills? (technical or interpersonal)"
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["skills"] = skills
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 
@@ -877,10 +1009,164 @@ def gather_certifications(state: OnboardingState) -> OnboardingState:
 def gather_stories(state: OnboardingState) -> OnboardingState:
     """Gather achievement stories step.
 
-    Placeholder: Full implementation will gather STAR stories.
+    REQ-007 §5.3.5: Achievement Stories Step
+
+    Gathers 3-5 structured stories in STAR format:
+    - Context: What was the situation/challenge?
+    - Action: What specifically did THEY do (not their team)?
+    - Outcome: What was the measurable result?
+    - Skills demonstrated: Which skills does this showcase?
+
+    Uses probing questions to extract rich details for cover letter generation.
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with story entries or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "achievement_stories"
+    gathered = dict(state.get("gathered_data", {}))
+    stories = dict(gathered.get("achievement_stories", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Initialize entries list if not present
+    if "entries" not in stories:
+        stories["entries"] = []
+
+    # Handle user response
+    if user_response and pending_question:
+        response_lower = user_response.lower().strip()
+        question_lower = pending_question.lower()
+
+        # User is done adding stories - check this FIRST
+        if response_lower == "done":
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            gathered["achievement_stories"] = stories
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Skills demonstrated response (last field - completes the story)
+        if (
+            "skill" in question_lower and "demonstrat" in question_lower
+        ) and stories.get("current_entry"):
+            stories["current_entry"]["skills_demonstrated"] = user_response
+
+            # Finalize this entry
+            entries = list(stories.get("entries", []))
+            entries.append(stories["current_entry"])
+            stories["entries"] = entries
+            stories["current_entry"] = None
+
+            # Count stories - goal is 3-5
+            story_count = len(entries)
+            if story_count < 3:
+                new_state["pending_question"] = (
+                    f"Great story! You have {story_count} so far. "
+                    "Do you have another achievement story to share? (goal is 3-5 stories)"
+                )
+            else:
+                new_state["pending_question"] = (
+                    f"Excellent! You have {story_count} stories. "
+                    "Do you have another achievement story, or say 'done' to continue."
+                )
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["achievement_stories"] = stories
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Outcome/result response
+        if (
+            "result" in question_lower
+            or "outcome" in question_lower
+            or "impact" in question_lower
+        ) and stories.get("current_entry"):
+            stories["current_entry"]["outcome"] = user_response
+            new_state["pending_question"] = "Which skills did this demonstrate?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["achievement_stories"] = stories
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Action response
+        if (
+            "action" in question_lower
+            or "you do" in question_lower
+            or "specifically" in question_lower
+        ) and stories.get("current_entry"):
+            stories["current_entry"]["action"] = user_response
+            new_state[
+                "pending_question"
+            ] = "What was the result or impact? Can you put a number on it?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["achievement_stories"] = stories
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Context/situation response
+        if (
+            "context" in question_lower
+            or "situation" in question_lower
+            or "challeng" in question_lower
+        ) and stories.get("current_entry"):
+            stories["current_entry"]["context"] = user_response
+            new_state[
+                "pending_question"
+            ] = "What specifically did YOU do? (not your team, just your actions)"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["achievement_stories"] = stories
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Initial story response (first answer in the chain)
+        if (
+            "achiev" in question_lower
+            or "accomplish" in question_lower
+            or "tell" in question_lower
+        ):
+            stories["current_entry"] = {
+                "initial_story": user_response,
+            }
+            new_state[
+                "pending_question"
+            ] = "What was the context or challenge you were facing?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["achievement_stories"] = stories
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if stories data already gathered
+    if stories.get("entries"):
+        new_state["requires_human_input"] = False
+        gathered["achievement_stories"] = stories
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - prompt for an achievement story
+    new_state["pending_question"] = (
+        "Tell me about a time you achieved something significant at work. "
+        "What's an accomplishment you're proud of?"
+    )
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["achievement_stories"] = stories
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 

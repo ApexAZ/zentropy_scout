@@ -19,6 +19,8 @@ from app.agents.onboarding import (
     gather_basic_info,
     gather_certifications,
     gather_education,
+    gather_skills,
+    gather_stories,
     gather_work_history,
     get_next_step,
     get_onboarding_graph,
@@ -997,3 +999,524 @@ class TestCertificationsStep:
         assert result["pending_question"] is not None
         question_lower = result["pending_question"].lower()
         assert "when" in question_lower or "date" in question_lower
+
+
+# =============================================================================
+# Skills Step Tests (§5.3.4)
+# =============================================================================
+
+
+class TestSkillsStep:
+    """Tests for skills step behavior (§5.3.4)."""
+
+    def test_gather_skills_asks_for_skills(self) -> None:
+        """Skills step should ask user about their skills."""
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={},
+        )
+
+        result = gather_skills(state)
+
+        assert result["current_step"] == "skills"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "skill" in question_lower
+
+    def test_gather_skills_stores_skill_with_proficiency(self) -> None:
+        """Skills step should store complete skill entry with all fields."""
+        # Test the full flow: after providing skill type, entry should be stored
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={
+                "skills": {
+                    "current_entry": {
+                        "skill_name": "Python",
+                        "proficiency": "Expert",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="Is Python a hard (technical) or soft (interpersonal) skill?",
+            user_response="Hard",
+        )
+
+        result = gather_skills(state)
+
+        # Should have stored skill with all fields
+        skills = result["gathered_data"].get("skills", {})
+        entries = skills.get("entries", [])
+        assert len(entries) == 1
+        assert entries[0]["skill_name"] == "Python"
+        assert entries[0]["proficiency"] == "Expert"
+        assert entries[0]["skill_type"] == "Hard"
+
+    def test_gather_skills_asks_for_proficiency_after_skill_name(self) -> None:
+        """Skills step should ask for proficiency after skill name is provided."""
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={"skills": {"entries": []}},
+            pending_question="What is one of your key skills?",
+            user_response="Python",
+        )
+
+        result = gather_skills(state)
+
+        # After skill name, should ask for proficiency
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "proficiency" in question_lower or "rate" in question_lower
+
+    def test_gather_skills_asks_for_skill_type(self) -> None:
+        """Skills step should ask for skill type (hard/soft) after proficiency."""
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={
+                "skills": {
+                    "current_entry": {
+                        "skill_name": "Python",
+                        "proficiency": "Expert",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="How would you rate your Python proficiency?",
+            user_response="Expert",
+        )
+
+        result = gather_skills(state)
+
+        # After proficiency, should ask about skill type (hard/soft)
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert (
+            "type" in question_lower
+            or "hard" in question_lower
+            or "soft" in question_lower
+        )
+
+    def test_gather_skills_asks_for_more_skills(self) -> None:
+        """Skills step should ask if user has more skills after storing one."""
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={
+                "skills": {
+                    "current_entry": {
+                        "skill_name": "Python",
+                        "proficiency": "Expert",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="Is Python a hard (technical) or soft (interpersonal) skill?",
+            user_response="Hard",
+        )
+
+        result = gather_skills(state)
+
+        # After completing an entry, should ask if there are more
+        skills = result["gathered_data"].get("skills", {})
+        assert len(skills.get("entries", [])) == 1
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "another" in question_lower or "more" in question_lower
+
+    def test_gather_skills_completes_on_done(self) -> None:
+        """Skills step should complete when user says done."""
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={
+                "skills": {
+                    "entries": [
+                        {
+                            "skill_name": "Python",
+                            "proficiency": "Expert",
+                            "skill_type": "Hard",
+                        }
+                    ],
+                }
+            },
+            pending_question="Do you have another skill to add?",
+            user_response="done",
+        )
+
+        result = gather_skills(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_gather_skills_handles_done_case_insensitive(self) -> None:
+        """Skills step should accept done in any case (DONE, Done, etc.)."""
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={
+                "skills": {
+                    "entries": [
+                        {
+                            "skill_name": "Python",
+                            "proficiency": "Expert",
+                            "skill_type": "Hard",
+                        }
+                    ],
+                }
+            },
+            pending_question="Do you have another skill to add?",
+            user_response="DONE",
+        )
+
+        result = gather_skills(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_gather_skills_handles_done_with_whitespace(self) -> None:
+        """Skills step should accept done with surrounding whitespace."""
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={
+                "skills": {
+                    "entries": [
+                        {
+                            "skill_name": "Python",
+                            "proficiency": "Expert",
+                            "skill_type": "Hard",
+                        }
+                    ],
+                }
+            },
+            pending_question="Do you have another skill to add?",
+            user_response="  done  ",
+        )
+
+        result = gather_skills(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_gather_skills_presents_extracted_skills(self) -> None:
+        """Skills step should present skills extracted from resume for rating."""
+        state = make_onboarding_state(
+            current_step="skills",
+            gathered_data={
+                "resume_upload": {
+                    "extracted_skills": ["Python", "JavaScript", "SQL"],
+                },
+            },
+        )
+
+        result = gather_skills(state)
+
+        # Should present extracted skills for proficiency rating
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        # Should mention the first extracted skill
+        assert "Python" in result["pending_question"]
+
+    def test_check_step_complete_detects_skills_complete(self) -> None:
+        """check_step_complete should detect when skills step has required data."""
+        state = make_onboarding_state(
+            current_step="skills",
+            requires_human_input=False,
+            gathered_data={
+                "skills": {
+                    "entries": [
+                        {
+                            "skill_name": "Python",
+                            "proficiency": "Expert",
+                            "skill_type": "Hard",
+                        }
+                    ],
+                }
+            },
+        )
+
+        result = check_step_complete(state)
+        assert result == "complete"
+
+
+# =============================================================================
+# Achievement Stories Step Tests (§5.3.5)
+# =============================================================================
+
+
+class TestStoriesStep:
+    """Tests for achievement stories step behavior (§5.3.5)."""
+
+    def test_gather_stories_asks_for_story(self) -> None:
+        """Stories step should prompt for an achievement story."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={},
+        )
+
+        result = gather_stories(state)
+
+        assert result["current_step"] == "achievement_stories"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        # Should ask about achievements/accomplishments
+        assert (
+            "achiev" in question_lower
+            or "accomplish" in question_lower
+            or "tell" in question_lower
+        )
+
+    def test_gather_stories_asks_for_context_after_initial(self) -> None:
+        """Stories step should ask for context/situation after initial prompt."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={"achievement_stories": {"entries": []}},
+            pending_question="Tell me about a significant achievement.",
+            user_response="I led a team to deliver a critical project.",
+        )
+
+        result = gather_stories(state)
+
+        # After initial response, should probe for context
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert (
+            "context" in question_lower
+            or "situation" in question_lower
+            or "challeng" in question_lower
+        )
+
+    def test_gather_stories_asks_for_action(self) -> None:
+        """Stories step should ask for specific actions taken."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={
+                "achievement_stories": {
+                    "current_entry": {
+                        "initial_story": "I led a team to deliver a critical project.",
+                        "context": "The project was 3 months behind schedule.",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="What was the context or challenge?",
+            user_response="The project was 3 months behind schedule.",
+        )
+
+        result = gather_stories(state)
+
+        # After context, should ask about their specific actions
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert (
+            "action" in question_lower
+            or "you do" in question_lower
+            or "specifically" in question_lower
+        )
+
+    def test_gather_stories_asks_for_outcome(self) -> None:
+        """Stories step should ask for measurable outcomes."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={
+                "achievement_stories": {
+                    "current_entry": {
+                        "initial_story": "Led a team project",
+                        "context": "Project was behind schedule",
+                        "action": "I reorganized priorities and implemented daily standups",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="What specifically did you do?",
+            user_response="I reorganized priorities and implemented daily standups",
+        )
+
+        result = gather_stories(state)
+
+        # After action, should ask for outcome/result
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert (
+            "result" in question_lower
+            or "outcome" in question_lower
+            or "impact" in question_lower
+        )
+
+    def test_gather_stories_asks_for_skills_demonstrated(self) -> None:
+        """Stories step should ask which skills the story demonstrates."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={
+                "achievement_stories": {
+                    "current_entry": {
+                        "initial_story": "Led a team project",
+                        "context": "Project was behind schedule",
+                        "action": "Reorganized priorities",
+                        "outcome": "Delivered on time, saved $50K",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="What was the result or impact?",
+            user_response="Delivered on time, saved $50K",
+        )
+
+        result = gather_stories(state)
+
+        # After outcome, should ask about skills demonstrated
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "skill" in question_lower or "demonstrat" in question_lower
+
+    def test_gather_stories_stores_complete_story(self) -> None:
+        """Stories step should store a complete STAR-format story."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={
+                "achievement_stories": {
+                    "current_entry": {
+                        "initial_story": "Led a team project",
+                        "context": "Project was behind schedule",
+                        "action": "Reorganized priorities",
+                        "outcome": "Delivered on time, saved $50K",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="Which skills did this demonstrate?",
+            user_response="Leadership, Project Management",
+        )
+
+        result = gather_stories(state)
+
+        # Should have stored a complete story
+        stories = result["gathered_data"].get("achievement_stories", {})
+        entries = stories.get("entries", [])
+        assert len(entries) == 1
+        assert "context" in entries[0]
+        assert "action" in entries[0]
+        assert "outcome" in entries[0]
+        assert "skills_demonstrated" in entries[0]
+
+    def test_gather_stories_asks_for_more_stories(self) -> None:
+        """Stories step should ask for more stories (goal is 3-5)."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={
+                "achievement_stories": {
+                    "current_entry": {
+                        "initial_story": "Led a team project",
+                        "context": "Project was behind schedule",
+                        "action": "Reorganized priorities",
+                        "outcome": "Delivered on time, saved $50K",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="Which skills did this demonstrate?",
+            user_response="Leadership, Project Management",
+        )
+
+        result = gather_stories(state)
+
+        # After completing a story, should ask for more
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "another" in question_lower or "more" in question_lower
+
+    def test_gather_stories_completes_on_done(self) -> None:
+        """Stories step should complete when user says done."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={
+                "achievement_stories": {
+                    "entries": [
+                        {
+                            "context": "Behind schedule",
+                            "action": "Reorganized",
+                            "outcome": "On time",
+                            "skills_demonstrated": "Leadership",
+                        }
+                    ],
+                }
+            },
+            pending_question="Do you have another achievement story to share?",
+            user_response="done",
+        )
+
+        result = gather_stories(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_gather_stories_handles_done_case_insensitive(self) -> None:
+        """Stories step should accept done in any case."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={
+                "achievement_stories": {
+                    "entries": [
+                        {
+                            "context": "X",
+                            "action": "Y",
+                            "outcome": "Z",
+                            "skills_demonstrated": "A",
+                        }
+                    ],
+                }
+            },
+            pending_question="Do you have another achievement story?",
+            user_response="DONE",
+        )
+
+        result = gather_stories(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_gather_stories_handles_done_with_whitespace(self) -> None:
+        """Stories step should accept done with surrounding whitespace."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            gathered_data={
+                "achievement_stories": {
+                    "entries": [
+                        {
+                            "context": "X",
+                            "action": "Y",
+                            "outcome": "Z",
+                            "skills_demonstrated": "A",
+                        }
+                    ],
+                }
+            },
+            pending_question="Do you have another achievement story?",
+            user_response="  done  ",
+        )
+
+        result = gather_stories(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_check_step_complete_detects_stories_complete(self) -> None:
+        """check_step_complete should detect when stories step has required data."""
+        state = make_onboarding_state(
+            current_step="achievement_stories",
+            requires_human_input=False,
+            gathered_data={
+                "achievement_stories": {
+                    "entries": [
+                        {
+                            "context": "Behind schedule",
+                            "action": "Reorganized team",
+                            "outcome": "Delivered on time",
+                            "skills_demonstrated": "Leadership",
+                        }
+                    ],
+                }
+            },
+        )
+
+        result = check_step_complete(state)
+        assert result == "complete"
