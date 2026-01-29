@@ -16,6 +16,7 @@ from app.agents.onboarding import (
     check_resume_upload,
     check_step_complete,
     create_onboarding_graph,
+    derive_voice_profile,
     gather_basic_info,
     gather_certifications,
     gather_education,
@@ -29,6 +30,7 @@ from app.agents.onboarding import (
     handle_skip,
     is_step_optional,
     is_update_request,
+    setup_base_resume,
     should_start_onboarding,
     wait_for_input,
 )
@@ -1900,3 +1902,522 @@ class TestGrowthTargetsStep:
 
         result = check_step_complete(state)
         assert result == "complete"
+
+
+# =============================================================================
+# Voice Profile Step Tests (§5.3.7)
+# =============================================================================
+
+
+class TestVoiceProfileStep:
+    """Tests for voice profile derivation step behavior (§5.3.7)."""
+
+    def test_derive_voice_profile_asks_for_writing_sample(self) -> None:
+        """Voice profile step should offer to analyze a writing sample."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={},
+        )
+
+        result = derive_voice_profile(state)
+
+        assert result["current_step"] == "voice_profile"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        # Should ask about writing sample or voice/style
+        assert (
+            "writing" in question_lower
+            or "sample" in question_lower
+            or "voice" in question_lower
+            or "style" in question_lower
+        )
+
+    def test_derive_voice_profile_handles_skip_sample(self) -> None:
+        """Voice profile should proceed to tone derivation if sample is skipped."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={"voice_profile": {}},
+            pending_question="Do you have a writing sample to share?",
+            user_response="skip",
+        )
+
+        result = derive_voice_profile(state)
+
+        # Should proceed to derive/present voice profile
+        assert result["requires_human_input"] is True
+        # Should either ask about tone or present derived profile
+        question_lower = result["pending_question"].lower()
+        assert (
+            "tone" in question_lower
+            or "voice" in question_lower
+            or "style" in question_lower
+        )
+
+    def test_derive_voice_profile_stores_writing_sample(self) -> None:
+        """Voice profile should store user's writing sample."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={"voice_profile": {}},
+            pending_question="Do you have a writing sample to share?",
+            user_response="Here's an excerpt from a recent email I sent...",
+        )
+
+        result = derive_voice_profile(state)
+
+        voice = result["gathered_data"].get("voice_profile", {})
+        assert voice.get("writing_sample_text") == (
+            "Here's an excerpt from a recent email I sent..."
+        )
+
+    def test_derive_voice_profile_presents_derived_profile(self) -> None:
+        """Voice profile should present derived traits for confirmation."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={
+                "voice_profile": {
+                    "writing_sample_text": "Sample text here",
+                }
+            },
+            pending_question="Please share a writing sample",
+            user_response="Sample text here",
+        )
+
+        result = derive_voice_profile(state)
+
+        # After sample, should present derived voice or ask about tone
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+
+    def test_derive_voice_profile_stores_tone(self) -> None:
+        """Voice profile should store user's confirmed tone."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={"voice_profile": {}},
+            pending_question="How would you describe your tone?",
+            user_response="Direct and confident",
+        )
+
+        result = derive_voice_profile(state)
+
+        voice = result["gathered_data"].get("voice_profile", {})
+        assert voice.get("tone") == "Direct and confident"
+
+    def test_derive_voice_profile_asks_for_sentence_style(self) -> None:
+        """Voice profile should ask about sentence style after tone."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={
+                "voice_profile": {
+                    "tone": "Direct and confident",
+                }
+            },
+            pending_question="How would you describe your tone?",
+            user_response="Direct and confident",
+        )
+
+        result = derive_voice_profile(state)
+
+        # After tone, should ask about sentence style
+        assert result["requires_human_input"] is True
+        question_lower = result["pending_question"].lower()
+        assert "sentence" in question_lower or "style" in question_lower
+
+    def test_derive_voice_profile_stores_sentence_style(self) -> None:
+        """Voice profile should store sentence style."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={
+                "voice_profile": {
+                    "tone": "Direct and confident",
+                }
+            },
+            pending_question="How would you describe your sentence style?",
+            user_response="Short and punchy",
+        )
+
+        result = derive_voice_profile(state)
+
+        voice = result["gathered_data"].get("voice_profile", {})
+        assert voice.get("sentence_style") == "Short and punchy"
+
+    def test_derive_voice_profile_asks_for_vocabulary_level(self) -> None:
+        """Voice profile should ask about vocabulary level after sentence style."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={
+                "voice_profile": {
+                    "tone": "Direct",
+                    "sentence_style": "Short and punchy",
+                }
+            },
+            pending_question="How would you describe your sentence style?",
+            user_response="Short and punchy",
+        )
+
+        result = derive_voice_profile(state)
+
+        # After sentence style, should ask about vocabulary
+        assert result["requires_human_input"] is True
+        question_lower = result["pending_question"].lower()
+        assert (
+            "vocabulary" in question_lower
+            or "technical" in question_lower
+            or "jargon" in question_lower
+        )
+
+    def test_derive_voice_profile_stores_vocabulary_level(self) -> None:
+        """Voice profile should store vocabulary level."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={
+                "voice_profile": {
+                    "tone": "Direct",
+                    "sentence_style": "Short",
+                }
+            },
+            pending_question="Do you prefer technical jargon or plain English?",
+            user_response="Technical when relevant, plain English otherwise",
+        )
+
+        result = derive_voice_profile(state)
+
+        voice = result["gathered_data"].get("voice_profile", {})
+        assert (
+            voice.get("vocabulary_level")
+            == "Technical when relevant, plain English otherwise"
+        )
+
+    def test_derive_voice_profile_asks_for_things_to_avoid(self) -> None:
+        """Voice profile should ask about things to avoid after vocabulary."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={
+                "voice_profile": {
+                    "tone": "Direct",
+                    "sentence_style": "Short",
+                    "vocabulary_level": "Technical",
+                }
+            },
+            pending_question="Do you prefer technical jargon or plain English?",
+            user_response="Technical",
+        )
+
+        result = derive_voice_profile(state)
+
+        # After vocabulary, should ask about things to avoid
+        assert result["requires_human_input"] is True
+        question_lower = result["pending_question"].lower()
+        assert (
+            "avoid" in question_lower
+            or "buzzword" in question_lower
+            or "never" in question_lower
+        )
+
+    def test_derive_voice_profile_completes_after_things_to_avoid(self) -> None:
+        """Voice profile should complete after things to avoid are provided."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={
+                "voice_profile": {
+                    "tone": "Direct",
+                    "sentence_style": "Short",
+                    "vocabulary_level": "Technical",
+                }
+            },
+            pending_question="Are there any words or phrases you never use?",
+            user_response="Synergy, paradigm shift, circle back",
+        )
+
+        result = derive_voice_profile(state)
+
+        # After things to avoid, step should be complete
+        voice = result["gathered_data"].get("voice_profile", {})
+        assert voice.get("things_to_avoid") == "Synergy, paradigm shift, circle back"
+        assert result["requires_human_input"] is False
+
+    def test_check_step_complete_detects_voice_profile_complete(self) -> None:
+        """check_step_complete should detect when voice_profile has required data."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            requires_human_input=False,
+            gathered_data={
+                "voice_profile": {
+                    "tone": "Direct and confident",
+                }
+            },
+        )
+
+        result = check_step_complete(state)
+        assert result == "complete"
+
+    def test_derive_voice_profile_handles_skip_case_insensitive(self) -> None:
+        """Voice profile should accept skip in any case (SKIP, Skip, etc.)."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={"voice_profile": {}},
+            pending_question="Do you have a writing sample to share?",
+            user_response="SKIP",
+        )
+
+        result = derive_voice_profile(state)
+
+        # Should proceed to tone question
+        assert result["requires_human_input"] is True
+        question_lower = result["pending_question"].lower()
+        assert "tone" in question_lower
+
+    def test_derive_voice_profile_handles_skip_with_whitespace(self) -> None:
+        """Voice profile should accept skip with surrounding whitespace."""
+        state = make_onboarding_state(
+            current_step="voice_profile",
+            gathered_data={"voice_profile": {}},
+            pending_question="Do you have a writing sample to share?",
+            user_response="  skip  ",
+        )
+
+        result = derive_voice_profile(state)
+
+        # Should proceed to tone question
+        assert result["requires_human_input"] is True
+        question_lower = result["pending_question"].lower()
+        assert "tone" in question_lower
+
+
+# =============================================================================
+# Base Resume Setup Step Tests (§5.3.8)
+# =============================================================================
+
+
+class TestBaseResumeSetupStep:
+    """Tests for base resume setup step behavior (§5.3.8)."""
+
+    def test_setup_base_resume_asks_for_role_type(self) -> None:
+        """Base resume setup should ask what type of role user is targeting."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={},
+        )
+
+        result = setup_base_resume(state)
+
+        assert result["current_step"] == "base_resume_setup"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        # Should ask about role type
+        assert (
+            "role" in question_lower
+            or "target" in question_lower
+            or "position" in question_lower
+        )
+
+    def test_setup_base_resume_stores_role_type(self) -> None:
+        """Base resume setup should store the primary role type."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={"base_resume_setup": {}},
+            pending_question="What type of role are you primarily targeting?",
+            user_response="Senior Software Engineer",
+        )
+
+        result = setup_base_resume(state)
+
+        base_resume = result["gathered_data"].get("base_resume_setup", {})
+        entries = base_resume.get("entries", [])
+        # Should have created first entry with role type
+        assert len(entries) >= 1 or base_resume.get("current_entry")
+        # Check role type is stored
+        if entries:
+            assert entries[0].get("role_type") == "Senior Software Engineer"
+        else:
+            assert base_resume.get("current_entry", {}).get("role_type") == (
+                "Senior Software Engineer"
+            )
+
+    def test_setup_base_resume_marks_first_as_primary(self) -> None:
+        """Base resume setup should mark first resume as primary."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={"base_resume_setup": {}},
+            pending_question="What type of role are you primarily targeting?",
+            user_response="Senior Software Engineer",
+        )
+
+        result = setup_base_resume(state)
+
+        base_resume = result["gathered_data"].get("base_resume_setup", {})
+        entries = base_resume.get("entries", [])
+        if entries:
+            assert entries[0].get("is_primary") is True
+        else:
+            current = base_resume.get("current_entry", {})
+            assert current.get("is_primary") is True
+
+    def test_setup_base_resume_asks_about_additional_roles(self) -> None:
+        """Base resume setup should ask if user wants to target other role types."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={
+                "base_resume_setup": {
+                    "entries": [
+                        {
+                            "role_type": "Senior Software Engineer",
+                            "is_primary": True,
+                        }
+                    ],
+                }
+            },
+            pending_question="What type of role are you primarily targeting?",
+            user_response="Senior Software Engineer",
+        )
+
+        result = setup_base_resume(state)
+
+        # After first role, should ask about additional roles
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert (
+            "other" in question_lower
+            or "another" in question_lower
+            or "additional" in question_lower
+        )
+
+    def test_setup_base_resume_stores_additional_role(self) -> None:
+        """Base resume setup should store additional role types."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={
+                "base_resume_setup": {
+                    "entries": [
+                        {
+                            "role_type": "Senior Software Engineer",
+                            "is_primary": True,
+                        }
+                    ],
+                }
+            },
+            pending_question="Any other role types you're considering?",
+            user_response="Engineering Manager",
+        )
+
+        result = setup_base_resume(state)
+
+        base_resume = result["gathered_data"].get("base_resume_setup", {})
+        entries = base_resume.get("entries", [])
+        # Should have two entries now
+        assert len(entries) >= 2 or base_resume.get("current_entry")
+        # Second should not be primary
+        if len(entries) >= 2:
+            assert entries[1].get("is_primary") is not True
+
+    def test_setup_base_resume_completes_on_done(self) -> None:
+        """Base resume setup should complete when user says done."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={
+                "base_resume_setup": {
+                    "entries": [
+                        {
+                            "role_type": "Senior Software Engineer",
+                            "is_primary": True,
+                        }
+                    ],
+                }
+            },
+            pending_question="Any other role types you're considering?",
+            user_response="done",
+        )
+
+        result = setup_base_resume(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_setup_base_resume_handles_done_case_insensitive(self) -> None:
+        """Base resume setup should accept done in any case."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={
+                "base_resume_setup": {
+                    "entries": [
+                        {
+                            "role_type": "Senior Software Engineer",
+                            "is_primary": True,
+                        }
+                    ],
+                }
+            },
+            pending_question="Any other role types you're considering?",
+            user_response="DONE",
+        )
+
+        result = setup_base_resume(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_setup_base_resume_handles_no_response(self) -> None:
+        """Base resume setup should treat 'no' as done for additional roles."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={
+                "base_resume_setup": {
+                    "entries": [
+                        {
+                            "role_type": "Senior Software Engineer",
+                            "is_primary": True,
+                        }
+                    ],
+                }
+            },
+            pending_question="Any other role types you're considering?",
+            user_response="no",
+        )
+
+        result = setup_base_resume(state)
+
+        # "no" to additional roles means we're done
+        assert result["requires_human_input"] is False
+
+    def test_setup_base_resume_handles_done_with_whitespace(self) -> None:
+        """Base resume setup should accept done with surrounding whitespace."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={
+                "base_resume_setup": {
+                    "entries": [
+                        {
+                            "role_type": "Senior Software Engineer",
+                            "is_primary": True,
+                        }
+                    ],
+                }
+            },
+            pending_question="Any other role types you're considering?",
+            user_response="  done  ",
+        )
+
+        result = setup_base_resume(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_setup_base_resume_skips_when_data_exists(self) -> None:
+        """Base resume setup should skip HITL when resume entries already exist."""
+        state = make_onboarding_state(
+            current_step="base_resume_setup",
+            gathered_data={
+                "base_resume_setup": {
+                    "entries": [
+                        {
+                            "role_type": "Senior Software Engineer",
+                            "is_primary": True,
+                        }
+                    ],
+                }
+            },
+        )
+
+        result = setup_base_resume(state)
+
+        # Should not require input since data already exists
+        assert result["requires_human_input"] is False

@@ -1386,10 +1386,131 @@ def gather_growth_targets(state: OnboardingState) -> OnboardingState:
 def derive_voice_profile(state: OnboardingState) -> OnboardingState:
     """Derive voice profile step.
 
-    Placeholder: Full implementation will analyze conversation style.
+    REQ-007 §5.3.7: Voice Profile Step
+
+    Gathers voice profile traits for content generation:
+    - writing_sample_text: Optional sample for analysis (§5.6.2)
+    - tone: Direct/confident, warm/friendly, formal, etc.
+    - sentence_style: Short and punchy, detailed and thorough, etc.
+    - vocabulary_level: Technical jargon, plain English, etc.
+    - things_to_avoid: Buzzwords/phrases user never uses
+
+    These traits are used by Ghostwriter (REQ-007 §8.5) to generate
+    cover letters that match the user's authentic writing voice.
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with voice profile data or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "voice_profile"
+    gathered = dict(state.get("gathered_data", {}))
+    voice = dict(gathered.get("voice_profile", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Handle user response
+    if user_response and pending_question:
+        response_lower = user_response.lower().strip()
+        question_lower = pending_question.lower()
+
+        # Things to avoid response (last field - completes the step)
+        if (
+            "avoid" in question_lower
+            or "buzzword" in question_lower
+            or "never" in question_lower
+        ):
+            voice["things_to_avoid"] = user_response
+            gathered["voice_profile"] = voice
+            new_state["gathered_data"] = gathered
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            return new_state
+
+        # Vocabulary level response
+        if (
+            "vocabulary" in question_lower
+            or "technical" in question_lower
+            or "jargon" in question_lower
+        ):
+            voice["vocabulary_level"] = user_response
+            new_state[
+                "pending_question"
+            ] = "Are there any words or phrases you never use? (buzzwords to avoid)"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["voice_profile"] = voice
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Sentence style response
+        if "sentence" in question_lower or "style" in question_lower:
+            voice["sentence_style"] = user_response
+            new_state[
+                "pending_question"
+            ] = "Do you prefer technical jargon or plain English?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["voice_profile"] = voice
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Tone response
+        if "tone" in question_lower:
+            voice["tone"] = user_response
+            new_state[
+                "pending_question"
+            ] = "How would you describe your sentence style? (short and punchy, or detailed?)"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["voice_profile"] = voice
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Writing sample response or skip
+        if "writing" in question_lower or "sample" in question_lower:
+            if response_lower == "skip":
+                # Skip sample, proceed to tone question
+                new_state[
+                    "pending_question"
+                ] = "How would you describe your tone? (e.g., direct, warm, formal)"
+            else:
+                # Store the sample and ask about tone
+                voice["writing_sample_text"] = user_response
+                new_state[
+                    "pending_question"
+                ] = "How would you describe your tone? (e.g., direct, warm, formal)"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["voice_profile"] = voice
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if voice profile data already gathered (all required fields)
+    if voice.get("things_to_avoid"):
+        new_state["requires_human_input"] = False
+        gathered["voice_profile"] = voice
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - ask about writing sample (optional)
+    new_state["pending_question"] = (
+        "Do you have a writing sample to share? (email, doc, etc.) "
+        "This helps me capture your voice. Type 'skip' to continue without one."
+    )
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["voice_profile"] = voice
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 
@@ -1406,10 +1527,118 @@ def review_persona(state: OnboardingState) -> OnboardingState:
 def setup_base_resume(state: OnboardingState) -> OnboardingState:
     """Setup base resume step.
 
-    Placeholder: Full implementation will create BaseResume.
+    REQ-007 §5.3.8: Base Resume Setup Step
+
+    Creates one or more BaseResume entries based on target role types:
+    - role_type: The type of role this resume targets (e.g., "Senior Software Engineer")
+    - is_primary: First resume is marked as primary
+
+    The agent will later use gathered_data from work_history, skills, etc.
+    to populate included_jobs, skills_emphasis, and other fields.
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with base resume entries or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "base_resume_setup"
+    gathered = dict(state.get("gathered_data", {}))
+    base_resume = dict(gathered.get("base_resume_setup", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Initialize entries list if not present
+    if "entries" not in base_resume:
+        base_resume["entries"] = []
+
+    # Handle user response
+    if user_response and pending_question:
+        response_lower = user_response.lower().strip()
+        question_lower = pending_question.lower()
+
+        # User is done or says no to additional roles
+        if response_lower == "done" or response_lower == "no":
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            gathered["base_resume_setup"] = base_resume
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Additional role response
+        if (
+            "other" in question_lower
+            or "another" in question_lower
+            or "additional" in question_lower
+        ):
+            # Create additional resume entry (not primary)
+            entries = list(base_resume.get("entries", []))
+            entries.append(
+                {
+                    "role_type": user_response,
+                    "is_primary": False,
+                }
+            )
+            base_resume["entries"] = entries
+
+            # Ask if there are more roles
+            new_state[
+                "pending_question"
+            ] = "Any other role types you're considering? (or 'done')"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["base_resume_setup"] = base_resume
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Primary role response (first in chain)
+        if (
+            "role" in question_lower
+            or "target" in question_lower
+            or "position" in question_lower
+            or "primarily" in question_lower
+        ):
+            # Create primary resume entry
+            entries = list(base_resume.get("entries", []))
+            entries.append(
+                {
+                    "role_type": user_response,
+                    "is_primary": True,
+                }
+            )
+            base_resume["entries"] = entries
+
+            # Ask about additional roles
+            new_state[
+                "pending_question"
+            ] = "Any other role types you're considering? (or 'done')"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["base_resume_setup"] = base_resume
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if base resume data already gathered (at least one entry)
+    if base_resume.get("entries"):
+        new_state["requires_human_input"] = False
+        gathered["base_resume_setup"] = base_resume
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - ask about primary role type
+    new_state[
+        "pending_question"
+    ] = "What type of role are you primarily targeting? (e.g., Software Engineer, Data Scientist)"
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["base_resume_setup"] = base_resume
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 
