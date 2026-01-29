@@ -382,20 +382,232 @@ def handle_skip(state: OnboardingState) -> OnboardingState:
 def check_resume_upload(state: OnboardingState) -> OnboardingState:
     """Check for resume upload step.
 
-    Placeholder: Full implementation will handle file upload and extraction.
+    REQ-007 §5.3.1: Resume Upload Step
+
+    Asks if user has an existing resume. Options:
+    - Upload resume → Extract data, populate persona
+    - Skip → Proceed to manual entry via interview
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with HITL flags or gathered data.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "resume_upload"
+    gathered = dict(state.get("gathered_data", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Handle user response
+    if user_response and pending_question:
+        response_lower = user_response.lower().strip()
+
+        # User wants to skip
+        # WHY: "no" is treated as skip because the question is "Do you have a resume?"
+        # A "no" answer means they don't have one, same outcome as explicitly skipping.
+        if response_lower == "skip" or response_lower == "no":
+            gathered["resume_upload"] = {"skipped": True}
+            new_state["gathered_data"] = gathered
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            return new_state
+
+        # User wants to upload
+        if response_lower == "yes" or "upload" in response_lower:
+            new_state[
+                "pending_question"
+            ] = "Please upload your resume file (PDF or DOCX format)."
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if resume data already gathered (from file upload)
+    resume_data = gathered.get("resume_upload", {})
+    if resume_data.get("skipped") or resume_data.get("extracted_jobs"):
+        new_state["requires_human_input"] = False
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - ask if user has resume
+    new_state["pending_question"] = (
+        "Do you have an existing resume to upload? (PDF or DOCX) "
+        "Type 'yes' to upload, or 'skip' to enter your info manually."
+    )
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 
 def gather_work_history(state: OnboardingState) -> OnboardingState:
     """Gather work history step.
 
-    Placeholder: Full implementation will expand job entries.
+    REQ-007 §5.3.3: Work History Step
+
+    Gathers job entries with:
+    - Title, company, dates
+    - Accomplishment bullets (expanded via probing questions)
+
+    If resume was uploaded, presents extracted jobs for confirmation.
+    Otherwise, asks for each job manually.
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with job entries or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "work_history"
+    gathered = dict(state.get("gathered_data", {}))
+    work_history = dict(gathered.get("work_history", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Initialize entries list if not present
+    if "entries" not in work_history:
+        work_history["entries"] = []
+
+    # Check if we have extracted jobs from resume
+    resume_data = gathered.get("resume_upload", {})
+    extracted_jobs = resume_data.get("extracted_jobs", [])
+
+    # Handle user response
+    if user_response and pending_question:
+        question_lower = pending_question.lower()
+
+        # User is done adding jobs - check this FIRST before other keyword parsing
+        if "done" in user_response.lower():
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            gathered["work_history"] = work_history
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Confirming extracted job
+        if (
+            "confirm" in question_lower or "correct" in question_lower
+        ) and work_history.get("current_entry"):
+            # User confirmed, proceed to bullet expansion
+            work_history["current_entry"]["confirmed"] = True
+            new_state["pending_question"] = (
+                "Tell me more about your accomplishments in this role. "
+                "What was your biggest achievement?"
+            )
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["work_history"] = work_history
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Job title/role response
+        # WHY: We parse question text to determine state. Future improvement could
+        # use an explicit current_field state flag for more robust transitions.
+        if (
+            "job" in question_lower
+            or "role" in question_lower
+            or "title" in question_lower
+        ):
+            # Parse basic job info from response
+            work_history["current_entry"] = {
+                "raw_input": user_response,
+                "bullets": [],
+            }
+            new_state[
+                "pending_question"
+            ] = "What company was this at, and what were the dates?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["work_history"] = work_history
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Company/dates response
+        if "company" in question_lower or "dates" in question_lower:
+            if work_history.get("current_entry"):
+                work_history["current_entry"]["company_dates"] = user_response
+            new_state["pending_question"] = (
+                "Tell me about your key accomplishments in this role. "
+                "What results did you achieve?"
+            )
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["work_history"] = work_history
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Accomplishments response
+        if (
+            "accomplish" in question_lower or "achieve" in question_lower
+        ) and work_history.get("current_entry"):
+            current = work_history["current_entry"]
+            if "bullets" not in current:
+                current["bullets"] = []
+            current["bullets"].append(user_response)
+
+            # Finalize this entry
+            entries = list(work_history.get("entries", []))
+            entries.append(current)
+            work_history["entries"] = entries
+            work_history["current_entry"] = None
+
+            # Ask if there are more jobs
+            new_state["pending_question"] = (
+                "Do you have another job to add? "
+                "Say 'done' if you've listed all your relevant experience."
+            )
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["work_history"] = work_history
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if work history is already complete
+    entries = work_history.get("entries", [])
+    if entries and all(e.get("bullets") for e in entries):
+        new_state["requires_human_input"] = False
+        gathered["work_history"] = work_history
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # If we have extracted jobs, present first one for confirmation
+    if extracted_jobs and not work_history.get("current_entry"):
+        job = extracted_jobs[0]
+        work_history["current_entry"] = job
+        new_state["pending_question"] = (
+            f"I found this job from your resume: {job.get('title', 'Unknown')} "
+            f"at {job.get('company', 'Unknown')} "
+            f"({job.get('start_date', '?')} - {job.get('end_date', '?')}). "
+            "Is this correct? (yes/no)"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        gathered["work_history"] = work_history
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # No resume data - ask for most recent job
+    new_state[
+        "pending_question"
+    ] = "Let's start with your most recent job. What was your job title?"
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["work_history"] = work_history
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 

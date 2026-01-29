@@ -13,9 +13,11 @@ Tests verify:
 from app.agents.onboarding import (
     ONBOARDING_STEPS,
     OPTIONAL_SECTIONS,
+    check_resume_upload,
     check_step_complete,
     create_onboarding_graph,
     gather_basic_info,
+    gather_work_history,
     get_next_step,
     get_onboarding_graph,
     handle_skip,
@@ -25,6 +27,39 @@ from app.agents.onboarding import (
     wait_for_input,
 )
 from app.agents.state import CheckpointReason, OnboardingState
+
+
+def make_onboarding_state(**overrides: object) -> OnboardingState:
+    """Create a base OnboardingState with optional overrides.
+
+    Reduces test boilerplate by providing sensible defaults.
+
+    Args:
+        **overrides: Key-value pairs to override default state values.
+
+    Returns:
+        OnboardingState with defaults and any provided overrides applied.
+    """
+    base: OnboardingState = {
+        "user_id": "user-123",
+        "persona_id": "persona-456",
+        "messages": [],
+        "current_message": None,
+        "tool_calls": [],
+        "tool_results": [],
+        "next_action": None,
+        "requires_human_input": False,
+        "checkpoint_reason": None,
+        "current_step": "basic_info",
+        "gathered_data": {},
+        "skipped_sections": [],
+        "pending_question": None,
+        "user_response": None,
+    }
+    for key, value in overrides.items():
+        base[key] = value  # type: ignore[literal-required]
+    return base
+
 
 # =============================================================================
 # Trigger Condition Tests (§5.1)
@@ -435,3 +470,205 @@ class TestOnboardingGraphStructure:
         graph2 = get_onboarding_graph()
 
         assert graph1 is graph2
+
+
+# =============================================================================
+# Resume Upload Step Tests (§5.3.1)
+# =============================================================================
+
+
+class TestResumeUploadStep:
+    """Tests for resume upload step behavior (§5.3.1)."""
+
+    def test_check_resume_upload_asks_for_resume(self) -> None:
+        """Resume upload step should ask if user has a resume."""
+        state = make_onboarding_state(current_step="resume_upload")
+
+        result = check_resume_upload(state)
+
+        assert result["current_step"] == "resume_upload"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        assert "resume" in result["pending_question"].lower()
+
+    def test_check_resume_upload_handles_skip(self) -> None:
+        """Resume upload step should accept skip response."""
+        state = make_onboarding_state(
+            current_step="resume_upload",
+            pending_question="Do you have an existing resume?",
+            user_response="skip",
+        )
+
+        result = check_resume_upload(state)
+
+        # Should clear pending question and allow skip
+        assert result["requires_human_input"] is False
+        # gathered_data for resume_upload should indicate skipped
+        assert result["gathered_data"].get("resume_upload", {}).get("skipped") is True
+
+    def test_check_resume_upload_handles_yes_response(self) -> None:
+        """Resume upload step should prompt for file when user says yes."""
+        state = make_onboarding_state(
+            current_step="resume_upload",
+            pending_question="Do you have an existing resume?",
+            user_response="yes",
+        )
+
+        result = check_resume_upload(state)
+
+        # Should ask for file upload
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        assert "upload" in result["pending_question"].lower()
+
+
+# =============================================================================
+# Work History Step Tests (§5.3.3)
+# =============================================================================
+
+
+class TestWorkHistoryStep:
+    """Tests for work history step behavior (§5.3.3)."""
+
+    def test_gather_work_history_asks_for_job_when_no_data(self) -> None:
+        """Work history should ask for job details when starting fresh."""
+        state = make_onboarding_state(
+            current_step="work_history",
+            gathered_data={},
+        )
+
+        result = gather_work_history(state)
+
+        assert result["current_step"] == "work_history"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        # Should ask about most recent job
+        question_lower = result["pending_question"].lower()
+        assert "job" in question_lower or "role" in question_lower
+
+    def test_gather_work_history_presents_extracted_jobs(self) -> None:
+        """Work history should present extracted jobs from resume."""
+        extracted_jobs = [
+            {
+                "title": "Software Engineer",
+                "company": "Tech Corp",
+                "start_date": "2020-01",
+                "end_date": "2023-06",
+            }
+        ]
+        state = make_onboarding_state(
+            current_step="work_history",
+            gathered_data={
+                "resume_upload": {"extracted_jobs": extracted_jobs},
+            },
+        )
+
+        result = gather_work_history(state)
+
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        # Should reference the extracted job for confirmation
+        question_lower = result["pending_question"].lower()
+        assert "software engineer" in question_lower or "confirm" in question_lower
+
+    def test_gather_work_history_stores_job_entry(self) -> None:
+        """Work history should store confirmed job entry."""
+        state = make_onboarding_state(
+            current_step="work_history",
+            gathered_data={"work_history": {"entries": []}},
+            pending_question="What was your job title?",
+            user_response="Senior Developer at Acme Inc from 2021 to 2024",
+        )
+
+        result = gather_work_history(state)
+
+        # Should have stored job entry data
+        work_history = result["gathered_data"].get("work_history", {})
+        assert "entries" in work_history or "current_entry" in work_history
+
+    def test_gather_work_history_asks_for_accomplishments(self) -> None:
+        """Work history should ask for bullet expansion after basic info."""
+        state = make_onboarding_state(
+            current_step="work_history",
+            gathered_data={
+                "work_history": {
+                    "current_entry": {
+                        "title": "Developer",
+                        "company": "TechCo",
+                        "start_date": "2020",
+                        "end_date": "2023",
+                    },
+                    "entries": [],
+                }
+            },
+            pending_question="What dates did you work there?",
+            user_response="2020 to 2023",
+        )
+
+        result = gather_work_history(state)
+
+        # After basic job info, should ask about accomplishments
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        accomplishment_keywords = ["accomplish", "achieve", "tell me more", "bullet"]
+        assert any(
+            keyword in question_lower for keyword in accomplishment_keywords
+        ), f"Expected accomplishment question, got: {result['pending_question']}"
+
+    def test_gather_work_history_complete_with_entries(self) -> None:
+        """Work history step should be complete when entries have bullets."""
+        state = make_onboarding_state(
+            current_step="work_history",
+            gathered_data={
+                "work_history": {
+                    "entries": [
+                        {
+                            "title": "Developer",
+                            "company": "TechCo",
+                            "start_date": "2020",
+                            "end_date": "2023",
+                            "bullets": ["Led team of 5 developers"],
+                        }
+                    ],
+                }
+            },
+            pending_question=None,
+            user_response=None,
+            requires_human_input=False,
+        )
+
+        # check_step_complete should return complete
+        result = check_step_complete(state)
+        assert result == "complete"
+
+    def test_gather_work_history_completes_on_done(self) -> None:
+        """Work history should complete when user says done."""
+        state = make_onboarding_state(
+            current_step="work_history",
+            gathered_data={
+                "work_history": {
+                    "entries": [{"title": "Dev", "bullets": ["Did stuff"]}],
+                }
+            },
+            pending_question="Do you have another job to add?",
+            user_response="done",
+        )
+
+        result = gather_work_history(state)
+
+        assert result["requires_human_input"] is False
+
+    def test_check_resume_upload_skips_when_data_exists(self) -> None:
+        """Resume upload should skip HITL when resume data already gathered."""
+        state = make_onboarding_state(
+            current_step="resume_upload",
+            gathered_data={
+                "resume_upload": {"skipped": True},
+            },
+        )
+
+        result = check_resume_upload(state)
+
+        # Should not require input since data already exists
+        assert result["requires_human_input"] is False
