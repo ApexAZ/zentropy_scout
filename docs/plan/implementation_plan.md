@@ -273,7 +273,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 2.2 Chat Agent (REQ-007 §4)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *User-facing conversational interface. Orchestrates other agents.*
 
@@ -293,12 +293,12 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4.1 | Chat Agent — Responsibilities | `agents, provider, docs, plan` | ⬜ |
-| 4.2 | Chat Agent — Tool Categories | `agents, api, provider, structure, tdd, plan` | ⬜ |
-| 4.3 | Chat Agent — Intent Recognition | `agents, provider, tdd, plan` | ⬜ |
-| 4.4 | Chat Agent — Ambiguity Resolution | `agents, provider, tdd, plan` | ⬜ |
-| 4.5 | Chat Agent — Response Formatting | `agents, provider, tdd, plan` | ⬜ |
-| 15.1 | Graph Spec — Chat Agent | `agents, provider, structure, tdd, plan` | ⬜ |
+| 4.1 | Chat Agent — Responsibilities | `agents, provider, docs, plan` | ✅ |
+| 4.2 | Chat Agent — Tool Categories | `agents, api, provider, structure, tdd, plan` | ✅ |
+| 4.3 | Chat Agent — Intent Recognition | `agents, provider, tdd, plan` | ✅ |
+| 4.4 | Chat Agent — Ambiguity Resolution | `agents, provider, tdd, plan` | ✅ |
+| 4.5 | Chat Agent — Response Formatting | `agents, provider, tdd, plan` | ✅ |
+| 15.1 | Graph Spec — Chat Agent | `agents, provider, structure, tdd, plan` | ✅ |
 
 ---
 
