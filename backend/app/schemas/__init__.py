@@ -7,11 +7,31 @@ from app.schemas.bulk import (
     BulkFavoriteRequest,
     BulkOperationResult,
 )
+from app.schemas.chat import (
+    ChatDoneEvent,
+    ChatMessageRequest,
+    ChatTokenEvent,
+    DataChangedEvent,
+    HeartbeatEvent,
+    SSEEvent,
+    ToolResultEvent,
+    ToolStartEvent,
+)
 
 __all__ = [
+    # Bulk operations
     "BulkArchiveRequest",
     "BulkDismissRequest",
     "BulkFailedItem",
     "BulkFavoriteRequest",
     "BulkOperationResult",
+    # Chat/SSE
+    "ChatDoneEvent",
+    "ChatMessageRequest",
+    "ChatTokenEvent",
+    "DataChangedEvent",
+    "HeartbeatEvent",
+    "SSEEvent",
+    "ToolResultEvent",
+    "ToolStartEvent",
 ]
