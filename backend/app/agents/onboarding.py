@@ -1173,20 +1173,213 @@ def gather_stories(state: OnboardingState) -> OnboardingState:
 def gather_non_negotiables(state: OnboardingState) -> OnboardingState:
     """Gather non-negotiables step.
 
-    Placeholder: Full implementation will gather filters.
+    REQ-007 §5.3.6: Non-Negotiables Step
+
+    Gathers job preference filters:
+    - remote_preference: Remote / Hybrid / Onsite
+    - commutable_cities: Only if not remote-only
+    - minimum_base_salary: Minimum acceptable base salary
+    - visa_sponsorship: Whether visa sponsorship is required
+    - industry_exclusions: Industries to avoid
+    - custom_filters: Any other dealbreakers
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with non-negotiables data or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "non_negotiables"
+    gathered = dict(state.get("gathered_data", {}))
+    non_neg = dict(gathered.get("non_negotiables", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Handle user response
+    if user_response and pending_question:
+        question_lower = pending_question.lower()
+
+        # Custom filters response (last field - completes the step)
+        if "dealbreaker" in question_lower or "other" in question_lower:
+            non_neg["custom_filters"] = user_response
+            gathered["non_negotiables"] = non_neg
+            new_state["gathered_data"] = gathered
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            return new_state
+
+        # Industry exclusions response
+        if "industr" in question_lower or "avoid" in question_lower:
+            non_neg["industry_exclusions"] = user_response
+            new_state[
+                "pending_question"
+            ] = "Any other dealbreakers I should know about?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["non_negotiables"] = non_neg
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Visa sponsorship response
+        if "visa" in question_lower or "sponsor" in question_lower:
+            non_neg["visa_sponsorship"] = user_response
+            new_state["pending_question"] = "Any industries you want to avoid?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["non_negotiables"] = non_neg
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Salary response
+        if "salary" in question_lower or "minimum" in question_lower:
+            non_neg["minimum_base_salary"] = user_response
+            new_state["pending_question"] = "Do you require visa sponsorship?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["non_negotiables"] = non_neg
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Commutable cities response
+        if "cit" in question_lower or "commut" in question_lower:
+            non_neg["commutable_cities"] = user_response
+            new_state[
+                "pending_question"
+            ] = "What's your minimum acceptable base salary?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["non_negotiables"] = non_neg
+            new_state["gathered_data"] = gathered
+            return new_state
+
+        # Remote preference response (first in chain)
+        if (
+            "remote" in question_lower
+            or "hybrid" in question_lower
+            or "onsite" in question_lower
+        ):
+            non_neg["remote_preference"] = user_response
+            response_lower = user_response.lower()
+
+            # WHY: If remote-only, skip cities question since commute location
+            # doesn't matter. Otherwise ask for commutable cities.
+            if "remote" in response_lower and "only" in response_lower:
+                new_state[
+                    "pending_question"
+                ] = "What's your minimum acceptable base salary?"
+            else:
+                # Hybrid or onsite - need to know commutable cities
+                new_state["pending_question"] = "Which cities can you commute to?"
+
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["non_negotiables"] = non_neg
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if non-negotiables data already gathered (all fields complete)
+    if non_neg.get("custom_filters"):
+        new_state["requires_human_input"] = False
+        gathered["non_negotiables"] = non_neg
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - ask about remote preference
+    new_state[
+        "pending_question"
+    ] = "Are you looking for remote, hybrid, or onsite roles?"
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["non_negotiables"] = non_neg
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 
 def gather_growth_targets(state: OnboardingState) -> OnboardingState:
     """Gather growth targets step.
 
-    Placeholder: Full implementation will gather target roles.
+    REQ-007 §5.3.7 / §7.5: Growth Targets Step
+
+    Gathers career growth aspirations:
+    - target_roles: Roles the user aspires to grow into
+    - target_skills: Skills the user wants to develop
+
+    These are used by the Strategist for Stretch Score calculation (§7.5):
+    - Target role alignment: Similarity between job.job_title and persona.target_roles
+    - Target skills exposure: Count of persona.target_skills present in job.requirements
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        Updated state with growth targets data or HITL flags.
     """
     new_state: OnboardingState = dict(state)  # type: ignore[assignment]
     new_state["current_step"] = "growth_targets"
+    gathered = dict(state.get("gathered_data", {}))
+    growth = dict(gathered.get("growth_targets", {}))
+
+    user_response = state.get("user_response")
+    pending_question = state.get("pending_question")
+
+    # Handle user response
+    if user_response and pending_question:
+        question_lower = pending_question.lower()
+
+        # Target skills response (last field - completes the step)
+        if (
+            "skill" in question_lower
+            or "learn" in question_lower
+            or "develop" in question_lower
+        ):
+            growth["target_skills"] = user_response
+            gathered["growth_targets"] = growth
+            new_state["gathered_data"] = gathered
+            new_state["requires_human_input"] = False
+            new_state["pending_question"] = None
+            new_state["user_response"] = None
+            return new_state
+
+        # Target roles response (first in chain)
+        if (
+            "role" in question_lower
+            or "aspir" in question_lower
+            or "grow" in question_lower
+        ):
+            growth["target_roles"] = user_response
+            new_state["pending_question"] = "What skills would you like to develop?"
+            new_state["requires_human_input"] = True
+            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+            new_state["user_response"] = None
+            gathered["growth_targets"] = growth
+            new_state["gathered_data"] = gathered
+            return new_state
+
+    # Check if growth targets data already gathered
+    if growth.get("target_skills"):
+        new_state["requires_human_input"] = False
+        gathered["growth_targets"] = growth
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # First time - ask about target roles
+    new_state[
+        "pending_question"
+    ] = "What roles are you aspiring to grow into? (or 'same role' if staying put)"
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    gathered["growth_targets"] = growth
+    new_state["gathered_data"] = gathered
+
     return new_state
 
 

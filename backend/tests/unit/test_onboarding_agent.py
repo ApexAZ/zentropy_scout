@@ -19,6 +19,8 @@ from app.agents.onboarding import (
     gather_basic_info,
     gather_certifications,
     gather_education,
+    gather_growth_targets,
+    gather_non_negotiables,
     gather_skills,
     gather_stories,
     gather_work_history,
@@ -1514,6 +1516,384 @@ class TestStoriesStep:
                             "skills_demonstrated": "Leadership",
                         }
                     ],
+                }
+            },
+        )
+
+        result = check_step_complete(state)
+        assert result == "complete"
+
+
+# =============================================================================
+# Non-Negotiables Step Tests (§5.3.6)
+# =============================================================================
+
+
+class TestNonNegotiablesStep:
+    """Tests for non-negotiables step behavior (§5.3.6)."""
+
+    def test_gather_non_negotiables_asks_for_remote_preference(self) -> None:
+        """Non-negotiables step should ask about remote preference first."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={},
+        )
+
+        result = gather_non_negotiables(state)
+
+        assert result["current_step"] == "non_negotiables"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert (
+            "remote" in question_lower
+            or "hybrid" in question_lower
+            or "onsite" in question_lower
+        )
+
+    def test_gather_non_negotiables_asks_cities_if_not_remote_only(self) -> None:
+        """Non-negotiables should ask for commutable cities if not remote-only."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={"non_negotiables": {}},
+            pending_question="Are you looking for remote, hybrid, or onsite roles?",
+            user_response="Hybrid",
+        )
+
+        result = gather_non_negotiables(state)
+
+        # After hybrid/onsite preference, should ask for cities
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "cit" in question_lower or "commut" in question_lower
+
+    def test_gather_non_negotiables_skips_cities_for_remote_only(self) -> None:
+        """Non-negotiables should skip cities question for remote-only preference."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={"non_negotiables": {}},
+            pending_question="Are you looking for remote, hybrid, or onsite roles?",
+            user_response="Remote only",
+        )
+
+        result = gather_non_negotiables(state)
+
+        # After remote-only, should skip to salary (not ask about cities)
+        non_neg = result["gathered_data"].get("non_negotiables", {})
+        assert non_neg.get("remote_preference") == "Remote only"
+        # Next question should be about salary, not cities
+        question_lower = result["pending_question"].lower()
+        assert "salary" in question_lower or "minimum" in question_lower
+
+    def test_gather_non_negotiables_asks_for_salary(self) -> None:
+        """Non-negotiables should ask for minimum base salary."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={
+                "non_negotiables": {
+                    "remote_preference": "Remote only",
+                }
+            },
+            pending_question="What's your minimum acceptable base salary?",
+            user_response="$100,000",
+        )
+
+        result = gather_non_negotiables(state)
+
+        non_neg = result["gathered_data"].get("non_negotiables", {})
+        assert non_neg.get("minimum_base_salary") == "$100,000"
+
+    def test_gather_non_negotiables_asks_for_visa_sponsorship(self) -> None:
+        """Non-negotiables should ask about visa sponsorship requirement."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={
+                "non_negotiables": {
+                    "remote_preference": "Remote only",
+                    "minimum_base_salary": "$100,000",
+                }
+            },
+            pending_question="What's your minimum acceptable base salary?",
+            user_response="$100,000",
+        )
+
+        result = gather_non_negotiables(state)
+
+        # After salary, should ask about visa
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "visa" in question_lower or "sponsor" in question_lower
+
+    def test_gather_non_negotiables_asks_for_industry_exclusions(self) -> None:
+        """Non-negotiables should ask about industries to avoid."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={
+                "non_negotiables": {
+                    "remote_preference": "Remote only",
+                    "minimum_base_salary": "$100,000",
+                    "visa_sponsorship": "No",
+                }
+            },
+            pending_question="Do you require visa sponsorship?",
+            user_response="No",
+        )
+
+        result = gather_non_negotiables(state)
+
+        # After visa, should ask about industries to avoid
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "industr" in question_lower or "avoid" in question_lower
+
+    def test_gather_non_negotiables_asks_for_custom_filters(self) -> None:
+        """Non-negotiables should ask about other dealbreakers."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={
+                "non_negotiables": {
+                    "remote_preference": "Remote only",
+                    "minimum_base_salary": "$100,000",
+                    "visa_sponsorship": "No",
+                    "industry_exclusions": "None",
+                }
+            },
+            pending_question="Any industries you want to avoid?",
+            user_response="None",
+        )
+
+        result = gather_non_negotiables(state)
+
+        # After industries, should ask about other dealbreakers
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert "other" in question_lower or "dealbreaker" in question_lower
+
+    def test_gather_non_negotiables_completes_after_custom_filters(self) -> None:
+        """Non-negotiables should complete after custom filters are provided."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={
+                "non_negotiables": {
+                    "remote_preference": "Remote only",
+                    "minimum_base_salary": "$100,000",
+                    "visa_sponsorship": "No",
+                    "industry_exclusions": "None",
+                }
+            },
+            pending_question="Any other dealbreakers I should know about?",
+            user_response="No travel requirements",
+        )
+
+        result = gather_non_negotiables(state)
+
+        # After custom filters, step should be complete
+        non_neg = result["gathered_data"].get("non_negotiables", {})
+        assert non_neg.get("custom_filters") == "No travel requirements"
+        assert result["requires_human_input"] is False
+
+    def test_gather_non_negotiables_stores_commutable_cities(self) -> None:
+        """Non-negotiables should store commutable cities for hybrid/onsite."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={
+                "non_negotiables": {
+                    "remote_preference": "Hybrid",
+                }
+            },
+            pending_question="Which cities can you commute to?",
+            user_response="San Francisco, Oakland",
+        )
+
+        result = gather_non_negotiables(state)
+
+        non_neg = result["gathered_data"].get("non_negotiables", {})
+        assert non_neg.get("commutable_cities") == "San Francisco, Oakland"
+
+    def test_check_step_complete_detects_non_negotiables_complete(self) -> None:
+        """check_step_complete should detect when non_negotiables has required data."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            requires_human_input=False,
+            gathered_data={
+                "non_negotiables": {
+                    "remote_preference": "Remote only",
+                }
+            },
+        )
+
+        result = check_step_complete(state)
+        assert result == "complete"
+
+    def test_gather_non_negotiables_handles_remote_case_insensitive(self) -> None:
+        """Non-negotiables should handle 'REMOTE ONLY' case variations."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={"non_negotiables": {}},
+            pending_question="Are you looking for remote, hybrid, or onsite roles?",
+            user_response="REMOTE ONLY",
+        )
+
+        result = gather_non_negotiables(state)
+
+        # Should still skip to salary, not cities (case-insensitive)
+        question_lower = result["pending_question"].lower()
+        assert "salary" in question_lower
+
+    def test_gather_non_negotiables_asks_cities_for_onsite(self) -> None:
+        """Non-negotiables should ask for commutable cities for onsite preference."""
+        state = make_onboarding_state(
+            current_step="non_negotiables",
+            gathered_data={"non_negotiables": {}},
+            pending_question="Are you looking for remote, hybrid, or onsite roles?",
+            user_response="Onsite",
+        )
+
+        result = gather_non_negotiables(state)
+
+        # Onsite requires commute - should ask for cities
+        question_lower = result["pending_question"].lower()
+        assert "cit" in question_lower or "commut" in question_lower
+
+
+# =============================================================================
+# Growth Targets Step Tests (§5.3.7 / §7.5)
+# =============================================================================
+
+
+class TestGrowthTargetsStep:
+    """Tests for growth targets step behavior (derived from §7.5 Stretch Score)."""
+
+    def test_gather_growth_targets_asks_for_target_roles(self) -> None:
+        """Growth targets step should ask about roles user aspires to."""
+        state = make_onboarding_state(
+            current_step="growth_targets",
+            gathered_data={},
+        )
+
+        result = gather_growth_targets(state)
+
+        assert result["current_step"] == "growth_targets"
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert (
+            "role" in question_lower
+            or "aspir" in question_lower
+            or "grow" in question_lower
+        )
+
+    def test_gather_growth_targets_stores_target_roles(self) -> None:
+        """Growth targets should store target roles from user response."""
+        state = make_onboarding_state(
+            current_step="growth_targets",
+            gathered_data={"growth_targets": {}},
+            pending_question="What roles are you aspiring to grow into?",
+            user_response="Engineering Manager, Director of Engineering",
+        )
+
+        result = gather_growth_targets(state)
+
+        growth = result["gathered_data"].get("growth_targets", {})
+        assert (
+            growth.get("target_roles") == "Engineering Manager, Director of Engineering"
+        )
+
+    def test_gather_growth_targets_asks_for_target_skills(self) -> None:
+        """Growth targets should ask about skills user wants to develop."""
+        state = make_onboarding_state(
+            current_step="growth_targets",
+            gathered_data={
+                "growth_targets": {
+                    "target_roles": "Engineering Manager",
+                }
+            },
+            pending_question="What roles are you aspiring to grow into?",
+            user_response="Engineering Manager",
+        )
+
+        result = gather_growth_targets(state)
+
+        # After target roles, should ask about skills to develop
+        assert result["requires_human_input"] is True
+        assert result["pending_question"] is not None
+        question_lower = result["pending_question"].lower()
+        assert (
+            "skill" in question_lower
+            or "learn" in question_lower
+            or "develop" in question_lower
+        )
+
+    def test_gather_growth_targets_stores_target_skills(self) -> None:
+        """Growth targets should store skills user wants to develop."""
+        state = make_onboarding_state(
+            current_step="growth_targets",
+            gathered_data={
+                "growth_targets": {
+                    "target_roles": "Engineering Manager",
+                }
+            },
+            pending_question="What skills would you like to develop?",
+            user_response="People management, strategic planning",
+        )
+
+        result = gather_growth_targets(state)
+
+        growth = result["gathered_data"].get("growth_targets", {})
+        assert growth.get("target_skills") == "People management, strategic planning"
+
+    def test_gather_growth_targets_completes_after_skills(self) -> None:
+        """Growth targets should complete after target skills are provided."""
+        state = make_onboarding_state(
+            current_step="growth_targets",
+            gathered_data={
+                "growth_targets": {
+                    "target_roles": "Engineering Manager",
+                }
+            },
+            pending_question="What skills would you like to develop?",
+            user_response="People management, strategic planning",
+        )
+
+        result = gather_growth_targets(state)
+
+        # After target skills, step should be complete
+        growth = result["gathered_data"].get("growth_targets", {})
+        assert growth.get("target_skills") == "People management, strategic planning"
+        assert result["requires_human_input"] is False
+
+    def test_gather_growth_targets_handles_none_response(self) -> None:
+        """Growth targets should handle user saying 'none' for target skills."""
+        state = make_onboarding_state(
+            current_step="growth_targets",
+            gathered_data={
+                "growth_targets": {
+                    "target_roles": "Same role, just different company",
+                }
+            },
+            pending_question="What skills would you like to develop?",
+            user_response="None",
+        )
+
+        result = gather_growth_targets(state)
+
+        # Should still complete even with "none" response
+        growth = result["gathered_data"].get("growth_targets", {})
+        assert growth.get("target_skills") == "None"
+        assert result["requires_human_input"] is False
+
+    def test_check_step_complete_detects_growth_targets_complete(self) -> None:
+        """check_step_complete should detect when growth_targets has required data."""
+        state = make_onboarding_state(
+            current_step="growth_targets",
+            requires_human_input=False,
+            gathered_data={
+                "growth_targets": {
+                    "target_roles": "Engineering Manager",
                 }
             },
         )
