@@ -32,6 +32,16 @@ from app.agents.base import (
     get_agent_client,
     reset_agent_client,
 )
+from app.agents.chat import (
+    classify_intent,
+    create_chat_graph,
+    format_response,
+    get_chat_graph,
+    needs_clarification,
+    request_clarification,
+    route_by_intent,
+    select_tools,
+)
 from app.agents.checkpoint import (
     create_checkpointer,
     create_graph_config,
@@ -69,4 +79,13 @@ __all__ = [
     "OnboardingState",
     "ScouterState",
     "StrategistState",
+    # Chat Agent
+    "classify_intent",
+    "create_chat_graph",
+    "format_response",
+    "get_chat_graph",
+    "needs_clarification",
+    "request_clarification",
+    "route_by_intent",
+    "select_tools",
 ]
