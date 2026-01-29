@@ -29,6 +29,7 @@ dependencies = [
 
     # Agent Framework
     "langgraph>=0.0.40",
+    "langgraph-checkpoint-postgres>=3.0.0",
 
     # PDF Generation
     "reportlab>=4.1.0",

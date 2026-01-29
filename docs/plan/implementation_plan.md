@@ -247,7 +247,7 @@ These steps require user action outside Claude Code:
 ## Phase 2: Agent Framework
 
 ### 2.1 LangGraph Foundation (REQ-007 §3)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Shared agent infrastructure. Required before any specific agent.*
 
@@ -266,9 +266,9 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 3.1 | Why LangGraph | `agents, docs, plan` | ⬜ |
-| 3.2 | State Schema | `agents, provider, structure, tdd, plan` | ⬜ |
-| 3.3 | Checkpointing & HITL | `agents, provider, db, tdd, plan` | ⬜ |
+| 3.1 | Why LangGraph | `agents, docs, plan` | ✅ |
+| 3.2 | State Schema | `agents, provider, structure, tdd, plan` | ✅ |
+| 3.3 | Checkpointing & HITL | `agents, provider, db, tdd, plan` | ✅ |
 
 ---
 
