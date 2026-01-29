@@ -4,7 +4,6 @@ REQ-009 §4: LLM provider interface and adapters.
 """
 
 from app.providers.llm.base import (
-    CompletionResult,
     LLMMessage,
     LLMProvider,
     LLMResponse,
@@ -21,7 +20,6 @@ from app.providers.llm.openai_adapter import OpenAIAdapter
 
 __all__ = [
     # Base types
-    "CompletionResult",
     "LLMMessage",
     "LLMProvider",
     "LLMResponse",

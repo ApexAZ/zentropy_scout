@@ -15,13 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user_id
 from app.core.database import get_db
 from app.core.errors import NotFoundError, ValidationError
-from app.core.responses import DataResponse, ListResponse
+from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona, ResumeFile
 from app.models.cover_letter import SubmittedCoverLetterPDF
 from app.models.resume import SubmittedResumePDF
-
-router = APIRouter()
-
 
 # =============================================================================
 # Resume Files (upload, list, get, download)
@@ -142,7 +139,7 @@ async def list_resume_files(
             }
             for f in files
         ],
-        meta={"total": len(files), "page": 1, "per_page": len(files)},
+        meta=PaginationMeta(total=len(files), page=1, per_page=len(files)),
     )
 
 

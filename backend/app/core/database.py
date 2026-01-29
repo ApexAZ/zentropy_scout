@@ -1,3 +1,9 @@
+"""Async database engine and session management.
+
+REQ-005 §2.2: Configures SQLAlchemy async engine with connection pooling
+and provides dependency injection for database sessions.
+"""
+
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (

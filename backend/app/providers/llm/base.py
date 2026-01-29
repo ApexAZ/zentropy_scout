@@ -289,19 +289,3 @@ class LLMProvider(ABC):
                 Model identifier string (e.g., "claude-3-5-sonnet-20241022").
         """
         ...
-
-
-# Legacy exports for backwards compatibility during migration
-# TODO: Remove after updating ClaudeAdapter in §4.2
-@dataclass
-class CompletionResult:
-    """Legacy result class - use LLMResponse instead.
-
-    Deprecated: This class exists only for backwards compatibility
-    with the existing ClaudeAdapter. It will be removed in §4.2.
-    """
-
-    content: str
-    model: str
-    usage: dict | None = None
-    structured_output: dict | None = None

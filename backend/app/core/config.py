@@ -1,3 +1,9 @@
+"""Application configuration loaded from environment variables.
+
+REQ-006 §6.1: Settings for database, API, LLM providers, and authentication.
+Uses pydantic-settings for validation and .env file support.
+"""
+
 import uuid
 
 from pydantic_settings import BaseSettings, SettingsConfigDict

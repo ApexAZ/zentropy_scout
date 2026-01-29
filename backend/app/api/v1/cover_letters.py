@@ -8,7 +8,7 @@ import uuid
 from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user_id
-from app.core.responses import DataResponse, ListResponse
+from app.core.responses import DataResponse, ListResponse, PaginationMeta
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ async def list_cover_letters(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> ListResponse[dict]:
     """List cover letters for current user."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("")

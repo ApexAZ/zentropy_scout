@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user_id
 from app.core.database import get_db
 from app.core.errors import NotFoundError
-from app.core.responses import DataResponse, ListResponse
+from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
 
 router = APIRouter()
@@ -24,7 +24,7 @@ async def list_base_resumes(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> ListResponse[dict]:
     """List base resumes for current user."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("")

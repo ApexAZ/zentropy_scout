@@ -26,7 +26,7 @@ import uuid
 from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user_id
-from app.core.responses import DataResponse, ListResponse
+from app.core.responses import DataResponse, ListResponse, PaginationMeta
 
 router = APIRouter()
 
@@ -44,7 +44,7 @@ async def list_personas(
 
     REQ-006 §5.2: Most users have exactly one persona.
     """
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("")
@@ -96,7 +96,7 @@ async def list_work_history(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> ListResponse[dict]:
     """List work history entries for a persona."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("/{persona_id}/work-history")
@@ -149,7 +149,7 @@ async def list_skills(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> ListResponse[dict]:
     """List skills for a persona."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("/{persona_id}/skills")
@@ -202,7 +202,7 @@ async def list_education(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> ListResponse[dict]:
     """List education entries for a persona."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("/{persona_id}/education")
@@ -255,7 +255,7 @@ async def list_certifications(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> ListResponse[dict]:
     """List certifications for a persona."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("/{persona_id}/certifications")
@@ -308,7 +308,7 @@ async def list_achievement_stories(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> ListResponse[dict]:
     """List achievement stories for a persona."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("/{persona_id}/achievement-stories")
@@ -390,7 +390,7 @@ async def list_custom_non_negotiables(
 
     REQ-006 §5.2: Custom filters like "No Amazon subsidiaries".
     """
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("/{persona_id}/custom-non-negotiables")

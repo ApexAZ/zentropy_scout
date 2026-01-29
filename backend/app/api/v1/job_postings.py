@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user_id
 from app.core.database import get_db
 from app.core.errors import ConflictError, NotFoundError
-from app.core.responses import DataResponse, ListResponse
+from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models.job_posting import JobPosting
 from app.models.job_source import JobSource
 from app.models.persona import Persona
@@ -60,7 +60,7 @@ async def list_job_postings(
     Supports filtering by status, is_favorite, fit_score_min, company_name.
     Supports sorting by fit_score, created_at, etc.
     """
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("")
@@ -112,7 +112,7 @@ async def list_extracted_skills(
 
     REQ-006 §5.2: Read-only for clients, populated by Scouter agent.
     """
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 # =============================================================================

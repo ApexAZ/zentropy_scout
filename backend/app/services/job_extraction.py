@@ -13,8 +13,8 @@ import logging
 import re
 from typing import Any, cast
 
-from app.providers import factory
-from app.providers.llm.base import TaskType
+from app.providers import ProviderError, factory
+from app.providers.llm.base import LLMMessage, TaskType
 from app.schemas.ingest import ExtractedJobData
 
 logger = logging.getLogger(__name__)
@@ -46,13 +46,19 @@ async def extract_job_data(raw_text: str) -> ExtractedJobData:
     try:
         llm = factory.get_llm_provider()
         response = await llm.complete(
-            prompt=_build_extraction_prompt(truncated_text),
-            task_type=TaskType.EXTRACTION,
+            messages=[
+                LLMMessage(role="system", content="You are a job posting parser."),
+                LLMMessage(
+                    role="user", content=_build_extraction_prompt(truncated_text)
+                ),
+            ],
+            task=TaskType.EXTRACTION,
+            json_mode=True,
         )
-        extracted = _parse_extraction_response(response)
-    except Exception:
+        extracted = _parse_extraction_response(response.content or "")
+    except ProviderError as e:
         # Fallback to basic regex extraction if LLM fails
-        logger.warning("LLM extraction failed, using fallback regex extraction")
+        logger.warning("LLM extraction failed (%s), using fallback regex extraction", e)
         extracted = _basic_extraction(truncated_text)
 
     # Always include description snippet

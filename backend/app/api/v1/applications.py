@@ -8,7 +8,7 @@ import uuid
 from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user_id
-from app.core.responses import DataResponse, ListResponse
+from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.schemas.bulk import BulkArchiveRequest, BulkFailedItem, BulkOperationResult
 
 router = APIRouter()
@@ -27,7 +27,7 @@ async def list_applications(
 
     Supports filtering by status, applied_after, applied_before.
     """
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("")
@@ -76,7 +76,7 @@ async def list_timeline_events(
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> ListResponse[dict]:
     """List timeline events for an application."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.post("/{application_id}/timeline")
