@@ -61,9 +61,9 @@ def create_checkpointer() -> BaseCheckpointSaver:
     # isn't needed for single-user local deployment. The abstraction
     # allows easy switch to PostgreSQL when multi-user support is added.
     #
-    # TODO: Enable PostgreSQL checkpointing for hosted/multi-user mode
-    # when that feature is implemented (REQ-007 §3.3 notes TTL of 24h
-    # for incomplete flows, 7 days for conversation history).
+    # FUTURE: PostgreSQL checkpointing for hosted/multi-user mode is tracked
+    # in the implementation plan (Phase 2.8, REQ-007 §11). When implemented,
+    # use TTL of 24h for incomplete flows, 7 days for conversation history.
 
     return MemorySaver()
 
@@ -73,7 +73,7 @@ def create_graph_config(
     user_id: str,
     *,
     checkpoint_ns: str = "",
-) -> dict[str, Any]:
+) -> dict[str, Any]:  # Any: LangGraph config structure is library-defined, not typed
     """Create configuration dict for graph execution.
 
     The config is passed to graph.invoke() or graph.ainvoke() and provides:
@@ -138,7 +138,10 @@ def request_human_input(
                 )
             return state
     """
-    # Copy state to avoid mutating input
+    # Copy state to avoid mutating input.
+    # Type ignore: dict() returns dict[str, Any] but we know it matches BaseAgentState
+    # structure since we're copying from a BaseAgentState. TypedDict doesn't support
+    # copy() or unpacking well, so dict() is the cleanest approach.
     new_state: BaseAgentState = dict(state)  # type: ignore[assignment]
 
     # Set HITL flags
@@ -185,7 +188,7 @@ def resume_from_checkpoint(
         # Continue execution
         result = await graph.ainvoke(state, config)
     """
-    # Copy state to avoid mutating input
+    # Copy state to avoid mutating input (see request_human_input for rationale).
     new_state: BaseAgentState = dict(state)  # type: ignore[assignment]
 
     # Clear HITL flags

@@ -93,10 +93,15 @@ class BaseAgentState(TypedDict, total=False):
     persona_id: str
 
     # Conversation
+    # Any: Message format follows LLM provider conventions (role, content, etc.)
+    # and may include provider-specific fields. Defining a strict TypedDict would
+    # couple us to a specific provider's message format.
     messages: list[dict[str, Any]]
     current_message: str | None
 
     # Tool execution
+    # Any: Tool call/result structures vary by tool and may include dynamic arguments.
+    # The agent framework handles these generically; specific tools validate their own args.
     tool_calls: list[dict[str, Any]]
     tool_results: list[dict[str, Any]]
 
@@ -158,6 +163,8 @@ class OnboardingState(BaseAgentState, total=False):
     """
 
     current_step: str
+    # Any: Accumulated interview responses vary by step (text, lists, nested objects).
+    # Each step's data is validated when used, not at state level.
     gathered_data: dict[str, Any]
     skipped_sections: list[str]
     pending_question: str | None
@@ -179,6 +186,8 @@ class ScouterState(BaseAgentState, total=False):
     """
 
     enabled_sources: list[str]
+    # Any: Raw job data varies by source (LinkedIn, Indeed, Manual) and includes
+    # source-specific fields. Normalized to JobPosting schema during processing.
     discovered_jobs: list[dict[str, Any]]
     processed_jobs: list[dict[str, Any]]
     error_sources: list[str]
