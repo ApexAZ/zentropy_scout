@@ -478,3 +478,53 @@ def merge_job_data(
         merged["description"] = new_desc
 
     return merged
+
+
+# =============================================================================
+# Repost Handling Functions (REQ-003 §8.2)
+# =============================================================================
+
+
+def prepare_repost_data(
+    new_job: dict[str, Any],
+    matched_job: dict[str, Any],
+) -> dict[str, Any]:
+    """Prepare job data for creating a linked repost record.
+
+    REQ-003 §8.2: When a repost is detected, the system:
+    - Creates new Job Posting record with status = Discovered
+    - Links via previous_posting_ids (includes matched job + its prior chain)
+    - Increments repost_count (matched job's count + 1)
+
+    Note: ghost_score recalculation is handled separately (async LLM call).
+    The input dict is not mutated; a new dict is returned.
+
+    Args:
+        new_job: New job posting data dict containing standard job fields
+            (job_title, company_name, description, source_id, external_id, etc.).
+        matched_job: Matched existing job with keys:
+            - id (str | UUID): UUID of the matched job.
+            - repost_count (int | None): Current repost count (defaults to 0).
+            - previous_posting_ids (list[str] | None): Prior posting IDs chain.
+
+    Returns:
+        New job data dict with status, previous_posting_ids, and repost_count set.
+    """
+    # Start with new job data
+    result = new_job.copy()
+
+    # Set status to Discovered
+    result["status"] = "Discovered"
+
+    # Build previous_posting_ids chain: matched job + its prior chain
+    matched_id = matched_job.get("id")
+    prior_chain = matched_job.get("previous_posting_ids") or []
+
+    # New job's chain = [matched_id] + matched job's prior chain
+    result["previous_posting_ids"] = [matched_id] + list(prior_chain)
+
+    # Increment repost_count
+    matched_count = matched_job.get("repost_count") or 0
+    result["repost_count"] = matched_count + 1
+
+    return result

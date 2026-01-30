@@ -17,6 +17,7 @@ from app.services.job_deduplication import (
     is_duplicate,
     is_similar_title,
     merge_job_data,
+    prepare_repost_data,
 )
 
 # =============================================================================
@@ -780,3 +781,195 @@ class TestRepostConfidenceLevels:
 
         assert result.action == "create_new"
         assert result.confidence is None
+
+
+# =============================================================================
+# Repost Handling Tests (REQ-003 §8.2)
+# =============================================================================
+
+
+class TestPrepareRepostData:
+    """Tests for prepare_repost_data() function.
+
+    REQ-003 §8.2: When a repost is detected, the system:
+    - Creates new Job Posting record with status = Discovered
+    - Links via previous_posting_ids
+    - Increments repost_count
+    - Prepares data for ghost_score recalculation
+    """
+
+    def test_status_is_discovered_when_repost_prepared(self) -> None:
+        """New repost record has status = Discovered."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "Job description...",
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": 0,
+            "previous_posting_ids": None,
+        }
+
+        result = prepare_repost_data(new_job, matched_job)
+
+        assert result["status"] == "Discovered"
+
+    def test_previous_posting_ids_contains_matched_job_id_when_repost_prepared(
+        self,
+    ) -> None:
+        """New repost links to matched job via previous_posting_ids."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "Job description...",
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": 0,
+            "previous_posting_ids": None,
+        }
+
+        result = prepare_repost_data(new_job, matched_job)
+
+        assert "matched-job-id" in result["previous_posting_ids"]
+
+    def test_previous_posting_ids_includes_prior_chain_when_matched_has_history(
+        self,
+    ) -> None:
+        """New repost includes the matched job's prior posting chain."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "Job description...",
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": 2,
+            "previous_posting_ids": ["older-job-1", "older-job-2"],
+        }
+
+        result = prepare_repost_data(new_job, matched_job)
+
+        # Should include matched job + its prior chain in order
+        assert result["previous_posting_ids"] == [
+            "matched-job-id",
+            "older-job-1",
+            "older-job-2",
+        ]
+
+    def test_repost_count_increments_when_matched_has_existing_count(self) -> None:
+        """repost_count is matched job's count + 1."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "Job description...",
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": 2,
+            "previous_posting_ids": ["older-1", "older-2"],
+        }
+
+        result = prepare_repost_data(new_job, matched_job)
+
+        assert result["repost_count"] == 3
+
+    def test_repost_count_is_one_when_first_repost(self) -> None:
+        """First repost of a job has repost_count = 1."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "Job description...",
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": 0,
+            "previous_posting_ids": None,
+        }
+
+        result = prepare_repost_data(new_job, matched_job)
+
+        assert result["repost_count"] == 1
+
+    def test_repost_count_defaults_to_one_when_matched_count_is_none(self) -> None:
+        """repost_count defaults to 1 when matched job has None repost_count."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "Job description...",
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": None,
+            "previous_posting_ids": None,
+        }
+
+        result = prepare_repost_data(new_job, matched_job)
+
+        assert result["repost_count"] == 1
+
+    def test_new_job_fields_preserved_when_repost_prepared(self) -> None:
+        """New job data fields are preserved in result."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "New job description...",
+            "source_id": "source-123",
+            "external_id": "ext-456",
+            "salary_min": 100000,
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": 0,
+            "previous_posting_ids": None,
+        }
+
+        result = prepare_repost_data(new_job, matched_job)
+
+        assert result["job_title"] == "Software Engineer"
+        assert result["company_name"] == "Acme Corp"
+        assert result["description"] == "New job description..."
+        assert result["source_id"] == "source-123"
+        assert result["external_id"] == "ext-456"
+        assert result["salary_min"] == 100000
+
+    def test_previous_posting_ids_correct_when_matched_has_empty_list(self) -> None:
+        """Handles matched job with empty list for previous_posting_ids."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "Job description...",
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": 0,
+            "previous_posting_ids": [],
+        }
+
+        result = prepare_repost_data(new_job, matched_job)
+
+        assert result["previous_posting_ids"] == ["matched-job-id"]
+        assert result["repost_count"] == 1
+
+    def test_input_dict_not_mutated_when_repost_prepared(self) -> None:
+        """prepare_repost_data does not mutate the input new_job dict."""
+        new_job = {
+            "job_title": "Software Engineer",
+            "company_name": "Acme Corp",
+            "description": "Job description...",
+        }
+        matched_job = {
+            "id": "matched-job-id",
+            "repost_count": 0,
+            "previous_posting_ids": None,
+        }
+        original_keys = set(new_job.keys())
+
+        prepare_repost_data(new_job, matched_job)
+
+        # Original dict should not have new keys
+        assert set(new_job.keys()) == original_keys
+        assert "status" not in new_job
+        assert "previous_posting_ids" not in new_job
+        assert "repost_count" not in new_job
