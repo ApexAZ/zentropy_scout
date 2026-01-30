@@ -22,7 +22,7 @@ Priority Rules for Merging (REQ-003 §9.3):
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from difflib import SequenceMatcher
 from typing import Any, Literal
 
@@ -637,3 +637,71 @@ def generate_repost_context_message(
         f"This role was posted before. You applied on {applied_date} {outcome_part}. "
         "This appears to be a repost. Want me to evaluate it fresh?"
     )
+
+
+# =============================================================================
+# Same Source Update Functions (REQ-003 §9.1)
+# =============================================================================
+
+# WHY: Fields set by the user or computed by agents should not be overwritten
+# when we re-encounter the same job from the same source.
+USER_PRESERVED_FIELDS = frozenset(
+    {
+        "id",
+        "status",
+        "is_favorite",
+        "dismissed_at",
+        "expired_at",
+        "first_seen_date",
+        "fit_score",
+        "stretch_score",
+        "failed_non_negotiables",
+        "ghost_signals",
+        "ghost_score",
+        "repost_count",
+        "previous_posting_ids",
+        "persona_id",
+    }
+)
+
+
+def prepare_same_source_update(
+    existing: dict[str, Any],
+    new_job: dict[str, Any],
+) -> dict[str, Any]:
+    """Prepare update data for same-source deduplication.
+
+    REQ-003 §9.1: When same external_id + source_id is encountered:
+    - Update existing record with fresh data from source
+    - Preserve user-modified fields (status, is_favorite, dismissed_at)
+    - Preserve historical fields (first_seen_date)
+    - Preserve computed fields (fit_score, stretch_score, ghost_score)
+    - Set last_verified_at to current time
+
+    Args:
+        existing: Existing job posting data dict with keys:
+            - id (str | UUID): UUID of the existing job.
+            - status (str): Current status (Discovered, Dismissed, Applied, Expired).
+            - is_favorite (bool): User's favorite flag.
+            - dismissed_at (datetime | None): When user dismissed.
+            - first_seen_date (date): When job was first discovered.
+            - fit_score, stretch_score (int | None): Computed scores.
+            Plus other job fields.
+        new_job: Fresh job data from the same source with updated fields.
+
+    Returns:
+        Dict with merged data ready for database update.
+        User-preserved fields come from existing, source fields from new_job.
+    """
+    # Start with existing data (preserves all existing fields)
+    result = existing.copy()
+
+    # Update source-provided fields from new_job (excluding user-preserved fields)
+    for key, value in new_job.items():
+        if key not in USER_PRESERVED_FIELDS:
+            result[key] = value
+
+    # Always update last_verified_at to track freshness
+    result["last_verified_at"] = datetime.now(UTC)
+
+    return result

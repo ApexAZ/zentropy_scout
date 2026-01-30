@@ -23,6 +23,7 @@ from app.services.job_deduplication import (
     is_similar_title,
     merge_job_data,
     prepare_repost_data,
+    prepare_same_source_update,
 )
 
 # =============================================================================
@@ -1210,3 +1211,318 @@ class TestGenerateRepostContextMessage:
         assert result is not None
         # Should mention the most recent application (January 2025)
         assert "January 15, 2025" in result
+
+
+# =============================================================================
+# Same Source Update Tests (REQ-003 §9.1)
+# =============================================================================
+
+
+class TestPrepareSameSourceUpdate:
+    """Tests for prepare_same_source_update() function.
+
+    REQ-003 §9.1: When same external_id + source_id is encountered:
+    - Update existing record (refresh data from source)
+    - Preserve user-modified fields (status, is_favorite, dismissed_at)
+    """
+
+    def test_updates_source_provided_fields_when_new_data_available(self) -> None:
+        """Source-provided fields are updated with new values."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "salary_min": None,
+            "salary_max": None,
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "salary_min": 100000,
+            "salary_max": 150000,
+            "description": "Updated description with more details",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        assert result["salary_min"] == 100000
+        assert result["salary_max"] == 150000
+        assert result["description"] == "Updated description with more details"
+
+    def test_preserves_user_modified_status_when_not_discovered(self) -> None:
+        """User-modified status (not Discovered) is preserved."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "status": "Dismissed",
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        # Status should be preserved (user dismissed the job)
+        assert result["status"] == "Dismissed"
+
+    def test_preserves_is_favorite_when_user_favorited(self) -> None:
+        """is_favorite flag is preserved when user has favorited."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "is_favorite": True,
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        assert result["is_favorite"] is True
+
+    def test_preserves_dismissed_at_when_user_dismissed(self) -> None:
+        """dismissed_at timestamp is preserved when user dismissed."""
+        dismissed_time = datetime(2025, 1, 15, 10, 0, tzinfo=UTC)
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "dismissed_at": dismissed_time,
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        assert result["dismissed_at"] == dismissed_time
+
+    def test_includes_last_verified_at_when_update_prepared(self) -> None:
+        """last_verified_at is set to current time when update prepared."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "last_verified_at": None,
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        assert result["last_verified_at"] is not None
+        assert isinstance(result["last_verified_at"], datetime)
+        assert result["last_verified_at"].tzinfo is not None
+
+    def test_preserves_id_when_update_prepared(self) -> None:
+        """Existing job ID is preserved in update."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        assert result["id"] == "job-123"
+
+    def test_preserves_first_seen_date_when_update_prepared(self) -> None:
+        """first_seen_date is preserved (historical data)."""
+        from datetime import date
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "first_seen_date": date(2025, 1, 1),
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "first_seen_date": date(2025, 1, 20),  # Newer date from re-scrape
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        # First seen date should be the original
+        assert result["first_seen_date"] == date(2025, 1, 1)
+
+    def test_updates_posted_date_when_source_has_newer_data(self) -> None:
+        """posted_date is updated if source provides different value."""
+        from datetime import date
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "posted_date": date(2025, 1, 1),
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "posted_date": date(2025, 1, 15),
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        # Posted date from source should be taken (it may be corrected)
+        assert result["posted_date"] == date(2025, 1, 15)
+
+    def test_preserves_scoring_fields_when_user_has_scores(self) -> None:
+        """User-computed scores (fit_score, stretch_score) are preserved."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "fit_score": 85,
+            "stretch_score": 20,
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        # Scores should be preserved (computed by agent, not source)
+        assert result["fit_score"] == 85
+        assert result["stretch_score"] == 20
+
+    def test_preserves_ghost_score_when_existing_has_score(self) -> None:
+        """ghost_score (computed by agent) is preserved."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "ghost_score": 45,
+            "ghost_signals": {"days_open": 30, "repost_count": 1},
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        assert result["ghost_score"] == 45
+        assert result["ghost_signals"] == {"days_open": 30, "repost_count": 1}
+
+    def test_preserves_expired_at_when_existing_is_expired(self) -> None:
+        """expired_at timestamp is preserved for expired jobs."""
+        expired_time = datetime(2025, 1, 10, 12, 0, tzinfo=UTC)
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "expired_at": expired_time,
+            "status": "Expired",
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        assert result["expired_at"] == expired_time
+        assert result["status"] == "Expired"
+
+    def test_preserves_persona_id_when_existing_has_persona(self) -> None:
+        """persona_id is preserved (job belongs to specific persona)."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "persona_id": "persona-999",
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "persona_id": "different-persona",  # Source wouldn't change this
+            "description": "Updated description",
+        }
+
+        result = prepare_same_source_update(existing, new_job)
+
+        # Persona ID should be preserved (not changed)
+        assert result["persona_id"] == "persona-999"
+
+    def test_does_not_mutate_input_dicts_when_update_prepared(self) -> None:
+        """Input dicts are not mutated by prepare_same_source_update."""
+        existing = {
+            "id": "job-123",
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Old description",
+        }
+        new_job = {
+            "source_id": "source-1",
+            "external_id": "ext-456",
+            "job_title": "Software Engineer",
+            "description": "Updated description",
+        }
+        existing_keys = set(existing.keys())
+        new_keys = set(new_job.keys())
+
+        prepare_same_source_update(existing, new_job)
+
+        assert set(existing.keys()) == existing_keys
+        assert set(new_job.keys()) == new_keys
