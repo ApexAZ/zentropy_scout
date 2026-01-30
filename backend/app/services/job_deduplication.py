@@ -33,9 +33,13 @@ from typing import Any, Literal
 # Constants
 # =============================================================================
 
-# WHY 0.85: REQ-007 §6.6 specifies >85% description similarity for repost detection.
+# WHY 0.85: REQ-003 §8.1 specifies >85% description similarity for HIGH confidence repost.
 # This threshold balances catching true reposts vs false positives from similar-but-different jobs.
-DESCRIPTION_SIMILARITY_THRESHOLD = 0.85
+DESCRIPTION_SIMILARITY_THRESHOLD_HIGH = 0.85
+
+# WHY 0.70: REQ-003 §8.1 specifies >70% description similarity for MEDIUM confidence repost.
+# Jobs with 70-85% similarity are "Possible reposts" - same role but may have changed.
+DESCRIPTION_SIMILARITY_THRESHOLD_MEDIUM = 0.70
 
 # WHY 3: REQ-003 §8.1 specifies Levenshtein distance <= 3 for similar titles.
 # Allows minor typos/numbering differences (e.g., "II" vs "2").
@@ -84,11 +88,12 @@ AGGREGATOR_DOMAINS = (
 class DuplicateResult:
     """Result of deduplication check.
 
-    REQ-007 §6.6: Encapsulates the deduplication decision.
+    REQ-007 §6.6 + REQ-003 §8.1: Encapsulates the deduplication decision.
 
     Attributes:
         action: The deduplication action to take.
         matched_job_id: ID of the matched existing job, or None for create_new.
+        confidence: Confidence level for repost detection (High, Medium, or None).
     """
 
     action: Literal[
@@ -98,6 +103,7 @@ class DuplicateResult:
         "create_new",
     ]
     matched_job_id: str | None
+    confidence: Literal["High", "Medium"] | None = None
 
 
 # =============================================================================
@@ -229,7 +235,9 @@ def is_similar_title(title1: str, title2: str) -> bool:
 def calculate_description_similarity(desc1: str, desc2: str) -> float:
     """Calculate similarity ratio between two job descriptions.
 
-    REQ-007 §6.6: Uses 85% threshold for repost detection.
+    REQ-007 §6.6 + REQ-003 §8.1: Result used for repost detection.
+    - >85% similarity → High confidence repost
+    - >70% similarity → Medium confidence repost
 
     Args:
         desc1: First job description.
@@ -268,13 +276,14 @@ def is_duplicate(
 ) -> DuplicateResult:
     """Determine if a new job is a duplicate of an existing one.
 
-    REQ-007 §6.6: Deduplication decision logic.
+    REQ-007 §6.6 + REQ-003 §8.1: Deduplication decision logic with confidence levels.
 
     Priority order:
-    1. Same source + same external_id → update_existing
-    2. Same description_hash (any source) → add_to_also_found_on
-    3. Same company + similar title + >85% description similarity → create_linked_repost
-    4. No match → create_new
+    1. Same source + same external_id → update_existing (High confidence)
+    2. Same description_hash (any source) → add_to_also_found_on (High confidence)
+    3. Same company + similar title + >85% similarity → create_linked_repost (High)
+    4. Same company + similar title + >70% similarity → create_linked_repost (Medium)
+    5. No match → create_new (None confidence)
 
     Args:
         new_job: New job posting dict with keys:
@@ -287,10 +296,12 @@ def is_duplicate(
         existing_jobs: List of existing job dicts with same keys plus 'id'.
 
     Returns:
-        DuplicateResult with action and matched_job_id.
+        DuplicateResult with action, matched_job_id, and confidence level.
     """
     if not existing_jobs:
-        return DuplicateResult(action="create_new", matched_job_id=None)
+        return DuplicateResult(
+            action="create_new", matched_job_id=None, confidence=None
+        )
 
     new_source_id = new_job.get("source_id")
     new_external_id = new_job.get("external_id")
@@ -299,7 +310,7 @@ def is_duplicate(
     new_title = new_job.get("job_title") or ""
     new_description = new_job.get("description") or ""
 
-    # Check 1: Same source + same external_id (highest priority)
+    # Check 1: Same source + same external_id (highest priority, High confidence)
     for existing in existing_jobs:
         if (
             existing.get("source_id") == new_source_id
@@ -308,17 +319,22 @@ def is_duplicate(
             return DuplicateResult(
                 action="update_existing",
                 matched_job_id=existing.get("id"),
+                confidence="High",
             )
 
-    # Check 2: Same description_hash (cross-source duplicate)
+    # Check 2: Same description_hash (cross-source duplicate, High confidence)
     for existing in existing_jobs:
         if existing.get("description_hash") == new_description_hash:
             return DuplicateResult(
                 action="add_to_also_found_on",
                 matched_job_id=existing.get("id"),
+                confidence="High",
             )
 
-    # Check 3: Same company + similar title + >85% description similarity (repost)
+    # Check 3: Same company + similar title + similarity check (repost detection)
+    # Track best match for medium confidence fallback
+    best_medium_match: tuple[str | None, float] = (None, 0.0)
+
     for existing in existing_jobs:
         existing_company = (existing.get("company_name") or "").lower().strip()
         existing_title = existing.get("job_title") or ""
@@ -332,18 +348,36 @@ def is_duplicate(
         if not is_similar_title(new_title, existing_title):
             continue
 
-        # Must have >85% description similarity
+        # Calculate description similarity
         similarity = calculate_description_similarity(
             new_description, existing_description
         )
-        if similarity > DESCRIPTION_SIMILARITY_THRESHOLD:
+
+        # Check 3a: High confidence (>85% similarity)
+        if similarity > DESCRIPTION_SIMILARITY_THRESHOLD_HIGH:
             return DuplicateResult(
                 action="create_linked_repost",
                 matched_job_id=existing.get("id"),
+                confidence="High",
             )
 
+        # Check 3b: Track for Medium confidence (>70% similarity)
+        if (
+            similarity > DESCRIPTION_SIMILARITY_THRESHOLD_MEDIUM
+            and similarity > best_medium_match[1]
+        ):
+            best_medium_match = (existing.get("id"), similarity)
+
+    # Return best Medium confidence match if found
+    if best_medium_match[0] is not None:
+        return DuplicateResult(
+            action="create_linked_repost",
+            matched_job_id=best_medium_match[0],
+            confidence="Medium",
+        )
+
     # No match found
-    return DuplicateResult(action="create_new", matched_job_id=None)
+    return DuplicateResult(action="create_new", matched_job_id=None, confidence=None)
 
 
 # =============================================================================

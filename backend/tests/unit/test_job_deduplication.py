@@ -594,3 +594,189 @@ class TestMergeJobData:
         # Non-priority fields preserved from existing
         assert merged["source_id"] == "source-123"
         assert merged["location"] == "Remote"
+
+
+# =============================================================================
+# Repost Confidence Level Tests (REQ-003 §8.1)
+# =============================================================================
+
+
+class TestRepostConfidenceLevels:
+    """Tests for repost detection confidence levels.
+
+    REQ-003 §8.1: Three confidence levels for identifying reposts:
+    - High: Same source + same external_id, OR same company + similar title + >85% similarity
+    - Medium: Same company + similar title + 70-85% similarity
+    - None: No match found
+    """
+
+    def test_confidence_is_high_when_exact_source_match(self) -> None:
+        """Same source + same external_id returns High confidence."""
+        new_job = {
+            "source_id": "source-123",
+            "external_id": "job-456",
+            "company_name": "Acme Corp",
+            "job_title": "Software Engineer",
+            "description": "Description text...",
+            "description_hash": "hash-abc",
+        }
+        existing_jobs = [
+            {
+                "id": "existing-id",
+                "source_id": "source-123",
+                "external_id": "job-456",
+                "company_name": "Acme Corp",
+                "job_title": "Software Engineer",
+                "description": "Old description...",
+                "description_hash": "different-hash",
+            }
+        ]
+
+        result = is_duplicate(new_job, existing_jobs)
+
+        assert result.confidence == "High"
+
+    def test_confidence_is_high_when_description_similarity_above_85(self) -> None:
+        """Same company + similar title + >85% similarity returns High confidence."""
+        base_desc = (
+            "We are hiring a talented Software Engineer to join our team. "
+            "Requirements: 5 years experience with Python, Django, PostgreSQL. "
+            "Benefits include health insurance, 401k, remote work options."
+        )
+        # Minor change keeps >85% similarity
+        repost_desc = base_desc + " Apply today!"
+
+        new_job = {
+            "source_id": "source-123",
+            "external_id": "new-job-999",
+            "company_name": "Acme Corp",
+            "job_title": "Software Engineer",
+            "description": repost_desc,
+            "description_hash": "new-hash",
+        }
+        existing_jobs = [
+            {
+                "id": "existing-id",
+                "source_id": "source-123",
+                "external_id": "old-job-111",
+                "company_name": "Acme Corp",
+                "job_title": "Software Engineer",
+                "description": base_desc,
+                "description_hash": "old-hash",
+            }
+        ]
+
+        result = is_duplicate(new_job, existing_jobs)
+
+        assert result.action == "create_linked_repost"
+        assert result.confidence == "High"
+
+    def test_confidence_is_medium_when_description_similarity_between_70_and_85(
+        self,
+    ) -> None:
+        """Same company + similar title + 70-85% similarity returns Medium confidence."""
+        # Descriptions that are ~75% similar (moderate changes)
+        base_desc = (
+            "We are looking for a Software Engineer to join our team. "
+            "Requirements: Python, Django, PostgreSQL experience required."
+        )
+        modified_desc = (
+            "We are looking for a Software Engineer to join our team. "
+            "Requirements: Python, Flask, MySQL experience required. "
+            "This is a remote-first position with flexible hours."
+        )
+
+        new_job = {
+            "source_id": "source-123",
+            "external_id": "new-job-999",
+            "company_name": "Acme Corp",
+            "job_title": "Software Engineer",
+            "description": modified_desc,
+            "description_hash": "new-hash",
+        }
+        existing_jobs = [
+            {
+                "id": "existing-id",
+                "source_id": "source-123",
+                "external_id": "old-job-111",
+                "company_name": "Acme Corp",
+                "job_title": "Software Engineer",
+                "description": base_desc,
+                "description_hash": "old-hash",
+            }
+        ]
+
+        result = is_duplicate(new_job, existing_jobs)
+
+        assert result.action == "create_linked_repost"
+        assert result.confidence == "Medium"
+
+    def test_confidence_is_none_when_similarity_below_70(self) -> None:
+        """Similarity below 70% returns None confidence and create_new action."""
+        new_job = {
+            "source_id": "source-123",
+            "external_id": "new-job-999",
+            "company_name": "Acme Corp",
+            "job_title": "Software Engineer",
+            "description": "Looking for a backend developer with Java Spring Boot.",
+            "description_hash": "new-hash",
+        }
+        existing_jobs = [
+            {
+                "id": "existing-id",
+                "source_id": "source-123",
+                "external_id": "old-job-111",
+                "company_name": "Acme Corp",
+                "job_title": "Software Engineer",
+                "description": "We need a frontend engineer skilled in React and TypeScript.",
+                "description_hash": "old-hash",
+            }
+        ]
+
+        result = is_duplicate(new_job, existing_jobs)
+
+        assert result.action == "create_new"
+        assert result.confidence is None
+
+    def test_confidence_is_high_when_same_description_hash(self) -> None:
+        """Same description_hash from different source returns High confidence."""
+        new_job = {
+            "source_id": "linkedin-source",
+            "external_id": "linkedin-job-789",
+            "company_name": "Acme Corp",
+            "job_title": "Software Engineer",
+            "description": "Same description text...",
+            "description_hash": "same-hash-abc",
+        }
+        existing_jobs = [
+            {
+                "id": "existing-id",
+                "source_id": "adzuna-source",
+                "external_id": "adzuna-job-123",
+                "company_name": "Acme Corp",
+                "job_title": "Software Engineer",
+                "description": "Same description text...",
+                "description_hash": "same-hash-abc",
+            }
+        ]
+
+        result = is_duplicate(new_job, existing_jobs)
+
+        assert result.action == "add_to_also_found_on"
+        assert result.confidence == "High"
+
+    def test_confidence_is_none_when_create_new(self) -> None:
+        """No match returns None confidence."""
+        new_job = {
+            "source_id": "source-123",
+            "external_id": "new-job-999",
+            "company_name": "NewCo Inc",
+            "job_title": "Data Scientist",
+            "description": "ML engineering role...",
+            "description_hash": "unique-hash",
+        }
+
+        result = is_duplicate(new_job, [])
+
+        assert result.action == "create_new"
+        assert result.confidence is None
