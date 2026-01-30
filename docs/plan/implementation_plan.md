@@ -375,7 +375,7 @@ These steps require user action outside Claude Code:
 | 4.1 | MVP Sources | `provider, docs, plan` | ✅ |
 | 4.2 | Source Registry (Global) | `db, tdd, plan` | ✅ |
 | 4.2b | User Source Preferences | `db, tdd, plan` | ✅ |
-| 4.3 | Agent Source Selection | `provider, db, tdd, plan` | ⬜ |
+| 4.3 | Agent Source Selection | `provider, db, tdd, plan` | ✅ |
 | 4.4 | Polling Configuration | `db, tdd, plan` | ✅ |
 | 6.1 | Status Transitions | `db, tdd, plan` | ⬜ |
 | 7.1 | Ghost Detection — Purpose | `docs, plan` | ⬜ |
