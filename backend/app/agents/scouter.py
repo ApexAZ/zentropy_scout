@@ -24,7 +24,14 @@ Trigger Conditions (§6.1):
 """
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+# WHY: Job data from external sources (Adzuna, RemoteOK, etc.) has varying
+# schemas that we normalize during processing. Using Any for raw job dicts
+# is intentional - strict typing happens when we create JobPosting models.
+# ScouterState uses dict[str, Any] because it's a TypedDict defined in
+# app/agents/state.py - we use dict here to avoid circular imports.
 
 # =============================================================================
 # Constants (§6.1)
@@ -113,3 +120,115 @@ def is_source_added_trigger(
     # Check if any sources were added
     added_sources = current_set - previous_set
     return len(added_sources) > 0
+
+
+# =============================================================================
+# Polling Flow Functions (§6.2)
+# =============================================================================
+
+# WHY: Polling frequency intervals. These are used to calculate when the next
+# poll should occur based on user's preferred frequency setting.
+POLLING_FREQUENCY_INTERVALS: dict[str, timedelta] = {
+    "twice_daily": timedelta(hours=12),
+    "daily": timedelta(hours=24),
+    "weekly": timedelta(days=7),
+}
+
+# WHY: Default interval when frequency is unknown or invalid.
+DEFAULT_POLLING_INTERVAL = timedelta(hours=24)
+
+
+def merge_results(
+    source_results: dict[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    """Merge job results from multiple sources into a single list.
+
+    REQ-007 §6.2: After parallel fetch, normalize to common schema.
+
+    Each job is annotated with its source_name so we can track origin
+    for deduplication and also_found_on logic.
+
+    Args:
+        source_results: Dict mapping source name to list of jobs from that source.
+            E.g., {"Adzuna": [{...}, {...}], "RemoteOK": [{...}]}
+
+    Returns:
+        Flattened list of all jobs with source_name field added.
+    """
+    merged: list[dict[str, Any]] = []
+
+    for source_name, jobs in source_results.items():
+        for job in jobs:
+            # WHY: Add source_name to track job origin for deduplication
+            # and also_found_on logic in later processing steps.
+            merged.append({**job, "source_name": source_name})
+
+    return merged
+
+
+def calculate_next_poll_time(current_time: datetime, frequency: str) -> datetime:
+    """Calculate the next scheduled poll time based on frequency.
+
+    REQ-007 §6.2: Update polling state after poll completes.
+
+    Args:
+        current_time: The current time (typically when poll completed).
+        frequency: Polling frequency ("twice_daily", "daily", "weekly").
+
+    Returns:
+        The datetime when the next poll should occur.
+    """
+    interval = POLLING_FREQUENCY_INTERVALS.get(frequency, DEFAULT_POLLING_INTERVAL)
+    return current_time + interval
+
+
+def create_scouter_state(
+    user_id: str,
+    persona_id: str,
+    enabled_sources: list[str],
+) -> dict[str, Any]:
+    """Create initial ScouterState for a polling run.
+
+    REQ-007 §6.2: Initialize state before starting polling flow.
+
+    Args:
+        user_id: The user's ID.
+        persona_id: The persona's ID.
+        enabled_sources: List of enabled source names to poll.
+
+    Returns:
+        Initial ScouterState dict ready for the polling flow.
+    """
+    return {
+        "user_id": user_id,
+        "persona_id": persona_id,
+        "enabled_sources": enabled_sources,
+        "discovered_jobs": [],
+        "processed_jobs": [],
+        "error_sources": [],
+    }
+
+
+def record_source_error(
+    state: dict[str, Any],
+    source_name: str,
+) -> dict[str, Any]:
+    """Record a source that failed during polling.
+
+    REQ-007 §6.2: Track sources with errors for user feedback.
+
+    Args:
+        state: Current ScouterState.
+        source_name: Name of the source that encountered an error.
+
+    Returns:
+        Updated state with error recorded (immutable update pattern).
+    """
+    # WHY: Check for existing to prevent duplicates (idempotent operation)
+    if source_name in state["error_sources"]:
+        return state
+
+    return {
+        **state,
+        "error_sources": [*state["error_sources"], source_name],
+    }
