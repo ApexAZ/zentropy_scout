@@ -94,6 +94,346 @@ UPDATE_REQUEST_PATTERNS = [
 ]
 
 # =============================================================================
+# Prompt Templates (§5.6)
+# =============================================================================
+
+# WHY: These prompts establish the "Scout" interviewer persona. The consistent
+# persona prevents drift into generic chatbot behavior and maintains the
+# interview flow. Template variables allow dynamic context injection.
+
+SYSTEM_PROMPT_TEMPLATE = """You are Scout, a friendly career coach conducting an onboarding interview.
+
+## Your Personality
+- Warm but efficient — respect the user's time
+- Curious and encouraging — draw out details with follow-up questions
+- Professional but not stiff — conversational, not corporate
+- Celebrate wins without being sycophantic
+
+## Your Responsibilities
+- Guide the user through building their professional profile
+- Ask probing questions to surface quantifiable achievements
+- Help them articulate skills they might undersell
+- Capture their authentic voice for future cover letters
+
+## Interview Style Rules
+- Ask one question at a time — never overwhelm with multiple questions
+- Acknowledge their answer before moving on
+- Use their name occasionally if known
+- If they give a vague answer, probe for specifics ("Can you quantify that?")
+- If they seem stuck, offer examples or reframe the question
+
+## What You Are NOT
+- Not a therapist — stay focused on career topics
+- Not a resume writer — you're gathering data, not writing yet
+- Not pushy — always allow skipping optional sections
+
+## Current Context
+Step: {current_step}
+Progress so far:
+{gathered_data_summary}"""
+
+# §5.6.2 Work History Expansion Prompt
+# WHY: After a user describes a role, this prompt helps surface 2-3 strong
+# bullet points by probing for accomplishments, challenges, and impact.
+WORK_HISTORY_EXPANSION_PROMPT = """The user just described a role at {company} as {title}.
+
+Your goal: Surface 2-3 strong accomplishment bullets from this role.
+
+Probing areas:
+- Biggest accomplishment in this role
+- A challenge they overcame
+- Impact — numbers, percentages, scale
+
+Handling vague answers:
+- "How many projects?" or "What was the scale?"
+- "What was the outcome?"
+
+After gathering details, summarize what will be recorded and ask for confirmation."""
+
+# §5.6.2 Achievement Story Prompt (STAR format)
+# WHY: Stories in STAR format (Situation, Task, Action, Result) are essential
+# for cover letter generation and showcasing diverse skills.
+ACHIEVEMENT_STORY_PROMPT = """Goal: Capture 3-5 achievement stories in STAR format.
+
+Each story needs:
+- Context: What was the situation/challenge?
+- Action: What specifically did THEY do (not their team)?
+- Outcome: What was the measurable result?
+- Skills demonstrated: Which skills does this showcase?
+
+Probing questions:
+- "What made this challenging?"
+- "What would have happened if you hadn't stepped in?"
+- "Can you put a number on the impact?"
+
+Already captured stories:
+{existing_stories}
+
+Skills already covered:
+{covered_skills}
+
+Important: Ask for stories that demonstrate DIFFERENT skills than those already captured."""
+
+# §5.6.2 Voice Profile Derivation Prompt
+# WHY: Analyzing the conversation transcript helps derive the user's authentic
+# writing voice for personalized cover letter generation.
+VOICE_PROFILE_DERIVATION_PROMPT = """Analyze the conversation below to derive the user's professional voice.
+
+Analyze these dimensions:
+1. Tone: Formal/casual? Direct/diplomatic? Confident/humble?
+2. Sentence style: Short and punchy? Detailed and thorough?
+3. Vocabulary: Technical jargon? Plain English? Industry-specific terms?
+4. Patterns to avoid: Buzzwords they never use? Phrases they dislike?
+
+Conversation transcript:
+{transcript}
+
+Output a Voice Profile summary (3-4 bullet points).
+
+Present as: "Based on our conversation, here's how I'd describe your professional voice..."
+
+Then ask the user to confirm or adjust."""
+
+# §5.6.3 Transition Prompts
+# WHY: Natural transitions between sections maintain conversational flow
+# and help users understand what's coming next without feeling interrogated.
+TRANSITION_PROMPTS: dict[tuple[str, str], str] = {
+    ("work_history", "education"): (
+        "Great, I've got a solid picture of your work history.\n\n"
+        "Next, let's cover your education — degrees, certifications, or any "
+        "relevant training. This is optional if it's not relevant to your field."
+    ),
+    ("education", "skills"): (
+        "Thanks for sharing your educational background.\n\n"
+        "Now let's talk about your skills — both the technical ones and the "
+        "softer interpersonal skills that are often just as important."
+    ),
+    ("skills", "certifications"): (
+        "You've got a solid skill set.\n\n"
+        "Do you have any professional certifications to add? These can help "
+        "you stand out for certain roles."
+    ),
+    ("certifications", "achievement_stories"): (
+        "Good to know about your certifications.\n\n"
+        "Now for one of the most important parts — your achievement stories. "
+        "These are the specific examples that bring your resume to life."
+    ),
+    ("achievement_stories", "non_negotiables"): (
+        "Those are excellent stories — I can already see how they'll strengthen "
+        "your applications.\n\n"
+        "Now let's define your non-negotiables — the things that would make you "
+        "immediately pass on a job, no matter how interesting it sounds."
+    ),
+    ("non_negotiables", "growth_targets"): (
+        "I've noted your must-haves and dealbreakers.\n\n"
+        "Let's talk about where you're headed — what roles are you aspiring "
+        "to grow into, and what skills do you want to develop?"
+    ),
+    ("growth_targets", "voice_profile"): (
+        "Great perspective on your career goals.\n\n"
+        "Finally, let me capture your writing voice so any cover letters I help "
+        "draft will sound authentically like you."
+    ),
+    ("voice_profile", "review"): (
+        "Perfect, I've got a sense of your voice.\n\n"
+        "Let's review everything we've gathered before creating your profile."
+    ),
+    ("review", "base_resume_setup"): (
+        "Everything looks good!\n\n"
+        "Last step — let's set up your base resume so we're ready to tailor it "
+        "for specific job applications."
+    ),
+}
+
+
+# =============================================================================
+# Prompt Template Functions (§5.6)
+# =============================================================================
+
+
+def format_gathered_data_summary(gathered_data: dict[str, object]) -> str:
+    """Format gathered data into a human-readable summary.
+
+    REQ-007 §5.6.1: System Prompt Template Variables
+
+    Converts the gathered_data dict into a summary string suitable for
+    injection into the system prompt. Provides context about what has
+    been collected so far.
+
+    Args:
+        gathered_data: Dict of section data collected during onboarding.
+
+    Returns:
+        Human-readable summary of gathered data.
+    """
+    if not gathered_data:
+        return "No information collected yet."
+
+    summary_parts = []
+
+    # Basic info
+    basic = gathered_data.get("basic_info", {})
+    if isinstance(basic, dict) and basic.get("full_name"):
+        summary_parts.append(f"Name: {basic.get('full_name')}")
+
+    # Work history
+    work = gathered_data.get("work_history", {})
+    if isinstance(work, dict):
+        entries = work.get("entries", [])
+        if entries:
+            summary_parts.append(f"Work history: {len(entries)} job(s) recorded")
+
+    # Skills
+    skills = gathered_data.get("skills", {})
+    if isinstance(skills, dict):
+        entries = skills.get("entries", [])
+        if entries:
+            skill_names = [
+                e.get("skill_name", "") for e in entries if e.get("skill_name")
+            ]
+            if skill_names:
+                summary_parts.append(f"Skills: {', '.join(skill_names[:5])}")
+                if len(skill_names) > 5:
+                    summary_parts[-1] += f" (+{len(skill_names) - 5} more)"
+
+    # Achievement stories
+    stories = gathered_data.get("achievement_stories", {})
+    if isinstance(stories, dict):
+        entries = stories.get("entries", [])
+        if entries:
+            summary_parts.append(f"Achievement stories: {len(entries)} captured")
+
+    # Check for skipped sections
+    skipped = []
+    for section in ["education", "certifications", "resume_upload"]:
+        sec_data = gathered_data.get(section, {})
+        if isinstance(sec_data, dict) and sec_data.get("skipped"):
+            skipped.append(section.replace("_", " "))
+    if skipped:
+        summary_parts.append(f"Skipped: {', '.join(skipped)}")
+
+    return (
+        "\n".join(summary_parts) if summary_parts else "No information collected yet."
+    )
+
+
+def get_system_prompt(current_step: str, gathered_data_summary: str) -> str:
+    """Get the system prompt with template variables filled in.
+
+    REQ-007 §5.6.1: System Prompt (Interviewer Persona)
+
+    Fills in the current step and gathered data summary into the
+    system prompt template.
+
+    Args:
+        current_step: Current step in the onboarding flow.
+        gathered_data_summary: Pre-formatted summary of gathered data.
+
+    Returns:
+        Complete system prompt with variables filled in.
+    """
+    return SYSTEM_PROMPT_TEMPLATE.format(
+        current_step=current_step,
+        gathered_data_summary=gathered_data_summary or "No information collected yet.",
+    )
+
+
+def get_work_history_prompt(job_entry: dict[str, object]) -> str:
+    """Get the work history expansion prompt for a specific job.
+
+    REQ-007 §5.6.2: Step-Specific Prompts
+
+    Fills in job details to guide probing for accomplishments.
+
+    Args:
+        job_entry: Dict with job details (title, company, dates, etc.).
+
+    Returns:
+        Work history expansion prompt with job context.
+    """
+    title = job_entry.get("title", job_entry.get("raw_input", "this role"))
+    company = job_entry.get("company", "their company")
+
+    return WORK_HISTORY_EXPANSION_PROMPT.format(
+        title=title,
+        company=company,
+    )
+
+
+def get_achievement_story_prompt(
+    existing_stories: list[str],
+    covered_skills: list[str],
+) -> str:
+    """Get the achievement story prompt with context about what's captured.
+
+    REQ-007 §5.6.2: Achievement Story Gathering
+
+    Fills in existing stories and covered skills to guide the user
+    toward sharing stories that demonstrate different competencies.
+
+    Args:
+        existing_stories: List of story summaries already captured.
+        covered_skills: List of skills already demonstrated by stories.
+
+    Returns:
+        Achievement story prompt with context about diversity needs.
+    """
+    stories_str = (
+        "\n".join(f"- {s}" for s in existing_stories)
+        if existing_stories
+        else "None yet"
+    )
+    skills_str = ", ".join(covered_skills) if covered_skills else "None yet"
+
+    return ACHIEVEMENT_STORY_PROMPT.format(
+        existing_stories=stories_str,
+        covered_skills=skills_str,
+    )
+
+
+def get_voice_profile_prompt(transcript: str) -> str:
+    """Get the voice profile derivation prompt with conversation transcript.
+
+    REQ-007 §5.6.2: Voice Profile Derivation
+
+    Fills in the conversation transcript for voice analysis.
+
+    Args:
+        transcript: The conversation transcript to analyze.
+
+    Returns:
+        Voice profile prompt with transcript included.
+    """
+    return VOICE_PROFILE_DERIVATION_PROMPT.format(
+        transcript=transcript or "(No transcript available)",
+    )
+
+
+def get_transition_prompt(from_step: str, to_step: str) -> str:
+    """Get the transition prompt between two steps.
+
+    REQ-007 §5.6.3: Transition Prompts
+
+    Returns a natural conversational transition between interview sections.
+    Falls back to a generic transition if no specific prompt is defined.
+
+    Args:
+        from_step: The step being completed.
+        to_step: The step being started.
+
+    Returns:
+        Transition prompt text.
+    """
+    # Try exact match first
+    if (from_step, to_step) in TRANSITION_PROMPTS:
+        return TRANSITION_PROMPTS[(from_step, to_step)]
+
+    # Generic fallback
+    step_display = to_step.replace("_", " ")
+    return f"Let's move on to {step_display}."
+
+
+# =============================================================================
 # Post-Onboarding Update Constants (§5.5)
 # =============================================================================
 

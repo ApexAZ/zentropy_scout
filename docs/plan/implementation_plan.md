@@ -332,7 +332,7 @@ These steps require user action outside Claude Code:
 | 5.3e | Step Behaviors — voice_profile + base_resume | `agents, provider, db, tdd, plan` | ✅ |
 | 5.4 | Onboarding Agent — Checkpoint Handling | `agents, provider, db, tdd, plan` | ✅ |
 | 5.5 | Onboarding Agent — Post-Onboarding Updates | `agents, provider, db, tdd, plan` | ✅ |
-| 5.6 | Onboarding Agent — Prompt Templates | `agents, provider, docs, tdd, plan` | ⬜ |
+| 5.6 | Onboarding Agent — Prompt Templates | `agents, provider, docs, tdd, plan` | 🟡 |
 | 15.2 | Graph Spec — Onboarding Agent | `agents, provider, structure, tdd, plan` | ✅ |
 
 ---

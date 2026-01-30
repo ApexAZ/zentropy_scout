@@ -11,15 +11,21 @@ Tests verify:
 """
 
 from app.agents.onboarding import (
+    ACHIEVEMENT_STORY_PROMPT,
     ONBOARDING_STEPS,
     OPTIONAL_SECTIONS,
     SECTIONS_REQUIRING_RESCORE,
+    SYSTEM_PROMPT_TEMPLATE,
+    TRANSITION_PROMPTS,
+    VOICE_PROFILE_DERIVATION_PROMPT,
+    WORK_HISTORY_EXPANSION_PROMPT,
     check_resume_upload,
     check_step_complete,
     create_onboarding_graph,
     create_update_state,
     derive_voice_profile,
     detect_update_section,
+    format_gathered_data_summary,
     gather_basic_info,
     gather_certifications,
     gather_education,
@@ -28,10 +34,15 @@ from app.agents.onboarding import (
     gather_skills,
     gather_stories,
     gather_work_history,
+    get_achievement_story_prompt,
     get_affected_embeddings,
     get_next_step,
     get_onboarding_graph,
+    get_system_prompt,
+    get_transition_prompt,
     get_update_completion_message,
+    get_voice_profile_prompt,
+    get_work_history_prompt,
     handle_skip,
     is_post_onboarding_update,
     is_step_optional,
@@ -2607,3 +2618,318 @@ class TestPostOnboardingUpdates:
         assert "work_history" in SECTIONS_REQUIRING_RESCORE
         # Certifications don't affect scoring
         assert "certifications" not in SECTIONS_REQUIRING_RESCORE
+
+
+# =============================================================================
+# Prompt Templates Tests (§5.6)
+# =============================================================================
+
+
+class TestSystemPrompt:
+    """Tests for the Scout interviewer persona system prompt (§5.6.1)."""
+
+    def test_system_prompt_template_exists(self) -> None:
+        """System prompt template should be defined."""
+        assert SYSTEM_PROMPT_TEMPLATE is not None
+        assert isinstance(SYSTEM_PROMPT_TEMPLATE, str)
+        assert len(SYSTEM_PROMPT_TEMPLATE) > 100  # Non-trivial template
+
+    def test_system_prompt_has_scout_persona(self) -> None:
+        """System prompt should establish Scout interviewer persona."""
+        prompt_lower = SYSTEM_PROMPT_TEMPLATE.lower()
+        # Should mention being a career coach or interviewer
+        assert "scout" in prompt_lower or "career" in prompt_lower
+
+    def test_system_prompt_has_personality_traits(self) -> None:
+        """System prompt should define personality traits."""
+        prompt_lower = SYSTEM_PROMPT_TEMPLATE.lower()
+        # Per §5.6.1: warm, efficient, curious, encouraging, professional
+        assert (
+            "warm" in prompt_lower
+            or "friendly" in prompt_lower
+            or "curious" in prompt_lower
+        )
+
+    def test_system_prompt_has_template_variables(self) -> None:
+        """System prompt should contain template variables."""
+        # Per §5.6.1: {current_step}, {gathered_data_summary}
+        assert "{current_step}" in SYSTEM_PROMPT_TEMPLATE
+        assert "{gathered_data_summary}" in SYSTEM_PROMPT_TEMPLATE
+
+    def test_system_prompt_has_interview_rules(self) -> None:
+        """System prompt should include interview style rules."""
+        prompt_lower = SYSTEM_PROMPT_TEMPLATE.lower()
+        # Per §5.6.1: one question at a time
+        assert "one question" in prompt_lower or "single question" in prompt_lower
+
+    def test_system_prompt_has_not_list(self) -> None:
+        """System prompt should include explicit NOT behaviors."""
+        prompt_lower = SYSTEM_PROMPT_TEMPLATE.lower()
+        # Per §5.6.1: not therapist, not resume writer, not pushy
+        assert "not" in prompt_lower and (
+            "therapist" in prompt_lower or "pushy" in prompt_lower
+        )
+
+    def test_get_system_prompt_fills_variables(self) -> None:
+        """get_system_prompt should fill template variables."""
+        result = get_system_prompt(
+            current_step="work_history",
+            gathered_data_summary="User has provided basic info.",
+        )
+
+        # Should have replaced placeholders
+        assert "{current_step}" not in result
+        assert "{gathered_data_summary}" not in result
+        # Should contain actual values
+        assert "work_history" in result
+        assert "User has provided basic info" in result
+
+    def test_get_system_prompt_handles_empty_summary(self) -> None:
+        """get_system_prompt should handle empty gathered data."""
+        result = get_system_prompt(
+            current_step="basic_info",
+            gathered_data_summary="",
+        )
+
+        # Should still produce valid prompt
+        assert "{current_step}" not in result
+        assert "basic_info" in result
+
+
+class TestStepSpecificPrompts:
+    """Tests for step-specific prompt templates (§5.6.2)."""
+
+    def test_work_history_expansion_prompt_exists(self) -> None:
+        """Work history expansion prompt should be defined."""
+        assert WORK_HISTORY_EXPANSION_PROMPT is not None
+        assert isinstance(WORK_HISTORY_EXPANSION_PROMPT, str)
+
+    def test_work_history_prompt_probes_for_accomplishments(self) -> None:
+        """Work history prompt should probe for accomplishments."""
+        prompt_lower = WORK_HISTORY_EXPANSION_PROMPT.lower()
+        # Per §5.6.2: biggest accomplishment, challenge, impact
+        assert (
+            "accomplish" in prompt_lower
+            or "achievement" in prompt_lower
+            or "impact" in prompt_lower
+        )
+
+    def test_work_history_prompt_asks_for_numbers(self) -> None:
+        """Work history prompt should ask for quantifiable details."""
+        prompt_lower = WORK_HISTORY_EXPANSION_PROMPT.lower()
+        # Per §5.6.2: numbers, percentages, scale
+        assert (
+            "number" in prompt_lower
+            or "quantif" in prompt_lower
+            or "scale" in prompt_lower
+            or "percent" in prompt_lower
+        )
+
+    def test_achievement_story_prompt_exists(self) -> None:
+        """Achievement story prompt should be defined."""
+        assert ACHIEVEMENT_STORY_PROMPT is not None
+        assert isinstance(ACHIEVEMENT_STORY_PROMPT, str)
+
+    def test_achievement_story_prompt_uses_star_format(self) -> None:
+        """Achievement story prompt should reference STAR format."""
+        prompt_lower = ACHIEVEMENT_STORY_PROMPT.lower()
+        # Per §5.6.2: STAR format
+        assert "star" in prompt_lower or (
+            "situation" in prompt_lower and "action" in prompt_lower
+        )
+
+    def test_achievement_story_prompt_has_template_variables(self) -> None:
+        """Achievement story prompt should have template variables."""
+        # Per §5.6.2: {existing_stories}, {covered_skills}
+        assert "{existing_stories}" in ACHIEVEMENT_STORY_PROMPT
+        assert "{covered_skills}" in ACHIEVEMENT_STORY_PROMPT
+
+    def test_voice_profile_derivation_prompt_exists(self) -> None:
+        """Voice profile derivation prompt should be defined."""
+        assert VOICE_PROFILE_DERIVATION_PROMPT is not None
+        assert isinstance(VOICE_PROFILE_DERIVATION_PROMPT, str)
+
+    def test_voice_profile_prompt_has_transcript_variable(self) -> None:
+        """Voice profile prompt should have transcript variable."""
+        # Per §5.6.2: {transcript}
+        assert "{transcript}" in VOICE_PROFILE_DERIVATION_PROMPT
+
+    def test_voice_profile_prompt_analyzes_dimensions(self) -> None:
+        """Voice profile prompt should analyze tone, style, vocabulary."""
+        prompt_lower = VOICE_PROFILE_DERIVATION_PROMPT.lower()
+        # Per §5.6.2: tone, sentence style, vocabulary
+        assert "tone" in prompt_lower
+        assert "style" in prompt_lower or "sentence" in prompt_lower
+        assert "vocabulary" in prompt_lower or "jargon" in prompt_lower
+
+    def test_get_work_history_prompt_fills_template(self) -> None:
+        """get_work_history_prompt should fill in job entry details."""
+        job_entry = {
+            "title": "Software Engineer",
+            "company": "Acme Corp",
+            "start_date": "2020-01",
+            "end_date": "2023-06",
+        }
+        result = get_work_history_prompt(job_entry)
+
+        # Should mention the job details
+        assert "Software Engineer" in result or "Acme" in result
+
+    def test_get_achievement_story_prompt_fills_template(self) -> None:
+        """get_achievement_story_prompt should fill in context."""
+        result = get_achievement_story_prompt(
+            existing_stories=["Led team project", "Migrated database"],
+            covered_skills=["Leadership", "SQL"],
+        )
+
+        # Should not contain raw template variables
+        assert "{existing_stories}" not in result
+        assert "{covered_skills}" not in result
+
+    def test_get_achievement_story_prompt_asks_for_diversity(self) -> None:
+        """Achievement story prompt should ask for different skills."""
+        result = get_achievement_story_prompt(
+            existing_stories=["Story about leadership"],
+            covered_skills=["Leadership"],
+        )
+        result_lower = result.lower()
+
+        # Per §5.6.2: ask for stories demonstrating DIFFERENT skills
+        assert "different" in result_lower or "new" in result_lower
+
+    def test_get_voice_profile_prompt_fills_transcript(self) -> None:
+        """get_voice_profile_prompt should include conversation transcript."""
+        transcript = "User: I'm looking for remote roles.\nAssistant: Great!"
+        result = get_voice_profile_prompt(transcript)
+
+        # Should not contain raw template variable
+        assert "{transcript}" not in result
+        # Transcript content should be included
+        assert "remote" in result.lower() or len(result) > 100
+
+
+class TestTransitionPrompts:
+    """Tests for transition prompts between sections (§5.6.3)."""
+
+    def test_transition_prompts_dict_exists(self) -> None:
+        """TRANSITION_PROMPTS dict should be defined."""
+        assert TRANSITION_PROMPTS is not None
+        assert isinstance(TRANSITION_PROMPTS, dict)
+
+    def test_transition_prompts_has_common_transitions(self) -> None:
+        """TRANSITION_PROMPTS should include common step transitions."""
+        # Per §5.6.3: work_history → skills, achievement_stories → non_negotiables
+        assert ("work_history", "skills") in TRANSITION_PROMPTS or (
+            "work_history",
+            "education",
+        ) in TRANSITION_PROMPTS
+        assert ("achievement_stories", "non_negotiables") in TRANSITION_PROMPTS or (
+            "gather_stories",
+            "non_negotiables",
+        ) in TRANSITION_PROMPTS
+
+    def test_transition_prompts_are_natural(self) -> None:
+        """Transition prompts should have natural conversational flow."""
+        # Get any transition prompt
+        if TRANSITION_PROMPTS:
+            key, prompt = next(iter(TRANSITION_PROMPTS.items()))
+            # Should acknowledge completion and introduce next topic
+            assert len(prompt) > 50  # Non-trivial message
+
+    def test_get_transition_prompt_returns_prompt(self) -> None:
+        """get_transition_prompt should return appropriate transition."""
+        result = get_transition_prompt("work_history", "education")
+
+        # Should return a string
+        assert isinstance(result, str)
+        # Should be non-empty
+        assert len(result) > 0
+
+    def test_get_transition_prompt_handles_unknown(self) -> None:
+        """get_transition_prompt should handle unknown transitions gracefully."""
+        result = get_transition_prompt("unknown_step", "another_unknown")
+
+        # Should return some default/fallback
+        assert isinstance(result, str)
+
+    def test_get_transition_prompt_skills_to_certs(self) -> None:
+        """Should provide transition from skills to certifications."""
+        result = get_transition_prompt("skills", "certifications")
+
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_get_transition_prompt_non_negotiables_to_growth(self) -> None:
+        """Should provide transition from non_negotiables to growth_targets."""
+        result = get_transition_prompt("non_negotiables", "growth_targets")
+
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+
+class TestFormatGatheredDataSummary:
+    """Tests for formatting gathered data into a summary string."""
+
+    def test_format_gathered_data_summary_exists(self) -> None:
+        """format_gathered_data_summary function should exist."""
+        assert callable(format_gathered_data_summary)
+
+    def test_format_gathered_data_summary_empty(self) -> None:
+        """Should handle empty gathered data."""
+        result = format_gathered_data_summary({})
+
+        assert isinstance(result, str)
+
+    def test_format_gathered_data_summary_with_basic_info(self) -> None:
+        """Should include basic info in summary."""
+        gathered = {
+            "basic_info": {
+                "full_name": "Jane Doe",
+                "email": "jane@example.com",
+            }
+        }
+        result = format_gathered_data_summary(gathered)
+
+        # Should mention user's name or basic info
+        assert "Jane" in result or "basic" in result.lower()
+
+    def test_format_gathered_data_summary_with_work_history(self) -> None:
+        """Should include work history summary."""
+        gathered = {
+            "work_history": {
+                "entries": [
+                    {"title": "Software Engineer", "company": "Acme Corp"},
+                    {"title": "Senior Developer", "company": "Tech Inc"},
+                ]
+            }
+        }
+        result = format_gathered_data_summary(gathered)
+
+        # Should indicate number of jobs or mention work history
+        assert "2" in result or "work" in result.lower() or "job" in result.lower()
+
+    def test_format_gathered_data_summary_with_skills(self) -> None:
+        """Should include skills summary."""
+        gathered = {
+            "skills": {
+                "entries": [
+                    {"skill_name": "Python", "proficiency": "Expert"},
+                    {"skill_name": "JavaScript", "proficiency": "Proficient"},
+                ]
+            }
+        }
+        result = format_gathered_data_summary(gathered)
+
+        # Should mention skills
+        assert "skill" in result.lower() or "Python" in result
+
+    def test_format_gathered_data_summary_skipped_sections(self) -> None:
+        """Should indicate skipped sections."""
+        gathered = {
+            "education": {"skipped": True},
+            "certifications": {"skipped": True},
+        }
+        result = format_gathered_data_summary(gathered)
+
+        # Result should mention skipped or be empty for those sections
+        assert isinstance(result, str)
