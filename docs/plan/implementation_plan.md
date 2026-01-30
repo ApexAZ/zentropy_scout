@@ -377,7 +377,7 @@ These steps require user action outside Claude Code:
 | 4.2b | User Source Preferences | `db, tdd, plan` | ✅ |
 | 4.3 | Agent Source Selection | `provider, db, tdd, plan` | ✅ |
 | 4.4 | Polling Configuration | `db, tdd, plan` | ✅ |
-| 6.1 | Status Transitions | `db, tdd, plan` | ⬜ |
+| 6.1 | Status Transitions | `db, tdd, plan` | ✅ |
 | 7.1 | Ghost Detection — Purpose | `docs, plan` | ⬜ |
 | 7.2 | Ghost Detection — Signals | `provider, tdd, plan` | ⬜ |
 | 7.3 | Ghost Detection — Score Interpretation | `provider, tdd, plan` | ⬜ |
