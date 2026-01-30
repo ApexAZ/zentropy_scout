@@ -433,3 +433,72 @@ async def calculate_ghost_score(
         requirement_mismatch_score=requirement_mismatch_score,
         ghost_score=round(weighted_score),
     )
+
+
+# =============================================================================
+# Agent Communication (REQ-003 §7.4)
+# =============================================================================
+
+
+# WHY: Score thresholds from REQ-003 §7.3 determine warning severity.
+FRESH_THRESHOLD = 25  # 0-25: No warning
+MODERATE_THRESHOLD = 50  # 26-50: Light warning
+ELEVATED_THRESHOLD = 75  # 51-75: Clear warning, recommend verification
+# 76-100: High Risk - Strong warning, suggest skipping
+
+
+def generate_ghost_warning(signals: GhostSignals) -> str | None:
+    """Generate agent warning message based on ghost signals.
+
+    REQ-003 §7.3-7.4: Agent communicates ghost detection results to user
+    with appropriate warning level based on score thresholds.
+
+    Args:
+        signals: GhostSignals containing score and signal data.
+
+    Returns:
+        Warning message string, or None if score is Fresh (0-25).
+    """
+    score = signals.ghost_score
+
+    # Fresh (0-25): No warning needed
+    if score <= FRESH_THRESHOLD:
+        return None
+
+    # Build context parts
+    parts = []
+
+    # Days open context
+    if signals.days_open > 0:
+        parts.append(f"posted for {signals.days_open} days")
+
+    # Repost context
+    if signals.repost_count == 1:
+        parts.append("reposted once before")
+    elif signals.repost_count == 2:
+        parts.append("reposted twice before")
+    elif signals.repost_count > 2:
+        parts.append(f"reposted {signals.repost_count} times")
+
+    # Build context string
+    context = " and ".join(parts) if parts else "has some warning signs"
+
+    # Determine warning level and recommendation
+    if score <= MODERATE_THRESHOLD:
+        # Moderate (26-50): Light warning
+        intro = "Note:"
+        recommendation = "worth keeping in mind"
+    elif score <= ELEVATED_THRESHOLD:
+        # Elevated (51-75): Clear warning, recommend verification
+        intro = "Heads up —"
+        recommendation = (
+            "I'd recommend reaching out to verify it's still active before applying"
+        )
+    else:
+        # High Risk (76+): Strong warning, suggest skipping
+        intro = "Caution —"
+        recommendation = "I'd suggest skipping this one or proceeding with caution"
+
+    return (
+        f"{intro} this role has been {context}. Ghost score: {score}. {recommendation}."
+    )

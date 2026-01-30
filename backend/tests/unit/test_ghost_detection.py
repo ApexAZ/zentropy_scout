@@ -22,12 +22,14 @@ from app.providers.llm.base import TaskType
 # uses TaskType.GHOST_DETECTION for model routing (Haiku for cost efficiency).
 from app.providers.llm.mock_adapter import MockLLMProvider
 from app.services.ghost_detection import (
+    GhostSignals,
     calculate_days_open_score,
     calculate_ghost_score,
     calculate_missing_fields_score,
     calculate_repost_score,
     calculate_requirement_mismatch_score,
     calculate_vagueness_score,
+    generate_ghost_warning,
 )
 
 # =============================================================================
@@ -515,3 +517,182 @@ class TestCalculateGhostScore:
         assert "calculated_at" in signals_dict
         assert "missing_fields" in signals_dict
         assert isinstance(signals_dict["missing_fields"], list)
+
+
+# =============================================================================
+# Agent Communication Tests (REQ-003 §7.4)
+# =============================================================================
+
+
+class TestGhostWarningMessage:
+    """Tests for ghost detection agent communication.
+
+    REQ-003 §7.3-7.4: Agent generates appropriate warning messages
+    based on ghost score thresholds.
+    """
+
+    def test_warning_returns_none_when_score_is_fresh(self) -> None:
+        """Ghost score 0-25 (Fresh) returns no warning."""
+        signals = GhostSignals(
+            days_open=10,
+            days_open_score=0,
+            repost_count=0,
+            repost_score=0,
+            vagueness_score=20,
+            missing_fields=[],
+            missing_fields_score=0,
+            requirement_mismatch=False,
+            requirement_mismatch_score=0,
+            ghost_score=4,  # Fresh (0-25)
+        )
+
+        message = generate_ghost_warning(signals)
+
+        assert message is None
+
+    def test_warning_is_light_when_score_is_moderate(self) -> None:
+        """Ghost score 26-50 (Moderate) returns light warning."""
+        signals = GhostSignals(
+            days_open=45,
+            days_open_score=50,
+            repost_count=1,
+            repost_score=30,
+            vagueness_score=30,
+            missing_fields=["salary"],
+            missing_fields_score=33,
+            requirement_mismatch=False,
+            requirement_mismatch_score=0,
+            ghost_score=35,  # Moderate (26-50)
+        )
+
+        message = generate_ghost_warning(signals)
+
+        assert message is not None
+        assert "45 days" in message
+        assert "reposted" in message.lower() or "repost" in message.lower()
+        assert "35" in message  # ghost score
+
+    def test_warning_recommends_verification_when_score_is_elevated(self) -> None:
+        """Ghost score 51-75 (Elevated) returns clear warning with verification recommendation."""
+        signals = GhostSignals(
+            days_open=47,
+            days_open_score=50,
+            repost_count=2,
+            repost_score=60,
+            vagueness_score=40,
+            missing_fields=["salary", "deadline"],
+            missing_fields_score=67,
+            requirement_mismatch=False,
+            requirement_mismatch_score=0,
+            ghost_score=65,  # Elevated (51-75)
+        )
+
+        message = generate_ghost_warning(signals)
+
+        assert message is not None
+        assert "47 days" in message
+        assert "twice" in message.lower() or "2" in message
+        assert "65" in message  # ghost score
+        assert "verify" in message.lower()
+
+    def test_warning_suggests_skipping_when_score_is_high_risk(self) -> None:
+        """Ghost score 76-100 (High Risk) returns strong warning suggesting skip."""
+        signals = GhostSignals(
+            days_open=90,
+            days_open_score=100,
+            repost_count=3,
+            repost_score=100,
+            vagueness_score=80,
+            missing_fields=["salary", "deadline", "location"],
+            missing_fields_score=100,
+            requirement_mismatch=True,
+            requirement_mismatch_score=100,
+            ghost_score=96,  # High Risk (76-100)
+        )
+
+        message = generate_ghost_warning(signals)
+
+        assert message is not None
+        assert "90 days" in message
+        assert "96" in message  # ghost score
+        assert "skip" in message.lower() or "caution" in message.lower()
+
+    def test_warning_returns_none_when_score_is_exactly_25(self) -> None:
+        """Ghost score exactly 25 returns no warning (boundary)."""
+        signals = GhostSignals(
+            days_open=20,
+            days_open_score=0,
+            repost_count=0,
+            repost_score=0,
+            vagueness_score=50,
+            missing_fields=["salary"],
+            missing_fields_score=33,
+            requirement_mismatch=False,
+            requirement_mismatch_score=0,
+            ghost_score=25,  # Boundary (should be Fresh)
+        )
+
+        message = generate_ghost_warning(signals)
+
+        assert message is None
+
+    def test_warning_returns_message_when_score_is_exactly_26(self) -> None:
+        """Ghost score exactly 26 returns light warning (boundary)."""
+        signals = GhostSignals(
+            days_open=35,
+            days_open_score=50,
+            repost_count=0,
+            repost_score=0,
+            vagueness_score=30,
+            missing_fields=[],
+            missing_fields_score=0,
+            requirement_mismatch=False,
+            requirement_mismatch_score=0,
+            ghost_score=26,  # Boundary (should be Moderate)
+        )
+
+        message = generate_ghost_warning(signals)
+
+        assert message is not None
+        assert "26" in message
+
+    def test_warning_omits_repost_when_repost_count_is_zero(self) -> None:
+        """Message omits repost information when repost_count is 0."""
+        signals = GhostSignals(
+            days_open=65,
+            days_open_score=100,
+            repost_count=0,
+            repost_score=0,
+            vagueness_score=60,
+            missing_fields=["salary"],
+            missing_fields_score=33,
+            requirement_mismatch=False,
+            requirement_mismatch_score=0,
+            ghost_score=52,  # Elevated
+        )
+
+        message = generate_ghost_warning(signals)
+
+        assert message is not None
+        assert "repost" not in message.lower()
+
+    def test_warning_uses_once_when_repost_count_is_one(self) -> None:
+        """Message uses correct grammar for single repost."""
+        signals = GhostSignals(
+            days_open=45,
+            days_open_score=50,
+            repost_count=1,
+            repost_score=30,
+            vagueness_score=50,
+            missing_fields=[],
+            missing_fields_score=0,
+            requirement_mismatch=False,
+            requirement_mismatch_score=0,
+            ghost_score=35,  # Moderate
+        )
+
+        message = generate_ghost_warning(signals)
+
+        assert message is not None
+        # Should say "once" or "1 time", not "twice" or "times"
+        assert "once" in message.lower() or "1 time" in message.lower()

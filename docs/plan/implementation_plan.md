@@ -378,11 +378,11 @@ These steps require user action outside Claude Code:
 | 4.3 | Agent Source Selection | `provider, db, tdd, plan` | ✅ |
 | 4.4 | Polling Configuration | `db, tdd, plan` | ✅ |
 | 6.1 | Status Transitions | `db, tdd, plan` | ✅ |
-| 7.1 | Ghost Detection — Purpose | `docs, plan` | ⬜ |
-| 7.2 | Ghost Detection — Signals | `provider, tdd, plan` | ⬜ |
-| 7.3 | Ghost Detection — Score Interpretation | `provider, tdd, plan` | ⬜ |
-| 7.4 | Ghost Detection — Agent Communication | `provider, tdd, plan` | ⬜ |
-| 7.5 | Ghost Detection — JSONB Structure | `db, tdd, plan` | ⬜ |
+| 7.1 | Ghost Detection — Purpose | `docs, plan` | ✅ |
+| 7.2 | Ghost Detection — Signals | `provider, tdd, plan` | ✅ |
+| 7.3 | Ghost Detection — Score Interpretation | `provider, tdd, plan` | ✅ |
+| 7.4 | Ghost Detection — Agent Communication | `provider, tdd, plan` | ✅ |
+| 7.5 | Ghost Detection — JSONB Structure | `db, tdd, plan` | ✅ |
 | 8.1 | Repost Detection — Criteria | `db, tdd, plan` | ⬜ |
 | 8.2 | Repost Detection — Handling | `db, tdd, plan` | ⬜ |
 | 8.3 | Repost Detection — Agent Context | `provider, tdd, plan` | ⬜ |
