@@ -26,6 +26,7 @@ class MockLLMProvider(LLMProvider):
     Attributes:
         responses: Pre-configured responses keyed by TaskType.
         calls: Record of all method invocations for test assertions.
+        last_task: The most recent TaskType used in a call (for quick assertions).
     """
 
     def __init__(self, responses: dict[TaskType, str] | None = None) -> None:
@@ -38,6 +39,16 @@ class MockLLMProvider(LLMProvider):
         # Don't call super().__init__() - we don't need a config for mock
         self.responses: dict[TaskType, str] = dict(responses) if responses else {}
         self.calls: list[dict[str, Any]] = []
+        self.last_task: TaskType | None = None
+
+    def set_response(self, task: TaskType, content: str) -> None:
+        """Set or update the response for a specific task type.
+
+        Args:
+            task: The TaskType to configure.
+            content: The response content to return for this task.
+        """
+        self.responses[task] = content
 
     async def complete(
         self,
@@ -80,6 +91,7 @@ class MockLLMProvider(LLMProvider):
                 },
             }
         )
+        self.last_task = task
 
         content = self.responses.get(task, f"Mock response for {task.value}")
 
@@ -123,6 +135,7 @@ class MockLLMProvider(LLMProvider):
                 },
             }
         )
+        self.last_task = task
 
         content = self.responses.get(task, f"Mock response for {task.value}")
         for word in content.split():

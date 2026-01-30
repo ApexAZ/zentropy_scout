@@ -18,10 +18,16 @@ from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
 class ExtractedSkill(TypedDict):
-    """A skill extracted from job posting text."""
+    """A skill extracted from job posting text.
+
+    REQ-007 §6.4: Skills have type (Hard/Soft), requirement status,
+    and optional years requested.
+    """
 
     skill_name: str
-    importance_level: str  # "Required" or "Preferred"
+    skill_type: str  # "Hard" (technical) or "Soft" (interpersonal)
+    is_required: bool  # True = required, False = nice-to-have
+    years_requested: int | None  # Number of years if specified, else None
 
 
 class ExtractedJobData(TypedDict, total=False):
@@ -124,13 +130,19 @@ class IngestConfirmRequest(BaseModel):
 class ExtractedSkillPreview(BaseModel):
     """Preview of an extracted skill.
 
+    REQ-007 §6.4: Skills with type, requirement status, and years.
+
     Attributes:
         skill_name: Name of the skill.
-        importance_level: "Required" or "Preferred".
+        skill_type: "Hard" (technical) or "Soft" (interpersonal).
+        is_required: True if required, False if nice-to-have.
+        years_requested: Years of experience if specified, else None.
     """
 
     skill_name: str
-    importance_level: str = "Preferred"
+    skill_type: str = "Hard"
+    is_required: bool = True
+    years_requested: int | None = None
 
 
 class IngestPreview(BaseModel):

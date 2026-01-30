@@ -362,7 +362,7 @@ These steps require user action outside Claude Code:
 | 6.1 | Scouter Agent — Trigger Conditions | `agents, provider, tdd, plan` | ✅ |
 | 6.2 | Scouter Agent — Polling Flow | `agents, provider, db, tdd, plan` | ✅ |
 | 6.3 | Scouter Agent — Source Adapters | `agents, provider, structure, tdd, plan` | ✅ |
-| 6.4 | Scouter Agent — Skill & Culture Extraction | `agents, provider, tdd, plan` | ⬜ |
+| 6.4 | Scouter Agent — Skill & Culture Extraction | `agents, provider, tdd, plan` | ✅ |
 | 6.5 | Scouter Agent — Ghost Detection | `agents, db, test, tdd, plan` | ⬜ |
 | 6.6 | Scouter Agent — Deduplication Logic | `agents, db, test, tdd, plan` | ⬜ |
 | 6.7 | Scouter Agent — Error Handling | `agents, provider, test, tdd, plan` | ⬜ |

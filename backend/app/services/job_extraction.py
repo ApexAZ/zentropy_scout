@@ -70,6 +70,9 @@ async def extract_job_data(raw_text: str) -> ExtractedJobData:
 def _build_extraction_prompt(text: str) -> str:
     """Build the extraction prompt for LLM.
 
+    REQ-007 §6.4: Prompt extracts skills with type/requirement/years,
+    plus culture text about values, benefits, and team environment.
+
     Args:
         text: Truncated job posting text.
 
@@ -85,8 +88,12 @@ Return a JSON object with these fields (use null if not found):
 - salary_max: integer (annual, no commas)
 - salary_currency: string (e.g., "USD", "EUR")
 - employment_type: string (e.g., "Full-time", "Part-time", "Contract")
-- extracted_skills: array of objects with "skill_name" and "importance_level" ("Required" or "Preferred")
-- culture_text: string summarizing company culture signals
+- extracted_skills: array of skill objects, each with:
+  - skill_name: string (the skill)
+  - skill_type: "Hard" (technical skills like Python, SQL) or "Soft" (interpersonal skills like communication, leadership)
+  - is_required: boolean (true if required/must-have, false if nice-to-have/preferred)
+  - years_requested: integer if years specified (e.g., "5+ years Python" -> 5), otherwise null
+- culture_text: string containing ONLY text about company culture, values, team environment, benefits, or "About Us" content. Do NOT include job requirements or responsibilities.
 
 Job Posting:
 {text}
@@ -121,6 +128,8 @@ def _parse_extraction_response(response: str) -> ExtractedJobData:
 
         return cast(ExtractedJobData, data)
     except (json.JSONDecodeError, IndexError):
+        # WHY EMPTY STRING: _basic_extraction returns a default structure with null fields;
+        # the input text doesn't matter since we're already falling back from LLM parsing.
         return _basic_extraction("")
 
 
