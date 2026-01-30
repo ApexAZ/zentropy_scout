@@ -359,7 +359,7 @@ These steps require user action outside Claude Code:
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 6.1 | Scouter Agent — Trigger Conditions | `agents, provider, tdd, plan` | ⬜ |
+| 6.1 | Scouter Agent — Trigger Conditions | `agents, provider, tdd, plan` | ✅ |
 | 6.2 | Scouter Agent — Polling Flow | `agents, provider, db, tdd, plan` | ⬜ |
 | 6.3 | Scouter Agent — Source Adapters | `agents, provider, structure, tdd, plan` | ⬜ |
 | 6.4 | Scouter Agent — Skill & Culture Extraction | `agents, provider, tdd, plan` | ⬜ |
@@ -372,11 +372,11 @@ These steps require user action outside Claude Code:
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4.1 | MVP Sources | `provider, docs, plan` | ⬜ |
-| 4.2 | Source Registry (Global) | `db, tdd, plan` | ⬜ |
-| 4.2b | User Source Preferences | `db, tdd, plan` | ⬜ |
+| 4.1 | MVP Sources | `provider, docs, plan` | ✅ |
+| 4.2 | Source Registry (Global) | `db, tdd, plan` | ✅ |
+| 4.2b | User Source Preferences | `db, tdd, plan` | ✅ |
 | 4.3 | Agent Source Selection | `provider, db, tdd, plan` | ⬜ |
-| 4.4 | Polling Configuration | `db, tdd, plan` | ⬜ |
+| 4.4 | Polling Configuration | `db, tdd, plan` | ✅ |
 | 6.1 | Status Transitions | `db, tdd, plan` | ⬜ |
 | 7.1 | Ghost Detection — Purpose | `docs, plan` | ⬜ |
 | 7.2 | Ghost Detection — Signals | `provider, tdd, plan` | ⬜ |
