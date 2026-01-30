@@ -160,6 +160,8 @@ class OnboardingState(BaseAgentState, total=False):
         skipped_sections: List of optional sections the user chose to skip.
         pending_question: Question waiting for user response. Set when paused.
         user_response: User's response to pending_question. Set when resuming.
+        is_partial_update: True if this is a post-onboarding partial update
+            (REQ-007 §5.5) vs. full onboarding flow. Affects completion behavior.
     """
 
     current_step: str
@@ -169,6 +171,7 @@ class OnboardingState(BaseAgentState, total=False):
     skipped_sections: list[str]
     pending_question: str | None
     user_response: str | None
+    is_partial_update: bool
 
 
 class ScouterState(BaseAgentState, total=False):

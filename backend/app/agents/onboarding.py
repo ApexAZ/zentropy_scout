@@ -93,6 +93,95 @@ UPDATE_REQUEST_PATTERNS = [
     re.compile(r"change\s+my\s+(?:salary|location|preferences)", re.IGNORECASE),
 ]
 
+# =============================================================================
+# Post-Onboarding Update Constants (§5.5)
+# =============================================================================
+
+# WHY: These sections affect job matching when updated. After updating these,
+# the system must regenerate embeddings and/or re-score jobs (REQ-007 §5.5).
+SECTIONS_REQUIRING_RESCORE = {
+    "skills",  # Affects fit score via hard_skills embedding
+    "non_negotiables",  # Affects job filtering (salary, remote, etc.)
+    "growth_targets",  # Affects stretch score calculation
+    "work_history",  # Affects experience level matching
+}
+
+# WHY: Maps sections to affected embedding types for regeneration (REQ-007 §5.5).
+# When a section is updated, these embeddings need refresh before re-scoring.
+SECTION_AFFECTED_EMBEDDINGS: dict[str, list[str]] = {
+    "skills": ["hard_skills"],
+    "work_history": ["experience"],
+    "growth_targets": ["target_roles"],
+    "achievement_stories": ["stories"],
+    "non_negotiables": [],  # Affects filtering, not embeddings
+    "certifications": [],  # No direct embedding impact
+    "education": [],  # No direct embedding impact
+    "voice_profile": [],  # Affects generation, not matching
+    "basic_info": [],  # No embedding impact
+}
+
+# WHY: Patterns for detecting which section user wants to update (§5.5).
+# Order matters - more specific patterns should come first.
+SECTION_DETECTION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    # Certifications
+    (re.compile(r"certific", re.IGNORECASE), "certifications"),
+    (
+        re.compile(r"(?:got|earned|passed)\s+(?:a\s+)?(?:new\s+)?cert", re.IGNORECASE),
+        "certifications",
+    ),
+    # Skills
+    (re.compile(r"(?:learned|know)\s+\w+", re.IGNORECASE), "skills"),
+    (re.compile(r"(?:update|add|change)\s+(?:my\s+)?skill", re.IGNORECASE), "skills"),
+    (re.compile(r"new\s+skill", re.IGNORECASE), "skills"),
+    # Non-negotiables (salary, remote, preferences)
+    (re.compile(r"salary", re.IGNORECASE), "non_negotiables"),
+    (re.compile(r"remote", re.IGNORECASE), "non_negotiables"),
+    (
+        re.compile(r"(?:prefer|requirement|expectation)", re.IGNORECASE),
+        "non_negotiables",
+    ),
+    (re.compile(r"non.?negotiable", re.IGNORECASE), "non_negotiables"),
+    # Work history - must indicate adding/updating, not just asking about jobs
+    (
+        re.compile(r"(?:add|update|change)\s+(?:my\s+)?(?:job|work)", re.IGNORECASE),
+        "work_history",
+    ),
+    (re.compile(r"work\s+(?:history|experience)", re.IGNORECASE), "work_history"),
+    (
+        re.compile(
+            r"new\s+job\s+(?:to\s+)?(?:my\s+)?(?:history|profile)", re.IGNORECASE
+        ),
+        "work_history",
+    ),
+    (
+        re.compile(
+            r"(?:started|left|got)\s+(?:a\s+)?(?:new\s+)?(?:job|position|role)",
+            re.IGNORECASE,
+        ),
+        "work_history",
+    ),
+    # Education
+    (
+        re.compile(
+            r"(?:finish|complet|graduat).*(?:degree|school|education)", re.IGNORECASE
+        ),
+        "education",
+    ),
+    (re.compile(r"education", re.IGNORECASE), "education"),
+    (re.compile(r"degree", re.IGNORECASE), "education"),
+    # Achievement stories
+    (
+        re.compile(r"(?:new\s+)?(?:achievement|accomplishment|story)", re.IGNORECASE),
+        "achievement_stories",
+    ),
+    # Growth targets
+    (
+        re.compile(r"(?:career|growth)\s+(?:goal|target)", re.IGNORECASE),
+        "growth_targets",
+    ),
+    (re.compile(r"target\s+role", re.IGNORECASE), "growth_targets"),
+]
+
 
 # =============================================================================
 # Trigger Conditions (§5.1)
@@ -147,6 +236,154 @@ def is_update_request(message: str) -> bool:
         True if message indicates an update request.
     """
     return any(pattern.search(message) for pattern in UPDATE_REQUEST_PATTERNS)
+
+
+# =============================================================================
+# Post-Onboarding Updates (§5.5)
+# =============================================================================
+
+
+def detect_update_section(message: str) -> str | None:
+    """Detect which persona section the user wants to update.
+
+    REQ-007 §5.5: Post-Onboarding Updates
+
+    Analyzes the user's message to determine which section of their persona
+    they want to update. Used to route to the appropriate interview step.
+
+    Examples:
+        - "I got a new certification" → "certifications"
+        - "I learned Kubernetes" → "skills"
+        - "Change my salary requirement" → "non_negotiables"
+
+    Args:
+        message: User's message text.
+
+    Returns:
+        Section name if detected, None otherwise.
+    """
+    for pattern, section in SECTION_DETECTION_PATTERNS:
+        if pattern.search(message):
+            return section
+    return None
+
+
+def create_update_state(
+    section: str,
+    user_id: str,
+    persona_id: str,
+) -> OnboardingState:
+    """Create state for a single-section post-onboarding update.
+
+    REQ-007 §5.5: Post-Onboarding Updates
+
+    Creates an OnboardingState configured for partial update mode.
+    Unlike full onboarding, this runs only the specified section's
+    interview step and then completes.
+
+    Args:
+        section: Section name to update (e.g., "skills", "certifications").
+        user_id: User's ID for tenant isolation.
+        persona_id: Persona ID being updated.
+
+    Returns:
+        OnboardingState configured for partial update.
+    """
+    state: OnboardingState = {
+        "user_id": user_id,
+        "persona_id": persona_id,
+        "messages": [],
+        "current_message": None,
+        "tool_calls": [],
+        "tool_results": [],
+        "next_action": None,
+        "requires_human_input": False,
+        "checkpoint_reason": None,
+        "current_step": section,
+        "gathered_data": {},
+        "skipped_sections": [],
+        "pending_question": None,
+        "user_response": None,
+        "is_partial_update": True,
+    }
+    return state
+
+
+def is_post_onboarding_update(state: OnboardingState) -> bool:
+    """Check if the current state represents a post-onboarding partial update.
+
+    REQ-007 §5.5: Post-Onboarding Updates
+
+    Distinguishes between full onboarding flow and partial updates.
+    This affects completion behavior - partial updates don't proceed
+    through all steps.
+
+    Args:
+        state: Current onboarding state.
+
+    Returns:
+        True if this is a partial update (not full onboarding).
+    """
+    return state.get("is_partial_update", False)
+
+
+def get_affected_embeddings(section: str) -> list[str]:
+    """Get embedding types affected by updating a section.
+
+    REQ-007 §5.5: Post-Onboarding Updates
+
+    When a persona section is updated, certain embeddings may need
+    regeneration before job re-scoring. This function identifies
+    which embedding types are affected.
+
+    Args:
+        section: Section name that was updated.
+
+    Returns:
+        List of affected embedding type names. Empty list if no
+        embeddings are affected (e.g., non_negotiables affects
+        filtering, not embeddings).
+    """
+    return SECTION_AFFECTED_EMBEDDINGS.get(section, [])
+
+
+def get_update_completion_message(section: str) -> str:
+    """Generate completion message after a post-onboarding update.
+
+    REQ-007 §5.5: Post-Onboarding Updates
+
+    Generates an appropriate message informing the user about what
+    happens next. For sections that affect job matching (skills,
+    non_negotiables, growth_targets), mentions re-analyzing jobs.
+
+    Args:
+        section: Section name that was updated.
+
+    Returns:
+        User-facing completion message.
+    """
+    section_names = {
+        "skills": "skills",
+        "certifications": "certifications",
+        "education": "education",
+        "work_history": "work history",
+        "achievement_stories": "achievement stories",
+        "non_negotiables": "preferences",
+        "growth_targets": "career goals",
+        "voice_profile": "voice profile",
+        "basic_info": "contact information",
+    }
+
+    section_display = section_names.get(section, section)
+
+    if section in SECTIONS_REQUIRING_RESCORE:
+        return (
+            f"Updated your {section_display}. "
+            "I'm re-analyzing your job matches — you might see new "
+            "opportunities based on these changes!"
+        )
+
+    return f"Updated your {section_display}."
 
 
 # =============================================================================

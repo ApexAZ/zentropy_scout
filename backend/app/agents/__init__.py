@@ -51,9 +51,15 @@ from app.agents.checkpoint import (
 from app.agents.onboarding import (
     ONBOARDING_STEPS,
     OPTIONAL_SECTIONS,
+    SECTIONS_REQUIRING_RESCORE,
     create_onboarding_graph,
+    create_update_state,
+    detect_update_section,
+    get_affected_embeddings,
     get_next_step,
     get_onboarding_graph,
+    get_update_completion_message,
+    is_post_onboarding_update,
     is_update_request,
     should_start_onboarding,
 )
@@ -100,9 +106,15 @@ __all__ = [
     # Onboarding Agent
     "ONBOARDING_STEPS",
     "OPTIONAL_SECTIONS",
+    "SECTIONS_REQUIRING_RESCORE",
     "create_onboarding_graph",
+    "create_update_state",
+    "detect_update_section",
+    "get_affected_embeddings",
     "get_next_step",
     "get_onboarding_graph",
+    "get_update_completion_message",
+    "is_post_onboarding_update",
     "is_update_request",
     "should_start_onboarding",
 ]

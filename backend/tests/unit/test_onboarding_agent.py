@@ -13,10 +13,13 @@ Tests verify:
 from app.agents.onboarding import (
     ONBOARDING_STEPS,
     OPTIONAL_SECTIONS,
+    SECTIONS_REQUIRING_RESCORE,
     check_resume_upload,
     check_step_complete,
     create_onboarding_graph,
+    create_update_state,
     derive_voice_profile,
+    detect_update_section,
     gather_basic_info,
     gather_certifications,
     gather_education,
@@ -25,9 +28,12 @@ from app.agents.onboarding import (
     gather_skills,
     gather_stories,
     gather_work_history,
+    get_affected_embeddings,
     get_next_step,
     get_onboarding_graph,
+    get_update_completion_message,
     handle_skip,
+    is_post_onboarding_update,
     is_step_optional,
     is_update_request,
     setup_base_resume,
@@ -2421,3 +2427,183 @@ class TestBaseResumeSetupStep:
 
         # Should not require input since data already exists
         assert result["requires_human_input"] is False
+
+
+# =============================================================================
+# Post-Onboarding Updates Tests (§5.5)
+# =============================================================================
+
+
+class TestPostOnboardingUpdates:
+    """Tests for post-onboarding update functionality (§5.5).
+
+    REQ-007 §5.5: After onboarding is complete, users can update persona
+    sections via chat. The agent reuses interview patterns for single sections.
+    """
+
+    def test_detect_update_section_certification(self) -> None:
+        """Should detect certification update from user message."""
+        result = detect_update_section("I got a new certification")
+        assert result == "certifications"
+
+    def test_detect_update_section_skills(self) -> None:
+        """Should detect skills update from user message."""
+        result = detect_update_section("Update my skills")
+        assert result == "skills"
+
+    def test_detect_update_section_skills_learned(self) -> None:
+        """Should detect skills update when user says they learned something."""
+        result = detect_update_section("I learned Kubernetes")
+        assert result == "skills"
+
+    def test_detect_update_section_salary(self) -> None:
+        """Should detect non-negotiables update for salary changes."""
+        result = detect_update_section("I changed my salary requirement")
+        assert result == "non_negotiables"
+
+    def test_detect_update_section_remote_preference(self) -> None:
+        """Should detect non-negotiables update for remote preference changes."""
+        result = detect_update_section("I now prefer remote work only")
+        assert result == "non_negotiables"
+
+    def test_detect_update_section_work_history(self) -> None:
+        """Should detect work history update from user message."""
+        result = detect_update_section("Add a new job to my history")
+        assert result == "work_history"
+
+    def test_detect_update_section_education(self) -> None:
+        """Should detect education update from user message."""
+        result = detect_update_section("I finished my degree")
+        assert result == "education"
+
+    def test_detect_update_section_story(self) -> None:
+        """Should detect achievement story update from user message."""
+        result = detect_update_section("I have a new achievement to add")
+        assert result == "achievement_stories"
+
+    def test_detect_update_section_growth_targets(self) -> None:
+        """Should detect growth targets update from user message."""
+        result = detect_update_section("I want to change my career goals")
+        assert result == "growth_targets"
+
+    def test_detect_update_section_returns_none_for_unrelated(self) -> None:
+        """Should return None for messages that aren't update requests."""
+        result = detect_update_section("What jobs are available?")
+        assert result is None
+
+    def test_detect_update_section_case_insensitive(self) -> None:
+        """Should detect update section regardless of case."""
+        result = detect_update_section("UPDATE MY SKILLS")
+        assert result == "skills"
+
+    def test_create_update_state_sets_current_step(self) -> None:
+        """Should create state with current_step set to target section."""
+        result = create_update_state(
+            section="skills",
+            user_id="user-123",
+            persona_id="persona-456",
+        )
+        assert result["current_step"] == "skills"
+        assert result["user_id"] == "user-123"
+        assert result["persona_id"] == "persona-456"
+
+    def test_create_update_state_sets_partial_update_flag(self) -> None:
+        """Should mark state as partial update (not full onboarding)."""
+        result = create_update_state(
+            section="certifications",
+            user_id="user-123",
+            persona_id="persona-456",
+        )
+        assert result["is_partial_update"] is True
+
+    def test_create_update_state_initializes_gathered_data(self) -> None:
+        """Should initialize gathered_data dict for the target section."""
+        result = create_update_state(
+            section="skills",
+            user_id="user-123",
+            persona_id="persona-456",
+        )
+        assert "gathered_data" in result
+        assert isinstance(result["gathered_data"], dict)
+
+    def test_is_post_onboarding_update_true_for_partial(self) -> None:
+        """Should return True when state indicates partial update."""
+        state = make_onboarding_state(is_partial_update=True)
+        result = is_post_onboarding_update(state)
+        assert result is True
+
+    def test_is_post_onboarding_update_false_for_full(self) -> None:
+        """Should return False for full onboarding flow."""
+        state = make_onboarding_state(is_partial_update=False)
+        result = is_post_onboarding_update(state)
+        assert result is False
+
+    def test_is_post_onboarding_update_false_when_not_set(self) -> None:
+        """Should return False when is_partial_update is not set."""
+        state = make_onboarding_state()  # No is_partial_update
+        result = is_post_onboarding_update(state)
+        assert result is False
+
+    def test_get_affected_embeddings_skills(self) -> None:
+        """Should identify hard_skills embedding for skills updates."""
+        result = get_affected_embeddings("skills")
+        assert "hard_skills" in result
+
+    def test_get_affected_embeddings_non_negotiables(self) -> None:
+        """Should return empty list for non_negotiables (filter, not embedding)."""
+        result = get_affected_embeddings("non_negotiables")
+        # Non-negotiables affect filtering, not embeddings directly
+        assert result == []
+
+    def test_get_affected_embeddings_growth_targets(self) -> None:
+        """Should identify target_roles embedding for growth targets."""
+        result = get_affected_embeddings("growth_targets")
+        # Growth targets affect stretch score calculation
+        assert "target_roles" in result
+
+    def test_get_affected_embeddings_work_history(self) -> None:
+        """Should identify experience embedding for work history."""
+        result = get_affected_embeddings("work_history")
+        assert "experience" in result
+
+    def test_get_affected_embeddings_unknown_section(self) -> None:
+        """Should return empty list for unknown sections."""
+        result = get_affected_embeddings("unknown_section")
+        assert result == []
+
+    def test_get_update_completion_message_skills(self) -> None:
+        """Should include job re-analysis message for skills updates."""
+        result = get_update_completion_message("skills")
+        # Per REQ-007 §5.5: "I'm re-analyzing your job matches"
+        assert "re-analy" in result.lower()
+
+    def test_get_update_completion_message_certifications(self) -> None:
+        """Should provide simple confirmation for certifications."""
+        result = get_update_completion_message("certifications")
+        # Certifications don't affect job matching scores directly
+        assert "certification" in result.lower()
+
+    def test_get_update_completion_message_non_negotiables(self) -> None:
+        """Should mention filtering changes for non-negotiables updates."""
+        result = get_update_completion_message("non_negotiables")
+        # Non-negotiables affect job filtering - message includes job re-analysis
+        assert "re-analy" in result.lower()
+
+    def test_get_update_completion_message_unknown_section(self) -> None:
+        """Should use section name as fallback for unknown sections."""
+        result = get_update_completion_message("unknown_section")
+        # Should use the raw section name as fallback
+        assert "unknown_section" in result.lower()
+
+    def test_sections_requiring_rescore(self) -> None:
+        """Should correctly identify sections that require job re-scoring."""
+        # Skills affect fit score
+        assert "skills" in SECTIONS_REQUIRING_RESCORE
+        # Non-negotiables affect filtering
+        assert "non_negotiables" in SECTIONS_REQUIRING_RESCORE
+        # Growth targets affect stretch score
+        assert "growth_targets" in SECTIONS_REQUIRING_RESCORE
+        # Work history affects experience matching
+        assert "work_history" in SECTIONS_REQUIRING_RESCORE
+        # Certifications don't affect scoring
+        assert "certifications" not in SECTIONS_REQUIRING_RESCORE
