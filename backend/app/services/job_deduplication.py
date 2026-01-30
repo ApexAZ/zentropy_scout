@@ -22,6 +22,7 @@ Priority Rules for Merging (REQ-003 §9.3):
 
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from difflib import SequenceMatcher
 from typing import Any, Literal
 
@@ -82,6 +83,30 @@ AGGREGATOR_DOMAINS = (
 # =============================================================================
 # Data Classes
 # =============================================================================
+
+
+@dataclass
+class PriorApplicationContext:
+    """Context about a prior application to a reposted job.
+
+    REQ-003 §8.3: Information surfaced to user when repost detected.
+
+    Attributes:
+        job_posting_id: UUID of the prior job posting.
+        applied_at: Datetime when user applied.
+        status: Current application status (Applied, Interviewing, Offer,
+            Accepted, Rejected, Withdrawn).
+        status_updated_at: Datetime when status was last updated.
+        job_title: Optional job title from prior posting.
+        company_name: Optional company name from prior posting.
+    """
+
+    job_posting_id: str
+    applied_at: datetime
+    status: str
+    status_updated_at: datetime
+    job_title: str | None = None
+    company_name: str | None = None
 
 
 @dataclass
@@ -528,3 +553,87 @@ def prepare_repost_data(
     result["repost_count"] = matched_count + 1
 
     return result
+
+
+# =============================================================================
+# Repost Agent Context Functions (REQ-003 §8.3)
+# =============================================================================
+
+
+def _format_date(dt: datetime) -> str:
+    """Format datetime for user-friendly display.
+
+    Args:
+        dt: Datetime to format.
+
+    Returns:
+        Formatted date string (e.g., "January 15, 2025").
+    """
+    return dt.strftime("%B %d, %Y").replace(" 0", " ")
+
+
+def _format_outcome(status: str) -> str:
+    """Format application status into user-friendly outcome text.
+
+    Args:
+        status: Application status (Applied, Interviewing, Offer,
+            Accepted, Rejected, Withdrawn).
+
+    Returns:
+        Human-readable outcome description.
+    """
+    outcomes: dict[str, str] = {
+        "Rejected": "rejected",
+        "Withdrawn": "withdrew",
+        "Offer": "received an offer",
+        "Accepted": "accepted an offer",
+        "Applied": "still pending",
+        "Interviewing": "currently interviewing",
+    }
+    return outcomes.get(status, status.lower())
+
+
+def generate_repost_context_message(
+    prior_applications: list[PriorApplicationContext],
+) -> str | None:
+    """Generate agent context message for repost with prior applications.
+
+    REQ-003 §8.3: When a repost is detected and user previously applied,
+    the agent communicates:
+    "This role was posted before. You applied on [date] and were [outcome]
+    on [date]. This appears to be a repost. Want me to evaluate it fresh?"
+
+    If multiple prior applications exist, uses the most recent one.
+
+    Args:
+        prior_applications: List of prior application contexts from previous
+            job posting versions. Each contains job_posting_id, applied_at,
+            status, and status_updated_at.
+
+    Returns:
+        Agent context message string, or None if no prior applications.
+    """
+    if not prior_applications:
+        return None
+
+    # Use most recent application (by applied_at date)
+    most_recent = max(prior_applications, key=lambda x: x.applied_at)
+
+    applied_date = _format_date(most_recent.applied_at)
+    outcome = _format_outcome(most_recent.status)
+    outcome_date = _format_date(most_recent.status_updated_at)
+
+    # Build message based on status type
+    if most_recent.status in ("Applied", "Interviewing"):
+        # Still in progress - no outcome date needed
+        outcome_part = f"and your application is {outcome}"
+    elif most_recent.status == "Withdrawn":
+        outcome_part = f"and {outcome} on {outcome_date}"
+    else:
+        # Rejected, Offer, Accepted - have clear outcomes
+        outcome_part = f"and were {outcome} on {outcome_date}"
+
+    return (
+        f"This role was posted before. You applied on {applied_date} {outcome_part}. "
+        "This appears to be a repost. Want me to evaluate it fresh?"
+    )

@@ -9,11 +9,16 @@ Tests verify:
 - description_similarity() for >85% threshold
 - also_found_on JSONB structure per REQ-003 §9.2
 - Priority rules for merging data per REQ-003 §9.3
+- Repost agent context message generation per REQ-003 §8.3
 """
+
+from datetime import UTC, datetime
 
 from app.services.job_deduplication import (
     DuplicateResult,
+    PriorApplicationContext,
     calculate_description_similarity,
+    generate_repost_context_message,
     is_duplicate,
     is_similar_title,
     merge_job_data,
@@ -973,3 +978,235 @@ class TestPrepareRepostData:
         assert "status" not in new_job
         assert "previous_posting_ids" not in new_job
         assert "repost_count" not in new_job
+
+
+# =============================================================================
+# Repost Agent Context Tests (REQ-003 §8.3)
+# =============================================================================
+
+
+class TestPriorApplicationContext:
+    """Tests for PriorApplicationContext dataclass.
+
+    REQ-003 §8.3: Structure for surfacing prior application info to user.
+    """
+
+    def test_creates_context_with_required_fields_when_constructed(self) -> None:
+        """PriorApplicationContext holds required application info."""
+        applied_at = datetime(2025, 1, 15, 10, 30, tzinfo=UTC)
+        status_updated_at = datetime(2025, 1, 20, 14, 0, tzinfo=UTC)
+
+        context = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=applied_at,
+            status="Rejected",
+            status_updated_at=status_updated_at,
+        )
+
+        assert context.job_posting_id == "job-123"
+        assert context.applied_at == applied_at
+        assert context.status == "Rejected"
+        assert context.status_updated_at == status_updated_at
+
+    def test_optional_fields_default_to_none_when_not_provided(self) -> None:
+        """Optional job_title and company_name default to None."""
+        context = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Applied",
+            status_updated_at=datetime(2025, 1, 15, tzinfo=UTC),
+        )
+
+        assert context.job_title is None
+        assert context.company_name is None
+
+    def test_accepts_optional_fields_when_provided(self) -> None:
+        """Can provide optional job_title and company_name."""
+        context = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Interviewing",
+            status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
+            job_title="Software Engineer",
+            company_name="Acme Corp",
+        )
+
+        assert context.job_title == "Software Engineer"
+        assert context.company_name == "Acme Corp"
+
+
+class TestGenerateRepostContextMessage:
+    """Tests for generate_repost_context_message() function.
+
+    REQ-003 §8.3: When a repost is detected and user previously applied,
+    the agent communicates application history and offers to evaluate fresh.
+    """
+
+    def test_returns_none_when_no_prior_applications(self) -> None:
+        """Returns None if user has no prior applications to previous postings."""
+        result = generate_repost_context_message([])
+
+        assert result is None
+
+    def test_includes_applied_date_when_prior_application_exists(self) -> None:
+        """Message includes the date user applied."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, 10, 30, tzinfo=UTC),
+            status="Rejected",
+            status_updated_at=datetime(2025, 1, 20, 14, 0, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        assert "January 15, 2025" in result
+
+    def test_includes_outcome_when_rejected(self) -> None:
+        """Message includes 'rejected' outcome."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Rejected",
+            status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        assert "rejected" in result.lower()
+
+    def test_includes_outcome_date_when_rejected(self) -> None:
+        """Message includes the date of the outcome."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Rejected",
+            status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        assert "January 20, 2025" in result
+
+    def test_offers_fresh_evaluation_when_repost_detected(self) -> None:
+        """Message offers to evaluate the repost fresh."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Rejected",
+            status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        assert "evaluate" in result.lower() or "fresh" in result.lower()
+
+    def test_indicates_repost_when_generating_message(self) -> None:
+        """Message indicates the job is a repost."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Rejected",
+            status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        assert "repost" in result.lower() or "posted before" in result.lower()
+
+    def test_handles_withdrawn_status_when_user_withdrew(self) -> None:
+        """Message handles Withdrawn status correctly."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Withdrawn",
+            status_updated_at=datetime(2025, 1, 18, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        assert "withdrew" in result.lower() or "withdrawn" in result.lower()
+
+    def test_handles_offer_status_when_user_received_offer(self) -> None:
+        """Message handles Offer status correctly."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Offer",
+            status_updated_at=datetime(2025, 2, 1, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        assert "offer" in result.lower()
+
+    def test_handles_accepted_status_when_user_accepted_offer(self) -> None:
+        """Message handles Accepted status correctly."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Accepted",
+            status_updated_at=datetime(2025, 2, 15, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        assert "accepted" in result.lower()
+
+    def test_handles_still_pending_when_status_is_applied(self) -> None:
+        """Message handles Applied status (still pending)."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Applied",
+            status_updated_at=datetime(2025, 1, 15, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        # Should indicate application is still active/pending
+        assert "pending" in result.lower() or "still" in result.lower()
+
+    def test_handles_interviewing_status_when_in_progress(self) -> None:
+        """Message handles Interviewing status (in progress)."""
+        prior = PriorApplicationContext(
+            job_posting_id="job-123",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Interviewing",
+            status_updated_at=datetime(2025, 1, 25, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([prior])
+
+        assert result is not None
+        # Should indicate interviewing is in progress
+        assert "interview" in result.lower()
+
+    def test_uses_most_recent_when_multiple_prior_applications(self) -> None:
+        """Uses most recent application when user applied to multiple versions."""
+        older = PriorApplicationContext(
+            job_posting_id="job-111",
+            applied_at=datetime(2024, 6, 1, tzinfo=UTC),
+            status="Rejected",
+            status_updated_at=datetime(2024, 6, 15, tzinfo=UTC),
+        )
+        newer = PriorApplicationContext(
+            job_posting_id="job-222",
+            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
+            status="Withdrawn",
+            status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
+        )
+
+        result = generate_repost_context_message([older, newer])
+
+        assert result is not None
+        # Should mention the most recent application (January 2025)
+        assert "January 15, 2025" in result

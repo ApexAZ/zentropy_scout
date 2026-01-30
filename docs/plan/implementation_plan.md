@@ -385,7 +385,7 @@ These steps require user action outside Claude Code:
 | 7.5 | Ghost Detection — JSONB Structure | `db, tdd, plan` | ✅ |
 | 8.1 | Repost Detection — Criteria | `db, tdd, plan` | ✅ |
 | 8.2 | Repost Detection — Handling | `db, tdd, plan` | ✅ |
-| 8.3 | Repost Detection — Agent Context | `provider, tdd, plan` | ⬜ |
+| 8.3 | Repost Detection — Agent Context | `provider, tdd, plan` | ✅ |
 | 9.1 | Deduplication — Within Same Source | `db, test, tdd, plan` | ⬜ |
 | 9.2 | Deduplication — Across Sources | `db, test, tdd, plan` | ⬜ |
 | 9.3 | Deduplication — Priority | `db, tdd, plan` | ⬜ |
