@@ -338,7 +338,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 2.4 Scouter Agent (REQ-007 §6 + REQ-003)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Discovers and ingests jobs. Combines REQ-007 §6 (behavior) and REQ-003 (job schema logic).*
 
@@ -392,7 +392,7 @@ These steps require user action outside Claude Code:
 | 12.1 | Retention — Favorites Override | `db, tdd, plan` | ✅ |
 | 12.2 | Retention — Expiration Detection | `db, tdd, plan` | ✅ |
 | 13.1 | Workflow — Discovery Flow | `provider, structure, tdd, plan` | ✅ |
-| 13.2 | Workflow — User Review Flow | `structure, tdd, plan` | ⬜ |
+| 13.2 | Workflow — User Review Flow | `structure, tdd, plan` | ✅ |
 
 ---
 
