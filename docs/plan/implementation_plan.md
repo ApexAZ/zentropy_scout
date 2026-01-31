@@ -417,8 +417,8 @@ These steps require user action outside Claude Code:
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1.1 | Score Types | `docs, plan` | ✅ |
-| 1.2 | Scoring Philosophy | `docs, plan` | ⬜ |
-| 6.1 | Embeddings — What Gets Embedded | `db, docs, plan` | ⬜ |
+| 1.2 | Scoring Philosophy | `docs, plan` | ✅ |
+| 6.1 | Embeddings — What Gets Embedded | `db, docs, plan` | ✅ |
 | 6.2 | Embeddings — Model | `provider, docs, plan` | ⬜ |
 | 6.3 | Embeddings — Persona Generation | `provider, db, tdd, plan` | ⬜ |
 | 6.4 | Embeddings — Job Generation | `provider, db, tdd, plan` | ⬜ |
