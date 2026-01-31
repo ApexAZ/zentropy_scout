@@ -10,7 +10,7 @@ This module defines schemas for the two-step ingest workflow:
 from datetime import datetime
 from typing import Any, TypedDict
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 # =============================================================================
 # TypedDicts for Extracted Data
@@ -64,6 +64,8 @@ class IngestJobPostingRequest(BaseModel):
         source_name: Name of the source (e.g., "LinkedIn", "Indeed").
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     raw_text: str = Field(
         ...,
         min_length=1,
@@ -109,6 +111,8 @@ class IngestConfirmRequest(BaseModel):
             location, salary_min, salary_max, salary_currency, employment_type,
             extracted_skills, culture_text, description_snippet.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     confirmation_token: str = Field(
         ...,

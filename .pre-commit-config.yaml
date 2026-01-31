@@ -12,9 +12,9 @@
 repos:
   # Ruff - fast Python linter and formatter (runs on COMMIT)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.2.0
+    rev: v0.14.14
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
         files: ^backend/
       - id: ruff-format
@@ -22,7 +22,7 @@ repos:
 
   # Standard pre-commit hooks (runs on COMMIT)
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -31,6 +31,21 @@ repos:
         args: ['--maxkb=500']
       - id: check-merge-conflict
       - id: detect-private-key
+
+  # Bandit - Python security linter (runs on COMMIT)
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.3
+    hooks:
+      - id: bandit
+        args: ["-c", "backend/pyproject.toml", "-r"]
+        files: ^backend/app/
+        exclude: ^backend/tests/
+
+  # Gitleaks - Secret detection (runs on COMMIT)
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.28.0
+    hooks:
+      - id: gitleaks
 
   # Pytest - full test suite (runs on PUSH only)
   - repo: local
@@ -44,5 +59,5 @@ repos:
         stages: [pre-push]
 
 # Summary:
-# ON COMMIT: ruff lint, ruff format, trailing whitespace, YAML check, etc. (fast)
+# ON COMMIT: ruff lint/format, bandit security scan, gitleaks secret detection, etc. (fast)
 # ON PUSH: Full pytest suite (comprehensive - all tests must pass)

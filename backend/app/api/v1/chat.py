@@ -18,10 +18,12 @@ Event Types (REQ-006 §2.5):
 import asyncio
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import get_current_user_id
+from app.core.config import settings
+from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse
 from app.schemas.chat import ChatMessageRequest, HeartbeatEvent
 
@@ -29,8 +31,10 @@ router = APIRouter()
 
 
 @router.post("/messages")
+@limiter.limit(settings.rate_limit_llm)
 async def send_chat_message(
-    request: ChatMessageRequest,  # noqa: ARG001 - will be used in Phase 2
+    request: Request,  # noqa: ARG001 - Required by rate limiter
+    body: ChatMessageRequest,  # noqa: ARG001 - will be used in Phase 2
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> DataResponse[dict]:
     """Send a message to the chat agent.
@@ -38,6 +42,7 @@ async def send_chat_message(
     REQ-006 §5.2: Send message to agent for processing.
     The message is queued for processing by the LangGraph agent.
     Responses will be streamed via the SSE /stream endpoint.
+    Security: Rate limited to prevent LLM cost abuse.
 
     Args:
         request: The chat message request body.

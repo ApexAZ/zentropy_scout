@@ -702,7 +702,7 @@ Query params for collections:
 
 | # | Question | Status | Notes |
 |---|----------|--------|-------|
-| 1 | Rate limiting strategy? | **Deferred** | Skip for MVP. Add Redis-backed solution when hosting. Easy to add later — middleware wraps existing endpoints. |
+| 1 | Rate limiting strategy? | **Implemented (partial)** | Security review identified gap — now implemented with slowapi (in-memory storage). Limits: 10/min for LLM endpoints (`/ingest`, `/chat/messages`), 5/min for embeddings (`/embeddings/regenerate`). **TODO for multi-instance:** Convert to Redis-backed storage before horizontal scaling. Config: `RATE_LIMIT_LLM`, `RATE_LIMIT_EMBEDDINGS`, `RATE_LIMIT_ENABLED`. |
 | 2 | Webhook events for integrations? | **Deferred** | Skip for MVP. LangGraph agents handle automation, not external webhooks. Easy to add later if needed. |
 | 3 | Bulk operations? | **Resolved** | Explicit bulk endpoints where needed (Stripe philosophy). MVP: bulk-dismiss, bulk-favorite, bulk-archive. See §2.6. |
 | 4 | Real-time updates? | **Resolved** | SSE for agent chat streaming + data change events. Polling for "what's new" on page load. Manual refresh button available. See §2.5. |
@@ -721,3 +721,4 @@ Query params for collections:
 | 2026-01-25 | 0.5 | Peer review fixes: Added §5.4 Persona Change Flags endpoints (HITL sync for new skills/jobs). Added §5.5 Standard Filtering & Sorting (sort, filter query params). Updated dependency versions (REQ-004 v0.5, REQ-005 v0.10). |
 | 2026-01-25 | 0.6 | Peer review fixes (cont.): Added `custom-non-negotiables` CRUD endpoints to resource mapping. Added Base Resume Download clarification (serves stored blob, not on-demand generation). |
 | 2026-01-25 | 0.7 | Added embedding regeneration and job rescore endpoints to support REQ-007 agent flows: `POST /personas/{id}/embeddings/regenerate`, `POST /job-postings/rescore`. |
+| 2026-01-31 | 0.8 | Security review: Rate limiting implemented with slowapi (in-memory). Endpoints: `/ingest` (10/min), `/chat/messages` (10/min), `/embeddings/regenerate` (5/min). Note: Convert to Redis before multi-instance deployment. |

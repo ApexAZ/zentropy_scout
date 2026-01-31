@@ -41,6 +41,10 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "tenacity>=8.2.0",
 
+    # Security
+    "python-magic>=0.4.27",  # File content validation via magic bytes
+    "slowapi>=0.1.9",  # Rate limiting for API endpoints
+
     # Logging
     "structlog>=24.1.0",
 ]
@@ -56,6 +60,10 @@ dev = [
     # Linting & Formatting
     "ruff>=0.2.0",
     "mypy>=1.8.0",
+
+    # Security Linting
+    "bandit>=1.9.3",
+    "pip-audit>=2.10.0",
 
     # Pre-commit hooks
     "pre-commit>=3.6.0",
@@ -107,3 +115,8 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_ignores = true
 ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+# Skip B101 (assert_used) since we use asserts in tests
+skips = ["B101"]

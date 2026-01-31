@@ -13,7 +13,7 @@ Event Types:
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # =============================================================================
 # Request Schemas
@@ -29,6 +29,8 @@ class ChatMessageRequest(BaseModel):
         content: The user's message text.
         context: Optional context data (e.g., job_id being discussed).
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     content: str = Field(..., description="User message content")
     context: dict[str, Any] | None = Field(

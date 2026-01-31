@@ -17,13 +17,15 @@ import uuid
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_id
+from app.core.config import settings
 from app.core.database import get_db
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import ConflictError, NotFoundError, ValidationError
+from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models.job_posting import JobPosting
 from app.models.job_source import JobSource
@@ -44,6 +46,21 @@ from app.services.ingest_token_store import get_token_store
 from app.services.job_extraction import extract_job_data
 
 router = APIRouter()
+
+# Security: Allowed modification fields for ingest confirm
+# Prevents mass assignment of sensitive fields (e.g., id, persona_id, source_id)
+ALLOWED_INGEST_MODIFICATIONS: set[str] = {
+    "job_title",
+    "company_name",
+    "location",
+    "salary_min",
+    "salary_max",
+    "salary_currency",
+    "employment_type",
+    "culture_text",
+    "description_snippet",
+    "extracted_skills",  # Can override skill list
+}
 
 
 # =============================================================================
@@ -121,8 +138,10 @@ async def list_extracted_skills(
 
 
 @router.post("/ingest")
+@limiter.limit(settings.rate_limit_llm)
 async def ingest_job_posting(
-    request: IngestJobPostingRequest,
+    request: Request,  # noqa: ARG001 - Required by rate limiter
+    body: IngestJobPostingRequest,
     user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> DataResponse[IngestJobPostingResponse]:
@@ -130,9 +149,11 @@ async def ingest_job_posting(
 
     REQ-006 §5.6: Chrome extension submits raw job text for parsing.
     Returns a preview with confirmation token for user review.
+    Security: Rate limited to prevent LLM cost abuse.
 
     Args:
-        request: Raw job text and source information.
+        request: HTTP request (required by rate limiter).
+        body: Raw job text and source information.
         user_id: Current user ID from auth.
         db: Database session.
 
@@ -143,7 +164,7 @@ async def ingest_job_posting(
         ConflictError: If job from this URL already exists (409).
     """
     # Check for duplicate URL
-    source_url_str = str(request.source_url)
+    source_url_str = str(body.source_url)
     stmt = select(JobPosting).where(JobPosting.source_url == source_url_str)
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
@@ -155,7 +176,7 @@ async def ingest_job_posting(
         )
 
     # Extract job data from raw text
-    extracted = await extract_job_data(request.raw_text)
+    extracted = await extract_job_data(body.raw_text)
 
     # Build preview from extracted data
     preview = IngestPreview(
@@ -181,9 +202,9 @@ async def ingest_job_posting(
     token_store = get_token_store()
     token, expires_at = token_store.create(
         user_id=user_id,
-        raw_text=request.raw_text,
+        raw_text=body.raw_text,
         source_url=source_url_str,
-        source_name=request.source_name,
+        source_name=body.source_name,
         extracted_data=extracted,
     )
 
@@ -249,6 +270,16 @@ async def confirm_ingest_job_posting(
     # Cast to dict for merging since modifications is a generic dict
     extracted: dict[str, Any] = dict(preview_data.extracted_data)
     if request.modifications:
+        # Security: Validate modification keys against whitelist
+        # Prevents mass assignment of sensitive fields (id, persona_id, etc.)
+        invalid_keys = set(request.modifications.keys()) - ALLOWED_INGEST_MODIFICATIONS
+        if invalid_keys:
+            raise ValidationError(
+                message=f"Invalid modification keys: {', '.join(sorted(invalid_keys))}",
+                details=[
+                    {"field": key, "error": "FIELD_NOT_ALLOWED"} for key in invalid_keys
+                ],
+            )
         extracted.update(request.modifications)
 
     # Compute description hash for dedup
@@ -359,11 +390,14 @@ async def bulk_favorite_job_postings(
 
 
 @router.post("/rescore")
+@limiter.limit(settings.rate_limit_llm)
 async def rescore_job_postings(
+    request: Request,  # noqa: ARG001 - Required by rate limiter
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> DataResponse[dict]:
     """Re-run Strategist scoring on all Discovered jobs.
 
     REQ-006 §5.2: Trigger after persona changes to update fit scores.
+    Security: Rate limited to prevent LLM cost abuse.
     """
     return DataResponse(data={"status": "queued"})

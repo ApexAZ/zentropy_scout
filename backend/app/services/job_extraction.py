@@ -13,6 +13,7 @@ import logging
 import re
 from typing import Any, cast
 
+from app.core.llm_sanitization import sanitize_llm_input
 from app.providers import ProviderError, factory
 from app.providers.llm.base import LLMMessage, TaskType
 from app.schemas.ingest import ExtractedJobData
@@ -73,12 +74,17 @@ def _build_extraction_prompt(text: str) -> str:
     REQ-007 §6.4: Prompt extracts skills with type/requirement/years,
     plus culture text about values, benefits, and team environment.
 
+    Security: Sanitizes input to mitigate prompt injection attacks.
+
     Args:
         text: Truncated job posting text.
 
     Returns:
         Prompt string for extraction.
     """
+    # Sanitize user input before embedding in prompt
+    safe_text = sanitize_llm_input(text)
+
     return f"""Extract structured job information from the following job posting.
 Return a JSON object with these fields (use null if not found):
 - job_title: string
@@ -96,7 +102,7 @@ Return a JSON object with these fields (use null if not found):
 - culture_text: string containing ONLY text about company culture, values, team environment, benefits, or "About Us" content. Do NOT include job requirements or responsibilities.
 
 Job Posting:
-{text}
+{safe_text}
 
 Return ONLY the JSON object, no explanation."""
 

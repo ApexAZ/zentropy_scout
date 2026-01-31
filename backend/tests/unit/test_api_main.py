@@ -3,6 +3,8 @@
 REQ-006 §2.1, §8.1: REST API with consistent error handling.
 """
 
+from unittest.mock import patch
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -189,3 +191,100 @@ class TestExceptionHandlers:
         assert "message" in data["error"]
         # Should not have "data" key
         assert "data" not in data
+
+
+class TestCORSMiddleware:
+    """Tests for CORS middleware configuration."""
+
+    @pytest.mark.asyncio
+    async def test_cors_allows_configured_origin(self, client):
+        """CORS should allow requests from configured origins."""
+        response = await client.options(
+            "/health",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        # Preflight should succeed
+        assert response.status_code == 200
+        assert (
+            response.headers.get("access-control-allow-origin")
+            == "http://localhost:3000"
+        )
+
+    @pytest.mark.asyncio
+    async def test_cors_denies_unconfigured_origin(self):
+        """CORS should deny requests from unconfigured origins."""
+        # Create app with specific origin
+        with patch("app.main.settings.allowed_origins", ["http://allowed-origin.com"]):
+            test_app = create_app()
+            transport = ASGITransport(app=test_app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.options(
+                    "/health",
+                    headers={
+                        "Origin": "http://malicious-site.com",
+                        "Access-Control-Request-Method": "GET",
+                    },
+                )
+                # Origin should NOT be in allowed origins header
+                allowed_origin = response.headers.get("access-control-allow-origin")
+                assert allowed_origin != "http://malicious-site.com"
+
+    @pytest.mark.asyncio
+    async def test_cors_headers_on_actual_request(self, client):
+        """CORS headers should be present on actual requests."""
+        response = await client.get(
+            "/health",
+            headers={"Origin": "http://localhost:3000"},
+        )
+        assert response.status_code == 200
+        assert (
+            response.headers.get("access-control-allow-origin")
+            == "http://localhost:3000"
+        )
+
+
+class TestSecurityHeadersMiddleware:
+    """Tests for security headers middleware."""
+
+    @pytest.mark.asyncio
+    async def test_x_frame_options_header(self, client):
+        """X-Frame-Options header should be DENY."""
+        response = await client.get("/health")
+        assert response.headers.get("x-frame-options") == "DENY"
+
+    @pytest.mark.asyncio
+    async def test_x_content_type_options_header(self, client):
+        """X-Content-Type-Options header should be nosniff."""
+        response = await client.get("/health")
+        assert response.headers.get("x-content-type-options") == "nosniff"
+
+    @pytest.mark.asyncio
+    async def test_x_xss_protection_header(self, client):
+        """X-XSS-Protection header should enable XSS filter."""
+        response = await client.get("/health")
+        assert response.headers.get("x-xss-protection") == "1; mode=block"
+
+    @pytest.mark.asyncio
+    async def test_referrer_policy_header(self, client):
+        """Referrer-Policy header should be set."""
+        response = await client.get("/health")
+        assert (
+            response.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
+        )
+
+    @pytest.mark.asyncio
+    async def test_cache_control_on_api_endpoints(self, client):
+        """API endpoints should have no-store cache control."""
+        response = await client.get("/api/v1/personas")
+        assert "no-store" in response.headers.get("cache-control", "")
+
+    @pytest.mark.asyncio
+    async def test_cache_control_not_on_health(self, client):
+        """Health endpoint (not under /api/) may be cached."""
+        response = await client.get("/health")
+        # Cache-Control is only set for /api/ paths
+        cache_control = response.headers.get("cache-control", "")
+        assert "no-store" not in cache_control

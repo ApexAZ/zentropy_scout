@@ -23,9 +23,11 @@ Endpoints:
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.api.deps import get_current_user_id
+from app.core.config import settings
+from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 
 router = APIRouter()
@@ -438,12 +440,15 @@ async def delete_custom_non_negotiable(
 
 
 @router.post("/{persona_id}/embeddings/regenerate")
+@limiter.limit(settings.rate_limit_embeddings)
 async def regenerate_embeddings(
+    request: Request,  # noqa: ARG001 - Required by rate limiter
     persona_id: uuid.UUID,  # noqa: ARG001
     _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
 ) -> DataResponse[dict]:
     """Trigger persona embedding regeneration.
 
     REQ-006 §5.2: POST action to regenerate vector embeddings.
+    Security: Rate limited to prevent embedding cost abuse.
     """
     return DataResponse(data={"status": "queued"})

@@ -298,3 +298,25 @@ def reset_ingest_token_store() -> Iterator[None]:
     reset_token_store()
     yield
     reset_token_store()
+
+
+@pytest.fixture(autouse=True)
+def disable_rate_limiting() -> Iterator[None]:
+    """Disable rate limiting during tests.
+
+    Security: Rate limiting is tested separately; disable for other tests
+    to avoid flaky failures from rate limit triggers.
+
+    Yields:
+        None (autouse fixture).
+    """
+    from app.core.rate_limiting import limiter
+
+    # Store original state and disable
+    original_enabled = limiter.enabled
+    limiter.enabled = False
+
+    yield
+
+    # Restore original state
+    limiter.enabled = original_enabled

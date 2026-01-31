@@ -14,7 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_id
 from app.core.database import get_db
-from app.core.errors import NotFoundError, ValidationError
+from app.core.errors import NotFoundError
+from app.core.file_validation import (
+    read_file_with_size_limit,
+    sanitize_filename_for_header,
+    validate_file_content,
+)
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona, ResumeFile
 from app.models.cover_letter import SubmittedCoverLetterPDF
@@ -59,22 +64,12 @@ async def upload_resume_file(
     if not persona:
         raise NotFoundError("Persona", str(persona_id))
 
-    # Determine file type from extension
+    # Read file content with size limit (Security: prevents DoS)
+    content = await read_file_with_size_limit(file)
+
+    # Validate file content using magic bytes (Security: prevents extension spoofing)
     filename = file.filename or "unknown"
-    extension = filename.rsplit(".", 1)[-1].upper() if "." in filename else ""
-
-    if extension == "PDF":
-        file_type = "PDF"
-    elif extension == "DOCX":
-        file_type = "DOCX"
-    else:
-        raise ValidationError(
-            message=f"Invalid file type '{extension}'. Allowed: PDF, DOCX",
-            details=[{"field": "file", "error": "INVALID_FILE_TYPE"}],
-        )
-
-    # Read file content
-    content = await file.read()
+    file_type = validate_file_content(content, filename)
 
     # Create resume file record
     resume_file = ResumeFile(
@@ -221,12 +216,13 @@ async def download_resume_file(
         else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
+    # Security: sanitize filename to prevent header injection
+    safe_filename = sanitize_filename_for_header(resume_file.file_name)
+
     return StreamingResponse(
         iter([resume_file.file_binary]),
         media_type=media_type,
-        headers={
-            "Content-Disposition": f'attachment; filename="{resume_file.file_name}"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )
 
 
@@ -291,10 +287,13 @@ async def download_submitted_resume_pdf(
         if not variant_result.scalar_one_or_none():
             raise NotFoundError("SubmittedResumePDF", str(pdf_id))
 
+    # Security: sanitize filename to prevent header injection
+    safe_filename = sanitize_filename_for_header(pdf.file_name)
+
     return StreamingResponse(
         iter([pdf.file_binary]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{pdf.file_name}"'},
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )
 
 
@@ -340,8 +339,11 @@ async def download_submitted_cover_letter_pdf(
     if not pdf:
         raise NotFoundError("SubmittedCoverLetterPDF", str(pdf_id))
 
+    # Security: sanitize filename to prevent header injection
+    safe_filename = sanitize_filename_for_header(pdf.file_name)
+
     return StreamingResponse(
         iter([pdf.file_binary]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{pdf.file_name}"'},
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )

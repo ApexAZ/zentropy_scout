@@ -12,6 +12,7 @@ These tests verify:
 import io
 import uuid
 from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -192,11 +193,14 @@ class TestResumeFileUpload:
         files = {"file": ("resume.pdf", io.BytesIO(pdf_content), "application/pdf")}
         data = {"persona_id": str(persona_for_files.id)}
 
-        response = await client.post(
-            "/api/v1/resume-files",
-            files=files,
-            data=data,
-        )
+        # Mock magic to return PDF MIME type
+        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+            mock_magic.return_value = "application/pdf"
+            response = await client.post(
+                "/api/v1/resume-files",
+                files=files,
+                data=data,
+            )
 
         assert response.status_code == 200
         result = response.json()
@@ -224,11 +228,17 @@ class TestResumeFileUpload:
         }
         data = {"persona_id": str(persona_for_files.id)}
 
-        response = await client.post(
-            "/api/v1/resume-files",
-            files=files,
-            data=data,
+        # Mock magic to return DOCX MIME type
+        docx_mime = (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
+        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+            mock_magic.return_value = docx_mime
+            response = await client.post(
+                "/api/v1/resume-files",
+                files=files,
+                data=data,
+            )
 
         assert response.status_code == 200
         result = response.json()
@@ -245,16 +255,19 @@ class TestResumeFileUpload:
         files = {"file": ("resume.txt", b"plain text", "text/plain")}
         data = {"persona_id": str(persona_for_files.id)}
 
-        response = await client.post(
-            "/api/v1/resume-files",
-            files=files,
-            data=data,
-        )
+        # Mock magic to return text/plain (not allowed)
+        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+            mock_magic.return_value = "text/plain"
+            response = await client.post(
+                "/api/v1/resume-files",
+                files=files,
+                data=data,
+            )
 
         assert response.status_code == 400
         result = response.json()
         assert result["error"]["code"] == "VALIDATION_ERROR"
-        assert "Invalid file type" in result["error"]["message"]
+        assert "Invalid file content" in result["error"]["message"]
 
     @pytest.mark.asyncio
     async def test_upload_missing_persona_id(
@@ -282,11 +295,14 @@ class TestResumeFileUpload:
         files = {"file": ("resume.pdf", b"%PDF-1.4 content", "application/pdf")}
         data = {"persona_id": str(uuid.uuid4())}
 
-        response = await client.post(
-            "/api/v1/resume-files",
-            files=files,
-            data=data,
-        )
+        # Mock magic to return PDF (file validation passes, but persona not found)
+        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+            mock_magic.return_value = "application/pdf"
+            response = await client.post(
+                "/api/v1/resume-files",
+                files=files,
+                data=data,
+            )
 
         assert response.status_code == 404
         result = response.json()

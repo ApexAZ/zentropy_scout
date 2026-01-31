@@ -9,15 +9,59 @@ This module creates and configures the FastAPI application, including:
 """
 
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from app.api.v1.router import router as v1_router
+from app.core.config import settings
 from app.core.errors import APIError
+from app.core.rate_limiting import limiter, rate_limit_exceeded_handler
 from app.core.responses import ErrorDetail, ErrorResponse
 
 logger = structlog.get_logger()
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to add security headers to all responses.
+
+    Headers added:
+    - X-Frame-Options: Prevents clickjacking attacks
+    - X-Content-Type-Options: Prevents MIME sniffing
+    - X-XSS-Protection: Enables XSS filtering in older browsers
+    - Referrer-Policy: Controls referrer information leakage
+    - Cache-Control: Prevents caching of sensitive data on API responses
+
+    Note: CSP and HSTS should be added when HTTPS is configured for production.
+    """
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        """Add security headers to response."""
+        response = await call_next(request)
+
+        # Clickjacking protection
+        response.headers["X-Frame-Options"] = "DENY"
+
+        # Prevent MIME type sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+
+        # XSS protection for older browsers
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+
+        # Control referrer information leakage
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+        # Prevent caching of API responses (may contain sensitive data)
+        # Exception: static files should be cached (not applicable to this API)
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+
+        return response
 
 
 async def api_error_handler(_request: Request, exc: APIError) -> JSONResponse:
@@ -119,11 +163,30 @@ def create_app() -> FastAPI:
         description="AI-powered job application assistant",
     )
 
+    # CORS middleware (Security)
+    # Must be added before other middleware to handle preflight requests
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+    )
+
+    # Security headers middleware
+    # Adds X-Frame-Options, X-Content-Type-Options, etc.
+    app.add_middleware(SecurityHeadersMiddleware)
+
     # Register exception handlers
     # Order matters: specific handlers first, then catch-all
     app.add_exception_handler(APIError, api_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
     app.add_exception_handler(Exception, internal_error_handler)
+
+    # Rate limiting (Security)
+    # Prevents API abuse and LLM cost explosion
+    app.state.limiter = limiter
 
     # Include v1 router at /api/v1
     app.include_router(v1_router, prefix="/api/v1")

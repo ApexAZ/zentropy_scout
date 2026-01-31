@@ -468,3 +468,94 @@ class TestIngestTokenErrors:
             json={"confirmation_token": token},
         )
         assert confirm_response.status_code == 404
+
+
+# =============================================================================
+# Modification Security Tests
+# =============================================================================
+
+
+class TestIngestModificationSecurity:
+    """Tests for modification field whitelist validation.
+
+    Security: Prevents mass assignment of sensitive fields.
+    """
+
+    @pytest.mark.asyncio
+    async def test_confirm_rejects_disallowed_modification_keys(
+        self,
+        client: AsyncClient,
+        mock_llm: Any,  # noqa: ARG002
+    ) -> None:
+        """Confirm rejects modification keys not in whitelist."""
+        ingest_response = await client.post(
+            "/api/v1/job-postings/ingest",
+            json={
+                "raw_text": "Software Engineer at Test Corp",
+                "source_url": "https://example.com/job/security-test-1",
+                "source_name": "Example",
+            },
+        )
+        token = ingest_response.json()["data"]["confirmation_token"]
+
+        # Try to inject disallowed fields
+        confirm_response = await client.post(
+            "/api/v1/job-postings/ingest/confirm",
+            json={
+                "confirmation_token": token,
+                "modifications": {
+                    "id": str(uuid.uuid4()),  # Should NOT be allowed
+                    "persona_id": str(uuid.uuid4()),  # Should NOT be allowed
+                    "job_title": "Valid Title",  # This IS allowed
+                },
+            },
+        )
+
+        assert confirm_response.status_code == 400
+        error = confirm_response.json()["error"]
+        assert error["code"] == "VALIDATION_ERROR"
+        assert "Invalid modification keys" in error["message"]
+        assert "id" in error["message"]
+        assert "persona_id" in error["message"]
+
+    @pytest.mark.asyncio
+    async def test_confirm_accepts_all_allowed_modification_keys(
+        self,
+        client: AsyncClient,
+        mock_llm: Any,  # noqa: ARG002
+    ) -> None:
+        """Confirm accepts all whitelisted modification keys."""
+        ingest_response = await client.post(
+            "/api/v1/job-postings/ingest",
+            json={
+                "raw_text": "Software Engineer at Test Corp",
+                "source_url": "https://example.com/job/security-test-2",
+                "source_name": "Example",
+            },
+        )
+        token = ingest_response.json()["data"]["confirmation_token"]
+
+        # All allowed fields should work
+        confirm_response = await client.post(
+            "/api/v1/job-postings/ingest/confirm",
+            json={
+                "confirmation_token": token,
+                "modifications": {
+                    "job_title": "Senior Engineer",
+                    "company_name": "Great Corp",
+                    "location": "Remote",
+                    "salary_min": 100000,
+                    "salary_max": 150000,
+                    "salary_currency": "USD",
+                },
+            },
+        )
+
+        assert confirm_response.status_code == 201
+        data = confirm_response.json()["data"]
+        assert data["job_title"] == "Senior Engineer"
+        assert data["company_name"] == "Great Corp"
+        assert data["location"] == "Remote"
+        assert data["salary_min"] == 100000
+        assert data["salary_max"] == 150000
+        assert data["salary_currency"] == "USD"

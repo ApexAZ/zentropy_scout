@@ -6,7 +6,12 @@ Uses pydantic-settings for validation and .env file support.
 
 import uuid
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Known insecure default password that must not be used in production
+# Security: Runtime check in check_production_security() prevents use in production
+_INSECURE_DEFAULT_PASSWORD = "zentropy_dev_password"  # nosec B105
 
 
 class Settings(BaseSettings):
@@ -26,8 +31,16 @@ class Settings(BaseSettings):
     database_password: str = "zentropy_dev_password"
 
     # API
-    api_host: str = "0.0.0.0"
+    # 0.0.0.0 binds to all network interfaces (required for Docker containers)
+    # Security: For local development without Docker, use 127.0.0.1 to prevent
+    # external access. In production, use a reverse proxy with TLS termination.
+    api_host: str = "0.0.0.0"  # nosec B104
     api_port: int = 8000
+
+    # CORS (Security)
+    # Default allows localhost:3000 for Next.js development
+    # Production: Set ALLOWED_ORIGINS to specific domain(s)
+    allowed_origins: list[str] = ["http://localhost:3000"]
 
     # LLM Providers
     openai_api_key: str = ""
@@ -44,6 +57,13 @@ class Settings(BaseSettings):
     default_user_id: uuid.UUID | None = None
     auth_enabled: bool = False
 
+    # Rate Limiting (Security)
+    # Limits LLM-calling endpoints to prevent abuse and cost explosion
+    # Format: "count/period" (e.g., "10/minute", "100/hour")
+    rate_limit_llm: str = "10/minute"  # /ingest, /chat/messages
+    rate_limit_embeddings: str = "5/minute"  # embedding regeneration
+    rate_limit_enabled: bool = True  # Disable for testing
+
     @property
     def database_url(self) -> str:
         """Async database URL for SQLAlchemy."""
@@ -59,6 +79,23 @@ class Settings(BaseSettings):
             f"postgresql://{self.database_user}:{self.database_password}"
             f"@{self.database_host}:{self.database_port}/{self.database_name}"
         )
+
+    @model_validator(mode="after")
+    def check_production_security(self) -> "Settings":
+        """Validate production security requirements.
+
+        Security: Prevents deployment with known insecure defaults.
+        """
+        if (
+            self.environment == "production"
+            and self.database_password == _INSECURE_DEFAULT_PASSWORD
+        ):
+            msg = (
+                "Cannot use default database password in production. "
+                "Set DATABASE_PASSWORD environment variable to a secure value."
+            )
+            raise ValueError(msg)
+        return self
 
 
 settings = Settings()

@@ -8,7 +8,7 @@ that allow partial success (some items succeed, some fail).
 
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BulkDismissRequest(BaseModel):
@@ -17,6 +17,8 @@ class BulkDismissRequest(BaseModel):
     Attributes:
         ids: List of job posting UUIDs to dismiss.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     ids: list[UUID] = Field(..., description="Job posting IDs to dismiss")
 
@@ -29,6 +31,8 @@ class BulkFavoriteRequest(BaseModel):
         is_favorite: True to favorite, False to unfavorite.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     ids: list[UUID] = Field(..., description="Job posting IDs to update")
     is_favorite: bool = Field(..., description="True to favorite, False to unfavorite")
 
@@ -39,6 +43,8 @@ class BulkArchiveRequest(BaseModel):
     Attributes:
         ids: List of application UUIDs to archive.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     ids: list[UUID] = Field(..., description="Application IDs to archive")
 
