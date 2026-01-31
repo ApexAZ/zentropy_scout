@@ -391,7 +391,7 @@ These steps require user action outside Claude Code:
 | 9.3 | Deduplication — Priority | `db, tdd, plan` | ✅ |
 | 12.1 | Retention — Favorites Override | `db, tdd, plan` | ✅ |
 | 12.2 | Retention — Expiration Detection | `db, tdd, plan` | ✅ |
-| 13.1 | Workflow — Discovery Flow | `provider, structure, tdd, plan` | ⬜ |
+| 13.1 | Workflow — Discovery Flow | `provider, structure, tdd, plan` | ✅ |
 | 13.2 | Workflow — User Review Flow | `structure, tdd, plan` | ⬜ |
 
 ---
