@@ -388,8 +388,8 @@ These steps require user action outside Claude Code:
 | 8.3 | Repost Detection — Agent Context | `provider, tdd, plan` | ✅ |
 | 9.1 | Deduplication — Within Same Source | `db, test, tdd, plan` | ✅ |
 | 9.2 | Deduplication — Across Sources | `db, test, tdd, plan` | ✅ |
-| 9.3 | Deduplication — Priority | `db, tdd, plan` | ⬜ |
-| 12.1 | Retention — Favorites Override | `db, tdd, plan` | ⬜ |
+| 9.3 | Deduplication — Priority | `db, tdd, plan` | ✅ |
+| 12.1 | Retention — Favorites Override | `db, tdd, plan` | ✅ |
 | 12.2 | Retention — Expiration Detection | `db, tdd, plan` | ⬜ |
 | 13.1 | Workflow — Discovery Flow | `provider, structure, tdd, plan` | ⬜ |
 | 13.2 | Workflow — User Review Flow | `structure, tdd, plan` | ⬜ |
