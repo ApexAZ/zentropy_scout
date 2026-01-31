@@ -1526,3 +1526,436 @@ class TestPrepareSameSourceUpdate:
 
         assert set(existing.keys()) == existing_keys
         assert set(new_job.keys()) == new_keys
+
+
+# =============================================================================
+# Cross Source Update Tests (REQ-003 §9.2)
+# =============================================================================
+
+
+class TestPrepareCrossSourceUpdate:
+    """Tests for prepare_cross_source_update() function.
+
+    REQ-003 §9.2: When same job found on different source:
+    - Add new source to also_found_on JSONB
+    - Merge data using priority rules (REQ-003 §9.3)
+    - Preserve existing record (don't create duplicate)
+    """
+
+    def test_adds_source_to_empty_also_found_on(self) -> None:
+        """First cross-source find adds source to empty also_found_on."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {"sources": []},
+            "description": "Original description",
+        }
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        assert len(result["also_found_on"]["sources"]) == 1
+        assert result["also_found_on"]["sources"][0]["source_id"] == "source-linkedin"
+        assert result["also_found_on"]["sources"][0]["external_id"] == "linkedin-789"
+        assert result["also_found_on"]["sources"][0]["source_url"] == (
+            "https://linkedin.com/jobs/view/789"
+        )
+
+    def test_adds_source_to_existing_also_found_on(self) -> None:
+        """Second cross-source find appends to existing also_found_on."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {
+                "sources": [
+                    {
+                        "source_id": "source-linkedin",
+                        "external_id": "linkedin-789",
+                        "source_url": "https://linkedin.com/jobs/view/789",
+                        "found_at": "2025-01-20T10:00:00Z",
+                    }
+                ]
+            },
+            "description": "Original description",
+        }
+        new_source_info = {
+            "source_id": "source-indeed",
+            "source_name": "Indeed",
+            "external_id": "indeed-111",
+            "source_url": "https://indeed.com/jobs?id=111",
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        # Should have 2 sources now
+        assert len(result["also_found_on"]["sources"]) == 2
+        # Original source preserved
+        assert result["also_found_on"]["sources"][0]["source_id"] == "source-linkedin"
+        # New source added
+        assert result["also_found_on"]["sources"][1]["source_id"] == "source-indeed"
+        assert result["also_found_on"]["sources"][1]["external_id"] == "indeed-111"
+
+    def test_includes_found_at_timestamp(self) -> None:
+        """New source entry includes found_at timestamp."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {"sources": []},
+            "description": "Original description",
+        }
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        assert "found_at" in result["also_found_on"]["sources"][0]
+        # Should be ISO format timestamp
+        found_at = result["also_found_on"]["sources"][0]["found_at"]
+        assert isinstance(found_at, str)
+        assert "T" in found_at  # ISO format
+
+    def test_merges_salary_when_new_source_has_it(self) -> None:
+        """Salary data is merged when new source has it and existing doesn't."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {"sources": []},
+            "salary_min": None,
+            "salary_max": None,
+            "description": "Original description",
+        }
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+            "salary_min": 120000,
+            "salary_max": 150000,
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        assert result["salary_min"] == 120000
+        assert result["salary_max"] == 150000
+
+    def test_prefers_ats_url_over_aggregator_url(self) -> None:
+        """ATS apply_url is preferred over aggregator URL per REQ-003 §9.3."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {"sources": []},
+            "apply_url": "https://adzuna.com/redirect/12345",
+            "description": "Original description",
+        }
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+            "apply_url": "https://acme.greenhouse.io/apply/scrum-master",
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        # ATS URL should win over aggregator
+        assert result["apply_url"] == "https://acme.greenhouse.io/apply/scrum-master"
+
+    def test_preserves_existing_id(self) -> None:
+        """Existing job ID is preserved (no new record created)."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {"sources": []},
+            "description": "Original description",
+        }
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        assert result["id"] == "job-123"
+
+    def test_does_not_duplicate_same_source(self) -> None:
+        """Same source is not added twice to also_found_on."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {
+                "sources": [
+                    {
+                        "source_id": "source-linkedin",
+                        "external_id": "linkedin-789",
+                        "source_url": "https://linkedin.com/jobs/view/789",
+                        "found_at": "2025-01-20T10:00:00Z",
+                    }
+                ]
+            },
+            "description": "Original description",
+        }
+        # Same source_id as already in also_found_on
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        # Should still be only 1 source (not duplicated)
+        assert len(result["also_found_on"]["sources"]) == 1
+
+    def test_does_not_mutate_input_dicts(self) -> None:
+        """Input dicts are not mutated by prepare_cross_source_update."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {"sources": []},
+            "description": "Original description",
+        }
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+        }
+        original_also_found_on = existing["also_found_on"]["sources"].copy()
+
+        prepare_cross_source_update(existing, new_source_info)
+
+        # Original dict unchanged
+        assert existing["also_found_on"]["sources"] == original_also_found_on
+
+    def test_prefers_earlier_posted_date(self) -> None:
+        """Earlier posted_date is preferred per REQ-003 §9.3."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {"sources": []},
+            "posted_date": "2025-01-20",
+            "description": "Original description",
+        }
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+            "posted_date": "2025-01-15",  # Earlier date
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        assert result["posted_date"] == "2025-01-15"
+
+    def test_prefers_longer_description(self) -> None:
+        """Longer description is preferred per REQ-003 §9.3."""
+        from app.services.job_deduplication import prepare_cross_source_update
+
+        existing = {
+            "id": "job-123",
+            "source_id": "source-adzuna",
+            "external_id": "adzuna-456",
+            "job_title": "Scrum Master",
+            "company_name": "Acme Corp",
+            "also_found_on": {"sources": []},
+            "description": "Short description",
+        }
+        new_source_info = {
+            "source_id": "source-linkedin",
+            "source_name": "LinkedIn",
+            "external_id": "linkedin-789",
+            "source_url": "https://linkedin.com/jobs/view/789",
+            "description": "Much longer and more detailed description with requirements",
+        }
+
+        result = prepare_cross_source_update(existing, new_source_info)
+
+        assert result["description"] == (
+            "Much longer and more detailed description with requirements"
+        )
+
+
+# =============================================================================
+# Cross Source Message Tests (REQ-003 §9.2)
+# =============================================================================
+
+
+class TestGenerateCrossSourceMessage:
+    """Tests for generate_cross_source_message() function.
+
+    REQ-003 §9.2: Agent communication for cross-source finds.
+    Example: "This Scrum Master role at Acme Corp was also found on LinkedIn and Indeed."
+    """
+
+    def test_generates_message_with_one_other_source(self) -> None:
+        """Message for job found on one other source."""
+        from app.services.job_deduplication import generate_cross_source_message
+
+        also_found_on = {
+            "sources": [
+                {
+                    "source_id": "source-linkedin",
+                    "source_name": "LinkedIn",
+                    "external_id": "linkedin-789",
+                    "source_url": "https://linkedin.com/jobs/view/789",
+                    "found_at": "2025-01-20T10:00:00Z",
+                }
+            ]
+        }
+
+        result = generate_cross_source_message(
+            job_title="Scrum Master",
+            company_name="Acme Corp",
+            also_found_on=also_found_on,
+        )
+
+        assert result is not None
+        assert "Scrum Master" in result
+        assert "Acme Corp" in result
+        assert "LinkedIn" in result
+
+    def test_generates_message_with_multiple_sources(self) -> None:
+        """Message for job found on multiple other sources."""
+        from app.services.job_deduplication import generate_cross_source_message
+
+        also_found_on = {
+            "sources": [
+                {
+                    "source_id": "source-linkedin",
+                    "source_name": "LinkedIn",
+                    "external_id": "linkedin-789",
+                    "source_url": "https://linkedin.com/jobs/view/789",
+                    "found_at": "2025-01-20T10:00:00Z",
+                },
+                {
+                    "source_id": "source-indeed",
+                    "source_name": "Indeed",
+                    "external_id": "indeed-111",
+                    "source_url": "https://indeed.com/jobs?id=111",
+                    "found_at": "2025-01-21T14:00:00Z",
+                },
+            ]
+        }
+
+        result = generate_cross_source_message(
+            job_title="Scrum Master",
+            company_name="Acme Corp",
+            also_found_on=also_found_on,
+        )
+
+        assert result is not None
+        assert "LinkedIn" in result
+        assert "Indeed" in result
+        # Should use "and" for natural language
+        assert " and " in result or ", " in result
+
+    def test_returns_none_for_empty_sources(self) -> None:
+        """Returns None when no other sources."""
+        from app.services.job_deduplication import generate_cross_source_message
+
+        also_found_on: dict = {"sources": []}
+
+        result = generate_cross_source_message(
+            job_title="Scrum Master",
+            company_name="Acme Corp",
+            also_found_on=also_found_on,
+        )
+
+        assert result is None
+
+    def test_returns_none_for_missing_sources_key(self) -> None:
+        """Returns None when sources key is missing."""
+        from app.services.job_deduplication import generate_cross_source_message
+
+        also_found_on: dict = {}
+
+        result = generate_cross_source_message(
+            job_title="Scrum Master",
+            company_name="Acme Corp",
+            also_found_on=also_found_on,
+        )
+
+        assert result is None
+
+    def test_uses_source_name_when_available(self) -> None:
+        """Uses source_name for display if available."""
+        from app.services.job_deduplication import generate_cross_source_message
+
+        also_found_on = {
+            "sources": [
+                {
+                    "source_id": "source-123",
+                    "source_name": "RemoteOK",
+                    "external_id": "remote-456",
+                    "source_url": "https://remoteok.com/jobs/456",
+                    "found_at": "2025-01-20T10:00:00Z",
+                }
+            ]
+        }
+
+        result = generate_cross_source_message(
+            job_title="DevOps Engineer",
+            company_name="TechCo",
+            also_found_on=also_found_on,
+        )
+
+        assert result is not None
+        assert "RemoteOK" in result

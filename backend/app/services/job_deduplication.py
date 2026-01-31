@@ -705,3 +705,127 @@ def prepare_same_source_update(
     result["last_verified_at"] = datetime.now(UTC)
 
     return result
+
+
+# =============================================================================
+# Cross Source Update Functions (REQ-003 §9.2)
+# =============================================================================
+
+
+def prepare_cross_source_update(
+    existing: dict[str, Any],
+    new_source_info: dict[str, Any],
+) -> dict[str, Any]:
+    """Prepare update data for cross-source deduplication.
+
+    REQ-003 §9.2: When same job found on different source:
+    - Add new source to also_found_on JSONB (with dedup check)
+    - Merge data using priority rules (salary, apply_url, posted_date, description)
+    - Preserve existing record ID (don't create duplicate)
+
+    Args:
+        existing: Existing job posting data dict with keys:
+            - id (str | UUID): UUID of the existing job.
+            - also_found_on (dict): Current also_found_on JSONB structure.
+            - Plus other job fields.
+        new_source_info: New source information with keys:
+            - source_id (str): UUID of the new source.
+            - external_id (str): Source-specific job ID.
+            - source_url (str): URL where job was found.
+            - source_name (str, optional): Display name of the source.
+            - salary_min (int, optional): Minimum salary from new source.
+            - salary_max (int, optional): Maximum salary from new source.
+            - apply_url (str, optional): Application URL from new source.
+            - posted_date (str, optional): Posted date from new source.
+            - description (str, optional): Job description from new source.
+
+    Returns:
+        Dict with merged data ready for database update.
+        Includes updated also_found_on with new source added.
+    """
+    # Start with existing data (preserves all existing fields)
+    result = existing.copy()
+
+    # Deep copy also_found_on to avoid mutating input
+    # WHY `or {}`: Handle case where also_found_on is explicitly None
+    also_found_on_data = existing.get("also_found_on") or {}
+    also_found_on = {"sources": list(also_found_on_data.get("sources") or [])}
+
+    # Check if source already exists (avoid duplicates)
+    new_source_id = new_source_info.get("source_id")
+    existing_source_ids = {s.get("source_id") for s in also_found_on["sources"]}
+
+    if new_source_id not in existing_source_ids:
+        # Add new source entry
+        new_entry = {
+            "source_id": new_source_id,
+            "external_id": new_source_info.get("external_id"),
+            "source_url": new_source_info.get("source_url"),
+            "found_at": datetime.now(UTC).isoformat(),
+        }
+        # Include source_name if provided (for display purposes)
+        if "source_name" in new_source_info:
+            new_entry["source_name"] = new_source_info["source_name"]
+
+        also_found_on["sources"].append(new_entry)
+
+    result["also_found_on"] = also_found_on
+
+    # Merge data using priority rules (REQ-003 §9.3)
+    # Use merge_job_data for standard priority rules
+    result = merge_job_data(result, new_source_info)
+
+    return result
+
+
+def generate_cross_source_message(
+    job_title: str,
+    company_name: str,
+    also_found_on: dict[str, Any],
+) -> str | None:
+    """Generate agent context message for cross-source job posting.
+
+    REQ-003 §9.2: Agent communication for jobs found on multiple sources.
+    Example: "This Scrum Master role at Acme Corp was also found on LinkedIn and Indeed."
+
+    Args:
+        job_title: Title of the job posting.
+        company_name: Name of the company.
+        also_found_on: JSONB structure with sources list.
+
+    Returns:
+        Agent context message string (plain text - must be HTML-escaped
+        before rendering in web UI), or None if no other sources.
+
+    Note:
+        Output contains user-provided data (job_title, company_name, source_name).
+        Escape appropriately for the output context (HTML, logs, etc.).
+    """
+    sources = also_found_on.get("sources") or []
+
+    if not sources:
+        return None
+
+    # Extract source names for display
+    # WHY isinstance check: Defensive against malformed JSONB entries
+    source_names = []
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        name = source.get("source_name")
+        if name:
+            source_names.append(name)
+
+    if not source_names:
+        return None
+
+    # Format source list for natural language
+    if len(source_names) == 1:
+        sources_text = source_names[0]
+    elif len(source_names) == 2:
+        sources_text = f"{source_names[0]} and {source_names[1]}"
+    else:
+        # Oxford comma style: "A, B, and C"
+        sources_text = ", ".join(source_names[:-1]) + f", and {source_names[-1]}"
+
+    return f"This {job_title} role at {company_name} was also found on {sources_text}."
