@@ -416,7 +416,7 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1.1 | Score Types | `docs, plan` | ⬜ |
+| 1.1 | Score Types | `docs, plan` | ✅ |
 | 1.2 | Scoring Philosophy | `docs, plan` | ⬜ |
 | 6.1 | Embeddings — What Gets Embedded | `db, docs, plan` | ⬜ |
 | 6.2 | Embeddings — Model | `provider, docs, plan` | ⬜ |
