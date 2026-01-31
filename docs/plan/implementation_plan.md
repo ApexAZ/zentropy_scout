@@ -303,7 +303,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 2.3 Onboarding Agent (REQ-007 §5)
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
 *Creates Persona from user interview. Required before job matching works.*
 
