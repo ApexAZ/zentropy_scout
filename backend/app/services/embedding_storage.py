@@ -1,10 +1,11 @@
 """Embedding storage service.
 
-REQ-008 §6.5: Utilities for embedding storage and staleness detection.
+REQ-008 §6.5-6.6: Utilities for embedding storage and staleness detection.
 
 Provides:
 - Embedding type enums for type safety
 - Source hash computation for staleness detection
+- Freshness check for detecting stale embeddings
 """
 
 import hashlib
@@ -72,3 +73,26 @@ def compute_source_hash(source_text: str) -> str:
         64-character lowercase hex string (SHA-256 digest).
     """
     return hashlib.sha256(source_text.encode("utf-8")).hexdigest()
+
+
+# =============================================================================
+# Freshness Check
+# =============================================================================
+
+
+def is_embedding_fresh(current_source_text: str, stored_hash: str) -> bool:
+    """Check if an embedding is fresh (matches current source).
+
+    REQ-008 §6.6: Compare stored hash with hash of current source text to
+    detect when embeddings are stale and need regeneration.
+
+    Args:
+        current_source_text: The current text that would be embedded.
+        stored_hash: The hash stored with the embedding.
+
+    Returns:
+        True if embedding is fresh (hashes match), False if stale.
+    """
+    if not stored_hash:
+        return False
+    return compute_source_hash(current_source_text) == stored_hash
