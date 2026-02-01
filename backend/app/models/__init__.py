@@ -18,7 +18,7 @@ Models are organized by domain:
 from app.models.application import Application, TimelineEvent
 from app.models.base import Base, SoftDeleteMixin, TimestampMixin
 from app.models.cover_letter import CoverLetter, SubmittedCoverLetterPDF
-from app.models.job_posting import ExtractedSkill, JobPosting
+from app.models.job_posting import ExtractedSkill, JobEmbedding, JobPosting
 from app.models.job_source import JobSource, PollingConfiguration, UserSourcePreference
 from app.models.persona import Persona
 from app.models.persona_content import (
@@ -71,6 +71,7 @@ __all__ = [
     "Bullet",
     "JobVariant",
     "ExtractedSkill",
+    "JobEmbedding",
     "CoverLetter",
     # Tier 4
     "Application",

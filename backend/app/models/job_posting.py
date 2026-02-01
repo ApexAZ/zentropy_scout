@@ -7,6 +7,7 @@ import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -16,6 +17,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -277,6 +279,11 @@ class JobPosting(Base, TimestampMixin):
         "Application",
         back_populates="job_posting",
     )
+    embeddings: Mapped[list["JobEmbedding"]] = relationship(
+        "JobEmbedding",
+        back_populates="job_posting",
+        cascade="all, delete-orphan",
+    )
 
 
 class ExtractedSkill(Base):
@@ -326,4 +333,64 @@ class ExtractedSkill(Base):
     job_posting: Mapped["JobPosting"] = relationship(
         "JobPosting",
         back_populates="extracted_skills",
+    )
+
+
+class JobEmbedding(Base):
+    """Vector embeddings for job matching.
+
+    Stores requirements and culture embeddings.
+    Tier 3 - references JobPosting.
+    """
+
+    __tablename__ = "job_embeddings"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    job_posting_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("job_postings.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    embedding_type: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+    )
+    # Vector column for 1536-dimensional embeddings (OpenAI text-embedding-3-small)
+    vector: Mapped[list[float]] = mapped_column(
+        Vector(1536),
+        nullable=False,
+    )
+    model_name: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+    model_version: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+    source_hash: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "embedding_type IN ('requirements', 'culture')",
+            name="ck_jobembedding_type",
+        ),
+    )
+
+    # Relationships
+    job_posting: Mapped["JobPosting"] = relationship(
+        "JobPosting",
+        back_populates="embeddings",
     )
