@@ -10,7 +10,7 @@ Tests cover:
 - Agent communication message generation
 """
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from app.services.expiration_detection import (
     ExpirationDetectionResult,
@@ -32,7 +32,9 @@ class TestCheckDeadlineExpired:
 
     def test_deadline_passed_returns_expired(self) -> None:
         """Job with past deadline should be detected as expired."""
-        yesterday = date.today() - timedelta(days=1)
+        # WHY UTC: Implementation uses datetime.now(UTC).date() for consistency.
+        today_utc = datetime.now(UTC).date()
+        yesterday = today_utc - timedelta(days=1)
 
         result = check_deadline_expired(application_deadline=yesterday)
 
@@ -40,15 +42,18 @@ class TestCheckDeadlineExpired:
 
     def test_deadline_today_not_expired(self) -> None:
         """Job with deadline today is NOT expired (still time to apply)."""
-        today = date.today()
+        # WHY UTC: Implementation uses datetime.now(UTC).date() for consistency.
+        today_utc = datetime.now(UTC).date()
 
-        result = check_deadline_expired(application_deadline=today)
+        result = check_deadline_expired(application_deadline=today_utc)
 
         assert result is False
 
     def test_deadline_future_not_expired(self) -> None:
         """Job with future deadline is not expired."""
-        tomorrow = date.today() + timedelta(days=1)
+        # WHY UTC: Implementation uses datetime.now(UTC).date() for consistency.
+        today_utc = datetime.now(UTC).date()
+        tomorrow = today_utc + timedelta(days=1)
 
         result = check_deadline_expired(application_deadline=tomorrow)
 
