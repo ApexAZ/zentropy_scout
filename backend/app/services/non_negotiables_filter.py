@@ -252,3 +252,50 @@ def check_industry_exclusions(
             )
 
     return NonNegotiablesResult(passed=True)
+
+
+# =============================================================================
+# Visa Sponsorship Check
+# =============================================================================
+
+
+def check_visa_sponsorship(
+    visa_sponsorship_required: bool,
+    job_visa_sponsorship: bool | None,
+) -> NonNegotiablesResult:
+    """Check if job visa sponsorship meets user's requirement.
+
+    REQ-008 §3.1: Visa Sponsorship Filter Rule.
+
+    Pass Condition: job.visa_sponsorship == true OR unknown.
+
+    REQ-008 §3.2: If visa sponsorship is undisclosed, pass with warning.
+    Only fail if job explicitly states "No sponsorship."
+
+    Args:
+        visa_sponsorship_required: Whether user requires visa sponsorship.
+        job_visa_sponsorship: Whether job offers sponsorship (True/False/None).
+
+    Returns:
+        NonNegotiablesResult with pass/fail status and reasons.
+    """
+    # User doesn't require sponsorship — always passes
+    if not visa_sponsorship_required:
+        return NonNegotiablesResult(passed=True)
+
+    # Job offers sponsorship — passes
+    if job_visa_sponsorship is True:
+        return NonNegotiablesResult(passed=True)
+
+    # Sponsorship undisclosed — pass with warning (§3.2)
+    if job_visa_sponsorship is None:
+        return NonNegotiablesResult(
+            passed=True,
+            warnings=["Visa sponsorship not disclosed"],
+        )
+
+    # Job explicitly says no sponsorship — fail
+    return NonNegotiablesResult(
+        passed=False,
+        failed_reasons=["Visa sponsorship required, but job offers no sponsorship"],
+    )

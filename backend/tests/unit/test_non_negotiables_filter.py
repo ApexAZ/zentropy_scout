@@ -17,6 +17,7 @@ from app.services.non_negotiables_filter import (
     check_industry_exclusions,
     check_minimum_salary,
     check_remote_preference,
+    check_visa_sponsorship,
 )
 
 # =============================================================================
@@ -350,3 +351,69 @@ class TestCheckIndustryExclusions:
 
         assert result.passed is False
         assert "Gambling" in result.failed_reasons[0]
+
+
+# =============================================================================
+# Visa Sponsorship Tests (§3.1, §3.2)
+# =============================================================================
+
+
+class TestCheckVisaSponsorship:
+    """Tests for visa sponsorship filter rule.
+
+    REQ-008 §3.1: visa_sponsorship_required passes if job offers sponsorship OR unknown.
+    REQ-008 §3.2: Unknown sponsorship passes with warning.
+    """
+
+    def test_passes_when_sponsorship_not_required(self) -> None:
+        """Passes when user doesn't require visa sponsorship."""
+        result = check_visa_sponsorship(
+            visa_sponsorship_required=False,
+            job_visa_sponsorship=False,
+        )
+
+        assert result.passed is True
+        assert result.failed_reasons == []
+        assert result.warnings == []
+
+    def test_passes_when_job_offers_sponsorship(self) -> None:
+        """Passes when user requires sponsorship and job offers it."""
+        result = check_visa_sponsorship(
+            visa_sponsorship_required=True,
+            job_visa_sponsorship=True,
+        )
+
+        assert result.passed is True
+        assert result.failed_reasons == []
+
+    def test_fails_when_job_explicitly_no_sponsorship(self) -> None:
+        """Fails when user requires sponsorship but job explicitly says no."""
+        result = check_visa_sponsorship(
+            visa_sponsorship_required=True,
+            job_visa_sponsorship=False,
+        )
+
+        assert result.passed is False
+        assert "sponsorship" in result.failed_reasons[0].lower()
+        assert "no" in result.failed_reasons[0].lower()
+
+    def test_passes_when_sponsorship_undisclosed(self) -> None:
+        """Passes when sponsorship not disclosed (benefit of doubt per §3.2)."""
+        result = check_visa_sponsorship(
+            visa_sponsorship_required=True,
+            job_visa_sponsorship=None,
+        )
+
+        assert result.passed is True
+        assert len(result.warnings) == 1
+        assert "not disclosed" in result.warnings[0].lower()
+
+    def test_passes_when_not_required_and_undisclosed(self) -> None:
+        """Passes without warning when not required and undisclosed."""
+        result = check_visa_sponsorship(
+            visa_sponsorship_required=False,
+            job_visa_sponsorship=None,
+        )
+
+        assert result.passed is True
+        assert result.warnings == []
