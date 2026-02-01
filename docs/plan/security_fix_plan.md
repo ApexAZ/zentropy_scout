@@ -117,10 +117,11 @@ headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'}
 ---
 
 ### F-02: CORS Allows All Headers
-- **Status:** ⬜ Not Started
+- **Status:** ✅ Complete (2026-02-01)
 - **Severity:** Medium
 - **File:** `backend/app/main.py:168-174`
 - **Requirements:** REQ-006 (CORS not explicitly specified - gap in requirements)
+- **Validated by:** code-reviewer ✅, security-reviewer ✅
 
 **Problem:**
 ```python
@@ -379,7 +380,7 @@ if not resource:
 | ID | Finding | Severity | Status | Validated | Committed |
 |----|---------|----------|--------|-----------|-----------|
 | F-01 | Header injection in base_resumes.py | Medium | ✅ | ✅ | ✅ |
-| F-02 | CORS allows all headers | Medium | ⬜ | ⬜ | ⬜ |
+| F-02 | CORS allows all headers | Medium | ✅ | ✅ | ✅ |
 | F-03 | No max_length on chat content | Medium | ⬜ | ⬜ | ⬜ |
 | F-04 | Schema mismatch (skills) | Low | ⬜ | ⬜ | ⬜ |
 | F-05 | No max_length on raw_text | Medium | ⬜ | ⬜ | ⬜ |
@@ -416,4 +417,4 @@ fix(security): [F-01] sanitize filename in base resume download
 
 ---
 
-*Last updated: 2026-02-01 (F-01 complete)*
+*Last updated: 2026-02-01 (F-02 complete)*
