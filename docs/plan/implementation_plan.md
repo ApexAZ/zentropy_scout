@@ -424,7 +424,7 @@ These steps require user action outside Claude Code:
 | 6.4 | Embeddings — Job Generation | `provider, db, tdd, plan` | ✅ |
 | 6.5 | Embeddings — Storage | `db, tdd, plan` | ✅ |
 | 6.6 | Embeddings — Freshness Check | `db, tdd, plan` | ✅ |
-| 3.1 | Non-Negotiables — Filter Rules | `db, tdd, plan` | ⬜ |
+| 3.1 | Non-Negotiables — Filter Rules | `db, tdd, plan` | ✅ |
 | 3.2 | Non-Negotiables — Undisclosed Data Handling | `tdd, plan` | ⬜ |
 | 3.3 | Non-Negotiables — Filter Output | `structure, tdd, plan` | ⬜ |
 | 4.1 | Fit Score — Component Weights | `docs, plan` | ⬜ |
