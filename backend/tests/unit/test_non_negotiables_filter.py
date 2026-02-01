@@ -417,3 +417,133 @@ class TestCheckVisaSponsorship:
 
         assert result.passed is True
         assert result.warnings == []
+
+
+# =============================================================================
+# Aggregate Filter Results Tests (§3.3)
+# =============================================================================
+
+
+class TestAggregateFilterResults:
+    """Tests for aggregate_filter_results().
+
+    REQ-008 §3.3: Combines individual filter results into a single output.
+    """
+
+    def test_empty_results_passes(self) -> None:
+        """Empty results list passes (no filters = no failures)."""
+        from app.services.non_negotiables_filter import aggregate_filter_results
+
+        result = aggregate_filter_results([])
+
+        assert result.passed is True
+        assert result.failed_reasons == []
+        assert result.warnings == []
+
+    def test_all_passed_returns_passed(self) -> None:
+        """When all individual results pass, aggregate passes."""
+        from app.services.non_negotiables_filter import aggregate_filter_results
+
+        results = [
+            NonNegotiablesResult(passed=True),
+            NonNegotiablesResult(passed=True),
+            NonNegotiablesResult(passed=True),
+        ]
+
+        result = aggregate_filter_results(results)
+
+        assert result.passed is True
+        assert result.failed_reasons == []
+
+    def test_one_failure_causes_aggregate_failure(self) -> None:
+        """When any individual result fails, aggregate fails."""
+        from app.services.non_negotiables_filter import aggregate_filter_results
+
+        results = [
+            NonNegotiablesResult(passed=True),
+            NonNegotiablesResult(
+                passed=False, failed_reasons=["Remote Only required, job is Onsite"]
+            ),
+            NonNegotiablesResult(passed=True),
+        ]
+
+        result = aggregate_filter_results(results)
+
+        assert result.passed is False
+        assert len(result.failed_reasons) == 1
+        assert "Remote Only" in result.failed_reasons[0]
+
+    def test_multiple_failures_aggregated(self) -> None:
+        """Multiple failed reasons are combined in order."""
+        from app.services.non_negotiables_filter import aggregate_filter_results
+
+        results = [
+            NonNegotiablesResult(
+                passed=False, failed_reasons=["Remote Only required, job is Onsite"]
+            ),
+            NonNegotiablesResult(
+                passed=False,
+                failed_reasons=["Salary below minimum ($90,000 < $120,000)"],
+            ),
+        ]
+
+        result = aggregate_filter_results(results)
+
+        assert result.passed is False
+        assert len(result.failed_reasons) == 2
+        assert "Remote Only" in result.failed_reasons[0]
+        assert "Salary" in result.failed_reasons[1]
+
+    def test_warnings_aggregated_from_all_results(self) -> None:
+        """Warnings from all results are combined."""
+        from app.services.non_negotiables_filter import aggregate_filter_results
+
+        results = [
+            NonNegotiablesResult(passed=True, warnings=["Salary not disclosed"]),
+            NonNegotiablesResult(passed=True, warnings=["Industry not disclosed"]),
+        ]
+
+        result = aggregate_filter_results(results)
+
+        assert result.passed is True
+        assert len(result.warnings) == 2
+        assert "Salary" in result.warnings[0]
+        assert "Industry" in result.warnings[1]
+
+    def test_mixed_failures_and_warnings(self) -> None:
+        """Failures and warnings from different results are both collected."""
+        from app.services.non_negotiables_filter import aggregate_filter_results
+
+        results = [
+            NonNegotiablesResult(passed=True, warnings=["Salary not disclosed"]),
+            NonNegotiablesResult(
+                passed=False, failed_reasons=["Remote Only required, job is Onsite"]
+            ),
+            NonNegotiablesResult(
+                passed=True, warnings=["Visa sponsorship not disclosed"]
+            ),
+        ]
+
+        result = aggregate_filter_results(results)
+
+        assert result.passed is False
+        assert len(result.failed_reasons) == 1
+        assert len(result.warnings) == 2
+
+    def test_single_result_with_multiple_reasons(self) -> None:
+        """Individual result with multiple reasons preserved."""
+        from app.services.non_negotiables_filter import aggregate_filter_results
+
+        results = [
+            NonNegotiablesResult(
+                passed=False,
+                failed_reasons=["Reason 1", "Reason 2"],
+                warnings=["Warning 1"],
+            ),
+        ]
+
+        result = aggregate_filter_results(results)
+
+        assert result.passed is False
+        assert len(result.failed_reasons) == 2
+        assert len(result.warnings) == 1

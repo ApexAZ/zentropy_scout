@@ -299,3 +299,44 @@ def check_visa_sponsorship(
         passed=False,
         failed_reasons=["Visa sponsorship required, but job offers no sponsorship"],
     )
+
+
+# =============================================================================
+# Aggregate Filter Results
+# =============================================================================
+
+
+def aggregate_filter_results(
+    results: list[NonNegotiablesResult],
+) -> NonNegotiablesResult:
+    """Aggregate multiple filter results into a single result.
+
+    REQ-008 §3.3: Filter Output Structure.
+
+    Combines all individual filter check results into a single NonNegotiablesResult.
+    The aggregate passes only if ALL individual checks passed. Failed reasons
+    and warnings from all checks are collected and returned.
+
+    Args:
+        results: List of individual filter check results.
+
+    Returns:
+        NonNegotiablesResult with:
+        - passed: True only if all individual results passed
+        - failed_reasons: Combined list from all failed checks
+        - warnings: Combined list from all checks with warnings
+    """
+    all_failed_reasons: list[str] = []
+    all_warnings: list[str] = []
+
+    for result in results:
+        all_failed_reasons.extend(result.failed_reasons)
+        all_warnings.extend(result.warnings)
+
+    passed = len(all_failed_reasons) == 0
+
+    return NonNegotiablesResult(
+        passed=passed,
+        failed_reasons=all_failed_reasons,
+        warnings=all_warnings,
+    )
