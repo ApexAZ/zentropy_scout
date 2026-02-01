@@ -429,7 +429,7 @@ These steps require user action outside Claude Code:
 | 3.3 | Non-Negotiables — Filter Output | `structure, tdd, plan` | ✅ |
 | 4.1 | Fit Score — Component Weights | `docs, plan` | ✅ |
 | 4.2 | Fit Score — Hard Skills Match (40%) | `db, tdd, plan` | ✅ |
-| 4.3 | Fit Score — Soft Skills Match (15%) | `db, tdd, plan` | ⬜ |
+| 4.3 | Fit Score — Soft Skills Match (15%) | `db, tdd, plan` | ✅ |
 | 4.4 | Fit Score — Experience Level (25%) | `tdd, plan` | ⬜ |
 | 4.5 | Fit Score — Role Title Match (10%) | `db, tdd, plan` | ⬜ |
 | 4.6 | Fit Score — Location/Logistics (10%) | `tdd, plan` | ⬜ |
