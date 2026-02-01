@@ -421,7 +421,7 @@ These steps require user action outside Claude Code:
 | 6.1 | Embeddings — What Gets Embedded | `db, docs, plan` | ✅ |
 | 6.2 | Embeddings — Model | `provider, docs, plan` | ✅ |
 | 6.3 | Embeddings — Persona Generation | `provider, db, tdd, plan` | ✅ |
-| 6.4 | Embeddings — Job Generation | `provider, db, tdd, plan` | ⬜ |
+| 6.4 | Embeddings — Job Generation | `provider, db, tdd, plan` | ✅ |
 | 6.5 | Embeddings — Storage | `db, tdd, plan` | ⬜ |
 | 6.6 | Embeddings — Freshness Check | `db, tdd, plan` | ⬜ |
 | 3.1 | Non-Negotiables — Filter Rules | `db, tdd, plan` | ⬜ |
