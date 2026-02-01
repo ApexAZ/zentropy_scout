@@ -32,7 +32,9 @@ class ChatMessageRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    content: str = Field(..., description="User message content")
+    content: str = Field(
+        ..., min_length=1, max_length=50000, description="User message content"
+    )
     context: dict[str, Any] | None = Field(
         default=None,
         description="Optional context data for the agent",

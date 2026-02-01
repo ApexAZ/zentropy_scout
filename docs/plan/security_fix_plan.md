@@ -143,10 +143,11 @@ allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
 ---
 
 ### F-03: No max_length on Chat Message Content
-- **Status:** ⬜ Not Started
+- **Status:** ✅ Complete (2026-02-01)
 - **Severity:** Medium
 - **File:** `backend/app/schemas/chat.py:35`
 - **Requirements:** REQ-006 §5.2 (Chat endpoints)
+- **Validated by:** code-reviewer ✅, security-reviewer ✅
 
 **Problem:**
 ```python
@@ -381,7 +382,7 @@ if not resource:
 |----|---------|----------|--------|-----------|-----------|
 | F-01 | Header injection in base_resumes.py | Medium | ✅ | ✅ | ✅ |
 | F-02 | CORS allows all headers | Medium | ✅ | ✅ | ✅ |
-| F-03 | No max_length on chat content | Medium | ⬜ | ⬜ | ⬜ |
+| F-03 | No max_length on chat content | Medium | ✅ | ✅ | ✅ |
 | F-04 | Schema mismatch (skills) | Low | ⬜ | ⬜ | ⬜ |
 | F-05 | No max_length on raw_text | Medium | ⬜ | ⬜ | ⬜ |
 | F-06 | Missing CSP header | Low | ⬜ | ⬜ | ⬜ |
@@ -417,4 +418,4 @@ fix(security): [F-01] sanitize filename in base resume download
 
 ---
 
-*Last updated: 2026-02-01 (F-02 complete)*
+*Last updated: 2026-02-01 (F-03 complete)*

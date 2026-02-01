@@ -258,3 +258,13 @@ class TestChatMessageRequest:
         """Whitespace-only content raises validation error."""
         with pytest.raises(ValueError):
             ChatMessageRequest(content="   ")
+
+    def test_content_exceeds_max_length_invalid(self):
+        """Content exceeding 50,000 characters raises validation error."""
+        with pytest.raises(ValueError):
+            ChatMessageRequest(content="x" * 50001)
+
+    def test_content_at_max_length_valid(self):
+        """Content at exactly 50,000 characters passes validation."""
+        request = ChatMessageRequest(content="x" * 50000)
+        assert len(request.content) == 50000
