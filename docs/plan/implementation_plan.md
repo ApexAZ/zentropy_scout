@@ -427,7 +427,7 @@ These steps require user action outside Claude Code:
 | 3.1 | Non-Negotiables — Filter Rules | `db, tdd, plan` | ✅ |
 | 3.2 | Non-Negotiables — Undisclosed Data Handling | `tdd, plan` | ✅ |
 | 3.3 | Non-Negotiables — Filter Output | `structure, tdd, plan` | ✅ |
-| 4.1 | Fit Score — Component Weights | `docs, plan` | ⬜ |
+| 4.1 | Fit Score — Component Weights | `docs, plan` | ✅ |
 | 4.2 | Fit Score — Hard Skills Match (40%) | `db, tdd, plan` | ⬜ |
 | 4.3 | Fit Score — Soft Skills Match (15%) | `db, tdd, plan` | ⬜ |
 | 4.4 | Fit Score — Experience Level (25%) | `tdd, plan` | ⬜ |
