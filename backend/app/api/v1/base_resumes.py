@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user_id
 from app.core.database import get_db
 from app.core.errors import NotFoundError
+from app.core.file_validation import sanitize_filename_for_header
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
 
@@ -97,11 +98,13 @@ async def download_base_resume(
     if not base_resume.rendered_document:
         raise NotFoundError("BaseResume", str(resume_id))
 
-    # Generate filename from resume name
-    filename = f"{base_resume.name.replace(' ', '_')}.pdf"
+    # Security: sanitize filename to prevent header injection
+    safe_filename = sanitize_filename_for_header(
+        f"{base_resume.name.replace(' ', '_')}.pdf"
+    )
 
     return StreamingResponse(
         iter([base_resume.rendered_document]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )
