@@ -20,6 +20,9 @@ Design principles:
 4. Proficiency levels matter — "Learning" != "5+ years"
 """
 
+import math
+from dataclasses import dataclass
+
 # =============================================================================
 # Component Weights (REQ-008 §4.1)
 # =============================================================================
@@ -109,3 +112,102 @@ def get_fit_component_weights() -> dict[str, float]:
         "role_title": FIT_WEIGHT_ROLE_TITLE,
         "location_logistics": FIT_WEIGHT_LOCATION_LOGISTICS,
     }
+
+
+# =============================================================================
+# Fit Score Result (REQ-008 §4.7)
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class FitScoreResult:
+    """Result of Fit Score aggregation.
+
+    REQ-008 §4.7: Contains total score and breakdown by component.
+
+    Attributes:
+        total: Final Fit Score (0-100), rounded to nearest integer.
+        components: Dictionary of individual component scores (0-100 floats).
+        weights: Dictionary of weights used for each component (sum to 1.0).
+    """
+
+    total: int
+    components: dict[str, float]
+    weights: dict[str, float]
+
+
+# =============================================================================
+# Fit Score Aggregation (REQ-008 §4.7)
+# =============================================================================
+
+
+def calculate_fit_score(
+    hard_skills: float,
+    soft_skills: float,
+    experience_level: float,
+    role_title: float,
+    location_logistics: float,
+) -> FitScoreResult:
+    """Calculate aggregated Fit Score from component scores.
+
+    REQ-008 §4.7: Fit Score Aggregation.
+
+    Computes weighted sum of the 5 component scores:
+    - Hard Skills (40%)
+    - Soft Skills (15%)
+    - Experience Level (25%)
+    - Role Title (10%)
+    - Location/Logistics (10%)
+
+    Args:
+        hard_skills: Hard skills match score (0-100).
+        soft_skills: Soft skills match score (0-100).
+        experience_level: Experience level match score (0-100).
+        role_title: Role title match score (0-100).
+        location_logistics: Location/logistics match score (0-100).
+
+    Returns:
+        FitScoreResult with:
+        - total: Rounded integer score (0-100)
+        - components: Dict of input scores
+        - weights: Dict of component weights
+
+    Raises:
+        ValueError: If any component score is negative or exceeds 100.
+    """
+    # Validate all component scores
+    component_scores = {
+        "hard_skills": hard_skills,
+        "soft_skills": soft_skills,
+        "experience_level": experience_level,
+        "role_title": role_title,
+        "location_logistics": location_logistics,
+    }
+
+    for name, score in component_scores.items():
+        if not math.isfinite(score):
+            msg = f"Component score '{name}' must be a finite number: {score}"
+            raise ValueError(msg)
+        if score < 0:
+            msg = f"Component score '{name}' cannot be negative: {score}"
+            raise ValueError(msg)
+        if score > 100:
+            msg = f"Component score '{name}' cannot exceed 100: {score}"
+            raise ValueError(msg)
+
+    # Get weights
+    weights = get_fit_component_weights()
+
+    # Calculate weighted sum
+    total_score = sum(
+        component_scores[name] * weights[name] for name in component_scores
+    )
+
+    # Round to nearest integer
+    rounded_total = round(total_score)
+
+    return FitScoreResult(
+        total=rounded_total,
+        components=component_scores,
+        weights=weights,
+    )
