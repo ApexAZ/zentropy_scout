@@ -396,3 +396,32 @@ class TestCalculateHardSkillsScore:
         # Kubernetes: missing → 0/1 = 0% → 0 bonus points
         # Total: ~59
         assert score == pytest.approx(59.0, abs=1.0)
+
+    def test_rejects_oversized_persona_skills_list(self) -> None:
+        """Raises ValueError if persona_skills exceeds max size."""
+        # Create list exceeding _MAX_SKILLS (500)
+        oversized_persona = [
+            {"skill_name": f"Skill{i}", "skill_type": "Hard", "proficiency": "Expert"}
+            for i in range(501)
+        ]
+        job_skills: list[dict] = []
+
+        with pytest.raises(ValueError, match="exceed maximum size"):
+            calculate_hard_skills_score(oversized_persona, job_skills)
+
+    def test_rejects_oversized_job_skills_list(self) -> None:
+        """Raises ValueError if job_skills exceeds max size."""
+        persona_skills: list[dict] = []
+        # Create list exceeding _MAX_SKILLS (500)
+        oversized_job = [
+            {
+                "skill_name": f"Skill{i}",
+                "skill_type": "Hard",
+                "is_required": True,
+                "years_requested": None,
+            }
+            for i in range(501)
+        ]
+
+        with pytest.raises(ValueError, match="exceed maximum size"):
+            calculate_hard_skills_score(persona_skills, oversized_job)

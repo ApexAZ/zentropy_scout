@@ -181,10 +181,13 @@ def get_proficiency_weight(
 # Hard Skills Score Calculation (REQ-008 §4.2.1)
 # =============================================================================
 
+# Maximum skill list size to prevent DoS via large inputs
+_MAX_SKILLS = 500
+
 
 def calculate_hard_skills_score(
-    persona_skills: list[dict],
-    job_skills: list[dict],
+    persona_skills: list[PersonaSkillInput],
+    job_skills: list[JobSkillInput],
 ) -> float:
     """Calculate hard skills match score (0-100).
 
@@ -198,14 +201,19 @@ def calculate_hard_skills_score(
     - Nice-to-have skills: 20% of component (bonus points)
 
     Args:
-        persona_skills: List of user's skills (Skill model dicts).
-            Expected keys: skill_name, skill_type, proficiency
-        job_skills: List of job's extracted skills (ExtractedSkill dicts).
-            Expected keys: skill_name, skill_type, is_required, years_requested
+        persona_skills: List of user's skills matching PersonaSkillInput structure.
+        job_skills: List of job's extracted skills matching JobSkillInput structure.
 
     Returns:
         Hard skills score 0-100.
+
+    Raises:
+        ValueError: If skill lists exceed maximum size (_MAX_SKILLS).
     """
+    # Defensive size limit to prevent DoS
+    if len(persona_skills) > _MAX_SKILLS or len(job_skills) > _MAX_SKILLS:
+        msg = f"Skill lists exceed maximum size of {_MAX_SKILLS}"
+        raise ValueError(msg)
     # Filter to hard skills only
     required_skills = [
         s
@@ -222,8 +230,8 @@ def calculate_hard_skills_score(
     if not required_skills and not nice_to_have_skills:
         return FIT_NEUTRAL_SCORE
 
-    # Build persona skill lookup: {normalized_name: skill_dict}
-    persona_skill_map: dict[str, dict] = {}
+    # Build persona skill lookup: {normalized_name: skill}
+    persona_skill_map: dict[str, PersonaSkillInput] = {}
     for skill in persona_skills:
         if skill.get("skill_type") == "Hard":
             norm_name = normalize_skill(skill.get("skill_name", ""))
