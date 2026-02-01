@@ -431,7 +431,7 @@ These steps require user action outside Claude Code:
 | 4.2 | Fit Score — Hard Skills Match (40%) | `db, tdd, plan` | ✅ |
 | 4.3 | Fit Score — Soft Skills Match (15%) | `db, tdd, plan` | ✅ |
 | 4.4 | Fit Score — Experience Level (25%) | `tdd, plan` | ✅ |
-| 4.5 | Fit Score — Role Title Match (10%) | `db, tdd, plan` | ⬜ |
+| 4.5 | Fit Score — Role Title Match (10%) | `db, tdd, plan` | ✅ |
 | 4.6 | Fit Score — Location/Logistics (10%) | `tdd, plan` | ⬜ |
 | 4.7 | Fit Score — Aggregation | `tdd, plan` | ⬜ |
 | 5.1 | Stretch Score — Component Weights | `docs, plan` | ⬜ |
