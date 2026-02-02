@@ -18,7 +18,9 @@ Design principles:
 4. Role alignment is weighted highest because title indicates career direction
 """
 
+import math
 import re
+from dataclasses import dataclass
 
 from app.services.hard_skills_match import normalize_skill
 from app.services.role_title_match import normalize_title
@@ -448,3 +450,94 @@ def calculate_growth_trajectory(
         return 70.0  # Lateral move
     else:
         return 30.0  # Step down
+
+
+# =============================================================================
+# Stretch Score Result (REQ-008 §5.5)
+# =============================================================================
+
+
+@dataclass
+class StretchScoreResult:
+    """Result of Stretch Score aggregation.
+
+    REQ-008 §5.5: Contains total score and breakdown by component.
+
+    Attributes:
+        total: Final Stretch Score (0-100), rounded to nearest integer.
+        components: Dictionary of individual component scores (0-100 floats).
+        weights: Dictionary of weights used for each component (sum to 1.0).
+    """
+
+    total: int
+    components: dict[str, float]
+    weights: dict[str, float]
+
+
+# =============================================================================
+# Stretch Score Aggregation (REQ-008 §5.5)
+# =============================================================================
+
+
+def calculate_stretch_score(
+    target_role: float,
+    target_skills: float,
+    growth_trajectory: float,
+) -> StretchScoreResult:
+    """Calculate aggregated Stretch Score from component scores.
+
+    REQ-008 §5.5: Stretch Score Aggregation.
+
+    Computes weighted sum of the 3 component scores:
+    - Target Role Alignment (50%)
+    - Target Skills Exposure (40%)
+    - Growth Trajectory (10%)
+
+    Args:
+        target_role: Target role alignment score (0-100).
+        target_skills: Target skills exposure score (0-100).
+        growth_trajectory: Growth trajectory score (0-100).
+
+    Returns:
+        StretchScoreResult with:
+        - total: Rounded integer score (0-100)
+        - components: Dict of input scores
+        - weights: Dict of component weights
+
+    Raises:
+        ValueError: If any component score is negative or exceeds 100.
+    """
+    # Validate all component scores
+    component_scores = {
+        "target_role": target_role,
+        "target_skills": target_skills,
+        "growth_trajectory": growth_trajectory,
+    }
+
+    for name, score in component_scores.items():
+        if not math.isfinite(score):
+            msg = f"Component score '{name}' must be a finite number: {score}"
+            raise ValueError(msg)
+        if score < 0:
+            msg = f"Component score '{name}' cannot be negative: {score}"
+            raise ValueError(msg)
+        if score > 100:
+            msg = f"Component score '{name}' cannot exceed 100: {score}"
+            raise ValueError(msg)
+
+    # Get weights
+    weights = get_stretch_component_weights()
+
+    # Calculate weighted sum
+    total_score = sum(
+        component_scores[name] * weights[name] for name in component_scores
+    )
+
+    # Round to nearest integer
+    rounded_total = round(total_score)
+
+    return StretchScoreResult(
+        total=rounded_total,
+        components=component_scores,
+        weights=weights,
+    )
