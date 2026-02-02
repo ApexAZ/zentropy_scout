@@ -69,6 +69,7 @@ class IngestJobPostingRequest(BaseModel):
     raw_text: str = Field(
         ...,
         min_length=1,
+        max_length=50000,
         description="Full job posting text",
     )
     source_url: HttpUrl = Field(

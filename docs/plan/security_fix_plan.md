@@ -223,10 +223,11 @@ extracted_skills=[
 ## Priority 2: Medium Priority Fixes
 
 ### F-05: No max_length on Job Posting raw_text
-- **Status:** ⬜ Not Started
+- **Status:** ✅ Complete (2026-02-01)
 - **Severity:** Medium (mitigated by LLM truncation at 15k)
 - **File:** `backend/app/schemas/ingest.py:69-72`
 - **Requirements:** REQ-006 §5.6 (Chrome extension ingest)
+- **Validated by:** code-reviewer ✅, security-reviewer ✅
 
 **Problem:**
 ```python
@@ -385,7 +386,7 @@ if not resource:
 | F-02 | CORS allows all headers | Medium | ✅ | ✅ | ✅ |
 | F-03 | No max_length on chat content | Medium | ✅ | ✅ | ✅ |
 | F-04 | Schema mismatch (skills) | Low | ✅ | ✅ | ✅ |
-| F-05 | No max_length on raw_text | Medium | ⬜ | ⬜ | ⬜ |
+| F-05 | No max_length on raw_text | Medium | ✅ | ✅ | ✅ |
 | F-06 | Missing CSP header | Low | ⬜ | ⬜ | ⬜ |
 | F-07 | Missing HSTS header | Low | ⬜ | ⬜ | ⬜ |
 | F-08 | IDOR in stub endpoints | Low | ⬜ | ⬜ | ⬜ |
@@ -419,4 +420,4 @@ fix(security): [F-01] sanitize filename in base resume download
 
 ---
 
-*Last updated: 2026-02-01 (F-04 complete)*
+*Last updated: 2026-02-01 (F-05 complete)*
