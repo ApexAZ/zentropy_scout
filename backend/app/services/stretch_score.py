@@ -18,6 +18,8 @@ Design principles:
 4. Role alignment is weighted highest because title indicates career direction
 """
 
+import re
+
 from app.services.hard_skills_match import normalize_skill
 from app.services.role_title_match import normalize_title
 from app.services.soft_skills_match import cosine_similarity
@@ -283,3 +285,166 @@ def calculate_target_skills_exposure(
     # 0=20, 1=50, 2=75, 3+=100
     score_tiers = {0: 20.0, 1: 50.0, 2: 75.0}
     return score_tiers.get(matches, 100.0)
+
+
+# =============================================================================
+# Growth Trajectory (REQ-008 §5.4)
+# =============================================================================
+
+# 7-tier career level hierarchy (lowest to highest)
+_LEVEL_ORDER = ["junior", "mid", "senior", "lead", "director", "vp", "c_level"]
+
+# Maximum title length to prevent resource exhaustion on large inputs
+_MAX_TITLE_LENGTH = 500
+
+
+def infer_level(title: str | None) -> str | None:
+    """Infer career level from job title.
+
+    REQ-008 §5.4: Level inference for Growth Trajectory calculation.
+
+    Maps job titles to a 7-tier career level hierarchy:
+    - junior: Entry-level positions (junior, associate, intern)
+    - mid: Standard positions without seniority indicator
+    - senior: Senior individual contributors
+    - lead: Team leads, managers, principals, staff engineers
+    - director: Director-level positions
+    - vp: Vice President level
+    - c_level: C-suite executives (CEO, CTO, CFO, etc.)
+
+    Args:
+        title: Job title to analyze. None or empty returns None.
+
+    Returns:
+        Career level string, or None if title is empty/whitespace.
+        Note: Valid titles always return a level (defaults to 'mid').
+    """
+    if title is None or not title.strip():
+        return None
+
+    # Truncate oversized titles to prevent resource exhaustion
+    truncated = title[:_MAX_TITLE_LENGTH] if len(title) > _MAX_TITLE_LENGTH else title
+
+    # Normalize for matching
+    normalized = truncated.lower().strip()
+
+    # Order matters: check from highest to lowest level
+    # This ensures "Senior Director" matches "director" not "senior"
+
+    # C-level detection (CEO, CTO, CFO, COO, Chief X Officer)
+    # Exception: "Chief of Staff" is a lead-level role
+    # Note: Use word boundary matching to avoid false positives (e.g., "director" contains "cto")
+    if "chief of staff" not in normalized:
+        # Match CEO/CTO/CFO/COO as standalone words
+        if re.search(r"\b(ceo|cto|cfo|coo)\b", normalized):
+            return "c_level"
+        # Match "Chief" when not "Chief of Staff"
+        if re.search(r"\bchief\b", normalized):
+            return "c_level"
+
+    # VP detection (VP, Vice President, SVP, EVP)
+    if any(
+        keyword in normalized
+        for keyword in [" vp", "vp ", "vice president", "svp", "evp"]
+    ):
+        return "vp"
+    # Handle standalone "VP" (exact match or with punctuation)
+    if normalized == "vp" or normalized.startswith("vp ") or normalized.endswith(" vp"):
+        return "vp"
+
+    # Director detection
+    if "director" in normalized:
+        return "director"
+
+    # Lead detection (lead, principal, staff, specific manager roles)
+    # Note: "manager" alone is too broad - "Product Manager" is mid-level IC
+    # Only match explicit people management titles
+    lead_keywords = ["lead", "principal", "staff"]
+    if any(keyword in normalized for keyword in lead_keywords):
+        return "lead"
+
+    # Specific manager patterns that indicate people management
+    manager_patterns = [
+        "engineering manager",
+        "team manager",
+        "people manager",
+        "hiring manager",
+        "development manager",
+        "tech manager",
+        "technical manager",
+        "operations manager",
+        "it manager",
+    ]
+    if any(pattern in normalized for pattern in manager_patterns):
+        return "lead"
+
+    # Handle "Chief of Staff" (explicitly checked earlier, falls here)
+    if "chief of staff" in normalized:
+        return "lead"
+
+    # Senior detection (senior, sr., sr )
+    if any(keyword in normalized for keyword in ["senior", "sr.", "sr "]):
+        return "senior"
+
+    # Junior detection (junior, jr., associate, entry-level, intern)
+    if any(
+        keyword in normalized
+        for keyword in ["junior", "jr.", "jr ", "associate", "entry-level", "intern"]
+    ):
+        return "junior"
+
+    # Default: mid-level for titles without explicit level indicators
+    return "mid"
+
+
+def calculate_growth_trajectory(
+    current_role: str | None,
+    job_title: str | None,
+) -> float:
+    """Calculate growth trajectory score (0-100).
+
+    REQ-008 §5.4: Growth Trajectory (10% of Stretch Score).
+
+    Compares the user's current career level to the job's level to determine
+    if the job represents career advancement.
+
+    Scoring:
+    - Step up (job level > current level): 100.0
+    - Lateral move (same level): 70.0
+    - Step down (job level < current level): 30.0
+    - Cannot determine (missing data): 50.0 (neutral)
+
+    Args:
+        current_role: User's current job title. None if not set.
+        job_title: Target job's title. None if not specified.
+
+    Returns:
+        Growth trajectory score 0-100:
+        - 100.0: Step up (career advancement)
+        - 70.0: Lateral move (same level)
+        - 30.0: Step down (below current level)
+        - 50.0: Neutral (cannot determine levels)
+    """
+    # Infer levels from titles
+    current_level = infer_level(current_role)
+    job_level = infer_level(job_title)
+
+    # If either level cannot be determined, return neutral
+    if current_level is None or job_level is None:
+        return STRETCH_NEUTRAL_SCORE
+
+    # Look up indices in level hierarchy
+    try:
+        current_idx = _LEVEL_ORDER.index(current_level)
+        job_idx = _LEVEL_ORDER.index(job_level)
+    except ValueError:
+        # Should not happen if infer_level returns valid levels
+        return STRETCH_NEUTRAL_SCORE
+
+    # Score based on level comparison
+    if job_idx > current_idx:
+        return 100.0  # Step up
+    elif job_idx == current_idx:
+        return 70.0  # Lateral move
+    else:
+        return 30.0  # Step down
