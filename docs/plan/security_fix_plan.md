@@ -307,10 +307,11 @@ Requires adding import: `from app.core.config import settings`
 ---
 
 ### F-08: IDOR Risk in Stub Endpoints
-- **Status:** ⬜ Not Started
+- **Status:** ✅ Complete (2026-02-02)
 - **Severity:** Low (endpoints are stubs returning empty data)
 - **Files:** Multiple files in `backend/app/api/v1/`
 - **Requirements:** REQ-006 §6.2 (Authorization)
+- **Action:** Added SECURITY TODO comments to 5 stub files
 
 **Problem:** Many endpoints are stubs that don't verify user ownership. When implemented, they need ownership checks.
 
@@ -391,7 +392,7 @@ if not resource:
 | F-05 | No max_length on raw_text | Medium | ✅ | ✅ | ✅ |
 | F-06 | Missing CSP header | Low | ✅ | ✅ | ✅ |
 | F-07 | Missing HSTS header | Low | ✅ | ✅ | ✅ |
-| F-08 | IDOR in stub endpoints | Low | ⬜ | ⬜ | ⬜ |
+| F-08 | IDOR in stub endpoints | Low | ✅ | N/A | ✅ |
 | F-09 | SQL echo in dev | Low | ✅ Ack | N/A | N/A |
 | F-10 | Token store cleanup | Low | ✅ Ack | N/A | N/A |
 | F-11 | Auth model for MVP | Medium | ✅ Ack | N/A | N/A |
@@ -422,4 +423,4 @@ fix(security): [F-01] sanitize filename in base resume download
 
 ---
 
-*Last updated: 2026-02-02 (F-07 complete)*
+*Last updated: 2026-02-02 (F-08 complete - ALL FINDINGS ADDRESSED)*

@@ -3,6 +3,9 @@
 REQ-006 §5.2: Cover letter management.
 """
 
+# SECURITY TODO: When implementing stub endpoints, add ownership verification
+# using the JOIN pattern from files.py - see docs/plan/security_fix_plan.md F-08
+
 import uuid
 
 from fastapi import APIRouter, Depends
