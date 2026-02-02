@@ -190,7 +190,9 @@ async def ingest_job_posting(
         extracted_skills=[
             {
                 "skill_name": s.get("skill_name", ""),
-                "importance_level": s.get("importance_level", "Preferred"),
+                "skill_type": s.get("skill_type", "Hard"),
+                "is_required": s.get("is_required", True),
+                "years_requested": s.get("years_requested"),
             }
             for s in extracted.get("extracted_skills", [])
         ],

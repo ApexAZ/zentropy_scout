@@ -171,10 +171,11 @@ content: str = Field(..., max_length=50000, description="User message content")
 ---
 
 ### F-04: Schema Mismatch in Extracted Skills
-- **Status:** ⬜ Not Started
+- **Status:** ✅ Complete (2026-02-01)
 - **Severity:** Low (but causes data loss)
 - **File:** `backend/app/api/v1/job_postings.py:190-196`
 - **Requirements:** REQ-007 §6.4 (Skills extraction)
+- **Validated by:** code-reviewer ✅, security-reviewer ✅
 
 **Problem:**
 ```python
@@ -383,7 +384,7 @@ if not resource:
 | F-01 | Header injection in base_resumes.py | Medium | ✅ | ✅ | ✅ |
 | F-02 | CORS allows all headers | Medium | ✅ | ✅ | ✅ |
 | F-03 | No max_length on chat content | Medium | ✅ | ✅ | ✅ |
-| F-04 | Schema mismatch (skills) | Low | ⬜ | ⬜ | ⬜ |
+| F-04 | Schema mismatch (skills) | Low | ✅ | ✅ | ✅ |
 | F-05 | No max_length on raw_text | Medium | ⬜ | ⬜ | ⬜ |
 | F-06 | Missing CSP header | Low | ⬜ | ⬜ | ⬜ |
 | F-07 | Missing HSTS header | Low | ⬜ | ⬜ | ⬜ |
@@ -418,4 +419,4 @@ fix(security): [F-01] sanitize filename in base resume download
 
 ---
 
-*Last updated: 2026-02-01 (F-03 complete)*
+*Last updated: 2026-02-01 (F-04 complete)*
