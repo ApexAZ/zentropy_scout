@@ -288,3 +288,12 @@ class TestSecurityHeadersMiddleware:
         # Cache-Control is only set for /api/ paths
         cache_control = response.headers.get("cache-control", "")
         assert "no-store" not in cache_control
+
+    @pytest.mark.asyncio
+    async def test_content_security_policy_header(self, client):
+        """Content-Security-Policy should be restrictive for API."""
+        response = await client.get("/health")
+        csp = response.headers.get("content-security-policy")
+        assert csp is not None
+        assert "default-src 'none'" in csp
+        assert "frame-ancestors 'none'" in csp

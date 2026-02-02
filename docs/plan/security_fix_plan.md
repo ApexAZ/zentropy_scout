@@ -260,10 +260,11 @@ raw_text: str = Field(
 ---
 
 ### F-06: Missing Content-Security-Policy Header
-- **Status:** ⬜ Not Started
+- **Status:** ✅ Complete (2026-02-01)
 - **Severity:** Low
 - **File:** `backend/app/main.py:28-64` (SecurityHeadersMiddleware)
 - **Requirements:** Not specified (security best practice)
+- **Validated by:** code-reviewer ✅, security-reviewer ✅
 
 **Current State:** Code has comment at line 38 acknowledging this: "CSP and HSTS should be added when HTTPS is configured for production."
 
@@ -387,7 +388,7 @@ if not resource:
 | F-03 | No max_length on chat content | Medium | ✅ | ✅ | ✅ |
 | F-04 | Schema mismatch (skills) | Low | ✅ | ✅ | ✅ |
 | F-05 | No max_length on raw_text | Medium | ✅ | ✅ | ✅ |
-| F-06 | Missing CSP header | Low | ⬜ | ⬜ | ⬜ |
+| F-06 | Missing CSP header | Low | ✅ | ✅ | ✅ |
 | F-07 | Missing HSTS header | Low | ⬜ | ⬜ | ⬜ |
 | F-08 | IDOR in stub endpoints | Low | ⬜ | ⬜ | ⬜ |
 | F-09 | SQL echo in dev | Low | ✅ Ack | N/A | N/A |
@@ -420,4 +421,4 @@ fix(security): [F-01] sanitize filename in base resume download
 
 ---
 
-*Last updated: 2026-02-01 (F-05 complete)*
+*Last updated: 2026-02-01 (F-06 complete)*

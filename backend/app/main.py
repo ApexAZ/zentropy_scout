@@ -34,8 +34,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - X-XSS-Protection: Enables XSS filtering in older browsers
     - Referrer-Policy: Controls referrer information leakage
     - Cache-Control: Prevents caching of sensitive data on API responses
+    - Content-Security-Policy: Restricts resource loading (API returns no HTML)
 
-    Note: CSP and HSTS should be added when HTTPS is configured for production.
+    Note: HSTS should be added when HTTPS is configured for production.
     """
 
     async def dispatch(
@@ -60,6 +61,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Exception: static files should be cached (not applicable to this API)
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store, max-age=0"
+
+        # Content Security Policy for API-only backend
+        # default-src 'none': API responses should not load any resources
+        # frame-ancestors 'none': Modern replacement for X-Frame-Options
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; frame-ancestors 'none'"
+        )
 
         return response
 
