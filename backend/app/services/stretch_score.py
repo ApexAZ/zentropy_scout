@@ -18,6 +18,7 @@ Design principles:
 4. Role alignment is weighted highest because title indicates career direction
 """
 
+from app.services.hard_skills_match import normalize_skill
 from app.services.role_title_match import normalize_title
 from app.services.soft_skills_match import cosine_similarity
 
@@ -205,3 +206,80 @@ def calculate_target_role_alignment(
     # - similarity = 0 → 30 + 35 = 65
     # - similarity = +1 → 30 + 70 = 100
     return max(0, 30 + (similarity + 1) * 35)
+
+
+# =============================================================================
+# Target Skills Exposure (REQ-008 §5.3)
+# =============================================================================
+
+# Maximum skill list size to prevent DoS via large inputs
+_MAX_TARGET_SKILLS = 500
+
+
+def calculate_target_skills_exposure(
+    target_skills: list[str] | None,
+    job_skills: list[str] | None,
+) -> float:
+    """Calculate target skills exposure score (0-100).
+
+    REQ-008 §5.3: Target Skills Exposure (40% of Stretch Score).
+
+    Counts how many of the user's target skills appear in the job posting.
+    Uses tiered scoring based on match count.
+
+    Scoring tiers:
+    - 0 matches: 20 (job offers no exposure to target skills)
+    - 1 match: 50 (minimal exposure)
+    - 2 matches: 75 (good exposure)
+    - 3+ matches: 100 (excellent exposure)
+
+    Args:
+        target_skills: User's target skills from growth targets. None if not set.
+        job_skills: Skill names from job's extracted_skills. None if not specified.
+
+    Returns:
+        Target skills exposure score 0-100:
+        - 50: Neutral (no target skills defined)
+        - 20: No matches (job doesn't expose target skills)
+        - 50/75/100: Tiered based on match count
+
+    Raises:
+        ValueError: If skill lists exceed maximum size (_MAX_TARGET_SKILLS).
+    """
+    # Validate input sizes
+    if target_skills is not None and len(target_skills) > _MAX_TARGET_SKILLS:
+        msg = f"Target skills exceed maximum of {_MAX_TARGET_SKILLS}"
+        raise ValueError(msg)
+
+    if job_skills is not None and len(job_skills) > _MAX_TARGET_SKILLS:
+        msg = f"Job skills exceed maximum of {_MAX_TARGET_SKILLS}"
+        raise ValueError(msg)
+
+    # Filter out empty/whitespace-only target skills
+    valid_target_skills: list[str] = []
+    if target_skills is not None:
+        for skill in target_skills:
+            if skill and skill.strip():
+                valid_target_skills.append(skill.strip())
+
+    # No target skills defined → neutral score
+    if not valid_target_skills:
+        return STRETCH_NEUTRAL_SCORE
+
+    # Normalize target skills for comparison
+    normalized_targets = {normalize_skill(s) for s in valid_target_skills}
+
+    # Handle missing/empty job skills → 0 matches
+    if not job_skills:
+        return 20.0
+
+    # Normalize job skills for comparison
+    normalized_job_skills = {normalize_skill(s) for s in job_skills if s and s.strip()}
+
+    # Calculate intersection count
+    matches = len(normalized_targets & normalized_job_skills)
+
+    # Map match count to tiered score
+    # 0=20, 1=50, 2=75, 3+=100
+    score_tiers = {0: 20.0, 1: 50.0, 2: 75.0}
+    return score_tiers.get(matches, 100.0)
