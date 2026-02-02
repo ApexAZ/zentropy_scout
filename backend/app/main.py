@@ -35,8 +35,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - Referrer-Policy: Controls referrer information leakage
     - Cache-Control: Prevents caching of sensitive data on API responses
     - Content-Security-Policy: Restricts resource loading (API returns no HTML)
-
-    Note: HSTS should be added when HTTPS is configured for production.
+    - Strict-Transport-Security: Forces HTTPS (production only)
     """
 
     async def dispatch(
@@ -68,6 +67,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = (
             "default-src 'none'; frame-ancestors 'none'"
         )
+
+        # HSTS only in production (assumes HTTPS via reverse proxy)
+        if settings.environment == "production":
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
 
         return response
 

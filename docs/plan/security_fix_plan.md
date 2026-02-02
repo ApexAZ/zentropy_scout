@@ -282,10 +282,11 @@ response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancesto
 ---
 
 ### F-07: Missing HSTS Header
-- **Status:** ⬜ Not Started
+- **Status:** ✅ Complete (2026-02-02)
 - **Severity:** Low
 - **File:** `backend/app/main.py:28-64` (SecurityHeadersMiddleware)
 - **Requirements:** Not specified (security best practice for HTTPS)
+- **Validated by:** security-reviewer ✅
 
 **Note:** Only applies when HTTPS is configured. For local-first MVP over HTTP, this would break things.
 
@@ -389,7 +390,7 @@ if not resource:
 | F-04 | Schema mismatch (skills) | Low | ✅ | ✅ | ✅ |
 | F-05 | No max_length on raw_text | Medium | ✅ | ✅ | ✅ |
 | F-06 | Missing CSP header | Low | ✅ | ✅ | ✅ |
-| F-07 | Missing HSTS header | Low | ⬜ | ⬜ | ⬜ |
+| F-07 | Missing HSTS header | Low | ✅ | ✅ | ✅ |
 | F-08 | IDOR in stub endpoints | Low | ⬜ | ⬜ | ⬜ |
 | F-09 | SQL echo in dev | Low | ✅ Ack | N/A | N/A |
 | F-10 | Token store cleanup | Low | ✅ Ack | N/A | N/A |
@@ -421,4 +422,4 @@ fix(security): [F-01] sanitize filename in base resume download
 
 ---
 
-*Last updated: 2026-02-01 (F-06 complete)*
+*Last updated: 2026-02-02 (F-07 complete)*

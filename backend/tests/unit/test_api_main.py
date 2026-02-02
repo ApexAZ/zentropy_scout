@@ -297,3 +297,22 @@ class TestSecurityHeadersMiddleware:
         assert csp is not None
         assert "default-src 'none'" in csp
         assert "frame-ancestors 'none'" in csp
+
+    @pytest.mark.asyncio
+    async def test_hsts_header_not_in_development(self, client):
+        """HSTS header should not be present in development."""
+        response = await client.get("/health")
+        # Default environment is "development", so HSTS should be absent
+        assert response.headers.get("strict-transport-security") is None
+
+    @pytest.mark.asyncio
+    async def test_hsts_header_in_production(self, client, monkeypatch):
+        """HSTS header should be present in production."""
+        from app.core.config import settings
+
+        monkeypatch.setattr(settings, "environment", "production")
+        response = await client.get("/health")
+        hsts = response.headers.get("strict-transport-security")
+        assert hsts is not None
+        assert "max-age=31536000" in hsts
+        assert "includeSubDomains" in hsts
