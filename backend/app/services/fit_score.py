@@ -22,6 +22,7 @@ Design principles:
 
 import math
 from dataclasses import dataclass
+from enum import Enum
 
 # =============================================================================
 # Component Weights (REQ-008 §4.1)
@@ -210,4 +211,114 @@ def calculate_fit_score(
         total=rounded_total,
         components=component_scores,
         weights=weights,
+    )
+
+
+# =============================================================================
+# Fit Score Interpretation (REQ-008 §7.1)
+# =============================================================================
+
+
+class FitScoreLabel(Enum):
+    """Fit Score threshold labels.
+
+    REQ-008 §7.1: Fit Score Thresholds.
+
+    Labels map score ranges to human-readable interpretations:
+    - EXCELLENT (90-100): Strong match, high confidence
+    - GOOD (75-89): Solid match, minor gaps
+    - FAIR (60-74): Partial match, notable gaps
+    - STRETCH (40-59): Significant gaps, but possible
+    - POOR (0-39): Not a good fit
+    """
+
+    EXCELLENT = "Excellent"
+    GOOD = "Good"
+    FAIR = "Fair"
+    STRETCH = "Stretch"
+    POOR = "Poor"
+
+
+# Threshold boundaries (inclusive lower bounds)
+_FIT_THRESHOLD_EXCELLENT = 90
+_FIT_THRESHOLD_GOOD = 75
+_FIT_THRESHOLD_FAIR = 60
+_FIT_THRESHOLD_STRETCH = 40
+# Below 40 is POOR (no explicit threshold needed)
+
+# Interpretation text per label
+_FIT_INTERPRETATIONS = {
+    FitScoreLabel.EXCELLENT: "Strong match, high confidence",
+    FitScoreLabel.GOOD: "Solid match, minor gaps",
+    FitScoreLabel.FAIR: "Partial match, notable gaps",
+    FitScoreLabel.STRETCH: "Significant gaps, but possible",
+    FitScoreLabel.POOR: "Not a good fit",
+}
+
+
+@dataclass(frozen=True)
+class FitScoreInterpretation:
+    """Result of Fit Score interpretation.
+
+    REQ-008 §7.1: Contains label and interpretation text.
+
+    Attributes:
+        score: The original score (0-100).
+        label: The threshold label (Excellent, Good, Fair, Stretch, Poor).
+        interpretation: Human-readable interpretation text.
+    """
+
+    score: int
+    label: FitScoreLabel
+    interpretation: str
+
+
+def interpret_fit_score(score: int) -> FitScoreInterpretation:
+    """Interpret a Fit Score into a threshold label.
+
+    REQ-008 §7.1: Fit Score Thresholds.
+
+    Maps a Fit Score (0-100) to one of five threshold labels:
+    - 90-100: Excellent (Strong match, high confidence)
+    - 75-89: Good (Solid match, minor gaps)
+    - 60-74: Fair (Partial match, notable gaps)
+    - 40-59: Stretch (Significant gaps, but possible)
+    - 0-39: Poor (Not a good fit)
+
+    Args:
+        score: Fit Score (0-100 integer).
+
+    Returns:
+        FitScoreInterpretation with label and interpretation text.
+
+    Raises:
+        TypeError: If score is not an integer.
+        ValueError: If score is negative or exceeds 100.
+    """
+    if not isinstance(score, int):
+        msg = f"Fit score must be an integer, got {type(score).__name__}: {score}"
+        raise TypeError(msg)
+    if score < 0:
+        msg = f"Fit score cannot be negative: {score}"
+        raise ValueError(msg)
+    if score > 100:
+        msg = f"Fit score cannot exceed 100: {score}"
+        raise ValueError(msg)
+
+    # Determine label based on thresholds
+    if score >= _FIT_THRESHOLD_EXCELLENT:
+        label = FitScoreLabel.EXCELLENT
+    elif score >= _FIT_THRESHOLD_GOOD:
+        label = FitScoreLabel.GOOD
+    elif score >= _FIT_THRESHOLD_FAIR:
+        label = FitScoreLabel.FAIR
+    elif score >= _FIT_THRESHOLD_STRETCH:
+        label = FitScoreLabel.STRETCH
+    else:
+        label = FitScoreLabel.POOR
+
+    return FitScoreInterpretation(
+        score=score,
+        label=label,
+        interpretation=_FIT_INTERPRETATIONS[label],
     )
