@@ -3,11 +3,14 @@
 REQ-008 §7.1: Fit Score Thresholds.
 
 Tests cover:
-- Threshold label mapping (Excellent, Good, Fair, Stretch, Poor)
+- Threshold label mapping (Excellent, Good, Fair, Poor)
 - Boundary conditions at threshold edges
 - Input validation (out of range scores, type validation)
 - Integration with calculate_fit_score
 - Result immutability
+
+Note: Refactored from 5 tiers to 4 tiers (2026-02-02). The "Stretch" label
+was removed because it conflicted with the separate "Stretch Score" concept.
 """
 
 import pytest
@@ -84,26 +87,7 @@ class TestFitScoreThresholdLabels:
         assert result.label == FitScoreLabel.FAIR
 
     # -------------------------------------------------------------------------
-    # Stretch (40-59)
-    # -------------------------------------------------------------------------
-
-    def test_score_40_returns_stretch(self) -> None:
-        """Score of 40 (lower bound) returns Stretch."""
-        result = interpret_fit_score(40)
-        assert result.label == FitScoreLabel.STRETCH
-
-    def test_score_59_returns_stretch(self) -> None:
-        """Score of 59 (upper bound) returns Stretch."""
-        result = interpret_fit_score(59)
-        assert result.label == FitScoreLabel.STRETCH
-
-    def test_score_50_returns_stretch(self) -> None:
-        """Score of 50 (mid-range) returns Stretch."""
-        result = interpret_fit_score(50)
-        assert result.label == FitScoreLabel.STRETCH
-
-    # -------------------------------------------------------------------------
-    # Poor (0-39)
+    # Poor (0-59) — Combined with former "Stretch" tier
     # -------------------------------------------------------------------------
 
     def test_score_0_returns_poor(self) -> None:
@@ -111,14 +95,14 @@ class TestFitScoreThresholdLabels:
         result = interpret_fit_score(0)
         assert result.label == FitScoreLabel.POOR
 
-    def test_score_39_returns_poor(self) -> None:
-        """Score of 39 (upper bound) returns Poor."""
-        result = interpret_fit_score(39)
+    def test_score_59_returns_poor(self) -> None:
+        """Score of 59 (upper bound) returns Poor."""
+        result = interpret_fit_score(59)
         assert result.label == FitScoreLabel.POOR
 
-    def test_score_20_returns_poor(self) -> None:
-        """Score of 20 (mid-range) returns Poor."""
-        result = interpret_fit_score(20)
+    def test_score_30_returns_poor(self) -> None:
+        """Score of 30 (mid-range) returns Poor."""
+        result = interpret_fit_score(30)
         assert result.label == FitScoreLabel.POOR
 
 
@@ -145,14 +129,9 @@ class TestFitScoreInterpretationText:
         result = interpret_fit_score(67)
         assert result.interpretation == "Partial match, notable gaps"
 
-    def test_stretch_has_interpretation_text(self) -> None:
-        """Stretch result includes interpretation text."""
-        result = interpret_fit_score(50)
-        assert result.interpretation == "Significant gaps, but possible"
-
     def test_poor_has_interpretation_text(self) -> None:
         """Poor result includes interpretation text."""
-        result = interpret_fit_score(20)
+        result = interpret_fit_score(30)
         assert result.interpretation == "Not a good fit"
 
 
@@ -218,17 +197,16 @@ class TestFitScoreLabelEnum:
     """Tests for FitScoreLabel enum."""
 
     def test_enum_has_all_labels(self) -> None:
-        """Enum has all 5 threshold labels."""
+        """Enum has all 4 threshold labels."""
         labels = [label.value for label in FitScoreLabel]
         assert "Excellent" in labels
         assert "Good" in labels
         assert "Fair" in labels
-        assert "Stretch" in labels
         assert "Poor" in labels
 
     def test_enum_count(self) -> None:
-        """Enum has exactly 5 labels."""
-        assert len(FitScoreLabel) == 5
+        """Enum has exactly 4 labels."""
+        assert len(FitScoreLabel) == 4
 
 
 # =============================================================================
@@ -289,7 +267,7 @@ class TestFitScoreIntegration:
         assert interpretation.label == FitScoreLabel.EXCELLENT
 
     def test_chain_poor_score(self) -> None:
-        """calculate_fit_score producing 0-39 is interpreted as Poor."""
+        """calculate_fit_score producing 0-59 is interpreted as Poor."""
         fit_result = calculate_fit_score(
             hard_skills=0.0,
             soft_skills=0.0,

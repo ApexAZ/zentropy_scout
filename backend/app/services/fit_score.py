@@ -225,17 +225,19 @@ class FitScoreLabel(Enum):
     REQ-008 §7.1: Fit Score Thresholds.
 
     Labels map score ranges to human-readable interpretations:
-    - EXCELLENT (90-100): Strong match, high confidence
-    - GOOD (75-89): Solid match, minor gaps
-    - FAIR (60-74): Partial match, notable gaps
-    - STRETCH (40-59): Significant gaps, but possible
-    - POOR (0-39): Not a good fit
+    - 90-100: Excellent (Strong match, high confidence)
+    - 75-89: Good (Solid match, minor gaps)
+    - 60-74: Fair (Partial match, notable gaps)
+    - 0-59: Poor (Not a good fit)
+
+    Note: Refactored from 5 tiers to 4 tiers (2026-02-02). The former "Stretch"
+    label (40-59) was merged into "Poor" to avoid confusion with the separate
+    "Stretch Score" concept that measures career goal alignment.
     """
 
     EXCELLENT = "Excellent"
     GOOD = "Good"
     FAIR = "Fair"
-    STRETCH = "Stretch"
     POOR = "Poor"
 
 
@@ -243,15 +245,13 @@ class FitScoreLabel(Enum):
 _FIT_THRESHOLD_EXCELLENT = 90
 _FIT_THRESHOLD_GOOD = 75
 _FIT_THRESHOLD_FAIR = 60
-_FIT_THRESHOLD_STRETCH = 40
-# Below 40 is POOR (no explicit threshold needed)
+# Below 60 is POOR (no explicit threshold needed)
 
 # Interpretation text per label
 _FIT_INTERPRETATIONS = {
     FitScoreLabel.EXCELLENT: "Strong match, high confidence",
     FitScoreLabel.GOOD: "Solid match, minor gaps",
     FitScoreLabel.FAIR: "Partial match, notable gaps",
-    FitScoreLabel.STRETCH: "Significant gaps, but possible",
     FitScoreLabel.POOR: "Not a good fit",
 }
 
@@ -264,7 +264,7 @@ class FitScoreInterpretation:
 
     Attributes:
         score: The original score (0-100).
-        label: The threshold label (Excellent, Good, Fair, Stretch, Poor).
+        label: The threshold label (Excellent, Good, Fair, Poor).
         interpretation: Human-readable interpretation text.
     """
 
@@ -278,12 +278,11 @@ def interpret_fit_score(score: int) -> FitScoreInterpretation:
 
     REQ-008 §7.1: Fit Score Thresholds.
 
-    Maps a Fit Score (0-100) to one of five threshold labels:
+    Maps a Fit Score (0-100) to one of four threshold labels:
     - 90-100: Excellent (Strong match, high confidence)
     - 75-89: Good (Solid match, minor gaps)
     - 60-74: Fair (Partial match, notable gaps)
-    - 40-59: Stretch (Significant gaps, but possible)
-    - 0-39: Poor (Not a good fit)
+    - 0-59: Poor (Not a good fit)
 
     Args:
         score: Fit Score (0-100 integer).
@@ -312,8 +311,6 @@ def interpret_fit_score(score: int) -> FitScoreInterpretation:
         label = FitScoreLabel.GOOD
     elif score >= _FIT_THRESHOLD_FAIR:
         label = FitScoreLabel.FAIR
-    elif score >= _FIT_THRESHOLD_STRETCH:
-        label = FitScoreLabel.STRETCH
     else:
         label = FitScoreLabel.POOR
 

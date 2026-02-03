@@ -781,8 +781,11 @@ If stale, regenerate before scoring (see REQ-007 §10.4.1).
 | 90-100 | **Excellent** | Strong match, high confidence |
 | 75-89 | **Good** | Solid match, minor gaps |
 | 60-74 | **Fair** | Partial match, notable gaps |
-| 40-59 | **Stretch** | Significant gaps, but possible |
-| 0-39 | **Poor** | Not a good fit |
+| 0-59 | **Poor** | Not a good fit |
+
+> **Note (2026-02-02):** Refactored from 5 tiers to 4 tiers. The former "Stretch"
+> label (40-59) was merged into "Poor" to avoid naming confusion with the separate
+> "Stretch Score" concept (§5) that measures career goal alignment.
 
 ### 7.2 Stretch Score Thresholds
 

@@ -440,6 +440,7 @@ These steps require user action outside Claude Code:
 | 5.4 | Stretch Score — Growth Trajectory (10%) | `provider, tdd, plan` | ✅ |
 | 5.5 | Stretch Score — Aggregation | `tdd, plan` | ✅ |
 | 7.1 | Interpretation — Fit Score Thresholds | `tdd, plan` | ✅ |
+| 7.1a | Refactor — Fit Score 5→4 Tiers (combine Stretch+Poor into Poor 0-59) | `tdd, plan` | ✅ |
 | 7.2 | Interpretation — Stretch Score Thresholds | `tdd, plan` | ✅ |
 | 7.3 | Interpretation — Combined | `tdd, plan` | ⬜ |
 | 7.4 | Interpretation — Auto-Draft Threshold | `tdd, plan` | ⬜ |
@@ -454,6 +455,10 @@ These steps require user action outside Claude Code:
 | 10.3 | Performance — Embedding Costs | `provider, docs, plan` | ⬜ |
 | 11.1 | Testing — Test Cases | `test, tdd, plan` | ⬜ |
 | 11.2 | Testing — Validation Approach | `test, docs, plan` | ⬜ |
+
+#### Phase 2.5 Notes
+
+**§7.1a Decision (2026-02-02):** Refactored Fit Score from 5 tiers to 4 tiers for consistency with Stretch Score. The original REQ-008 §7.1 had 5 labels (Excellent 90+, Good 75+, Fair 60+, Stretch 40+, Poor 0-39). The "Stretch" label was confusing because there's also a separate "Stretch Score" measuring career goal alignment. Combined "Stretch" and "Poor" into a single "Poor" tier (0-59). Both Fit and Stretch now use 4 consistent tiers, making the Combined Interpretation (§7.3) cleaner. REQ-008 will be updated to reflect this change.
 
 ---
 
