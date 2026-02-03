@@ -319,3 +319,55 @@ def interpret_fit_score(score: int) -> FitScoreInterpretation:
         label=label,
         interpretation=_FIT_INTERPRETATIONS[label],
     )
+
+
+# =============================================================================
+# Auto-Draft Threshold (REQ-008 §7.4)
+# =============================================================================
+
+# Jobs with fit_score >= this threshold trigger automatic Ghostwriter drafting.
+# Default: 90 (aligns with "High" tier from §7.1)
+# WHY 90: High-scoring jobs (strong match, high confidence) benefit from
+# automatic drafting since the user will likely want to apply anyway.
+# See REQ-007 §8.1 for Ghostwriter trigger conditions.
+AUTO_DRAFT_THRESHOLD = 90
+
+
+def qualifies_for_auto_draft(fit_score: int) -> bool:
+    """Check if a job qualifies for automatic Ghostwriter drafting.
+
+    REQ-008 §7.4: Auto-Draft Threshold.
+
+    Jobs meeting or exceeding the threshold bypass manual review and
+    trigger automatic resume/cover letter drafting by the Ghostwriter agent.
+
+    Args:
+        fit_score: Fit Score (0-100 integer).
+
+    Returns:
+        True if fit_score >= AUTO_DRAFT_THRESHOLD (90), False otherwise.
+
+    Raises:
+        TypeError: If fit_score is not an integer.
+        ValueError: If fit_score is negative or exceeds 100.
+
+    Example:
+        >>> qualifies_for_auto_draft(95)
+        True
+        >>> qualifies_for_auto_draft(89)
+        False
+    """
+    # Note: bool is a subclass of int, so check bool first
+    if isinstance(fit_score, bool) or not isinstance(fit_score, int):
+        msg = (
+            f"Fit score must be an integer, got {type(fit_score).__name__}: {fit_score}"
+        )
+        raise TypeError(msg)
+    if fit_score < 0:
+        msg = f"Fit score cannot be negative: {fit_score}"
+        raise ValueError(msg)
+    if fit_score > 100:
+        msg = f"Fit score cannot exceed 100: {fit_score}"
+        raise ValueError(msg)
+
+    return fit_score >= AUTO_DRAFT_THRESHOLD
