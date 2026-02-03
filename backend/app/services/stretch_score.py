@@ -21,6 +21,7 @@ Design principles:
 import math
 import re
 from dataclasses import dataclass
+from enum import Enum
 
 from app.services.hard_skills_match import normalize_skill
 from app.services.role_title_match import normalize_title
@@ -540,4 +541,107 @@ def calculate_stretch_score(
         total=rounded_total,
         components=component_scores,
         weights=weights,
+    )
+
+
+# =============================================================================
+# Stretch Score Interpretation (REQ-008 §7.2)
+# =============================================================================
+
+
+class StretchScoreLabel(Enum):
+    """Stretch Score threshold labels.
+
+    REQ-008 §7.2: Stretch Score Thresholds.
+
+    Labels map score ranges to human-readable interpretations:
+    - HIGH_GROWTH (80-100): Strong alignment with career goals
+    - MODERATE_GROWTH (60-79): Some goal alignment
+    - LATERAL (40-59): Similar to current role
+    - LOW_GROWTH (0-39): Not aligned with stated goals
+    """
+
+    HIGH_GROWTH = "High Growth"
+    MODERATE_GROWTH = "Moderate Growth"
+    LATERAL = "Lateral"
+    LOW_GROWTH = "Low Growth"
+
+
+# Threshold boundaries (inclusive lower bounds)
+_STRETCH_THRESHOLD_HIGH_GROWTH = 80
+_STRETCH_THRESHOLD_MODERATE_GROWTH = 60
+_STRETCH_THRESHOLD_LATERAL = 40
+# Below 40 is LOW_GROWTH (no explicit threshold needed)
+
+# Interpretation text per label
+_STRETCH_INTERPRETATIONS = {
+    StretchScoreLabel.HIGH_GROWTH: "Strong alignment with career goals",
+    StretchScoreLabel.MODERATE_GROWTH: "Some goal alignment",
+    StretchScoreLabel.LATERAL: "Similar to current role",
+    StretchScoreLabel.LOW_GROWTH: "Not aligned with stated goals",
+}
+
+
+@dataclass(frozen=True)
+class StretchScoreInterpretation:
+    """Result of Stretch Score interpretation.
+
+    REQ-008 §7.2: Contains label and interpretation text.
+
+    Attributes:
+        score: The original score (0-100).
+        label: The threshold label (High Growth, Moderate Growth, Lateral, Low Growth).
+        interpretation: Human-readable interpretation text.
+    """
+
+    score: int
+    label: StretchScoreLabel
+    interpretation: str
+
+
+def interpret_stretch_score(score: int) -> StretchScoreInterpretation:
+    """Interpret a Stretch Score into a threshold label.
+
+    REQ-008 §7.2: Stretch Score Thresholds.
+
+    Maps a Stretch Score (0-100) to one of four threshold labels:
+    - 80-100: High Growth (Strong alignment with career goals)
+    - 60-79: Moderate Growth (Some goal alignment)
+    - 40-59: Lateral (Similar to current role)
+    - 0-39: Low Growth (Not aligned with stated goals)
+
+    Args:
+        score: Stretch Score (0-100 integer).
+
+    Returns:
+        StretchScoreInterpretation with label and interpretation text.
+
+    Raises:
+        TypeError: If score is not an integer.
+        ValueError: If score is negative or exceeds 100.
+    """
+    if not isinstance(score, int):
+        msg = f"Stretch score must be an integer, got {type(score).__name__}: {score}"
+        raise TypeError(msg)
+    if score < 0:
+        msg = f"Stretch score cannot be negative: {score}"
+        raise ValueError(msg)
+    if score > 100:
+        msg = f"Stretch score cannot exceed 100: {score}"
+        raise ValueError(msg)
+
+    # Determine label based on thresholds
+    if score >= _STRETCH_THRESHOLD_HIGH_GROWTH:
+        label = StretchScoreLabel.HIGH_GROWTH
+    elif score >= _STRETCH_THRESHOLD_MODERATE_GROWTH:
+        label = StretchScoreLabel.MODERATE_GROWTH
+    elif score >= _STRETCH_THRESHOLD_LATERAL:
+        label = StretchScoreLabel.LATERAL
+    else:
+        label = StretchScoreLabel.LOW_GROWTH
+
+    return StretchScoreInterpretation(
+        score=score,
+        label=label,
+        interpretation=_STRETCH_INTERPRETATIONS[label],
     )

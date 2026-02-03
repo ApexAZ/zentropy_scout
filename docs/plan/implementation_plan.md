@@ -440,7 +440,7 @@ These steps require user action outside Claude Code:
 | 5.4 | Stretch Score — Growth Trajectory (10%) | `provider, tdd, plan` | ✅ |
 | 5.5 | Stretch Score — Aggregation | `tdd, plan` | ✅ |
 | 7.1 | Interpretation — Fit Score Thresholds | `tdd, plan` | ✅ |
-| 7.2 | Interpretation — Stretch Score Thresholds | `tdd, plan` | ⬜ |
+| 7.2 | Interpretation — Stretch Score Thresholds | `tdd, plan` | ✅ |
 | 7.3 | Interpretation — Combined | `tdd, plan` | ⬜ |
 | 7.4 | Interpretation — Auto-Draft Threshold | `tdd, plan` | ⬜ |
 | 8.1 | Explanation — Components | `provider, tdd, plan` | ⬜ |
