@@ -778,14 +778,17 @@ If stale, regenerate before scoring (see REQ-007 §10.4.1).
 
 | Range | Label | Interpretation |
 |-------|-------|----------------|
-| 90-100 | **Excellent** | Strong match, high confidence |
-| 75-89 | **Good** | Solid match, minor gaps |
-| 60-74 | **Fair** | Partial match, notable gaps |
+| 90-100 | **High** | Strong match, high confidence |
+| 75-89 | **Medium** | Solid match, minor gaps |
+| 60-74 | **Low** | Partial match, notable gaps |
 | 0-59 | **Poor** | Not a good fit |
 
 > **Note (2026-02-02):** Refactored from 5 tiers to 4 tiers. The former "Stretch"
 > label (40-59) was merged into "Poor" to avoid naming confusion with the separate
 > "Stretch Score" concept (§5) that measures career goal alignment.
+>
+> **Note (2026-02-03):** Labels simplified from Excellent/Good/Fair/Poor to
+> High/Medium/Low/Poor for consistency and clarity.
 
 ### 7.2 Stretch Score Thresholds
 
@@ -798,12 +801,44 @@ If stale, regenerate before scoring (see REQ-007 §10.4.1).
 
 ### 7.3 Combined Interpretation
 
-| Fit Score | Stretch Score | Recommendation |
-|-----------|---------------|----------------|
-| High (75+) | High (80+) | 🎯 **Top Priority** — Apply immediately |
-| High (75+) | Low (<60) | ✅ **Safe Bet** — Good fit, but not growth |
-| Low (<60) | High (80+) | 🌱 **Stretch Opportunity** — Worth the reach |
-| Low (<60) | Low (<60) | ⚠️ **Likely Skip** — Neither fit nor growth |
+> **⚠️ CANCELLED (2026-02-03)**
+>
+> **Original requirement:** Combine Fit Score and Stretch Score into a single recommendation
+> using a 2x2 matrix (Top Priority, Safe Bet, Stretch Opportunity, Likely Skip).
+>
+> **Why cancelled:** After implementation and review, we determined that combining the two
+> scores into a single recommendation imposes value judgments that may not match the user's
+> current job search context:
+>
+> 1. **Different search modes:** Users prioritize different things at different times.
+>    A career changer *wants* low Fit + high Stretch jobs. Someone with financial pressure
+>    *needs* high Fit regardless of Stretch. A single combined label can't serve both.
+>
+> 2. **Loss of nuance:** "Stretch Opportunity" assumes the user wants growth roles. But if
+>    they're seeking stability, that same job should be filtered out, not recommended.
+>
+> 3. **Resume strategy:** Users may maintain separate resumes — one optimized for Fit
+>    (stability/safe roles) and one for Stretch (growth/career-change roles). The combined
+>    recommendation doesn't support this workflow.
+>
+> 4. **User agency:** Presenting two independent scores lets users sort/filter by whichever
+>    dimension matters to THEM, rather than the system deciding what's "best."
+>
+> **New approach:** Fit Score and Stretch Score are calculated, stored, and displayed
+> independently. Each has its own interpretation labels (§7.1 and §7.2). The UI presents
+> both scores side-by-side, allowing users to prioritize based on their current situation.
+>
+> **Code removed:** `combined_interpretation.py` and `test_combined_interpretation.py`
+> were deleted. The 2x2 matrix logic was never integrated into the Strategist agent.
+>
+> **Original table (preserved for historical reference):**
+>
+> | Fit Score | Stretch Score | Recommendation |
+> |-----------|---------------|----------------|
+> | High (75+) | High (80+) | Top Priority — Apply immediately |
+> | High (75+) | Low (<60) | Safe Bet — Good fit, but not growth |
+> | Low (<60) | High (80+) | Stretch Opportunity — Worth the reach |
+> | Low (<60) | Low (<60) | Likely Skip — Neither fit nor growth |
 
 ### 7.4 Auto-Draft Threshold
 

@@ -225,9 +225,9 @@ class FitScoreLabel(Enum):
     REQ-008 §7.1: Fit Score Thresholds.
 
     Labels map score ranges to human-readable interpretations:
-    - 90-100: Excellent (Strong match, high confidence)
-    - 75-89: Good (Solid match, minor gaps)
-    - 60-74: Fair (Partial match, notable gaps)
+    - 90-100: High (Strong match, high confidence)
+    - 75-89: Medium (Solid match, minor gaps)
+    - 60-74: Low (Partial match, notable gaps)
     - 0-59: Poor (Not a good fit)
 
     Note: Refactored from 5 tiers to 4 tiers (2026-02-02). The former "Stretch"
@@ -235,9 +235,9 @@ class FitScoreLabel(Enum):
     "Stretch Score" concept that measures career goal alignment.
     """
 
-    EXCELLENT = "Excellent"
-    GOOD = "Good"
-    FAIR = "Fair"
+    HIGH = "High"
+    MEDIUM = "Medium"
+    LOW = "Low"
     POOR = "Poor"
 
 
@@ -249,9 +249,9 @@ _FIT_THRESHOLD_FAIR = 60
 
 # Interpretation text per label
 _FIT_INTERPRETATIONS = {
-    FitScoreLabel.EXCELLENT: "Strong match, high confidence",
-    FitScoreLabel.GOOD: "Solid match, minor gaps",
-    FitScoreLabel.FAIR: "Partial match, notable gaps",
+    FitScoreLabel.HIGH: "Strong match, high confidence",
+    FitScoreLabel.MEDIUM: "Solid match, minor gaps",
+    FitScoreLabel.LOW: "Partial match, notable gaps",
     FitScoreLabel.POOR: "Not a good fit",
 }
 
@@ -279,9 +279,9 @@ def interpret_fit_score(score: int) -> FitScoreInterpretation:
     REQ-008 §7.1: Fit Score Thresholds.
 
     Maps a Fit Score (0-100) to one of four threshold labels:
-    - 90-100: Excellent (Strong match, high confidence)
-    - 75-89: Good (Solid match, minor gaps)
-    - 60-74: Fair (Partial match, notable gaps)
+    - 90-100: High (Strong match, high confidence)
+    - 75-89: Medium (Solid match, minor gaps)
+    - 60-74: Low (Partial match, notable gaps)
     - 0-59: Poor (Not a good fit)
 
     Args:
@@ -306,11 +306,11 @@ def interpret_fit_score(score: int) -> FitScoreInterpretation:
 
     # Determine label based on thresholds
     if score >= _FIT_THRESHOLD_EXCELLENT:
-        label = FitScoreLabel.EXCELLENT
+        label = FitScoreLabel.HIGH
     elif score >= _FIT_THRESHOLD_GOOD:
-        label = FitScoreLabel.GOOD
+        label = FitScoreLabel.MEDIUM
     elif score >= _FIT_THRESHOLD_FAIR:
-        label = FitScoreLabel.FAIR
+        label = FitScoreLabel.LOW
     else:
         label = FitScoreLabel.POOR
 

@@ -3,7 +3,7 @@
 REQ-008 §7.1: Fit Score Thresholds.
 
 Tests cover:
-- Threshold label mapping (Excellent, Good, Fair, Poor)
+- Threshold label mapping (High, Medium, Low, Poor)
 - Boundary conditions at threshold edges
 - Input validation (out of range scores, type validation)
 - Integration with calculate_fit_score
@@ -11,6 +11,7 @@ Tests cover:
 
 Note: Refactored from 5 tiers to 4 tiers (2026-02-02). The "Stretch" label
 was removed because it conflicted with the separate "Stretch Score" concept.
+Labels simplified from Excellent/Good/Fair/Poor to High/Medium/Low/Poor (2026-02-03).
 """
 
 import pytest
@@ -30,61 +31,61 @@ class TestFitScoreThresholdLabels:
     """Tests for Fit Score to label mapping."""
 
     # -------------------------------------------------------------------------
-    # Excellent (90-100)
+    # High (90-100)
     # -------------------------------------------------------------------------
 
-    def test_score_90_returns_excellent(self) -> None:
-        """Score of 90 (lower bound) returns Excellent."""
+    def test_score_90_returns_high(self) -> None:
+        """Score of 90 (lower bound) returns High."""
         result = interpret_fit_score(90)
-        assert result.label == FitScoreLabel.EXCELLENT
+        assert result.label == FitScoreLabel.HIGH
 
-    def test_score_100_returns_excellent(self) -> None:
-        """Score of 100 (upper bound) returns Excellent."""
+    def test_score_100_returns_high(self) -> None:
+        """Score of 100 (upper bound) returns High."""
         result = interpret_fit_score(100)
-        assert result.label == FitScoreLabel.EXCELLENT
+        assert result.label == FitScoreLabel.HIGH
 
-    def test_score_95_returns_excellent(self) -> None:
-        """Score of 95 (mid-range) returns Excellent."""
+    def test_score_95_returns_high(self) -> None:
+        """Score of 95 (mid-range) returns High."""
         result = interpret_fit_score(95)
-        assert result.label == FitScoreLabel.EXCELLENT
+        assert result.label == FitScoreLabel.HIGH
 
     # -------------------------------------------------------------------------
-    # Good (75-89)
+    # Medium (75-89)
     # -------------------------------------------------------------------------
 
-    def test_score_75_returns_good(self) -> None:
-        """Score of 75 (lower bound) returns Good."""
+    def test_score_75_returns_medium(self) -> None:
+        """Score of 75 (lower bound) returns Medium."""
         result = interpret_fit_score(75)
-        assert result.label == FitScoreLabel.GOOD
+        assert result.label == FitScoreLabel.MEDIUM
 
-    def test_score_89_returns_good(self) -> None:
-        """Score of 89 (upper bound) returns Good."""
+    def test_score_89_returns_medium(self) -> None:
+        """Score of 89 (upper bound) returns Medium."""
         result = interpret_fit_score(89)
-        assert result.label == FitScoreLabel.GOOD
+        assert result.label == FitScoreLabel.MEDIUM
 
-    def test_score_82_returns_good(self) -> None:
-        """Score of 82 (mid-range) returns Good."""
+    def test_score_82_returns_medium(self) -> None:
+        """Score of 82 (mid-range) returns Medium."""
         result = interpret_fit_score(82)
-        assert result.label == FitScoreLabel.GOOD
+        assert result.label == FitScoreLabel.MEDIUM
 
     # -------------------------------------------------------------------------
-    # Fair (60-74)
+    # Low (60-74)
     # -------------------------------------------------------------------------
 
-    def test_score_60_returns_fair(self) -> None:
-        """Score of 60 (lower bound) returns Fair."""
+    def test_score_60_returns_low(self) -> None:
+        """Score of 60 (lower bound) returns Low."""
         result = interpret_fit_score(60)
-        assert result.label == FitScoreLabel.FAIR
+        assert result.label == FitScoreLabel.LOW
 
-    def test_score_74_returns_fair(self) -> None:
-        """Score of 74 (upper bound) returns Fair."""
+    def test_score_74_returns_low(self) -> None:
+        """Score of 74 (upper bound) returns Low."""
         result = interpret_fit_score(74)
-        assert result.label == FitScoreLabel.FAIR
+        assert result.label == FitScoreLabel.LOW
 
-    def test_score_67_returns_fair(self) -> None:
-        """Score of 67 (mid-range) returns Fair."""
+    def test_score_67_returns_low(self) -> None:
+        """Score of 67 (mid-range) returns Low."""
         result = interpret_fit_score(67)
-        assert result.label == FitScoreLabel.FAIR
+        assert result.label == FitScoreLabel.LOW
 
     # -------------------------------------------------------------------------
     # Poor (0-59) — Combined with former "Stretch" tier
@@ -114,18 +115,18 @@ class TestFitScoreThresholdLabels:
 class TestFitScoreInterpretationText:
     """Tests for interpretation text in result."""
 
-    def test_excellent_has_interpretation_text(self) -> None:
-        """Excellent result includes interpretation text."""
+    def test_high_has_interpretation_text(self) -> None:
+        """High result includes interpretation text."""
         result = interpret_fit_score(95)
         assert result.interpretation == "Strong match, high confidence"
 
-    def test_good_has_interpretation_text(self) -> None:
-        """Good result includes interpretation text."""
+    def test_medium_has_interpretation_text(self) -> None:
+        """Medium result includes interpretation text."""
         result = interpret_fit_score(82)
         assert result.interpretation == "Solid match, minor gaps"
 
-    def test_fair_has_interpretation_text(self) -> None:
-        """Fair result includes interpretation text."""
+    def test_low_has_interpretation_text(self) -> None:
+        """Low result includes interpretation text."""
         result = interpret_fit_score(67)
         assert result.interpretation == "Partial match, notable gaps"
 
@@ -151,7 +152,7 @@ class TestFitScoreInterpretationResult:
     def test_result_has_label(self) -> None:
         """Result includes the label enum."""
         result = interpret_fit_score(85)
-        assert result.label == FitScoreLabel.GOOD
+        assert result.label == FitScoreLabel.MEDIUM
 
     def test_result_has_interpretation(self) -> None:
         """Result includes interpretation text."""
@@ -199,9 +200,9 @@ class TestFitScoreLabelEnum:
     def test_enum_has_all_labels(self) -> None:
         """Enum has all 4 threshold labels."""
         labels = [label.value for label in FitScoreLabel]
-        assert "Excellent" in labels
-        assert "Good" in labels
-        assert "Fair" in labels
+        assert "High" in labels
+        assert "Medium" in labels
+        assert "Low" in labels
         assert "Poor" in labels
 
     def test_enum_count(self) -> None:
@@ -254,8 +255,8 @@ class TestFitScoreIntegration:
         assert interpretation.score == fit_result.total
         assert interpretation.label in FitScoreLabel
 
-    def test_chain_excellent_score(self) -> None:
-        """calculate_fit_score producing 90+ is interpreted as Excellent."""
+    def test_chain_high_score(self) -> None:
+        """calculate_fit_score producing 90+ is interpreted as High."""
         fit_result = calculate_fit_score(
             hard_skills=100.0,
             soft_skills=100.0,
@@ -264,7 +265,7 @@ class TestFitScoreIntegration:
             location_logistics=100.0,
         )
         interpretation = interpret_fit_score(fit_result.total)
-        assert interpretation.label == FitScoreLabel.EXCELLENT
+        assert interpretation.label == FitScoreLabel.HIGH
 
     def test_chain_poor_score(self) -> None:
         """calculate_fit_score producing 0-59 is interpreted as Poor."""
@@ -297,7 +298,7 @@ class TestFitScoreInterpretationImmutability:
         """Cannot modify label attribute after creation."""
         result = interpret_fit_score(85)
         with pytest.raises(AttributeError):
-            result.label = FitScoreLabel.EXCELLENT  # type: ignore[misc]
+            result.label = FitScoreLabel.HIGH  # type: ignore[misc]
 
     def test_cannot_modify_interpretation(self) -> None:
         """Cannot modify interpretation attribute after creation."""

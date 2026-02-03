@@ -442,7 +442,7 @@ These steps require user action outside Claude Code:
 | 7.1 | Interpretation — Fit Score Thresholds | `tdd, plan` | ✅ |
 | 7.1a | Refactor — Fit Score 5→4 Tiers (combine Stretch+Poor into Poor 0-59) | `tdd, plan` | ✅ |
 | 7.2 | Interpretation — Stretch Score Thresholds | `tdd, plan` | ✅ |
-| 7.3 | Interpretation — Combined | `tdd, plan` | ✅ |
+| 7.3 | ~~Interpretation — Combined~~ | `tdd, plan` | ❌ CANCELLED |
 | 7.4 | Interpretation — Auto-Draft Threshold | `tdd, plan` | ⬜ |
 | 8.1 | Explanation — Components | `provider, tdd, plan` | ⬜ |
 | 8.2 | Explanation — Generation Logic | `provider, tdd, plan` | ⬜ |
@@ -458,7 +458,15 @@ These steps require user action outside Claude Code:
 
 #### Phase 2.5 Notes
 
-**§7.1a Decision (2026-02-02):** Refactored Fit Score from 5 tiers to 4 tiers for consistency with Stretch Score. The original REQ-008 §7.1 had 5 labels (Excellent 90+, Good 75+, Fair 60+, Stretch 40+, Poor 0-39). The "Stretch" label was confusing because there's also a separate "Stretch Score" measuring career goal alignment. Combined "Stretch" and "Poor" into a single "Poor" tier (0-59). Both Fit and Stretch now use 4 consistent tiers, making the Combined Interpretation (§7.3) cleaner. REQ-008 will be updated to reflect this change.
+**§7.1a Decision (2026-02-02):** Refactored Fit Score from 5 tiers to 4 tiers for consistency with Stretch Score. The original REQ-008 §7.1 had 5 labels (Excellent 90+, Good 75+, Fair 60+, Stretch 40+, Poor 0-39). The "Stretch" label was confusing because there's also a separate "Stretch Score" measuring career goal alignment. Combined "Stretch" and "Poor" into a single "Poor" tier (0-59). Both Fit and Stretch now use 4 consistent tiers. REQ-008 was updated to reflect this change.
+
+**§7.3 CANCELLED (2026-02-03):** Combined Interpretation was implemented but then cancelled after product review. The original design used a 2x2 matrix combining Fit + Stretch into a single recommendation (Top Priority, Safe Bet, Stretch Opportunity, Likely Skip). This was cancelled because:
+1. **Different search modes** — Users prioritize Fit (stability) or Stretch (growth) at different times based on their circumstances (career changers want low Fit + high Stretch; those with financial pressure need high Fit regardless).
+2. **Loss of user agency** — A combined recommendation imposes value judgments that may not match the user's current situation.
+3. **Resume strategy** — Users may maintain separate resumes for Fit-focused vs Stretch-focused searches.
+**New approach:** Fit Score and Stretch Score are independent. Each has its own interpretation labels (§7.1 and §7.2). The UI presents both scores side-by-side, letting users sort/filter by whichever dimension matters to them. Code deleted (2026-02-03): `combined_interpretation.py` and `test_combined_interpretation.py`. See REQ-008 §7.3 for full rationale.
+
+**§7.1b DONE (2026-02-03):** Updated Fit Score labels from Excellent/Good/Fair/Poor to High/Medium/Low/Poor. Thresholds remain 90/75/60. Code updated: `fit_score.py` (enum values and interpretation mapping) and `test_fit_score_interpretation.py`. REQ-008 §7.1 updated.
 
 ---
 
