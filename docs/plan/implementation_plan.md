@@ -445,7 +445,7 @@ These steps require user action outside Claude Code:
 | 7.3 | ~~Interpretation — Combined~~ | `tdd, plan` | ❌ CANCELLED |
 | 7.4 | Interpretation — Auto-Draft Threshold | `tdd, plan` | ✅ |
 | 8.1 | Explanation — Components | `provider, tdd, plan` | ✅ |
-| 8.2 | Explanation — Generation Logic | `provider, tdd, plan` | ⬜ |
+| 8.2 | Explanation — Generation Logic | `provider, tdd, plan` | ✅ |
 | 9.1 | Edge Cases — Missing Data | `test, tdd, plan` | ⬜ |
 | 9.2 | Edge Cases — Career Changers | `test, tdd, plan` | ⬜ |
 | 9.3 | Edge Cases — Entry-Level Users | `test, tdd, plan` | ⬜ |
