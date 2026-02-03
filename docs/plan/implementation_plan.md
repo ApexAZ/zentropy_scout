@@ -442,7 +442,7 @@ These steps require user action outside Claude Code:
 | 7.1 | Interpretation — Fit Score Thresholds | `tdd, plan` | ✅ |
 | 7.1a | Refactor — Fit Score 5→4 Tiers (combine Stretch+Poor into Poor 0-59) | `tdd, plan` | ✅ |
 | 7.2 | Interpretation — Stretch Score Thresholds | `tdd, plan` | ✅ |
-| 7.3 | Interpretation — Combined | `tdd, plan` | ⬜ |
+| 7.3 | Interpretation — Combined | `tdd, plan` | ✅ |
 | 7.4 | Interpretation — Auto-Draft Threshold | `tdd, plan` | ⬜ |
 | 8.1 | Explanation — Components | `provider, tdd, plan` | ⬜ |
 | 8.2 | Explanation — Generation Logic | `provider, tdd, plan` | ⬜ |
