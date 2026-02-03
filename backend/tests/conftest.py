@@ -1,4 +1,5 @@
 import asyncio
+import socket
 import uuid
 from collections.abc import AsyncGenerator, Iterator
 
@@ -27,6 +28,39 @@ TEST_DATABASE_URL = settings.database_url.replace(
 TEST_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
+def _is_postgres_available() -> bool:
+    """Check if PostgreSQL is accepting connections.
+
+    Returns:
+        True if PostgreSQL is reachable on port 5432, False otherwise.
+    """
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(("127.0.0.1", 5432))
+        sock.close()
+        return result == 0
+    except OSError:
+        return False
+
+
+# Check once at module load time
+_POSTGRES_AVAILABLE = _is_postgres_available()
+
+
+def skip_if_no_postgres() -> None:
+    """Skip test if PostgreSQL is not available.
+
+    Called by fixtures that require database connection.
+    Provides clear skip message to help diagnose CI/local issues.
+    """
+    if not _POSTGRES_AVAILABLE:
+        pytest.skip(
+            "PostgreSQL not available on port 5432. "
+            "Start database with: docker compose up -d"
+        )
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Create event loop for async tests."""
@@ -37,7 +71,12 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="function")
 async def db_engine():
-    """Create test database engine."""
+    """Create test database engine.
+
+    Skips test if PostgreSQL is not available (e.g., Docker not running).
+    """
+    skip_if_no_postgres()
+
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 
     async with engine.begin() as conn:
