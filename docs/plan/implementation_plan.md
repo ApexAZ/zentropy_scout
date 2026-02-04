@@ -397,7 +397,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 2.5 Scoring Engine (REQ-008)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Calculates Fit/Stretch scores. Required BEFORE Strategist agent.*
 
@@ -454,7 +454,7 @@ These steps require user action outside Claude Code:
 | 10.2 | Performance — Caching | `db, tdd, plan` | ✅ |
 | 10.3 | Performance — Embedding Costs | `provider, docs, plan` | ✅ |
 | 11.1 | Testing — Test Cases | `test, tdd, plan` | ✅ |
-| 11.2 | Testing — Validation Approach | `test, docs, plan` | ⬜ |
+| 11.2 | Testing — Validation Approach | `test, docs, plan` | ✅ |
 
 #### Phase 2.5 Notes
 
