@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "version": "0.1.0",
+    "created_date": "2026-02-04",
+    "description": "Golden set for validating Zentropy Scout scoring algorithm. REQ-008 section 11.2 specifies a target of 50 curated entries with human-labeled scores. Current: 5 seed entries representing diverse scoring scenarios.",
+    "curated_by": "Brian",
+    "target_correlation": 0.8
+  },
+  "entries": [
+    {
+      "id": "gs-001",
+      "persona_summary": "Senior Python developer with 8 years experience in backend systems, API design, and PostgreSQL. Strong in async programming, FastAPI, and cloud deployments. Looking to stay in senior IC roles.",
+      "job_summary": "Senior Backend Engineer at fintech startup. Requires Python, FastAPI, PostgreSQL, AWS. 5+ years experience. Building payment processing APIs.",
+      "human_fit_score": 92,
+      "human_stretch_score": 25,
+      "notes": "Near-perfect technical match. Low stretch because already senior and not seeking management or new tech stack."
+    },
+    {
+      "id": "gs-002",
+      "persona_summary": "Junior frontend developer with 1.5 years React experience. Completed bootcamp, built 3 portfolio projects. Eager to learn backend and grow toward full-stack role.",
+      "job_summary": "Full-Stack Developer at mid-size SaaS company. Requires React, Node.js, PostgreSQL. 3+ years experience preferred. Opportunity to work across the stack.",
+      "human_fit_score": 45,
+      "human_stretch_score": 85,
+      "notes": "Underqualified on experience but has relevant React skills. High stretch because role offers backend exposure aligned with growth goals."
+    },
+    {
+      "id": "gs-003",
+      "persona_summary": "Data scientist with 5 years experience in Python, pandas, scikit-learn. PhD in statistics. Looking to transition into ML engineering with focus on production systems.",
+      "job_summary": "Machine Learning Engineer at AI startup. Requires MLOps, Kubernetes, Python, model deployment. Experience with production ML systems required.",
+      "human_fit_score": 55,
+      "human_stretch_score": 78,
+      "notes": "Strong ML fundamentals but lacks production/MLOps experience. High stretch aligns with stated goal of moving to ML engineering."
+    },
+    {
+      "id": "gs-004",
+      "persona_summary": "DevOps engineer with 6 years experience in Kubernetes, Terraform, AWS, CI/CD. Currently a team lead managing 4 engineers. Wants to stay hands-on technical.",
+      "job_summary": "Engineering Manager at Series B startup. Requires strong technical background, people management experience, hiring skills. Managing team of 8 engineers.",
+      "human_fit_score": 65,
+      "human_stretch_score": 30,
+      "notes": "Has relevant leadership experience but role is more management-focused than desired. Low stretch because moving away from stated hands-on preference."
+    },
+    {
+      "id": "gs-005",
+      "persona_summary": "Career changer from marketing (7 years) who completed a coding bootcamp 6 months ago. Built projects in JavaScript, React, Node.js. Seeking first developer role.",
+      "job_summary": "Junior Software Developer at consultancy. Requires JavaScript fundamentals, willingness to learn, strong communication skills. Entry-level friendly, client-facing work.",
+      "human_fit_score": 70,
+      "human_stretch_score": 60,
+      "notes": "Good fit for entry-level role. Marketing background is actually an asset for client-facing consultancy. Moderate stretch with room to grow technically."
+    }
+  ]
+}
