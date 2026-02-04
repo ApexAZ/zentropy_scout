@@ -449,7 +449,7 @@ These steps require user action outside Claude Code:
 | 9.1 | Edge Cases — Missing Data | `test, tdd, plan` | ✅ |
 | 9.2 | Edge Cases — Career Changers | `test, tdd, plan` | ✅ |
 | 9.3 | Edge Cases — Entry-Level Users | `test, tdd, plan` | ✅ |
-| 9.4 | Edge Cases — Executive Roles | `test, tdd, plan` | ⬜ |
+| 9.4 | Edge Cases — Executive Roles | `test, tdd, plan` | ✅ |
 | 10.1 | Performance — Batch Scoring | `db, test, tdd, plan` | ⬜ |
 | 10.2 | Performance — Caching | `db, tdd, plan` | ⬜ |
 | 10.3 | Performance — Embedding Costs | `provider, docs, plan` | ⬜ |
