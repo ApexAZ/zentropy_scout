@@ -471,7 +471,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 2.6 Strategist Agent (REQ-007 §7)
-**Status:** ⬜ Incomplete
+**Status:** 🟡 In Progress
 
 *Applies scoring to jobs. Depends on REQ-008 (Scoring Engine).*
 
@@ -491,7 +491,7 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 7.1 | Strategist Agent — Trigger Conditions | `agents, provider, tdd, plan` | ⬜ |
+| 7.1 | Strategist Agent — Trigger Conditions | `agents, provider, tdd, plan` | ✅ |
 | 7.2 | Strategist Agent — Scoring Flow | `agents, provider, structure, tdd, plan` | ⬜ |
 | 7.3 | Strategist Agent — Non-Negotiables Filtering | `agents, db, tdd, plan` | ⬜ |
 | 7.4 | Strategist Agent — Embedding-Based Matching | `agents, db, provider, tdd, plan` | ⬜ |
