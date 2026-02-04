@@ -675,9 +675,11 @@ These steps require user action outside Claude Code:
 ## Phase 4: Extension
 
 ### 4.1 Chrome Extension (REQ-011)
-**Status:** ⬜ Incomplete
+**Status:** ⏸️ Postponed
 
 *Browser-based job capture. Can be built in parallel after API is ready.*
+
+> **Note (2026-02-03):** Postponed in favor of building the frontend GUI first. This allows testing core backend functions (scoring, agents, document generation) through the web interface before investing in the browser extension. The extension can be revisited after the GUI is functional.
 
 #### Workflow
 | Step | Action |
