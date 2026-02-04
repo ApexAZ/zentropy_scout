@@ -9,7 +9,56 @@ The Strategist orchestrates:
 4. Job posting updates with scores
 """
 
+from dataclasses import dataclass
+from uuid import UUID, uuid4
+
 from app.agents.state import ScoreResult, StrategistState
+from app.services.scoring_flow import (
+    build_filtered_score_result,
+    filter_job_non_negotiables,
+    filter_jobs_batch,
+)
+
+# =============================================================================
+# Test Fixtures - Mock Data for Non-Negotiables Testing
+# =============================================================================
+
+
+@dataclass
+class MockPersona:
+    """Minimal persona for non-negotiables testing.
+
+    Implements PersonaNonNegotiablesLike protocol for use with filter functions.
+    """
+
+    remote_preference: str = "No Preference"
+    minimum_base_salary: int | None = None
+    commutable_cities: list[str] | None = None
+    industry_exclusions: list[str] | None = None
+    visa_sponsorship_required: bool = False
+
+    def __post_init__(self) -> None:
+        """Initialize list fields to empty lists if None."""
+        if self.commutable_cities is None:
+            self.commutable_cities = []
+        if self.industry_exclusions is None:
+            self.industry_exclusions = []
+
+
+@dataclass
+class MockJob:
+    """Minimal job for non-negotiables testing.
+
+    Implements JobFilterDataLike protocol for use with filter functions.
+    """
+
+    id: UUID
+    work_model: str | None = None
+    salary_max: int | None = None
+    location: str | None = None
+    industry: str | None = None
+    visa_sponsorship: bool | None = None
+
 
 # =============================================================================
 # Trigger Condition Tests (§7.1)
@@ -236,3 +285,242 @@ class TestStrategistStretchScore:
         }
 
         assert result["stretch_score"] > result["fit_score"]
+
+
+# =============================================================================
+# Non-Negotiables Filter Node Integration Tests (§7.3)
+# =============================================================================
+
+
+class TestStrategistFilterAndScoreNodeIntegration:
+    """Tests for filter_and_score_node integration with non-negotiables.
+
+    REQ-007 §7.3: These tests verify that the Strategist graph node
+    correctly integrates with the non_negotiables_filter service.
+    """
+
+    def test_node_filters_job_failing_remote_preference(self) -> None:
+        """Node should filter job that fails remote preference check."""
+        persona = MockPersona(remote_preference="Remote Only")
+        job = MockJob(id=uuid4(), work_model="Onsite")
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is False
+        assert len(filter_result.failed_reasons) > 0
+
+        score_result = build_filtered_score_result(filter_result)
+
+        assert score_result["fit_score"] is None
+        assert score_result["stretch_score"] is None
+        assert score_result["filtered_reason"] is not None
+        assert "Remote" in score_result["filtered_reason"]
+
+    def test_node_passes_job_meeting_all_non_negotiables(self) -> None:
+        """Node should pass job meeting all non-negotiables checks."""
+        persona = MockPersona(
+            remote_preference="Hybrid OK",
+            minimum_base_salary=100000,
+        )
+        job = MockJob(
+            id=uuid4(),
+            work_model="Remote",
+            salary_max=150000,
+            industry="Technology",
+            visa_sponsorship=True,
+        )
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is True
+        assert len(filter_result.failed_reasons) == 0
+
+    def test_node_filters_job_below_salary_minimum(self) -> None:
+        """Node should filter job with salary below minimum."""
+        persona = MockPersona(minimum_base_salary=150000)
+        job = MockJob(id=uuid4(), work_model="Remote", salary_max=100000)
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is False
+
+        score_result = build_filtered_score_result(filter_result)
+        assert "Salary" in score_result["filtered_reason"]
+
+    def test_node_filters_job_in_excluded_industry(self) -> None:
+        """Node should filter job in excluded industry."""
+        persona = MockPersona(industry_exclusions=["Gambling", "Tobacco"])
+        job = MockJob(id=uuid4(), work_model="Remote", industry="Gambling")
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is False
+
+        score_result = build_filtered_score_result(filter_result)
+        assert "Gambling" in score_result["filtered_reason"]
+
+    def test_node_aggregates_multiple_filter_failures(self) -> None:
+        """Node should aggregate multiple non-negotiables failures."""
+        persona = MockPersona(
+            remote_preference="Remote Only",
+            minimum_base_salary=200000,
+            industry_exclusions=["Gambling"],
+            visa_sponsorship_required=True,
+        )
+        job = MockJob(
+            id=uuid4(),
+            work_model="Onsite",  # Fails remote
+            salary_max=100000,  # Fails salary
+            industry="Gambling",  # Fails industry
+            visa_sponsorship=False,  # Fails visa
+        )
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is False
+        assert len(filter_result.failed_reasons) >= 4
+
+        score_result = build_filtered_score_result(filter_result)
+        reasons = score_result["filtered_reason"].split("|")
+        assert len(reasons) >= 4
+
+    def test_node_passes_with_undisclosed_salary_warning(self) -> None:
+        """Node should pass job with undisclosed salary but add warning."""
+        persona = MockPersona(minimum_base_salary=100000)
+        job = MockJob(id=uuid4(), work_model="Remote")
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is True
+        assert any("Salary" in w for w in filter_result.warnings)
+
+    def test_node_filters_job_requiring_visa_sponsorship(self) -> None:
+        """Node should filter job when visa required but not offered."""
+        persona = MockPersona(visa_sponsorship_required=True)
+        job = MockJob(id=uuid4(), work_model="Remote", visa_sponsorship=False)
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is False
+
+        score_result = build_filtered_score_result(filter_result)
+        assert "sponsorship" in score_result["filtered_reason"].lower()
+
+    def test_node_filters_job_in_non_commutable_city(self) -> None:
+        """Node should filter onsite job in non-commutable city."""
+        persona = MockPersona(
+            remote_preference="Onsite OK",
+            commutable_cities=["San Francisco", "Oakland"],
+        )
+        job = MockJob(id=uuid4(), work_model="Onsite", location="New York")
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is False
+
+        score_result = build_filtered_score_result(filter_result)
+        assert "commutable" in score_result["filtered_reason"].lower()
+
+    def test_node_passes_remote_job_regardless_of_location(self) -> None:
+        """Remote jobs should pass commutable cities check regardless of location."""
+        persona = MockPersona(
+            remote_preference="Hybrid OK",
+            commutable_cities=["San Francisco"],
+        )
+        job = MockJob(id=uuid4(), work_model="Remote", location="Tokyo")
+
+        filter_result = filter_job_non_negotiables(persona, job)
+
+        assert filter_result.passed is True
+
+
+# =============================================================================
+# Filter and Score Node State Tests (§7.3)
+# =============================================================================
+
+
+class TestFilterAndScoreNodeState:
+    """Tests for filter_and_score_node state transitions.
+
+    REQ-007 §7.3: These tests verify the node correctly updates state
+    with filtered jobs and their reasons.
+    """
+
+    def test_batch_filter_separates_passing_and_failing_jobs(self) -> None:
+        """filter_jobs_batch should correctly separate jobs."""
+        persona = MockPersona(remote_preference="Remote Only")
+
+        job1 = MockJob(id=uuid4(), work_model="Remote")
+        job2 = MockJob(id=uuid4(), work_model="Onsite")
+        job3 = MockJob(id=uuid4(), work_model="Remote")
+
+        passing, filtered = filter_jobs_batch(persona, [job1, job2, job3])
+
+        assert len(passing) == 2
+        assert len(filtered) == 1
+        assert passing[0].id == job1.id
+        assert passing[1].id == job3.id
+        assert filtered[0].job_id == job2.id
+
+    def test_filtered_results_contain_failure_reasons(self) -> None:
+        """Filtered results should contain descriptive failure reasons."""
+        persona = MockPersona(
+            remote_preference="Remote Only",
+            minimum_base_salary=100000,
+        )
+        job = MockJob(id=uuid4(), work_model="Onsite", salary_max=50000)
+
+        _, filtered = filter_jobs_batch(persona, [job])
+
+        assert len(filtered) == 1
+        assert len(filtered[0].failed_reasons) >= 2
+        reasons_text = " ".join(filtered[0].failed_reasons)
+        assert "Remote" in reasons_text or "Onsite" in reasons_text
+        assert "Salary" in reasons_text or "salary" in reasons_text
+
+    def test_state_output_includes_filtered_jobs_list(self) -> None:
+        """Output state should track filtered job IDs separately."""
+        persona = MockPersona(remote_preference="Remote Only")
+        jobs = [MockJob(id=uuid4(), work_model="Onsite") for _ in range(3)]
+
+        _, filtered = filter_jobs_batch(persona, jobs)
+
+        filtered_job_ids = [str(f.job_id) for f in filtered]
+
+        assert len(filtered_job_ids) == 3
+        assert len(set(filtered_job_ids)) == 3
+
+    def test_score_results_built_correctly_for_filtered_jobs(self) -> None:
+        """ScoreResults for filtered jobs should have correct structure."""
+        persona = MockPersona(
+            remote_preference="Remote Only",
+            industry_exclusions=["Gambling"],
+        )
+        job = MockJob(id=uuid4(), work_model="Onsite", industry="Gambling")
+
+        _, filtered = filter_jobs_batch(persona, [job])
+
+        # Build ScoreResult for filtered job
+        score_result = build_filtered_score_result(filtered[0])
+
+        # Verify structure matches ScoreResult TypedDict
+        assert "job_posting_id" in score_result
+        assert "fit_score" in score_result
+        assert "stretch_score" in score_result
+        assert "explanation" in score_result
+        assert "filtered_reason" in score_result
+
+        # Verify values
+        assert score_result["fit_score"] is None
+        assert score_result["stretch_score"] is None
+        assert score_result["filtered_reason"] is not None
+        assert "|" in score_result["filtered_reason"]  # Multiple reasons
+
+    def test_empty_jobs_list_produces_empty_output(self) -> None:
+        """Empty input should produce empty output."""
+        persona = MockPersona(remote_preference="Remote Only")
+
+        passing, filtered = filter_jobs_batch(persona, [])
+
+        assert len(passing) == 0
+        assert len(filtered) == 0
