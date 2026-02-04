@@ -33,6 +33,7 @@ from app.services.soft_skills_match import (
     calculate_soft_skills_score,
     cosine_similarity,
 )
+from app.services.stretch_score import STRETCH_NEUTRAL_SCORE
 
 # =============================================================================
 # Test Fixtures - Mock Data for Non-Negotiables Testing
@@ -794,7 +795,12 @@ class TestStrategistBatchScoringIntegration:
 
 
 class TestStrategistStretchScore:
-    """Tests for stretch score in Strategist per REQ-007 §7.5."""
+    """Tests for stretch score in Strategist per REQ-007 §7.5.
+
+    Verifies that Stretch Score components (target role alignment, target
+    skills exposure, growth trajectory) integrate correctly within the
+    Strategist agent's scoring flow.
+    """
 
     def test_stretch_score_in_valid_range(self) -> None:
         """Stretch score should be 0-100."""
@@ -819,6 +825,151 @@ class TestStrategistStretchScore:
         }
 
         assert result["stretch_score"] > result["fit_score"]
+
+    # -----------------------------------------------------------------
+    # Batch Scoring Stretch Integration — REQ-007 §7.5
+    # -----------------------------------------------------------------
+    # NOTE: Unit-level tests for individual stretch score functions
+    # (calculate_target_role_alignment, calculate_target_skills_exposure,
+    # calculate_growth_trajectory, calculate_stretch_score, interpret_stretch_score)
+    # live in their dedicated test files:
+    #   - test_target_role_alignment.py
+    #   - test_target_skills_exposure.py
+    #   - test_growth_trajectory.py
+    #   - test_stretch_score_aggregation.py
+    #   - test_stretch_score_interpretation.py
+    #
+    # Tests below focus on integration: how the Strategist graph
+    # composes these functions via batch_score_jobs.
+    # -----------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_batch_scoring_stretch_contains_three_components(self) -> None:
+        """Stretch Score from batch scoring should contain all 3 components.
+
+        REQ-008 §5.1: target_role (50%), target_skills (40%), growth (10%).
+        """
+        persona = _make_scoring_persona()
+        embeddings = _make_scoring_persona_embeddings(persona.id)
+        provider = MockEmbeddingProvider()
+        job = _make_scoring_job()
+
+        results = await batch_score_jobs(
+            jobs=[job],
+            persona=persona,
+            persona_embeddings=embeddings,
+            embedding_provider=provider,
+        )
+
+        stretch = results[0].stretch_score
+        assert "target_role" in stretch.components
+        assert "target_skills" in stretch.components
+        assert "growth_trajectory" in stretch.components
+
+        # Verify weights sum to 1.0
+        weight_sum = sum(stretch.weights.values())
+        assert abs(weight_sum - 1.0) < 0.001
+
+    @pytest.mark.asyncio
+    async def test_batch_scoring_stretch_maps_to_score_result(self) -> None:
+        """Stretch score from batch scoring should map to ScoreResult.
+
+        REQ-007 §7.5: build_scored_result should accept stretch_score total.
+        """
+        persona = _make_scoring_persona()
+        embeddings = _make_scoring_persona_embeddings(persona.id)
+        provider = MockEmbeddingProvider()
+        job = _make_scoring_job()
+
+        results = await batch_score_jobs(
+            jobs=[job],
+            persona=persona,
+            persona_embeddings=embeddings,
+            embedding_provider=provider,
+        )
+
+        scored_job = results[0]
+        score_result = build_scored_result(
+            job_id=scored_job.job_id,
+            fit_score=float(scored_job.fit_score.total),
+            stretch_score=float(scored_job.stretch_score.total),
+        )
+
+        assert score_result["stretch_score"] == scored_job.stretch_score.total
+        assert 0 <= score_result["stretch_score"] <= 100
+
+    @pytest.mark.asyncio
+    async def test_batch_scoring_persona_with_growth_targets(self) -> None:
+        """Persona with specific growth targets should influence stretch score.
+
+        REQ-007 §7.5: Target roles and skills drive stretch calculation.
+        """
+        persona = MockScoringPersona(
+            id=uuid.uuid4(),
+            skills=[MockSkill("Python", "Hard", "Expert")],
+            years_experience=5,
+            current_role="Software Engineer",
+            target_roles=["Senior Software Engineer"],
+            target_skills=["Kubernetes", "Terraform"],
+        )
+        embeddings = _make_scoring_persona_embeddings(persona.id)
+        provider = MockEmbeddingProvider()
+
+        # Job that matches target role exactly and has one target skill
+        job = MockScoringJobPosting(
+            id=uuid.uuid4(),
+            job_title="Senior Software Engineer",
+            extracted_skills=[
+                MockExtractedSkill("Python", "Hard"),
+                MockExtractedSkill("Kubernetes", "Hard"),  # Matches target skill
+            ],
+        )
+
+        results = await batch_score_jobs(
+            jobs=[job],
+            persona=persona,
+            persona_embeddings=embeddings,
+            embedding_provider=provider,
+        )
+
+        stretch = results[0].stretch_score
+        # Target role exact match → 100
+        assert stretch.components["target_role"] == 100.0
+        # 1 target skill match → 50
+        assert stretch.components["target_skills"] == 50.0
+        # mid → senior = step up → 100
+        assert stretch.components["growth_trajectory"] == 100.0
+
+    @pytest.mark.asyncio
+    async def test_batch_scoring_no_growth_targets_returns_neutral(self) -> None:
+        """Persona without growth targets should get neutral stretch scores.
+
+        REQ-008 §5.2, §5.3: Missing targets = neutral (50).
+        """
+        persona = MockScoringPersona(
+            id=uuid.uuid4(),
+            skills=[MockSkill("Python", "Hard", "Expert")],
+            years_experience=5,
+            current_role="Software Engineer",
+            target_roles=[],
+            target_skills=[],
+        )
+        embeddings = _make_scoring_persona_embeddings(persona.id)
+        provider = MockEmbeddingProvider()
+        job = _make_scoring_job()
+
+        results = await batch_score_jobs(
+            jobs=[job],
+            persona=persona,
+            persona_embeddings=embeddings,
+            embedding_provider=provider,
+        )
+
+        stretch = results[0].stretch_score
+        # No target roles → neutral
+        assert stretch.components["target_role"] == STRETCH_NEUTRAL_SCORE
+        # No target skills → neutral
+        assert stretch.components["target_skills"] == STRETCH_NEUTRAL_SCORE
 
 
 # =============================================================================
