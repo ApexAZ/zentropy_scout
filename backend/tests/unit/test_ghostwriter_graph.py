@@ -69,17 +69,6 @@ class TestGhostwriterGraphStructure:
 
         assert non_internal == expected_nodes
 
-    def test_entry_point_is_check_existing_variant(self) -> None:
-        """Entry point should be check_existing_variant per §15.5."""
-
-        graph = create_ghostwriter_graph()
-        compiled = graph.compile()
-        graph_repr = compiled.get_graph()
-        # __start__ should connect to check_existing_variant
-        start_edges = [e.target for e in graph_repr.edges if e.source == "__start__"]
-
-        assert "check_existing_variant" in start_edges
-
     def test_graph_compiles_without_error(self) -> None:
         """Graph should compile successfully."""
 
@@ -108,6 +97,139 @@ class TestGhostwriterGraphStructure:
         assert graph1 is not graph2
 
         reset_ghostwriter_graph()
+
+
+# =============================================================================
+# Edge Topology Tests (§15.5)
+# =============================================================================
+
+
+class TestGhostwriterGraphEdgeTopology:
+    """Tests for edge connectivity per REQ-007 §15.5 graph specification.
+
+    Validates that every edge in the compiled graph matches the documented
+    specification. Covers both linear edges and conditional routing edges.
+    """
+
+    @pytest.fixture
+    def edge_targets(self) -> dict[str, set[str]]:
+        """Build a mapping of source -> {targets} from compiled graph edges."""
+
+        graph = create_ghostwriter_graph()
+        compiled = graph.compile()
+        graph_repr = compiled.get_graph()
+        mapping: dict[str, set[str]] = {}
+        for edge in graph_repr.edges:
+            mapping.setdefault(edge.source, set()).add(edge.target)
+        return mapping
+
+    # --- Entry point ---
+
+    def test_start_connects_only_to_check_existing_variant(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """__start__ should connect to check_existing_variant only."""
+
+        assert edge_targets["__start__"] == {"check_existing_variant"}
+
+    # --- Conditional: route_existing_variant ---
+
+    def test_check_existing_variant_routes_to_resume_and_duplicate(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """check_existing_variant should route to select_base_resume | handle_duplicate."""
+
+        targets = edge_targets["check_existing_variant"]
+        assert "select_base_resume" in targets
+        assert "handle_duplicate" in targets
+
+    # --- Linear: handle_duplicate -> END ---
+
+    def test_handle_duplicate_connects_to_end(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """handle_duplicate should connect to END."""
+
+        assert "__end__" in edge_targets["handle_duplicate"]
+
+    # --- Linear: select_base_resume -> evaluate_tailoring_need ---
+
+    def test_select_base_resume_connects_to_evaluate_tailoring(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """select_base_resume should connect to evaluate_tailoring_need."""
+
+        assert "evaluate_tailoring_need" in edge_targets["select_base_resume"]
+
+    # --- Conditional: needs_tailoring ---
+
+    def test_evaluate_tailoring_routes_to_variant_and_stories(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """evaluate_tailoring_need should route to variant or stories."""
+
+        targets = edge_targets["evaluate_tailoring_need"]
+        assert "create_job_variant" in targets
+        assert "select_achievement_stories" in targets
+
+    # --- Linear: create_job_variant -> select_achievement_stories ---
+
+    def test_create_job_variant_connects_to_select_stories(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """create_job_variant should connect to select_achievement_stories."""
+
+        assert "select_achievement_stories" in edge_targets["create_job_variant"]
+
+    # --- Linear: select_achievement_stories -> generate_cover_letter ---
+
+    def test_select_stories_connects_to_generate_cover_letter(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """select_achievement_stories should connect to generate_cover_letter."""
+
+        assert "generate_cover_letter" in edge_targets["select_achievement_stories"]
+
+    # --- Linear: generate_cover_letter -> check_job_still_active ---
+
+    def test_generate_cover_letter_connects_to_check_job_active(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """generate_cover_letter should connect to check_job_still_active."""
+
+        assert "check_job_still_active" in edge_targets["generate_cover_letter"]
+
+    # --- Conditional: is_job_active ---
+
+    def test_check_job_active_routes_to_present_for_review(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """check_job_still_active should route to present_for_review."""
+
+        assert "present_for_review" in edge_targets["check_job_still_active"]
+
+    # --- Linear: present_for_review -> END ---
+
+    def test_present_for_review_connects_to_end(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """present_for_review should connect to END."""
+
+        assert "__end__" in edge_targets["present_for_review"]
+
+    # --- Full topology validation ---
+
+    def test_no_unexpected_terminal_nodes(
+        self, edge_targets: dict[str, set[str]]
+    ) -> None:
+        """Only handle_duplicate and present_for_review should reach __end__."""
+
+        nodes_to_end = {
+            src for src, targets in edge_targets.items() if "__end__" in targets
+        }
+        # Exclude __start__ from consideration
+        nodes_to_end.discard("__start__")
+        assert nodes_to_end == {"handle_duplicate", "present_for_review"}
 
 
 # =============================================================================
