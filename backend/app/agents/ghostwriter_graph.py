@@ -34,7 +34,8 @@ import logging
 from langgraph.graph import END, StateGraph
 
 from app.agents.ghostwriter import TriggerType
-from app.agents.state import GhostwriterState, TailoringAnalysis
+from app.agents.state import GeneratedContent, GhostwriterState, TailoringAnalysis
+from app.services.cover_letter_generation import generate_cover_letter
 from app.services.tailoring_decision import evaluate_tailoring_need
 
 _VALID_TRIGGER_TYPES = {t.value for t in TriggerType}
@@ -274,14 +275,15 @@ async def generate_cover_letter_node(
     align with job keywords. Uses Sonnet-tier model for writing quality.
     REQ-007 §15.5: LLM call (Sonnet).
 
-    Note: Placeholder. Actual implementation will call the LLM with
-    the cover letter prompt template and POST /cover-letters.
+    Calls the cover letter generation service with placeholder values for
+    fields not yet populated (voice profile, persona details). Real data
+    arrives when upstream nodes (§3.x voice profile, API client) are wired.
 
     Args:
         state: State with persona_id, job_posting_id, and selected_stories.
 
     Returns:
-        State with generated_cover_letter populated.
+        State with generated_cover_letter populated as GeneratedContent dict.
     """
     job_id = state.get("job_posting_id")
     stories = state.get("selected_stories", [])
@@ -292,10 +294,35 @@ async def generate_cover_letter_node(
         len(stories),
     )
 
-    # Placeholder: no content generated yet
+    # Placeholder values — real data arrives when API client is wired
+    result = await generate_cover_letter(
+        applicant_name="",
+        current_title="",
+        job_title="",
+        company_name="",
+        top_skills="",
+        culture_signals="",
+        description_excerpt="",
+        tone="",
+        sentence_style="",
+        vocabulary_level="",
+        personality_markers="",
+        preferred_phrases="",
+        things_to_avoid="",
+        writing_sample="",
+        stories=[],
+        stories_used=stories,
+    )
+
+    generated: GeneratedContent = {
+        "content": result.content,
+        "reasoning": result.reasoning,
+        "stories_used": result.stories_used,
+    }
+
     return {
         **state,
-        "generated_cover_letter": None,
+        "generated_cover_letter": generated,
     }
 
 

@@ -36,6 +36,7 @@ from app.agents.ghostwriter_graph import (
     select_base_resume_node,
 )
 from app.agents.state import GhostwriterState
+from app.services.cover_letter_generation import CoverLetterResult
 
 # =============================================================================
 # Graph Structure Tests (§15.5)
@@ -414,11 +415,80 @@ class TestSelectAchievementStoriesNode:
 
 
 class TestGenerateCoverLetterNode:
-    """Tests for generate_cover_letter_node."""
+    """Tests for generate_cover_letter_node.
+
+    REQ-007 §8.5: Cover letter generation wired to LLM service.
+    """
+
+    def _mock_cover_letter_result(self) -> CoverLetterResult:
+        """Create a mock CoverLetterResult for testing."""
+        return CoverLetterResult(
+            content="Dear Hiring Manager, ...",
+            reasoning="Selected story for relevance.",
+            word_count=42,
+            stories_used=["story-1", "story-2"],
+        )
 
     @pytest.mark.asyncio
-    async def test_sets_generated_cover_letter(self) -> None:
-        """Node should set generated_cover_letter in state."""
+    async def test_sets_generated_cover_letter_as_dict(self) -> None:
+        """Node should set generated_cover_letter as a GeneratedContent dict."""
+
+        mock_result = self._mock_cover_letter_result()
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+            "selected_stories": ["story-1", "story-2"],
+        }
+
+        with patch(
+            "app.agents.ghostwriter_graph.generate_cover_letter",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ):
+            result = await generate_cover_letter_node(state)
+
+        letter = result["generated_cover_letter"]
+        assert isinstance(letter, dict)
+        assert letter["content"] == "Dear Hiring Manager, ..."
+        assert letter["reasoning"] == "Selected story for relevance."
+        assert letter["stories_used"] == ["story-1", "story-2"]
+
+    @pytest.mark.asyncio
+    async def test_preserves_existing_state(self) -> None:
+        """Node should preserve existing state fields."""
+
+        mock_result = self._mock_cover_letter_result()
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+            "trigger_type": "manual_request",
+            "selected_stories": ["story-1"],
+        }
+
+        with patch(
+            "app.agents.ghostwriter_graph.generate_cover_letter",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ):
+            result = await generate_cover_letter_node(state)
+
+        assert result["user_id"] == "user-1"
+        assert result["trigger_type"] == "manual_request"
+
+    @pytest.mark.asyncio
+    async def test_handles_empty_selected_stories(self) -> None:
+        """Node should work with empty selected_stories."""
+
+        mock_result = CoverLetterResult(
+            content="Dear Hiring Manager, ...",
+            reasoning="No stories available.",
+            word_count=42,
+            stories_used=[],
+        )
 
         state: GhostwriterState = {
             "user_id": "user-1",
@@ -426,9 +496,40 @@ class TestGenerateCoverLetterNode:
             "job_posting_id": "job-1",
             "selected_stories": [],
         }
-        result = await generate_cover_letter_node(state)
 
-        assert "generated_cover_letter" in result
+        with patch(
+            "app.agents.ghostwriter_graph.generate_cover_letter",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ):
+            result = await generate_cover_letter_node(state)
+
+        letter = result["generated_cover_letter"]
+        assert letter["stories_used"] == []
+
+    @pytest.mark.asyncio
+    async def test_passes_state_data_to_service(self) -> None:
+        """Node should pass state data to the generate_cover_letter service."""
+
+        mock_result = self._mock_cover_letter_result()
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+            "selected_stories": ["story-1"],
+        }
+
+        with patch(
+            "app.agents.ghostwriter_graph.generate_cover_letter",
+            new_callable=AsyncMock,
+            return_value=mock_result,
+        ) as mock_service:
+            await generate_cover_letter_node(state)
+
+        mock_service.assert_called_once()
+        call_kwargs = mock_service.call_args[1]
+        assert call_kwargs["stories_used"] == ["story-1"]
 
 
 class TestCheckJobStillActiveNode:
