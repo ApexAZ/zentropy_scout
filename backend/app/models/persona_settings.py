@@ -20,13 +20,26 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.models.base import Base, TimestampMixin
 
 
-class VoiceProfile(Base):
+class VoiceProfile(Base, TimestampMixin):
     """Writing style preferences for content generation.
 
     One-to-one with Persona. Tier 2 - references Persona.
+    Uses TimestampMixin for created_at/updated_at (with onupdate).
+
+    REQ-005 §4.1: Database schema.
+    REQ-010 §3.1: Generation impact of each field.
+
+    Generation impact by field:
+        tone: Overall emotional register for generated content.
+        sentence_style: Structural preferences (length, voice).
+        vocabulary_level: Word choice guidance (technical vs plain).
+        personality_markers: Distinctive characteristics to reproduce.
+        sample_phrases: Preferred constructions used as templates.
+        things_to_avoid: Blacklisted words/phrases — absolute exclusion.
+        writing_sample_text: Raw text for voice derivation by LLM.
     """
 
     __tablename__ = "voice_profiles"
