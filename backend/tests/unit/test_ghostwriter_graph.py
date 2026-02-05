@@ -397,7 +397,10 @@ class TestCreateJobVariantNode:
 
 
 class TestSelectAchievementStoriesNode:
-    """Tests for select_achievement_stories_node."""
+    """Tests for select_achievement_stories_node.
+
+    REQ-007 §8.6: Story selection wired to story_selection service.
+    """
 
     @pytest.mark.asyncio
     async def test_sets_selected_stories(self) -> None:
@@ -412,6 +415,64 @@ class TestSelectAchievementStoriesNode:
 
         assert "selected_stories" in result
         assert isinstance(result["selected_stories"], list)
+
+    @pytest.mark.asyncio
+    async def test_delegates_to_story_selection_service(self) -> None:
+        """Node should call select_achievement_stories from the service."""
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+        }
+
+        with patch(
+            "app.agents.ghostwriter_graph.select_achievement_stories",
+            return_value=[],
+        ) as mock_service:
+            await select_achievement_stories_node(state)
+
+        mock_service.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_extracts_story_ids_from_scored_results(self) -> None:
+        """Node should extract story_id from ScoredStory results."""
+        from app.services.story_selection import ScoredStory
+
+        mock_results = [
+            ScoredStory(
+                story_id="story-1",
+                title="Migration",
+                context="ctx",
+                action="act",
+                outcome="out",
+                score=50,
+                rationale="Skills match",
+            ),
+            ScoredStory(
+                story_id="story-2",
+                title="Pipeline",
+                context="ctx",
+                action="act",
+                outcome="out",
+                score=30,
+                rationale="Recency",
+            ),
+        ]
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+        }
+
+        with patch(
+            "app.agents.ghostwriter_graph.select_achievement_stories",
+            return_value=mock_results,
+        ):
+            result = await select_achievement_stories_node(state)
+
+        assert result["selected_stories"] == ["story-1", "story-2"]
 
 
 class TestGenerateCoverLetterNode:

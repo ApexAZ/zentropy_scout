@@ -36,6 +36,7 @@ from langgraph.graph import END, StateGraph
 from app.agents.ghostwriter import TriggerType
 from app.agents.state import GeneratedContent, GhostwriterState, TailoringAnalysis
 from app.services.cover_letter_generation import generate_cover_letter
+from app.services.story_selection import select_achievement_stories
 from app.services.tailoring_decision import evaluate_tailoring_need
 
 _VALID_TRIGGER_TYPES = {t.value for t in TriggerType}
@@ -241,14 +242,16 @@ async def select_achievement_stories_node(
     REQ-007 §8.6: Match stories to job requirements, prefer recent and
     quantified stories, avoid repetition from recent applications.
 
-    Note: Placeholder. Actual implementation will score and select
-    achievement stories from the persona.
+    Delegates to the story_selection service with pre-extracted data.
+    Currently invoked with empty data; real data arrives when the API
+    client and repository layer are wired to fetch persona stories,
+    job skills, and recent application usage.
 
     Args:
         state: State with persona_id and job_posting_id.
 
     Returns:
-        State with selected_stories list populated.
+        State with selected_stories list populated (story IDs).
     """
     persona_id = state.get("persona_id")
     job_id = state.get("job_posting_id")
@@ -259,10 +262,16 @@ async def select_achievement_stories_node(
         job_id,
     )
 
-    # Placeholder: empty selection
+    # Placeholder inputs — real data arrives when API client is wired
+    # to fetch persona.achievement_stories, job.extracted_skills, etc.
+    scored = select_achievement_stories(
+        stories=[],
+        job_skills=set(),
+    )
+
     return {
         **state,
-        "selected_stories": [],
+        "selected_stories": [s.story_id for s in scored],
     }
 
 
