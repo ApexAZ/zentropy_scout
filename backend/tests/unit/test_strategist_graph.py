@@ -1,6 +1,7 @@
 """Tests for Strategist Agent graph.
 
 REQ-007 §7: Strategist Agent — Applies scoring to discovered jobs.
+REQ-007 §15.4: Graph Spec — Strategist Agent (10-node graph)
 
 The Strategist orchestrates:
 1. Non-negotiables filtering
@@ -12,10 +13,30 @@ The Strategist orchestrates:
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from app.agents.state import ScoreResult, StrategistState
+from app.agents.strategist_graph import (
+    calculate_fit_score_node,
+    calculate_stretch_score_node,
+    check_auto_draft_threshold,
+    check_embedding_freshness_node,
+    check_non_negotiables_pass,
+    create_strategist_graph,
+    filter_non_negotiables_node,
+    generate_job_embeddings_node,
+    generate_rationale_node,
+    get_strategist_graph,
+    is_embedding_stale,
+    load_persona_embeddings_node,
+    regenerate_embeddings_node,
+    reset_strategist_graph,
+    save_scores_node,
+    score_jobs,
+    trigger_ghostwriter_node,
+)
 from app.services.batch_scoring import batch_score_jobs
 from app.services.fit_score import FIT_NEUTRAL_SCORE
 from app.services.persona_embedding_generator import (
@@ -1211,3 +1232,495 @@ class TestFilterAndScoreNodeState:
 
         assert len(passing) == 0
         assert len(filtered) == 0
+
+
+# =============================================================================
+# Graph Structure Tests (§15.4)
+# =============================================================================
+
+
+class TestStrategistGraphStructure:
+    """Tests for Strategist graph structure per REQ-007 §15.4."""
+
+    def test_graph_has_ten_nodes(self) -> None:
+        """Graph should have exactly 10 nodes per §15.4 spec."""
+        graph = create_strategist_graph()
+        compiled = graph.compile()
+        node_names = set(compiled.get_graph().nodes.keys())
+        # LangGraph adds __start__ and __end__ nodes automatically
+        non_internal = {n for n in node_names if not n.startswith("__")}
+
+        expected_nodes = {
+            "load_persona_embeddings",
+            "check_embedding_freshness",
+            "regenerate_embeddings",
+            "filter_non_negotiables",
+            "generate_job_embeddings",
+            "calculate_fit_score",
+            "calculate_stretch_score",
+            "generate_rationale",
+            "save_scores",
+            "trigger_ghostwriter",
+        }
+
+        assert non_internal == expected_nodes
+
+    def test_entry_point_is_load_persona_embeddings(self) -> None:
+        """Entry point should be load_persona_embeddings per §15.4."""
+        graph = create_strategist_graph()
+        compiled = graph.compile()
+        graph_repr = compiled.get_graph()
+        # __start__ should connect to load_persona_embeddings
+        start_edges = [e.target for e in graph_repr.edges if e.source == "__start__"]
+
+        assert "load_persona_embeddings" in start_edges
+
+    def test_graph_compiles_without_error(self) -> None:
+        """Graph should compile successfully."""
+        graph = create_strategist_graph()
+        compiled = graph.compile()
+
+        assert compiled is not None
+
+    def test_singleton_pattern_returns_same_instance(self) -> None:
+        """get_strategist_graph should return same instance on repeated calls."""
+        reset_strategist_graph()
+        graph1 = get_strategist_graph()
+        graph2 = get_strategist_graph()
+
+        assert graph1 is graph2
+
+        reset_strategist_graph()
+
+    def test_reset_clears_singleton(self) -> None:
+        """reset_strategist_graph should clear the singleton."""
+        reset_strategist_graph()
+        graph1 = get_strategist_graph()
+        reset_strategist_graph()
+        graph2 = get_strategist_graph()
+
+        assert graph1 is not graph2
+
+        reset_strategist_graph()
+
+
+# =============================================================================
+# Routing Function Tests (§15.4)
+# =============================================================================
+
+
+class TestIsEmbeddingStale:
+    """Tests for is_embedding_stale routing function."""
+
+    def test_stale_when_embeddings_stale_true(self) -> None:
+        """Should return 'stale' when embeddings_stale is True."""
+        state: StrategistState = {"embeddings_stale": True}
+        assert is_embedding_stale(state) == "stale"
+
+    def test_fresh_when_embeddings_stale_false(self) -> None:
+        """Should return 'fresh' when embeddings_stale is False."""
+        state: StrategistState = {"embeddings_stale": False}
+        assert is_embedding_stale(state) == "fresh"
+
+    def test_fresh_when_embeddings_stale_missing(self) -> None:
+        """Should return 'fresh' when embeddings_stale not in state."""
+        state: StrategistState = {}
+        assert is_embedding_stale(state) == "fresh"
+
+
+class TestCheckNonNegotiablesPass:
+    """Tests for check_non_negotiables_pass routing function."""
+
+    def test_pass_when_non_negotiables_passed_true(self) -> None:
+        """Should return 'pass' when non_negotiables_passed is True."""
+        state: StrategistState = {"non_negotiables_passed": True}
+        assert check_non_negotiables_pass(state) == "pass"
+
+    def test_fail_when_non_negotiables_passed_false(self) -> None:
+        """Should return 'fail' when non_negotiables_passed is False."""
+        state: StrategistState = {"non_negotiables_passed": False}
+        assert check_non_negotiables_pass(state) == "fail"
+
+    def test_fail_when_non_negotiables_passed_missing(self) -> None:
+        """Should return 'fail' when non_negotiables_passed not in state."""
+        state: StrategistState = {}
+        assert check_non_negotiables_pass(state) == "fail"
+
+
+class TestCheckAutoDraftThreshold:
+    """Tests for check_auto_draft_threshold routing function."""
+
+    def test_above_threshold_when_fit_score_exceeds(self) -> None:
+        """Should return 'above_threshold' when fit_score >= threshold."""
+        state: StrategistState = {
+            "score_result": {"fit_score": 92.0},
+            "auto_draft_threshold": 90,
+        }
+        assert check_auto_draft_threshold(state) == "above_threshold"
+
+    def test_below_threshold_when_fit_score_below(self) -> None:
+        """Should return 'below_threshold' when fit_score < threshold."""
+        state: StrategistState = {
+            "score_result": {"fit_score": 75.0},
+            "auto_draft_threshold": 90,
+        }
+        assert check_auto_draft_threshold(state) == "below_threshold"
+
+    def test_above_threshold_when_exactly_at_threshold(self) -> None:
+        """Should return 'above_threshold' when fit_score == threshold."""
+        state: StrategistState = {
+            "score_result": {"fit_score": 90.0},
+            "auto_draft_threshold": 90,
+        }
+        assert check_auto_draft_threshold(state) == "above_threshold"
+
+    def test_below_threshold_when_no_threshold_set(self) -> None:
+        """Should return 'below_threshold' when auto_draft_threshold is None."""
+        state: StrategistState = {
+            "score_result": {"fit_score": 95.0},
+            "auto_draft_threshold": None,
+        }
+        assert check_auto_draft_threshold(state) == "below_threshold"
+
+    def test_below_threshold_when_no_score_result(self) -> None:
+        """Should return 'below_threshold' when score_result is None."""
+        state: StrategistState = {
+            "score_result": None,
+            "auto_draft_threshold": 90,
+        }
+        assert check_auto_draft_threshold(state) == "below_threshold"
+
+    def test_below_threshold_when_fit_score_is_none(self) -> None:
+        """Should return 'below_threshold' when fit_score is None (filtered job)."""
+        state: StrategistState = {
+            "score_result": {"fit_score": None},
+            "auto_draft_threshold": 90,
+        }
+        assert check_auto_draft_threshold(state) == "below_threshold"
+
+
+# =============================================================================
+# Node Function Tests (§15.4)
+# =============================================================================
+
+
+class TestLoadPersonaEmbeddingsNode:
+    """Tests for load_persona_embeddings_node."""
+
+    @pytest.mark.asyncio
+    async def test_sets_persona_embeddings_in_state(self) -> None:
+        """Node should set persona_embeddings dict in state."""
+        state: StrategistState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+        }
+        result = await load_persona_embeddings_node(state)
+
+        assert "persona_embeddings" in result
+        assert isinstance(result["persona_embeddings"], dict)
+
+    @pytest.mark.asyncio
+    async def test_preserves_existing_state(self) -> None:
+        """Node should preserve existing state fields."""
+        state: StrategistState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "current_job_id": "job-1",
+        }
+        result = await load_persona_embeddings_node(state)
+
+        assert result["user_id"] == "user-1"
+        assert result["persona_id"] == "persona-1"
+        assert result["current_job_id"] == "job-1"
+
+
+class TestCheckEmbeddingFreshnessNode:
+    """Tests for check_embedding_freshness_node."""
+
+    @pytest.mark.asyncio
+    async def test_sets_embeddings_stale_flag(self) -> None:
+        """Node should set embeddings_stale flag in state."""
+        state: StrategistState = {
+            "persona_id": "persona-1",
+            "persona_embedding_version": 0,
+        }
+        result = await check_embedding_freshness_node(state)
+
+        assert "embeddings_stale" in result
+        assert isinstance(result["embeddings_stale"], bool)
+
+    @pytest.mark.asyncio
+    async def test_fresh_when_versions_match(self) -> None:
+        """Node should set embeddings_stale=False when versions match."""
+        state: StrategistState = {
+            "persona_id": "persona-1",
+            "persona_embedding_version": 5,
+        }
+        result = await check_embedding_freshness_node(state)
+
+        assert result["embeddings_stale"] is False
+
+
+class TestRegenerateEmbeddingsNode:
+    """Tests for regenerate_embeddings_node."""
+
+    @pytest.mark.asyncio
+    async def test_clears_stale_flag(self) -> None:
+        """Node should set embeddings_stale to False."""
+        state: StrategistState = {
+            "persona_id": "persona-1",
+            "persona_embedding_version": 3,
+            "embeddings_stale": True,
+        }
+        result = await regenerate_embeddings_node(state)
+
+        assert result["embeddings_stale"] is False
+
+    @pytest.mark.asyncio
+    async def test_increments_version(self) -> None:
+        """Node should increment persona_embedding_version."""
+        state: StrategistState = {
+            "persona_id": "persona-1",
+            "persona_embedding_version": 3,
+            "embeddings_stale": True,
+        }
+        result = await regenerate_embeddings_node(state)
+
+        assert result["persona_embedding_version"] == 4
+
+
+class TestFilterNonNegotiablesNode:
+    """Tests for filter_non_negotiables_node."""
+
+    @pytest.mark.asyncio
+    async def test_sets_non_negotiables_passed(self) -> None:
+        """Node should set non_negotiables_passed flag."""
+        state: StrategistState = {
+            "current_job_id": "job-1",
+            "persona_id": "persona-1",
+        }
+        result = await filter_non_negotiables_node(state)
+
+        assert "non_negotiables_passed" in result
+        assert isinstance(result["non_negotiables_passed"], bool)
+
+    @pytest.mark.asyncio
+    async def test_placeholder_assumes_pass(self) -> None:
+        """Placeholder implementation should assume job passes."""
+        state: StrategistState = {
+            "current_job_id": "job-1",
+            "persona_id": "persona-1",
+        }
+        result = await filter_non_negotiables_node(state)
+
+        assert result["non_negotiables_passed"] is True
+        assert result.get("non_negotiables_reason") is None
+
+
+class TestGenerateJobEmbeddingsNode:
+    """Tests for generate_job_embeddings_node."""
+
+    @pytest.mark.asyncio
+    async def test_sets_job_embeddings(self) -> None:
+        """Node should set job_embeddings dict in state."""
+        state: StrategistState = {
+            "current_job_id": "job-1",
+        }
+        result = await generate_job_embeddings_node(state)
+
+        assert "job_embeddings" in result
+        assert isinstance(result["job_embeddings"], dict)
+
+
+class TestCalculateFitScoreNode:
+    """Tests for calculate_fit_score_node."""
+
+    @pytest.mark.asyncio
+    async def test_sets_fit_result(self) -> None:
+        """Node should set fit_result in state."""
+        state: StrategistState = {
+            "current_job_id": "job-1",
+            "persona_embeddings": {},
+            "job_embeddings": {},
+        }
+        result = await calculate_fit_score_node(state)
+
+        assert "fit_result" in result
+
+
+class TestCalculateStretchScoreNode:
+    """Tests for calculate_stretch_score_node."""
+
+    @pytest.mark.asyncio
+    async def test_sets_stretch_result(self) -> None:
+        """Node should set stretch_result in state."""
+        state: StrategistState = {
+            "current_job_id": "job-1",
+            "persona_embeddings": {},
+            "job_embeddings": {},
+        }
+        result = await calculate_stretch_score_node(state)
+
+        assert "stretch_result" in result
+
+
+class TestGenerateRationaleNode:
+    """Tests for generate_rationale_node."""
+
+    @pytest.mark.asyncio
+    async def test_sets_rationale(self) -> None:
+        """Node should set rationale in state."""
+        state: StrategistState = {
+            "current_job_id": "job-1",
+            "fit_result": None,
+            "stretch_result": None,
+        }
+        result = await generate_rationale_node(state)
+
+        assert "rationale" in result
+
+
+class TestSaveScoresNode:
+    """Tests for save_scores_node."""
+
+    @pytest.mark.asyncio
+    async def test_assembles_score_result_for_passing_job(self) -> None:
+        """Node should assemble ScoreResult from pipeline state fields."""
+        state: StrategistState = {
+            "current_job_id": "job-1",
+            "non_negotiables_passed": True,
+            "non_negotiables_reason": None,
+            "fit_result": {"total": 85.0},
+            "stretch_result": {"total": 72.0},
+            "rationale": "Strong technical match.",
+        }
+        result = await save_scores_node(state)
+
+        assert result["score_result"] is not None
+        assert result["score_result"]["job_posting_id"] == "job-1"
+        assert result["score_result"]["fit_score"] == 85.0
+        assert result["score_result"]["stretch_score"] == 72.0
+        assert result["score_result"]["explanation"] == "Strong technical match."
+        assert result["score_result"]["filtered_reason"] is None
+
+    @pytest.mark.asyncio
+    async def test_assembles_score_result_for_filtered_job(self) -> None:
+        """Node should store filter reason when job failed non-negotiables."""
+        state: StrategistState = {
+            "current_job_id": "job-2",
+            "non_negotiables_passed": False,
+            "non_negotiables_reason": "salary_below_minimum",
+            "fit_result": None,
+            "stretch_result": None,
+            "rationale": None,
+        }
+        result = await save_scores_node(state)
+
+        assert result["score_result"] is not None
+        assert result["score_result"]["job_posting_id"] == "job-2"
+        assert result["score_result"]["fit_score"] is None
+        assert result["score_result"]["stretch_score"] is None
+        assert result["score_result"]["filtered_reason"] == "salary_below_minimum"
+
+    @pytest.mark.asyncio
+    async def test_handles_none_fit_stretch_results(self) -> None:
+        """Node should handle None fit/stretch results gracefully."""
+        state: StrategistState = {
+            "current_job_id": "job-3",
+            "non_negotiables_passed": True,
+            "non_negotiables_reason": None,
+            "fit_result": None,
+            "stretch_result": None,
+            "rationale": None,
+        }
+        result = await save_scores_node(state)
+
+        assert result["score_result"]["fit_score"] is None
+        assert result["score_result"]["stretch_score"] is None
+
+
+class TestTriggerGhostwriterNode:
+    """Tests for trigger_ghostwriter_node."""
+
+    @pytest.mark.asyncio
+    async def test_returns_state_unchanged(self) -> None:
+        """Placeholder node should return state with no modifications."""
+        state: StrategistState = {
+            "current_job_id": "job-1",
+            "score_result": {
+                "job_posting_id": "job-1",
+                "fit_score": 95.0,
+                "stretch_score": 80.0,
+                "explanation": "Excellent match.",
+                "filtered_reason": None,
+            },
+        }
+        result = await trigger_ghostwriter_node(state)
+
+        assert result["current_job_id"] == state["current_job_id"]
+        assert result["score_result"] == state["score_result"]
+
+
+# =============================================================================
+# Convenience Function Tests (§15.4)
+# =============================================================================
+
+
+class TestScoreJobsConvenience:
+    """Tests for score_jobs convenience function."""
+
+    @pytest.mark.asyncio
+    async def test_invokes_graph_per_job(self) -> None:
+        """score_jobs should invoke graph once per job ID."""
+        mock_result: ScoreResult = {
+            "job_posting_id": "job-1",
+            "fit_score": 80.0,
+            "stretch_score": 60.0,
+            "explanation": None,
+            "filtered_reason": None,
+        }
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"score_result": mock_result}
+
+        with patch(
+            "app.agents.strategist_graph.get_strategist_graph",
+            return_value=mock_graph,
+        ):
+            results = await score_jobs(
+                user_id="user-1",
+                persona_id="persona-1",
+                job_ids=["job-1", "job-2", "job-3"],
+            )
+
+        assert mock_graph.ainvoke.call_count == 3
+        assert len(results) == 3
+
+    @pytest.mark.asyncio
+    async def test_empty_job_list_returns_empty(self) -> None:
+        """score_jobs with empty job_ids should return empty list."""
+        results = await score_jobs(
+            user_id="user-1",
+            persona_id="persona-1",
+            job_ids=[],
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    async def test_rejects_empty_user_id(self) -> None:
+        """score_jobs should reject empty user_id."""
+        with pytest.raises(ValueError, match="user_id and persona_id are required"):
+            await score_jobs(user_id="", persona_id="persona-1", job_ids=["job-1"])
+
+    @pytest.mark.asyncio
+    async def test_rejects_empty_persona_id(self) -> None:
+        """score_jobs should reject empty persona_id."""
+        with pytest.raises(ValueError, match="user_id and persona_id are required"):
+            await score_jobs(user_id="user-1", persona_id="", job_ids=["job-1"])
+
+    @pytest.mark.asyncio
+    async def test_rejects_oversized_batch(self) -> None:
+        """score_jobs should reject batches exceeding _MAX_SCORE_JOBS."""
+        job_ids = [f"job-{i}" for i in range(501)]
+        with pytest.raises(ValueError, match="exceeds maximum"):
+            await score_jobs(user_id="user-1", persona_id="persona-1", job_ids=job_ids)

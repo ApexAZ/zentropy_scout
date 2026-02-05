@@ -218,20 +218,55 @@ class StrategistState(BaseAgentState, total=False):
     """State schema for the Strategist Agent.
 
     REQ-007 §7: Applies scoring to jobs. Depends on REQ-008 (Scoring Engine).
+    REQ-007 §15.4: Graph processes one job per invocation; score_jobs() loops.
 
     Extends BaseAgentState with:
         persona_embedding_version: Embedding version for freshness check.
             If this doesn't match the persona's current version, embeddings
             are stale and need regeneration.
-        jobs_to_score: Job posting IDs awaiting scoring.
+        jobs_to_score: Job posting IDs awaiting scoring (batch input).
         scored_jobs: Scoring results for processed jobs.
         filtered_jobs: Jobs filtered out by non-negotiables.
+        current_job_id: Single job being scored in current graph invocation.
+        embeddings_stale: Whether persona embeddings need regeneration.
+        persona_embeddings: Loaded persona embedding vectors (serializable).
+        non_negotiables_passed: Whether current job passed non-negotiables filter.
+        non_negotiables_reason: Failure reason if non-negotiables filter failed.
+        job_embeddings: Generated embedding vectors for current job.
+        fit_result: Fit score components for current job.
+        stretch_result: Stretch score components for current job.
+        rationale: LLM-generated explanation of scores.
+        score_result: Final assembled ScoreResult for current job.
+        auto_draft_threshold: Persona's ghostwriter auto-draft threshold.
     """
 
+    # Batch-level fields (set by score_jobs convenience function)
     persona_embedding_version: int | None
     jobs_to_score: list[str]
     scored_jobs: list[ScoreResult]
     filtered_jobs: list[str]
+
+    # Per-job pipeline fields (set by graph nodes)
+    current_job_id: str
+    embeddings_stale: bool
+    # Any: Embedding vectors are lists of floats keyed by embedding type
+    # (hard_skills, soft_skills, logistics). Structure matches
+    # PersonaEmbeddingsResult but serialized for state transport.
+    persona_embeddings: dict[str, Any]
+    non_negotiables_passed: bool
+    non_negotiables_reason: str | None
+    # Any: Job embedding vectors keyed by type (job_title, culture, skills).
+    # Structure varies by embedding provider and is validated at use site.
+    job_embeddings: dict[str, Any]
+    # Any: Fit score component breakdown (components dict, weights dict, total).
+    # Structure matches ScoredJob.fit_score but serialized for state transport.
+    fit_result: dict[str, Any] | None
+    # Any: Stretch score component breakdown (components dict, weights dict, total).
+    # Structure matches ScoredJob.stretch_score but serialized for state transport.
+    stretch_result: dict[str, Any] | None
+    rationale: str | None
+    score_result: ScoreResult | None
+    auto_draft_threshold: int | None
 
 
 class GeneratedContent(TypedDict, total=False):

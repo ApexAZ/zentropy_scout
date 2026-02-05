@@ -471,7 +471,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 2.6 Strategist Agent (REQ-007 §7)
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
 *Applies scoring to jobs. Depends on REQ-008 (Scoring Engine).*
 
@@ -497,7 +497,7 @@ These steps require user action outside Claude Code:
 | 7.4 | Strategist Agent — Embedding-Based Matching | `agents, db, provider, tdd, plan` | ✅ |
 | 7.5 | Strategist Agent — Stretch Score | `agents, provider, tdd, plan` | ✅ |
 | 7.6 | Strategist Agent — Prompt Templates | `agents, provider, docs, tdd, plan` | ✅ |
-| 15.4 | Graph Spec — Strategist Agent | `agents, provider, structure, tdd, plan` | ⬜ |
+| 15.4 | Graph Spec — Strategist Agent | `agents, provider, structure, tdd, plan` | ✅ |
 
 ---
 
