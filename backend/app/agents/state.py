@@ -290,6 +290,8 @@ class GhostwriterState(BaseAgentState, total=False):
 
     Extends BaseAgentState with:
         job_posting_id: Target job for content generation.
+        trigger_type: How the Ghostwriter was triggered (REQ-007 §8.1).
+            Values: "auto_draft", "manual_request", "regeneration".
         selected_base_resume_id: Base resume selected for tailoring.
         existing_variant_id: Existing JobVariant if one exists (race condition
             prevention per REQ-007 §10.4.2).
@@ -299,6 +301,7 @@ class GhostwriterState(BaseAgentState, total=False):
     """
 
     job_posting_id: str | None
+    trigger_type: str | None
     selected_base_resume_id: str | None
     existing_variant_id: str | None
     generated_resume: GeneratedContent | None

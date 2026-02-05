@@ -48,6 +48,15 @@ from app.agents.checkpoint import (
     request_human_input,
     resume_from_checkpoint,
 )
+from app.agents.ghostwriter import (
+    DRAFT_REQUEST_PATTERNS,
+    REGENERATION_PATTERNS,
+    TriggerType,
+    create_ghostwriter_state,
+    is_draft_request,
+    is_regeneration_request,
+    should_auto_draft,
+)
 from app.agents.onboarding import (
     ACHIEVEMENT_STORY_PROMPT,
     ONBOARDING_STEPS,
@@ -155,6 +164,14 @@ __all__ = [
     "is_post_onboarding_update",
     "is_update_request",
     "should_start_onboarding",
+    # Ghostwriter
+    "DRAFT_REQUEST_PATTERNS",
+    "REGENERATION_PATTERNS",
+    "TriggerType",
+    "create_ghostwriter_state",
+    "is_draft_request",
+    "is_regeneration_request",
+    "should_auto_draft",
     # Strategist Graph
     "create_strategist_graph",
     "get_strategist_graph",
