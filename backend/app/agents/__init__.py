@@ -83,6 +83,12 @@ from app.agents.state import (
     ScouterState,
     StrategistState,
 )
+from app.agents.strategist_prompts import (
+    NON_NEGOTIABLES_SYSTEM_PROMPT,
+    SCORE_RATIONALE_SYSTEM_PROMPT,
+    build_non_negotiables_prompt,
+    build_score_rationale_prompt,
+)
 
 __all__ = [
     # API Client
@@ -139,4 +145,9 @@ __all__ = [
     "is_post_onboarding_update",
     "is_update_request",
     "should_start_onboarding",
+    # Strategist Prompts
+    "NON_NEGOTIABLES_SYSTEM_PROMPT",
+    "SCORE_RATIONALE_SYSTEM_PROMPT",
+    "build_non_negotiables_prompt",
+    "build_score_rationale_prompt",
 ]
