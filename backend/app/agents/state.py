@@ -301,6 +301,23 @@ class GeneratedContent(TypedDict, total=False):
     stories_used: list[str]
 
 
+class ScoredStoryDetail(TypedDict):
+    """Story detail from scoring, carried through state for reasoning output.
+
+    REQ-007 §8.7: Downstream nodes need story titles and rationales
+    to build the user-facing reasoning explanation.
+
+    Attributes:
+        story_id: Unique story identifier.
+        title: Story title for display.
+        rationale: Human-readable selection rationale from scoring.
+    """
+
+    story_id: str
+    title: str
+    rationale: str
+
+
 class GhostwriterState(BaseAgentState, total=False):
     """State schema for the Ghostwriter Agent.
 
@@ -323,8 +340,11 @@ class GhostwriterState(BaseAgentState, total=False):
         generated_resume: Generated/tailored resume content.
         generated_cover_letter: Generated cover letter content.
         selected_stories: Achievement story IDs selected for cover letter.
+        scored_story_details: Story titles and rationales from scoring, needed
+            by present_for_review to build reasoning explanation (REQ-007 §8.7).
         job_active: Whether the target job is still active/not expired.
         review_warning: Warning message for user review (e.g., expired job).
+        agent_reasoning: Combined user-facing reasoning explanation (REQ-010 §9).
         feedback: User feedback for regeneration (if any).
     """
 
@@ -347,7 +367,9 @@ class GhostwriterState(BaseAgentState, total=False):
     generated_resume: GeneratedContent | None
     generated_cover_letter: GeneratedContent | None
     selected_stories: list[str]
+    scored_story_details: list[ScoredStoryDetail]
 
-    # Job freshness and review (§8.2, §15.5)
+    # Job freshness and review (§8.2, §8.7, §15.5)
     job_active: bool
     review_warning: str | None
+    agent_reasoning: str | None

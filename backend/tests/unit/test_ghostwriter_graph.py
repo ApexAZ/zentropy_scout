@@ -474,6 +474,41 @@ class TestSelectAchievementStoriesNode:
 
         assert result["selected_stories"] == ["story-1", "story-2"]
 
+    @pytest.mark.asyncio
+    async def test_stores_scored_story_details(self) -> None:
+        """Node should store story titles and rationales for reasoning."""
+        from app.services.story_selection import ScoredStory
+
+        mock_results = [
+            ScoredStory(
+                story_id="story-1",
+                title="Cloud Migration",
+                context="ctx",
+                action="act",
+                outcome="out",
+                score=50,
+                rationale="Demonstrates cloud, AWS",
+            ),
+        ]
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+        }
+
+        with patch(
+            "app.agents.ghostwriter_graph.select_achievement_stories",
+            return_value=mock_results,
+        ):
+            result = await select_achievement_stories_node(state)
+
+        details = result["scored_story_details"]
+        assert len(details) == 1
+        assert details[0]["story_id"] == "story-1"
+        assert details[0]["title"] == "Cloud Migration"
+        assert details[0]["rationale"] == "Demonstrates cloud, AWS"
+
 
 class TestGenerateCoverLetterNode:
     """Tests for generate_cover_letter_node.
@@ -667,6 +702,105 @@ class TestPresentForReviewNode:
         result = await present_for_review_node(state)
 
         assert result.get("review_warning") is None
+
+    @pytest.mark.asyncio
+    async def test_sets_agent_reasoning(self) -> None:
+        """Node should produce agent_reasoning from state data."""
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "job_posting_id": "job-1",
+            "generated_resume": None,
+            "generated_cover_letter": None,
+            "job_active": True,
+            "tailoring_analysis": {
+                "action": "create_variant",
+                "signals": [
+                    {
+                        "type": "keyword_gap",
+                        "priority": 0.5,
+                        "detail": 'Added emphasis on "SAFe"',
+                    },
+                ],
+                "reasoning": "Tailoring recommended",
+            },
+            "scored_story_details": [
+                {
+                    "story_id": "story-1",
+                    "title": "Led migration",
+                    "rationale": "Demonstrates cloud skills",
+                },
+            ],
+        }
+        result = await present_for_review_node(state)
+
+        reasoning = result.get("agent_reasoning")
+        assert reasoning is not None
+        assert "**Resume Adjustments:**" in reasoning
+        assert "SAFe" in reasoning
+        assert "*Led migration*" in reasoning
+        assert "Demonstrates cloud skills" in reasoning
+        assert "Ready for your review!" in reasoning
+
+    @pytest.mark.asyncio
+    async def test_agent_reasoning_with_no_tailoring(self) -> None:
+        """Node should show 'no changes needed' when action is use_base."""
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "job_posting_id": "job-1",
+            "generated_resume": None,
+            "generated_cover_letter": None,
+            "job_active": True,
+            "tailoring_analysis": {
+                "action": "use_base",
+                "signals": [],
+                "reasoning": "Resume aligns well",
+            },
+            "scored_story_details": [],
+        }
+        result = await present_for_review_node(state)
+
+        reasoning = result.get("agent_reasoning")
+        assert reasoning is not None
+        assert "no changes needed" in reasoning.lower()
+        assert "**Resume Adjustments:**" not in reasoning
+
+    @pytest.mark.asyncio
+    async def test_agent_reasoning_without_tailoring_analysis(self) -> None:
+        """Node should handle missing tailoring_analysis gracefully."""
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "job_posting_id": "job-1",
+            "generated_resume": None,
+            "generated_cover_letter": None,
+            "job_active": True,
+        }
+        result = await present_for_review_node(state)
+
+        reasoning = result.get("agent_reasoning")
+        assert reasoning is not None
+        assert "no changes needed" in reasoning.lower()
+
+    @pytest.mark.asyncio
+    async def test_agent_reasoning_delegates_to_service(self) -> None:
+        """Node should call format_agent_reasoning from the service."""
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "job_posting_id": "job-1",
+            "job_active": True,
+        }
+
+        with patch(
+            "app.agents.ghostwriter_graph.format_agent_reasoning",
+            return_value="mock reasoning",
+        ) as mock_service:
+            result = await present_for_review_node(state)
+
+        mock_service.assert_called_once()
+        assert result["agent_reasoning"] == "mock reasoning"
 
 
 # =============================================================================

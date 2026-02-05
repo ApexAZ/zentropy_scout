@@ -529,7 +529,7 @@ These steps require user action outside Claude Code:
 | 8.4 | Ghostwriter Agent — Tailoring Decision | `agents, provider, tdd, plan` | ✅ |
 | 8.5 | Ghostwriter Agent — Cover Letter Generation | `agents, provider, tdd, plan` | ✅ |
 | 8.6 | Ghostwriter Agent — Story Selection Logic | `agents, db, provider, tdd, plan` | ✅ |
-| 8.7 | Ghostwriter Agent — Reasoning Explanation | `agents, provider, tdd, plan` | ⬜ |
+| 8.7 | Ghostwriter Agent — Reasoning Explanation | `agents, provider, tdd, plan` | ✅ |
 | 15.5 | Graph Spec — Ghostwriter Agent | `agents, provider, structure, tdd, plan` | ⬜ |
 
 **From REQ-010 (Content Generation):**

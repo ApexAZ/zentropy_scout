@@ -34,8 +34,14 @@ import logging
 from langgraph.graph import END, StateGraph
 
 from app.agents.ghostwriter import TriggerType
-from app.agents.state import GeneratedContent, GhostwriterState, TailoringAnalysis
+from app.agents.state import (
+    GeneratedContent,
+    GhostwriterState,
+    ScoredStoryDetail,
+    TailoringAnalysis,
+)
 from app.services.cover_letter_generation import generate_cover_letter
+from app.services.reasoning_explanation import ReasoningStory, format_agent_reasoning
 from app.services.story_selection import select_achievement_stories
 from app.services.tailoring_decision import evaluate_tailoring_need
 
@@ -269,9 +275,15 @@ async def select_achievement_stories_node(
         job_skills=set(),
     )
 
+    story_details: list[ScoredStoryDetail] = [
+        {"story_id": s.story_id, "title": s.title, "rationale": s.rationale}
+        for s in scored
+    ]
+
     return {
         **state,
         "selected_stories": [s.story_id for s in scored],
+        "scored_story_details": story_details,
     }
 
 
@@ -369,15 +381,18 @@ async def present_for_review_node(
     """Present generated materials for user review.
 
     REQ-007 §8.7: Show variant diff, cover letter draft, explain reasoning.
+    REQ-010 §9: Builds combined reasoning explanation from tailoring and stories.
     Sets requires_human_input=True for HITL checkpoint.
 
     If the job has expired, adds a review_warning so the user knows.
 
     Args:
-        state: State with generated content and job_active status.
+        state: State with generated content, scored story details, tailoring
+            analysis, and job_active status.
 
     Returns:
-        State with requires_human_input=True and optional review_warning.
+        State with agent_reasoning, requires_human_input=True, and optional
+        review_warning.
     """
     job_id = state.get("job_posting_id")
     job_active = state.get("job_active", True)
@@ -392,10 +407,34 @@ async def present_for_review_node(
             "may no longer be accepting applications."
         )
 
+    # Build reasoning explanation (REQ-010 §9)
+    tailoring = state.get("tailoring_analysis")
+    tailoring_action = tailoring["action"] if tailoring else "use_base"
+    signal_details = [
+        s["detail"] for s in (tailoring.get("signals", []) if tailoring else [])
+    ]
+
+    story_details = state.get("scored_story_details", [])
+    reasoning_stories = [
+        ReasoningStory(title=sd["title"], rationale=sd["rationale"])
+        for sd in story_details
+    ]
+
+    # Placeholder job_title/company_name — real data arrives when API
+    # client is wired to fetch job posting details into state.
+    agent_reasoning = format_agent_reasoning(
+        job_title="",
+        company_name="",
+        tailoring_action=tailoring_action,
+        tailoring_signal_details=signal_details,
+        stories=reasoning_stories,
+    )
+
     return {
         **state,
         "requires_human_input": True,
         "review_warning": review_warning,
+        "agent_reasoning": agent_reasoning,
     }
 
 
