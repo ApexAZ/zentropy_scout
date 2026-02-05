@@ -309,8 +309,8 @@ class TestEvaluateTailoringNeedNode:
     """Tests for evaluate_tailoring_need_node."""
 
     @pytest.mark.asyncio
-    async def test_sets_tailoring_needed(self) -> None:
-        """Node should set tailoring_needed in state."""
+    async def test_sets_tailoring_needed_bool(self) -> None:
+        """Node should set tailoring_needed as a bool from service result."""
 
         state: GhostwriterState = {
             "user_id": "user-1",
@@ -322,6 +322,59 @@ class TestEvaluateTailoringNeedNode:
 
         assert "tailoring_needed" in result
         assert isinstance(result["tailoring_needed"], bool)
+
+    @pytest.mark.asyncio
+    async def test_sets_tailoring_analysis_dict(self) -> None:
+        """Node should set tailoring_analysis dict from service result."""
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+            "selected_base_resume_id": "resume-1",
+        }
+        result = await evaluate_tailoring_need_node(state)
+
+        assert "tailoring_analysis" in result
+        analysis = result["tailoring_analysis"]
+        assert isinstance(analysis, dict)
+        assert "action" in analysis
+        assert "signals" in analysis
+        assert "reasoning" in analysis
+
+    @pytest.mark.asyncio
+    async def test_tailoring_analysis_action_matches_bool(self) -> None:
+        """tailoring_needed bool should match tailoring_analysis action."""
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+            "selected_base_resume_id": "resume-1",
+        }
+        result = await evaluate_tailoring_need_node(state)
+
+        analysis = result["tailoring_analysis"]
+        if result["tailoring_needed"]:
+            assert analysis["action"] == "create_variant"
+        else:
+            assert analysis["action"] == "use_base"
+
+    @pytest.mark.asyncio
+    async def test_preserves_existing_state(self) -> None:
+        """Node should preserve existing state fields."""
+
+        state: GhostwriterState = {
+            "user_id": "user-1",
+            "persona_id": "persona-1",
+            "job_posting_id": "job-1",
+            "selected_base_resume_id": "resume-1",
+            "trigger_type": "manual_request",
+        }
+        result = await evaluate_tailoring_need_node(state)
+
+        assert result["user_id"] == "user-1"
+        assert result["trigger_type"] == "manual_request"
 
 
 class TestCreateJobVariantNode:

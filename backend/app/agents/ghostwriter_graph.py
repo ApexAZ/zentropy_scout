@@ -34,7 +34,8 @@ import logging
 from langgraph.graph import END, StateGraph
 
 from app.agents.ghostwriter import TriggerType
-from app.agents.state import GhostwriterState
+from app.agents.state import GhostwriterState, TailoringAnalysis
+from app.services.tailoring_decision import evaluate_tailoring_need
 
 _VALID_TRIGGER_TYPES = {t.value for t in TriggerType}
 
@@ -154,15 +155,16 @@ async def evaluate_tailoring_need_node(
     """Evaluate whether the base resume needs tailoring for this job.
 
     REQ-007 §8.4: Check keyword gaps, bullet relevance, summary alignment.
+    REQ-010 §4.1: Calls the tailoring decision service with pre-extracted data.
 
-    Note: Placeholder. Actual implementation will compare base resume
-    content against job requirements to decide if tailoring is needed.
+    Currently invoked with empty keyword/skill sets. Real data will be provided
+    once the API client and extraction functions (REQ-010 §6.x) are implemented.
 
     Args:
         state: State with selected_base_resume_id and job_posting_id.
 
     Returns:
-        State with tailoring_needed flag set.
+        State with tailoring_needed bool and tailoring_analysis dict.
     """
     job_id = state.get("job_posting_id")
     resume_id = state.get("selected_base_resume_id")
@@ -173,10 +175,27 @@ async def evaluate_tailoring_need_node(
         resume_id,
     )
 
-    # Placeholder: assume tailoring is needed
+    # Placeholder inputs — real data arrives when §6.x extraction is done
+    decision = evaluate_tailoring_need(
+        job_keywords=set(),
+        summary_keywords=set(),
+        bullet_skills=[],
+        fit_score=0.0,
+    )
+
+    tailoring_analysis: TailoringAnalysis = {
+        "action": decision.action,
+        "signals": [
+            {"type": s.type, "priority": s.priority, "detail": s.detail}
+            for s in decision.signals
+        ],
+        "reasoning": decision.reasoning,
+    }
+
     return {
         **state,
-        "tailoring_needed": True,
+        "tailoring_needed": decision.action == "create_variant",
+        "tailoring_analysis": tailoring_analysis,
     }
 
 

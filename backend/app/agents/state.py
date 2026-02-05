@@ -269,6 +269,24 @@ class StrategistState(BaseAgentState, total=False):
     auto_draft_threshold: int | None
 
 
+class TailoringAnalysis(TypedDict, total=False):
+    """Tailoring evaluation result for downstream nodes.
+
+    REQ-007 §8.4: Enriched analysis from evaluate_tailoring_need service.
+
+    Attributes:
+        action: Decision action ("use_base" or "create_variant").
+        signals: List of signal dicts with type, priority, and detail.
+        reasoning: Human-readable explanation of the decision.
+    """
+
+    action: str
+    # Any: Signal dicts have type (str), priority (float), detail (str).
+    # Kept as dicts for state serialization compatibility.
+    signals: list[dict[str, Any]]
+    reasoning: str
+
+
 class GeneratedContent(TypedDict, total=False):
     """Generated resume or cover letter content.
 
@@ -300,6 +318,8 @@ class GhostwriterState(BaseAgentState, total=False):
             Values: None (no variant), "draft", "approved".
         duplicate_message: Message to display when duplicate variant found.
         tailoring_needed: Whether the base resume needs tailoring for the job.
+        tailoring_analysis: Enriched tailoring evaluation result with action,
+            signals, and reasoning for downstream nodes (REQ-007 §8.4).
         generated_resume: Generated/tailored resume content.
         generated_cover_letter: Generated cover letter content.
         selected_stories: Achievement story IDs selected for cover letter.
@@ -321,6 +341,7 @@ class GhostwriterState(BaseAgentState, total=False):
     # Resume selection and tailoring (§8.3, §8.4)
     selected_base_resume_id: str | None
     tailoring_needed: bool
+    tailoring_analysis: TailoringAnalysis | None
 
     # Content generation (§8.5, §8.6)
     generated_resume: GeneratedContent | None
