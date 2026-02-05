@@ -57,6 +57,12 @@ from app.agents.ghostwriter import (
     is_regeneration_request,
     should_auto_draft,
 )
+from app.agents.ghostwriter_graph import (
+    create_ghostwriter_graph,
+    generate_materials,
+    get_ghostwriter_graph,
+    reset_ghostwriter_graph,
+)
 from app.agents.onboarding import (
     ACHIEVEMENT_STORY_PROMPT,
     ONBOARDING_STEPS,
@@ -172,6 +178,11 @@ __all__ = [
     "is_draft_request",
     "is_regeneration_request",
     "should_auto_draft",
+    # Ghostwriter Graph
+    "create_ghostwriter_graph",
+    "generate_materials",
+    "get_ghostwriter_graph",
+    "reset_ghostwriter_graph",
     # Strategist Graph
     "create_strategist_graph",
     "get_strategist_graph",

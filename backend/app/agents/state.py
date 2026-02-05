@@ -287,23 +287,46 @@ class GhostwriterState(BaseAgentState, total=False):
     """State schema for the Ghostwriter Agent.
 
     REQ-007 §8: Generates tailored resumes and cover letters.
+    REQ-007 §15.5: 9-node graph with duplicate prevention and tailoring.
 
     Extends BaseAgentState with:
         job_posting_id: Target job for content generation.
         trigger_type: How the Ghostwriter was triggered (REQ-007 §8.1).
             Values: "auto_draft", "manual_request", "regeneration".
         selected_base_resume_id: Base resume selected for tailoring.
-        existing_variant_id: Existing JobVariant if one exists (race condition
-            prevention per REQ-007 §10.4.2).
+        existing_variant_id: Existing JobVariant ID if known (race condition
+            prevention per REQ-007 §10.4.2). Passed in from caller.
+        existing_variant_status: Status of existing variant after lookup.
+            Values: None (no variant), "draft", "approved".
+        duplicate_message: Message to display when duplicate variant found.
+        tailoring_needed: Whether the base resume needs tailoring for the job.
         generated_resume: Generated/tailored resume content.
         generated_cover_letter: Generated cover letter content.
+        selected_stories: Achievement story IDs selected for cover letter.
+        job_active: Whether the target job is still active/not expired.
+        review_warning: Warning message for user review (e.g., expired job).
         feedback: User feedback for regeneration (if any).
     """
 
+    # Job and trigger context
     job_posting_id: str | None
     trigger_type: str | None
-    selected_base_resume_id: str | None
+    feedback: str | None
+
+    # Duplicate prevention (§8.2, §10.4.2)
     existing_variant_id: str | None
+    existing_variant_status: str | None
+    duplicate_message: str | None
+
+    # Resume selection and tailoring (§8.3, §8.4)
+    selected_base_resume_id: str | None
+    tailoring_needed: bool
+
+    # Content generation (§8.5, §8.6)
     generated_resume: GeneratedContent | None
     generated_cover_letter: GeneratedContent | None
-    feedback: str | None
+    selected_stories: list[str]
+
+    # Job freshness and review (§8.2, §15.5)
+    job_active: bool
+    review_warning: str | None

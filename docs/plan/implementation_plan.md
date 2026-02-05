@@ -524,7 +524,7 @@ These steps require user action outside Claude Code:
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 8.1 | Ghostwriter Agent — Trigger Conditions | `agents, provider, tdd, plan` | ✅ |
-| 8.2 | Ghostwriter Agent — Generation Flow | `agents, provider, structure, tdd, plan` | ⬜ |
+| 8.2 | Ghostwriter Agent — Generation Flow | `agents, provider, structure, tdd, plan` | ✅ |
 | 8.3 | Ghostwriter Agent — Base Resume Selection | `agents, db, tdd, plan` | ⬜ |
 | 8.4 | Ghostwriter Agent — Tailoring Decision | `agents, provider, tdd, plan` | ⬜ |
 | 8.5 | Ghostwriter Agent — Cover Letter Generation | `agents, provider, tdd, plan` | ⬜ |
