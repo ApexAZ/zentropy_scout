@@ -64,11 +64,11 @@ class CoverLetterResult:
 # =============================================================================
 
 _COVER_LETTER_PATTERN = re.compile(
-    r"<cover_letter>\s*(.*?)\s*</cover_letter>",
+    r"<cover_letter>(.*?)</cover_letter>",
     re.DOTALL,
 )
 _REASONING_PATTERN = re.compile(
-    r"<agent_reasoning>\s*(.*?)\s*</agent_reasoning>",
+    r"<agent_reasoning>(.*?)</agent_reasoning>",
     re.DOTALL,
 )
 

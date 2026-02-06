@@ -79,10 +79,9 @@ _MAX_CULTURE_KEYWORDS: int = 100
 # pattern that's reliably detectable with regex (REQ-010 §6.4).
 _METRICS_PATTERN = re.compile(
     r"""
-    \d+%                  # Percentages: 40%, 100%
-    | \$[\d,]+            # Dollar amounts: $2.5M, $100,000
-    | \d+x                # Multipliers: 3x, 10x
-    | \d{2,}              # Significant numbers (2+ digits): 50ms, 1000 users
+    \$[0-9,]+             # Dollar amounts: $2.5M, $100,000
+    | [0-9]+[%x]          # Percentages (40%) and multipliers (3x)
+    | [0-9]{2,}           # Significant numbers (2+ digits): 50ms, 1000 users
     """,
     re.VERBOSE | re.IGNORECASE,
 )
