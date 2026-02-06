@@ -18,6 +18,7 @@ import pytest
 
 from app.providers import ProviderError
 from app.providers.llm.base import LLMResponse, TaskType
+from app.schemas.prompt_params import JobContext, VoiceProfileData
 from app.services.cover_letter_generation import (
     CoverLetterGenerationError,
     CoverLetterResult,
@@ -46,18 +47,22 @@ def _default_kwargs() -> dict:
     return {
         "applicant_name": "Jane Smith",
         "current_title": "Software Engineer",
-        "job_title": "Senior Developer",
-        "company_name": "Acme Corp",
-        "top_skills": "Python, React, AWS",
-        "culture_signals": "Collaborative team, remote-first",
-        "description_excerpt": "We are looking for a senior developer to join...",
-        "tone": "Professional yet warm",
-        "sentence_style": "Concise",
-        "vocabulary_level": "Technical",
-        "personality_markers": "Detail-oriented",
-        "preferred_phrases": "I bring experience in",
-        "things_to_avoid": "synergy, leverage",
-        "writing_sample": "In my previous role...",
+        "job": JobContext(
+            job_title="Senior Developer",
+            company_name="Acme Corp",
+            top_skills="Python, React, AWS",
+            culture_signals="Collaborative team, remote-first",
+            description_excerpt="We are looking for a senior developer to join...",
+        ),
+        "voice": VoiceProfileData(
+            tone="Professional yet warm",
+            sentence_style="Concise",
+            vocabulary_level="Technical",
+            personality_markers="Detail-oriented",
+            preferred_phrases="I bring experience in",
+            things_to_avoid="synergy, leverage",
+            writing_sample="In my previous role...",
+        ),
         "stories": [
             {
                 "title": "Led Migration",

@@ -23,6 +23,7 @@ from app.agents.ghostwriter_prompts import (
 )
 from app.providers import ProviderError, factory
 from app.providers.llm.base import LLMMessage, TaskType
+from app.schemas.prompt_params import JobContext, VoiceProfileData
 
 logger = logging.getLogger(__name__)
 
@@ -105,18 +106,8 @@ async def generate_cover_letter(
     *,
     applicant_name: str,
     current_title: str,
-    job_title: str,
-    company_name: str,
-    top_skills: str,
-    culture_signals: str,
-    description_excerpt: str,
-    tone: str,
-    sentence_style: str,
-    vocabulary_level: str,
-    personality_markers: str,
-    preferred_phrases: str,
-    things_to_avoid: str,
-    writing_sample: str,
+    job: JobContext,
+    voice: VoiceProfileData,
     stories: list[dict],
     stories_used: list[str],
 ) -> CoverLetterResult:
@@ -127,18 +118,8 @@ async def generate_cover_letter(
     Args:
         applicant_name: Full name of the applicant.
         current_title: Applicant's current job title.
-        job_title: Title of the target job posting.
-        company_name: Company offering the position.
-        top_skills: Formatted string of top required skills.
-        culture_signals: Culture information from the job posting.
-        description_excerpt: Raw job description text.
-        tone: Voice profile tone setting.
-        sentence_style: Voice profile sentence style.
-        vocabulary_level: Voice profile vocabulary level.
-        personality_markers: Voice profile personality markers.
-        preferred_phrases: Phrases the applicant likes to use.
-        things_to_avoid: Words/phrases the applicant wants to avoid.
-        writing_sample: Sample of the applicant's writing.
+        job: Job posting context (title, company, skills, culture, description).
+        voice: Voice profile settings (tone, style, vocabulary, markers, etc.).
         stories: List of story dicts for prompt context.
         stories_used: Achievement story IDs being referenced.
 
@@ -152,18 +133,8 @@ async def generate_cover_letter(
     user_prompt = build_cover_letter_prompt(
         applicant_name=applicant_name,
         current_title=current_title,
-        job_title=job_title,
-        company_name=company_name,
-        top_skills=top_skills,
-        culture_signals=culture_signals,
-        description_excerpt=description_excerpt,
-        tone=tone,
-        sentence_style=sentence_style,
-        vocabulary_level=vocabulary_level,
-        personality_markers=personality_markers,
-        preferred_phrases=preferred_phrases,
-        things_to_avoid=things_to_avoid,
-        writing_sample=writing_sample,
+        job=job,
+        voice=voice,
         stories=stories,
     )
 

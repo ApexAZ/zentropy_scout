@@ -326,7 +326,7 @@ class TestCheckExistingVariantNode:
             "persona_id": "persona-1",
             "job_posting_id": "job-1",
         }
-        result = await check_existing_variant_node(state)
+        result = check_existing_variant_node(state)
 
         assert "existing_variant_status" in result
 
@@ -339,7 +339,7 @@ class TestCheckExistingVariantNode:
             "persona_id": "persona-1",
             "job_posting_id": "job-1",
         }
-        result = await check_existing_variant_node(state)
+        result = check_existing_variant_node(state)
 
         assert result["existing_variant_status"] is None
 
@@ -353,7 +353,7 @@ class TestCheckExistingVariantNode:
             "job_posting_id": "job-1",
             "existing_variant_id": "variant-1",
         }
-        result = await check_existing_variant_node(state)
+        result = check_existing_variant_node(state)
 
         assert "existing_variant_status" in result
 
@@ -370,7 +370,7 @@ class TestHandleDuplicateNode:
             "job_posting_id": "job-1",
             "existing_variant_status": "draft",
         }
-        result = await handle_duplicate_node(state)
+        result = handle_duplicate_node(state)
 
         assert "duplicate_message" in result
         assert result["duplicate_message"] is not None
@@ -390,8 +390,8 @@ class TestHandleDuplicateNode:
             "existing_variant_status": "approved",
         }
 
-        draft_result = await handle_duplicate_node(draft_state)
-        approved_result = await handle_duplicate_node(approved_state)
+        draft_result = handle_duplicate_node(draft_state)
+        approved_result = handle_duplicate_node(approved_state)
 
         assert draft_result["duplicate_message"] != approved_result["duplicate_message"]
 
@@ -408,7 +408,7 @@ class TestSelectBaseResumeNode:
             "persona_id": "persona-1",
             "job_posting_id": "job-1",
         }
-        result = await select_base_resume_node(state)
+        result = select_base_resume_node(state)
 
         assert "selected_base_resume_id" in result
 
@@ -422,7 +422,7 @@ class TestSelectBaseResumeNode:
             "job_posting_id": "job-1",
             "trigger_type": "manual_request",
         }
-        result = await select_base_resume_node(state)
+        result = select_base_resume_node(state)
 
         assert result["user_id"] == "user-1"
         assert result["trigger_type"] == "manual_request"
@@ -441,7 +441,7 @@ class TestEvaluateTailoringNeedNode:
             "job_posting_id": "job-1",
             "selected_base_resume_id": "resume-1",
         }
-        result = await evaluate_tailoring_need_node(state)
+        result = evaluate_tailoring_need_node(state)
 
         assert "tailoring_needed" in result
         assert isinstance(result["tailoring_needed"], bool)
@@ -456,7 +456,7 @@ class TestEvaluateTailoringNeedNode:
             "job_posting_id": "job-1",
             "selected_base_resume_id": "resume-1",
         }
-        result = await evaluate_tailoring_need_node(state)
+        result = evaluate_tailoring_need_node(state)
 
         assert "tailoring_analysis" in result
         analysis = result["tailoring_analysis"]
@@ -475,7 +475,7 @@ class TestEvaluateTailoringNeedNode:
             "job_posting_id": "job-1",
             "selected_base_resume_id": "resume-1",
         }
-        result = await evaluate_tailoring_need_node(state)
+        result = evaluate_tailoring_need_node(state)
 
         analysis = result["tailoring_analysis"]
         if result["tailoring_needed"]:
@@ -494,7 +494,7 @@ class TestEvaluateTailoringNeedNode:
             "selected_base_resume_id": "resume-1",
             "trigger_type": "manual_request",
         }
-        result = await evaluate_tailoring_need_node(state)
+        result = evaluate_tailoring_need_node(state)
 
         assert result["user_id"] == "user-1"
         assert result["trigger_type"] == "manual_request"
@@ -513,7 +513,7 @@ class TestCreateJobVariantNode:
             "job_posting_id": "job-1",
             "selected_base_resume_id": "resume-1",
         }
-        result = await create_job_variant_node(state)
+        result = create_job_variant_node(state)
 
         assert "generated_resume" in result
 
@@ -533,7 +533,7 @@ class TestSelectAchievementStoriesNode:
             "persona_id": "persona-1",
             "job_posting_id": "job-1",
         }
-        result = await select_achievement_stories_node(state)
+        result = select_achievement_stories_node(state)
 
         assert "selected_stories" in result
         assert isinstance(result["selected_stories"], list)
@@ -552,7 +552,7 @@ class TestSelectAchievementStoriesNode:
             "app.agents.ghostwriter_graph.select_achievement_stories",
             return_value=[],
         ) as mock_service:
-            await select_achievement_stories_node(state)
+            select_achievement_stories_node(state)
 
         mock_service.assert_called_once()
 
@@ -592,7 +592,7 @@ class TestSelectAchievementStoriesNode:
             "app.agents.ghostwriter_graph.select_achievement_stories",
             return_value=mock_results,
         ):
-            result = await select_achievement_stories_node(state)
+            result = select_achievement_stories_node(state)
 
         assert result["selected_stories"] == ["story-1", "story-2"]
 
@@ -623,7 +623,7 @@ class TestSelectAchievementStoriesNode:
             "app.agents.ghostwriter_graph.select_achievement_stories",
             return_value=mock_results,
         ):
-            result = await select_achievement_stories_node(state)
+            result = select_achievement_stories_node(state)
 
         details = result["scored_story_details"]
         assert len(details) == 1
@@ -760,7 +760,7 @@ class TestCheckJobStillActiveNode:
         state: GhostwriterState = {
             "job_posting_id": "job-1",
         }
-        result = await check_job_still_active_node(state)
+        result = check_job_still_active_node(state)
 
         assert "job_active" in result
         assert isinstance(result["job_active"], bool)
@@ -772,7 +772,7 @@ class TestCheckJobStillActiveNode:
         state: GhostwriterState = {
             "job_posting_id": "job-1",
         }
-        result = await check_job_still_active_node(state)
+        result = check_job_still_active_node(state)
 
         assert result["job_active"] is True
 
@@ -791,7 +791,7 @@ class TestPresentForReviewNode:
             "generated_cover_letter": None,
             "job_active": True,
         }
-        result = await present_for_review_node(state)
+        result = present_for_review_node(state)
 
         assert result.get("requires_human_input") is True
 
@@ -806,7 +806,7 @@ class TestPresentForReviewNode:
             "generated_cover_letter": None,
             "job_active": False,
         }
-        result = await present_for_review_node(state)
+        result = present_for_review_node(state)
 
         assert result.get("review_warning") is not None
 
@@ -821,7 +821,7 @@ class TestPresentForReviewNode:
             "generated_cover_letter": None,
             "job_active": True,
         }
-        result = await present_for_review_node(state)
+        result = present_for_review_node(state)
 
         assert result.get("review_warning") is None
 
@@ -854,7 +854,7 @@ class TestPresentForReviewNode:
                 },
             ],
         }
-        result = await present_for_review_node(state)
+        result = present_for_review_node(state)
 
         reasoning = result.get("agent_reasoning")
         assert reasoning is not None
@@ -881,7 +881,7 @@ class TestPresentForReviewNode:
             },
             "scored_story_details": [],
         }
-        result = await present_for_review_node(state)
+        result = present_for_review_node(state)
 
         reasoning = result.get("agent_reasoning")
         assert reasoning is not None
@@ -899,7 +899,7 @@ class TestPresentForReviewNode:
             "generated_cover_letter": None,
             "job_active": True,
         }
-        result = await present_for_review_node(state)
+        result = present_for_review_node(state)
 
         reasoning = result.get("agent_reasoning")
         assert reasoning is not None
@@ -919,7 +919,7 @@ class TestPresentForReviewNode:
             "app.agents.ghostwriter_graph.format_agent_reasoning",
             return_value="mock reasoning",
         ) as mock_service:
-            result = await present_for_review_node(state)
+            result = present_for_review_node(state)
 
         mock_service.assert_called_once()
         assert result["agent_reasoning"] == "mock reasoning"

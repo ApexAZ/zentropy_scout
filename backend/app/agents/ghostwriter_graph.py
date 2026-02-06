@@ -40,6 +40,7 @@ from app.agents.state import (
     ScoredStoryDetail,
     TailoringAnalysis,
 )
+from app.schemas.prompt_params import JobContext, VoiceProfileData
 from app.services.cover_letter_generation import generate_cover_letter
 from app.services.reasoning_explanation import ReasoningStory, format_agent_reasoning
 from app.services.story_selection import select_achievement_stories
@@ -55,7 +56,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-async def check_existing_variant_node(
+def check_existing_variant_node(
     state: GhostwriterState,
 ) -> GhostwriterState:
     """Check for existing JobVariant to prevent duplicates.
@@ -88,7 +89,7 @@ async def check_existing_variant_node(
     }
 
 
-async def handle_duplicate_node(
+def handle_duplicate_node(
     state: GhostwriterState,
 ) -> GhostwriterState:
     """Handle duplicate JobVariant scenario.
@@ -125,7 +126,7 @@ async def handle_duplicate_node(
     }
 
 
-async def select_base_resume_node(
+def select_base_resume_node(
     state: GhostwriterState,
 ) -> GhostwriterState:
     """Select the best base resume for the target job.
@@ -157,7 +158,7 @@ async def select_base_resume_node(
     }
 
 
-async def evaluate_tailoring_need_node(
+def evaluate_tailoring_need_node(
     state: GhostwriterState,
 ) -> GhostwriterState:
     """Evaluate whether the base resume needs tailoring for this job.
@@ -207,7 +208,7 @@ async def evaluate_tailoring_need_node(
     }
 
 
-async def create_job_variant_node(
+def create_job_variant_node(
     state: GhostwriterState,
 ) -> GhostwriterState:
     """Create a tailored JobVariant from the base resume.
@@ -240,7 +241,7 @@ async def create_job_variant_node(
     }
 
 
-async def select_achievement_stories_node(
+def select_achievement_stories_node(
     state: GhostwriterState,
 ) -> GhostwriterState:
     """Select achievement stories for the cover letter.
@@ -319,18 +320,22 @@ async def generate_cover_letter_node(
     result = await generate_cover_letter(
         applicant_name="",
         current_title="",
-        job_title="",
-        company_name="",
-        top_skills="",
-        culture_signals="",
-        description_excerpt="",
-        tone="",
-        sentence_style="",
-        vocabulary_level="",
-        personality_markers="",
-        preferred_phrases="",
-        things_to_avoid="",
-        writing_sample="",
+        job=JobContext(
+            job_title="",
+            company_name="",
+            top_skills="",
+            culture_signals="",
+            description_excerpt="",
+        ),
+        voice=VoiceProfileData(
+            tone="",
+            sentence_style="",
+            vocabulary_level="",
+            personality_markers="",
+            preferred_phrases="",
+            things_to_avoid="",
+            writing_sample="",
+        ),
         stories=[],
         stories_used=stories,
     )
@@ -347,7 +352,7 @@ async def generate_cover_letter_node(
     }
 
 
-async def check_job_still_active_node(
+def check_job_still_active_node(
     state: GhostwriterState,
 ) -> GhostwriterState:
     """Check if the target job posting is still active.
@@ -375,7 +380,7 @@ async def check_job_still_active_node(
     }
 
 
-async def present_for_review_node(
+def present_for_review_node(
     state: GhostwriterState,
 ) -> GhostwriterState:
     """Present generated materials for user review.

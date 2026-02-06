@@ -10,6 +10,7 @@ Pattern follows onboarding.py: module-level constants + template functions.
 """
 
 from app.core.llm_sanitization import sanitize_llm_input
+from app.schemas.prompt_params import ScoreData
 
 # =============================================================================
 # Score Rationale Prompts (§7.6.1)
@@ -52,20 +53,7 @@ def build_score_rationale_prompt(
     *,
     job_title: str,
     company_name: str,
-    fit_score: int,
-    hard_skills_pct: int,
-    matched_hard_skills: int,
-    required_hard_skills: int,
-    soft_skills_pct: int,
-    experience_match: str,
-    job_years: str,
-    persona_years: str,
-    logistics_match: str,
-    stretch_score: int,
-    role_alignment_pct: int,
-    target_skills_found: str,
-    missing_skills: str,
-    bonus_skills: str,
+    scores: ScoreData,
 ) -> str:
     """Build the score rationale user prompt with match data.
 
@@ -79,20 +67,7 @@ def build_score_rationale_prompt(
     Args:
         job_title: Title of the job posting.
         company_name: Company offering the position.
-        fit_score: Overall Fit Score (0-100).
-        hard_skills_pct: Percentage of hard skills matched.
-        matched_hard_skills: Count of matched hard skills.
-        required_hard_skills: Count of required hard skills.
-        soft_skills_pct: Percentage of soft skills matched.
-        experience_match: Experience match description (e.g., "Good", "Low").
-        job_years: Years of experience the job requires.
-        persona_years: User's years of experience.
-        logistics_match: Logistics match description (e.g., "Remote OK").
-        stretch_score: Overall Stretch Score (0-100).
-        role_alignment_pct: Target role alignment percentage.
-        target_skills_found: Target skills present in the job.
-        missing_skills: Required skills the user lacks.
-        bonus_skills: Extra skills the user has beyond requirements.
+        scores: Score breakdown data (fit, stretch, skills, experience, etc.).
 
     Returns:
         Formatted user prompt string for LLM completion.
@@ -100,20 +75,20 @@ def build_score_rationale_prompt(
     return _SCORE_RATIONALE_USER_TEMPLATE.format(
         job_title=sanitize_llm_input(job_title),
         company_name=sanitize_llm_input(company_name),
-        fit_score=fit_score,
-        hard_skills_pct=hard_skills_pct,
-        matched_hard_skills=matched_hard_skills,
-        required_hard_skills=required_hard_skills,
-        soft_skills_pct=soft_skills_pct,
-        experience_match=sanitize_llm_input(experience_match),
-        job_years=sanitize_llm_input(job_years),
-        persona_years=sanitize_llm_input(persona_years),
-        logistics_match=sanitize_llm_input(logistics_match),
-        stretch_score=stretch_score,
-        role_alignment_pct=role_alignment_pct,
-        target_skills_found=sanitize_llm_input(target_skills_found),
-        missing_skills=sanitize_llm_input(missing_skills),
-        bonus_skills=sanitize_llm_input(bonus_skills),
+        fit_score=scores.fit_score,
+        hard_skills_pct=scores.hard_skills_pct,
+        matched_hard_skills=scores.matched_hard_skills,
+        required_hard_skills=scores.required_hard_skills,
+        soft_skills_pct=scores.soft_skills_pct,
+        experience_match=sanitize_llm_input(scores.experience_match),
+        job_years=sanitize_llm_input(scores.job_years),
+        persona_years=sanitize_llm_input(scores.persona_years),
+        logistics_match=sanitize_llm_input(scores.logistics_match),
+        stretch_score=scores.stretch_score,
+        role_alignment_pct=scores.role_alignment_pct,
+        target_skills_found=sanitize_llm_input(scores.target_skills_found),
+        missing_skills=sanitize_llm_input(scores.missing_skills),
+        bonus_skills=sanitize_llm_input(scores.bonus_skills),
     )
 
 
