@@ -63,6 +63,120 @@ DEFAULT_OPENAI_ROUTING: dict[str, str] = {
 DEFAULT_OPENAI_MODEL = "gpt-4o"
 
 
+def _classify_openai_error(error: Exception) -> ProviderError:
+    """Map OpenAI SDK exceptions to internal error taxonomy.
+
+    Returns a ProviderError subclass instance (does not raise).
+    The caller is responsible for raising via ``raise _classify_openai_error(e) from e``.
+
+    Handles: RateLimitError (with retry-after header extraction),
+    AuthenticationError, BadRequestError (context_length / content_policy),
+    and APIConnectionError.
+    """
+    if isinstance(error, openai.RateLimitError):
+        retry_after = None
+        if hasattr(error, "response") and error.response is not None:
+            retry_header = error.response.headers.get("retry-after")
+            if retry_header is not None:
+                with contextlib.suppress(ValueError):
+                    retry_after = float(retry_header)
+        return RateLimitError(str(error), retry_after_seconds=retry_after)
+
+    if isinstance(error, openai.AuthenticationError):
+        return AuthenticationError(str(error))
+
+    if isinstance(error, openai.BadRequestError):
+        error_msg = str(error).lower()
+        if "context_length" in error_msg:
+            return ContextLengthError(str(error))
+        if "content_policy" in error_msg:
+            return ContentFilterError(str(error))
+        return ProviderError(str(error))
+
+    if isinstance(error, openai.APIConnectionError):
+        return TransientError(str(error))
+
+    return ProviderError(str(error))
+
+
+def _convert_tool_result_message(msg: LLMMessage) -> dict[str, str]:
+    """Convert a tool result LLMMessage to OpenAI tool-role dict.
+
+    WHY: OpenAI uses a dedicated ``tool`` role with ``tool_call_id``.
+    """
+    return {
+        "role": "tool",
+        "tool_call_id": msg.tool_result.tool_call_id,
+        "content": msg.tool_result.content,
+    }
+
+
+def _convert_tool_call_message(msg: LLMMessage) -> dict:
+    """Convert an assistant LLMMessage with tool_calls to OpenAI format.
+
+    WHY: Assistant messages containing tool calls must include the function
+    call payload with JSON-encoded arguments.
+    """
+    return {
+        "role": "assistant",
+        "content": msg.content,
+        "tool_calls": [
+            {
+                "id": tc.id,
+                "type": "function",
+                "function": {
+                    "name": tc.name,
+                    "arguments": json.dumps(tc.arguments),
+                },
+            }
+            for tc in msg.tool_calls
+        ],
+    }
+
+
+def _convert_openai_messages(messages: list[LLMMessage]) -> list[dict]:
+    """Convert LLMMessages to OpenAI chat-completions message format.
+
+    OpenAI keeps system messages in the messages array (unlike Claude which
+    separates them). Returns ``list[dict]`` — the API messages list.
+    """
+    api_messages: list[dict] = []
+    for msg in messages:
+        if msg.role == "tool":
+            api_messages.append(_convert_tool_result_message(msg))
+        elif msg.tool_calls:
+            api_messages.append(_convert_tool_call_message(msg))
+        else:
+            api_messages.append({"role": msg.role, "content": msg.content})
+    return api_messages
+
+
+def _parse_openai_response(
+    response: object,
+) -> tuple[str | None, list[ToolCall] | None, str]:
+    """Parse OpenAI chat-completion response.
+
+    Extracts content, tool_calls, and finish_reason from the first choice.
+
+    Returns:
+        Tuple of (content, tool_calls, finish_reason).
+    """
+    choice = response.choices[0]
+
+    tool_calls: list[ToolCall] | None = None
+    if choice.message.tool_calls:
+        tool_calls = [
+            ToolCall(
+                id=tc.id,
+                name=tc.function.name,
+                arguments=json.loads(tc.function.arguments),
+            )
+            for tc in choice.message.tool_calls
+        ]
+
+    return choice.message.content, tool_calls, choice.finish_reason
+
+
 class OpenAIAdapter(LLMProvider):
     """OpenAI GPT adapter using OpenAI SDK.
 
@@ -110,41 +224,7 @@ class OpenAIAdapter(LLMProvider):
             LLMResponse with content and/or tool_calls.
         """
         model = self.get_model_for_task(task)
-
-        # Convert to OpenAI format
-        api_messages = []
-
-        for msg in messages:
-            if msg.role == "tool":
-                # WHY: OpenAI uses dedicated tool role with tool_call_id
-                api_messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": msg.tool_result.tool_call_id,
-                        "content": msg.tool_result.content,
-                    }
-                )
-            elif msg.tool_calls:
-                # WHY: Assistant message with tool calls needs function format
-                api_messages.append(
-                    {
-                        "role": "assistant",
-                        "content": msg.content,
-                        "tool_calls": [
-                            {
-                                "id": tc.id,
-                                "type": "function",
-                                "function": {
-                                    "name": tc.name,
-                                    "arguments": json.dumps(tc.arguments),
-                                },
-                            }
-                            for tc in msg.tool_calls
-                        ],
-                    }
-                )
-            else:
-                api_messages.append({"role": msg.role, "content": msg.content})
+        api_messages = _convert_openai_messages(messages)
 
         # Convert tools to OpenAI format
         api_tools = None
@@ -191,7 +271,12 @@ class OpenAIAdapter(LLMProvider):
                 tools=api_tools,
                 response_format=response_format,
             )
-        except openai.RateLimitError as e:
+        except (
+            openai.RateLimitError,
+            openai.AuthenticationError,
+            openai.BadRequestError,
+            openai.APIConnectionError,
+        ) as e:
             logger.error(
                 "llm_request_failed",
                 provider="openai",
@@ -200,64 +285,10 @@ class OpenAIAdapter(LLMProvider):
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            retry_after = None
-            if hasattr(e, "response") and e.response is not None:
-                retry_header = e.response.headers.get("retry-after")
-                if retry_header is not None:
-                    with contextlib.suppress(ValueError):
-                        retry_after = float(retry_header)
-            raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
-        except openai.AuthenticationError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="openai",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise AuthenticationError(str(e)) from e
-        except openai.BadRequestError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="openai",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            error_msg = str(e).lower()
-            if "context_length" in error_msg:
-                raise ContextLengthError(str(e)) from e
-            if "content_policy" in error_msg:
-                raise ContentFilterError(str(e)) from e
-            raise ProviderError(str(e)) from e
-        except openai.APIConnectionError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="openai",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise TransientError(str(e)) from e
+            raise _classify_openai_error(e) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
-
-        # Parse tool calls from response
-        tool_calls = None
-        choice = response.choices[0]
-
-        if choice.message.tool_calls:
-            tool_calls = [
-                ToolCall(
-                    id=tc.id,
-                    name=tc.function.name,
-                    arguments=json.loads(tc.function.arguments),
-                )
-                for tc in choice.message.tool_calls
-            ]
+        content, tool_calls, finish_reason = _parse_openai_response(response)
 
         # Log request complete
         logger.info(
@@ -271,11 +302,11 @@ class OpenAIAdapter(LLMProvider):
         )
 
         return LLMResponse(
-            content=choice.message.content,
+            content=content,
             model=model,
             input_tokens=response.usage.prompt_tokens,
             output_tokens=response.usage.completion_tokens,
-            finish_reason=choice.finish_reason,
+            finish_reason=finish_reason,
             latency_ms=latency_ms,
             tool_calls=tool_calls,
         )
@@ -299,11 +330,7 @@ class OpenAIAdapter(LLMProvider):
             Content chunks as they arrive.
         """
         model = self.get_model_for_task(task)
-
-        # Convert messages (same as complete but simpler)
-        api_messages = []
-        for msg in messages:
-            api_messages.append({"role": msg.role, "content": msg.content})
+        api_messages = _convert_openai_messages(messages)
 
         # Log request start
         logger.info(
@@ -330,7 +357,12 @@ class OpenAIAdapter(LLMProvider):
             async for chunk in response:
                 if chunk.choices and chunk.choices[0].delta.content is not None:
                     yield chunk.choices[0].delta.content
-        except openai.RateLimitError as e:
+        except (
+            openai.RateLimitError,
+            openai.AuthenticationError,
+            openai.BadRequestError,
+            openai.APIConnectionError,
+        ) as e:
             logger.error(
                 "llm_request_failed",
                 provider="openai",
@@ -339,48 +371,7 @@ class OpenAIAdapter(LLMProvider):
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            retry_after = None
-            if hasattr(e, "response") and e.response is not None:
-                retry_header = e.response.headers.get("retry-after")
-                if retry_header is not None:
-                    with contextlib.suppress(ValueError):
-                        retry_after = float(retry_header)
-            raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
-        except openai.AuthenticationError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="openai",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise AuthenticationError(str(e)) from e
-        except openai.BadRequestError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="openai",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            error_msg = str(e).lower()
-            if "context_length" in error_msg:
-                raise ContextLengthError(str(e)) from e
-            if "content_policy" in error_msg:
-                raise ContentFilterError(str(e)) from e
-            raise ProviderError(str(e)) from e
-        except openai.APIConnectionError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="openai",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise TransientError(str(e)) from e
+            raise _classify_openai_error(e) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
         """Get model for task using routing table.

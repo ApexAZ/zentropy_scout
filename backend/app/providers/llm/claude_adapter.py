@@ -63,6 +63,126 @@ DEFAULT_CLAUDE_ROUTING: dict[str, str] = {
 DEFAULT_CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
 
 
+def _classify_claude_error(error: Exception) -> ProviderError:
+    """Map Claude/Anthropic exceptions to internal error taxonomy.
+
+    Returns a ProviderError subclass instance (does not raise).
+    The caller is responsible for raising via ``raise _classify_claude_error(e) from e``.
+    """
+    if isinstance(error, anthropic.RateLimitError):
+        retry_after = None
+        if hasattr(error, "response") and error.response is not None:
+            retry_header = error.response.headers.get("retry-after")
+            if retry_header is not None:
+                with contextlib.suppress(ValueError):
+                    retry_after = float(retry_header)
+        return RateLimitError(str(error), retry_after_seconds=retry_after)
+
+    if isinstance(error, anthropic.AuthenticationError):
+        return AuthenticationError(str(error))
+
+    if isinstance(error, anthropic.BadRequestError):
+        error_msg = str(error).lower()
+        if "context_length" in error_msg:
+            return ContextLengthError(str(error))
+        if "content_policy" in error_msg:
+            return ContentFilterError(str(error))
+        return ProviderError(str(error))
+
+    if isinstance(error, anthropic.APIConnectionError):
+        return TransientError(str(error))
+
+    return ProviderError(str(error))
+
+
+def _convert_tool_result_message(msg: LLMMessage) -> dict:
+    """Convert a tool result message to Anthropic tool_result format.
+
+    WHY: Anthropic uses tool_result content blocks within user messages.
+    """
+    return {
+        "role": "user",
+        "content": [
+            {
+                "type": "tool_result",
+                "tool_use_id": msg.tool_result.tool_call_id,
+                "content": msg.tool_result.content,
+                "is_error": msg.tool_result.is_error,
+            }
+        ],
+    }
+
+
+def _convert_tool_call_message(msg: LLMMessage) -> dict:
+    """Convert an assistant message with tool calls to Anthropic content blocks format.
+
+    WHY: Assistant messages with tool calls need content blocks format for Anthropic.
+    """
+    content_blocks: list[dict] = []
+    if msg.content:
+        content_blocks.append({"type": "text", "text": msg.content})
+    for tc in msg.tool_calls:
+        content_blocks.append(
+            {
+                "type": "tool_use",
+                "id": tc.id,
+                "name": tc.name,
+                "input": tc.arguments,
+            }
+        )
+    return {"role": "assistant", "content": content_blocks}
+
+
+def _convert_claude_messages(
+    messages: list[LLMMessage],
+) -> tuple[str | None, list[dict]]:
+    """Convert LLMMessages to Anthropic format, extracting system message.
+
+    Returns:
+        Tuple of (system_message, api_messages) where system_message is extracted
+        from any message with role="system" and api_messages are the converted
+        conversation messages.
+    """
+    system_msg = None
+    api_messages: list[dict] = []
+
+    for msg in messages:
+        if msg.role == "system":
+            system_msg = msg.content
+        elif msg.role == "tool":
+            api_messages.append(_convert_tool_result_message(msg))
+        elif msg.tool_calls:
+            api_messages.append(_convert_tool_call_message(msg))
+        else:
+            api_messages.append({"role": msg.role, "content": msg.content})
+
+    return system_msg, api_messages
+
+
+def _parse_claude_response(
+    response: object,
+) -> tuple[str | None, list[ToolCall] | None, str]:
+    """Parse Anthropic response into content, tool_calls, and finish_reason."""
+    content = None
+    tool_calls: list[ToolCall] | None = None
+
+    for block in response.content:
+        if block.type == "text":
+            content = block.text
+        elif block.type == "tool_use":
+            if tool_calls is None:
+                tool_calls = []
+            tool_calls.append(
+                ToolCall(
+                    id=block.id,
+                    name=block.name,
+                    arguments=block.input,
+                )
+            )
+
+    return content, tool_calls, response.stop_reason
+
+
 class ClaudeAdapter(LLMProvider):
     """Claude adapter using Anthropic SDK.
 
@@ -110,46 +230,7 @@ class ClaudeAdapter(LLMProvider):
             LLMResponse with content and/or tool_calls.
         """
         model = self.get_model_for_task(task)
-
-        # Convert to Anthropic format
-        system_msg = None
-        api_messages = []
-
-        for msg in messages:
-            if msg.role == "system":
-                system_msg = msg.content
-            elif msg.role == "tool":
-                # WHY: Anthropic uses tool_result content blocks within user messages
-                api_messages.append(
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": msg.tool_result.tool_call_id,
-                                "content": msg.tool_result.content,
-                                "is_error": msg.tool_result.is_error,
-                            }
-                        ],
-                    }
-                )
-            elif msg.tool_calls:
-                # WHY: Assistant message with tool calls needs content blocks format
-                content_blocks = []
-                if msg.content:
-                    content_blocks.append({"type": "text", "text": msg.content})
-                for tc in msg.tool_calls:
-                    content_blocks.append(
-                        {
-                            "type": "tool_use",
-                            "id": tc.id,
-                            "name": tc.name,
-                            "input": tc.arguments,
-                        }
-                    )
-                api_messages.append({"role": "assistant", "content": content_blocks})
-            else:
-                api_messages.append({"role": msg.role, "content": msg.content})
+        system_msg, api_messages = _convert_claude_messages(messages)
 
         # WHY: Anthropic doesn't have native JSON mode, so we modify system prompt
         if json_mode and system_msg:
@@ -200,7 +281,12 @@ class ClaudeAdapter(LLMProvider):
                 stop_sequences=stop_sequences,
                 tools=api_tools,
             )
-        except anthropic.RateLimitError as e:
+        except (
+            anthropic.RateLimitError,
+            anthropic.AuthenticationError,
+            anthropic.BadRequestError,
+            anthropic.APIConnectionError,
+        ) as e:
             logger.error(
                 "llm_request_failed",
                 provider="claude",
@@ -209,68 +295,10 @@ class ClaudeAdapter(LLMProvider):
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            retry_after = None
-            if hasattr(e, "response") and e.response is not None:
-                retry_header = e.response.headers.get("retry-after")
-                if retry_header is not None:
-                    with contextlib.suppress(ValueError):
-                        retry_after = float(retry_header)
-            raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
-        except anthropic.AuthenticationError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="claude",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise AuthenticationError(str(e)) from e
-        except anthropic.BadRequestError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="claude",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            error_msg = str(e).lower()
-            if "context_length" in error_msg:
-                raise ContextLengthError(str(e)) from e
-            if "content_policy" in error_msg:
-                raise ContentFilterError(str(e)) from e
-            raise ProviderError(str(e)) from e
-        except anthropic.APIConnectionError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="claude",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise TransientError(str(e)) from e
+            raise _classify_claude_error(e) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
-
-        # Parse response content and tool calls
-        content = None
-        tool_calls = None
-
-        for block in response.content:
-            if block.type == "text":
-                content = block.text
-            elif block.type == "tool_use":
-                if tool_calls is None:
-                    tool_calls = []
-                tool_calls.append(
-                    ToolCall(
-                        id=block.id,
-                        name=block.name,
-                        arguments=block.input,
-                    )
-                )
+        content, tool_calls, finish_reason = _parse_claude_response(response)
 
         # Log request complete
         logger.info(
@@ -288,7 +316,7 @@ class ClaudeAdapter(LLMProvider):
             model=model,
             input_tokens=response.usage.input_tokens,
             output_tokens=response.usage.output_tokens,
-            finish_reason=response.stop_reason,
+            finish_reason=finish_reason,
             latency_ms=latency_ms,
             tool_calls=tool_calls,
         )
@@ -313,9 +341,9 @@ class ClaudeAdapter(LLMProvider):
         """
         model = self.get_model_for_task(task)
 
-        # Convert messages (same as complete, but simpler - no tools in streaming)
+        # Convert messages (simpler for streaming - no tools)
         system_msg = None
-        api_messages = []
+        api_messages: list[dict] = []
 
         for msg in messages:
             if msg.role == "system":
@@ -346,7 +374,12 @@ class ClaudeAdapter(LLMProvider):
             ) as stream:
                 async for text in stream.text_stream:
                     yield text
-        except anthropic.RateLimitError as e:
+        except (
+            anthropic.RateLimitError,
+            anthropic.AuthenticationError,
+            anthropic.BadRequestError,
+            anthropic.APIConnectionError,
+        ) as e:
             logger.error(
                 "llm_request_failed",
                 provider="claude",
@@ -355,48 +388,7 @@ class ClaudeAdapter(LLMProvider):
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            retry_after = None
-            if hasattr(e, "response") and e.response is not None:
-                retry_header = e.response.headers.get("retry-after")
-                if retry_header is not None:
-                    with contextlib.suppress(ValueError):
-                        retry_after = float(retry_header)
-            raise RateLimitError(str(e), retry_after_seconds=retry_after) from e
-        except anthropic.AuthenticationError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="claude",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise AuthenticationError(str(e)) from e
-        except anthropic.BadRequestError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="claude",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            error_msg = str(e).lower()
-            if "context_length" in error_msg:
-                raise ContextLengthError(str(e)) from e
-            if "content_policy" in error_msg:
-                raise ContentFilterError(str(e)) from e
-            raise ProviderError(str(e)) from e
-        except anthropic.APIConnectionError as e:
-            logger.error(
-                "llm_request_failed",
-                provider="claude",
-                model=model,
-                task=task.value,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise TransientError(str(e)) from e
+            raise _classify_claude_error(e) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
         """Get model for task using routing table.

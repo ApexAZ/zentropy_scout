@@ -44,6 +44,67 @@ _MAX_YEARS = 100
 # =============================================================================
 
 
+def _validate_experience_inputs(
+    effective_user_years: float | int,
+    job_min_years: float | int | None,
+    job_max_years: float | int | None,
+) -> None:
+    """Validate experience inputs are non-negative and within bounds.
+
+    Raises:
+        ValueError: If any value is negative, exceeds max, or if min > max.
+    """
+    if effective_user_years < 0:
+        msg = "User years cannot be negative"
+        raise ValueError(msg)
+
+    if job_min_years is not None and job_min_years < 0:
+        msg = "Job minimum years cannot be negative"
+        raise ValueError(msg)
+
+    if job_max_years is not None and job_max_years < 0:
+        msg = "Job maximum years cannot be negative"
+        raise ValueError(msg)
+
+    if effective_user_years > _MAX_YEARS:
+        msg = f"User years ({effective_user_years}) exceeds maximum of {_MAX_YEARS}"
+        raise ValueError(msg)
+
+    if job_min_years is not None and job_min_years > _MAX_YEARS:
+        msg = f"Job minimum years ({job_min_years}) exceeds maximum of {_MAX_YEARS}"
+        raise ValueError(msg)
+
+    if job_max_years is not None and job_max_years > _MAX_YEARS:
+        msg = f"Job maximum years ({job_max_years}) exceeds maximum of {_MAX_YEARS}"
+        raise ValueError(msg)
+
+    if (
+        job_min_years is not None
+        and job_max_years is not None
+        and job_min_years > job_max_years
+    ):
+        msg = (
+            f"Job min years ({job_min_years}) cannot exceed max years ({job_max_years})"
+        )
+        raise ValueError(msg)
+
+
+def _score_under_qualified(gap: float | int) -> float:
+    """Score for under-qualified candidates (penalized heavily)."""
+    return max(
+        _UNDER_QUALIFIED_FLOOR,
+        100 - (gap * _UNDER_QUALIFIED_PENALTY_PER_YEAR),
+    )
+
+
+def _score_over_qualified(gap: float | int) -> float:
+    """Score for over-qualified candidates (penalized lightly)."""
+    return max(
+        _OVER_QUALIFIED_FLOOR,
+        100 - (gap * _OVER_QUALIFIED_PENALTY_PER_YEAR),
+    )
+
+
 def calculate_experience_score(
     user_years: float | int | None,
     job_min_years: float | int | None,
@@ -86,42 +147,7 @@ def calculate_experience_score(
     # WHY: New users may not have set years_experience yet (REQ-001)
     effective_user_years = user_years if user_years is not None else 0
 
-    # Validate inputs are non-negative
-    if effective_user_years < 0:
-        msg = "User years cannot be negative"
-        raise ValueError(msg)
-
-    if job_min_years is not None and job_min_years < 0:
-        msg = "Job minimum years cannot be negative"
-        raise ValueError(msg)
-
-    if job_max_years is not None and job_max_years < 0:
-        msg = "Job maximum years cannot be negative"
-        raise ValueError(msg)
-
-    # Validate upper bounds (defensive against unreasonable values)
-    if effective_user_years > _MAX_YEARS:
-        msg = f"User years ({effective_user_years}) exceeds maximum of {_MAX_YEARS}"
-        raise ValueError(msg)
-
-    if job_min_years is not None and job_min_years > _MAX_YEARS:
-        msg = f"Job minimum years ({job_min_years}) exceeds maximum of {_MAX_YEARS}"
-        raise ValueError(msg)
-
-    if job_max_years is not None and job_max_years > _MAX_YEARS:
-        msg = f"Job maximum years ({job_max_years}) exceeds maximum of {_MAX_YEARS}"
-        raise ValueError(msg)
-
-    # Validate min <= max when both specified
-    if (
-        job_min_years is not None
-        and job_max_years is not None
-        and job_min_years > job_max_years
-    ):
-        msg = (
-            f"Job min years ({job_min_years}) cannot exceed max years ({job_max_years})"
-        )
-        raise ValueError(msg)
+    _validate_experience_inputs(effective_user_years, job_min_years, job_max_years)
 
     # Case 1: No requirements specified → neutral score
     if job_min_years is None and job_max_years is None:
@@ -130,44 +156,21 @@ def calculate_experience_score(
     # Case 2: Range specified (min AND max)
     if job_min_years is not None and job_max_years is not None:
         if job_min_years <= effective_user_years <= job_max_years:
-            # Perfect fit: within range
             return 100.0
         elif effective_user_years < job_min_years:
-            # Under-qualified
-            gap = job_min_years - effective_user_years
-            return max(
-                _UNDER_QUALIFIED_FLOOR,
-                100 - (gap * _UNDER_QUALIFIED_PENALTY_PER_YEAR),
-            )
+            return _score_under_qualified(job_min_years - effective_user_years)
         else:
-            # Over-qualified (user_years > job_max_years)
-            gap = effective_user_years - job_max_years
-            return max(
-                _OVER_QUALIFIED_FLOOR,
-                100 - (gap * _OVER_QUALIFIED_PENALTY_PER_YEAR),
-            )
+            return _score_over_qualified(effective_user_years - job_max_years)
 
     # Case 3: Minimum only specified
     if job_min_years is not None:
         if effective_user_years >= job_min_years:
-            # Meets or exceeds minimum
             return 100.0
-        # Under-qualified
-        gap = job_min_years - effective_user_years
-        return max(
-            _UNDER_QUALIFIED_FLOOR,
-            100 - (gap * _UNDER_QUALIFIED_PENALTY_PER_YEAR),
-        )
+        return _score_under_qualified(job_min_years - effective_user_years)
 
     # Case 4: Maximum only specified (unusual)
     # This is the final case - if job_min_years is None, job_max_years must be set
     # (we already returned for both-None case above)
     if effective_user_years <= job_max_years:  # type: ignore[operator]
-        # Under or at maximum
         return 100.0
-    # Over-qualified
-    gap = effective_user_years - job_max_years  # type: ignore[operator]
-    return max(
-        _OVER_QUALIFIED_FLOOR,
-        100 - (gap * _OVER_QUALIFIED_PENALTY_PER_YEAR),
-    )
+    return _score_over_qualified(effective_user_years - job_max_years)  # type: ignore[operator]

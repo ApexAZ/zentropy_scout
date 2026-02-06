@@ -295,6 +295,86 @@ def calculate_description_similarity(desc1: str, desc2: str) -> float:
 # =============================================================================
 
 
+def _check_source_match(
+    new_job: dict[str, Any],
+    existing_jobs: list[dict[str, Any]],
+) -> DuplicateResult | None:
+    """Check 1: Same source + same external_id (High confidence)."""
+    new_source_id = new_job.get("source_id")
+    new_external_id = new_job.get("external_id")
+    for existing in existing_jobs:
+        if (
+            existing.get("source_id") == new_source_id
+            and existing.get("external_id") == new_external_id
+        ):
+            return DuplicateResult(
+                action="update_existing",
+                matched_job_id=existing.get("id"),
+                confidence="High",
+            )
+    return None
+
+
+def _check_hash_match(
+    new_job: dict[str, Any],
+    existing_jobs: list[dict[str, Any]],
+) -> DuplicateResult | None:
+    """Check 2: Same description_hash (cross-source, High confidence)."""
+    new_description_hash = new_job.get("description_hash")
+    for existing in existing_jobs:
+        if existing.get("description_hash") == new_description_hash:
+            return DuplicateResult(
+                action="add_to_also_found_on",
+                matched_job_id=existing.get("id"),
+                confidence="High",
+            )
+    return None
+
+
+def _check_similarity_match(
+    new_job: dict[str, Any],
+    existing_jobs: list[dict[str, Any]],
+) -> DuplicateResult | None:
+    """Check 3: Same company + similar title + description similarity."""
+    new_company = (new_job.get("company_name") or "").lower().strip()
+    new_title = new_job.get("job_title") or ""
+    new_description = new_job.get("description") or ""
+
+    best_medium_match: tuple[str | None, float] = (None, 0.0)
+
+    for existing in existing_jobs:
+        existing_company = (existing.get("company_name") or "").lower().strip()
+        if existing_company != new_company:
+            continue
+        if not is_similar_title(new_title, existing.get("job_title") or ""):
+            continue
+
+        similarity = calculate_description_similarity(
+            new_description, existing.get("description") or ""
+        )
+
+        if similarity > DESCRIPTION_SIMILARITY_THRESHOLD_HIGH:
+            return DuplicateResult(
+                action="create_linked_repost",
+                matched_job_id=existing.get("id"),
+                confidence="High",
+            )
+
+        if (
+            similarity > DESCRIPTION_SIMILARITY_THRESHOLD_MEDIUM
+            and similarity > best_medium_match[1]
+        ):
+            best_medium_match = (existing.get("id"), similarity)
+
+    if best_medium_match[0] is not None:
+        return DuplicateResult(
+            action="create_linked_repost",
+            matched_job_id=best_medium_match[0],
+            confidence="Medium",
+        )
+    return None
+
+
 def is_duplicate(
     new_job: dict[str, Any],
     existing_jobs: list[dict[str, Any]],
@@ -328,80 +408,11 @@ def is_duplicate(
             action="create_new", matched_job_id=None, confidence=None
         )
 
-    new_source_id = new_job.get("source_id")
-    new_external_id = new_job.get("external_id")
-    new_description_hash = new_job.get("description_hash")
-    new_company = (new_job.get("company_name") or "").lower().strip()
-    new_title = new_job.get("job_title") or ""
-    new_description = new_job.get("description") or ""
+    for check in (_check_source_match, _check_hash_match, _check_similarity_match):
+        result = check(new_job, existing_jobs)
+        if result is not None:
+            return result
 
-    # Check 1: Same source + same external_id (highest priority, High confidence)
-    for existing in existing_jobs:
-        if (
-            existing.get("source_id") == new_source_id
-            and existing.get("external_id") == new_external_id
-        ):
-            return DuplicateResult(
-                action="update_existing",
-                matched_job_id=existing.get("id"),
-                confidence="High",
-            )
-
-    # Check 2: Same description_hash (cross-source duplicate, High confidence)
-    for existing in existing_jobs:
-        if existing.get("description_hash") == new_description_hash:
-            return DuplicateResult(
-                action="add_to_also_found_on",
-                matched_job_id=existing.get("id"),
-                confidence="High",
-            )
-
-    # Check 3: Same company + similar title + similarity check (repost detection)
-    # Track best match for medium confidence fallback
-    best_medium_match: tuple[str | None, float] = (None, 0.0)
-
-    for existing in existing_jobs:
-        existing_company = (existing.get("company_name") or "").lower().strip()
-        existing_title = existing.get("job_title") or ""
-        existing_description = existing.get("description") or ""
-
-        # Must be same company (case-insensitive)
-        if existing_company != new_company:
-            continue
-
-        # Must have similar title
-        if not is_similar_title(new_title, existing_title):
-            continue
-
-        # Calculate description similarity
-        similarity = calculate_description_similarity(
-            new_description, existing_description
-        )
-
-        # Check 3a: High confidence (>85% similarity)
-        if similarity > DESCRIPTION_SIMILARITY_THRESHOLD_HIGH:
-            return DuplicateResult(
-                action="create_linked_repost",
-                matched_job_id=existing.get("id"),
-                confidence="High",
-            )
-
-        # Check 3b: Track for Medium confidence (>70% similarity)
-        if (
-            similarity > DESCRIPTION_SIMILARITY_THRESHOLD_MEDIUM
-            and similarity > best_medium_match[1]
-        ):
-            best_medium_match = (existing.get("id"), similarity)
-
-    # Return best Medium confidence match if found
-    if best_medium_match[0] is not None:
-        return DuplicateResult(
-            action="create_linked_repost",
-            matched_job_id=best_medium_match[0],
-            confidence="Medium",
-        )
-
-    # No match found
     return DuplicateResult(action="create_new", matched_job_id=None, confidence=None)
 
 
@@ -440,6 +451,63 @@ def _is_aggregator_url(url: str | None) -> bool:
     return any(domain in url_lower for domain in AGGREGATOR_DOMAINS)
 
 
+def _merge_salary(
+    merged: dict[str, Any],
+    existing: dict[str, Any],
+    new: dict[str, Any],
+) -> None:
+    """Merge salary fields: prefer source that has data."""
+    if new.get("salary_min") is not None and existing.get("salary_min") is None:
+        merged["salary_min"] = new["salary_min"]
+    if new.get("salary_max") is not None and existing.get("salary_max") is None:
+        merged["salary_max"] = new["salary_max"]
+
+
+def _merge_apply_url(
+    merged: dict[str, Any],
+    existing: dict[str, Any],
+    new: dict[str, Any],
+) -> None:
+    """Merge apply URL: prefer ATS over aggregator."""
+    existing_url = existing.get("apply_url")
+    new_url = new.get("apply_url")
+
+    if new_url and (
+        (_is_ats_url(new_url) and not _is_ats_url(existing_url))
+        or (_is_aggregator_url(existing_url) and not _is_aggregator_url(new_url))
+        or not existing_url
+    ):
+        merged["apply_url"] = new_url
+
+
+def _merge_posted_date(
+    merged: dict[str, Any],
+    existing: dict[str, Any],
+    new: dict[str, Any],
+) -> None:
+    """Merge posted date: prefer earliest."""
+    existing_date = existing.get("posted_date")
+    new_date = new.get("posted_date")
+
+    if new_date and existing_date:
+        if new_date < existing_date:
+            merged["posted_date"] = new_date
+    elif new_date and not existing_date:
+        merged["posted_date"] = new_date
+
+
+def _merge_description(
+    merged: dict[str, Any],
+    existing: dict[str, Any],
+    new: dict[str, Any],
+) -> None:
+    """Merge description: prefer longest."""
+    existing_desc = existing.get("description") or ""
+    new_desc = new.get("description") or ""
+    if len(new_desc) > len(existing_desc):
+        merged["description"] = new_desc
+
+
 def merge_job_data(
     existing: dict[str, Any],
     new: dict[str, Any],
@@ -461,46 +529,12 @@ def merge_job_data(
     Returns:
         Merged job data dict.
     """
-    # Start with existing data
     merged = existing.copy()
 
-    # Salary: Prefer source that has it
-    if new.get("salary_min") is not None and existing.get("salary_min") is None:
-        merged["salary_min"] = new["salary_min"]
-    if new.get("salary_max") is not None and existing.get("salary_max") is None:
-        merged["salary_max"] = new["salary_max"]
-
-    # Apply URL: Prefer ATS over aggregator
-    existing_url = existing.get("apply_url")
-    new_url = new.get("apply_url")
-
-    if new_url and (
-        # If new is ATS and existing is not ATS, prefer new
-        (_is_ats_url(new_url) and not _is_ats_url(existing_url))
-        # If existing is aggregator and new is not aggregator, prefer new
-        or (_is_aggregator_url(existing_url) and not _is_aggregator_url(new_url))
-        # If existing is empty, use new
-        or not existing_url
-    ):
-        merged["apply_url"] = new_url
-
-    # Posted date: Prefer earliest
-    existing_date = existing.get("posted_date")
-    new_date = new.get("posted_date")
-
-    if new_date and existing_date:
-        # Compare as strings (ISO format sorts correctly)
-        if new_date < existing_date:
-            merged["posted_date"] = new_date
-    elif new_date and not existing_date:
-        merged["posted_date"] = new_date
-
-    # Description: Prefer longest
-    existing_desc = existing.get("description") or ""
-    new_desc = new.get("description") or ""
-
-    if len(new_desc) > len(existing_desc):
-        merged["description"] = new_desc
+    _merge_salary(merged, existing, new)
+    _merge_apply_url(merged, existing, new)
+    _merge_posted_date(merged, existing, new)
+    _merge_description(merged, existing, new)
 
     return merged
 

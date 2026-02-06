@@ -115,6 +115,45 @@ def normalize_title(title: str) -> str:
 # =============================================================================
 
 
+def _validate_embeddings(
+    embedding_a: list[float],
+    embedding_b: list[float],
+    max_dimensions: int,
+) -> None:
+    """Validate that two embeddings are non-empty, same-sized, and within bounds.
+
+    Raises:
+        ValueError: If embeddings are empty, mismatched, or exceed max dimensions.
+    """
+    if len(embedding_a) == 0 or len(embedding_b) == 0:
+        msg = "Embeddings cannot be empty"
+        raise ValueError(msg)
+
+    if len(embedding_a) != len(embedding_b):
+        msg = (
+            f"Embedding dimensions must match: {len(embedding_a)} vs {len(embedding_b)}"
+        )
+        raise ValueError(msg)
+
+    if len(embedding_a) > max_dimensions or len(embedding_b) > max_dimensions:
+        msg = f"Embeddings exceed maximum dimensions of {max_dimensions}"
+        raise ValueError(msg)
+
+
+def _collect_user_titles(
+    current_role: str | None,
+    work_history_titles: list[str],
+) -> list[str]:
+    """Collect non-empty user titles from current role and work history."""
+    titles: list[str] = []
+    if current_role and current_role.strip():
+        titles.append(current_role.strip())
+    for title in work_history_titles:
+        if title and title.strip():
+            titles.append(title.strip())
+    return titles
+
+
 def calculate_role_title_score(
     current_role: str | None,
     work_history_titles: list[str] | None,
@@ -149,61 +188,32 @@ def calculate_role_title_score(
         ValueError: If embeddings have different dimensions or exceed max size,
             or if work history exceeds max size.
     """
-    # Normalize inputs
     work_history = work_history_titles if work_history_titles is not None else []
 
-    # Validate work history size
     if len(work_history) > _MAX_WORK_HISTORY:
         msg = f"Work history exceeds maximum size of {_MAX_WORK_HISTORY}"
         raise ValueError(msg)
 
-    # Collect and normalize user titles (filter empty/whitespace-only)
-    user_titles: list[str] = []
-    if current_role and current_role.strip():
-        user_titles.append(current_role.strip())
-    for title in work_history:
-        if title and title.strip():
-            user_titles.append(title.strip())
+    user_titles = _collect_user_titles(current_role, work_history)
 
-    # Handle missing data
     if not user_titles or not job_title or not job_title.strip():
         return FIT_NEUTRAL_SCORE
 
-    # Normalize all titles
+    # Step 1: Check for exact match (after normalization)
     normalized_user_titles = [normalize_title(t) for t in user_titles]
     normalized_job_title = normalize_title(job_title)
 
-    # Step 1: Check for exact match (after normalization)
     if normalized_job_title in normalized_user_titles:
         return 100.0
 
     # Step 2: Semantic similarity via embeddings
-    # If embeddings not available, return neutral
     if user_titles_embedding is None or job_title_embedding is None:
         return FIT_NEUTRAL_SCORE
 
-    # Validate embeddings
-    if len(user_titles_embedding) == 0 or len(job_title_embedding) == 0:
-        msg = "Embeddings cannot be empty"
-        raise ValueError(msg)
-
-    if len(user_titles_embedding) != len(job_title_embedding):
-        msg = (
-            f"Embedding dimensions must match: "
-            f"{len(user_titles_embedding)} vs {len(job_title_embedding)}"
-        )
-        raise ValueError(msg)
-
-    if (
-        len(user_titles_embedding) > _MAX_EMBEDDING_DIMENSIONS
-        or len(job_title_embedding) > _MAX_EMBEDDING_DIMENSIONS
-    ):
-        msg = f"Embeddings exceed maximum dimensions of {_MAX_EMBEDDING_DIMENSIONS}"
-        raise ValueError(msg)
-
-    # Calculate cosine similarity and scale to 0-100
-    similarity = cosine_similarity(user_titles_embedding, job_title_embedding)
+    _validate_embeddings(
+        user_titles_embedding, job_title_embedding, _MAX_EMBEDDING_DIMENSIONS
+    )
 
     # Scale from [-1, 1] to [0, 100]
-    # cosine_similarity already clamps to [-1, 1], so result is always [0, 100]
+    similarity = cosine_similarity(user_titles_embedding, job_title_embedding)
     return (similarity + 1) * 50

@@ -483,6 +483,22 @@ def select_achievement_stories(
     ]
 
 
+def _is_duplicate_job_story(
+    candidate: StoryInput,
+    selected: list[tuple[StoryInput, int, str]],
+) -> bool:
+    """Check if candidate shares a job with similar outcome to a selected story."""
+    if candidate.related_job_id is None:
+        return False
+    for sel_story, _, _ in selected:
+        if (
+            candidate.related_job_id == sel_story.related_job_id
+            and _outcomes_are_similar(candidate.outcome, sel_story.outcome)
+        ):
+            return True
+    return False
+
+
 def _diversify_selection(
     scored: list[tuple[StoryInput, int, str]],
     max_stories: int,
@@ -508,20 +524,7 @@ def _diversify_selection(
     for candidate_story, candidate_score, candidate_rationale in remaining:
         if len(selected) >= max_stories:
             break
-
-        # Check if candidate shares a job with any already-selected story
-        # AND has a similar outcome
-        duplicate_job = False
-        for sel_story, _, _ in selected:
-            if (
-                candidate_story.related_job_id is not None
-                and candidate_story.related_job_id == sel_story.related_job_id
-                and _outcomes_are_similar(candidate_story.outcome, sel_story.outcome)
-            ):
-                duplicate_job = True
-                break
-
-        if not duplicate_job:
+        if not _is_duplicate_job_story(candidate_story, selected):
             selected.append((candidate_story, candidate_score, candidate_rationale))
 
     # If diversification filtered too many, fill remaining slots

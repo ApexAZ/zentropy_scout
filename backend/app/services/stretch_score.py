@@ -117,6 +117,38 @@ _MAX_TARGET_ROLES = 100
 _MAX_EMBEDDING_DIMENSIONS = 5000
 
 
+def _validate_embeddings(
+    embedding_a: list[float],
+    embedding_b: list[float],
+    max_dimensions: int,
+) -> None:
+    """Validate that two embeddings are non-empty, same-sized, and within bounds.
+
+    Raises:
+        ValueError: If embeddings are empty, mismatched, or exceed max dimensions.
+    """
+    if len(embedding_a) == 0 or len(embedding_b) == 0:
+        msg = "Embeddings cannot be empty"
+        raise ValueError(msg)
+
+    if len(embedding_a) != len(embedding_b):
+        msg = (
+            f"Embedding dimensions must match: {len(embedding_a)} vs {len(embedding_b)}"
+        )
+        raise ValueError(msg)
+
+    if len(embedding_a) > max_dimensions or len(embedding_b) > max_dimensions:
+        msg = f"Embeddings exceed maximum dimensions of {max_dimensions}"
+        raise ValueError(msg)
+
+
+def _filter_valid_strings(items: list[str] | None) -> list[str]:
+    """Filter out empty/whitespace-only strings from a list."""
+    if items is None:
+        return []
+    return [item.strip() for item in items if item and item.strip()]
+
+
 def calculate_target_role_alignment(
     target_roles: list[str] | None,
     job_title: str | None,
@@ -159,12 +191,7 @@ def calculate_target_role_alignment(
         msg = f"Target roles exceed maximum of {_MAX_TARGET_ROLES}"
         raise ValueError(msg)
 
-    # Filter out empty/whitespace-only target roles
-    valid_target_roles: list[str] = []
-    if target_roles is not None:
-        for role in target_roles:
-            if role and role.strip():
-                valid_target_roles.append(role.strip())
+    valid_target_roles = _filter_valid_strings(target_roles)
 
     # Handle missing data - return neutral score
     if not valid_target_roles or not job_title or not job_title.strip():
@@ -179,37 +206,15 @@ def calculate_target_role_alignment(
         return 100.0
 
     # Step 2: Semantic similarity via embeddings
-    # If embeddings not available, return neutral
     if target_roles_embedding is None or job_title_embedding is None:
         return STRETCH_NEUTRAL_SCORE
 
-    # Validate embeddings
-    if len(target_roles_embedding) == 0 or len(job_title_embedding) == 0:
-        msg = "Embeddings cannot be empty"
-        raise ValueError(msg)
-
-    if len(target_roles_embedding) != len(job_title_embedding):
-        msg = (
-            f"Embedding dimensions must match: "
-            f"{len(target_roles_embedding)} vs {len(job_title_embedding)}"
-        )
-        raise ValueError(msg)
-
-    if (
-        len(target_roles_embedding) > _MAX_EMBEDDING_DIMENSIONS
-        or len(job_title_embedding) > _MAX_EMBEDDING_DIMENSIONS
-    ):
-        msg = f"Embeddings exceed maximum dimensions of {_MAX_EMBEDDING_DIMENSIONS}"
-        raise ValueError(msg)
-
-    # Calculate cosine similarity and scale to 30-100 (with baseline)
-    similarity = cosine_similarity(target_roles_embedding, job_title_embedding)
+    _validate_embeddings(
+        target_roles_embedding, job_title_embedding, _MAX_EMBEDDING_DIMENSIONS
+    )
 
     # Scale from [-1, 1] to [30, 100] with 30-point baseline
-    # Formula: max(0, 30 + (similarity + 1) * 35)
-    # - similarity = -1 → 30 + 0 = 30
-    # - similarity = 0 → 30 + 35 = 65
-    # - similarity = +1 → 30 + 70 = 100
+    similarity = cosine_similarity(target_roles_embedding, job_title_embedding)
     return max(0, 30 + (similarity + 1) * 35)
 
 
@@ -260,12 +265,7 @@ def calculate_target_skills_exposure(
         msg = f"Job skills exceed maximum of {_MAX_TARGET_SKILLS}"
         raise ValueError(msg)
 
-    # Filter out empty/whitespace-only target skills
-    valid_target_skills: list[str] = []
-    if target_skills is not None:
-        for skill in target_skills:
-            if skill and skill.strip():
-                valid_target_skills.append(skill.strip())
+    valid_target_skills = _filter_valid_strings(target_skills)
 
     # No target skills defined → neutral score
     if not valid_target_skills:
@@ -301,6 +301,45 @@ _LEVEL_ORDER = ["junior", "mid", "senior", "lead", "director", "vp", "c_level"]
 _MAX_TITLE_LENGTH = 500
 
 
+def _is_c_level(normalized: str) -> bool:
+    """Check if normalized title indicates C-level."""
+    if "chief of staff" in normalized:
+        return False
+    if re.search(r"\b(ceo|cto|cfo|coo)\b", normalized):
+        return True
+    return bool(re.search(r"\bchief\b", normalized))
+
+
+def _is_vp_level(normalized: str) -> bool:
+    """Check if normalized title indicates VP level."""
+    if any(
+        keyword in normalized
+        for keyword in [" vp", "vp ", "vice president", "svp", "evp"]
+    ):
+        return True
+    return (
+        normalized == "vp" or normalized.startswith("vp ") or normalized.endswith(" vp")
+    )
+
+
+_LEAD_KEYWORDS = ("lead", "principal", "staff")
+
+_MANAGER_PATTERNS = (
+    "engineering manager",
+    "team manager",
+    "people manager",
+    "hiring manager",
+    "development manager",
+    "tech manager",
+    "technical manager",
+    "operations manager",
+    "it manager",
+)
+
+_SENIOR_KEYWORDS = ("senior", "sr.", "sr ")
+_JUNIOR_KEYWORDS = ("junior", "jr.", "jr ", "associate", "entry-level", "intern")
+
+
 def infer_level(title: str | None) -> str | None:
     """Infer career level from job title.
 
@@ -327,76 +366,26 @@ def infer_level(title: str | None) -> str | None:
 
     # Truncate oversized titles to prevent resource exhaustion
     truncated = title[:_MAX_TITLE_LENGTH] if len(title) > _MAX_TITLE_LENGTH else title
-
-    # Normalize for matching
     normalized = truncated.lower().strip()
 
     # Order matters: check from highest to lowest level
-    # This ensures "Senior Director" matches "director" not "senior"
-
-    # C-level detection (CEO, CTO, CFO, COO, Chief X Officer)
-    # Exception: "Chief of Staff" is a lead-level role
-    # Note: Use word boundary matching to avoid false positives (e.g., "director" contains "cto")
-    if "chief of staff" not in normalized:
-        # Match CEO/CTO/CFO/COO as standalone words
-        if re.search(r"\b(ceo|cto|cfo|coo)\b", normalized):
-            return "c_level"
-        # Match "Chief" when not "Chief of Staff"
-        if re.search(r"\bchief\b", normalized):
-            return "c_level"
-
-    # VP detection (VP, Vice President, SVP, EVP)
-    if any(
-        keyword in normalized
-        for keyword in [" vp", "vp ", "vice president", "svp", "evp"]
-    ):
+    if _is_c_level(normalized):
+        return "c_level"
+    if _is_vp_level(normalized):
         return "vp"
-    # Handle standalone "VP" (exact match or with punctuation)
-    if normalized == "vp" or normalized.startswith("vp ") or normalized.endswith(" vp"):
-        return "vp"
-
-    # Director detection
     if "director" in normalized:
         return "director"
-
-    # Lead detection (lead, principal, staff, specific manager roles)
-    # Note: "manager" alone is too broad - "Product Manager" is mid-level IC
-    # Only match explicit people management titles
-    lead_keywords = ["lead", "principal", "staff"]
-    if any(keyword in normalized for keyword in lead_keywords):
+    if any(keyword in normalized for keyword in _LEAD_KEYWORDS):
         return "lead"
-
-    # Specific manager patterns that indicate people management
-    manager_patterns = [
-        "engineering manager",
-        "team manager",
-        "people manager",
-        "hiring manager",
-        "development manager",
-        "tech manager",
-        "technical manager",
-        "operations manager",
-        "it manager",
-    ]
-    if any(pattern in normalized for pattern in manager_patterns):
+    if any(pattern in normalized for pattern in _MANAGER_PATTERNS):
         return "lead"
-
-    # Handle "Chief of Staff" (explicitly checked earlier, falls here)
     if "chief of staff" in normalized:
         return "lead"
-
-    # Senior detection (senior, sr., sr )
-    if any(keyword in normalized for keyword in ["senior", "sr.", "sr "]):
+    if any(keyword in normalized for keyword in _SENIOR_KEYWORDS):
         return "senior"
-
-    # Junior detection (junior, jr., associate, entry-level, intern)
-    if any(
-        keyword in normalized
-        for keyword in ["junior", "jr.", "jr ", "associate", "entry-level", "intern"]
-    ):
+    if any(keyword in normalized for keyword in _JUNIOR_KEYWORDS):
         return "junior"
 
-    # Default: mid-level for titles without explicit level indicators
     return "mid"
 
 
