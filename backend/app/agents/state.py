@@ -342,6 +342,10 @@ class GhostwriterState(BaseAgentState, total=False):
         selected_stories: Achievement story IDs selected for cover letter.
         scored_story_details: Story titles and rationales from scoring, needed
             by present_for_review to build reasoning explanation (REQ-007 §8.7).
+        data_warnings: User-facing warnings from data availability checks
+            (REQ-010 §8.1). Propagated to the review/output node.
+        skip_cover_letter: Whether to skip cover letter generation due to
+            insufficient data (e.g., no achievement stories).
         job_active: Whether the target job is still active/not expired.
         review_warning: Warning message for user review (e.g., expired job).
         agent_reasoning: Combined user-facing reasoning explanation (REQ-010 §9).
@@ -368,6 +372,10 @@ class GhostwriterState(BaseAgentState, total=False):
     generated_cover_letter: GeneratedContent | None
     selected_stories: list[str]
     scored_story_details: list[ScoredStoryDetail]
+
+    # Data availability (§8.1)
+    data_warnings: list[str]
+    skip_cover_letter: bool
 
     # Job freshness and review (§8.2, §8.7, §15.5)
     job_active: bool

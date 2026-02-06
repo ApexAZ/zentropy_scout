@@ -557,7 +557,7 @@ These steps require user action outside Claude Code:
 | 7.1 | Regeneration — Feedback Categories | `docs, plan` | ✅ |
 | 7.2 | Regeneration — Feedback Sanitization | `provider, tdd, plan` | ✅ |
 | 7.3 | Regeneration — Prompt Modifier | `provider, tdd, plan` | ✅ |
-| 8.1 | Edge Cases — Insufficient Data | `test, tdd, plan` | ⬜ |
+| 8.1 | Edge Cases — Insufficient Data | `test, tdd, plan` | ✅ |
 | 8.2 | Edge Cases — Expired Job | `test, tdd, plan` | ⬜ |
 | 8.3 | Edge Cases — Persona Changed | `db, test, tdd, plan` | ⬜ |
 | 8.4 | Edge Cases — Duplicate Story Selection | `test, tdd, plan` | ⬜ |
