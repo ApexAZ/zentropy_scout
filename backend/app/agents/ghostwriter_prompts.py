@@ -2,18 +2,20 @@
 
 REQ-010 §4.2: Summary Tailoring Prompt.
 REQ-010 §5.3: Cover Letter Generation Prompts.
+REQ-010 §7.3: Regeneration Context Builder.
 REQ-007 §8.5: Cover Letter Generation.
 
 Contains:
 1. System prompt constants with writing rules and XML output format
 2. User prompt templates with XML-tagged sections
 3. Builder functions with sanitization and truncation
+4. Regeneration context builder for feedback-based re-generation
 
 Pattern follows strategist_prompts.py: module-level constants + builder functions
 with sanitize_llm_input().
 """
 
-from app.core.llm_sanitization import sanitize_llm_input
+from app.core.llm_sanitization import sanitize_llm_input, sanitize_user_feedback
 from app.schemas.prompt_params import JobContext, VoiceProfileData
 
 # =============================================================================
@@ -30,10 +32,13 @@ _MAX_FIELD_LENGTH = 500
 """Maximum characters for variable-length prompt fields (skills, culture, phrases)."""
 
 _MAX_STORIES = 5
+"""Maximum number of achievement stories to include in the prompt."""
+
+_MAX_STORY_ID_LENGTH = 50
+"""Maximum characters per story ID in regeneration exclusion list."""
 
 _DEFAULT_NOT_SPECIFIED = "Not specified"
 """Fallback text when optional voice profile fields are empty."""
-"""Maximum number of achievement stories to include in the prompt."""
 
 # =============================================================================
 # Cover Letter Prompts (REQ-010 §5.3)
@@ -331,3 +336,70 @@ def build_summary_tailoring_prompt(
         description_excerpt=sanitize_llm_input(truncated_description),
         keywords_formatted=keywords_formatted,
     )
+
+
+# =============================================================================
+# Regeneration Context Builder (REQ-010 §7.3)
+# =============================================================================
+
+
+def build_regeneration_context(
+    *,
+    original_prompt: str,
+    feedback: str,
+    excluded_story_ids: tuple[str, ...] | None = None,
+    tone_override: str | None = None,
+    word_count_target: tuple[int, int] | None = None,
+) -> str:
+    """Append a regeneration context block to the original prompt.
+
+    REQ-010 §7.3: Modifies the prompt for regeneration based on user feedback.
+    Builds a ``<regeneration_context>`` XML block containing the sanitized
+    feedback and any category-specific overrides, then appends it to the
+    original prompt.
+
+    Security: ``feedback`` is sanitized via ``sanitize_user_feedback()`` (§7.2).
+    ``tone_override`` is sanitized via ``sanitize_llm_input()`` because it is
+    user-provided text inserted directly into the prompt. ``excluded_story_ids``
+    are sanitized and capped at ``_MAX_STORIES`` entries.
+
+    Args:
+        original_prompt: The complete prompt from the original generation
+            (system-generated, not user-provided — passed through unmodified).
+        feedback: Raw user feedback text (sanitized internally).
+        excluded_story_ids: Story IDs to exclude from regeneration (sanitized).
+        tone_override: Free-text tone adjustment instruction.
+        word_count_target: Min/max word count as a 2-tuple.
+
+    Returns:
+        Original prompt with ``<regeneration_context>`` block appended.
+    """
+    parts: list[str] = [
+        "<regeneration_context>",
+        "The user reviewed the previous draft and provided feedback.",
+    ]
+
+    safe_feedback = sanitize_user_feedback(feedback)
+    parts.append(f'\nFeedback: "{safe_feedback}"')
+
+    if excluded_story_ids:
+        safe_ids = [
+            sanitize_llm_input(sid[:_MAX_STORY_ID_LENGTH])
+            for sid in excluded_story_ids[:_MAX_STORIES]
+        ]
+        ids_formatted = ", ".join(safe_ids)
+        parts.append(f"\nDo NOT reference these story IDs: {ids_formatted}")
+
+    if tone_override:
+        safe_tone = sanitize_llm_input(tone_override)
+        parts.append(f"\nTone adjustment: {safe_tone}")
+
+    if word_count_target:
+        parts.append(
+            f"\nTarget length: {word_count_target[0]}-{word_count_target[1]} words"
+        )
+
+    parts.append("\nIncorporate this feedback while following all other rules.")
+    parts.append("</regeneration_context>")
+
+    return original_prompt + "\n\n" + "\n".join(parts)
