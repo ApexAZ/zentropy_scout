@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.application import Application
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from app.models.persona import Persona
 
 
-class CoverLetter(Base):
+class CoverLetter(Base, TimestampMixin, SoftDeleteMixin):
     """AI-generated cover letter for a job application.
 
     Tier 3 - references Persona, JobPosting, Application (nullable).
@@ -94,24 +94,10 @@ class CoverLetter(Base):
         nullable=True,
     )
 
-    # Timestamps
+    # Approval timestamp (archived_at, created_at, updated_at from mixins)
     approved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
-    )
-    archived_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
     )
 
     __table_args__ = (

@@ -15,6 +15,7 @@ This scales cosine similarity from [-1, 1] to score [0, 100].
 
 import re
 
+from app.services.embedding_utils import validate_embeddings
 from app.services.fit_score import FIT_NEUTRAL_SCORE
 from app.services.soft_skills_match import cosine_similarity
 
@@ -117,31 +118,6 @@ def normalize_title(title: str) -> str:
 # =============================================================================
 
 
-def _validate_embeddings(
-    embedding_a: list[float],
-    embedding_b: list[float],
-    max_dimensions: int,
-) -> None:
-    """Validate that two embeddings are non-empty, same-sized, and within bounds.
-
-    Raises:
-        ValueError: If embeddings are empty, mismatched, or exceed max dimensions.
-    """
-    if len(embedding_a) == 0 or len(embedding_b) == 0:
-        msg = "Embeddings cannot be empty"
-        raise ValueError(msg)
-
-    if len(embedding_a) != len(embedding_b):
-        msg = (
-            f"Embedding dimensions must match: {len(embedding_a)} vs {len(embedding_b)}"
-        )
-        raise ValueError(msg)
-
-    if len(embedding_a) > max_dimensions or len(embedding_b) > max_dimensions:
-        msg = f"Embeddings exceed maximum dimensions of {max_dimensions}"
-        raise ValueError(msg)
-
-
 def _collect_user_titles(
     current_role: str | None,
     work_history_titles: list[str],
@@ -212,7 +188,7 @@ def calculate_role_title_score(
     if user_titles_embedding is None or job_title_embedding is None:
         return FIT_NEUTRAL_SCORE
 
-    _validate_embeddings(
+    validate_embeddings(
         user_titles_embedding, job_title_embedding, _MAX_EMBEDDING_DIMENSIONS
     )
 

@@ -7,7 +7,6 @@ import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -17,13 +16,12 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin
+from app.models.base import Base, EmbeddingColumnsMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.application import Application
@@ -339,7 +337,7 @@ class ExtractedSkill(Base):
     )
 
 
-class JobEmbedding(Base):
+class JobEmbedding(Base, EmbeddingColumnsMixin):
     """Vector embeddings for job matching.
 
     Stores requirements and culture embeddings.
@@ -356,32 +354,6 @@ class JobEmbedding(Base):
     job_posting_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("job_postings.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    embedding_type: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-    )
-    # Vector column for 1536-dimensional embeddings (OpenAI text-embedding-3-small)
-    vector: Mapped[list[float]] = mapped_column(
-        Vector(1536),
-        nullable=False,
-    )
-    model_name: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-    )
-    model_version: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-    )
-    source_hash: Mapped[str] = mapped_column(
-        String(64),
-        nullable=False,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
         nullable=False,
     )
 

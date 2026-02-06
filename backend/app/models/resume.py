@@ -23,7 +23,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.models.base import Base, SoftDeleteMixin, TimestampMixin
 
 _DEFAULT_UUID = text("gen_random_uuid()")
 _DEFAULT_EMPTY_JSONB_ARRAY = text("'[]'::jsonb")
@@ -221,7 +221,7 @@ class BaseResume(Base):
     )
 
 
-class JobVariant(Base):
+class JobVariant(Base, TimestampMixin, SoftDeleteMixin):
     """Job-specific tailored version of a base resume.
 
     Contains modified summary and bullet ordering for specific job.
@@ -288,24 +288,10 @@ class JobVariant(Base):
         nullable=True,
     )
 
-    # Timestamps
+    # Approval timestamp (archived_at, created_at, updated_at from mixins)
     approved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
-    )
-    archived_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
     )
 
     __table_args__ = (

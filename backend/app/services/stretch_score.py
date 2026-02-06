@@ -23,6 +23,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
+from app.services.embedding_utils import validate_embeddings
 from app.services.hard_skills_match import normalize_skill
 from app.services.role_title_match import normalize_title
 from app.services.soft_skills_match import cosine_similarity
@@ -117,31 +118,6 @@ _MAX_TARGET_ROLES = 100
 _MAX_EMBEDDING_DIMENSIONS = 5000
 
 
-def _validate_embeddings(
-    embedding_a: list[float],
-    embedding_b: list[float],
-    max_dimensions: int,
-) -> None:
-    """Validate that two embeddings are non-empty, same-sized, and within bounds.
-
-    Raises:
-        ValueError: If embeddings are empty, mismatched, or exceed max dimensions.
-    """
-    if len(embedding_a) == 0 or len(embedding_b) == 0:
-        msg = "Embeddings cannot be empty"
-        raise ValueError(msg)
-
-    if len(embedding_a) != len(embedding_b):
-        msg = (
-            f"Embedding dimensions must match: {len(embedding_a)} vs {len(embedding_b)}"
-        )
-        raise ValueError(msg)
-
-    if len(embedding_a) > max_dimensions or len(embedding_b) > max_dimensions:
-        msg = f"Embeddings exceed maximum dimensions of {max_dimensions}"
-        raise ValueError(msg)
-
-
 def _filter_valid_strings(items: list[str] | None) -> list[str]:
     """Filter out empty/whitespace-only strings from a list."""
     if items is None:
@@ -209,7 +185,7 @@ def calculate_target_role_alignment(
     if target_roles_embedding is None or job_title_embedding is None:
         return STRETCH_NEUTRAL_SCORE
 
-    _validate_embeddings(
+    validate_embeddings(
         target_roles_embedding, job_title_embedding, _MAX_EMBEDDING_DIMENSIONS
     )
 
