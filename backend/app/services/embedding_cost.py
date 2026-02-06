@@ -143,7 +143,7 @@ def estimate_embedding_cost(
     model_info = EMBEDDING_MODELS[model]
     price_per_1k = model_info["price_per_1k_tokens"]
 
-    # Cost = (tokens / 1000) * price_per_1k_tokens
+    # Scale token count to thousands, then multiply by per-1k price
     cost = (total_tokens / 1000) * float(price_per_1k)
 
     return EmbeddingCostEstimate(

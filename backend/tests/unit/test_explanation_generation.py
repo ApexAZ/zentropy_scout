@@ -533,7 +533,7 @@ class TestGenerateSummarySentence:
         """Generates positive summary for high scores."""
         summary = generate_summary_sentence(
             fit_total=85,
-            stretch_total=60,
+            _stretch_total=60,
             strengths=["Strong technical fit"],
             gaps=[],
         )
@@ -545,7 +545,7 @@ class TestGenerateSummarySentence:
         """Summary acknowledges gaps when present."""
         summary = generate_summary_sentence(
             fit_total=60,
-            stretch_total=50,
+            _stretch_total=50,
             strengths=["Some experience"],
             gaps=["Missing required skill: Kubernetes"],
         )

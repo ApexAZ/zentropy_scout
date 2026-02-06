@@ -40,7 +40,7 @@ class JobSkillInput(TypedDict, total=False):
 
     skill_name: str
     skill_type: str  # "Hard" or "Soft"
-    is_required: bool  # True = required, False = nice-to-have
+    is_required: bool  # Whether the skill is required or nice-to-have
     years_requested: int | None  # Years of experience if specified
 
 
@@ -237,29 +237,9 @@ def calculate_hard_skills_score(
             norm_name = normalize_skill(skill.get("skill_name", ""))
             persona_skill_map[norm_name] = skill
 
-    # Calculate weighted matches for required skills
-    required_weighted_score = 0.0
-    for job_skill in required_skills:
-        norm_name = normalize_skill(job_skill.get("skill_name", ""))
-        if norm_name in persona_skill_map:
-            persona_skill = persona_skill_map[norm_name]
-            weight = get_proficiency_weight(
-                persona_proficiency=persona_skill.get("proficiency", ""),
-                job_years_requested=job_skill.get("years_requested"),
-            )
-            required_weighted_score += weight
-
-    # Calculate weighted matches for nice-to-have skills
-    nice_weighted_score = 0.0
-    for job_skill in nice_to_have_skills:
-        norm_name = normalize_skill(job_skill.get("skill_name", ""))
-        if norm_name in persona_skill_map:
-            persona_skill = persona_skill_map[norm_name]
-            weight = get_proficiency_weight(
-                persona_proficiency=persona_skill.get("proficiency", ""),
-                job_years_requested=job_skill.get("years_requested"),
-            )
-            nice_weighted_score += weight
+    # Calculate weighted matches
+    required_weighted_score = _weighted_match_score(required_skills, persona_skill_map)
+    nice_weighted_score = _weighted_match_score(nice_to_have_skills, persona_skill_map)
 
     # Required skills are critical (80% of component)
     if required_skills:
@@ -274,3 +254,20 @@ def calculate_hard_skills_score(
         nice_score = 0
 
     return required_score + nice_score
+
+
+def _weighted_match_score(
+    job_skills_subset: list[JobSkillInput],
+    persona_skill_map: dict[str, PersonaSkillInput],
+) -> float:
+    """Calculate weighted score for a subset of job skills against persona skills."""
+    total = 0.0
+    for job_skill in job_skills_subset:
+        norm_name = normalize_skill(job_skill.get("skill_name", ""))
+        if norm_name in persona_skill_map:
+            persona_skill = persona_skill_map[norm_name]
+            total += get_proficiency_weight(
+                persona_proficiency=persona_skill.get("proficiency", ""),
+                job_years_requested=job_skill.get("years_requested"),
+            )
+    return total

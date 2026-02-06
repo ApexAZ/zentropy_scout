@@ -203,7 +203,7 @@ def get_target_skill_matches(
 
 def generate_summary_sentence(
     fit_total: int,
-    stretch_total: int,  # noqa: ARG001 - Reserved for future enhanced summaries
+    _stretch_total: int,
     strengths: list[str],
     gaps: list[str],
 ) -> str:
@@ -258,6 +258,113 @@ def generate_summary_sentence(
 # =============================================================================
 
 
+def _analyze_hard_skills(
+    fit_result: FitScoreResult,
+    persona: PersonaLike,
+    job: JobPostingLike,
+    strengths: list[str],
+    gaps: list[str],
+) -> None:
+    """Analyze hard skills and populate strengths/gaps lists."""
+    hard_skills_score = fit_result.components.get("hard_skills", 70.0)
+
+    if hard_skills_score >= _HARD_SKILLS_STRENGTH_THRESHOLD:
+        matched = get_matched_skills(persona, job, "Hard")
+        if matched:
+            skill_list = ", ".join(matched[:3])
+            strengths.append(
+                f"Strong technical fit — you have {len(matched)} of the key skills: {skill_list}"
+            )
+        else:
+            strengths.append("Strong technical fit with the requirements")
+    elif hard_skills_score < _HARD_SKILLS_GAP_THRESHOLD:
+        missing = get_missing_skills(persona, job, "Hard", required_only=True)
+        if missing:
+            skill_list = ", ".join(missing[:3])
+            gaps.append(f"Missing required skills: {skill_list}")
+
+
+def _analyze_experience(
+    fit_result: FitScoreResult,
+    persona: PersonaLike,
+    job: JobPostingLike,
+    strengths: list[str],
+    gaps: list[str],
+    warnings: list[str],
+) -> None:
+    """Analyze experience level and populate strengths/gaps/warnings lists."""
+    experience_score = fit_result.components.get("experience_level", 70.0)
+
+    if experience_score >= _EXPERIENCE_STRENGTH_THRESHOLD:
+        years = persona.years_experience
+        if years is not None:
+            strengths.append(f"Experience level is a perfect match ({years} years)")
+        else:
+            strengths.append("Experience level matches well")
+    elif experience_score < _EXPERIENCE_GAP_THRESHOLD:
+        _check_experience_qualification(persona, job, gaps, warnings)
+
+
+def _check_experience_qualification(
+    persona: PersonaLike,
+    job: JobPostingLike,
+    gaps: list[str],
+    warnings: list[str],
+) -> None:
+    """Check if under-qualified or over-qualified based on years."""
+    persona_years = persona.years_experience
+    if persona_years is None:
+        return
+
+    job_min = job.years_experience_min
+    job_max = job.years_experience_max
+
+    if job_min is not None and persona_years < job_min:
+        gaps.append(
+            f"Under-qualified: job wants {job_min}+ years, you have {persona_years}"
+        )
+    elif job_max is not None and persona_years > job_max:
+        warnings.append(
+            f"May be seen as overqualified ({persona_years} years vs. {job_max} max)"
+        )
+
+
+def _analyze_stretch(
+    stretch_result: StretchScoreResult,
+    persona: PersonaLike,
+    job: JobPostingLike,
+    stretch_opportunities: list[str],
+) -> None:
+    """Analyze stretch opportunities from target skills and roles."""
+    target_skills_score = stretch_result.components.get("target_skills", 50.0)
+    target_role_score = stretch_result.components.get("target_role", 50.0)
+
+    if target_skills_score >= _TARGET_SKILLS_STRETCH_THRESHOLD:
+        target_matches = get_target_skill_matches(persona, job)
+        if target_matches:
+            skill_list = ", ".join(target_matches[:3])
+            stretch_opportunities.append(f"Exposure to target skills: {skill_list}")
+        else:
+            stretch_opportunities.append("Good exposure to skills you want to develop")
+
+    if target_role_score >= _TARGET_ROLE_STRETCH_THRESHOLD:
+        target_roles = persona.target_roles
+        if target_roles:
+            stretch_opportunities.append(
+                f"Aligns with your target role of {target_roles[0]}"
+            )
+        else:
+            stretch_opportunities.append("Aligns well with your career direction")
+
+
+def _generate_warnings(job: JobPostingLike, warnings: list[str]) -> None:
+    """Generate job-related warnings (salary, ghost score)."""
+    if job.salary_max is None:
+        warnings.append("Salary not disclosed")
+    if job.ghost_score >= _GHOST_SCORE_WARNING_THRESHOLD:
+        warnings.append(f"Ghost risk: {job.ghost_score}% — this posting may be stale")
+
+
 def generate_explanation(
     fit_result: FitScoreResult,
     stretch_result: StretchScoreResult,
@@ -284,7 +391,6 @@ def generate_explanation(
     Raises:
         ValueError: If input skill lists exceed maximum size (_MAX_SKILLS).
     """
-    # Validate input sizes (defense in depth)
     if len(persona.skills) > _MAX_SKILLS:
         msg = f"Persona skills exceed maximum of {_MAX_SKILLS}"
         raise ValueError(msg)
@@ -300,97 +406,11 @@ def generate_explanation(
     stretch_opportunities: list[str] = []
     warnings: list[str] = []
 
-    # -------------------------------------------------------------------------
-    # Hard Skills Analysis (REQ-008 §8.2)
-    # -------------------------------------------------------------------------
-    hard_skills_score = fit_result.components.get("hard_skills", 70.0)
+    _analyze_hard_skills(fit_result, persona, job, strengths, gaps)
+    _analyze_experience(fit_result, persona, job, strengths, gaps, warnings)
+    _analyze_stretch(stretch_result, persona, job, stretch_opportunities)
+    _generate_warnings(job, warnings)
 
-    if hard_skills_score >= _HARD_SKILLS_STRENGTH_THRESHOLD:
-        matched = get_matched_skills(persona, job, "Hard")
-        if matched:
-            # Show up to 3 skills in the message
-            skill_list = ", ".join(matched[:3])
-            strengths.append(
-                f"Strong technical fit — you have {len(matched)} of the key skills: {skill_list}"
-            )
-        else:
-            strengths.append("Strong technical fit with the requirements")
-
-    elif hard_skills_score < _HARD_SKILLS_GAP_THRESHOLD:
-        missing = get_missing_skills(persona, job, "Hard", required_only=True)
-        if missing:
-            # Show up to 3 missing skills
-            skill_list = ", ".join(missing[:3])
-            gaps.append(f"Missing required skills: {skill_list}")
-
-    # -------------------------------------------------------------------------
-    # Experience Analysis (REQ-008 §8.2)
-    # -------------------------------------------------------------------------
-    experience_score = fit_result.components.get("experience_level", 70.0)
-
-    if experience_score >= _EXPERIENCE_STRENGTH_THRESHOLD:
-        years = persona.years_experience
-        if years is not None:
-            strengths.append(f"Experience level is a perfect match ({years} years)")
-        else:
-            strengths.append("Experience level matches well")
-
-    elif experience_score < _EXPERIENCE_GAP_THRESHOLD:
-        # Determine if under-qualified or over-qualified
-        persona_years = persona.years_experience
-        job_min = job.years_experience_min
-        job_max = job.years_experience_max
-
-        if persona_years is not None:
-            # Check under-qualified
-            if job_min is not None and persona_years < job_min:
-                gaps.append(
-                    f"Under-qualified: job wants {job_min}+ years, you have {persona_years}"
-                )
-            # Check over-qualified (separate condition)
-            elif job_max is not None and persona_years > job_max:
-                warnings.append(
-                    f"May be seen as overqualified ({persona_years} years vs. {job_max} max)"
-                )
-
-    # -------------------------------------------------------------------------
-    # Stretch Analysis (REQ-008 §8.2)
-    # -------------------------------------------------------------------------
-    target_skills_score = stretch_result.components.get("target_skills", 50.0)
-    target_role_score = stretch_result.components.get("target_role", 50.0)
-
-    if target_skills_score >= _TARGET_SKILLS_STRETCH_THRESHOLD:
-        target_matches = get_target_skill_matches(persona, job)
-        if target_matches:
-            skill_list = ", ".join(target_matches[:3])
-            stretch_opportunities.append(f"Exposure to target skills: {skill_list}")
-        else:
-            stretch_opportunities.append("Good exposure to skills you want to develop")
-
-    if target_role_score >= _TARGET_ROLE_STRETCH_THRESHOLD:
-        target_roles = persona.target_roles
-        if target_roles:
-            stretch_opportunities.append(
-                f"Aligns with your target role of {target_roles[0]}"
-            )
-        else:
-            stretch_opportunities.append("Aligns well with your career direction")
-
-    # -------------------------------------------------------------------------
-    # Warnings (REQ-008 §8.2)
-    # -------------------------------------------------------------------------
-
-    # Salary warning
-    if job.salary_max is None:
-        warnings.append("Salary not disclosed")
-
-    # Ghost score warning
-    if job.ghost_score >= _GHOST_SCORE_WARNING_THRESHOLD:
-        warnings.append(f"Ghost risk: {job.ghost_score}% — this posting may be stale")
-
-    # -------------------------------------------------------------------------
-    # Summary Generation (REQ-008 §8.2)
-    # -------------------------------------------------------------------------
     summary = generate_summary_sentence(
         fit_result.total,
         stretch_result.total,

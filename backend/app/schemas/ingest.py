@@ -26,7 +26,7 @@ class ExtractedSkill(TypedDict):
 
     skill_name: str
     skill_type: str  # "Hard" (technical) or "Soft" (interpersonal)
-    is_required: bool  # True = required, False = nice-to-have
+    is_required: bool  # Whether the skill is required or nice-to-have
     years_requested: int | None  # Number of years if specified, else None
 
 
