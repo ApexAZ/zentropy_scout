@@ -9,15 +9,13 @@ workflow where users review and approve changes before they propagate.
 
 import uuid
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user_id
-from app.core.database import get_db
+from app.api.deps import CurrentUserId, DbSession
 from app.core.errors import InvalidStateError, NotFoundError
 from app.core.responses import DataResponse, ListResponse
 from app.models import Persona
@@ -73,14 +71,17 @@ def _flag_to_dict(flag: PersonaChangeFlag) -> dict:
 # =============================================================================
 
 
+StatusFilter = Annotated[
+    str | None,
+    Query(description="Filter by status (Pending or Resolved)"),
+]
+
+
 @router.get("")
 async def list_persona_change_flags(
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
-    status: str | None = Query(  # noqa: B008
-        default=None,
-        description="Filter by status (Pending or Resolved)",
-    ),
+    user_id: CurrentUserId,
+    db: DbSession,
+    status: StatusFilter = None,
 ) -> ListResponse[dict]:
     """List pending persona change flags.
 
@@ -118,8 +119,8 @@ async def list_persona_change_flags(
 @router.get("/{flag_id}")
 async def get_persona_change_flag(
     flag_id: uuid.UUID,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> DataResponse[dict]:
     """Get a persona change flag by ID.
 
@@ -151,8 +152,8 @@ async def get_persona_change_flag(
 async def update_persona_change_flag(
     flag_id: uuid.UUID,
     request: ResolveChangeFlagRequest,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> DataResponse[dict]:
     """Update a persona change flag (approve/dismiss).
 

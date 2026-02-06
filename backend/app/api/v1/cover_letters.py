@@ -8,9 +8,9 @@ REQ-006 §5.2: Cover letter management.
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.api.deps import get_current_user_id
+from app.api.deps import CurrentUserId
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 
 router = APIRouter()
@@ -18,7 +18,7 @@ router = APIRouter()
 
 @router.get("")
 async def list_cover_letters(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List cover letters for current user."""
     return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
@@ -26,7 +26,7 @@ async def list_cover_letters(
 
 @router.post("")
 async def create_cover_letter(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Create a new cover letter."""
     return DataResponse(data={})
@@ -35,7 +35,7 @@ async def create_cover_letter(
 @router.get("/{cover_letter_id}")
 async def get_cover_letter(
     cover_letter_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a cover letter by ID."""
     return DataResponse(data={})
@@ -44,7 +44,7 @@ async def get_cover_letter(
 @router.patch("/{cover_letter_id}")
 async def update_cover_letter(
     cover_letter_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Partially update a cover letter."""
     return DataResponse(data={})
@@ -53,7 +53,7 @@ async def update_cover_letter(
 @router.delete("/{cover_letter_id}")
 async def delete_cover_letter(
     cover_letter_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a cover letter."""
     return None

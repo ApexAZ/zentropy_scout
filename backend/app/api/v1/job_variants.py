@@ -8,9 +8,9 @@ REQ-006 §5.2: Job-specific resume variants.
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.api.deps import get_current_user_id
+from app.api.deps import CurrentUserId
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 
 router = APIRouter()
@@ -18,7 +18,7 @@ router = APIRouter()
 
 @router.get("")
 async def list_job_variants(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List job variants for current user.
 
@@ -29,7 +29,7 @@ async def list_job_variants(
 
 @router.post("")
 async def create_job_variant(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Create a new job variant."""
     return DataResponse(data={})
@@ -38,7 +38,7 @@ async def create_job_variant(
 @router.get("/{variant_id}")
 async def get_job_variant(
     variant_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a job variant by ID."""
     return DataResponse(data={})
@@ -47,7 +47,7 @@ async def get_job_variant(
 @router.patch("/{variant_id}")
 async def update_job_variant(
     variant_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Partially update a job variant."""
     return DataResponse(data={})
@@ -56,7 +56,7 @@ async def update_job_variant(
 @router.delete("/{variant_id}")
 async def delete_job_variant(
     variant_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a job variant."""
     return None

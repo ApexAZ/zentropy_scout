@@ -8,9 +8,9 @@ REQ-006 §5.2: Application tracking with timeline.
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.api.deps import get_current_user_id
+from app.api.deps import CurrentUserId
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.schemas.bulk import BulkArchiveRequest, BulkFailedItem, BulkOperationResult
 
@@ -24,7 +24,7 @@ router = APIRouter()
 
 @router.get("")
 async def list_applications(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List applications for current user.
 
@@ -35,7 +35,7 @@ async def list_applications(
 
 @router.post("")
 async def create_application(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Create a new application."""
     return DataResponse(data={})
@@ -44,7 +44,7 @@ async def create_application(
 @router.get("/{application_id}")
 async def get_application(
     application_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get an application by ID."""
     return DataResponse(data={})
@@ -53,7 +53,7 @@ async def get_application(
 @router.patch("/{application_id}")
 async def update_application(
     application_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Partially update an application."""
     return DataResponse(data={})
@@ -62,7 +62,7 @@ async def update_application(
 @router.delete("/{application_id}")
 async def delete_application(
     application_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete an application (soft delete)."""
     return None
@@ -76,7 +76,7 @@ async def delete_application(
 @router.get("/{application_id}/timeline")
 async def list_timeline_events(
     application_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List timeline events for an application."""
     return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
@@ -85,7 +85,7 @@ async def list_timeline_events(
 @router.post("/{application_id}/timeline")
 async def create_timeline_event(
     application_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Add a timeline event to an application."""
     return DataResponse(data={})
@@ -95,7 +95,7 @@ async def create_timeline_event(
 async def get_timeline_event(
     application_id: uuid.UUID,  # noqa: ARG001
     event_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a timeline event by ID."""
     return DataResponse(data={})
@@ -105,7 +105,7 @@ async def get_timeline_event(
 async def update_timeline_event(
     application_id: uuid.UUID,  # noqa: ARG001
     event_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Update a timeline event."""
     return DataResponse(data={})
@@ -115,7 +115,7 @@ async def update_timeline_event(
 async def delete_timeline_event(
     application_id: uuid.UUID,  # noqa: ARG001
     event_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a timeline event."""
     return None
@@ -129,7 +129,7 @@ async def delete_timeline_event(
 @router.post("/bulk-archive")
 async def bulk_archive_applications(
     request: BulkArchiveRequest,
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[BulkOperationResult]:
     """Bulk archive multiple applications.
 

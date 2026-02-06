@@ -9,6 +9,7 @@ WHY DEPENDENCY INJECTION:
 """
 
 import uuid
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
@@ -19,7 +20,7 @@ from app.core.database import get_db
 from app.models import User
 
 
-async def get_current_user_id() -> uuid.UUID:
+def get_current_user_id() -> uuid.UUID:
     """Get current user ID from auth context.
 
     REQ-006 §6.1: Local-first mode uses DEFAULT_USER_ID from environment.
@@ -46,8 +47,8 @@ async def get_current_user_id() -> uuid.UUID:
 
 
 async def get_current_user(
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
     """Get full User object for current user.
 
@@ -74,3 +75,9 @@ async def get_current_user(
         )
 
     return user
+
+
+# Reusable type aliases for dependency injection (SonarCloud S8410)
+CurrentUserId = Annotated[uuid.UUID, Depends(get_current_user_id)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
+DbSession = Annotated[AsyncSession, Depends(get_db)]

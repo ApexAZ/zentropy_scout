@@ -6,14 +6,13 @@ All files are stored as BYTEA in PostgreSQL (no S3, no filesystem paths).
 """
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user_id
-from app.core.database import get_db
+from app.api.deps import CurrentUserId, DbSession
 from app.core.errors import NotFoundError
 from app.core.file_validation import (
     read_file_with_size_limit,
@@ -34,10 +33,10 @@ resume_files_router = APIRouter()
 
 @resume_files_router.post("")
 async def upload_resume_file(
-    file: UploadFile = File(...),  # noqa: B008
-    persona_id: uuid.UUID = Form(...),  # noqa: B008
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    file: Annotated[UploadFile, File(...)],
+    persona_id: Annotated[uuid.UUID, Form(...)],
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> DataResponse[dict]:
     """Upload original resume file during onboarding.
 
@@ -98,8 +97,8 @@ async def upload_resume_file(
 
 @resume_files_router.get("")
 async def list_resume_files(
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> ListResponse[dict]:
     """List resume files for current user.
 
@@ -141,8 +140,8 @@ async def list_resume_files(
 @resume_files_router.get("/{file_id}")
 async def get_resume_file(
     file_id: uuid.UUID,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> DataResponse[dict]:
     """Get resume file metadata by ID.
 
@@ -182,8 +181,8 @@ async def get_resume_file(
 @resume_files_router.get("/{file_id}/download")
 async def download_resume_file(
     file_id: uuid.UUID,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> StreamingResponse:
     """Download resume file binary.
 
@@ -236,8 +235,8 @@ submitted_resume_pdfs_router = APIRouter()
 @submitted_resume_pdfs_router.get("/{pdf_id}/download")
 async def download_submitted_resume_pdf(
     pdf_id: uuid.UUID,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> StreamingResponse:
     """Download submitted resume PDF.
 
@@ -307,8 +306,8 @@ submitted_cover_letter_pdfs_router = APIRouter()
 @submitted_cover_letter_pdfs_router.get("/{pdf_id}/download")
 async def download_submitted_cover_letter_pdf(
     pdf_id: uuid.UUID,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> StreamingResponse:
     """Download submitted cover letter PDF.
 

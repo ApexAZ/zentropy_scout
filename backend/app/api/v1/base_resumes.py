@@ -5,13 +5,11 @@ REQ-006 §5.2: Base resumes filtered by current user's persona.
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user_id
-from app.core.database import get_db
+from app.api.deps import CurrentUserId, DbSession
 from app.core.errors import NotFoundError
 from app.core.file_validation import sanitize_filename_for_header
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
@@ -22,7 +20,7 @@ router = APIRouter()
 
 @router.get("")
 async def list_base_resumes(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List base resumes for current user."""
     return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
@@ -30,7 +28,7 @@ async def list_base_resumes(
 
 @router.post("")
 async def create_base_resume(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Create a new base resume."""
     return DataResponse(data={})
@@ -39,7 +37,7 @@ async def create_base_resume(
 @router.get("/{resume_id}")
 async def get_base_resume(
     resume_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a base resume by ID."""
     return DataResponse(data={})
@@ -48,7 +46,7 @@ async def get_base_resume(
 @router.patch("/{resume_id}")
 async def update_base_resume(
     resume_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Partially update a base resume."""
     return DataResponse(data={})
@@ -57,7 +55,7 @@ async def update_base_resume(
 @router.delete("/{resume_id}")
 async def delete_base_resume(
     resume_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a base resume."""
     return None
@@ -66,8 +64,8 @@ async def delete_base_resume(
 @router.get("/{resume_id}/download")
 async def download_base_resume(
     resume_id: uuid.UUID,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> StreamingResponse:
     """Download rendered anchor PDF for base resume.
 

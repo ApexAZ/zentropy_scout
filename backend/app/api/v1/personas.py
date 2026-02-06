@@ -26,9 +26,9 @@ Endpoints:
 
 import uuid
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 
-from app.api.deps import get_current_user_id
+from app.api.deps import CurrentUserId
 from app.core.config import settings
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
@@ -43,7 +43,7 @@ router = APIRouter()
 
 @router.get("")
 async def list_personas(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List all personas for current user.
 
@@ -54,7 +54,7 @@ async def list_personas(
 
 @router.post("")
 async def create_persona(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Create a new persona.
 
@@ -66,7 +66,7 @@ async def create_persona(
 @router.get("/{persona_id}")
 async def get_persona(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a persona by ID."""
     return DataResponse(data={})
@@ -75,7 +75,7 @@ async def get_persona(
 @router.patch("/{persona_id}")
 async def update_persona(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Partially update a persona."""
     return DataResponse(data={})
@@ -84,7 +84,7 @@ async def update_persona(
 @router.delete("/{persona_id}")
 async def delete_persona(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a persona (soft delete)."""
     return None
@@ -98,7 +98,7 @@ async def delete_persona(
 @router.get("/{persona_id}/work-history")
 async def list_work_history(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List work history entries for a persona."""
     return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
@@ -107,7 +107,7 @@ async def list_work_history(
 @router.post("/{persona_id}/work-history")
 async def create_work_history(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Add a work history entry."""
     return DataResponse(data={})
@@ -117,7 +117,7 @@ async def create_work_history(
 async def get_work_history(
     persona_id: uuid.UUID,  # noqa: ARG001
     entry_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a work history entry."""
     return DataResponse(data={})
@@ -127,7 +127,7 @@ async def get_work_history(
 async def update_work_history(
     persona_id: uuid.UUID,  # noqa: ARG001
     entry_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Update a work history entry."""
     return DataResponse(data={})
@@ -137,7 +137,7 @@ async def update_work_history(
 async def delete_work_history(
     persona_id: uuid.UUID,  # noqa: ARG001
     entry_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a work history entry."""
     return None
@@ -151,7 +151,7 @@ async def delete_work_history(
 @router.get("/{persona_id}/skills")
 async def list_skills(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List skills for a persona."""
     return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
@@ -160,7 +160,7 @@ async def list_skills(
 @router.post("/{persona_id}/skills")
 async def create_skill(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Add a skill to the persona."""
     return DataResponse(data={})
@@ -170,7 +170,7 @@ async def create_skill(
 async def get_skill(
     persona_id: uuid.UUID,  # noqa: ARG001
     skill_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a skill by ID."""
     return DataResponse(data={})
@@ -180,7 +180,7 @@ async def get_skill(
 async def update_skill(
     persona_id: uuid.UUID,  # noqa: ARG001
     skill_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Update a skill."""
     return DataResponse(data={})
@@ -190,7 +190,7 @@ async def update_skill(
 async def delete_skill(
     persona_id: uuid.UUID,  # noqa: ARG001
     skill_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a skill."""
     return None
@@ -204,7 +204,7 @@ async def delete_skill(
 @router.get("/{persona_id}/education")
 async def list_education(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List education entries for a persona."""
     return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
@@ -213,7 +213,7 @@ async def list_education(
 @router.post("/{persona_id}/education")
 async def create_education(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Add an education entry."""
     return DataResponse(data={})
@@ -223,7 +223,7 @@ async def create_education(
 async def get_education(
     persona_id: uuid.UUID,  # noqa: ARG001
     entry_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get an education entry."""
     return DataResponse(data={})
@@ -233,7 +233,7 @@ async def get_education(
 async def update_education(
     persona_id: uuid.UUID,  # noqa: ARG001
     entry_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Update an education entry."""
     return DataResponse(data={})
@@ -243,7 +243,7 @@ async def update_education(
 async def delete_education(
     persona_id: uuid.UUID,  # noqa: ARG001
     entry_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete an education entry."""
     return None
@@ -257,7 +257,7 @@ async def delete_education(
 @router.get("/{persona_id}/certifications")
 async def list_certifications(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List certifications for a persona."""
     return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
@@ -266,7 +266,7 @@ async def list_certifications(
 @router.post("/{persona_id}/certifications")
 async def create_certification(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Add a certification."""
     return DataResponse(data={})
@@ -276,7 +276,7 @@ async def create_certification(
 async def get_certification(
     persona_id: uuid.UUID,  # noqa: ARG001
     cert_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a certification by ID."""
     return DataResponse(data={})
@@ -286,7 +286,7 @@ async def get_certification(
 async def update_certification(
     persona_id: uuid.UUID,  # noqa: ARG001
     cert_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Update a certification."""
     return DataResponse(data={})
@@ -296,7 +296,7 @@ async def update_certification(
 async def delete_certification(
     persona_id: uuid.UUID,  # noqa: ARG001
     cert_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a certification."""
     return None
@@ -310,7 +310,7 @@ async def delete_certification(
 @router.get("/{persona_id}/achievement-stories")
 async def list_achievement_stories(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List achievement stories for a persona."""
     return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
@@ -319,7 +319,7 @@ async def list_achievement_stories(
 @router.post("/{persona_id}/achievement-stories")
 async def create_achievement_story(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Add an achievement story."""
     return DataResponse(data={})
@@ -329,7 +329,7 @@ async def create_achievement_story(
 async def get_achievement_story(
     persona_id: uuid.UUID,  # noqa: ARG001
     story_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get an achievement story by ID."""
     return DataResponse(data={})
@@ -339,7 +339,7 @@ async def get_achievement_story(
 async def update_achievement_story(
     persona_id: uuid.UUID,  # noqa: ARG001
     story_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Update an achievement story."""
     return DataResponse(data={})
@@ -349,7 +349,7 @@ async def update_achievement_story(
 async def delete_achievement_story(
     persona_id: uuid.UUID,  # noqa: ARG001
     story_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete an achievement story."""
     return None
@@ -363,7 +363,7 @@ async def delete_achievement_story(
 @router.get("/{persona_id}/voice-profile")
 async def get_voice_profile(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get the voice profile for a persona.
 
@@ -375,7 +375,7 @@ async def get_voice_profile(
 @router.patch("/{persona_id}/voice-profile")
 async def update_voice_profile(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Update the voice profile for a persona."""
     return DataResponse(data={})
@@ -389,7 +389,7 @@ async def update_voice_profile(
 @router.get("/{persona_id}/custom-non-negotiables")
 async def list_custom_non_negotiables(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List custom non-negotiables for a persona.
 
@@ -401,7 +401,7 @@ async def list_custom_non_negotiables(
 @router.post("/{persona_id}/custom-non-negotiables")
 async def create_custom_non_negotiable(
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Add a custom non-negotiable."""
     return DataResponse(data={})
@@ -411,7 +411,7 @@ async def create_custom_non_negotiable(
 async def get_custom_non_negotiable(
     persona_id: uuid.UUID,  # noqa: ARG001
     nn_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a custom non-negotiable by ID."""
     return DataResponse(data={})
@@ -421,7 +421,7 @@ async def get_custom_non_negotiable(
 async def update_custom_non_negotiable(
     persona_id: uuid.UUID,  # noqa: ARG001
     nn_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Update a custom non-negotiable."""
     return DataResponse(data={})
@@ -431,7 +431,7 @@ async def update_custom_non_negotiable(
 async def delete_custom_non_negotiable(
     persona_id: uuid.UUID,  # noqa: ARG001
     nn_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a custom non-negotiable."""
     return None
@@ -447,7 +447,7 @@ async def delete_custom_non_negotiable(
 async def regenerate_embeddings(
     request: Request,  # noqa: ARG001 - Required by rate limiter
     persona_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Trigger persona embedding regeneration.
 

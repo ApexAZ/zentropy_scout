@@ -17,13 +17,11 @@ import uuid
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user_id
+from app.api.deps import CurrentUserId, DbSession
 from app.core.config import settings
-from app.core.database import get_db
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
@@ -70,7 +68,7 @@ ALLOWED_INGEST_MODIFICATIONS: set[str] = {
 
 @router.get("")
 async def list_job_postings(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List job postings for current user.
 
@@ -82,7 +80,7 @@ async def list_job_postings(
 
 @router.post("")
 async def create_job_posting(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Create a new job posting manually."""
     return DataResponse(data={})
@@ -91,7 +89,7 @@ async def create_job_posting(
 @router.get("/{job_posting_id}")
 async def get_job_posting(
     job_posting_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a job posting by ID."""
     return DataResponse(data={})
@@ -100,7 +98,7 @@ async def get_job_posting(
 @router.patch("/{job_posting_id}")
 async def update_job_posting(
     job_posting_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Partially update a job posting."""
     return DataResponse(data={})
@@ -109,7 +107,7 @@ async def update_job_posting(
 @router.delete("/{job_posting_id}")
 async def delete_job_posting(
     job_posting_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> None:
     """Delete a job posting (soft delete)."""
     return None
@@ -123,7 +121,7 @@ async def delete_job_posting(
 @router.get("/{job_posting_id}/extracted-skills")
 async def list_extracted_skills(
     job_posting_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List skills extracted from job posting by Scouter.
 
@@ -142,8 +140,8 @@ async def list_extracted_skills(
 async def ingest_job_posting(
     request: Request,  # noqa: ARG001 - Required by rate limiter
     body: IngestJobPostingRequest,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> DataResponse[IngestJobPostingResponse]:
     """Ingest raw job posting text from Chrome extension.
 
@@ -222,8 +220,8 @@ async def ingest_job_posting(
 @router.post("/ingest/confirm", status_code=201)
 async def confirm_ingest_job_posting(
     request: IngestConfirmRequest,
-    user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    user_id: CurrentUserId,
+    db: DbSession,
 ) -> DataResponse[dict]:
     """Confirm ingest preview to create job posting.
 
@@ -332,7 +330,7 @@ async def confirm_ingest_job_posting(
 @router.post("/bulk-dismiss")
 async def bulk_dismiss_job_postings(
     request: BulkDismissRequest,
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[BulkOperationResult]:
     """Bulk dismiss multiple job postings.
 
@@ -363,7 +361,7 @@ async def bulk_dismiss_job_postings(
 @router.post("/bulk-favorite")
 async def bulk_favorite_job_postings(
     request: BulkFavoriteRequest,
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[BulkOperationResult]:
     """Bulk favorite/unfavorite multiple job postings.
 
@@ -395,7 +393,7 @@ async def bulk_favorite_job_postings(
 @limiter.limit(settings.rate_limit_llm)
 async def rescore_job_postings(
     request: Request,  # noqa: ARG001 - Required by rate limiter
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Re-run Strategist scoring on all Discovered jobs.
 

@@ -5,9 +5,9 @@ REQ-006 §5.2: System-managed job sources (read-only).
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.api.deps import get_current_user_id
+from app.api.deps import CurrentUserId
 from app.core.responses import DataResponse, ListResponse
 
 router = APIRouter()
@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("")
 async def list_job_sources(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List available job sources.
 
@@ -27,7 +27,7 @@ async def list_job_sources(
 @router.get("/{source_id}")
 async def get_job_source(
     source_id: uuid.UUID,  # noqa: ARG001
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Get a job source by ID."""
     return DataResponse(data={})

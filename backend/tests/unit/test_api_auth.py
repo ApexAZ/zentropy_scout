@@ -15,31 +15,28 @@ from app.api.deps import get_current_user, get_current_user_id
 class TestGetCurrentUserId:
     """Tests for get_current_user_id dependency."""
 
-    @pytest.mark.asyncio
-    async def test_returns_default_user_id_when_set(self):
+    def test_returns_default_user_id_when_set(self):
         """Should return DEFAULT_USER_ID from settings when configured."""
         test_id = uuid.uuid4()
         with patch("app.api.deps.settings") as mock_settings:
             mock_settings.default_user_id = test_id
-            result = await get_current_user_id()
+            result = get_current_user_id()
             assert result == test_id
 
-    @pytest.mark.asyncio
-    async def test_raises_401_when_no_default_user(self):
+    def test_raises_401_when_no_default_user(self):
         """Should raise HTTPException 401 when no user configured."""
         with patch("app.api.deps.settings") as mock_settings:
             mock_settings.default_user_id = None
             with pytest.raises(HTTPException) as exc_info:
-                await get_current_user_id()
+                get_current_user_id()
             assert exc_info.value.status_code == 401
 
-    @pytest.mark.asyncio
-    async def test_error_detail_has_unauthorized_code(self):
+    def test_error_detail_has_unauthorized_code(self):
         """401 error should include UNAUTHORIZED code in detail."""
         with patch("app.api.deps.settings") as mock_settings:
             mock_settings.default_user_id = None
             with pytest.raises(HTTPException) as exc_info:
-                await get_current_user_id()
+                get_current_user_id()
             assert exc_info.value.detail["code"] == "UNAUTHORIZED"
 
 

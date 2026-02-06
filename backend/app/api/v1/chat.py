@@ -18,10 +18,10 @@ Event Types (REQ-006 §2.5):
 import asyncio
 import uuid
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import get_current_user_id
+from app.api.deps import CurrentUserId
 from app.core.config import settings
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse
@@ -35,7 +35,7 @@ router = APIRouter()
 async def send_chat_message(
     request: Request,  # noqa: ARG001 - Required by rate limiter
     body: ChatMessageRequest,  # noqa: ARG001 - will be used in Phase 2
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Send a message to the chat agent.
 
@@ -68,7 +68,7 @@ async def send_chat_message(
 
 @router.get("/stream")
 async def chat_stream(
-    _user_id: uuid.UUID = Depends(get_current_user_id),  # noqa: B008
+    _user_id: CurrentUserId,
 ) -> StreamingResponse:
     """Establish SSE connection for chat and data events.
 
@@ -107,8 +107,8 @@ async def chat_stream(
                 await asyncio.sleep(30)
                 yield HeartbeatEvent().to_sse()
         except asyncio.CancelledError:
-            # Client disconnected - clean up
-            pass
+            # Client disconnected - must re-raise for proper ASGI cleanup
+            raise
 
     return StreamingResponse(
         event_generator(),
