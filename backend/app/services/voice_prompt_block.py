@@ -31,6 +31,9 @@ _MAX_FIELD_LENGTH = 500
 _MAX_PHRASES_COUNT = 20
 """Maximum number of sample phrases or avoid terms to include."""
 
+_DEFAULT_UNSPECIFIED = "None specified"
+"""Fallback text when optional voice profile fields are empty."""
+
 _VOICE_PROFILE_TEMPLATE = """<voice_profile>
 You are writing as {persona_name}. Match their voice exactly.
 
@@ -91,7 +94,7 @@ def _format_things_to_avoid(terms: list[str] | None) -> str:
         Comma-separated string of terms, or "None specified" if empty/None.
     """
     if not terms:
-        return "None specified"
+        return _DEFAULT_UNSPECIFIED
 
     sanitized = [
         sanitize_llm_input(t.strip()[:_MAX_FIELD_LENGTH])
@@ -99,7 +102,7 @@ def _format_things_to_avoid(terms: list[str] | None) -> str:
         if t.strip()
     ]
     if not sanitized:
-        return "None specified"
+        return _DEFAULT_UNSPECIFIED
 
     return ", ".join(sanitized)
 
@@ -155,7 +158,7 @@ def build_voice_profile_block(
         sentence_style=sanitize_llm_input(sentence_style[:_MAX_FIELD_LENGTH]),
         vocabulary_level=sanitize_llm_input(vocabulary_level[:_MAX_FIELD_LENGTH]),
         personality_markers=sanitize_llm_input(
-            (personality_markers or "None specified")[:_MAX_FIELD_LENGTH]
+            (personality_markers or _DEFAULT_UNSPECIFIED)[:_MAX_FIELD_LENGTH]
         ),
         preferred_phrases=_format_sample_phrases(sample_phrases),
         things_to_avoid=_format_things_to_avoid(things_to_avoid),

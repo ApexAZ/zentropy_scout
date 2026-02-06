@@ -44,6 +44,8 @@ from app.agents.state import CheckpointReason, OnboardingState
 # Constants (§5.2)
 # =============================================================================
 
+_NO_DATA_COLLECTED_MSG = "No information collected yet."
+
 # WHY: Ordered list defines the interview flow state machine. Each step must
 # complete (or be skipped) before proceeding to the next.
 ONBOARDING_STEPS = [
@@ -267,7 +269,7 @@ def format_gathered_data_summary(gathered_data: dict[str, object]) -> str:
         Human-readable summary of gathered data.
     """
     if not gathered_data:
-        return "No information collected yet."
+        return _NO_DATA_COLLECTED_MSG
 
     summary_parts = []
 
@@ -312,9 +314,7 @@ def format_gathered_data_summary(gathered_data: dict[str, object]) -> str:
     if skipped:
         summary_parts.append(f"Skipped: {', '.join(skipped)}")
 
-    return (
-        "\n".join(summary_parts) if summary_parts else "No information collected yet."
-    )
+    return "\n".join(summary_parts) if summary_parts else _NO_DATA_COLLECTED_MSG
 
 
 def get_system_prompt(current_step: str, gathered_data_summary: str) -> str:
@@ -334,7 +334,7 @@ def get_system_prompt(current_step: str, gathered_data_summary: str) -> str:
     """
     return SYSTEM_PROMPT_TEMPLATE.format(
         current_step=current_step,
-        gathered_data_summary=gathered_data_summary or "No information collected yet.",
+        gathered_data_summary=gathered_data_summary or _NO_DATA_COLLECTED_MSG,
     )
 
 
@@ -792,9 +792,9 @@ def gather_basic_info(state: OnboardingState) -> OnboardingState:
         if "name" in pending_question.lower():
             basic_info["full_name"] = user_response
             # Ask for email next
-            new_state[
-                "pending_question"
-            ] = "What's the best email for job applications?"
+            new_state["pending_question"] = (
+                "What's the best email for job applications?"
+            )
             new_state["user_response"] = None
         elif "email" in pending_question.lower():
             basic_info["email"] = user_response
@@ -802,9 +802,9 @@ def gather_basic_info(state: OnboardingState) -> OnboardingState:
             new_state["user_response"] = None
         elif "phone" in pending_question.lower():
             basic_info["phone"] = user_response
-            new_state[
-                "pending_question"
-            ] = "Where are you located? (City, State/Country)"
+            new_state["pending_question"] = (
+                "Where are you located? (City, State/Country)"
+            )
             new_state["user_response"] = None
         elif (
             "location" in pending_question.lower()
@@ -826,9 +826,9 @@ def gather_basic_info(state: OnboardingState) -> OnboardingState:
 
     # No response yet or still need more info - ask first question
     if not basic_info.get("full_name"):
-        new_state[
-            "pending_question"
-        ] = "What's your full name as you'd like it on applications?"
+        new_state["pending_question"] = (
+            "What's your full name as you'd like it on applications?"
+        )
         new_state["requires_human_input"] = True
         new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
         new_state["gathered_data"] = gathered
@@ -995,9 +995,9 @@ def check_resume_upload(state: OnboardingState) -> OnboardingState:
 
         # User wants to upload
         if response_lower == "yes" or "upload" in response_lower:
-            new_state[
-                "pending_question"
-            ] = "Please upload your resume file (PDF or DOCX format)."
+            new_state["pending_question"] = (
+                "Please upload your resume file (PDF or DOCX format)."
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1100,9 +1100,9 @@ def gather_work_history(state: OnboardingState) -> OnboardingState:
                 "raw_input": user_response,
                 "bullets": [],
             }
-            new_state[
-                "pending_question"
-            ] = "What company was this at, and what were the dates?"
+            new_state["pending_question"] = (
+                "What company was this at, and what were the dates?"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1177,9 +1177,9 @@ def gather_work_history(state: OnboardingState) -> OnboardingState:
         return new_state
 
     # No resume data - ask for most recent job
-    new_state[
-        "pending_question"
-    ] = "Let's start with your most recent job. What was your job title?"
+    new_state["pending_question"] = (
+        "Let's start with your most recent job. What was your job title?"
+    )
     new_state["requires_human_input"] = True
     new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
     gathered["work_history"] = work_history
@@ -1393,9 +1393,9 @@ def gather_skills(state: OnboardingState) -> OnboardingState:
             if skills.get("current_entry"):
                 skills["current_entry"]["proficiency"] = user_response
             skill_name = skills.get("current_entry", {}).get("skill_name", "this skill")
-            new_state[
-                "pending_question"
-            ] = f"Is {skill_name} a hard (technical) or soft (interpersonal) skill?"
+            new_state["pending_question"] = (
+                f"Is {skill_name} a hard (technical) or soft (interpersonal) skill?"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1444,9 +1444,9 @@ def gather_skills(state: OnboardingState) -> OnboardingState:
         return new_state
 
     # First time - ask for skills
-    new_state[
-        "pending_question"
-    ] = "What is one of your key skills? (technical or interpersonal)"
+    new_state["pending_question"] = (
+        "What is one of your key skills? (technical or interpersonal)"
+    )
     new_state["requires_human_input"] = True
     new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
     gathered["skills"] = skills
@@ -1553,9 +1553,9 @@ def gather_certifications(state: OnboardingState) -> OnboardingState:
             certifications["current_entry"] = {
                 "certification_name": user_response,
             }
-            new_state[
-                "pending_question"
-            ] = "What organization issued this certification?"
+            new_state["pending_question"] = (
+                "What organization issued this certification?"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1681,9 +1681,9 @@ def gather_stories(state: OnboardingState) -> OnboardingState:
             or "specifically" in question_lower
         ) and stories.get("current_entry"):
             stories["current_entry"]["action"] = user_response
-            new_state[
-                "pending_question"
-            ] = "What was the result or impact? Can you put a number on it?"
+            new_state["pending_question"] = (
+                "What was the result or impact? Can you put a number on it?"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1698,9 +1698,9 @@ def gather_stories(state: OnboardingState) -> OnboardingState:
             or "challeng" in question_lower
         ) and stories.get("current_entry"):
             stories["current_entry"]["context"] = user_response
-            new_state[
-                "pending_question"
-            ] = "What specifically did YOU do? (not your team, just your actions)"
+            new_state["pending_question"] = (
+                "What specifically did YOU do? (not your team, just your actions)"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1717,9 +1717,9 @@ def gather_stories(state: OnboardingState) -> OnboardingState:
             stories["current_entry"] = {
                 "initial_story": user_response,
             }
-            new_state[
-                "pending_question"
-            ] = "What was the context or challenge you were facing?"
+            new_state["pending_question"] = (
+                "What was the context or challenge you were facing?"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1791,9 +1791,9 @@ def gather_non_negotiables(state: OnboardingState) -> OnboardingState:
         # Industry exclusions response
         if "industr" in question_lower or "avoid" in question_lower:
             non_neg["industry_exclusions"] = user_response
-            new_state[
-                "pending_question"
-            ] = "Any other dealbreakers I should know about?"
+            new_state["pending_question"] = (
+                "Any other dealbreakers I should know about?"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1826,9 +1826,9 @@ def gather_non_negotiables(state: OnboardingState) -> OnboardingState:
         # Commutable cities response
         if "cit" in question_lower or "commut" in question_lower:
             non_neg["commutable_cities"] = user_response
-            new_state[
-                "pending_question"
-            ] = "What's your minimum acceptable base salary?"
+            new_state["pending_question"] = (
+                "What's your minimum acceptable base salary?"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -1848,9 +1848,9 @@ def gather_non_negotiables(state: OnboardingState) -> OnboardingState:
             # WHY: If remote-only, skip cities question since commute location
             # doesn't matter. Otherwise ask for commutable cities.
             if "remote" in response_lower and "only" in response_lower:
-                new_state[
-                    "pending_question"
-                ] = "What's your minimum acceptable base salary?"
+                new_state["pending_question"] = (
+                    "What's your minimum acceptable base salary?"
+                )
             else:
                 # Hybrid or onsite - need to know commutable cities
                 new_state["pending_question"] = "Which cities can you commute to?"
@@ -1870,9 +1870,9 @@ def gather_non_negotiables(state: OnboardingState) -> OnboardingState:
         return new_state
 
     # First time - ask about remote preference
-    new_state[
-        "pending_question"
-    ] = "Are you looking for remote, hybrid, or onsite roles?"
+    new_state["pending_question"] = (
+        "Are you looking for remote, hybrid, or onsite roles?"
+    )
     new_state["requires_human_input"] = True
     new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
     gathered["non_negotiables"] = non_neg
@@ -1949,9 +1949,9 @@ def gather_growth_targets(state: OnboardingState) -> OnboardingState:
         return new_state
 
     # First time - ask about target roles
-    new_state[
-        "pending_question"
-    ] = "What roles are you aspiring to grow into? (or 'same role' if staying put)"
+    new_state["pending_question"] = (
+        "What roles are you aspiring to grow into? (or 'same role' if staying put)"
+    )
     new_state["requires_human_input"] = True
     new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
     gathered["growth_targets"] = growth
@@ -2015,9 +2015,9 @@ def derive_voice_profile(state: OnboardingState) -> OnboardingState:
             or "jargon" in question_lower
         ):
             voice["vocabulary_level"] = user_response
-            new_state[
-                "pending_question"
-            ] = "Are there any words or phrases you never use? (buzzwords to avoid)"
+            new_state["pending_question"] = (
+                "Are there any words or phrases you never use? (buzzwords to avoid)"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -2028,9 +2028,9 @@ def derive_voice_profile(state: OnboardingState) -> OnboardingState:
         # Sentence style response
         if "sentence" in question_lower or "style" in question_lower:
             voice["sentence_style"] = user_response
-            new_state[
-                "pending_question"
-            ] = "Do you prefer technical jargon or plain English?"
+            new_state["pending_question"] = (
+                "Do you prefer technical jargon or plain English?"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -2041,9 +2041,9 @@ def derive_voice_profile(state: OnboardingState) -> OnboardingState:
         # Tone response
         if "tone" in question_lower:
             voice["tone"] = user_response
-            new_state[
-                "pending_question"
-            ] = "How would you describe your sentence style? (short and punchy, or detailed?)"
+            new_state["pending_question"] = (
+                "How would you describe your sentence style? (short and punchy, or detailed?)"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -2055,15 +2055,15 @@ def derive_voice_profile(state: OnboardingState) -> OnboardingState:
         if "writing" in question_lower or "sample" in question_lower:
             if response_lower == "skip":
                 # Skip sample, proceed to tone question
-                new_state[
-                    "pending_question"
-                ] = "How would you describe your tone? (e.g., direct, warm, formal)"
+                new_state["pending_question"] = (
+                    "How would you describe your tone? (e.g., direct, warm, formal)"
+                )
             else:
                 # Store the sample and ask about tone
                 voice["writing_sample_text"] = user_response
-                new_state[
-                    "pending_question"
-                ] = "How would you describe your tone? (e.g., direct, warm, formal)"
+                new_state["pending_question"] = (
+                    "How would you describe your tone? (e.g., direct, warm, formal)"
+                )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -2162,9 +2162,9 @@ def setup_base_resume(state: OnboardingState) -> OnboardingState:
             base_resume["entries"] = entries
 
             # Ask if there are more roles
-            new_state[
-                "pending_question"
-            ] = "Any other role types you're considering? (or 'done')"
+            new_state["pending_question"] = (
+                "Any other role types you're considering? (or 'done')"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -2190,9 +2190,9 @@ def setup_base_resume(state: OnboardingState) -> OnboardingState:
             base_resume["entries"] = entries
 
             # Ask about additional roles
-            new_state[
-                "pending_question"
-            ] = "Any other role types you're considering? (or 'done')"
+            new_state["pending_question"] = (
+                "Any other role types you're considering? (or 'done')"
+            )
             new_state["requires_human_input"] = True
             new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
             new_state["user_response"] = None
@@ -2208,9 +2208,9 @@ def setup_base_resume(state: OnboardingState) -> OnboardingState:
         return new_state
 
     # First time - ask about primary role type
-    new_state[
-        "pending_question"
-    ] = "What type of role are you primarily targeting? (e.g., Software Engineer, Data Scientist)"
+    new_state["pending_question"] = (
+        "What type of role are you primarily targeting? (e.g., Software Engineer, Data Scientist)"
+    )
     new_state["requires_human_input"] = True
     new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
     gathered["base_resume_setup"] = base_resume

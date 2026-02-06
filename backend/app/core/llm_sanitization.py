@@ -94,46 +94,55 @@ _ZERO_WIDTH_PATTERN = re.compile(
     "]"
 )
 
+# Replacement tokens for sanitized content
+_REPLACEMENT_TAG = "[TAG]"
+_REPLACEMENT_FILTERED = "[FILTERED]"
+_REPLACEMENT_FILTERED_COLON = "[FILTERED]:"
+
 # Patterns that indicate prompt injection attempts
 # Each tuple: (pattern, replacement, flags)
 _INJECTION_PATTERNS: list[tuple[str, str, int]] = [
     # System prompt override attempts (at line start or after escape sequences)
-    (r"^\s*SYSTEM\s*:", "[FILTERED]:", re.IGNORECASE | re.MULTILINE),
-    (r"(?:\\n)+\s*SYSTEM\s*:", "\\n[FILTERED]:", re.IGNORECASE),
+    (r"^\s*SYSTEM\s*:", _REPLACEMENT_FILTERED_COLON, re.IGNORECASE | re.MULTILINE),
+    (r"(?:\\n)+\s*SYSTEM\s*:", "\\n" + _REPLACEMENT_FILTERED_COLON, re.IGNORECASE),
     # Role tag injections (XML-style)
-    (r"<\s*/?\s*system\s*>", "[TAG]", re.IGNORECASE),
-    (r"<\s*/?\s*user\s*>", "[TAG]", re.IGNORECASE),
-    (r"<\s*/?\s*assistant\s*>", "[TAG]", re.IGNORECASE),
+    (r"<\s*/?\s*system\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
+    (r"<\s*/?\s*user\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
+    (r"<\s*/?\s*assistant\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
     # Application structural XML tags (prompt structure injection prevention).
     # Tags with underscores are internal prompt tags (e.g., <voice_profile>,
     # <writing_sample>, <job_posting>). Standard HTML tags don't use underscores.
     # Allows optional attributes before closing > to prevent attribute bypass.
-    (r"<\s*/?\s*[a-z]+(?:_[a-z]+)+(?:\s[^>]*)?\s*>", "[TAG]", re.IGNORECASE),
+    (r"<\s*/?\s*[a-z]+(?:_[a-z]+)+(?:\s[^>]*)?\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
     # Known single-word structural tags that don't have underscores.
     # Maintain this list when adding new non-underscore tags to prompt templates.
     # Current: applicant (ghostwriter_prompts.py:83), sample (ghostwriter_prompts.py:78)
-    (r"<\s*/?\s*applicant(?:\s[^>]*)?\s*>", "[TAG]", re.IGNORECASE),
-    (r"<\s*/?\s*sample(?:\s[^>]*)?\s*>", "[TAG]", re.IGNORECASE),
+    (r"<\s*/?\s*applicant(?:\s[^>]*)?\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
+    (r"<\s*/?\s*sample(?:\s[^>]*)?\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
     # ChatML-style role injections
-    (r"<\|system\|>", "[TAG]", re.IGNORECASE),
-    (r"<\|user\|>", "[TAG]", re.IGNORECASE),
-    (r"<\|assistant\|>", "[TAG]", re.IGNORECASE),
-    (r"<\|im_start\|>", "[TAG]", re.IGNORECASE),
-    (r"<\|im_end\|>", "[TAG]", re.IGNORECASE),
+    (r"<\|system\|>", _REPLACEMENT_TAG, re.IGNORECASE),
+    (r"<\|user\|>", _REPLACEMENT_TAG, re.IGNORECASE),
+    (r"<\|assistant\|>", _REPLACEMENT_TAG, re.IGNORECASE),
+    (r"<\|im_start\|>", _REPLACEMENT_TAG, re.IGNORECASE),
+    (r"<\|im_end\|>", _REPLACEMENT_TAG, re.IGNORECASE),
     # Instruction override attempts
-    (r"ignore\s+(all\s+)?previous\s+instructions?", "[FILTERED]", re.IGNORECASE),
-    (r"disregard\s+(all\s+)?(prior|previous)", "[FILTERED]", re.IGNORECASE),
-    (r"forget\s+everything", "[FILTERED]", re.IGNORECASE),
-    (r"new\s+instructions?\s*:", "[FILTERED]:", re.IGNORECASE),
+    (
+        r"ignore\s+(all\s+)?previous\s+instructions?",
+        _REPLACEMENT_FILTERED,
+        re.IGNORECASE,
+    ),
+    (r"disregard\s+(all\s+)?(prior|previous)", _REPLACEMENT_FILTERED, re.IGNORECASE),
+    (r"forget\s+everything", _REPLACEMENT_FILTERED, re.IGNORECASE),
+    (r"new\s+instructions?\s*:", _REPLACEMENT_FILTERED_COLON, re.IGNORECASE),
     # Instruction delimiters that might confuse the model
-    (r"###\s*instruction\s*###", "[FILTERED]", re.IGNORECASE),
-    (r"\[INST\]", "[FILTERED]", re.IGNORECASE),
-    (r"\[/INST\]", "[FILTERED]", re.IGNORECASE),
+    (r"###\s*instruction\s*###", _REPLACEMENT_FILTERED, re.IGNORECASE),
+    (r"\[INST\]", _REPLACEMENT_FILTERED, re.IGNORECASE),
+    (r"\[/INST\]", _REPLACEMENT_FILTERED, re.IGNORECASE),
     # Anthropic/Claude-specific role markers
-    (r"^\s*Human\s*:", "[FILTERED]:", re.IGNORECASE | re.MULTILINE),
-    (r"^\s*Assistant\s*:", "[FILTERED]:", re.IGNORECASE | re.MULTILINE),
-    (r"^\s*\[H\]\s*:", "[FILTERED]:", re.IGNORECASE | re.MULTILINE),
-    (r"^\s*\[A\]\s*:", "[FILTERED]:", re.IGNORECASE | re.MULTILINE),
+    (r"^\s*Human\s*:", _REPLACEMENT_FILTERED_COLON, re.IGNORECASE | re.MULTILINE),
+    (r"^\s*Assistant\s*:", _REPLACEMENT_FILTERED_COLON, re.IGNORECASE | re.MULTILINE),
+    (r"^\s*\[H\]\s*:", _REPLACEMENT_FILTERED_COLON, re.IGNORECASE | re.MULTILINE),
+    (r"^\s*\[A\]\s*:", _REPLACEMENT_FILTERED_COLON, re.IGNORECASE | re.MULTILINE),
 ]
 
 # Unicode categories for combining marks to strip after NFD decomposition.

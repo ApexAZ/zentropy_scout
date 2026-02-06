@@ -22,6 +22,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
+_DEFAULT_UUID = text("gen_random_uuid()")
+
 
 class JobSource(Base, TimestampMixin):
     """Global registry of job sources (LinkedIn, Indeed, etc.).
@@ -34,7 +36,7 @@ class JobSource(Base, TimestampMixin):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     source_name: Mapped[str] = mapped_column(
         String(100),
@@ -94,7 +96,7 @@ class UserSourcePreference(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -144,7 +146,7 @@ class PollingConfiguration(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

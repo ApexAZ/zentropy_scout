@@ -26,8 +26,13 @@ from app.services.fit_score import FIT_NEUTRAL_SCORE
 # Constants
 # =============================================================================
 
+# Remote preference constants
+REMOTE_ONLY = "Remote Only"
+HYBRID_OK = "Hybrid OK"
+ONSITE_OK = "Onsite OK"
+
 # Valid remote preference values
-_VALID_REMOTE_PREFERENCES = frozenset({"Remote Only", "Hybrid OK", "Onsite OK"})
+_VALID_REMOTE_PREFERENCES = frozenset({REMOTE_ONLY, HYBRID_OK, ONSITE_OK})
 
 # Valid job work model values
 _VALID_WORK_MODELS = frozenset({"Remote", "Hybrid", "Onsite"})
@@ -45,17 +50,17 @@ _NON_COMMUTABLE_PENALTY_MULTIPLIER = 0.7
 # Score matrix: (remote_preference, job_work_model) -> base_score
 _WORK_MODEL_SCORES: dict[tuple[str, str], float] = {
     # Remote Only preference
-    ("Remote Only", "Remote"): 100.0,
-    ("Remote Only", "Hybrid"): 50.0,
-    ("Remote Only", "Onsite"): 0.0,
+    (REMOTE_ONLY, "Remote"): 100.0,
+    (REMOTE_ONLY, "Hybrid"): 50.0,
+    (REMOTE_ONLY, "Onsite"): 0.0,
     # Hybrid OK preference
-    ("Hybrid OK", "Remote"): 100.0,
-    ("Hybrid OK", "Hybrid"): 100.0,
-    ("Hybrid OK", "Onsite"): 60.0,
+    (HYBRID_OK, "Remote"): 100.0,
+    (HYBRID_OK, "Hybrid"): 100.0,
+    (HYBRID_OK, "Onsite"): 60.0,
     # Onsite OK preference (most flexible)
-    ("Onsite OK", "Remote"): 100.0,
-    ("Onsite OK", "Hybrid"): 100.0,
-    ("Onsite OK", "Onsite"): 100.0,
+    (ONSITE_OK, "Remote"): 100.0,
+    (ONSITE_OK, "Hybrid"): 100.0,
+    (ONSITE_OK, "Onsite"): 100.0,
 }
 
 

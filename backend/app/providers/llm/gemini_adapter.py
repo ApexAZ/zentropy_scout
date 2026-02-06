@@ -45,22 +45,135 @@ logger = structlog.get_logger()
 # WHY TASK-BASED ROUTING: Optimizes cost without sacrificing quality
 # - High-volume extraction tasks use Flash (cheaper, faster)
 # - Quality-critical tasks use Pro (better reasoning)
-DEFAULT_GEMINI_ROUTING: dict[str, str] = {
-    # High-volume, simple extraction tasks → Flash (cheaper, faster)
-    "skill_extraction": "gemini-2.0-flash",
-    "extraction": "gemini-2.0-flash",
-    "ghost_detection": "gemini-2.0-flash",
-    # Quality-critical tasks → Pro (better reasoning)
-    "chat_response": "gemini-2.0-flash",  # Flash is now recommended default
-    "onboarding": "gemini-2.0-flash",
-    "score_rationale": "gemini-2.0-flash",
-    "cover_letter": "gemini-2.0-flash",
-    "resume_tailoring": "gemini-2.0-flash",
-    "story_selection": "gemini-2.0-flash",
-}
-
 # Fallback if task type not in routing table
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
+
+DEFAULT_GEMINI_ROUTING: dict[str, str] = {
+    # High-volume, simple extraction tasks → Flash (cheaper, faster)
+    "skill_extraction": DEFAULT_GEMINI_MODEL,
+    "extraction": DEFAULT_GEMINI_MODEL,
+    "ghost_detection": DEFAULT_GEMINI_MODEL,
+    # Quality-critical tasks → Pro (better reasoning)
+    "chat_response": DEFAULT_GEMINI_MODEL,  # Flash is now recommended default
+    "onboarding": DEFAULT_GEMINI_MODEL,
+    "score_rationale": DEFAULT_GEMINI_MODEL,
+    "cover_letter": DEFAULT_GEMINI_MODEL,
+    "resume_tailoring": DEFAULT_GEMINI_MODEL,
+    "story_selection": DEFAULT_GEMINI_MODEL,
+}
+
+
+def _classify_gemini_error(error: Exception) -> ProviderError:
+    """Map Gemini exceptions to internal error taxonomy."""
+    error_msg = str(error).lower()
+    if "resource" in error_msg and "exhausted" in error_msg:
+        return RateLimitError(str(error))
+    if "permission" in error_msg or "unauthenticated" in error_msg:
+        return AuthenticationError(str(error))
+    if "context" in error_msg or "token" in error_msg:
+        return ContextLengthError(str(error))
+    if "safety" in error_msg or "blocked" in error_msg:
+        return ContentFilterError(str(error))
+    if "unavailable" in error_msg or "503" in error_msg:
+        return TransientError(str(error))
+    return ProviderError(str(error))
+
+
+def _convert_gemini_messages(
+    messages: list[LLMMessage],
+) -> tuple[str | None, list[types.Content]]:
+    """Convert LLMMessages to Gemini format, extracting system instruction."""
+    system_instruction = None
+    contents: list[types.Content] = []
+
+    for msg in messages:
+        if msg.role == "system":
+            system_instruction = msg.content
+        elif msg.role == "tool" and msg.tool_result:
+            contents.append(_convert_tool_result(msg))
+        elif msg.tool_calls:
+            contents.append(_convert_tool_call_message(msg))
+        else:
+            role = "model" if msg.role == "assistant" else msg.role
+            contents.append(
+                types.Content(
+                    role=role,
+                    parts=[types.Part(text=msg.content or "")],
+                )
+            )
+
+    return system_instruction, contents
+
+
+def _convert_tool_result(msg: LLMMessage) -> types.Content:
+    """Convert a tool result message to Gemini function_response format."""
+    func_name = (
+        msg.tool_result.tool_call_id.split("_")[-1]
+        if "_" in msg.tool_result.tool_call_id
+        else "function"
+    )
+    return types.Content(
+        role="user",
+        parts=[
+            types.Part(
+                function_response=types.FunctionResponse(
+                    name=func_name,
+                    response={"result": msg.tool_result.content},
+                )
+            )
+        ],
+    )
+
+
+def _convert_tool_call_message(msg: LLMMessage) -> types.Content:
+    """Convert an assistant message with tool calls to Gemini format."""
+    parts: list[types.Part] = []
+    if msg.content:
+        parts.append(types.Part(text=msg.content))
+    for tc in msg.tool_calls:
+        parts.append(
+            types.Part(
+                function_call=types.FunctionCall(
+                    name=tc.name,
+                    args=tc.arguments,
+                )
+            )
+        )
+    return types.Content(role="model", parts=parts)
+
+
+def _parse_gemini_response(
+    response: object,
+) -> tuple[str | None, list[ToolCall] | None, str]:
+    """Parse Gemini response into content, tool_calls, and finish_reason."""
+    content = None
+    tool_calls: list[ToolCall] | None = None
+
+    if response.candidates:
+        candidate = response.candidates[0]
+        if candidate.content and candidate.content.parts:
+            for part in candidate.content.parts:
+                if part.text:
+                    content = part.text
+                elif part.function_call:
+                    if tool_calls is None:
+                        tool_calls = []
+                    fc = part.function_call
+                    tool_id = f"call_{fc.name}_{len(tool_calls)}"
+                    tool_calls.append(
+                        ToolCall(
+                            id=tool_id,
+                            name=fc.name,
+                            arguments=dict(fc.args) if fc.args else {},
+                        )
+                    )
+        finish_reason = (
+            candidate.finish_reason.name if candidate.finish_reason else "UNKNOWN"
+        )
+    else:
+        finish_reason = "UNKNOWN"
+
+    return content, tool_calls, finish_reason
 
 
 class GeminiAdapter(LLMProvider):
@@ -79,9 +192,7 @@ class GeminiAdapter(LLMProvider):
             config: Provider configuration with Google API key.
         """
         super().__init__(config)
-        # Create client with API key
         self.client = genai.Client(api_key=config.google_api_key)
-        # Merge config routing on top of defaults (config overrides defaults)
         self.model_routing = {**DEFAULT_GEMINI_ROUTING}
         if config.gemini_model_routing:
             self.model_routing.update(config.gemini_model_routing)
@@ -96,73 +207,9 @@ class GeminiAdapter(LLMProvider):
         tools: list[ToolDefinition] | None = None,
         json_mode: bool = False,
     ) -> LLMResponse:
-        """Generate completion using Gemini.
-
-        Args:
-            messages: Conversation history as list of LLMMessage.
-            task: Task type for model routing.
-            max_tokens: Override default max tokens.
-            temperature: Override default temperature.
-            stop_sequences: Custom stop sequences.
-            tools: Available tools the LLM can call.
-            json_mode: If True, enforce JSON output format.
-
-        Returns:
-            LLMResponse with content and/or tool_calls.
-        """
+        """Generate completion using Gemini."""
         model_name = self.get_model_for_task(task)
-
-        # Extract system message and build contents
-        system_instruction = None
-        contents: list[types.Content] = []
-
-        for msg in messages:
-            if msg.role == "system":
-                system_instruction = msg.content
-            elif msg.role == "tool" and msg.tool_result:
-                # WHY: Gemini uses function_response format
-                func_name = (
-                    msg.tool_result.tool_call_id.split("_")[-1]
-                    if "_" in msg.tool_result.tool_call_id
-                    else "function"
-                )
-                contents.append(
-                    types.Content(
-                        role="user",
-                        parts=[
-                            types.Part(
-                                function_response=types.FunctionResponse(
-                                    name=func_name,
-                                    response={"result": msg.tool_result.content},
-                                )
-                            )
-                        ],
-                    )
-                )
-            elif msg.tool_calls:
-                # WHY: Assistant message with function calls
-                parts: list[types.Part] = []
-                if msg.content:
-                    parts.append(types.Part(text=msg.content))
-                for tc in msg.tool_calls:
-                    parts.append(
-                        types.Part(
-                            function_call=types.FunctionCall(
-                                name=tc.name,
-                                args=tc.arguments,
-                            )
-                        )
-                    )
-                contents.append(types.Content(role="model", parts=parts))
-            else:
-                # WHY: Gemini uses "model" instead of "assistant"
-                role = "model" if msg.role == "assistant" else msg.role
-                contents.append(
-                    types.Content(
-                        role=role,
-                        parts=[types.Part(text=msg.content or "")],
-                    )
-                )
+        system_instruction, contents = _convert_gemini_messages(messages)
 
         # Convert tools to Gemini format
         gemini_tools = None
@@ -177,18 +224,15 @@ class GeminiAdapter(LLMProvider):
             ]
             gemini_tools = [types.Tool(function_declarations=function_declarations)]
 
-        # Build generation config
         gen_config = types.GenerateContentConfig(
             max_output_tokens=max_tokens or self.config.default_max_tokens,
             temperature=temperature or self.config.default_temperature,
             stop_sequences=stop_sequences or [],
             system_instruction=system_instruction,
             tools=gemini_tools,
-            # WHY: Gemini has native JSON mode via response_mime_type
             response_mime_type="application/json" if json_mode else None,
         )
 
-        # Log request start
         logger.info(
             "llm_request_start",
             provider="gemini",
@@ -216,53 +260,11 @@ class GeminiAdapter(LLMProvider):
                 error_type=type(e).__name__,
                 latency_ms=latency_ms,
             )
-            # Map errors to our error taxonomy
-            error_msg = str(e).lower()
-            if "resource" in error_msg and "exhausted" in error_msg:
-                raise RateLimitError(str(e)) from e
-            if "permission" in error_msg or "unauthenticated" in error_msg:
-                raise AuthenticationError(str(e)) from e
-            if "context" in error_msg or "token" in error_msg:
-                raise ContextLengthError(str(e)) from e
-            if "safety" in error_msg or "blocked" in error_msg:
-                raise ContentFilterError(str(e)) from e
-            if "unavailable" in error_msg or "503" in error_msg:
-                raise TransientError(str(e)) from e
-            raise ProviderError(str(e)) from e
+            raise _classify_gemini_error(e) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
+        content, tool_calls, finish_reason = _parse_gemini_response(response)
 
-        # Parse response content and function calls
-        content = None
-        tool_calls = None
-
-        if response.candidates:
-            candidate = response.candidates[0]
-            if candidate.content and candidate.content.parts:
-                for part in candidate.content.parts:
-                    if part.text:
-                        content = part.text
-                    elif part.function_call:
-                        if tool_calls is None:
-                            tool_calls = []
-                        fc = part.function_call
-                        # Generate a unique ID for the tool call
-                        tool_id = f"call_{fc.name}_{len(tool_calls)}"
-                        tool_calls.append(
-                            ToolCall(
-                                id=tool_id,
-                                name=fc.name,
-                                arguments=dict(fc.args) if fc.args else {},
-                            )
-                        )
-
-            finish_reason = (
-                candidate.finish_reason.name if candidate.finish_reason else "UNKNOWN"
-            )
-        else:
-            finish_reason = "UNKNOWN"
-
-        # Get token counts for logging
         input_tokens = (
             response.usage_metadata.prompt_token_count if response.usage_metadata else 0
         )
@@ -272,7 +274,6 @@ class GeminiAdapter(LLMProvider):
             else 0
         )
 
-        # Log request complete
         logger.info(
             "llm_request_complete",
             provider="gemini",
@@ -300,43 +301,16 @@ class GeminiAdapter(LLMProvider):
         max_tokens: int | None = None,
         temperature: float | None = None,
     ) -> AsyncIterator[str]:
-        """Stream completion using Gemini.
-
-        Args:
-            messages: Conversation history as list of LLMMessage.
-            task: Task type for model routing.
-            max_tokens: Override default max tokens.
-            temperature: Override default temperature.
-
-        Yields:
-            Content chunks as they arrive.
-        """
+        """Stream completion using Gemini."""
         model_name = self.get_model_for_task(task)
+        system_instruction, contents = _convert_gemini_messages(messages)
 
-        # Extract system message and convert messages
-        system_instruction = None
-        contents: list[types.Content] = []
-
-        for msg in messages:
-            if msg.role == "system":
-                system_instruction = msg.content
-            else:
-                role = "model" if msg.role == "assistant" else msg.role
-                contents.append(
-                    types.Content(
-                        role=role,
-                        parts=[types.Part(text=msg.content or "")],
-                    )
-                )
-
-        # Build generation config
         gen_config = types.GenerateContentConfig(
             max_output_tokens=max_tokens or self.config.default_max_tokens,
             temperature=temperature or self.config.default_temperature,
             system_instruction=system_instruction,
         )
 
-        # Log request start
         logger.info(
             "llm_request_start",
             provider="gemini",
@@ -366,19 +340,7 @@ class GeminiAdapter(LLMProvider):
                 error_type=type(e).__name__,
                 latency_ms=latency_ms,
             )
-            # Map errors to our error taxonomy
-            error_msg = str(e).lower()
-            if "resource" in error_msg and "exhausted" in error_msg:
-                raise RateLimitError(str(e)) from e
-            if "permission" in error_msg or "unauthenticated" in error_msg:
-                raise AuthenticationError(str(e)) from e
-            if "context" in error_msg or "token" in error_msg:
-                raise ContextLengthError(str(e)) from e
-            if "safety" in error_msg or "blocked" in error_msg:
-                raise ContentFilterError(str(e)) from e
-            if "unavailable" in error_msg or "503" in error_msg:
-                raise TransientError(str(e)) from e
-            raise ProviderError(str(e)) from e
+            raise _classify_gemini_error(e) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
         """Get model for task using routing table.

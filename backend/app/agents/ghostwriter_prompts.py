@@ -14,6 +14,7 @@ with sanitize_llm_input().
 """
 
 from app.core.llm_sanitization import sanitize_llm_input
+from app.schemas.prompt_params import JobContext, VoiceProfileData
 
 # =============================================================================
 # Constants
@@ -29,6 +30,9 @@ _MAX_FIELD_LENGTH = 500
 """Maximum characters for variable-length prompt fields (skills, culture, phrases)."""
 
 _MAX_STORIES = 5
+
+_DEFAULT_NOT_SPECIFIED = "Not specified"
+"""Fallback text when optional voice profile fields are empty."""
 """Maximum number of achievement stories to include in the prompt."""
 
 # =============================================================================
@@ -142,18 +146,8 @@ def build_cover_letter_prompt(
     *,
     applicant_name: str,
     current_title: str,
-    job_title: str,
-    company_name: str,
-    top_skills: str,
-    culture_signals: str,
-    description_excerpt: str,
-    tone: str,
-    sentence_style: str,
-    vocabulary_level: str,
-    personality_markers: str,
-    preferred_phrases: str,
-    things_to_avoid: str,
-    writing_sample: str,
+    job: JobContext,
+    voice: VoiceProfileData,
     stories: list[dict],
 ) -> str:
     """Build the cover letter user prompt with applicant, job, and voice data.
@@ -171,26 +165,16 @@ def build_cover_letter_prompt(
     Args:
         applicant_name: Full name of the applicant.
         current_title: Applicant's current job title.
-        job_title: Title of the target job posting.
-        company_name: Company offering the position.
-        top_skills: Formatted string of top required skills.
-        culture_signals: Culture information extracted from the job posting.
-        description_excerpt: Raw job description text (truncated to 1000 chars).
-        tone: Voice profile tone setting.
-        sentence_style: Voice profile sentence style setting.
-        vocabulary_level: Voice profile vocabulary level setting.
-        personality_markers: Voice profile personality markers.
-        preferred_phrases: Phrases the applicant likes to use.
-        things_to_avoid: Words/phrases the applicant wants to avoid.
-        writing_sample: Sample of the applicant's writing for voice matching.
+        job: Job posting context (title, company, skills, culture, description).
+        voice: Voice profile settings (tone, style, vocabulary, markers, etc.).
         stories: List of story dicts with title, rationale, context, action, outcome.
 
     Returns:
         Formatted user prompt string for LLM completion.
     """
     # Truncate variable-length fields to respect size limits
-    truncated_description = description_excerpt[:_MAX_DESCRIPTION_LENGTH]
-    truncated_sample = (writing_sample or "No sample provided")[
+    truncated_description = job.description_excerpt[:_MAX_DESCRIPTION_LENGTH]
+    truncated_sample = (voice.writing_sample or "No sample provided")[
         :_MAX_WRITING_SAMPLE_LENGTH
     ]
 
@@ -199,26 +183,30 @@ def build_cover_letter_prompt(
     return _COVER_LETTER_USER_TEMPLATE.format(
         applicant_name=sanitize_llm_input(applicant_name),
         current_title=sanitize_llm_input(current_title),
-        job_title=sanitize_llm_input(job_title),
-        company_name=sanitize_llm_input(company_name),
-        top_skills=sanitize_llm_input((top_skills or "")[:_MAX_FIELD_LENGTH]),
+        job_title=sanitize_llm_input(job.job_title),
+        company_name=sanitize_llm_input(job.company_name),
+        top_skills=sanitize_llm_input((job.top_skills or "")[:_MAX_FIELD_LENGTH]),
         culture_signals=sanitize_llm_input(
-            (culture_signals or "No specific culture information extracted")[
+            (job.culture_signals or "No specific culture information extracted")[
                 :_MAX_FIELD_LENGTH
             ]
         ),
         description_excerpt=sanitize_llm_input(truncated_description),
-        tone=sanitize_llm_input(tone or "Not specified"),
-        sentence_style=sanitize_llm_input(sentence_style or "Not specified"),
-        vocabulary_level=sanitize_llm_input(vocabulary_level or "Not specified"),
+        tone=sanitize_llm_input(voice.tone or _DEFAULT_NOT_SPECIFIED),
+        sentence_style=sanitize_llm_input(
+            voice.sentence_style or _DEFAULT_NOT_SPECIFIED
+        ),
+        vocabulary_level=sanitize_llm_input(
+            voice.vocabulary_level or _DEFAULT_NOT_SPECIFIED
+        ),
         personality_markers=sanitize_llm_input(
-            (personality_markers or "None specified")[:_MAX_FIELD_LENGTH]
+            (voice.personality_markers or "None specified")[:_MAX_FIELD_LENGTH]
         ),
         preferred_phrases=sanitize_llm_input(
-            (preferred_phrases or "None provided")[:_MAX_FIELD_LENGTH]
+            (voice.preferred_phrases or "None provided")[:_MAX_FIELD_LENGTH]
         ),
         things_to_avoid=sanitize_llm_input(
-            (things_to_avoid or "None specified")[:_MAX_FIELD_LENGTH]
+            (voice.things_to_avoid or "None specified")[:_MAX_FIELD_LENGTH]
         ),
         writing_sample=sanitize_llm_input(truncated_sample),
         stories_formatted=stories_formatted,

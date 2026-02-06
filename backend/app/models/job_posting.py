@@ -33,6 +33,9 @@ if TYPE_CHECKING:
     from app.models.resume import JobVariant
 
 
+_DEFAULT_UUID = text("gen_random_uuid()")
+
+
 class JobPosting(Base, TimestampMixin):
     """Job posting discovered from various sources.
 
@@ -44,7 +47,7 @@ class JobPosting(Base, TimestampMixin):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -297,7 +300,7 @@ class ExtractedSkill(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     job_posting_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -348,7 +351,7 @@ class JobEmbedding(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     job_posting_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

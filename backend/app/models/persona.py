@@ -42,6 +42,9 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
+_DEFAULT_EMPTY_JSONB = text("'[]'::jsonb")
+
+
 class Persona(Base, TimestampMixin):
     """User's professional identity containing all career data.
 
@@ -125,29 +128,29 @@ class Persona(Base, TimestampMixin):
     # Career goals (JSONB arrays)
     target_roles: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB,
         nullable=False,
     )
     target_skills: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB,
         nullable=False,
     )
 
     # Location preferences (JSONB arrays)
     commutable_cities: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB,
         nullable=False,
     )
     relocation_cities: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB,
         nullable=False,
     )
     industry_exclusions: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB,
         nullable=False,
     )
 
