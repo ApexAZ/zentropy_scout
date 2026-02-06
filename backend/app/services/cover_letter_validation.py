@@ -52,14 +52,10 @@ _MAX_COMPANY_NAME_LENGTH: int = 500
 _SUSPICIOUS_SKILLS_THRESHOLD: int = 3
 """Number of unknown skills before triggering fabrication warning."""
 
-_METRIC_EXTRACT_PATTERN = re.compile(
-    r"""
-    \d+(?:\.\d+)?%           # Percentages: 40%, 2.5%
-    | \$[\d,.]+[MBKmk]?      # Dollar amounts: $2.5M, $100,000
-    | \d+(?:\.\d+)?x          # Multipliers: 3x, 10x
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Split into separate simple patterns to keep regex complexity low (S5843)
+_PERCENTAGE_PATTERN = re.compile(r"\d+(?:\.\d+)?%")
+_DOLLAR_PATTERN = re.compile(r"\$[\d,.]+[MBK]?", re.IGNORECASE)
+_MULTIPLIER_PATTERN = re.compile(r"\d+(?:\.\d+)?x", re.IGNORECASE)
 
 
 # =============================================================================
@@ -115,7 +111,10 @@ def extract_draft_metrics(text: str) -> set[str]:
     Returns:
         Set of extracted metric strings (lowercased).
     """
-    return {m.lower() for m in _METRIC_EXTRACT_PATTERN.findall(text)}
+    matches: set[str] = set()
+    for pattern in (_PERCENTAGE_PATTERN, _DOLLAR_PATTERN, _MULTIPLIER_PATTERN):
+        matches.update(m.lower() for m in pattern.findall(text))
+    return matches
 
 
 # =============================================================================
