@@ -215,3 +215,74 @@ def sanitize_llm_input(text: str) -> str:
     result = unicodedata.normalize("NFC", result)
 
     return result
+
+
+# =============================================================================
+# Feedback Sanitization (REQ-010 §7.2)
+# =============================================================================
+
+# Maximum length for sanitized feedback output.
+# Matches MAX_FEEDBACK_LENGTH in regeneration.py — defined here to avoid
+# circular import (sanitization module should not depend on service types).
+_MAX_FEEDBACK_LENGTH = 500
+
+# Feedback-specific injection patterns not covered by the general pipeline.
+# The general pipeline handles: SYSTEM:, role tags, ChatML, instruction overrides
+# (ignore previous, disregard previous/prior, new instructions:, forget everything).
+# These patterns extend coverage to REQ-010 §7.2's additional patterns.
+_FEEDBACK_PATTERNS: list[tuple[str, str, int]] = [
+    # "ignore above/prior" — general pipeline covers "ignore previous" and
+    # "disregard prior/previous", but not "ignore prior" or "ignore/disregard above"
+    (
+        r"ignore\s+(all\s+)?(above|prior)",
+        _REPLACEMENT_FILTERED,
+        re.IGNORECASE,
+    ),
+    (
+        r"disregard\s+(all\s+)?above",
+        _REPLACEMENT_FILTERED,
+        re.IGNORECASE,
+    ),
+    # Fenced code block injection (```system, ```instructions, ```prompt, etc.)
+    (
+        r"```\s*(?:system|instructions?|prompt|rules)",
+        _REPLACEMENT_FILTERED,
+        re.IGNORECASE,
+    ),
+    # Authority keywords that could influence LLM behavior
+    (
+        r"(?:IMPORTANT|OVERRIDE|CRITICAL|URGENT|WARNING|ATTENTION|PRIORITY"
+        r"|MUST|MANDATORY|REQUIRED)\s*:",
+        _REPLACEMENT_FILTERED_COLON,
+        re.IGNORECASE,
+    ),
+]
+
+
+def sanitize_user_feedback(feedback: str) -> str:
+    """Sanitize user feedback before embedding in regeneration prompts.
+
+    REQ-010 §7.2: Removes prompt injection patterns from user feedback
+    text. Applies the full LLM sanitization pipeline (Unicode normalization,
+    zero-width stripping, confusable mapping, injection filtering) plus
+    feedback-specific patterns (authority keywords, fenced blocks).
+
+    Args:
+        feedback: Raw user feedback from a regeneration request.
+
+    Returns:
+        Sanitized feedback, truncated to 500 characters.
+    """
+    if not feedback:
+        return feedback
+
+    # Full pipeline: NFKC → zero-width → NFD → combining marks → confusables
+    # → control chars → injection patterns → NFC
+    result = sanitize_llm_input(feedback)
+
+    # Feedback-specific patterns (IMPORTANT:, OVERRIDE:, ```system, ignore above)
+    for pattern, replacement, flags in _FEEDBACK_PATTERNS:
+        result = re.sub(pattern, replacement, result, flags=flags)
+
+    # Truncate to max length (defense-in-depth with RegenerationConfig validation)
+    return result[:_MAX_FEEDBACK_LENGTH]

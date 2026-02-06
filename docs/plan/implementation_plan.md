@@ -555,7 +555,7 @@ These steps require user action outside Claude Code:
 | 6.4 | Utility Functions — has_metrics/extract_metrics | `tdd, plan` | ✅ |
 | 6.5 | Utility Functions — Caching Strategy | `db, tdd, plan` | ✅ |
 | 7.1 | Regeneration — Feedback Categories | `docs, plan` | ✅ |
-| 7.2 | Regeneration — Feedback Sanitization | `provider, tdd, plan` | ⬜ |
+| 7.2 | Regeneration — Feedback Sanitization | `provider, tdd, plan` | ✅ |
 | 7.3 | Regeneration — Prompt Modifier | `provider, tdd, plan` | ⬜ |
 | 8.1 | Edge Cases — Insufficient Data | `test, tdd, plan` | ⬜ |
 | 8.2 | Edge Cases — Expired Job | `test, tdd, plan` | ⬜ |
