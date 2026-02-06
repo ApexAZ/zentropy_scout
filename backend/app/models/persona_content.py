@@ -24,6 +24,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
+_DEFAULT_UUID = sa_text("gen_random_uuid()")
+_PERSONA_FK = "personas.id"
+
 
 class WorkHistory(Base):
     """Employment record - job held by the persona.
@@ -36,11 +39,11 @@ class WorkHistory(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=sa_text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         nullable=False,
     )
     company_name: Mapped[str] = mapped_column(
@@ -120,7 +123,7 @@ class Bullet(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=sa_text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     work_history_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -164,11 +167,11 @@ class Skill(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=sa_text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         nullable=False,
     )
     skill_name: Mapped[str] = mapped_column(
@@ -231,11 +234,11 @@ class Education(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=sa_text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         nullable=False,
     )
     institution: Mapped[str] = mapped_column(
@@ -286,11 +289,11 @@ class Certification(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=sa_text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         nullable=False,
     )
     certification_name: Mapped[str] = mapped_column(
@@ -341,11 +344,11 @@ class AchievementStory(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=sa_text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         nullable=False,
     )
     title: Mapped[str] = mapped_column(

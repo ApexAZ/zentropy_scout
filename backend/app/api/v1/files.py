@@ -24,6 +24,8 @@ from app.models import BaseResume, Persona, ResumeFile
 from app.models.cover_letter import SubmittedCoverLetterPDF
 from app.models.resume import SubmittedResumePDF
 
+_PDF_MEDIA_TYPE = "application/pdf"
+
 # =============================================================================
 # Resume Files (upload, list, get, download)
 # =============================================================================
@@ -210,7 +212,7 @@ async def download_resume_file(
 
     # Determine media type
     media_type = (
-        "application/pdf"
+        _PDF_MEDIA_TYPE
         if resume_file.file_type == "PDF"
         else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
@@ -291,7 +293,7 @@ async def download_submitted_resume_pdf(
 
     return StreamingResponse(
         iter([pdf.file_binary]),
-        media_type="application/pdf",
+        media_type=_PDF_MEDIA_TYPE,
         headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )
 
@@ -343,6 +345,6 @@ async def download_submitted_cover_letter_pdf(
 
     return StreamingResponse(
         iter([pdf.file_binary]),
-        media_type="application/pdf",
+        media_type=_PDF_MEDIA_TYPE,
         headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )

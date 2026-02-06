@@ -86,7 +86,7 @@ def get_source_adapter(source_name: str) -> JobSourceAdapter | None:
 # =============================================================================
 
 
-async def extract_skills_and_culture(
+def extract_skills_and_culture(
     description: str,
 ) -> dict[str, Any]:
     """Extract skills and culture text from job description.

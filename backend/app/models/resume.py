@@ -25,6 +25,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
+_DEFAULT_UUID = text("gen_random_uuid()")
+_DEFAULT_EMPTY_JSONB_ARRAY = text("'[]'::jsonb")
+_DEFAULT_EMPTY_JSONB_OBJECT = text("'{}'::jsonb")
+
 if TYPE_CHECKING:
     from app.models.application import Application
     from app.models.job_posting import JobPosting
@@ -42,7 +46,7 @@ class ResumeFile(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -103,7 +107,7 @@ class BaseResume(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -126,34 +130,34 @@ class BaseResume(Base):
     # Selections (JSONB arrays of UUIDs)
     included_jobs: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB_ARRAY,
         nullable=False,
     )
     included_education: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB_ARRAY,
         nullable=False,
     )
     included_certifications: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB_ARRAY,
         nullable=False,
     )
     skills_emphasis: Mapped[list] = mapped_column(
         JSONB,
-        server_default=text("'[]'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB_ARRAY,
         nullable=False,
     )
 
     # Bullet ordering (JSONB maps: job_id -> [bullet_ids])
     job_bullet_selections: Mapped[dict] = mapped_column(
         JSONB,
-        server_default=text("'{}'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB_OBJECT,
         nullable=False,
     )
     job_bullet_order: Mapped[dict] = mapped_column(
         JSONB,
-        server_default=text("'{}'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB_OBJECT,
         nullable=False,
     )
 
@@ -229,7 +233,7 @@ class JobVariant(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     base_resume_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -247,7 +251,7 @@ class JobVariant(Base):
     )
     job_bullet_order: Mapped[dict] = mapped_column(
         JSONB,
-        server_default=text("'{}'::jsonb"),
+        server_default=_DEFAULT_EMPTY_JSONB_OBJECT,
         nullable=False,
     )
     modifications_description: Mapped[str | None] = mapped_column(
@@ -337,7 +341,7 @@ class SubmittedResumePDF(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     application_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

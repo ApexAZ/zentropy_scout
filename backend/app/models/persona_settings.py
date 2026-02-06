@@ -22,6 +22,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
+_DEFAULT_UUID = text("gen_random_uuid()")
+_PERSONA_FK = "personas.id"
+
 
 class VoiceProfile(Base, TimestampMixin):
     """Writing style preferences for content generation.
@@ -47,11 +50,11 @@ class VoiceProfile(Base, TimestampMixin):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         unique=True,
         nullable=False,
     )
@@ -104,11 +107,11 @@ class CustomNonNegotiable(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         nullable=False,
     )
     filter_name: Mapped[str] = mapped_column(
@@ -154,11 +157,11 @@ class PersonaEmbedding(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         nullable=False,
     )
     embedding_type: Mapped[str] = mapped_column(
@@ -214,11 +217,11 @@ class PersonaChangeFlag(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
+        ForeignKey(_PERSONA_FK, ondelete="CASCADE"),
         nullable=False,
     )
     change_type: Mapped[str] = mapped_column(

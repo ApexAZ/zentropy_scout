@@ -20,6 +20,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
+_CASCADE_ALL_DELETE_ORPHAN = "all, delete-orphan"
+
 if TYPE_CHECKING:
     from app.models.application import Application
     from app.models.cover_letter import CoverLetter
@@ -283,27 +285,27 @@ class Persona(Base, TimestampMixin):
     work_histories: Mapped[list["WorkHistory"]] = relationship(
         "WorkHistory",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     skills: Mapped[list["Skill"]] = relationship(
         "Skill",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     educations: Mapped[list["Education"]] = relationship(
         "Education",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     certifications: Mapped[list["Certification"]] = relationship(
         "Certification",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     achievement_stories: Mapped[list["AchievementStory"]] = relationship(
         "AchievementStory",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
 
     # Relationships to Tier 2 persona settings
@@ -311,29 +313,29 @@ class Persona(Base, TimestampMixin):
         "VoiceProfile",
         back_populates="persona",
         uselist=False,
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     custom_non_negotiables: Mapped[list["CustomNonNegotiable"]] = relationship(
         "CustomNonNegotiable",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     embeddings: Mapped[list["PersonaEmbedding"]] = relationship(
         "PersonaEmbedding",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     change_flags: Mapped[list["PersonaChangeFlag"]] = relationship(
         "PersonaChangeFlag",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
 
     # Relationships to resume domain
     resume_files: Mapped[list["ResumeFile"]] = relationship(
         "ResumeFile",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
         foreign_keys="ResumeFile.persona_id",
     )
     original_resume_file: Mapped["ResumeFile | None"] = relationship(
@@ -344,35 +346,35 @@ class Persona(Base, TimestampMixin):
     base_resumes: Mapped[list["BaseResume"]] = relationship(
         "BaseResume",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
 
     # Relationships to job source preferences
     source_preferences: Mapped[list["UserSourcePreference"]] = relationship(
         "UserSourcePreference",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     polling_configuration: Mapped["PollingConfiguration | None"] = relationship(
         "PollingConfiguration",
         back_populates="persona",
         uselist=False,
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
 
     # Relationships to job/application domain
     job_postings: Mapped[list["JobPosting"]] = relationship(
         "JobPosting",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     cover_letters: Mapped[list["CoverLetter"]] = relationship(
         "CoverLetter",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
     applications: Mapped[list["Application"]] = relationship(
         "Application",
         back_populates="persona",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )

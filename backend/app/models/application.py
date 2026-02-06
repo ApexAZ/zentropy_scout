@@ -22,6 +22,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
+_ON_DELETE_SET_NULL = "SET NULL"
+
 if TYPE_CHECKING:
     from app.models.cover_letter import CoverLetter, SubmittedCoverLetterPDF
     from app.models.job_posting import JobPosting
@@ -59,7 +61,7 @@ class Application(Base, TimestampMixin):
     )
     cover_letter_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("cover_letters.id", ondelete="SET NULL"),
+        ForeignKey("cover_letters.id", ondelete=_ON_DELETE_SET_NULL),
         nullable=True,
     )
 
@@ -69,7 +71,7 @@ class Application(Base, TimestampMixin):
         UUID(as_uuid=True),
         ForeignKey(
             "submitted_resume_pdfs.id",
-            ondelete="SET NULL",
+            ondelete=_ON_DELETE_SET_NULL,
             use_alter=True,
             name="fk_application_submitted_resume_pdf",
         ),
@@ -79,7 +81,7 @@ class Application(Base, TimestampMixin):
         UUID(as_uuid=True),
         ForeignKey(
             "submitted_cover_letter_pdfs.id",
-            ondelete="SET NULL",
+            ondelete=_ON_DELETE_SET_NULL,
             use_alter=True,
             name="fk_application_submitted_cover_letter_pdf",
         ),

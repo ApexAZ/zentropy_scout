@@ -49,10 +49,12 @@ _SENIORITY_PREFIXES: dict[str, str] = {
 }
 
 # Role title synonyms (normalized to canonical form)
+_CANONICAL_SOFTWARE_ENGINEER = "software engineer"
+
 _ROLE_SYNONYMS: dict[str, str] = {
-    "software developer": "software engineer",
-    "sde": "software engineer",
-    "swe": "software engineer",
+    "software developer": _CANONICAL_SOFTWARE_ENGINEER,
+    "sde": _CANONICAL_SOFTWARE_ENGINEER,
+    "swe": _CANONICAL_SOFTWARE_ENGINEER,
     "dev": "developer",
     "pm": "product manager",
 }

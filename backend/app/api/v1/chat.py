@@ -100,15 +100,11 @@ async def chat_stream(
         # Phase 2: Will subscribe to agent events for this user and yield
         # chat_token, tool_start, tool_result, data_changed events.
         # For now, we send periodic heartbeats to keep connection alive.
-        try:
-            while True:
-                # Wait for next heartbeat interval
-                # WHY 30s: Balances keepalive with reduced overhead
-                await asyncio.sleep(30)
-                yield HeartbeatEvent().to_sse()
-        except asyncio.CancelledError:
-            # Client disconnected - must re-raise for proper ASGI cleanup
-            raise
+        while True:
+            # Wait for next heartbeat interval
+            # WHY 30s: Balances keepalive with reduced overhead
+            await asyncio.sleep(30)
+            yield HeartbeatEvent().to_sse()
 
     return StreamingResponse(
         event_generator(),
