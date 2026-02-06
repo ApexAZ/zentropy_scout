@@ -22,6 +22,8 @@ from app.providers.llm.base import LLMMessage, TaskType
 
 logger = logging.getLogger(__name__)
 
+_EXPECTED_JSON_ARRAY = "Expected JSON array"
+
 
 async def extract_keywords(
     text: str,
@@ -80,7 +82,7 @@ Example: ["kubernetes", "python", "distributed systems", "team leadership"]""",
     try:
         parsed = json.loads(response.content)
         if not isinstance(parsed, list):
-            raise TypeError("Expected JSON array")
+            raise TypeError(_EXPECTED_JSON_ARRAY)
         return {k.lower() for k in parsed[:max_keywords] if isinstance(k, str)}
     except (json.JSONDecodeError, TypeError, AttributeError):
         # WHY fallback: LLM may return non-JSON occasionally.
@@ -152,7 +154,7 @@ RULES:
     try:
         parsed = json.loads(response.content)
         if not isinstance(parsed, list):
-            raise TypeError("Expected JSON array")
+            raise TypeError(_EXPECTED_JSON_ARRAY)
         return {s.lower() for s in parsed if isinstance(s, str)}
     except (json.JSONDecodeError, TypeError, AttributeError):
         logger.warning(
@@ -271,7 +273,7 @@ Example: ["40%", "$1.2M", "500 users", "3x faster"]""",
     try:
         parsed = json.loads(response.content)
         if not isinstance(parsed, list):
-            raise TypeError("Expected JSON array")
+            raise TypeError(_EXPECTED_JSON_ARRAY)
         return [m for m in parsed if isinstance(m, str)]
     except (json.JSONDecodeError, TypeError, AttributeError):
         logger.warning("extract_metrics: LLM returned invalid JSON")
