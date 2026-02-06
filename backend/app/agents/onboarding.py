@@ -253,6 +253,63 @@ TRANSITION_PROMPTS: dict[tuple[str, str], str] = {
 # =============================================================================
 
 
+def _format_basic_info(gathered_data: dict[str, object]) -> str | None:
+    """Format basic info section for summary."""
+    basic = gathered_data.get("basic_info", {})
+    if isinstance(basic, dict) and basic.get("full_name"):
+        return f"Name: {basic.get('full_name')}"
+    return None
+
+
+def _format_work_history(gathered_data: dict[str, object]) -> str | None:
+    """Format work history section for summary."""
+    work = gathered_data.get("work_history", {})
+    if isinstance(work, dict):
+        entries = work.get("entries", [])
+        if entries:
+            return f"Work history: {len(entries)} job(s) recorded"
+    return None
+
+
+def _format_skills(gathered_data: dict[str, object]) -> str | None:
+    """Format skills section for summary."""
+    skills = gathered_data.get("skills", {})
+    if not isinstance(skills, dict):
+        return None
+    entries = skills.get("entries", [])
+    if not entries:
+        return None
+    skill_names = [e.get("skill_name", "") for e in entries if e.get("skill_name")]
+    if not skill_names:
+        return None
+    result = f"Skills: {', '.join(skill_names[:5])}"
+    if len(skill_names) > 5:
+        result += f" (+{len(skill_names) - 5} more)"
+    return result
+
+
+def _format_stories(gathered_data: dict[str, object]) -> str | None:
+    """Format achievement stories section for summary."""
+    stories = gathered_data.get("achievement_stories", {})
+    if isinstance(stories, dict):
+        entries = stories.get("entries", [])
+        if entries:
+            return f"Achievement stories: {len(entries)} captured"
+    return None
+
+
+def _format_skipped_sections(gathered_data: dict[str, object]) -> str | None:
+    """Format skipped sections for summary."""
+    skipped = []
+    for section in ["education", "certifications", "resume_upload"]:
+        sec_data = gathered_data.get(section, {})
+        if isinstance(sec_data, dict) and sec_data.get("skipped"):
+            skipped.append(section.replace("_", " "))
+    if skipped:
+        return f"Skipped: {', '.join(skipped)}"
+    return None
+
+
 def format_gathered_data_summary(gathered_data: dict[str, object]) -> str:
     """Format gathered data into a human-readable summary.
 
@@ -271,48 +328,15 @@ def format_gathered_data_summary(gathered_data: dict[str, object]) -> str:
     if not gathered_data:
         return _NO_DATA_COLLECTED_MSG
 
-    summary_parts = []
-
-    # Basic info
-    basic = gathered_data.get("basic_info", {})
-    if isinstance(basic, dict) and basic.get("full_name"):
-        summary_parts.append(f"Name: {basic.get('full_name')}")
-
-    # Work history
-    work = gathered_data.get("work_history", {})
-    if isinstance(work, dict):
-        entries = work.get("entries", [])
-        if entries:
-            summary_parts.append(f"Work history: {len(entries)} job(s) recorded")
-
-    # Skills
-    skills = gathered_data.get("skills", {})
-    if isinstance(skills, dict):
-        entries = skills.get("entries", [])
-        if entries:
-            skill_names = [
-                e.get("skill_name", "") for e in entries if e.get("skill_name")
-            ]
-            if skill_names:
-                summary_parts.append(f"Skills: {', '.join(skill_names[:5])}")
-                if len(skill_names) > 5:
-                    summary_parts[-1] += f" (+{len(skill_names) - 5} more)"
-
-    # Achievement stories
-    stories = gathered_data.get("achievement_stories", {})
-    if isinstance(stories, dict):
-        entries = stories.get("entries", [])
-        if entries:
-            summary_parts.append(f"Achievement stories: {len(entries)} captured")
-
-    # Check for skipped sections
-    skipped = []
-    for section in ["education", "certifications", "resume_upload"]:
-        sec_data = gathered_data.get(section, {})
-        if isinstance(sec_data, dict) and sec_data.get("skipped"):
-            skipped.append(section.replace("_", " "))
-    if skipped:
-        summary_parts.append(f"Skipped: {', '.join(skipped)}")
+    formatters = [
+        _format_basic_info,
+        _format_work_history,
+        _format_skills,
+        _format_stories,
+        _format_skipped_sections,
+    ]
+    summary_parts = [f(gathered_data) for f in formatters]
+    summary_parts = [p for p in summary_parts if p is not None]
 
     return "\n".join(summary_parts) if summary_parts else _NO_DATA_COLLECTED_MSG
 
@@ -1023,6 +1047,102 @@ def check_resume_upload(state: OnboardingState) -> OnboardingState:
     return new_state
 
 
+def _handle_work_history_response(
+    user_response: str,
+    question_lower: str,
+    work_history: dict[str, object],
+    new_state: OnboardingState,
+    gathered: dict[str, object],
+) -> OnboardingState:
+    """Handle user response during work history gathering."""
+    # User is done adding jobs - check this FIRST before other keyword parsing
+    if "done" in user_response.lower():
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        gathered["work_history"] = work_history
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Confirming extracted job
+    if (
+        "confirm" in question_lower or "correct" in question_lower
+    ) and work_history.get("current_entry"):
+        work_history["current_entry"]["confirmed"] = True
+        new_state["pending_question"] = (
+            "Tell me more about your accomplishments in this role. "
+            "What was your biggest achievement?"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["work_history"] = work_history
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Job title/role response
+    # WHY: We parse question text to determine state. Future improvement could
+    # use an explicit current_field state flag for more robust transitions.
+    if "job" in question_lower or "role" in question_lower or "title" in question_lower:
+        work_history["current_entry"] = {
+            "raw_input": user_response,
+            "bullets": [],
+        }
+        new_state["pending_question"] = (
+            "What company was this at, and what were the dates?"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["work_history"] = work_history
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Company/dates response
+    if "company" in question_lower or "dates" in question_lower:
+        if work_history.get("current_entry"):
+            work_history["current_entry"]["company_dates"] = user_response
+        new_state["pending_question"] = (
+            "Tell me about your key accomplishments in this role. "
+            "What results did you achieve?"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["work_history"] = work_history
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Accomplishments response
+    if (
+        "accomplish" in question_lower or "achieve" in question_lower
+    ) and work_history.get("current_entry"):
+        current = work_history["current_entry"]
+        if "bullets" not in current:
+            current["bullets"] = []
+        current["bullets"].append(user_response)
+
+        entries = list(work_history.get("entries", []))
+        entries.append(current)
+        work_history["entries"] = entries
+        work_history["current_entry"] = None
+
+        new_state["pending_question"] = (
+            "Do you have another job to add? "
+            "Say 'done' if you've listed all your relevant experience."
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["work_history"] = work_history
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    gathered["work_history"] = work_history
+    new_state["gathered_data"] = gathered
+    return new_state
+
+
 def gather_work_history(state: OnboardingState) -> OnboardingState:
     """Gather work history step.
 
@@ -1059,98 +1179,13 @@ def gather_work_history(state: OnboardingState) -> OnboardingState:
 
     # Handle user response
     if user_response and pending_question:
-        question_lower = pending_question.lower()
-
-        # User is done adding jobs - check this FIRST before other keyword parsing
-        if "done" in user_response.lower():
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            gathered["work_history"] = work_history
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Confirming extracted job
-        if (
-            "confirm" in question_lower or "correct" in question_lower
-        ) and work_history.get("current_entry"):
-            # User confirmed, proceed to bullet expansion
-            work_history["current_entry"]["confirmed"] = True
-            new_state["pending_question"] = (
-                "Tell me more about your accomplishments in this role. "
-                "What was your biggest achievement?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["work_history"] = work_history
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Job title/role response
-        # WHY: We parse question text to determine state. Future improvement could
-        # use an explicit current_field state flag for more robust transitions.
-        if (
-            "job" in question_lower
-            or "role" in question_lower
-            or "title" in question_lower
-        ):
-            # Parse basic job info from response
-            work_history["current_entry"] = {
-                "raw_input": user_response,
-                "bullets": [],
-            }
-            new_state["pending_question"] = (
-                "What company was this at, and what were the dates?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["work_history"] = work_history
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Company/dates response
-        if "company" in question_lower or "dates" in question_lower:
-            if work_history.get("current_entry"):
-                work_history["current_entry"]["company_dates"] = user_response
-            new_state["pending_question"] = (
-                "Tell me about your key accomplishments in this role. "
-                "What results did you achieve?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["work_history"] = work_history
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Accomplishments response
-        if (
-            "accomplish" in question_lower or "achieve" in question_lower
-        ) and work_history.get("current_entry"):
-            current = work_history["current_entry"]
-            if "bullets" not in current:
-                current["bullets"] = []
-            current["bullets"].append(user_response)
-
-            # Finalize this entry
-            entries = list(work_history.get("entries", []))
-            entries.append(current)
-            work_history["entries"] = entries
-            work_history["current_entry"] = None
-
-            # Ask if there are more jobs
-            new_state["pending_question"] = (
-                "Do you have another job to add? "
-                "Say 'done' if you've listed all your relevant experience."
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["work_history"] = work_history
-            new_state["gathered_data"] = gathered
-            return new_state
+        return _handle_work_history_response(
+            user_response,
+            pending_question.lower(),
+            work_history,
+            new_state,
+            gathered,
+        )
 
     # Check if work history is already complete
     entries = work_history.get("entries", [])
@@ -1188,6 +1223,89 @@ def gather_work_history(state: OnboardingState) -> OnboardingState:
     return new_state
 
 
+def _handle_education_response(
+    user_response: str,
+    question_lower: str,
+    education: dict[str, object],
+    new_state: OnboardingState,
+    gathered: dict[str, object],
+) -> OnboardingState:
+    """Handle user response during education gathering."""
+    response_lower = user_response.lower().strip()
+
+    # User is done adding entries - check this FIRST before other keyword parsing
+    if response_lower == "done":
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        gathered["education"] = education
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # User wants to skip or has no education
+    # WHY: "no" is treated as skip because the question is "Do you have education?"
+    # A "no" answer means they don't have any, same outcome as explicitly skipping.
+    if response_lower == "skip" or response_lower == "no":
+        education["skipped"] = True
+        gathered["education"] = education
+        new_state["gathered_data"] = gathered
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        return new_state
+
+    # Graduation year response (last field before completion)
+    if ("year" in question_lower or "graduat" in question_lower) and education.get(
+        "current_entry"
+    ):
+        education["current_entry"]["graduation_year"] = user_response
+
+        entries = list(education.get("entries", []))
+        entries.append(education["current_entry"])
+        education["entries"] = entries
+        education["current_entry"] = None
+
+        new_state["pending_question"] = (
+            "Do you have another degree to add? "
+            "Say 'done' if you've listed all your education."
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["education"] = education
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Institution response
+    if "institution" in question_lower or "school" in question_lower:
+        if education.get("current_entry"):
+            education["current_entry"]["institution"] = user_response
+        new_state["pending_question"] = "What year did you graduate?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["education"] = education
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Degree/field response (first answer in the chain)
+    if "degree" in question_lower or "education" in question_lower:
+        education["current_entry"] = {
+            "degree": user_response,
+        }
+        new_state["pending_question"] = "What institution did you attend?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["education"] = education
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    gathered["education"] = education
+    new_state["gathered_data"] = gathered
+    return new_state
+
+
 def gather_education(state: OnboardingState) -> OnboardingState:
     """Gather education step.
 
@@ -1220,78 +1338,13 @@ def gather_education(state: OnboardingState) -> OnboardingState:
 
     # Handle user response
     if user_response and pending_question:
-        response_lower = user_response.lower().strip()
-        question_lower = pending_question.lower()
-
-        # User is done adding entries - check this FIRST before other keyword parsing
-        if response_lower == "done":
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            gathered["education"] = education
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # User wants to skip or has no education
-        # WHY: "no" is treated as skip because the question is "Do you have education?"
-        # A "no" answer means they don't have any, same outcome as explicitly skipping.
-        if response_lower == "skip" or response_lower == "no":
-            education["skipped"] = True
-            gathered["education"] = education
-            new_state["gathered_data"] = gathered
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            return new_state
-
-        # Graduation year response (last field before completion)
-        if ("year" in question_lower or "graduat" in question_lower) and education.get(
-            "current_entry"
-        ):
-            education["current_entry"]["graduation_year"] = user_response
-
-            # Finalize this entry
-            entries = list(education.get("entries", []))
-            entries.append(education["current_entry"])
-            education["entries"] = entries
-            education["current_entry"] = None
-
-            # Ask if there are more entries
-            new_state["pending_question"] = (
-                "Do you have another degree to add? "
-                "Say 'done' if you've listed all your education."
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["education"] = education
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Institution response
-        if "institution" in question_lower or "school" in question_lower:
-            if education.get("current_entry"):
-                education["current_entry"]["institution"] = user_response
-            new_state["pending_question"] = "What year did you graduate?"
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["education"] = education
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Degree/field response (first answer in the chain)
-        if "degree" in question_lower or "education" in question_lower:
-            education["current_entry"] = {
-                "degree": user_response,
-            }
-            new_state["pending_question"] = "What institution did you attend?"
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["education"] = education
-            new_state["gathered_data"] = gathered
-            return new_state
+        return _handle_education_response(
+            user_response,
+            pending_question.lower(),
+            education,
+            new_state,
+            gathered,
+        )
 
     # Check if education data already gathered
     if education.get("skipped") or education.get("entries"):
@@ -1310,6 +1363,85 @@ def gather_education(state: OnboardingState) -> OnboardingState:
     gathered["education"] = education
     new_state["gathered_data"] = gathered
 
+    return new_state
+
+
+def _handle_skills_response(
+    user_response: str,
+    question_lower: str,
+    skills: dict[str, object],
+    new_state: OnboardingState,
+    gathered: dict[str, object],
+) -> OnboardingState:
+    """Handle user response during skills gathering."""
+    response_lower = user_response.lower().strip()
+
+    # User is done adding skills - check this FIRST before other keyword parsing
+    if response_lower == "done":
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        gathered["skills"] = skills
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Skill type response (last field before completion)
+    if (
+        "type" in question_lower or "hard" in question_lower or "soft" in question_lower
+    ) and skills.get("current_entry"):
+        skills["current_entry"]["skill_type"] = user_response
+
+        entries = list(skills.get("entries", []))
+        entries.append(skills["current_entry"])
+        skills["entries"] = entries
+        skills["current_entry"] = None
+
+        new_state["pending_question"] = (
+            "Do you have another skill to add? "
+            "Say 'done' if you've listed all your key skills."
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["skills"] = skills
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Proficiency response
+    if "proficiency" in question_lower or "rate" in question_lower:
+        if skills.get("current_entry"):
+            skills["current_entry"]["proficiency"] = user_response
+        skill_name = skills.get("current_entry", {}).get("skill_name", "this skill")
+        new_state["pending_question"] = (
+            f"Is {skill_name} a hard (technical) or soft (interpersonal) skill?"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["skills"] = skills
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Skill name response (first answer in the chain)
+    if "skill" in question_lower and (
+        "what" in question_lower or "key" in question_lower
+    ):
+        skills["current_entry"] = {
+            "skill_name": user_response,
+        }
+        new_state["pending_question"] = (
+            f"How would you rate your {user_response} proficiency? "
+            "(Learning / Familiar / Proficient / Expert)"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["skills"] = skills
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    gathered["skills"] = skills
+    new_state["gathered_data"] = gathered
     return new_state
 
 
@@ -1350,76 +1482,13 @@ def gather_skills(state: OnboardingState) -> OnboardingState:
 
     # Handle user response
     if user_response and pending_question:
-        response_lower = user_response.lower().strip()
-        question_lower = pending_question.lower()
-
-        # User is done adding skills - check this FIRST before other keyword parsing
-        if response_lower == "done":
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            gathered["skills"] = skills
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Skill type response (last field before completion)
-        if (
-            "type" in question_lower
-            or "hard" in question_lower
-            or "soft" in question_lower
-        ) and skills.get("current_entry"):
-            skills["current_entry"]["skill_type"] = user_response
-
-            # Finalize this entry
-            entries = list(skills.get("entries", []))
-            entries.append(skills["current_entry"])
-            skills["entries"] = entries
-            skills["current_entry"] = None
-
-            # Ask if there are more skills
-            new_state["pending_question"] = (
-                "Do you have another skill to add? "
-                "Say 'done' if you've listed all your key skills."
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["skills"] = skills
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Proficiency response
-        if "proficiency" in question_lower or "rate" in question_lower:
-            if skills.get("current_entry"):
-                skills["current_entry"]["proficiency"] = user_response
-            skill_name = skills.get("current_entry", {}).get("skill_name", "this skill")
-            new_state["pending_question"] = (
-                f"Is {skill_name} a hard (technical) or soft (interpersonal) skill?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["skills"] = skills
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Skill name response (first answer in the chain)
-        if "skill" in question_lower and (
-            "what" in question_lower or "key" in question_lower
-        ):
-            skills["current_entry"] = {
-                "skill_name": user_response,
-            }
-            new_state["pending_question"] = (
-                f"How would you rate your {user_response} proficiency? "
-                "(Learning / Familiar / Proficient / Expert)"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["skills"] = skills
-            new_state["gathered_data"] = gathered
-            return new_state
+        return _handle_skills_response(
+            user_response,
+            pending_question.lower(),
+            skills,
+            new_state,
+            gathered,
+        )
 
     # Check if skills data already gathered
     if skills.get("entries"):
@@ -1452,6 +1521,89 @@ def gather_skills(state: OnboardingState) -> OnboardingState:
     gathered["skills"] = skills
     new_state["gathered_data"] = gathered
 
+    return new_state
+
+
+def _handle_certifications_response(
+    user_response: str,
+    question_lower: str,
+    certifications: dict[str, object],
+    new_state: OnboardingState,
+    gathered: dict[str, object],
+) -> OnboardingState:
+    """Handle user response during certifications gathering."""
+    response_lower = user_response.lower().strip()
+
+    # User is done adding entries - check this FIRST before other keyword parsing
+    if response_lower == "done":
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        gathered["certifications"] = certifications
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # User wants to skip or has no certifications
+    # WHY: "no" is treated as skip because the question is "Do you have certs?"
+    # A "no" answer means they don't have any, same outcome as explicitly skipping.
+    if response_lower == "skip" or response_lower == "no":
+        certifications["skipped"] = True
+        gathered["certifications"] = certifications
+        new_state["gathered_data"] = gathered
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        return new_state
+
+    # Date obtained response (last field before completion)
+    if ("date" in question_lower or "when" in question_lower) and certifications.get(
+        "current_entry"
+    ):
+        certifications["current_entry"]["date_obtained"] = user_response
+
+        entries = list(certifications.get("entries", []))
+        entries.append(certifications["current_entry"])
+        certifications["entries"] = entries
+        certifications["current_entry"] = None
+
+        new_state["pending_question"] = (
+            "Do you have another certification to add? "
+            "Say 'done' if you've listed all your certifications."
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["certifications"] = certifications
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Issuing organization response
+    if "issu" in question_lower or "organization" in question_lower:
+        if certifications.get("current_entry"):
+            certifications["current_entry"]["issuing_organization"] = user_response
+        new_state["pending_question"] = "When did you obtain this certification?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["certifications"] = certifications
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Certification name response (first answer in the chain)
+    if "certification" in question_lower or "cert" in question_lower:
+        certifications["current_entry"] = {
+            "certification_name": user_response,
+        }
+        new_state["pending_question"] = "What organization issued this certification?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["certifications"] = certifications
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    gathered["certifications"] = certifications
+    new_state["gathered_data"] = gathered
     return new_state
 
 
@@ -1488,80 +1640,13 @@ def gather_certifications(state: OnboardingState) -> OnboardingState:
 
     # Handle user response
     if user_response and pending_question:
-        response_lower = user_response.lower().strip()
-        question_lower = pending_question.lower()
-
-        # User is done adding entries - check this FIRST before other keyword parsing
-        if response_lower == "done":
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            gathered["certifications"] = certifications
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # User wants to skip or has no certifications
-        # WHY: "no" is treated as skip because the question is "Do you have certs?"
-        # A "no" answer means they don't have any, same outcome as explicitly skipping.
-        if response_lower == "skip" or response_lower == "no":
-            certifications["skipped"] = True
-            gathered["certifications"] = certifications
-            new_state["gathered_data"] = gathered
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            return new_state
-
-        # Date obtained response (last field before completion)
-        if (
-            "date" in question_lower or "when" in question_lower
-        ) and certifications.get("current_entry"):
-            certifications["current_entry"]["date_obtained"] = user_response
-
-            # Finalize this entry
-            entries = list(certifications.get("entries", []))
-            entries.append(certifications["current_entry"])
-            certifications["entries"] = entries
-            certifications["current_entry"] = None
-
-            # Ask if there are more entries
-            new_state["pending_question"] = (
-                "Do you have another certification to add? "
-                "Say 'done' if you've listed all your certifications."
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["certifications"] = certifications
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Issuing organization response
-        if "issu" in question_lower or "organization" in question_lower:
-            if certifications.get("current_entry"):
-                certifications["current_entry"]["issuing_organization"] = user_response
-            new_state["pending_question"] = "When did you obtain this certification?"
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["certifications"] = certifications
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Certification name response (first answer in the chain)
-        if "certification" in question_lower or "cert" in question_lower:
-            certifications["current_entry"] = {
-                "certification_name": user_response,
-            }
-            new_state["pending_question"] = (
-                "What organization issued this certification?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["certifications"] = certifications
-            new_state["gathered_data"] = gathered
-            return new_state
+        return _handle_certifications_response(
+            user_response,
+            pending_question.lower(),
+            certifications,
+            new_state,
+            gathered,
+        )
 
     # Check if certifications data already gathered
     if certifications.get("skipped") or certifications.get("entries"):
@@ -1580,6 +1665,127 @@ def gather_certifications(state: OnboardingState) -> OnboardingState:
     gathered["certifications"] = certifications
     new_state["gathered_data"] = gathered
 
+    return new_state
+
+
+def _handle_stories_response(
+    user_response: str,
+    question_lower: str,
+    stories: dict[str, object],
+    new_state: OnboardingState,
+    gathered: dict[str, object],
+) -> OnboardingState:
+    """Handle user response during achievement stories gathering."""
+    response_lower = user_response.lower().strip()
+
+    # User is done adding stories - check this FIRST
+    if response_lower == "done":
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        gathered["achievement_stories"] = stories
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Skills demonstrated response (last field - completes the story)
+    if ("skill" in question_lower and "demonstrat" in question_lower) and stories.get(
+        "current_entry"
+    ):
+        stories["current_entry"]["skills_demonstrated"] = user_response
+
+        entries = list(stories.get("entries", []))
+        entries.append(stories["current_entry"])
+        stories["entries"] = entries
+        stories["current_entry"] = None
+
+        story_count = len(entries)
+        if story_count < 3:
+            new_state["pending_question"] = (
+                f"Great story! You have {story_count} so far. "
+                "Do you have another achievement story to share? (goal is 3-5 stories)"
+            )
+        else:
+            new_state["pending_question"] = (
+                f"Excellent! You have {story_count} stories. "
+                "Do you have another achievement story, or say 'done' to continue."
+            )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["achievement_stories"] = stories
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Outcome/result response
+    if (
+        "result" in question_lower
+        or "outcome" in question_lower
+        or "impact" in question_lower
+    ) and stories.get("current_entry"):
+        stories["current_entry"]["outcome"] = user_response
+        new_state["pending_question"] = "Which skills did this demonstrate?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["achievement_stories"] = stories
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Action response
+    if (
+        "action" in question_lower
+        or "you do" in question_lower
+        or "specifically" in question_lower
+    ) and stories.get("current_entry"):
+        stories["current_entry"]["action"] = user_response
+        new_state["pending_question"] = (
+            "What was the result or impact? Can you put a number on it?"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["achievement_stories"] = stories
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Context/situation response
+    if (
+        "context" in question_lower
+        or "situation" in question_lower
+        or "challeng" in question_lower
+    ) and stories.get("current_entry"):
+        stories["current_entry"]["context"] = user_response
+        new_state["pending_question"] = (
+            "What specifically did YOU do? (not your team, just your actions)"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["achievement_stories"] = stories
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Initial story response (first answer in the chain)
+    if (
+        "achiev" in question_lower
+        or "accomplish" in question_lower
+        or "tell" in question_lower
+    ):
+        stories["current_entry"] = {
+            "initial_story": user_response,
+        }
+        new_state["pending_question"] = (
+            "What was the context or challenge you were facing?"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["achievement_stories"] = stories
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    gathered["achievement_stories"] = stories
+    new_state["gathered_data"] = gathered
     return new_state
 
 
@@ -1616,116 +1822,13 @@ def gather_stories(state: OnboardingState) -> OnboardingState:
 
     # Handle user response
     if user_response and pending_question:
-        response_lower = user_response.lower().strip()
-        question_lower = pending_question.lower()
-
-        # User is done adding stories - check this FIRST
-        if response_lower == "done":
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            gathered["achievement_stories"] = stories
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Skills demonstrated response (last field - completes the story)
-        if (
-            "skill" in question_lower and "demonstrat" in question_lower
-        ) and stories.get("current_entry"):
-            stories["current_entry"]["skills_demonstrated"] = user_response
-
-            # Finalize this entry
-            entries = list(stories.get("entries", []))
-            entries.append(stories["current_entry"])
-            stories["entries"] = entries
-            stories["current_entry"] = None
-
-            # Count stories - goal is 3-5
-            story_count = len(entries)
-            if story_count < 3:
-                new_state["pending_question"] = (
-                    f"Great story! You have {story_count} so far. "
-                    "Do you have another achievement story to share? (goal is 3-5 stories)"
-                )
-            else:
-                new_state["pending_question"] = (
-                    f"Excellent! You have {story_count} stories. "
-                    "Do you have another achievement story, or say 'done' to continue."
-                )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["achievement_stories"] = stories
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Outcome/result response
-        if (
-            "result" in question_lower
-            or "outcome" in question_lower
-            or "impact" in question_lower
-        ) and stories.get("current_entry"):
-            stories["current_entry"]["outcome"] = user_response
-            new_state["pending_question"] = "Which skills did this demonstrate?"
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["achievement_stories"] = stories
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Action response
-        if (
-            "action" in question_lower
-            or "you do" in question_lower
-            or "specifically" in question_lower
-        ) and stories.get("current_entry"):
-            stories["current_entry"]["action"] = user_response
-            new_state["pending_question"] = (
-                "What was the result or impact? Can you put a number on it?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["achievement_stories"] = stories
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Context/situation response
-        if (
-            "context" in question_lower
-            or "situation" in question_lower
-            or "challeng" in question_lower
-        ) and stories.get("current_entry"):
-            stories["current_entry"]["context"] = user_response
-            new_state["pending_question"] = (
-                "What specifically did YOU do? (not your team, just your actions)"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["achievement_stories"] = stories
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Initial story response (first answer in the chain)
-        if (
-            "achiev" in question_lower
-            or "accomplish" in question_lower
-            or "tell" in question_lower
-        ):
-            stories["current_entry"] = {
-                "initial_story": user_response,
-            }
-            new_state["pending_question"] = (
-                "What was the context or challenge you were facing?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["achievement_stories"] = stories
-            new_state["gathered_data"] = gathered
-            return new_state
+        return _handle_stories_response(
+            user_response,
+            pending_question.lower(),
+            stories,
+            new_state,
+            gathered,
+        )
 
     # Check if stories data already gathered
     if stories.get("entries"):
@@ -1744,6 +1847,98 @@ def gather_stories(state: OnboardingState) -> OnboardingState:
     gathered["achievement_stories"] = stories
     new_state["gathered_data"] = gathered
 
+    return new_state
+
+
+def _handle_non_negotiables_response(
+    user_response: str,
+    question_lower: str,
+    non_neg: dict[str, object],
+    new_state: OnboardingState,
+    gathered: dict[str, object],
+) -> OnboardingState:
+    """Handle user response during non-negotiables gathering."""
+    # Custom filters response (last field - completes the step)
+    if "dealbreaker" in question_lower or "other" in question_lower:
+        non_neg["custom_filters"] = user_response
+        gathered["non_negotiables"] = non_neg
+        new_state["gathered_data"] = gathered
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        return new_state
+
+    # Industry exclusions response
+    if "industr" in question_lower or "avoid" in question_lower:
+        non_neg["industry_exclusions"] = user_response
+        new_state["pending_question"] = "Any other dealbreakers I should know about?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["non_negotiables"] = non_neg
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Visa sponsorship response
+    if "visa" in question_lower or "sponsor" in question_lower:
+        non_neg["visa_sponsorship"] = user_response
+        new_state["pending_question"] = "Any industries you want to avoid?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["non_negotiables"] = non_neg
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Salary response
+    if "salary" in question_lower or "minimum" in question_lower:
+        non_neg["minimum_base_salary"] = user_response
+        new_state["pending_question"] = "Do you require visa sponsorship?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["non_negotiables"] = non_neg
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Commutable cities response
+    if "cit" in question_lower or "commut" in question_lower:
+        non_neg["commutable_cities"] = user_response
+        new_state["pending_question"] = "What's your minimum acceptable base salary?"
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["non_negotiables"] = non_neg
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Remote preference response (first in chain)
+    if (
+        "remote" in question_lower
+        or "hybrid" in question_lower
+        or "onsite" in question_lower
+    ):
+        non_neg["remote_preference"] = user_response
+        response_lower = user_response.lower()
+
+        # WHY: If remote-only, skip cities question since commute location
+        # doesn't matter. Otherwise ask for commutable cities.
+        if "remote" in response_lower and "only" in response_lower:
+            new_state["pending_question"] = (
+                "What's your minimum acceptable base salary?"
+            )
+        else:
+            new_state["pending_question"] = "Which cities can you commute to?"
+
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["non_negotiables"] = non_neg
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    gathered["non_negotiables"] = non_neg
+    new_state["gathered_data"] = gathered
     return new_state
 
 
@@ -1776,91 +1971,13 @@ def gather_non_negotiables(state: OnboardingState) -> OnboardingState:
 
     # Handle user response
     if user_response and pending_question:
-        question_lower = pending_question.lower()
-
-        # Custom filters response (last field - completes the step)
-        if "dealbreaker" in question_lower or "other" in question_lower:
-            non_neg["custom_filters"] = user_response
-            gathered["non_negotiables"] = non_neg
-            new_state["gathered_data"] = gathered
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            return new_state
-
-        # Industry exclusions response
-        if "industr" in question_lower or "avoid" in question_lower:
-            non_neg["industry_exclusions"] = user_response
-            new_state["pending_question"] = (
-                "Any other dealbreakers I should know about?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["non_negotiables"] = non_neg
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Visa sponsorship response
-        if "visa" in question_lower or "sponsor" in question_lower:
-            non_neg["visa_sponsorship"] = user_response
-            new_state["pending_question"] = "Any industries you want to avoid?"
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["non_negotiables"] = non_neg
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Salary response
-        if "salary" in question_lower or "minimum" in question_lower:
-            non_neg["minimum_base_salary"] = user_response
-            new_state["pending_question"] = "Do you require visa sponsorship?"
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["non_negotiables"] = non_neg
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Commutable cities response
-        if "cit" in question_lower or "commut" in question_lower:
-            non_neg["commutable_cities"] = user_response
-            new_state["pending_question"] = (
-                "What's your minimum acceptable base salary?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["non_negotiables"] = non_neg
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Remote preference response (first in chain)
-        if (
-            "remote" in question_lower
-            or "hybrid" in question_lower
-            or "onsite" in question_lower
-        ):
-            non_neg["remote_preference"] = user_response
-            response_lower = user_response.lower()
-
-            # WHY: If remote-only, skip cities question since commute location
-            # doesn't matter. Otherwise ask for commutable cities.
-            if "remote" in response_lower and "only" in response_lower:
-                new_state["pending_question"] = (
-                    "What's your minimum acceptable base salary?"
-                )
-            else:
-                # Hybrid or onsite - need to know commutable cities
-                new_state["pending_question"] = "Which cities can you commute to?"
-
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["non_negotiables"] = non_neg
-            new_state["gathered_data"] = gathered
-            return new_state
+        return _handle_non_negotiables_response(
+            user_response,
+            pending_question.lower(),
+            non_neg,
+            new_state,
+            gathered,
+        )
 
     # Check if non-negotiables data already gathered (all fields complete)
     if non_neg.get("custom_filters"):
@@ -1960,6 +2077,92 @@ def gather_growth_targets(state: OnboardingState) -> OnboardingState:
     return new_state
 
 
+def _handle_voice_profile_response(
+    user_response: str,
+    question_lower: str,
+    voice: dict[str, object],
+    new_state: OnboardingState,
+    gathered: dict[str, object],
+) -> OnboardingState:
+    """Handle user response during voice profile gathering."""
+    response_lower = user_response.lower().strip()
+
+    # Things to avoid response (last field - completes the step)
+    if (
+        "avoid" in question_lower
+        or "buzzword" in question_lower
+        or "never" in question_lower
+    ):
+        voice["things_to_avoid"] = user_response
+        gathered["voice_profile"] = voice
+        new_state["gathered_data"] = gathered
+        new_state["requires_human_input"] = False
+        new_state["pending_question"] = None
+        new_state["user_response"] = None
+        return new_state
+
+    # Vocabulary level response
+    if (
+        "vocabulary" in question_lower
+        or "technical" in question_lower
+        or "jargon" in question_lower
+    ):
+        voice["vocabulary_level"] = user_response
+        new_state["pending_question"] = (
+            "Are there any words or phrases you never use? (buzzwords to avoid)"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["voice_profile"] = voice
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Sentence style response
+    if "sentence" in question_lower or "style" in question_lower:
+        voice["sentence_style"] = user_response
+        new_state["pending_question"] = (
+            "Do you prefer technical jargon or plain English?"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["voice_profile"] = voice
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Tone response
+    if "tone" in question_lower:
+        voice["tone"] = user_response
+        new_state["pending_question"] = (
+            "How would you describe your sentence style? (short and punchy, or detailed?)"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["voice_profile"] = voice
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    # Writing sample response or skip
+    if "writing" in question_lower or "sample" in question_lower:
+        if response_lower != "skip":
+            voice["writing_sample_text"] = user_response
+        new_state["pending_question"] = (
+            "How would you describe your tone? (e.g., direct, warm, formal)"
+        )
+        new_state["requires_human_input"] = True
+        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+        new_state["user_response"] = None
+        gathered["voice_profile"] = voice
+        new_state["gathered_data"] = gathered
+        return new_state
+
+    gathered["voice_profile"] = voice
+    new_state["gathered_data"] = gathered
+    return new_state
+
+
 def derive_voice_profile(state: OnboardingState) -> OnboardingState:
     """Derive voice profile step.
 
@@ -1991,85 +2194,13 @@ def derive_voice_profile(state: OnboardingState) -> OnboardingState:
 
     # Handle user response
     if user_response and pending_question:
-        response_lower = user_response.lower().strip()
-        question_lower = pending_question.lower()
-
-        # Things to avoid response (last field - completes the step)
-        if (
-            "avoid" in question_lower
-            or "buzzword" in question_lower
-            or "never" in question_lower
-        ):
-            voice["things_to_avoid"] = user_response
-            gathered["voice_profile"] = voice
-            new_state["gathered_data"] = gathered
-            new_state["requires_human_input"] = False
-            new_state["pending_question"] = None
-            new_state["user_response"] = None
-            return new_state
-
-        # Vocabulary level response
-        if (
-            "vocabulary" in question_lower
-            or "technical" in question_lower
-            or "jargon" in question_lower
-        ):
-            voice["vocabulary_level"] = user_response
-            new_state["pending_question"] = (
-                "Are there any words or phrases you never use? (buzzwords to avoid)"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["voice_profile"] = voice
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Sentence style response
-        if "sentence" in question_lower or "style" in question_lower:
-            voice["sentence_style"] = user_response
-            new_state["pending_question"] = (
-                "Do you prefer technical jargon or plain English?"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["voice_profile"] = voice
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Tone response
-        if "tone" in question_lower:
-            voice["tone"] = user_response
-            new_state["pending_question"] = (
-                "How would you describe your sentence style? (short and punchy, or detailed?)"
-            )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["voice_profile"] = voice
-            new_state["gathered_data"] = gathered
-            return new_state
-
-        # Writing sample response or skip
-        if "writing" in question_lower or "sample" in question_lower:
-            if response_lower == "skip":
-                # Skip sample, proceed to tone question
-                new_state["pending_question"] = (
-                    "How would you describe your tone? (e.g., direct, warm, formal)"
-                )
-            else:
-                # Store the sample and ask about tone
-                voice["writing_sample_text"] = user_response
-                new_state["pending_question"] = (
-                    "How would you describe your tone? (e.g., direct, warm, formal)"
-                )
-            new_state["requires_human_input"] = True
-            new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-            new_state["user_response"] = None
-            gathered["voice_profile"] = voice
-            new_state["gathered_data"] = gathered
-            return new_state
+        return _handle_voice_profile_response(
+            user_response,
+            pending_question.lower(),
+            voice,
+            new_state,
+            gathered,
+        )
 
     # Check if voice profile data already gathered (all required fields)
     if voice.get("things_to_avoid"):

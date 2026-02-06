@@ -331,6 +331,32 @@ def _check_hash_match(
     return None
 
 
+def _evaluate_description_similarity(
+    new_description: str,
+    existing: dict[str, Any],
+    best_medium: tuple[str | None, float],
+) -> tuple[DuplicateResult | None, tuple[str | None, float]]:
+    """Evaluate description similarity and return match result if high enough."""
+    similarity = calculate_description_similarity(
+        new_description, existing.get("description") or ""
+    )
+    if similarity > DESCRIPTION_SIMILARITY_THRESHOLD_HIGH:
+        return (
+            DuplicateResult(
+                action="create_linked_repost",
+                matched_job_id=existing.get("id"),
+                confidence="High",
+            ),
+            best_medium,
+        )
+    if (
+        similarity > DESCRIPTION_SIMILARITY_THRESHOLD_MEDIUM
+        and similarity > best_medium[1]
+    ):
+        return None, (existing.get("id"), similarity)
+    return None, best_medium
+
+
 def _check_similarity_match(
     new_job: dict[str, Any],
     existing_jobs: list[dict[str, Any]],
@@ -349,22 +375,11 @@ def _check_similarity_match(
         if not is_similar_title(new_title, existing.get("job_title") or ""):
             continue
 
-        similarity = calculate_description_similarity(
-            new_description, existing.get("description") or ""
+        result, best_medium_match = _evaluate_description_similarity(
+            new_description, existing, best_medium_match
         )
-
-        if similarity > DESCRIPTION_SIMILARITY_THRESHOLD_HIGH:
-            return DuplicateResult(
-                action="create_linked_repost",
-                matched_job_id=existing.get("id"),
-                confidence="High",
-            )
-
-        if (
-            similarity > DESCRIPTION_SIMILARITY_THRESHOLD_MEDIUM
-            and similarity > best_medium_match[1]
-        ):
-            best_medium_match = (existing.get("id"), similarity)
+        if result:
+            return result
 
     if best_medium_match[0] is not None:
         return DuplicateResult(

@@ -499,6 +499,20 @@ def _is_duplicate_job_story(
     return False
 
 
+def _fill_remaining_slots(
+    selected: list[tuple[StoryInput, int, str]],
+    remaining: list[tuple[StoryInput, int, str]],
+    max_stories: int,
+) -> None:
+    """Fill remaining slots with non-duplicate stories if diversification filtered too many."""
+    selected_ids = {s[0].id for s in selected}
+    for candidate_story, candidate_score, candidate_rationale in remaining:
+        if len(selected) >= max_stories:
+            break
+        if candidate_story.id not in selected_ids:
+            selected.append((candidate_story, candidate_score, candidate_rationale))
+
+
 def _diversify_selection(
     scored: list[tuple[StoryInput, int, str]],
     max_stories: int,
@@ -529,11 +543,6 @@ def _diversify_selection(
 
     # If diversification filtered too many, fill remaining slots
     if len(selected) < max_stories:
-        selected_ids = {s[0].id for s in selected}
-        for candidate_story, candidate_score, candidate_rationale in remaining:
-            if len(selected) >= max_stories:
-                break
-            if candidate_story.id not in selected_ids:
-                selected.append((candidate_story, candidate_score, candidate_rationale))
+        _fill_remaining_slots(selected, remaining, max_stories)
 
     return selected[:max_stories]

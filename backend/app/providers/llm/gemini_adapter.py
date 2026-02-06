@@ -142,6 +142,30 @@ def _convert_tool_call_message(msg: LLMMessage) -> types.Content:
     return types.Content(role="model", parts=parts)
 
 
+def _extract_parts(
+    parts: list,
+) -> tuple[str | None, list[ToolCall] | None]:
+    """Extract content text and tool calls from Gemini response parts."""
+    content = None
+    tool_calls: list[ToolCall] | None = None
+    for part in parts:
+        if part.text:
+            content = part.text
+        elif part.function_call:
+            if tool_calls is None:
+                tool_calls = []
+            fc = part.function_call
+            tool_id = f"call_{fc.name}_{len(tool_calls)}"
+            tool_calls.append(
+                ToolCall(
+                    id=tool_id,
+                    name=fc.name,
+                    arguments=dict(fc.args) if fc.args else {},
+                )
+            )
+    return content, tool_calls
+
+
 def _parse_gemini_response(
     response: object,
 ) -> tuple[str | None, list[ToolCall] | None, str]:
@@ -152,21 +176,7 @@ def _parse_gemini_response(
     if response.candidates:
         candidate = response.candidates[0]
         if candidate.content and candidate.content.parts:
-            for part in candidate.content.parts:
-                if part.text:
-                    content = part.text
-                elif part.function_call:
-                    if tool_calls is None:
-                        tool_calls = []
-                    fc = part.function_call
-                    tool_id = f"call_{fc.name}_{len(tool_calls)}"
-                    tool_calls.append(
-                        ToolCall(
-                            id=tool_id,
-                            name=fc.name,
-                            arguments=dict(fc.args) if fc.args else {},
-                        )
-                    )
+            content, tool_calls = _extract_parts(candidate.content.parts)
         finish_reason = (
             candidate.finish_reason.name if candidate.finish_reason else "UNKNOWN"
         )

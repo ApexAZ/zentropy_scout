@@ -149,6 +149,16 @@ CONFIDENCE_THRESHOLD = 0.7
 # =============================================================================
 
 
+def _extract_target_resource(match: object) -> str | None:
+    """Extract and clean target resource from regex match."""
+    if not match.groups():
+        return None
+    target = match.group(1)
+    if target and target.lower() in ("the", "it", "that", "this", "one"):
+        return None
+    return target
+
+
 def classify_intent(state: ChatAgentState) -> ChatAgentState:
     """Classify user intent from the current message.
 
@@ -177,26 +187,14 @@ def classify_intent(state: ChatAgentState) -> ChatAgentState:
     # Try each pattern and keep the best match
     for intent_type, pattern, base_confidence in INTENT_PATTERNS:
         match = pattern.search(message)
-        if match:
-            # Extract target resource if captured
-            target = None
-            if match.groups():
-                target = match.group(1)
-                # Clean up target (remove common words)
-                if target and target.lower() in ("the", "it", "that", "this", "one"):
-                    target = None
-
-            # Determine if this intent requires tools
-            requires_tools = intent_type in TOOL_INTENTS
-
-            # Update best intent if this is more confident
-            if base_confidence > best_intent["confidence"]:
-                best_intent = {
-                    "type": intent_type,
-                    "confidence": base_confidence,
-                    "requires_tools": requires_tools,
-                    "target_resource": target,
-                }
+        if not match or base_confidence <= best_intent["confidence"]:
+            continue
+        best_intent = {
+            "type": intent_type,
+            "confidence": base_confidence,
+            "requires_tools": intent_type in TOOL_INTENTS,
+            "target_resource": _extract_target_resource(match),
+        }
 
     # Copy state and update with intent
     # Type annotation: dict() returns dict[str, Any] which matches ChatAgentState
@@ -452,6 +450,41 @@ def request_clarification(state: ChatAgentState) -> ChatAgentState:
 # =============================================================================
 
 
+def _format_job_list(data: dict) -> str:
+    """Format job listing results into a readable list."""
+    jobs = data.get("data", [])
+    if not jobs:
+        return "No jobs found matching your criteria."
+    lines = ["Here are your jobs:\n"]
+    for job in jobs[:10]:
+        score = job.get("fit_score", "N/A")
+        company = job.get("company_name", "Unknown")
+        title = job.get("title", "Untitled")
+        lines.append(f"- {company}: {title} (Fit: {score}%)")
+    return "\n".join(lines)
+
+
+def _format_job_details(data: dict) -> str:
+    """Format single job posting details."""
+    job = data.get("data", data)
+    company = job.get("company_name", "Unknown")
+    title = job.get("title", "Untitled")
+    score = job.get("fit_score", "N/A")
+    return f"**{title}** at **{company}**\nFit Score: {score}%"
+
+
+def _format_job_update(data: dict, intent_type: str) -> str:
+    """Format job update confirmation."""
+    job = data.get("data", data)
+    title = job.get("title", "Job")
+    company = job.get("company_name", "")
+    if intent_type == "favorite_job":
+        return f"Added {title} at {company} to your favorites."
+    if intent_type == "dismiss_job":
+        return f"Dismissed {title} at {company}."
+    return f"Updated {title} at {company}."
+
+
 def format_response(state: ChatAgentState) -> ChatAgentState:
     """Format the response based on tool results.
 
@@ -473,55 +506,22 @@ def format_response(state: ChatAgentState) -> ChatAgentState:
     intent = state.get("classified_intent")
     intent_type = intent.get("type") if intent else "unknown"
 
-    # Build response based on tool results
     response = ""
-
     for result in tool_results:
         tool = result.get("tool", "")
         data = result.get("result")
         error = result.get("error")
 
         if error:
-            # Format error message
             response = f"I couldn't complete that request. {error}"
             break
-
         if tool == "list_job_postings" and data:
-            # Format job list
-            jobs = data.get("data", [])
-            if not jobs:
-                response = "No jobs found matching your criteria."
-            else:
-                lines = ["Here are your jobs:\n"]
-                for job in jobs[:10]:  # Limit to 10 for readability
-                    score = job.get("fit_score", "N/A")
-                    company = job.get("company_name", "Unknown")
-                    title = job.get("title", "Untitled")
-                    lines.append(f"- {company}: {title} (Fit: {score}%)")
-                response = "\n".join(lines)
-
+            response = _format_job_list(data)
         elif tool == "get_job_posting" and data:
-            # Format single job details
-            job = data.get("data", data)
-            company = job.get("company_name", "Unknown")
-            title = job.get("title", "Untitled")
-            score = job.get("fit_score", "N/A")
-            response = f"**{title}** at **{company}**\nFit Score: {score}%"
-
+            response = _format_job_details(data)
         elif tool == "update_job_posting" and data:
-            # Format confirmation
-            job = data.get("data", data)
-            title = job.get("title", "Job")
-            company = job.get("company_name", "")
+            response = _format_job_update(data, intent_type)
 
-            if intent_type == "favorite_job":
-                response = f"Added {title} at {company} to your favorites."
-            elif intent_type == "dismiss_job":
-                response = f"Dismissed {title} at {company}."
-            else:
-                response = f"Updated {title} at {company}."
-
-    # Default response if nothing matched
     if not response:
         response = "Done."
 
