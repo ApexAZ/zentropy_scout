@@ -537,7 +537,7 @@ These steps require user action outside Claude Code:
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 3.1 | Voice Profile Fields | `db, docs, plan` | ✅ |
-| 3.2 | Voice Application Rules | `provider, tdd, plan` | ⬜ |
+| 3.2 | Voice Application Rules | `provider, tdd, plan` | ✅ |
 | 3.3 | Voice Profile System Prompt Block | `provider, docs, tdd, plan` | ⬜ |
 | 4.1 | Resume — Tailoring Decision Logic | `provider, tdd, plan` | ⬜ |
 | 4.2 | Resume — Summary Tailoring Prompt | `provider, docs, tdd, plan` | ⬜ |
