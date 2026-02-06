@@ -45,6 +45,7 @@ jobs:
       - name: Create test database
         run: |
           PGPASSWORD=${{ secrets.DB_PASSWORD }} createdb -h localhost -U zentropy_user zentropy_scout_test
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql -h localhost -U zentropy_user -d zentropy_scout_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
       - name: Run tests with coverage
         run: |
