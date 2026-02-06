@@ -22,7 +22,6 @@ graph node is responsible for fetching data and passing it in.
 """
 
 import logging
-import re
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -74,13 +73,8 @@ _MAX_SKILLS: int = 500
 _MAX_CULTURE_KEYWORDS: int = 100
 """Safety bound on culture keywords list size."""
 
-# WHY REGEX: Fast path for metrics detection. Catches percentages, dollar
-# amounts, multipliers, and significant numbers. Avoids LLM call for a
-# pattern that's reliably detectable with regex (REQ-010 §6.4).
-# Split into individual patterns so each is trivially backtracking-safe.
-_DOLLAR_PATTERN = re.compile(r"\$[0-9,]+")
-_PERCENT_OR_MULTIPLIER_PATTERN = re.compile(r"[0-9]+[%x]", re.IGNORECASE)
-_SIGNIFICANT_NUMBER_PATTERN = re.compile(r"[0-9]{2,}")
+# Metrics detection characters for has_metrics() string scan.
+_METRICS_SUFFIXES = frozenset("%xX")
 
 
 # =============================================================================
@@ -238,7 +232,9 @@ def _score_recency(
 def has_metrics(text: str) -> bool:
     """Check if text contains quantified metrics.
 
-    REQ-010 §6.4: Regex-based fast path for metrics detection.
+    REQ-010 §6.4: Fast path for metrics detection using string scan.
+    Detects dollar amounts ($100), percentages (40%), multipliers (3x),
+    and significant numbers (2+ consecutive digits).
 
     Args:
         text: Text to check for metrics patterns.
@@ -246,11 +242,19 @@ def has_metrics(text: str) -> bool:
     Returns:
         True if metrics pattern found.
     """
-    return bool(
-        _DOLLAR_PATTERN.search(text)
-        or _PERCENT_OR_MULTIPLIER_PATTERN.search(text)
-        or _SIGNIFICANT_NUMBER_PATTERN.search(text)
-    )
+    consecutive_digits = 0
+    for i, c in enumerate(text):
+        if c.isdigit():
+            consecutive_digits += 1
+            if consecutive_digits >= 2:
+                return True
+        else:
+            if consecutive_digits > 0 and c in _METRICS_SUFFIXES:
+                return True
+            consecutive_digits = 0
+            if c == "$" and i + 1 < len(text) and text[i + 1].isdigit():
+                return True
+    return False
 
 
 def _score_quantified_outcome(outcome: str) -> tuple[int, str]:
