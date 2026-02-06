@@ -544,7 +544,7 @@ These steps require user action outside Claude Code:
 | 4.2 | Resume — Summary Tailoring Prompt | `provider, docs, tdd, plan` | ✅ |
 | 4.3 | Resume — Bullet Reordering Logic | `tdd, plan` | ✅ |
 | 4.4 | Resume — Modification Limits (Guardrails) | `provider, test, tdd, plan` | ✅ |
-| 5.1 | Cover Letter — Structure | `docs, plan` | ⬜ |
+| 5.1 | Cover Letter — Structure | `docs, plan` | ✅ |
 | 5.2 | Cover Letter — Achievement Story Selection | `db, provider, tdd, plan` | ⬜ |
 | 5.3 | Cover Letter — Generation Prompt | `provider, docs, tdd, plan` | ⬜ |
 | 5.4 | Cover Letter — Validation | `provider, test, tdd, plan` | ⬜ |
