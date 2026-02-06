@@ -41,7 +41,6 @@ from app.agents.state import (
     TailoringAnalysis,
 )
 from app.schemas.prompt_params import JobContext, VoiceProfileData
-from app.services.cover_letter_generation import generate_cover_letter
 from app.services.reasoning_explanation import ReasoningStory, format_agent_reasoning
 from app.services.story_selection import select_achievement_stories
 from app.services.tailoring_decision import evaluate_tailoring_need
@@ -307,6 +306,10 @@ async def generate_cover_letter_node(
     Returns:
         State with generated_cover_letter populated as GeneratedContent dict.
     """
+    # Lazy import to break circular dependency:
+    # cover_letter_generation → ghostwriter_prompts → agents/__init__ → ghostwriter_graph
+    from app.services.cover_letter_generation import generate_cover_letter
+
     job_id = state.get("job_posting_id")
     stories = state.get("selected_stories", [])
 

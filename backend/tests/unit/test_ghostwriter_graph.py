@@ -661,7 +661,7 @@ class TestGenerateCoverLetterNode:
         }
 
         with patch(
-            "app.agents.ghostwriter_graph.generate_cover_letter",
+            "app.services.cover_letter_generation.generate_cover_letter",
             new_callable=AsyncMock,
             return_value=mock_result,
         ):
@@ -688,7 +688,7 @@ class TestGenerateCoverLetterNode:
         }
 
         with patch(
-            "app.agents.ghostwriter_graph.generate_cover_letter",
+            "app.services.cover_letter_generation.generate_cover_letter",
             new_callable=AsyncMock,
             return_value=mock_result,
         ):
@@ -716,7 +716,7 @@ class TestGenerateCoverLetterNode:
         }
 
         with patch(
-            "app.agents.ghostwriter_graph.generate_cover_letter",
+            "app.services.cover_letter_generation.generate_cover_letter",
             new_callable=AsyncMock,
             return_value=mock_result,
         ):
@@ -739,7 +739,7 @@ class TestGenerateCoverLetterNode:
         }
 
         with patch(
-            "app.agents.ghostwriter_graph.generate_cover_letter",
+            "app.services.cover_letter_generation.generate_cover_letter",
             new_callable=AsyncMock,
             return_value=mock_result,
         ) as mock_service:
