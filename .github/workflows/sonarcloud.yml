@@ -11,13 +11,12 @@ jobs:
   sonarcloud:
     name: SonarCloud Scan
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: zentropy_user
-          POSTGRES_PASSWORD: zentropy_dev_password
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
           POSTGRES_DB: zentropy_scout
         ports:
           - 5432:5432
@@ -26,7 +25,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,7 +46,7 @@ jobs:
           cd backend
           pytest --cov=app --cov-report=xml:coverage.xml
         env:
-          DATABASE_URL: postgresql+asyncpg://zentropy_user:zentropy_dev_password@localhost:5432/zentropy_scout
+          DATABASE_URL: postgresql+asyncpg://zentropy_user:${{ secrets.DB_PASSWORD }}@localhost:5432/zentropy_scout
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
