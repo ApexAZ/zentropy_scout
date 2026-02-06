@@ -77,14 +77,10 @@ _MAX_CULTURE_KEYWORDS: int = 100
 # WHY REGEX: Fast path for metrics detection. Catches percentages, dollar
 # amounts, multipliers, and significant numbers. Avoids LLM call for a
 # pattern that's reliably detectable with regex (REQ-010 §6.4).
-_METRICS_PATTERN = re.compile(
-    r"""
-    \$[0-9,]+             # Dollar amounts: $2.5M, $100,000
-    | [0-9]+[%x]          # Percentages (40%) and multipliers (3x)
-    | [0-9]{2,}           # Significant numbers (2+ digits): 50ms, 1000 users
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
+# Split into individual patterns so each is trivially backtracking-safe.
+_DOLLAR_PATTERN = re.compile(r"\$[0-9,]+")
+_PERCENT_OR_MULTIPLIER_PATTERN = re.compile(r"[0-9]+[%x]", re.IGNORECASE)
+_SIGNIFICANT_NUMBER_PATTERN = re.compile(r"[0-9]{2,}")
 
 
 # =============================================================================
@@ -250,7 +246,11 @@ def has_metrics(text: str) -> bool:
     Returns:
         True if metrics pattern found.
     """
-    return bool(_METRICS_PATTERN.search(text))
+    return bool(
+        _DOLLAR_PATTERN.search(text)
+        or _PERCENT_OR_MULTIPLIER_PATTERN.search(text)
+        or _SIGNIFICANT_NUMBER_PATTERN.search(text)
+    )
 
 
 def _score_quantified_outcome(outcome: str) -> tuple[int, str]:
