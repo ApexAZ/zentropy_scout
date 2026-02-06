@@ -41,6 +41,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e "./backend[dev]"
 
+      - name: Create test database
+        run: |
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} createdb -h localhost -U zentropy_user zentropy_scout_test
+
       - name: Run tests with coverage
         run: |
           cd backend
