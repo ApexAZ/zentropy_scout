@@ -55,7 +55,7 @@ class TestRateLimitExceededHandler:
         exc = MagicMock()
         exc.detail = "10 per 1 minute"
 
-        response = await rate_limit_exceeded_handler(request, exc)
+        response = rate_limit_exceeded_handler(request, exc)
 
         assert response.status_code == 429
 
@@ -76,7 +76,7 @@ class TestRateLimitExceededHandler:
         exc = MagicMock()
         exc.detail = "10 per 1 minute"
 
-        response = await rate_limit_exceeded_handler(request, exc)
+        response = rate_limit_exceeded_handler(request, exc)
         body = json.loads(response.body.decode())
 
         assert "error" in body
@@ -99,7 +99,7 @@ class TestRateLimitExceededHandler:
         exc = MagicMock()
         exc.detail = "unexpected format"
 
-        response = await rate_limit_exceeded_handler(request, exc)
+        response = rate_limit_exceeded_handler(request, exc)
 
         assert response.headers.get("Retry-After") == "60"
 
@@ -119,7 +119,7 @@ class TestRateLimitExceededHandler:
         exc = MagicMock()
         exc.detail = None
 
-        response = await rate_limit_exceeded_handler(request, exc)
+        response = rate_limit_exceeded_handler(request, exc)
 
         assert response.headers.get("Retry-After") == "60"
 

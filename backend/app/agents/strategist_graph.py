@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-async def load_persona_embeddings_node(
+def load_persona_embeddings_node(
     state: StrategistState,
 ) -> StrategistState:
     """Load persona embedding vectors.
@@ -68,7 +68,7 @@ async def load_persona_embeddings_node(
     }
 
 
-async def check_embedding_freshness_node(
+def check_embedding_freshness_node(
     state: StrategistState,
 ) -> StrategistState:
     """Check if persona embeddings are fresh.
@@ -106,7 +106,7 @@ async def check_embedding_freshness_node(
     }
 
 
-async def regenerate_embeddings_node(
+def regenerate_embeddings_node(
     state: StrategistState,
 ) -> StrategistState:
     """Regenerate persona embeddings.
@@ -134,7 +134,7 @@ async def regenerate_embeddings_node(
     }
 
 
-async def filter_non_negotiables_node(
+def filter_non_negotiables_node(
     state: StrategistState,
 ) -> StrategistState:
     """Apply non-negotiables filter to current job.
@@ -162,7 +162,7 @@ async def filter_non_negotiables_node(
     }
 
 
-async def generate_job_embeddings_node(
+def generate_job_embeddings_node(
     state: StrategistState,
 ) -> StrategistState:
     """Generate embedding vectors for the current job.
@@ -188,7 +188,7 @@ async def generate_job_embeddings_node(
     }
 
 
-async def calculate_fit_score_node(
+def calculate_fit_score_node(
     state: StrategistState,
 ) -> StrategistState:
     """Calculate Fit Score for current job.
@@ -214,7 +214,7 @@ async def calculate_fit_score_node(
     }
 
 
-async def calculate_stretch_score_node(
+def calculate_stretch_score_node(
     state: StrategistState,
 ) -> StrategistState:
     """Calculate Stretch Score for current job.
@@ -240,7 +240,7 @@ async def calculate_stretch_score_node(
     }
 
 
-async def generate_rationale_node(
+def generate_rationale_node(
     state: StrategistState,
 ) -> StrategistState:
     """Generate human-readable rationale for scores.
@@ -266,7 +266,7 @@ async def generate_rationale_node(
     }
 
 
-async def save_scores_node(state: StrategistState) -> StrategistState:
+def save_scores_node(state: StrategistState) -> StrategistState:
     """Assemble and save ScoreResult for current job.
 
     REQ-007 §15.4: Persists scores via PATCH /job-postings/{id}.
@@ -317,7 +317,7 @@ async def save_scores_node(state: StrategistState) -> StrategistState:
     }
 
 
-async def trigger_ghostwriter_node(
+def trigger_ghostwriter_node(
     state: StrategistState,
 ) -> StrategistState:
     """Trigger Ghostwriter for auto-draft.

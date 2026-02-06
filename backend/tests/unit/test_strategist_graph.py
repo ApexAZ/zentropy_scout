@@ -1414,7 +1414,7 @@ class TestLoadPersonaEmbeddingsNode:
             "user_id": "user-1",
             "persona_id": "persona-1",
         }
-        result = await load_persona_embeddings_node(state)
+        result = load_persona_embeddings_node(state)
 
         assert "persona_embeddings" in result
         assert isinstance(result["persona_embeddings"], dict)
@@ -1427,7 +1427,7 @@ class TestLoadPersonaEmbeddingsNode:
             "persona_id": "persona-1",
             "current_job_id": "job-1",
         }
-        result = await load_persona_embeddings_node(state)
+        result = load_persona_embeddings_node(state)
 
         assert result["user_id"] == "user-1"
         assert result["persona_id"] == "persona-1"
@@ -1444,7 +1444,7 @@ class TestCheckEmbeddingFreshnessNode:
             "persona_id": "persona-1",
             "persona_embedding_version": 0,
         }
-        result = await check_embedding_freshness_node(state)
+        result = check_embedding_freshness_node(state)
 
         assert "embeddings_stale" in result
         assert isinstance(result["embeddings_stale"], bool)
@@ -1456,7 +1456,7 @@ class TestCheckEmbeddingFreshnessNode:
             "persona_id": "persona-1",
             "persona_embedding_version": 5,
         }
-        result = await check_embedding_freshness_node(state)
+        result = check_embedding_freshness_node(state)
 
         assert result["embeddings_stale"] is False
 
@@ -1472,7 +1472,7 @@ class TestRegenerateEmbeddingsNode:
             "persona_embedding_version": 3,
             "embeddings_stale": True,
         }
-        result = await regenerate_embeddings_node(state)
+        result = regenerate_embeddings_node(state)
 
         assert result["embeddings_stale"] is False
 
@@ -1484,7 +1484,7 @@ class TestRegenerateEmbeddingsNode:
             "persona_embedding_version": 3,
             "embeddings_stale": True,
         }
-        result = await regenerate_embeddings_node(state)
+        result = regenerate_embeddings_node(state)
 
         assert result["persona_embedding_version"] == 4
 
@@ -1499,7 +1499,7 @@ class TestFilterNonNegotiablesNode:
             "current_job_id": "job-1",
             "persona_id": "persona-1",
         }
-        result = await filter_non_negotiables_node(state)
+        result = filter_non_negotiables_node(state)
 
         assert "non_negotiables_passed" in result
         assert isinstance(result["non_negotiables_passed"], bool)
@@ -1511,7 +1511,7 @@ class TestFilterNonNegotiablesNode:
             "current_job_id": "job-1",
             "persona_id": "persona-1",
         }
-        result = await filter_non_negotiables_node(state)
+        result = filter_non_negotiables_node(state)
 
         assert result["non_negotiables_passed"] is True
         assert result.get("non_negotiables_reason") is None
@@ -1526,7 +1526,7 @@ class TestGenerateJobEmbeddingsNode:
         state: StrategistState = {
             "current_job_id": "job-1",
         }
-        result = await generate_job_embeddings_node(state)
+        result = generate_job_embeddings_node(state)
 
         assert "job_embeddings" in result
         assert isinstance(result["job_embeddings"], dict)
@@ -1543,7 +1543,7 @@ class TestCalculateFitScoreNode:
             "persona_embeddings": {},
             "job_embeddings": {},
         }
-        result = await calculate_fit_score_node(state)
+        result = calculate_fit_score_node(state)
 
         assert "fit_result" in result
 
@@ -1559,7 +1559,7 @@ class TestCalculateStretchScoreNode:
             "persona_embeddings": {},
             "job_embeddings": {},
         }
-        result = await calculate_stretch_score_node(state)
+        result = calculate_stretch_score_node(state)
 
         assert "stretch_result" in result
 
@@ -1575,7 +1575,7 @@ class TestGenerateRationaleNode:
             "fit_result": None,
             "stretch_result": None,
         }
-        result = await generate_rationale_node(state)
+        result = generate_rationale_node(state)
 
         assert "rationale" in result
 
@@ -1594,7 +1594,7 @@ class TestSaveScoresNode:
             "stretch_result": {"total": 72.0},
             "rationale": "Strong technical match.",
         }
-        result = await save_scores_node(state)
+        result = save_scores_node(state)
 
         assert result["score_result"] is not None
         assert result["score_result"]["job_posting_id"] == "job-1"
@@ -1614,7 +1614,7 @@ class TestSaveScoresNode:
             "stretch_result": None,
             "rationale": None,
         }
-        result = await save_scores_node(state)
+        result = save_scores_node(state)
 
         assert result["score_result"] is not None
         assert result["score_result"]["job_posting_id"] == "job-2"
@@ -1633,7 +1633,7 @@ class TestSaveScoresNode:
             "stretch_result": None,
             "rationale": None,
         }
-        result = await save_scores_node(state)
+        result = save_scores_node(state)
 
         assert result["score_result"]["fit_score"] is None
         assert result["score_result"]["stretch_score"] is None
@@ -1655,7 +1655,7 @@ class TestTriggerGhostwriterNode:
                 "filtered_reason": None,
             },
         }
-        result = await trigger_ghostwriter_node(state)
+        result = trigger_ghostwriter_node(state)
 
         assert result["current_job_id"] == state["current_job_id"]
         assert result["score_result"] == state["score_result"]

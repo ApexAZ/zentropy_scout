@@ -45,8 +45,8 @@ limiter = Limiter(
 )
 
 
-async def rate_limit_exceeded_handler(
-    request: Request,  # noqa: ARG001
+def rate_limit_exceeded_handler(
+    _request: Request,
     exc: RateLimitExceeded,
 ) -> Response:
     """Handle rate limit exceeded errors.

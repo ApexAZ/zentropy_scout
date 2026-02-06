@@ -77,7 +77,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-async def api_error_handler(_request: Request, exc: APIError) -> JSONResponse:
+def api_error_handler(_request: Request, exc: APIError) -> JSONResponse:
     """Handle custom API errors.
 
     REQ-006 §7.2: Return consistent error envelope.
@@ -101,7 +101,7 @@ async def api_error_handler(_request: Request, exc: APIError) -> JSONResponse:
     )
 
 
-async def validation_error_handler(
+def validation_error_handler(
     _request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Handle Pydantic validation errors from FastAPI.
@@ -130,7 +130,7 @@ async def validation_error_handler(
     )
 
 
-async def internal_error_handler(request: Request, exc: Exception) -> JSONResponse:
+def internal_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catch-all for unhandled exceptions.
 
     REQ-006 §8.1: Returns 500 INTERNAL_ERROR without exposing stack traces.
@@ -176,8 +176,9 @@ def create_app() -> FastAPI:
         description="AI-powered job application assistant",
     )
 
-    # CORS middleware (Security)
-    # Must be added before other middleware to handle preflight requests
+    # Middleware order: Starlette uses LIFO, so the LAST added runs FIRST.
+    # CORS must run first to handle preflight requests, so add it last.
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
@@ -185,10 +186,6 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Accept", "Authorization", "X-Request-ID"],
     )
-
-    # Security headers middleware
-    # Adds X-Frame-Options, X-Content-Type-Options, etc.
-    app.add_middleware(SecurityHeadersMiddleware)
 
     # Register exception handlers
     # Order matters: specific handlers first, then catch-all
@@ -206,7 +203,7 @@ def create_app() -> FastAPI:
 
     # Health check endpoint (outside versioned API)
     @app.get("/health")
-    async def health_check() -> dict:
+    def health_check() -> dict:
         """Health check endpoint for monitoring.
 
         Returns:
