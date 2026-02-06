@@ -11,6 +11,7 @@ Functions:
     extract_metrics: Regex fast path + LLM slow path for metric extraction.
 """
 
+import hashlib
 import json
 import logging
 import re
@@ -275,3 +276,139 @@ Example: ["40%", "$1.2M", "500 users", "3x faster"]""",
     except (json.JSONDecodeError, TypeError, AttributeError):
         logger.warning("extract_metrics: LLM returned invalid JSON")
         return []
+
+
+# =============================================================================
+# Session-Scoped Caching (REQ-010 §6.5)
+# =============================================================================
+# WHY: Job descriptions and persona data don't change during a generation
+# session. Caching prevents redundant LLM calls when the same text is
+# processed by multiple pipeline stages.
+
+
+_MAX_CACHE_SIZE = 500
+
+
+def text_hash(text: str) -> str:
+    """Generate cache key from text content.
+
+    WHY MD5: Speed over security — this is a cache key, not a cryptographic
+    hash. 16 hex chars = 64-bit collision space (birthday bound ~2^32),
+    acceptable for in-process cache keys.
+
+    Args:
+        text: Input text to hash.
+
+    Returns:
+        16-character hex string (truncated MD5).
+    """
+    return hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:16]
+
+
+_keyword_cache: dict[str, set[str]] = {}
+_skills_cache: dict[str, set[str]] = {}
+_metrics_cache: dict[str, list[str]] = {}
+
+
+def clear_content_caches() -> None:
+    """Clear all content extraction caches.
+
+    Call between generation sessions to release memory and prevent
+    stale results from persisting across sessions.
+    """
+    _keyword_cache.clear()
+    _skills_cache.clear()
+    _metrics_cache.clear()
+
+
+def _evict_oldest(cache: dict, max_size: int = _MAX_CACHE_SIZE) -> None:
+    """Remove oldest entries if cache exceeds max size."""
+    while len(cache) > max_size:
+        cache.pop(next(iter(cache)))
+
+
+async def extract_keywords_cached(
+    text: str,
+    max_keywords: int = 20,
+) -> set[str]:
+    """Cached version of extract_keywords.
+
+    Args:
+        text: Source text (job description, resume summary, etc.)
+        max_keywords: Maximum keywords to return.
+
+    Returns:
+        Set of lowercase normalized keywords.
+
+    Raises:
+        ProviderError: If the LLM API call fails after retries.
+    """
+    if not text.strip():
+        return set()
+
+    cache_key = f"kw:{text_hash(text)}:{max_keywords}"
+
+    if cache_key in _keyword_cache:
+        return set(_keyword_cache[cache_key])
+
+    result = await extract_keywords(text, max_keywords)
+    _keyword_cache[cache_key] = result
+    _evict_oldest(_keyword_cache)
+    return set(result)
+
+
+async def extract_skills_cached(
+    text: str,
+    persona_skills: set[str] | None = None,
+) -> set[str]:
+    """Cached version of extract_skills_from_text.
+
+    Args:
+        text: Text to analyze (job description, bullet point, etc.)
+        persona_skills: Optional set of known skills to bias extraction toward.
+
+    Returns:
+        Set of lowercase skill names found.
+
+    Raises:
+        ProviderError: If the LLM API call fails after retries.
+    """
+    if not text.strip():
+        return set()
+
+    skills_part = ",".join(sorted(persona_skills)) if persona_skills else ""
+    cache_key = f"sk:{text_hash(text)}:{text_hash(skills_part)}"
+
+    if cache_key in _skills_cache:
+        return set(_skills_cache[cache_key])
+
+    result = await extract_skills_from_text(text, persona_skills)
+    _skills_cache[cache_key] = result
+    _evict_oldest(_skills_cache)
+    return set(result)
+
+
+async def extract_metrics_cached(text: str) -> list[str]:
+    """Cached version of extract_metrics.
+
+    Args:
+        text: Text to extract metric values from.
+
+    Returns:
+        List of metric strings found.
+
+    Raises:
+        ProviderError: If the LLM API call fails after retries.
+    """
+    if not text.strip():
+        return []
+
+    cache_key = f"mt:{text_hash(text)}"
+
+    if cache_key in _metrics_cache:
+        return list(_metrics_cache[cache_key])
+
+    result = await extract_metrics(text)
+    _metrics_cache[cache_key] = result
+    _evict_oldest(_metrics_cache)
+    return list(result)

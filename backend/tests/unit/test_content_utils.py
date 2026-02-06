@@ -8,6 +8,9 @@ optional persona skill bias and normalization.
 
 REQ-010 §6.4: has_metrics — Fast synchronous metric detection via string scan.
 extract_metrics — Regex fast path + LLM slow path for metric extraction.
+
+REQ-010 §6.5: Caching strategy — Session-scoped in-memory caching wrappers
+to reduce redundant LLM calls during content generation.
 """
 
 import json
@@ -20,10 +23,15 @@ from app.providers import factory
 from app.providers.llm.base import LLMResponse, TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
 from app.services.content_utils import (
+    clear_content_caches,
     extract_keywords,
+    extract_keywords_cached,
     extract_metrics,
+    extract_metrics_cached,
+    extract_skills_cached,
     extract_skills_from_text,
     has_metrics,
+    text_hash,
 )
 
 
@@ -812,3 +820,344 @@ class TestExtractMetrics:
         result = await extract_metrics("Tripled output through improvements")
 
         assert result == []
+
+
+class TestTextHash:
+    """Tests for text_hash helper function (REQ-010 §6.5)."""
+
+    def test_returns_string(self) -> None:
+        """Should return a string hash."""
+        result = text_hash("hello world")
+        assert isinstance(result, str)
+
+    def test_returns_16_char_hex(self) -> None:
+        """Should return a 16-character hex string (truncated MD5)."""
+        result = text_hash("hello world")
+        assert len(result) == 16
+        assert all(c in "0123456789abcdef" for c in result)
+
+    def test_deterministic(self) -> None:
+        """Should return the same hash for the same input."""
+        assert text_hash("same text") == text_hash("same text")
+
+    def test_different_inputs_different_hashes(self) -> None:
+        """Should produce different hashes for different inputs."""
+        assert text_hash("text one") != text_hash("text two")
+
+    def test_empty_string(self) -> None:
+        """Should handle empty string without error."""
+        result = text_hash("")
+        assert isinstance(result, str)
+        assert len(result) == 16
+
+
+class TestExtractKeywordsCached:
+    """Tests for extract_keywords_cached function (REQ-010 §6.5)."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_caches(self) -> Iterator[None]:
+        """Clear all content caches before and after each test."""
+        clear_content_caches()
+        yield
+        clear_content_caches()
+
+    @pytest.mark.asyncio
+    async def test_returns_same_result_as_uncached(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should return the same result as extract_keywords."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python", "kubernetes"]),
+        )
+
+        result = await extract_keywords_cached("Python and K8s developer")
+
+        assert result == {"python", "kubernetes"}
+
+    @pytest.mark.asyncio
+    async def test_second_call_uses_cache(self, mock_llm: MockLLMProvider) -> None:
+        """Should return cached result on second call (no second LLM call)."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python", "kubernetes"]),
+        )
+
+        first = await extract_keywords_cached("Python and K8s developer")
+        second = await extract_keywords_cached("Python and K8s developer")
+
+        assert first == second
+        assert len(mock_llm.calls) == 1  # Only one LLM call
+
+    @pytest.mark.asyncio
+    async def test_different_text_separate_cache_entries(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should cache different texts separately."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python"]),
+        )
+
+        await extract_keywords_cached("text one")
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["sql"]),
+        )
+        await extract_keywords_cached("text two")
+
+        assert len(mock_llm.calls) == 2  # Two distinct LLM calls
+
+    @pytest.mark.asyncio
+    async def test_different_max_keywords_separate_cache_entries(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should cache separately when max_keywords differs."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python", "sql", "kubernetes"]),
+        )
+
+        await extract_keywords_cached("some text", max_keywords=5)
+        await extract_keywords_cached("some text", max_keywords=10)
+
+        assert len(mock_llm.calls) == 2  # Different params = different calls
+
+    @pytest.mark.asyncio
+    async def test_empty_text_not_cached(self, mock_llm: MockLLMProvider) -> None:
+        """Should not cache empty text results (no LLM call to save)."""
+        result = await extract_keywords_cached("")
+
+        assert result == set()
+        assert len(mock_llm.calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_whitespace_only_not_cached(self, mock_llm: MockLLMProvider) -> None:
+        """Should not cache whitespace-only text results."""
+        result = await extract_keywords_cached("   \t\n  ")
+
+        assert result == set()
+        assert len(mock_llm.calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_cached_result_not_corrupted_by_caller_mutation(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should return independent copies so caller mutation is safe."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python", "kubernetes"]),
+        )
+
+        first = await extract_keywords_cached("Python and K8s developer")
+        first.add("injected")
+        second = await extract_keywords_cached("Python and K8s developer")
+
+        assert "injected" not in second
+        assert second == {"python", "kubernetes"}
+
+
+class TestExtractSkillsCached:
+    """Tests for extract_skills_cached function (REQ-010 §6.5)."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_caches(self) -> Iterator[None]:
+        """Clear all content caches before and after each test."""
+        clear_content_caches()
+        yield
+        clear_content_caches()
+
+    @pytest.mark.asyncio
+    async def test_returns_same_result_as_uncached(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should return the same result as extract_skills_from_text."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python", "leadership"]),
+        )
+
+        result = await extract_skills_cached("Led Python development")
+
+        assert result == {"python", "leadership"}
+
+    @pytest.mark.asyncio
+    async def test_second_call_uses_cache(self, mock_llm: MockLLMProvider) -> None:
+        """Should return cached result on second call (no second LLM call)."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python", "leadership"]),
+        )
+
+        first = await extract_skills_cached("Led Python development")
+        second = await extract_skills_cached("Led Python development")
+
+        assert first == second
+        assert len(mock_llm.calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_different_text_separate_cache_entries(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should cache different texts separately."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python"]),
+        )
+
+        await extract_skills_cached("text one")
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["sql"]),
+        )
+        await extract_skills_cached("text two")
+
+        assert len(mock_llm.calls) == 2
+
+    @pytest.mark.asyncio
+    async def test_persona_skills_included_in_cache_key(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should cache separately when persona_skills differs."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python"]),
+        )
+
+        await extract_skills_cached("some text", persona_skills={"python"})
+        await extract_skills_cached("some text", persona_skills={"sql"})
+
+        assert len(mock_llm.calls) == 2
+
+    @pytest.mark.asyncio
+    async def test_none_vs_empty_persona_skills_same_key(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should treat None and empty set as same cache key."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python"]),
+        )
+
+        await extract_skills_cached("some text", persona_skills=None)
+        await extract_skills_cached("some text", persona_skills=set())
+
+        assert len(mock_llm.calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_empty_text_not_cached(self, mock_llm: MockLLMProvider) -> None:
+        """Should not cache empty text results."""
+        result = await extract_skills_cached("")
+
+        assert result == set()
+        assert len(mock_llm.calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_whitespace_only_not_cached(self, mock_llm: MockLLMProvider) -> None:
+        """Should not cache whitespace-only text results."""
+        result = await extract_skills_cached("   \t\n  ")
+
+        assert result == set()
+        assert len(mock_llm.calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_cached_result_not_corrupted_by_caller_mutation(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should return independent copies so caller mutation is safe."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["python", "leadership"]),
+        )
+
+        first = await extract_skills_cached("Led Python development")
+        first.add("injected")
+        second = await extract_skills_cached("Led Python development")
+
+        assert "injected" not in second
+        assert second == {"python", "leadership"}
+
+
+class TestExtractMetricsCached:
+    """Tests for extract_metrics_cached function (REQ-010 §6.5)."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_caches(self) -> Iterator[None]:
+        """Clear all content caches before and after each test."""
+        clear_content_caches()
+        yield
+        clear_content_caches()
+
+    @pytest.mark.asyncio
+    async def test_returns_same_result_as_uncached(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should return the same result as extract_metrics."""
+        result = await extract_metrics_cached("Reduced costs by 40%")
+
+        assert "40%" in result
+        assert len(mock_llm.calls) == 0  # regex fast path
+
+    @pytest.mark.asyncio
+    async def test_second_call_uses_cache(self, mock_llm: MockLLMProvider) -> None:
+        """Should return cached result on second call."""
+        first = await extract_metrics_cached("Reduced costs by 40%")
+        second = await extract_metrics_cached("Reduced costs by 40%")
+
+        assert first == second
+        # extract_metrics uses regex fast path (no LLM), but
+        # cache still prevents redundant regex work
+        assert len(mock_llm.calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_llm_fallback_cached(self, mock_llm: MockLLMProvider) -> None:
+        """Should cache LLM fallback results too."""
+        mock_llm.set_response(
+            TaskType.EXTRACTION,
+            json.dumps(["tripled output"]),
+        )
+
+        first = await extract_metrics_cached("Tripled output")
+        second = await extract_metrics_cached("Tripled output")
+
+        assert first == second
+        assert len(mock_llm.calls) == 1  # Only one LLM call
+
+    @pytest.mark.asyncio
+    async def test_different_text_separate_cache_entries(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should cache different texts separately."""
+        result1 = await extract_metrics_cached("Reduced costs by 40%")
+        result2 = await extract_metrics_cached("Improved speed by 50%")
+
+        assert result1 != result2  # Different inputs produce different results
+        assert len(mock_llm.calls) == 0  # Both use regex fast path
+
+    @pytest.mark.asyncio
+    async def test_empty_text_not_cached(self, mock_llm: MockLLMProvider) -> None:
+        """Should not cache empty text results."""
+        result = await extract_metrics_cached("")
+
+        assert result == []
+        assert len(mock_llm.calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_whitespace_only_not_cached(self, mock_llm: MockLLMProvider) -> None:
+        """Should not cache whitespace-only text results."""
+        result = await extract_metrics_cached("   \t\n  ")
+
+        assert result == []
+        assert len(mock_llm.calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_cached_result_not_corrupted_by_caller_mutation(
+        self, mock_llm: MockLLMProvider
+    ) -> None:
+        """Should return independent copies so caller mutation is safe."""
+        first = await extract_metrics_cached("Reduced costs by 40%")
+        first.append("injected")
+        second = await extract_metrics_cached("Reduced costs by 40%")
+
+        assert "injected" not in second
+        assert len(mock_llm.calls) == 0  # regex fast path
