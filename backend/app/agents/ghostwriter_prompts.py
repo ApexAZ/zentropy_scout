@@ -1,12 +1,13 @@
-"""Ghostwriter Agent cover letter prompt templates.
+"""Ghostwriter Agent prompt templates.
 
+REQ-010 §4.2: Summary Tailoring Prompt.
 REQ-010 §5.3: Cover Letter Generation Prompts.
 REQ-007 §8.5: Cover Letter Generation.
 
 Contains:
-1. System prompt constant with writing rules and XML output format
-2. User prompt template with XML-tagged sections
-3. Builder function with sanitization and truncation
+1. System prompt constants with writing rules and XML output format
+2. User prompt templates with XML-tagged sections
+3. Builder functions with sanitization and truncation
 
 Pattern follows strategist_prompts.py: module-level constants + builder functions
 with sanitize_llm_input().
@@ -221,4 +222,124 @@ def build_cover_letter_prompt(
         ),
         writing_sample=sanitize_llm_input(truncated_sample),
         stories_formatted=stories_formatted,
+    )
+
+
+# =============================================================================
+# Summary Tailoring Prompts (REQ-010 §4.2)
+# =============================================================================
+
+# WHY: The system prompt establishes tailoring rules — preserve voice, maintain
+# length, only adjust emphasis. The XML output tags enable structured parsing
+# of the tailored summary and change explanation.
+
+_MAX_SUMMARY_LENGTH = 2000
+"""Maximum characters for the original resume summary in tailoring prompt."""
+
+_MAX_SUMMARY_DESCRIPTION_LENGTH = 1500
+"""Maximum characters for job description excerpt in summary tailoring prompt."""
+
+_MAX_KEYWORDS = 20
+"""Maximum number of missing keywords to include in the prompt."""
+
+SUMMARY_TAILORING_SYSTEM_PROMPT = """You are tailoring a professional summary \
+for a job application.
+
+RULES:
+1. Keep the same length (±10 words) as the original
+2. Preserve the person's authentic voice (see <voice_profile>)
+3. Only adjust emphasis — do NOT add claims not supported by the original
+4. Naturally incorporate 2-3 keywords from the job posting
+5. Do NOT use any words from the blacklist
+
+OUTPUT FORMAT:
+<tailored_summary>
+[Your tailored summary here — plain text, no formatting]
+</tailored_summary>
+
+<changes_made>
+[1-2 sentences explaining what you adjusted and why]
+</changes_made>"""
+
+_SUMMARY_TAILORING_USER_TEMPLATE = """{voice_profile_block}
+
+<original_summary>
+{original_summary}
+</original_summary>
+
+<job_posting>
+Title: {job_title}
+Company: {company_name}
+
+Key Requirements:
+{key_requirements}
+
+Description Excerpt:
+{description_excerpt}
+</job_posting>
+
+<keywords_to_incorporate>
+{keywords_formatted}
+</keywords_to_incorporate>
+
+Tailor the summary to better align with this role while maintaining the \
+person's voice."""
+
+
+def build_summary_tailoring_prompt(
+    *,
+    voice_profile_block: str,
+    original_summary: str,
+    job_title: str,
+    company_name: str,
+    key_requirements: str,
+    description_excerpt: str,
+    missing_keywords: list[str],
+) -> str:
+    """Build the summary tailoring user prompt with job and voice data.
+
+    REQ-010 §4.2: Summary Tailoring Prompt.
+
+    Formats the user prompt template with the original summary, job posting
+    data, and missing keywords for the LLM to incorporate. All string
+    parameters (except voice_profile_block) are sanitized to mitigate prompt
+    injection.
+
+    The voice_profile_block is embedded directly without re-sanitizing because
+    it is already sanitized by build_voice_profile_block(). Re-sanitizing
+    would strip the <voice_profile> and <writing_sample> XML tags.
+
+    Args:
+        voice_profile_block: Pre-built voice profile block from
+            build_voice_profile_block() (already sanitized).
+        original_summary: The base resume summary to tailor.
+        job_title: Title of the target job posting.
+        company_name: Company offering the position.
+        key_requirements: Formatted string of required skills.
+        description_excerpt: Raw job description text (truncated to 1500 chars).
+        missing_keywords: Keywords from the job posting missing in the summary.
+
+    Returns:
+        Formatted user prompt string for LLM completion.
+    """
+    truncated_summary = original_summary[:_MAX_SUMMARY_LENGTH]
+    truncated_description = description_excerpt[:_MAX_SUMMARY_DESCRIPTION_LENGTH]
+
+    sanitized_keywords = [
+        sanitize_llm_input(kw.strip()[:_MAX_FIELD_LENGTH])
+        for kw in missing_keywords[:_MAX_KEYWORDS]
+        if kw.strip()
+    ]
+    keywords_formatted = ", ".join(sanitized_keywords) if sanitized_keywords else "None"
+
+    return _SUMMARY_TAILORING_USER_TEMPLATE.format(
+        voice_profile_block=voice_profile_block,
+        original_summary=sanitize_llm_input(truncated_summary),
+        job_title=sanitize_llm_input(job_title[:_MAX_FIELD_LENGTH]),
+        company_name=sanitize_llm_input(company_name[:_MAX_FIELD_LENGTH]),
+        key_requirements=sanitize_llm_input(
+            (key_requirements or "")[:_MAX_FIELD_LENGTH]
+        ),
+        description_excerpt=sanitize_llm_input(truncated_description),
+        keywords_formatted=keywords_formatted,
     )
