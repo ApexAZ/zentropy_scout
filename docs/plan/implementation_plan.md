@@ -552,7 +552,7 @@ These steps require user action outside Claude Code:
 | 6.1 | Utility Functions — Implementation Strategy | `structure, docs, plan` | ✅ |
 | 6.2 | Utility Functions — extract_keywords | `provider, tdd, plan` | ✅ |
 | 6.3 | Utility Functions — extract_skills_from_text | `provider, tdd, plan` | ✅ |
-| 6.4 | Utility Functions — has_metrics/extract_metrics | `tdd, plan` | ⬜ |
+| 6.4 | Utility Functions — has_metrics/extract_metrics | `tdd, plan` | ✅ |
 | 6.5 | Utility Functions — Caching Strategy | `db, tdd, plan` | ⬜ |
 | 7.1 | Regeneration — Feedback Categories | `docs, plan` | ⬜ |
 | 7.2 | Regeneration — Feedback Sanitization | `provider, tdd, plan` | ⬜ |

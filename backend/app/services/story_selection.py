@@ -25,6 +25,8 @@ import logging
 from dataclasses import dataclass, field
 from datetime import date
 
+from app.services.content_utils import has_metrics
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -72,9 +74,6 @@ _MAX_SKILLS: int = 500
 
 _MAX_CULTURE_KEYWORDS: int = 100
 """Safety bound on culture keywords list size."""
-
-# Metrics detection characters for has_metrics() string scan.
-_METRICS_SUFFIXES = frozenset("%xX")
 
 
 # =============================================================================
@@ -227,34 +226,6 @@ def _score_recency(
     if months_since < 48:
         return _RECENCY_FOUR_YEARS, "From role within 4 years"
     return 0, ""
-
-
-def has_metrics(text: str) -> bool:
-    """Check if text contains quantified metrics.
-
-    REQ-010 §6.4: Fast path for metrics detection using string scan.
-    Detects dollar amounts ($100), percentages (40%), multipliers (3x),
-    and significant numbers (2+ consecutive digits).
-
-    Args:
-        text: Text to check for metrics patterns.
-
-    Returns:
-        True if metrics pattern found.
-    """
-    consecutive_digits = 0
-    for i, c in enumerate(text):
-        if c.isdigit():
-            consecutive_digits += 1
-            if consecutive_digits >= 2:
-                return True
-        else:
-            if consecutive_digits > 0 and c in _METRICS_SUFFIXES:
-                return True
-            consecutive_digits = 0
-            if c == "$" and i + 1 < len(text) and text[i + 1].isdigit():
-                return True
-    return False
 
 
 def _score_quantified_outcome(outcome: str) -> tuple[int, str]:
