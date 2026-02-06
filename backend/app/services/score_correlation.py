@@ -80,8 +80,9 @@ def compute_pearson_correlation(actual: list[float], predicted: list[float]) -> 
         sum_x2 += dx * dx
         sum_y2 += dy * dy
 
-    # Check for zero variance
-    if sum_x2 == 0.0 or sum_y2 == 0.0:
+    # Check for zero variance (epsilon comparison to avoid float equality)
+    _ZERO_VARIANCE_EPSILON = 1e-12
+    if sum_x2 < _ZERO_VARIANCE_EPSILON or sum_y2 < _ZERO_VARIANCE_EPSILON:
         raise ValueError(
             "Cannot compute correlation: one or both arrays have zero variance"
         )
