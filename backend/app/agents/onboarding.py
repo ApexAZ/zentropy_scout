@@ -1668,6 +1668,39 @@ def gather_certifications(state: OnboardingState) -> OnboardingState:
     return new_state
 
 
+def _complete_story_entry(
+    stories: dict[str, object],
+    user_response: str,
+    new_state: OnboardingState,
+    gathered: dict[str, object],
+) -> OnboardingState:
+    """Complete a story entry and prompt for the next one."""
+    stories["current_entry"]["skills_demonstrated"] = user_response
+
+    entries = list(stories.get("entries", []))
+    entries.append(stories["current_entry"])
+    stories["entries"] = entries
+    stories["current_entry"] = None
+
+    story_count = len(entries)
+    if story_count < 3:
+        new_state["pending_question"] = (
+            f"Great story! You have {story_count} so far. "
+            "Do you have another achievement story to share? (goal is 3-5 stories)"
+        )
+    else:
+        new_state["pending_question"] = (
+            f"Excellent! You have {story_count} stories. "
+            "Do you have another achievement story, or say 'done' to continue."
+        )
+    new_state["requires_human_input"] = True
+    new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
+    new_state["user_response"] = None
+    gathered["achievement_stories"] = stories
+    new_state["gathered_data"] = gathered
+    return new_state
+
+
 def _handle_stories_response(
     user_response: str,
     question_lower: str,
@@ -1691,30 +1724,7 @@ def _handle_stories_response(
     if ("skill" in question_lower and "demonstrat" in question_lower) and stories.get(
         "current_entry"
     ):
-        stories["current_entry"]["skills_demonstrated"] = user_response
-
-        entries = list(stories.get("entries", []))
-        entries.append(stories["current_entry"])
-        stories["entries"] = entries
-        stories["current_entry"] = None
-
-        story_count = len(entries)
-        if story_count < 3:
-            new_state["pending_question"] = (
-                f"Great story! You have {story_count} so far. "
-                "Do you have another achievement story to share? (goal is 3-5 stories)"
-            )
-        else:
-            new_state["pending_question"] = (
-                f"Excellent! You have {story_count} stories. "
-                "Do you have another achievement story, or say 'done' to continue."
-            )
-        new_state["requires_human_input"] = True
-        new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
-        new_state["user_response"] = None
-        gathered["achievement_stories"] = stories
-        new_state["gathered_data"] = gathered
-        return new_state
+        return _complete_story_entry(stories, user_response, new_state, gathered)
 
     # Outcome/result response
     if (
@@ -1850,6 +1860,18 @@ def gather_stories(state: OnboardingState) -> OnboardingState:
     return new_state
 
 
+def _get_remote_followup_question(user_response: str) -> str:
+    """Get the next question after remote preference, based on response.
+
+    WHY: If remote-only, skip cities question since commute location
+    doesn't matter. Otherwise ask for commutable cities.
+    """
+    response_lower = user_response.lower()
+    if "remote" in response_lower and "only" in response_lower:
+        return "What's your minimum acceptable base salary?"
+    return "Which cities can you commute to?"
+
+
 def _handle_non_negotiables_response(
     user_response: str,
     question_lower: str,
@@ -1919,17 +1941,7 @@ def _handle_non_negotiables_response(
         or "onsite" in question_lower
     ):
         non_neg["remote_preference"] = user_response
-        response_lower = user_response.lower()
-
-        # WHY: If remote-only, skip cities question since commute location
-        # doesn't matter. Otherwise ask for commutable cities.
-        if "remote" in response_lower and "only" in response_lower:
-            new_state["pending_question"] = (
-                "What's your minimum acceptable base salary?"
-            )
-        else:
-            new_state["pending_question"] = "Which cities can you commute to?"
-
+        new_state["pending_question"] = _get_remote_followup_question(user_response)
         new_state["requires_human_input"] = True
         new_state["checkpoint_reason"] = CheckpointReason.CLARIFICATION_NEEDED.value
         new_state["user_response"] = None
