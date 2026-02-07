@@ -107,6 +107,68 @@ async def submitted_resume_pdf(db_session: AsyncSession, base_resume_with_pdf):
 
 
 @pytest_asyncio.fixture
+async def submitted_resume_pdf_variant(
+    db_session: AsyncSession, persona_for_files, base_resume_with_pdf
+):
+    """Create a submitted resume PDF with Variant source type.
+
+    Ownership chain: SubmittedResumePDF → JobVariant → BaseResume → Persona → User.
+    """
+    from datetime import date
+
+    from app.models import SubmittedResumePDF
+    from app.models.job_posting import JobPosting
+    from app.models.job_source import JobSource
+    from app.models.resume import JobVariant
+
+    job_source = JobSource(
+        id=uuid.uuid4(),
+        source_name="VariantTestSource",
+        source_type="Manual",
+        description="Test source for variant",
+        is_active=True,
+    )
+    db_session.add(job_source)
+    await db_session.flush()
+
+    job_posting = JobPosting(
+        id=uuid.uuid4(),
+        persona_id=persona_for_files.id,
+        source_id=job_source.id,
+        job_title="Senior Developer",
+        company_name="Variant Corp",
+        description="Test job posting for variant source type.",
+        first_seen_date=date.today(),
+        description_hash="variant_hash_123",
+    )
+    db_session.add(job_posting)
+    await db_session.flush()
+
+    variant = JobVariant(
+        id=uuid.uuid4(),
+        base_resume_id=base_resume_with_pdf.id,
+        job_posting_id=job_posting.id,
+        summary="Tailored resume for Senior Developer role.",
+        status="Approved",
+    )
+    db_session.add(variant)
+    await db_session.flush()
+
+    submitted_pdf = SubmittedResumePDF(
+        id=uuid.uuid4(),
+        application_id=None,
+        resume_source_type="Variant",
+        resume_source_id=variant.id,
+        file_name="submitted_variant_resume.pdf",
+        file_binary=b"%PDF-1.4 variant resume content",
+    )
+    db_session.add(submitted_pdf)
+    await db_session.commit()
+    await db_session.refresh(submitted_pdf)
+    return submitted_pdf
+
+
+@pytest_asyncio.fixture
 async def submitted_cover_letter_pdf(db_session: AsyncSession, persona_for_files):
     """Create a submitted cover letter PDF."""
     from app.models import CoverLetter, JobPosting, SubmittedCoverLetterPDF
@@ -342,6 +404,65 @@ class TestSubmittedResumePDFDownload:
         assert "attachment" in response.headers["content-disposition"]
         assert "submitted_resume.pdf" in response.headers["content-disposition"]
         assert response.content == b"%PDF-1.4 submitted resume content"
+
+    @pytest.mark.asyncio
+    async def test_download_variant_source_success(
+        self,
+        client: AsyncClient,
+        submitted_resume_pdf_variant,
+    ):
+        """Download returns PDF for Variant source type (JobVariant ownership chain)."""
+        response = await client.get(
+            f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf_variant.id}/download"
+        )
+
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert "attachment" in response.headers["content-disposition"]
+        assert "submitted_variant_resume.pdf" in response.headers["content-disposition"]
+        assert response.content == b"%PDF-1.4 variant resume content"
+
+    @pytest.mark.asyncio
+    async def test_download_other_users_pdf_returns_404(
+        self,
+        client: AsyncClient,
+        submitted_resume_pdf,
+    ):
+        """Another user cannot download someone else's submitted resume PDF."""
+        from app.core.config import settings
+
+        other_user_id = uuid.UUID("00000000-0000-0000-0000-000000000099")
+        original_user_id = settings.default_user_id
+        settings.default_user_id = other_user_id
+
+        try:
+            response = await client.get(
+                f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf.id}/download"
+            )
+            assert response.status_code == 404
+        finally:
+            settings.default_user_id = original_user_id
+
+    @pytest.mark.asyncio
+    async def test_download_variant_other_users_pdf_returns_404(
+        self,
+        client: AsyncClient,
+        submitted_resume_pdf_variant,
+    ):
+        """Another user cannot download someone else's variant-sourced PDF."""
+        from app.core.config import settings
+
+        other_user_id = uuid.UUID("00000000-0000-0000-0000-000000000099")
+        original_user_id = settings.default_user_id
+        settings.default_user_id = other_user_id
+
+        try:
+            response = await client.get(
+                f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf_variant.id}/download"
+            )
+            assert response.status_code == 404
+        finally:
+            settings.default_user_id = original_user_id
 
     @pytest.mark.asyncio
     async def test_download_not_found(

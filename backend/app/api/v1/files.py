@@ -10,7 +10,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.api.deps import CurrentUserId, DbSession
 from app.core.errors import NotFoundError
@@ -21,10 +21,16 @@ from app.core.file_validation import (
 )
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona, ResumeFile
-from app.models.cover_letter import SubmittedCoverLetterPDF
-from app.models.resume import SubmittedResumePDF
+from app.models.cover_letter import CoverLetter, SubmittedCoverLetterPDF
+from app.models.resume import JobVariant, SubmittedResumePDF
 
 _PDF_MEDIA_TYPE = "application/pdf"
+
+_SUBMITTED_RESUME_PDF_RESOURCE = "submitted resume pdf"
+"""User-facing resource name for NotFoundError messages."""
+
+_SUBMITTED_COVER_LETTER_PDF_RESOURCE = "submitted cover letter pdf"
+"""User-facing resource name for NotFoundError messages."""
 
 # =============================================================================
 # Resume Files (upload, list, get, download)
@@ -244,6 +250,9 @@ async def download_submitted_resume_pdf(
 
     REQ-006 §5.2: Immutable PDF stored at application submission time.
 
+    Ownership verified via correlated EXISTS subqueries so the binary
+    is never loaded into memory without passing the ownership check.
+
     Args:
         pdf_id: The PDF ID to download.
         user_id: Current authenticated user (injected).
@@ -255,38 +264,44 @@ async def download_submitted_resume_pdf(
     Raises:
         NotFoundError: If PDF not found or not owned by user.
     """
-    # Query PDF and verify ownership through resume source
-    # SubmittedResumePDF -> BaseResume -> Persona -> User
-    # or SubmittedResumePDF -> JobVariant -> BaseResume -> Persona -> User
+    # Correlated subquery: ownership via Base path
+    base_owned = (
+        select(BaseResume.id)
+        .join(Persona, BaseResume.persona_id == Persona.id)
+        .where(
+            BaseResume.id == SubmittedResumePDF.resume_source_id,
+            SubmittedResumePDF.resume_source_type == "Base",
+            Persona.user_id == user_id,
+        )
+        .correlate(SubmittedResumePDF)
+        .exists()
+    )
+
+    # Correlated subquery: ownership via Variant path
+    variant_owned = (
+        select(JobVariant.id)
+        .join(BaseResume, JobVariant.base_resume_id == BaseResume.id)
+        .join(Persona, BaseResume.persona_id == Persona.id)
+        .where(
+            JobVariant.id == SubmittedResumePDF.resume_source_id,
+            SubmittedResumePDF.resume_source_type == "Variant",
+            Persona.user_id == user_id,
+        )
+        .correlate(SubmittedResumePDF)
+        .exists()
+    )
+
+    # Single query: fetch PDF only if ownership check passes
     result = await db.execute(
-        select(SubmittedResumePDF).where(SubmittedResumePDF.id == pdf_id)
+        select(SubmittedResumePDF).where(
+            SubmittedResumePDF.id == pdf_id,
+            or_(base_owned, variant_owned),
+        )
     )
     pdf = result.scalar_one_or_none()
 
     if not pdf:
-        raise NotFoundError("SubmittedResumePDF", str(pdf_id))
-
-    # Verify ownership through BaseResume
-    if pdf.resume_source_type == "Base":
-        base_result = await db.execute(
-            select(BaseResume)
-            .join(Persona, BaseResume.persona_id == Persona.id)
-            .where(BaseResume.id == pdf.resume_source_id, Persona.user_id == user_id)
-        )
-        if not base_result.scalar_one_or_none():
-            raise NotFoundError("SubmittedResumePDF", str(pdf_id))
-    else:
-        # Variant - check through JobVariant -> BaseResume
-        from app.models.resume import JobVariant
-
-        variant_result = await db.execute(
-            select(JobVariant)
-            .join(BaseResume, JobVariant.base_resume_id == BaseResume.id)
-            .join(Persona, BaseResume.persona_id == Persona.id)
-            .where(JobVariant.id == pdf.resume_source_id, Persona.user_id == user_id)
-        )
-        if not variant_result.scalar_one_or_none():
-            raise NotFoundError("SubmittedResumePDF", str(pdf_id))
+        raise NotFoundError(_SUBMITTED_RESUME_PDF_RESOURCE, str(pdf_id))
 
     # Security: sanitize filename to prevent header injection
     safe_filename = sanitize_filename_for_header(pdf.file_name)
@@ -326,8 +341,6 @@ async def download_submitted_cover_letter_pdf(
     Raises:
         NotFoundError: If PDF not found or not owned by user.
     """
-    from app.models.cover_letter import CoverLetter
-
     # Query PDF and verify ownership through cover letter -> persona
     result = await db.execute(
         select(SubmittedCoverLetterPDF)
@@ -338,7 +351,7 @@ async def download_submitted_cover_letter_pdf(
     pdf = result.scalar_one_or_none()
 
     if not pdf:
-        raise NotFoundError("SubmittedCoverLetterPDF", str(pdf_id))
+        raise NotFoundError(_SUBMITTED_COVER_LETTER_PDF_RESOURCE, str(pdf_id))
 
     # Security: sanitize filename to prevent header injection
     safe_filename = sanitize_filename_for_header(pdf.file_name)
