@@ -634,7 +634,7 @@ These steps require user action outside Claude Code:
 | 6.1 | Workflow — Onboarding Flow | `structure, tdd, plan` | ✅ |
 | 6.2 | Workflow — Application Flow (Auto-Draft) | `structure, tdd, plan` | ✅ |
 | 6.3 | Workflow — Persona → Base Resume Sync | `db, tdd, plan` | ✅ |
-| 6.4 | Workflow — PDF Generation (ReportLab) | `structure, test, tdd, plan` | ⬜ |
+| 6.4 | Workflow — PDF Generation (ReportLab) | `structure, test, tdd, plan` | ✅ |
 | 7.1 | Agent — Base Resume Selection | `provider, db, tdd, plan` | ✅ |
 | 7.2 | Agent — Tailoring Decision | `provider, tdd, plan` | ✅ |
 | 7.3 | Agent — Modification Limits | `provider, test, tdd, plan` | ✅ |
