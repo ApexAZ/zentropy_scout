@@ -592,10 +592,10 @@ These steps require user action outside Claude Code:
 | 9.1 | Communication — Agent-to-User | `agents, api, provider, structure, tdd, plan` | ✅ |
 | 9.2 | Communication — Agent-to-Agent | `agents, provider, structure, tdd, plan` | ✅ |
 | 9.3 | Communication — SSE Event Types | `agents, api, structure, tdd, plan` | ✅ |
-| 10.1 | Error Handling — Transient Errors | `agents, provider, test, tdd, plan` | ⬜ |
-| 10.2 | Error Handling — Permanent Errors | `agents, provider, test, tdd, plan` | ⬜ |
-| 10.3 | Error Handling — Graceful Degradation | `agents, provider, test, tdd, plan` | ⬜ |
-| 10.4 | Error Handling — Concurrency & Race Conditions | `agents, db, test, tdd, plan` | ⬜ |
+| 10.1 | Error Handling — Transient Errors | `agents, provider, test, tdd, plan` | ✅ |
+| 10.2 | Error Handling — Permanent Errors | `agents, provider, test, tdd, plan` | ✅ |
+| 10.3 | Error Handling — Graceful Degradation | `agents, provider, test, tdd, plan` | ✅ |
+| 10.4 | Error Handling — Concurrency & Race Conditions | `agents, db, test, tdd, plan` | ✅ |
 | 11.1 | Configuration — Environment Variables | `agents, structure, docs, plan` | ⬜ |
 | 11.2 | Configuration — Model Routing | `agents, provider, tdd, plan` | ⬜ |
 | 15.6 | Graph Spec — Invocation Patterns | `agents, provider, structure, tdd, plan` | ⬜ |
