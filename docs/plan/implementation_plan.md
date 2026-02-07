@@ -560,7 +560,7 @@ These steps require user action outside Claude Code:
 | 8.1 | Edge Cases — Insufficient Data | `test, tdd, plan` | ✅ |
 | 8.2 | Edge Cases — Expired Job | `test, tdd, plan` | ✅ |
 | 8.3 | Edge Cases — Persona Changed | `db, test, tdd, plan` | ✅ |
-| 8.4 | Edge Cases — Duplicate Story Selection | `test, tdd, plan` | ⬜ |
+| 8.4 | Edge Cases — Duplicate Story Selection | `test, tdd, plan` | ✅ |
 | 9.1 | Agent Reasoning — Template | `provider, docs, tdd, plan` | ⬜ |
 | 9.2 | Agent Reasoning — Example Output | `docs, plan` | ⬜ |
 | 10.1 | Quality Metrics — Tracking | `db, tdd, plan` | ⬜ |
