@@ -2,6 +2,7 @@
 
 REQ-006 §5.2: Base resumes filtered by current user's persona.
 REQ-002 §4.2: Base Resume — Rendered Document Storage.
+REQ-002 §5.4: User Actions — Archive/Restore.
 
 Tests verify:
 - GET /api/v1/base-resumes (list with ownership filtering)
@@ -9,6 +10,7 @@ Tests verify:
 - GET /api/v1/base-resumes/{id} (get single, excludes rendered_document)
 - PATCH /api/v1/base-resumes/{id} (partial update)
 - DELETE /api/v1/base-resumes/{id} (soft archive)
+- POST /api/v1/base-resumes/{id}/restore (restore from archive)
 """
 
 import uuid
@@ -354,4 +356,94 @@ class TestDeleteBaseResume:
         """Non-existent ID returns 404."""
         fake_id = uuid.uuid4()
         response = await client.delete(f"{_BASE_URL}/{fake_id}")
+        assert response.status_code == 404
+
+
+# =============================================================================
+# Restore Base Resume
+# =============================================================================
+
+
+class TestRestoreBaseResume:
+    """POST /api/v1/base-resumes/{id}/restore — restore from archive.
+
+    REQ-002 §5.4: Restore sets status back to Active.
+    """
+
+    @pytest.mark.asyncio
+    async def test_restore_requires_auth(
+        self, unauthenticated_client: AsyncClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        fake_id = uuid.uuid4()
+        response = await unauthenticated_client.post(f"{_BASE_URL}/{fake_id}/restore")
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_restore_archived_resume(
+        self, client: AsyncClient, base_resume_in_db
+    ) -> None:
+        """Restoring an archived resume sets status to Active."""
+        # Archive first
+        await client.delete(f"{_BASE_URL}/{base_resume_in_db.id}")
+
+        # Restore
+        response = await client.post(f"{_BASE_URL}/{base_resume_in_db.id}/restore")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["data"]["status"] == "Active"
+        assert body["data"]["archived_at"] is None
+
+    @pytest.mark.asyncio
+    async def test_restore_active_resume_rejected(
+        self, client: AsyncClient, base_resume_in_db
+    ) -> None:
+        """Restoring an already-active resume returns 422."""
+        response = await client.post(f"{_BASE_URL}/{base_resume_in_db.id}/restore")
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_restore_other_users_resume_returns_404(
+        self, client: AsyncClient, db_session: AsyncSession
+    ) -> None:
+        """Restoring another user's archived resume returns 404 (not 403)."""
+        from app.models import Persona, User
+        from app.models.resume import BaseResume
+
+        other_user = User(id=uuid.uuid4(), email="other@example.com")
+        db_session.add(other_user)
+        await db_session.flush()
+
+        other_persona = Persona(
+            id=uuid.uuid4(),
+            user_id=other_user.id,
+            full_name="Other User",
+            email="other_persona@example.com",
+            phone="555-9999",
+            home_city="Other City",
+            home_state="Other State",
+            home_country="USA",
+        )
+        db_session.add(other_persona)
+        await db_session.flush()
+
+        other_resume = BaseResume(
+            id=uuid.uuid4(),
+            persona_id=other_persona.id,
+            name="Other Resume",
+            role_type="Other",
+            summary="Other user's resume.",
+            status="Archived",
+        )
+        db_session.add(other_resume)
+        await db_session.commit()
+
+        response = await client.post(f"{_BASE_URL}/{other_resume.id}/restore")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_restore_not_found(self, client: AsyncClient) -> None:
+        """Non-existent ID returns 404."""
+        fake_id = uuid.uuid4()
+        response = await client.post(f"{_BASE_URL}/{fake_id}/restore")
         assert response.status_code == 404

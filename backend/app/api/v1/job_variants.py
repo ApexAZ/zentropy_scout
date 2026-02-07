@@ -30,6 +30,15 @@ _MAX_JSONB_DICT_KEYS = 200
 _MAX_JSONB_LIST_LENGTH = 200
 """Safety bound on JSONB inner list lengths (defense-in-depth)."""
 
+_STATUS_DRAFT = "Draft"
+"""Job variant status: editable, not yet approved."""
+
+_STATUS_APPROVED = "Approved"
+"""Job variant status: approved and immutable."""
+
+_STATUS_ARCHIVED = "Archived"
+"""Job variant status: soft-deleted, hidden from default UI views."""
+
 router = APIRouter()
 
 
@@ -309,7 +318,7 @@ async def update_job_variant(
     """
     variant = await _get_owned_variant(variant_id, user_id, db)
 
-    if variant.status != "Draft":
+    if variant.status != _STATUS_DRAFT:
         raise InvalidStateError(
             "Only draft job variants can be updated. Approved variants are immutable."
         )
@@ -347,7 +356,7 @@ async def delete_job_variant(
     """
     variant = await _get_owned_variant(variant_id, user_id, db)
 
-    variant.status = "Archived"
+    variant.status = _STATUS_ARCHIVED
     variant.archived_at = datetime.now(UTC)
     variant.updated_at = datetime.now(UTC)
     await db.commit()
@@ -384,7 +393,7 @@ async def approve_job_variant(
     # Eager-load base_resume for snapshot field copy
     await db.refresh(variant, attribute_names=["base_resume"])
 
-    if variant.status != "Draft":
+    if variant.status != _STATUS_DRAFT:
         raise InvalidStateError(
             "Only draft job variants can be approved. "
             "This variant is already approved or archived."
@@ -398,10 +407,47 @@ async def approve_job_variant(
     variant.snapshot_included_certifications = base.included_certifications
     variant.snapshot_skills_emphasis = base.skills_emphasis
 
-    variant.status = "Approved"
+    variant.status = _STATUS_APPROVED
     variant.approved_at = datetime.now(UTC)
     variant.updated_at = datetime.now(UTC)
 
+    await db.commit()
+    await db.refresh(variant)
+
+    return DataResponse(data=_variant_to_dict(variant))
+
+
+@router.post("/{variant_id}/restore")
+async def restore_job_variant(
+    variant_id: uuid.UUID,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> DataResponse[dict]:
+    """Restore an archived job variant to its pre-archive status.
+
+    REQ-002 §5.4: Restore returns variant to Draft or Approved based on
+    whether it was approved before archiving (inferred from approved_at).
+
+    Args:
+        variant_id: The job variant ID to restore.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+
+    Returns:
+        DataResponse with restored job variant.
+
+    Raises:
+        NotFoundError: If variant not found or not owned by user.
+        InvalidStateError: If variant is not in Archived status.
+    """
+    variant = await _get_owned_variant(variant_id, user_id, db)
+
+    if variant.status != _STATUS_ARCHIVED:
+        raise InvalidStateError("Only archived job variants can be restored.")
+
+    variant.status = _STATUS_APPROVED if variant.approved_at else _STATUS_DRAFT
+    variant.archived_at = None
+    variant.updated_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(variant)
 

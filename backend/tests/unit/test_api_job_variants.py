@@ -2,6 +2,7 @@
 
 REQ-006 §5.2: Job-specific resume variants.
 REQ-002 §4.3: Job Variant — Snapshot Logic.
+REQ-002 §5.4: User Actions — Archive/Restore.
 
 Tests verify:
 - GET /api/v1/job-variants (list with ownership filtering)
@@ -10,6 +11,7 @@ Tests verify:
 - PATCH /api/v1/job-variants/{id} (partial update, immutable after approval)
 - DELETE /api/v1/job-variants/{id} (soft archive)
 - POST /api/v1/job-variants/{id}/approve (snapshot logic)
+- POST /api/v1/job-variants/{id}/restore (restore from archive)
 """
 
 import uuid
@@ -503,4 +505,143 @@ class TestApproveJobVariant:
         """Non-existent ID returns 404."""
         fake_id = uuid.uuid4()
         response = await client.post(f"{_BASE_URL}/{fake_id}/approve")
+        assert response.status_code == 404
+
+
+# =============================================================================
+# Restore Job Variant
+# =============================================================================
+
+
+class TestRestoreJobVariant:
+    """POST /api/v1/job-variants/{id}/restore — restore from archive.
+
+    REQ-002 §5.4: Restore returns variant to its pre-archive status.
+    Draft variants restore to Draft; Approved variants restore to Approved.
+    """
+
+    @pytest.mark.asyncio
+    async def test_restore_requires_auth(
+        self, unauthenticated_client: AsyncClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        fake_id = uuid.uuid4()
+        response = await unauthenticated_client.post(f"{_BASE_URL}/{fake_id}/restore")
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_restore_archived_draft_variant(
+        self, client: AsyncClient, variant_in_db
+    ) -> None:
+        """Restoring an archived draft variant sets status to Draft."""
+        # Archive first
+        await client.delete(f"{_BASE_URL}/{variant_in_db.id}")
+
+        # Restore
+        response = await client.post(f"{_BASE_URL}/{variant_in_db.id}/restore")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["data"]["status"] == "Draft"
+        assert body["data"]["archived_at"] is None
+
+    @pytest.mark.asyncio
+    async def test_restore_archived_approved_variant(
+        self, client: AsyncClient, approved_variant_in_db
+    ) -> None:
+        """Restoring an archived approved variant sets status to Approved."""
+        # Archive first
+        await client.delete(f"{_BASE_URL}/{approved_variant_in_db.id}")
+
+        # Verify archived
+        get_resp = await client.get(f"{_BASE_URL}/{approved_variant_in_db.id}")
+        assert get_resp.json()["data"]["status"] == "Archived"
+
+        # Restore
+        response = await client.post(f"{_BASE_URL}/{approved_variant_in_db.id}/restore")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["data"]["status"] == "Approved"
+        assert body["data"]["archived_at"] is None
+        # Snapshots should still be present
+        assert body["data"]["snapshot_included_jobs"] is not None
+
+    @pytest.mark.asyncio
+    async def test_restore_non_archived_rejected(
+        self, client: AsyncClient, variant_in_db
+    ) -> None:
+        """Restoring a non-archived variant returns 422."""
+        response = await client.post(f"{_BASE_URL}/{variant_in_db.id}/restore")
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_restore_other_users_variant_returns_404(
+        self, client: AsyncClient, db_session: AsyncSession
+    ) -> None:
+        """Restoring another user's archived variant returns 404 (not 403)."""
+        from datetime import date
+
+        from app.models import Persona, User
+        from app.models.job_posting import JobPosting
+        from app.models.resume import BaseResume, JobVariant
+
+        other_user = User(id=uuid.uuid4(), email="other@example.com")
+        db_session.add(other_user)
+        await db_session.flush()
+
+        other_persona = Persona(
+            id=uuid.uuid4(),
+            user_id=other_user.id,
+            full_name="Other User",
+            email="other_persona@example.com",
+            phone="555-9999",
+            home_city="Other City",
+            home_state="Other State",
+            home_country="USA",
+        )
+        db_session.add(other_persona)
+        await db_session.flush()
+
+        other_resume = BaseResume(
+            id=uuid.uuid4(),
+            persona_id=other_persona.id,
+            name="Other Resume",
+            role_type="Other",
+            summary="Other user's resume.",
+        )
+        db_session.add(other_resume)
+        await db_session.flush()
+
+        from tests.conftest import TEST_JOB_SOURCE_ID
+
+        other_posting = JobPosting(
+            id=uuid.uuid4(),
+            persona_id=other_persona.id,
+            source_id=TEST_JOB_SOURCE_ID,
+            job_title="Other Job",
+            company_name="Other Corp",
+            description="Other job description.",
+            first_seen_date=date(2026, 1, 1),
+            description_hash="otherhash",
+        )
+        db_session.add(other_posting)
+        await db_session.flush()
+
+        other_variant = JobVariant(
+            id=uuid.uuid4(),
+            base_resume_id=other_resume.id,
+            job_posting_id=other_posting.id,
+            summary="Other variant.",
+            status="Archived",
+        )
+        db_session.add(other_variant)
+        await db_session.commit()
+
+        response = await client.post(f"{_BASE_URL}/{other_variant.id}/restore")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_restore_not_found(self, client: AsyncClient) -> None:
+        """Non-existent ID returns 404."""
+        fake_id = uuid.uuid4()
+        response = await client.post(f"{_BASE_URL}/{fake_id}/restore")
         assert response.status_code == 404

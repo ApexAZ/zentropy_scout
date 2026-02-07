@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import CurrentUserId, DbSession
-from app.core.errors import ConflictError, NotFoundError
+from app.core.errors import ConflictError, InvalidStateError, NotFoundError
 from app.core.file_validation import sanitize_filename_for_header
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
@@ -24,6 +24,12 @@ _MAX_JSONB_LIST_LENGTH = 200
 
 _MAX_SUMMARY_LENGTH = 5000
 """Safety bound on summary text length."""
+
+_STATUS_ACTIVE = "Active"
+"""Base resume status: normal state, visible in UI."""
+
+_STATUS_ARCHIVED = "Archived"
+"""Base resume status: soft-deleted, hidden from default UI views."""
 
 router = APIRouter()
 
@@ -330,12 +336,48 @@ async def delete_base_resume(
     """
     resume = await _get_owned_resume(resume_id, user_id, db)
 
-    resume.status = "Archived"
+    resume.status = _STATUS_ARCHIVED
     resume.archived_at = datetime.now(UTC)
     resume.updated_at = datetime.now(UTC)
     await db.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{resume_id}/restore")
+async def restore_base_resume(
+    resume_id: uuid.UUID,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> DataResponse[dict]:
+    """Restore an archived base resume to Active.
+
+    REQ-002 §5.4: Restore sets status back to Active and clears archived_at.
+
+    Args:
+        resume_id: The base resume ID.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+
+    Returns:
+        DataResponse with restored base resume.
+
+    Raises:
+        NotFoundError: If resume not found or not owned by user.
+        InvalidStateError: If resume is not in Archived status.
+    """
+    resume = await _get_owned_resume(resume_id, user_id, db)
+
+    if resume.status != _STATUS_ARCHIVED:
+        raise InvalidStateError("Only archived base resumes can be restored.")
+
+    resume.status = _STATUS_ACTIVE
+    resume.archived_at = None
+    resume.updated_at = datetime.now(UTC)
+    await db.commit()
+    await db.refresh(resume)
+
+    return DataResponse(data=_resume_to_dict(resume))
 
 
 @router.get("/{resume_id}/download")
