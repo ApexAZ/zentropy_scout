@@ -195,35 +195,43 @@ def _update_contact_fields(persona: Persona, gathered_data: dict[str, object]) -
             persona.home_state = state
 
 
+def _apply_non_negotiables(persona: Persona, non_neg: dict[str, object]) -> None:
+    """Apply non-negotiable preferences to persona."""
+    if non_neg.get("remote_preference"):
+        persona.remote_preference = str(non_neg["remote_preference"])
+    if non_neg.get("minimum_base_salary"):
+        salary = _parse_salary(str(non_neg["minimum_base_salary"]))
+        if salary is not None:
+            persona.minimum_base_salary = salary
+    if non_neg.get("visa_sponsorship"):
+        persona.visa_sponsorship_required = _parse_visa(
+            str(non_neg["visa_sponsorship"])
+        )
+    if non_neg.get("commutable_cities"):
+        persona.commutable_cities = _parse_comma_list(str(non_neg["commutable_cities"]))
+    if non_neg.get("industry_exclusions"):
+        persona.industry_exclusions = _parse_comma_list(
+            str(non_neg["industry_exclusions"])
+        )
+
+
+def _apply_growth_targets(persona: Persona, growth: dict[str, object]) -> None:
+    """Apply growth target preferences to persona."""
+    if growth.get("target_roles"):
+        persona.target_roles = _parse_comma_list(str(growth["target_roles"]))
+    if growth.get("target_skills"):
+        persona.target_skills = _parse_comma_list(str(growth["target_skills"]))
+
+
 def _update_preferences(persona: Persona, gathered_data: dict[str, object]) -> None:
     """Update Persona preferences from non_negotiables and growth_targets."""
     non_neg = gathered_data.get("non_negotiables", {})
     if isinstance(non_neg, dict):
-        if non_neg.get("remote_preference"):
-            persona.remote_preference = str(non_neg["remote_preference"])
-        if non_neg.get("minimum_base_salary"):
-            salary = _parse_salary(str(non_neg["minimum_base_salary"]))
-            if salary is not None:
-                persona.minimum_base_salary = salary
-        if non_neg.get("visa_sponsorship"):
-            persona.visa_sponsorship_required = _parse_visa(
-                str(non_neg["visa_sponsorship"])
-            )
-        if non_neg.get("commutable_cities"):
-            persona.commutable_cities = _parse_comma_list(
-                str(non_neg["commutable_cities"])
-            )
-        if non_neg.get("industry_exclusions"):
-            persona.industry_exclusions = _parse_comma_list(
-                str(non_neg["industry_exclusions"])
-            )
+        _apply_non_negotiables(persona, non_neg)
 
     growth = gathered_data.get("growth_targets", {})
     if isinstance(growth, dict):
-        if growth.get("target_roles"):
-            persona.target_roles = _parse_comma_list(str(growth["target_roles"]))
-        if growth.get("target_skills"):
-            persona.target_skills = _parse_comma_list(str(growth["target_skills"]))
+        _apply_growth_targets(persona, growth)
 
 
 async def _create_work_history(
