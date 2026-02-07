@@ -625,7 +625,7 @@ These steps require user action outside Claude Code:
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 4.1 | Resume File — Upload Handling | `db, structure, tdd, plan` | ✅ |
-| 4.2 | Base Resume — Rendered Document Storage | `db, tdd, plan` | ⬜ |
+| 4.2 | Base Resume — Rendered Document Storage | `db, tdd, plan` | ✅ |
 | 4.3 | Job Variant — Snapshot Logic | `db, tdd, plan` | ⬜ |
 | 4.4 | Submitted PDF — Immutable Storage | `db, tdd, plan` | ⬜ |
 | 4.5 | Persona Change Flag — HITL Sync | `db, tdd, plan` | ✅ |
