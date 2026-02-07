@@ -502,7 +502,7 @@ These steps require user action outside Claude Code:
 ---
 
 ### 2.7 Ghostwriter Agent (REQ-007 §8 + REQ-010)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Generates tailored content. Combines REQ-007 §8 (behavior) and REQ-010 (prompts).*
 
@@ -564,7 +564,7 @@ These steps require user action outside Claude Code:
 | 9.1 | Agent Reasoning — Template | `provider, docs, tdd, plan` | ✅ |
 | 9.2 | Agent Reasoning — Example Output | `docs, plan` | ✅ |
 | 10.1 | Quality Metrics — Tracking | `db, tdd, plan` | ✅ |
-| 10.2 | Quality Metrics — Feedback Loop | `db, structure, tdd, plan` | ⬜ |
+| 10.2 | Quality Metrics — Feedback Loop | `db, structure, tdd, plan` | ✅ |
 
 ---
 
