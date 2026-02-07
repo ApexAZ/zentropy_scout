@@ -589,7 +589,7 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 9.1 | Communication — Agent-to-User | `agents, api, provider, structure, tdd, plan` | ⬜ |
+| 9.1 | Communication — Agent-to-User | `agents, api, provider, structure, tdd, plan` | ✅ |
 | 9.2 | Communication — Agent-to-Agent | `agents, provider, structure, tdd, plan` | ⬜ |
 | 9.3 | Communication — SSE Event Types | `agents, api, structure, tdd, plan` | ⬜ |
 | 10.1 | Error Handling — Transient Errors | `agents, provider, test, tdd, plan` | ⬜ |
