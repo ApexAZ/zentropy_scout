@@ -605,7 +605,7 @@ These steps require user action outside Claude Code:
 ## Phase 3: Document Generation
 
 ### 3.1 Resume Generation (REQ-002)
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *PDF rendering and workflow. Depends on Ghostwriter for content.*
 
@@ -661,8 +661,8 @@ These steps require user action outside Claude Code:
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4.1 | Cover Letter — Field Implementation | `db, tdd, plan` | ⬜ |
-| 4.2 | Submitted Cover Letter PDF — Immutable Storage | `db, tdd, plan` | ⬜ |
+| 4.1 | Cover Letter — Field Implementation | `db, tdd, plan` | ✅ |
+| 4.2 | Submitted Cover Letter PDF — Immutable Storage | `db, tdd, plan` | ✅ |
 | 7.1 | Workflow — Generation Flow (Auto-Draft) | `structure, tdd, plan` | ⬜ |
 | 7.2 | Workflow — Agent Story Selection | `provider, db, tdd, plan` | ⬜ |
 | 7.3 | Workflow — User Editing | `structure, tdd, plan` | ⬜ |
