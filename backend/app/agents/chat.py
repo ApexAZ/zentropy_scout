@@ -36,12 +36,17 @@ Intent Types (REQ-007 §4.3):
     - direct_question: "How does job matching work?"
 """
 
+import logging
 import re
 from typing import Any
 
 from langgraph.graph import END, StateGraph
 
+from app.agents.ghostwriter_graph import generate_materials
+from app.agents.onboarding import get_onboarding_graph
 from app.agents.state import ChatAgentState, CheckpointReason, ClassifiedIntent
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Intent Patterns
@@ -630,53 +635,104 @@ def stream_response(state: ChatAgentState) -> ChatAgentState:
     return state
 
 
-def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:
+async def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:
     """Delegate to Onboarding Agent sub-graph.
 
-    Note: Actual sub-graph invocation will be implemented when the
-    Onboarding Agent is complete (Phase 2.3).
+    REQ-007 §15.6 Pattern 1: Constructs OnboardingState from ChatAgentState
+    and invokes the onboarding graph via ``ainvoke``.
 
     Args:
         state: Current chat state.
 
     Returns:
-        State with delegation result (placeholder).
+        State with onboarding result in tool_results.
     """
-    # WHY: Placeholder for sub-graph invocation. The actual implementation
-    # will invoke the Onboarding graph and return its results.
     new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
-    new_state["tool_results"] = [
-        {
-            "tool": "invoke_onboarding",
-            "result": {"status": "delegated"},
-            "error": None,
+
+    try:
+        graph = get_onboarding_graph()
+        onboarding_state = {
+            "user_id": state["user_id"],
+            "persona_id": state["persona_id"],
+            "messages": state.get("messages", []),
+            "current_message": state.get("current_message"),
         }
-    ]
+        await graph.ainvoke(onboarding_state)
+
+        new_state["tool_results"] = [
+            {
+                "tool": "invoke_onboarding",
+                "result": {"status": "completed"},
+                "error": None,
+            }
+        ]
+    except Exception:
+        logger.exception("Onboarding sub-graph failed")
+        new_state["tool_results"] = [
+            {
+                "tool": "invoke_onboarding",
+                "result": None,
+                "error": "Onboarding could not be started. Please try again.",
+            }
+        ]
+
     return new_state
 
 
-def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
+async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
     """Delegate to Ghostwriter Agent sub-graph.
 
-    Note: Actual sub-graph invocation will be implemented when the
-    Ghostwriter Agent is complete (Phase 2.7).
+    REQ-007 §15.6 Pattern 1: Constructs GhostwriterState from ChatAgentState
+    and invokes the ghostwriter graph via ``generate_materials``.
 
     Args:
         state: Current chat state.
 
     Returns:
-        State with delegation result (placeholder).
+        State with ghostwriter result in tool_results.
     """
-    # WHY: Placeholder for sub-graph invocation. The actual implementation
-    # will invoke the Ghostwriter graph and return its results.
     new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
-    new_state["tool_results"] = [
-        {
-            "tool": "invoke_ghostwriter",
-            "result": {"status": "delegated"},
-            "error": None,
-        }
-    ]
+
+    target_job_id = state.get("target_job_id")
+    if not target_job_id:
+        new_state["tool_results"] = [
+            {
+                "tool": "invoke_ghostwriter",
+                "result": None,
+                "error": "No target job specified for material generation.",
+            }
+        ]
+        return new_state
+
+    try:
+        result = await generate_materials(
+            user_id=state["user_id"],
+            persona_id=state["persona_id"],
+            job_posting_id=target_job_id,
+            trigger_type="manual_request",
+        )
+        new_state["tool_results"] = [
+            {
+                "tool": "invoke_ghostwriter",
+                "result": {
+                    "status": "completed",
+                    "has_resume": result.get("generated_resume") is not None,
+                    "has_cover_letter": result.get("generated_cover_letter")
+                    is not None,
+                },
+                "error": None,
+            }
+        ]
+    except Exception:
+        logger.exception("Ghostwriter sub-graph failed")
+        new_state["tool_results"] = [
+            {
+                "tool": "invoke_ghostwriter",
+                "result": None,
+                "error": "Material generation could not be completed. Please try again.",
+            }
+        ]
+
     return new_state
 
 
