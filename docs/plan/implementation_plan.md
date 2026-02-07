@@ -629,7 +629,7 @@ These steps require user action outside Claude Code:
 | 4.3 | Job Variant — Snapshot Logic | `db, tdd, plan` | ✅ |
 | 4.4 | Submitted PDF — Immutable Storage | `db, tdd, plan` | ✅ |
 | 4.5 | Persona Change Flag — HITL Sync | `db, tdd, plan` | ✅ |
-| 5.1 | Retention Rules | `db, tdd, plan` | ⬜ |
+| 5.1 | Retention Rules | `db, tdd, plan` | ✅ |
 | 5.4 | User Actions (Archive/Restore) | `db, tdd, plan` | ⬜ |
 | 6.1 | Workflow — Onboarding Flow | `structure, tdd, plan` | ⬜ |
 | 6.2 | Workflow — Application Flow (Auto-Draft) | `structure, tdd, plan` | ⬜ |
