@@ -555,6 +555,36 @@ async def gather_variant_content(
 # =============================================================================
 
 
+def _render_experience_section(
+    elements: list[object],
+    jobs: list,
+    styles: dict[str, ParagraphStyle],
+) -> None:
+    """Render the Work Experience section into the elements list."""
+    if not jobs:
+        return
+
+    esc = _xml_escape
+    elements.append(Paragraph("WORK EXPERIENCE", styles["section_heading"]))
+    for job in jobs:
+        date_range = _format_date_range(job.start_date, job.end_date, job.is_current)
+        elements.append(
+            Paragraph(
+                f"<b>{esc(job.job_title)}</b> — {esc(job.company_name)}",
+                styles["job_title"],
+            )
+        )
+        elements.append(
+            Paragraph(
+                f"{esc(job.location)} | {date_range}",
+                styles["job_meta"],
+            )
+        )
+        for bullet_text in job.bullets:
+            elements.append(Paragraph(f"• {esc(bullet_text)}", styles["bullet"]))
+        elements.append(Spacer(1, _ITEM_SPACING))
+
+
 def render_resume_pdf(content: ResumeContent) -> bytes:
     """Render a ResumeContent structure into a PDF document.
 
@@ -610,27 +640,7 @@ def render_resume_pdf(content: ResumeContent) -> bytes:
         elements.append(Spacer(1, _SECTION_SPACING))
 
     # --- Work Experience ---
-    if content.jobs:
-        elements.append(Paragraph("WORK EXPERIENCE", styles["section_heading"]))
-        for job in content.jobs:
-            date_range = _format_date_range(
-                job.start_date, job.end_date, job.is_current
-            )
-            elements.append(
-                Paragraph(
-                    f"<b>{esc(job.job_title)}</b> — {esc(job.company_name)}",
-                    styles["job_title"],
-                )
-            )
-            elements.append(
-                Paragraph(
-                    f"{esc(job.location)} | {date_range}",
-                    styles["job_meta"],
-                )
-            )
-            for bullet_text in job.bullets:
-                elements.append(Paragraph(f"• {esc(bullet_text)}", styles["bullet"]))
-            elements.append(Spacer(1, _ITEM_SPACING))
+    _render_experience_section(elements, content.jobs, styles)
 
     # --- Education ---
     if content.education:
