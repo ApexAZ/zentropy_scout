@@ -42,10 +42,14 @@ repos:
         exclude: ^backend/tests/
 
   # Gitleaks - Secret detection (runs on COMMIT)
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.28.0
+  # Uses locally installed gitleaks binary to avoid building from Go source
+  - repo: local
     hooks:
       - id: gitleaks
+        name: Detect hardcoded secrets
+        entry: gitleaks git --pre-commit --redact --staged
+        language: system
+        pass_filenames: false
 
   # Pytest - full test suite (runs on PUSH only)
   - repo: local

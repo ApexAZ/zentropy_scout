@@ -637,9 +637,9 @@ class TestWorkHistoryStep:
         assert result["pending_question"] is not None
         question_lower = result["pending_question"].lower()
         accomplishment_keywords = ["accomplish", "achieve", "tell me more", "bullet"]
-        assert any(
-            keyword in question_lower for keyword in accomplishment_keywords
-        ), f"Expected accomplishment question, got: {result['pending_question']}"
+        assert any(keyword in question_lower for keyword in accomplishment_keywords), (
+            f"Expected accomplishment question, got: {result['pending_question']}"
+        )
 
     def test_gather_work_history_complete_with_entries(self) -> None:
         """Work history step should be complete when entries have bullets."""

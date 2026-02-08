@@ -229,9 +229,9 @@ class TestGhostwriterState:
         ghostwriter_hints = get_type_hints(GhostwriterState)
 
         for field in base_hints:
-            assert (
-                field in ghostwriter_hints
-            ), f"GhostwriterState missing field: {field}"
+            assert field in ghostwriter_hints, (
+                f"GhostwriterState missing field: {field}"
+            )
 
     def test_has_job_posting_id(self) -> None:
         """GhostwriterState must have job_posting_id field."""

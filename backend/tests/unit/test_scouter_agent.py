@@ -92,9 +92,9 @@ class TestTriggerConditions:
             "",
         ]
         for phrase in negative_cases:
-            assert (
-                is_manual_refresh_request(phrase) is False
-            ), f"Should NOT match: {phrase}"
+            assert is_manual_refresh_request(phrase) is False, (
+                f"Should NOT match: {phrase}"
+            )
 
     def test_source_added_trigger_fires_when_new_source_enabled(self) -> None:
         """Returns True when current_sources contains sources not in previous."""

@@ -9,7 +9,6 @@ Tests cover:
 4. Fail-forward behavior (continue processing other sources/jobs)
 """
 
-
 from app.services.scouter_errors import (
     ExtractionStatus,
     ProcessingMetadata,
