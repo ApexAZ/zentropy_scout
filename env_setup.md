@@ -130,6 +130,41 @@ The repo includes Claude Code project configuration:
 
 ---
 
+## CI Security Tooling
+
+The repo includes GitHub Actions workflows for security scanning. Most work automatically, but Semgrep requires a one-time setup.
+
+### Semgrep Team (requires setup)
+
+Semgrep provides cross-file taint analysis with FastAPI-native detection. Free for ≤10 contributors.
+
+1. Sign up at [semgrep.dev](https://semgrep.dev) (use "Sign in with GitHub")
+2. Add your repo to the Semgrep dashboard
+3. Go to **Settings → Tokens** and copy your `SEMGREP_APP_TOKEN`
+4. In your GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**
+   - Name: `SEMGREP_APP_TOKEN`
+   - Value: paste the token
+
+### Dependabot (automatic)
+
+Already configured in `.github/dependabot.yml`. Scans pip and GitHub Actions dependencies weekly. No setup needed — GitHub enables it automatically when the config file is present.
+
+### pip-audit (automatic)
+
+Runs on every push/PR via `.github/workflows/pip-audit.yml`. Scans Python dependencies against Google's OSV database. No setup needed.
+
+### SonarCloud (requires setup)
+
+If you want SonarCloud analysis on your fork/clone:
+
+1. Sign up at [sonarcloud.io](https://sonarcloud.io) (use "Sign in with GitHub")
+2. Import your repo
+3. In your GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**
+   - Name: `SONAR_TOKEN`
+   - Value: paste the token from SonarCloud
+
+---
+
 ## Troubleshooting
 
 ### Tests fail with connection errors
