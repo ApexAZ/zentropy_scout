@@ -238,15 +238,38 @@ This project uses `pre-commit` to enforce quality before commits. Configuration 
 
 ```bash
 # Install hooks (one-time setup)
-pre-commit install
+pre-commit install --hook-type pre-commit --hook-type pre-push
 
 # Run manually
 pre-commit run --all-files
 ```
 
-**Hooks run:** pytest, ruff, type checking. See `.pre-commit-config.yaml` for details.
+**Hooks run:** ruff, bandit, gitleaks, trailing whitespace (on commit); full pytest suite (on push). See `.pre-commit-config.yaml` for details.
 
 **IMPORTANT:** Never use `--no-verify` to bypass hooks. If tests fail, fix them before committing/pushing. "Pre-existing" failures are still your responsibility to fix.
+
+---
+
+## Security Tooling Stack
+
+Layered security scanning across local development and CI:
+
+| Layer | Tool | What It Catches | When It Runs |
+|-------|------|-----------------|--------------|
+| **SAST (deep)** | Semgrep Team | Cross-file taint analysis, FastAPI-native injection detection | CI (GitHub Actions) |
+| **SAST (fast)** | Bandit | Python security patterns (injection, secrets, weak crypto) | Pre-commit hook |
+| **Code quality** | SonarCloud | Code smells, security hotspots, complexity | CI (post-push) |
+| **Dependencies** | pip-audit | Known CVEs in Python packages (OSV database) | CI (GitHub Actions) |
+| **Dependencies** | Dependabot | Automated vulnerability alerts + auto-PRs | GitHub (continuous) |
+| **Secrets** | gitleaks | Leaked API keys, passwords, tokens in commits | Pre-commit hook |
+
+**Semgrep Team** is free for ≤10 contributors and provides cross-function, cross-file taint tracking with FastAPI-native understanding. Requires `SEMGREP_APP_TOKEN` secret in GitHub repo settings.
+
+**Dependabot** scans pip (backend) and GitHub Actions dependencies weekly. Configured in `.github/dependabot.yml`.
+
+**pip-audit** uses Google's OSV database for broadest CVE coverage. Runs on every PR and push to main.
+
+For detailed security review patterns, see `.claude/agents/security-references.md` `[TOOLS]` section.
 
 ---
 

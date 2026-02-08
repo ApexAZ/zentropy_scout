@@ -281,16 +281,37 @@ This project has a dedicated sanitization pipeline at `backend/app/core/llm_sani
 
 ## [TOOLS] Automated Tool Reference
 
-### Tool Coverage
+### Security Tooling Stack
 
-| Tool | What It Catches | When It Runs |
-|------|-----------------|--------------|
-| **Bandit** | Python security issues (injection, secrets, weak crypto) | Pre-commit hook |
-| **Gitleaks** | Secrets in code (API keys, passwords, tokens) | Pre-commit hook |
-| **SonarCloud** | Code smells, security hotspots, complexity | CI (post-push) |
-| **pip-audit** | Known CVEs in Python dependencies | Manual / CI |
-| **npm audit** | Known CVEs in JS dependencies | Manual / CI |
-| **Ruff** | Linting, import order, unused vars, formatting | Pre-commit hook |
+| Layer | Tool | What It Catches | When It Runs |
+|-------|------|-----------------|--------------|
+| **SAST (deep)** | **Semgrep Team** | Cross-file taint analysis, FastAPI-native injection detection, 1500+ Pro rules | CI (GitHub Actions) |
+| **SAST (fast)** | **Bandit** | Python security patterns (injection, secrets, weak crypto) | Pre-commit hook |
+| **Code quality** | **SonarCloud** | Code smells, security hotspots, complexity | CI (post-push) |
+| **Dependencies** | **pip-audit** | Known CVEs in Python packages (OSV database) | CI (GitHub Actions) |
+| **Dependencies** | **Dependabot** | Automated vulnerability alerts + auto-PRs for pip and GitHub Actions | GitHub (continuous) |
+| **Secrets** | **Gitleaks** | Secrets in code (API keys, passwords, tokens) | Pre-commit hook |
+| **Linting** | **Ruff** | Linting, import order, unused vars, formatting | Pre-commit hook |
+| **Dependencies** | **npm audit** | Known CVEs in JS dependencies | Manual / CI (future) |
+
+### What Each Tool Covers
+
+**Semgrep Team (free for ≤10 contributors):**
+- Cross-function, cross-file taint tracking (user input → dangerous sinks)
+- FastAPI-native analysis (understands dependency injection, route params, request body)
+- SQL injection through ORM layers, SSRF, path traversal, XSS
+- Supply chain scanning (dependency CVEs)
+- Requires `SEMGREP_APP_TOKEN` secret in GitHub repo settings
+
+**pip-audit (OSV database):**
+- Scans full dependency tree including transitive dependencies
+- Uses Google's OSV database (broader coverage than PyPI-only)
+- Catches CVEs that Dependabot may miss and vice versa (layered defense)
+
+**Dependabot:**
+- Automated weekly scans of pip (backend) and GitHub Actions dependencies
+- Creates PRs automatically when vulnerable versions detected
+- Configured in `.github/dependabot.yml`
 
 ### Bandit Error Codes
 
@@ -308,4 +329,4 @@ This project has a dedicated sanitization pipeline at `backend/app/core/llm_sani
 | B602 | subprocess shell=True | HIGH |
 | B608 | SQL injection | MEDIUM |
 
-When you find issues that Bandit would also flag, note the code in your review (e.g., `[B602]`).
+When you find issues that automated tools would also flag, note the code in your review (e.g., `[B602]` for Bandit, `[S5852]` for SonarQube).

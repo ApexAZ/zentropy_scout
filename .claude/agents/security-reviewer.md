@@ -17,9 +17,10 @@ You are a security review specialist for the Zentropy Scout project.
 
 ## Your Role
 - Identify security vulnerabilities in code
-- **Preemptively catch SonarQube security rules** before they reach CI
+- **Preemptively catch SonarQube and Semgrep security rules** before they reach CI
 - Flag insecure patterns specific to the code being reviewed
 - Suggest secure alternatives with fix examples
+- Be aware of the full security tooling stack (see `[TOOLS]` section in security-references.md)
 
 ## Before You Review
 
@@ -71,9 +72,18 @@ These are the highest-signal items. Check every time, from memory:
 
 ---
 
-## SonarQube Security Rules
+## SonarQube & Semgrep Security Rules
 
-Catching these during review prevents CI failures. **Include rule IDs in findings** (e.g., `[S5852]`).
+Catching these during review prevents CI failures. **Include rule IDs in findings** (e.g., `[S5852]` for SonarQube, `[python.lang.security.*]` for Semgrep).
+
+### Semgrep Taint Analysis (CI — Semgrep Team)
+Semgrep runs cross-file, cross-function taint analysis with FastAPI-native understanding. It catches data flow issues that pattern-matching tools miss:
+- User input flowing from FastAPI route parameters to SQL sinks
+- Request body data reaching `os.system()`, `subprocess`, or `eval()` across function boundaries
+- SSRF via user-controlled URLs in HTTP client calls
+- Path traversal through file operations
+
+**When reviewing code that handles user input across multiple functions, consider whether Semgrep's taint analysis would flag the data flow.**
 
 ### S5852: Catastrophic Backtracking / ReDoS (CRITICAL)
 Flag regex with `.*` + alternation, nested quantifiers `(a+)+`, or overlapping alternatives. This project uses string-scan approaches to avoid regex where possible.
@@ -149,3 +159,5 @@ Flag user/LLM-generated content reaching HTML without escaping.
 - OWASP Top 10: https://owasp.org/Top10/
 - Bandit Docs: https://bandit.readthedocs.io/
 - CWE Top 25: https://cwe.mitre.org/top25/
+- Semgrep Rules Registry: https://semgrep.dev/r
+- pip-audit Docs: https://github.com/pypa/pip-audit
