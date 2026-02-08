@@ -1,8 +1,8 @@
 # Zentropy Scout — Frontend Requirements Plan
 
 **Created:** 2026-02-07
-**Last Updated:** 2026-02-07
-**Status:** Ready to Begin
+**Last Updated:** 2026-02-08
+**Status:** In Progress
 
 ---
 
@@ -22,7 +22,7 @@
 
 ## Phase 0: Backend Surface Area Audit
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Sweep all existing REQ docs to extract everything the frontend needs to expose. Produces a reference doc that drives all subsequent phases.*
 
@@ -37,16 +37,16 @@
 ### Tasks
 | § | Task | References | Status |
 |---|------|------------|--------|
-| 0.1 | Extract persona-facing UI from REQ-001 (Persona Schema) — include discovery preferences (§3.10), non-negotiables (§3.8), growth targets (§3.9), deletion handling (§7b) | REQ-001 | ⬜ |
-| 0.2 | Extract resume workflow UI from REQ-002 (Resume Schema) — include creation wizard, render/approve cycle, variant approval/snapshot | REQ-002 | ⬜ |
-| 0.3 | Extract cover letter workflow UI from REQ-002b (Cover Letter Schema) — include agent reasoning display | REQ-002b | ⬜ |
-| 0.4 | Extract job posting UI from REQ-003 (Job Posting Schema) — include repost history (§8), cross-source display (§9.2), expiration notifications (§12.2) | REQ-003 | ⬜ |
-| 0.5 | Extract application tracking UI from REQ-004 (Application Schema) — include offer/rejection capture forms, interview stages, job snapshots, follow-up suggestions | REQ-004 | ⬜ |
-| 0.6 | Extract all API endpoints and response shapes from REQ-006 (API Contract) — include bulk operations (§2.6), two-step ingest (§5.6), SSE reconnection (§2.5) | REQ-006 | ⬜ |
-| 0.7 | Extract all user-facing agent flows and HITL checkpoints from REQ-007 (Agent Behavior) — include ambiguity resolution (§4.4), tool execution visualization (§9.3), Scouter progress (§9.1) | REQ-007 | ⬜ |
-| 0.8 | Extract scoring display requirements from REQ-008 (Scoring Algorithm) — include component drill-down (§4.7, §5.5), explanation fields (§8), independent score presentation (§7.3 cancellation) | REQ-008 | ⬜ |
-| 0.9 | Extract content generation UI from REQ-010 (Content Generation) — include validation issue display (§5.4), modification limits explanation (§4.4), quality metrics (§10) | REQ-010 | ⬜ |
-| 0.10 | Consolidate all findings into `docs/plan/frontend_surface_area.md` | All above | ⬜ |
+| 0.1 | Extract persona-facing UI from REQ-001 (Persona Schema) — include discovery preferences (§3.10), non-negotiables (§3.8), growth targets (§3.9), deletion handling (§7b) | REQ-001 | ✅ |
+| 0.2 | Extract resume workflow UI from REQ-002 (Resume Schema) — include creation wizard, render/approve cycle, variant approval/snapshot | REQ-002 | ✅ |
+| 0.3 | Extract cover letter workflow UI from REQ-002b (Cover Letter Schema) — include agent reasoning display | REQ-002b | ✅ |
+| 0.4 | Extract job posting UI from REQ-003 (Job Posting Schema) — include repost history (§8), cross-source display (§9.2), expiration notifications (§12.2) | REQ-003 | ✅ |
+| 0.5 | Extract application tracking UI from REQ-004 (Application Schema) — include offer/rejection capture forms, interview stages, job snapshots, follow-up suggestions | REQ-004 | ✅ |
+| 0.6 | Extract all API endpoints and response shapes from REQ-006 (API Contract) — include bulk operations (§2.6), two-step ingest (§5.6), SSE reconnection (§2.5) | REQ-006 | ✅ |
+| 0.7 | Extract all user-facing agent flows and HITL checkpoints from REQ-007 (Agent Behavior) — include ambiguity resolution (§4.4), tool execution visualization (§9.3), Scouter progress (§9.1) | REQ-007 | ✅ |
+| 0.8 | Extract scoring display requirements from REQ-008 (Scoring Algorithm) — include component drill-down (§4.7, §5.5), explanation fields (§8), independent score presentation (§7.3 cancellation) | REQ-008 | ✅ |
+| 0.9 | Extract content generation UI from REQ-010 (Content Generation) — include validation issue display (§5.4), modification limits explanation (§4.4), quality metrics (§10) | REQ-010 | ✅ |
+| 0.10 | Consolidate all findings into `docs/plan/frontend_surface_area.md` | All above | ✅ |
 
 ### Notes
 - REQ-005 (Database Schema) and REQ-009 (Provider Abstraction) are backend-internal — no direct frontend surface area, skip these.
