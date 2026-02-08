@@ -295,6 +295,7 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `reflect` | remember this, add lesson, mistake, never again | Self-improvement, captures lessons |
 | `config-sync` | update documentation, sync config, changed .claude/ | Keeps CLAUDE_TOOLS.md in sync |
 | `plan-tracker` | plan, progress, status, resume, complete, phase | Updates implementation_plan.md after subtasks |
+| `frontend-req-tracker` | frontend, REQ-012, frontend requirements, frontend plan | Updates frontend_requirements_plan.md after subtasks |
 
 ---
 
