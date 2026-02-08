@@ -346,13 +346,13 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ## Current Status
 
-**Phase:** 2.7 — Ghostwriter Agent (REQ-007 §8)
-**Progress:** ⬜ Not started (next: §8.1 Ghostwriter Agent — Trigger Conditions)
+**Phase:** All backend phases complete. Frontend GUI next.
+**Progress:** Phases 0–3.2 ✅ complete. Phase 4.1 (Chrome Extension) ⏸️ postponed.
 
-**Completed Phases:** 2.1 LangGraph Foundation, 2.2 Chat Agent, 2.3 Onboarding Agent, 2.4 Scouter Agent, 2.5 Scoring Engine, 2.6 Strategist Agent
+**Completed Phases:** 1.1 Database Schema, 1.2 Provider Abstraction (3 future tasks remain), 1.3 API Scaffold, 2.1 LangGraph Foundation, 2.2 Chat Agent, 2.3 Onboarding Agent, 2.4 Scouter Agent, 2.5 Scoring Engine, 2.6 Strategist Agent, 2.7 Ghostwriter Agent, 2.8 Agent Communication, 3.1 Resume Generation, 3.2 Cover Letter Generation
 
 **IMPORTANT:** After completing ANY subtask, update `docs/plan/implementation_plan.md` status (⬜ → ✅). See `plan-tracker` skill.
 
 ---
 
-*Last updated: 2026-02-04*
+*Last updated: 2026-02-07*
