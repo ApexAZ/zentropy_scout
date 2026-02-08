@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -20,7 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin
+from app.models.base import Base, SoftDeleteMixin, TimestampMixin
 
 _ON_DELETE_SET_NULL = "SET NULL"
 
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
     from app.models.resume import JobVariant, SubmittedResumePDF
 
 
-class Application(Base, TimestampMixin):
+class Application(Base, TimestampMixin, SoftDeleteMixin):
     """Job application record tracking status and materials.
 
     Tier 4 - references Persona, JobPosting, JobVariant, CoverLetter, SubmittedPDFs.
@@ -117,6 +118,13 @@ class Application(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
+    )
+
+    # Pin control (REQ-012 Appendix A.1; archived_at inherited from SoftDeleteMixin)
+    is_pinned: Mapped[bool] = mapped_column(
+        Boolean,
+        server_default=text("false"),
+        nullable=False,
     )
 
     # Timestamps
