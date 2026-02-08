@@ -32,6 +32,7 @@ PRD Section (Why) → Requirement (What) → Implementation (GitHub Issues)
 | §5 Architecture | [REQ-009](./REQ-009_provider_abstraction.md) Provider Abstraction v0.2 | 🟢 Complete |
 | §4.4 Ghostwriter | [REQ-010](./REQ-010_content_generation.md) Content Generation v0.1 | 🟢 Complete |
 | §4.2 Scouter (Manual) | [REQ-011](./REQ-011_chrome_extension.md) Chrome Extension v0.1 | 🟢 Complete |
+| §7 Frontend Application | [REQ-012](./REQ-012_frontend_application.md) Frontend Application v0.1 | 🟢 Complete |
 
 ---
 
@@ -65,6 +66,9 @@ REQ-010 Content Generation
 
 REQ-011 Chrome Extension
     └── depends on: REQ-006 (ingest endpoint), REQ-003 (JobPosting schema)
+
+REQ-012 Frontend Application
+    └── depends on: REQ-001 through REQ-010 (all backend specs)
 ```
 
 ---
@@ -112,9 +116,13 @@ REQ-011 Chrome Extension
 
 **Requirements Phase: ✅ COMPLETE**
 
-All 12 requirement documents drafted and reviewed.
+All 13 requirement documents drafted and reviewed (REQ-001 through REQ-012).
 
-**Implementation Phase: 🔴 NOT STARTED**
+**Backend Implementation Phase: ✅ COMPLETE**
 
-1. **Cross-document audit** (optional) — Verify field name consistency across REQ-001↔REQ-005↔REQ-006
-2. **Begin implementation** — Start with REQ-005 (Database Schema)
+Phases 1.1–3.2 implemented. Phase 4.1 (Chrome Extension) postponed.
+
+**Frontend Implementation Phase: 🔴 NOT STARTED**
+
+1. **Create frontend implementation plan** — Break REQ-012 into implementation tasks
+2. **Begin implementation** — Start with Next.js scaffold and shared components
