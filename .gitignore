@@ -1,7 +1,6 @@
-# Project memory and documentation
-CLAUDE.md
+# Claude Code — auto-generated (regenerated locally)
 CLAUDE_TOOLS.md
-.claude/
+.claude/settings.local.json
 
 # Environment variables
 .env
