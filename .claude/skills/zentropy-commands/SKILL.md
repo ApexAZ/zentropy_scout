@@ -2,8 +2,8 @@
 name: zentropy-commands
 description: |
   Common CLI commands for Zentropy Scout. Load when:
-  - Running docker, alembic, pytest, npm commands
-  - Someone asks "how do I start", "run migrations", or "start the server"
+  - Running docker, alembic, pytest, npm, or gh commands
+  - Someone asks "how do I start", "run migrations", "start the server", or "check CI"
 ---
 
 # Zentropy Scout Common Commands
@@ -111,6 +111,34 @@ npm run typecheck
 
 # Lint
 npm run lint
+```
+
+## CI / GitHub (gh CLI)
+
+```bash
+# List recent workflow runs
+gh run list --limit=5
+
+# Trigger a workflow manually
+gh workflow run semgrep.yml
+gh workflow run sonarcloud.yml
+gh workflow run pip-audit.yml
+
+# Watch a running workflow
+gh run watch <run-id>
+
+# View logs for a failed run
+gh run view <run-id> --log-failed
+
+# List repo secrets (names only, not values)
+gh secret list
+
+# Check PR status and checks
+gh pr status
+gh pr checks
+
+# View PR comments
+gh api repos/ApexAZ/zentropy_scout/pulls/<pr-number>/comments
 ```
 
 ## Quick Reference

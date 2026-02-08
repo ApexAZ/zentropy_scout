@@ -20,6 +20,18 @@ description: |
 | **Gitleaks** | Secret detection | ✅ Yes (pre-commit) |
 | **pip-audit** | Dependency CVE scanning | ❌ Manual / CI |
 
+### CI-Only Scans (GitHub Actions)
+
+These tools run in CI only — not locally. The `security-reviewer` and `code-reviewer` agents preemptively catch their rules during local review.
+
+| Tool | Purpose | What It Catches |
+|------|---------|-----------------|
+| **Semgrep Team** | Deep SAST | Cross-file taint analysis, FastAPI-native injection detection |
+| **SonarCloud** | Code quality + security | Code smells, security hotspots, cognitive complexity |
+| **Dependabot** | Dependency alerts | Auto-PRs for vulnerable pip and GitHub Actions deps |
+
+To trigger CI scans manually: `gh workflow run semgrep.yml` or `gh workflow run sonarcloud.yml`.
+
 ### Frontend (TypeScript/React)
 
 | Tool | Purpose | Runs Automatically? |
