@@ -9,9 +9,16 @@ REQ-006 §5.2: Application tracking with timeline.
 import uuid
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from app.api.deps import CurrentUserId
-from app.core.responses import DataResponse, ListResponse, PaginationMeta
+from app.core.responses import (
+    DataResponse,
+    ErrorDetail,
+    ErrorResponse,
+    ListResponse,
+    PaginationMeta,
+)
 from app.schemas.bulk import BulkArchiveRequest, BulkFailedItem, BulkOperationResult
 
 router = APIRouter()
@@ -101,14 +108,32 @@ async def get_timeline_event(
     return DataResponse(data={})
 
 
+_TIMELINE_IMMUTABLE_RESPONSE = ErrorResponse(
+    error=ErrorDetail(
+        code="METHOD_NOT_ALLOWED",
+        message="Timeline events are immutable. Add a new event instead.",
+    ),
+)
+
+
 @router.patch("/{application_id}/timeline/{event_id}")
 async def update_timeline_event(
     application_id: uuid.UUID,  # noqa: ARG001
     event_id: uuid.UUID,  # noqa: ARG001
     _user_id: CurrentUserId,
-) -> DataResponse[dict]:
-    """Update a timeline event."""
-    return DataResponse(data={})
+) -> JSONResponse:
+    """Reject timeline event updates.
+
+    REQ-004 §9: Timeline events are immutable — once created, they
+    cannot be edited or deleted.
+
+    Returns:
+        405 Method Not Allowed with error envelope.
+    """
+    return JSONResponse(
+        status_code=405,
+        content=_TIMELINE_IMMUTABLE_RESPONSE.model_dump(),
+    )
 
 
 @router.delete("/{application_id}/timeline/{event_id}")
@@ -116,9 +141,19 @@ async def delete_timeline_event(
     application_id: uuid.UUID,  # noqa: ARG001
     event_id: uuid.UUID,  # noqa: ARG001
     _user_id: CurrentUserId,
-) -> None:
-    """Delete a timeline event."""
-    return None
+) -> JSONResponse:
+    """Reject timeline event deletion.
+
+    REQ-004 §9: Timeline events are immutable — once created, they
+    cannot be edited or deleted.
+
+    Returns:
+        405 Method Not Allowed with error envelope.
+    """
+    return JSONResponse(
+        status_code=405,
+        content=_TIMELINE_IMMUTABLE_RESPONSE.model_dump(),
+    )
 
 
 # =============================================================================

@@ -48,8 +48,8 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| A.1 | Add `is_pinned` and `archived_at` columns to `applications` table | `db, tdd, plan` | 🟡 |
-| A.2 | Remove or disable timeline event PATCH/DELETE stubs (return 405) | `api, tdd, plan` | ⬜ |
+| A.1 | Add `is_pinned` and `archived_at` columns to `applications` table | `db, tdd, plan` | ✅ |
+| A.2 | Remove or disable timeline event PATCH/DELETE stubs (return 405) | `api, tdd, plan` | 🟡 |
 | A.3 | Add `score_details` JSONB column to `job_postings` and store during scoring | `db, api, tdd, plan` | ⬜ |
 
 ---
