@@ -59,10 +59,13 @@ def upgrade() -> None:
             deleted_cover_letter_pdfs := cover_letter_count;
             RETURN NEXT;
         END;
-        $$;
-
+        $$
+    """
+    )
+    op.execute(
+        """
         COMMENT ON FUNCTION cleanup_orphan_pdfs() IS
-            'REQ-005 §7: Daily cleanup of orphan PDFs not linked to applications (7-day retention)';
+            'REQ-005 §7: Daily cleanup of orphan PDFs not linked to applications (7-day retention)'
     """
     )
 
@@ -89,10 +92,13 @@ def upgrade() -> None:
 
             RETURN deleted_count;
         END;
-        $$;
-
+        $$
+    """
+    )
+    op.execute(
+        """
         COMMENT ON FUNCTION cleanup_resolved_change_flags() IS
-            'REQ-005 §7: Daily cleanup of resolved PersonaChangeFlags (30-day retention after resolution)';
+            'REQ-005 §7: Daily cleanup of resolved PersonaChangeFlags (30-day retention after resolution)'
     """
     )
 
@@ -132,10 +138,13 @@ def upgrade() -> None:
             deleted_cover_letters := letter_count;
             RETURN NEXT;
         END;
-        $$;
-
+        $$
+    """
+    )
+    op.execute(
+        """
         COMMENT ON FUNCTION cleanup_archived_records() IS
-            'REQ-005 §7: Weekly hard delete of archived JobVariants and CoverLetters (180-day retention)';
+            'REQ-005 §7: Weekly hard delete of archived JobVariants and CoverLetters (180-day retention)'
     """
     )
 
@@ -165,10 +174,13 @@ def upgrade() -> None:
 
             RETURN deleted_count;
         END;
-        $$;
-
+        $$
+    """
+    )
+    op.execute(
+        """
         COMMENT ON FUNCTION cleanup_expired_jobs() IS
-            'REQ-005 §7: Weekly hard delete of expired/dismissed JobPostings (180-day retention, favorites protected)';
+            'REQ-005 §7: Weekly hard delete of expired/dismissed JobPostings (180-day retention, favorites protected)'
     """
     )
 
@@ -216,10 +228,13 @@ def upgrade() -> None:
             expired_jobs := jobs_count;
             RETURN NEXT;
         END;
-        $$;
-
+        $$
+    """
+    )
+    op.execute(
+        """
         COMMENT ON FUNCTION run_all_cleanups() IS
-            'REQ-005 §7: Master function to run all cleanup jobs and return deletion counts';
+            'REQ-005 §7: Master function to run all cleanup jobs and return deletion counts'
     """
     )
 

@@ -16,6 +16,7 @@ Install these once on the machine:
 | **Claude Code** | `npm install -g @anthropic-ai/claude-code` | AI coding assistant CLI |
 | **gitleaks** | `brew install gitleaks` or download from [releases](https://github.com/gitleaks/gitleaks/releases) | Pre-commit secret detection |
 | **libmagic** | `sudo apt install libmagic1` | Required by python-magic (file content validation) |
+| **GitHub CLI (gh)** | See [cli.github.com](https://cli.github.com/) — add apt repo, then `sudo apt install gh` | GitHub Actions, PRs, workflow triggers |
 | **Node.js / npm** | `sudo apt install nodejs npm` (or use nvm) | Required for Claude Code install |
 
 ---
