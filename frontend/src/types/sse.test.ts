@@ -228,5 +228,65 @@ describe("SSE Event Types", () => {
 		it("returns false for unknown event types", () => {
 			expect(isSSEEvent({ type: "unknown" })).toBe(false);
 		});
+
+		it("returns false for chat_token with non-string text", () => {
+			expect(isSSEEvent({ type: "chat_token", text: 123 })).toBe(false);
+		});
+
+		it("returns false for chat_token with missing text", () => {
+			expect(isSSEEvent({ type: "chat_token" })).toBe(false);
+		});
+
+		it("returns false for chat_done with missing message_id", () => {
+			expect(isSSEEvent({ type: "chat_done" })).toBe(false);
+		});
+
+		it("returns false for tool_start with missing args", () => {
+			expect(isSSEEvent({ type: "tool_start", tool: "x" })).toBe(false);
+		});
+
+		it("returns false for tool_start with null args", () => {
+			expect(isSSEEvent({ type: "tool_start", tool: "x", args: null })).toBe(
+				false,
+			);
+		});
+
+		it("returns false for tool_result with non-boolean success", () => {
+			expect(
+				isSSEEvent({
+					type: "tool_result",
+					tool: "x",
+					success: "yes",
+				}),
+			).toBe(false);
+		});
+
+		it("returns false for data_changed with missing fields", () => {
+			expect(isSSEEvent({ type: "data_changed", resource: "x" })).toBe(false);
+		});
+	});
+
+	describe("parseSSEEvent field validation", () => {
+		it("returns null for chat_token with non-string text", () => {
+			expect(parseSSEEvent('{"type":"chat_token","text":123}')).toBeNull();
+		});
+
+		it("returns null for chat_done with missing message_id", () => {
+			expect(parseSSEEvent('{"type":"chat_done"}')).toBeNull();
+		});
+
+		it("returns null for tool_start with non-object args", () => {
+			expect(
+				parseSSEEvent('{"type":"tool_start","tool":"x","args":"string"}'),
+			).toBeNull();
+		});
+
+		it("returns null for data_changed with non-string id", () => {
+			expect(
+				parseSSEEvent(
+					'{"type":"data_changed","resource":"x","id":1,"action":"updated"}',
+				),
+			).toBeNull();
+		});
 	});
 });

@@ -109,7 +109,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 2.5 | Create Application & CoverLetter domain types (Application, TimelineEvent, OfferDetails, CoverLetter, ValidationResult) | `tdd, structure, plan` | ✅ |
 | 2.6 | Create typed API client with fetch wrapper and response envelope parsing (REQ-012 §4.3) | `tdd, structure, plan` | ✅ |
 | 2.7 | Create TanStack Query provider and query key factory (REQ-012 §4.2.1) | `tdd, structure, plan` | ✅ |
-| 2.8 | Create SSE client wrapper with reconnection logic and tab visibility detection (REQ-012 §4.4) | `tdd, structure, plan` | ⬜ |
+| 2.8 | Create SSE client wrapper with reconnection logic and tab visibility detection (REQ-012 §4.4) | `tdd, structure, plan` | ✅ |
 | 2.9 | Create SSE-to-TanStack-Query bridge — `data_changed` events invalidate queries (REQ-012 §4.2.1) | `tdd, structure, plan` | ⬜ |
 | 2.10 | Create root layout with providers (QueryClientProvider, SSEProvider) and CSS | `structure, plan` | ⬜ |
 | 2.11 | Create app shell: top nav bar, page content area, chat sidebar slot (REQ-012 §3.2) | `tdd, structure, plan` | ⬜ |

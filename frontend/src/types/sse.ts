@@ -64,33 +64,44 @@ export type SSEEvent =
 	| DataChangedEvent
 	| HeartbeatEvent;
 
-/** All valid SSE event type strings. Typed to catch drift with the SSEEvent union. */
-const SSE_EVENT_TYPES: Set<SSEEvent["type"]> = new Set([
-	"chat_token",
-	"chat_done",
-	"tool_start",
-	"tool_result",
-	"data_changed",
-	"heartbeat",
-]);
-
 /**
- * Type guard for SSEEvent — validates the `type` discriminant only,
- * not the full event shape. Consumers should null-check individual
- * fields if handling untrusted data.
+ * Type guard for SSEEvent — validates the `type` discriminant and all
+ * required fields for each event type at runtime.
  *
  * @param value - Value to check.
- * @returns True if value is an object with a recognized `type` field.
+ * @returns True if value is a fully valid SSE event object.
  */
 export function isSSEEvent(value: unknown): value is SSEEvent {
 	if (typeof value !== "object" || value === null) {
 		return false;
 	}
 	const obj = value as Record<string, unknown>;
-	return (
-		typeof obj.type === "string" &&
-		SSE_EVENT_TYPES.has(obj.type as SSEEvent["type"])
-	);
+	if (typeof obj.type !== "string") return false;
+
+	switch (obj.type) {
+		case "chat_token":
+			return typeof obj.text === "string";
+		case "chat_done":
+			return typeof obj.message_id === "string";
+		case "tool_start":
+			return (
+				typeof obj.tool === "string" &&
+				typeof obj.args === "object" &&
+				obj.args !== null
+			);
+		case "tool_result":
+			return typeof obj.tool === "string" && typeof obj.success === "boolean";
+		case "data_changed":
+			return (
+				typeof obj.resource === "string" &&
+				typeof obj.id === "string" &&
+				typeof obj.action === "string"
+			);
+		case "heartbeat":
+			return true;
+		default:
+			return false;
+	}
 }
 
 /**
