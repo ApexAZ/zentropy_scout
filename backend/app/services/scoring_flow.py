@@ -11,7 +11,7 @@ This service is called by the Strategist graph's filter_and_score_node.
 """
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 from app.agents.state import ScoreResult
@@ -225,6 +225,7 @@ def build_filtered_score_result(filter_result: JobFilterResult) -> ScoreResult:
         stretch_score=None,
         explanation=None,
         filtered_reason=filtered_reason,
+        score_details=None,
     )
 
 
@@ -233,6 +234,7 @@ def build_scored_result(
     fit_score: float,
     stretch_score: float,
     explanation: str | None = None,
+    score_details: dict[str, Any] | None = None,
 ) -> ScoreResult:
     """Build a ScoreResult for a scored (passing) job.
 
@@ -243,6 +245,8 @@ def build_scored_result(
         fit_score: Calculated Fit Score (0-100).
         stretch_score: Calculated Stretch Score (0-100).
         explanation: Optional score explanation.
+        score_details: Optional component breakdown for frontend drill-down
+            (REQ-012 Appendix A.3).
 
     Returns:
         ScoreResult with scores populated.
@@ -264,4 +268,5 @@ def build_scored_result(
         stretch_score=stretch_score,
         explanation=explanation,
         filtered_reason=None,
+        score_details=score_details,
     )

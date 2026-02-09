@@ -182,6 +182,10 @@ class JobPosting(Base, TimestampMixin):
         Integer,
         nullable=True,
     )
+    score_details: Mapped[dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
     failed_non_negotiables: Mapped[list | None] = mapped_column(
         JSONB,
         nullable=True,

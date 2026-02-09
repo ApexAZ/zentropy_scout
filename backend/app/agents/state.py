@@ -205,6 +205,9 @@ class ScoreResult(TypedDict, total=False):
         stretch_score: Stretch score (0-100).
         explanation: Human-readable explanation of scores.
         filtered_reason: If filtered out, why (e.g., "salary_below_minimum").
+        score_details: Full component breakdown for frontend drill-down UI.
+            Contains fit/stretch component scores, weights, and explanation
+            fields (REQ-012 Appendix A.3).
     """
 
     job_posting_id: str
@@ -212,6 +215,9 @@ class ScoreResult(TypedDict, total=False):
     stretch_score: float | None
     explanation: str | None
     filtered_reason: str | None
+    # Any: JSONB-serializable dict with fit/stretch component breakdowns
+    # and explanation structure. See REQ-012 Appendix A.3 for schema.
+    score_details: dict[str, Any] | None
 
 
 class StrategistState(BaseAgentState, total=False):

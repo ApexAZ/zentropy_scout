@@ -30,6 +30,7 @@ Triggers (REQ-007 §7.1):
 """
 
 import logging
+from typing import Any
 
 from langgraph.graph import END, StateGraph
 
@@ -266,6 +267,46 @@ def generate_rationale_node(
     }
 
 
+_MAX_RATIONALE_LENGTH = 2000
+"""Maximum length for rationale/summary text in score_details JSONB."""
+
+
+def _build_score_details(
+    fit_result: dict[str, Any] | None,
+    stretch_result: dict[str, Any] | None,
+    rationale: str | None,
+) -> dict[str, Any] | None:
+    """Build score_details JSONB payload from pipeline state.
+
+    REQ-012 Appendix A.3: Assembles component breakdowns and explanation
+    into a single dict for the score_details JSONB column.
+
+    Args:
+        fit_result: Fit score result with total, components, weights.
+        stretch_result: Stretch score result with total, components, weights.
+        rationale: LLM-generated explanation string (truncated to 2000 chars).
+
+    Returns:
+        Dict suitable for JSONB storage, or None if no score data.
+    """
+    if fit_result is None and stretch_result is None:
+        return None
+
+    summary = (rationale or "")[:_MAX_RATIONALE_LENGTH]
+
+    return {
+        "fit": fit_result,
+        "stretch": stretch_result,
+        "explanation": {
+            "summary": summary,
+            "strengths": [],
+            "gaps": [],
+            "stretch_opportunities": [],
+            "warnings": [],
+        },
+    }
+
+
 def save_scores_node(state: StrategistState) -> StrategistState:
     """Assemble and save ScoreResult for current job.
 
@@ -292,6 +333,13 @@ def save_scores_node(state: StrategistState) -> StrategistState:
     if non_neg_passed and stretch_result is not None:
         stretch_score = stretch_result.get("total")
 
+    # REQ-012 Appendix A.3: Build score_details for frontend drill-down
+    score_details: dict[str, Any] | None = None
+    if non_neg_passed:
+        score_details = _build_score_details(
+            fit_result, stretch_result, state.get("rationale")
+        )
+
     score_result: ScoreResult = {
         "job_posting_id": job_id,
         "fit_score": fit_score,
@@ -300,7 +348,20 @@ def save_scores_node(state: StrategistState) -> StrategistState:
         "filtered_reason": (
             state.get("non_negotiables_reason") if not non_neg_passed else None
         ),
+        "score_details": score_details,
     }
+
+    # Consistency check: score_details totals must match aggregate columns
+    if score_details is not None and fit_score is not None:
+        details_fit = (score_details.get("fit") or {}).get("total")
+        if details_fit is not None and details_fit != fit_score:
+            logger.warning(
+                "Score consistency mismatch for job %s: "
+                "fit_score=%s, details.fit.total=%s",
+                job_id,
+                fit_score,
+                details_fit,
+            )
 
     logger.info("Scores saved for job %s", job_id)
     logger.debug(

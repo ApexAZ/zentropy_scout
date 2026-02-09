@@ -31,7 +31,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 
 ## Phase 0: Backend Prerequisites
 
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
 *Resolve backend gaps from REQ-012 Appendix A before dependent frontend phases.*
 
@@ -49,8 +49,8 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | A.1 | Add `is_pinned` and `archived_at` columns to `applications` table | `db, tdd, plan` | ✅ |
-| A.2 | Remove or disable timeline event PATCH/DELETE stubs (return 405) | `api, tdd, plan` | 🟡 |
-| A.3 | Add `score_details` JSONB column to `job_postings` and store during scoring | `db, api, tdd, plan` | ⬜ |
+| A.2 | Remove or disable timeline event PATCH/DELETE stubs (return 405) | `api, tdd, plan` | ✅ |
+| A.3 | Add `score_details` JSONB column to `job_postings` and store during scoring | `db, api, tdd, plan` | ✅ |
 
 ---
 
