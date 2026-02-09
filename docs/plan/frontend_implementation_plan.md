@@ -75,7 +75,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 1.1 | Initialize Next.js 14+ App Router project in `frontend/` with TypeScript | `structure, commands, plan` | ✅ |
 | 1.2 | Configure Tailwind CSS 3.x with base design tokens (REQ-012 §13.1) | `structure, commands, plan` | ✅ |
 | 1.3 | Initialize shadcn/ui and install base components (Button, Card, Input, Dialog, Select, Tabs) | `structure, commands, plan` | ✅ |
-| 1.4 | Configure ESLint + Prettier for TypeScript/React | `lint, commands, plan` | ⬜ |
+| 1.4 | Configure ESLint + Prettier for TypeScript/React | `lint, commands, plan` | ✅ |
 | 1.5 | Configure Vitest for unit/component testing with React Testing Library | `test, commands, plan` | ⬜ |
 | 1.6 | Configure Playwright for E2E testing | `playwright, commands, plan` | ⬜ |
 | 1.7 | Create frontend `.env.example` with `NEXT_PUBLIC_API_URL` | `commands, plan` | ⬜ |
