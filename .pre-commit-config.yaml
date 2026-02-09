@@ -51,7 +51,38 @@ repos:
         language: system
         pass_filenames: false
 
-  # Pytest - full test suite (runs on PUSH only)
+  # Frontend ESLint - TypeScript/React linter (runs on COMMIT)
+  - repo: local
+    hooks:
+      - id: frontend-eslint
+        name: ESLint (frontend)
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        pass_filenames: false
+        files: ^frontend/
+
+  # Frontend Prettier - format check (runs on COMMIT)
+  - repo: local
+    hooks:
+      - id: frontend-prettier
+        name: Prettier (frontend)
+        entry: bash -c 'cd frontend && npm run format:check'
+        language: system
+        pass_filenames: false
+        files: ^frontend/
+
+  # Frontend TypeScript - type check (runs on COMMIT)
+  - repo: local
+    hooks:
+      - id: frontend-typecheck
+        name: TypeScript (frontend)
+        entry: bash -c 'cd frontend && npm run typecheck'
+        language: system
+        pass_filenames: false
+        files: ^frontend/
+
+  # Pytest - full backend test suite (runs on PUSH only)
+  # always_run: backend is core logic, run tests on every push regardless of changed files
   - repo: local
     hooks:
       - id: pytest
@@ -62,6 +93,18 @@ repos:
         always_run: true
         stages: [pre-push]
 
+  # Frontend Vitest - full frontend test suite (runs on PUSH only)
+  - repo: local
+    hooks:
+      - id: frontend-vitest
+        name: Vitest (frontend)
+        entry: bash -c 'cd frontend && npm run test:run'
+        language: system
+        pass_filenames: false
+        files: ^frontend/
+        stages: [pre-push]
+
 # Summary:
-# ON COMMIT: ruff lint/format, bandit security scan, gitleaks secret detection, etc. (fast)
-# ON PUSH: Full pytest suite (comprehensive - all tests must pass)
+# ON COMMIT: ruff lint/format, bandit security scan, gitleaks secret detection,
+#            ESLint, Prettier format check, TypeScript type check (fast)
+# ON PUSH: Full pytest + Vitest suites (comprehensive - all tests must pass)

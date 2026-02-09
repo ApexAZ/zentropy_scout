@@ -56,7 +56,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 
 ## Phase 1: Project Scaffold
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Creates Next.js project, installs dependencies, configures tooling. REQ-012 §4.1.*
 
@@ -79,7 +79,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 1.5 | Configure Vitest for unit/component testing with React Testing Library | `test, commands, plan` | ✅ |
 | 1.6 | Configure Playwright for E2E testing | `playwright, commands, plan` | ✅ |
 | 1.7 | Create frontend `.env.example` with `NEXT_PUBLIC_API_URL` | `commands, plan` | ✅ |
-| 1.8 | Update `.pre-commit-config.yaml` to add frontend lint hooks | `lint, git, plan` | ⬜ |
+| 1.8 | Update `.pre-commit-config.yaml` to add frontend lint hooks | `lint, git, plan` | ✅ |
 
 ---
 

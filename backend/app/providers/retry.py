@@ -67,11 +67,11 @@ async def with_retries(
 
             # Calculate delay
             if isinstance(e, RateLimitError) and e.retry_after_seconds:
-                delay = e.retry_after_seconds
+                delay = min(e.retry_after_seconds, config.retry_max_delay_ms / 1000)
             else:
                 # Exponential backoff with jitter
                 base_delay = config.retry_base_delay_ms * (2**attempt)
-                jitter = random.uniform(0, base_delay * 0.1)
+                jitter = random.uniform(0, base_delay * 0.1)  # nosec B311 — jitter delay, not security-critical
                 delay = min(base_delay + jitter, config.retry_max_delay_ms) / 1000
 
             logger.warning(

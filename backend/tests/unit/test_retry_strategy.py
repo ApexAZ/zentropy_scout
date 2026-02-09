@@ -163,10 +163,10 @@ class TestRateLimitRetryAfter:
 
     @pytest.mark.asyncio
     async def test_uses_retry_after_when_provided(self, config):
-        """Should use retry_after_seconds from RateLimitError."""
+        """Should use retry_after_seconds from RateLimitError, capped to max delay."""
         func = AsyncMock(
             side_effect=[
-                RateLimitError("rate limited", retry_after_seconds=5.0),
+                RateLimitError("rate limited", retry_after_seconds=0.5),
                 "success",
             ]
         )
@@ -179,8 +179,29 @@ class TestRateLimitRetryAfter:
             result = await with_retries(func, config)
 
         assert result == "success"
-        # Should use the 5.0 second retry_after, not exponential backoff
-        assert sleep_calls[0] == 5.0
+        # Should use the 0.5 second retry_after (within max_delay of 1.0s)
+        assert sleep_calls[0] == 0.5
+
+    @pytest.mark.asyncio
+    async def test_caps_retry_after_to_max_delay(self, config):
+        """Should cap retry_after_seconds to retry_max_delay_ms."""
+        func = AsyncMock(
+            side_effect=[
+                RateLimitError("rate limited", retry_after_seconds=86400.0),
+                "success",
+            ]
+        )
+        sleep_calls = []
+
+        async def mock_sleep(delay):
+            sleep_calls.append(delay)
+
+        with patch("app.providers.retry.asyncio.sleep", side_effect=mock_sleep):
+            result = await with_retries(func, config)
+
+        assert result == "success"
+        # retry_after of 86400s (24h) should be capped to max_delay (1.0s)
+        assert sleep_calls[0] == config.retry_max_delay_ms / 1000
 
     @pytest.mark.asyncio
     async def test_uses_backoff_when_retry_after_not_provided(self, config):
