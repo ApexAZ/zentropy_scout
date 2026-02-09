@@ -3,7 +3,8 @@ CLAUDE_TOOLS.md
 .claude/settings.local.json
 
 # Environment variables
-.env
+.env*
+!.env.example
 
 # Database
 postgres_data/
