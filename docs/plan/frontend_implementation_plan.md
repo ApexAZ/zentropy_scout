@@ -106,7 +106,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 2.2 | Create Persona domain types (BasicInfo, WorkHistory, Skills, Stories, Voice, NonNegotiables, etc.) | `tdd, structure, plan` | ✅ |
 | 2.3 | Create Job domain types (JobPosting, FitScore, StretchScore, ScoreExplanation, GhostDetection) | `tdd, structure, plan` | ✅ |
 | 2.4 | Create Resume domain types (BaseResume, JobVariant, ResumeFile, GuardrailResult) | `tdd, structure, plan` | ✅ |
-| 2.5 | Create Application & CoverLetter domain types (Application, TimelineEvent, OfferDetails, CoverLetter, ValidationResult) | `tdd, structure, plan` | ⬜ |
+| 2.5 | Create Application & CoverLetter domain types (Application, TimelineEvent, OfferDetails, CoverLetter, ValidationResult) | `tdd, structure, plan` | ✅ |
 | 2.6 | Create typed API client with fetch wrapper and response envelope parsing (REQ-012 §4.3) | `tdd, structure, plan` | ⬜ |
 | 2.7 | Create TanStack Query provider and query key factory (REQ-012 §4.2.1) | `tdd, structure, plan` | ⬜ |
 | 2.8 | Create SSE client wrapper with reconnection logic and tab visibility detection (REQ-012 §4.4) | `tdd, structure, plan` | ⬜ |
