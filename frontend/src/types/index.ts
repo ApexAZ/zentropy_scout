@@ -86,3 +86,25 @@ export {
 	STRETCH_SCORE_COMPONENT_KEYS,
 	STRETCH_SCORE_TIERS,
 } from "./job";
+
+export type {
+	BaseResume,
+	BaseResumeStatus,
+	GuardrailResult,
+	GuardrailSeverity,
+	GuardrailViolation,
+	JobVariant,
+	JobVariantStatus,
+	ResumeFile,
+	ResumeFileType,
+	ResumeSourceType,
+	SubmittedResumePDF,
+} from "./resume";
+
+export {
+	BASE_RESUME_STATUSES,
+	GUARDRAIL_SEVERITIES,
+	JOB_VARIANT_STATUSES,
+	RESUME_FILE_TYPES,
+	RESUME_SOURCE_TYPES,
+} from "./resume";
