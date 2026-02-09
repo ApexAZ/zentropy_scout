@@ -202,6 +202,57 @@ describe("SSEClient", () => {
 		});
 	});
 
+	// --- onStatusChange callback ---
+
+	describe("onStatusChange", () => {
+		it("fires with connected on initial open", () => {
+			const onStatusChange = vi.fn();
+			const config = createConfig({ onStatusChange });
+			const client = createClient(config);
+			client.connect();
+			latestES().simulateOpen();
+
+			expect(onStatusChange).toHaveBeenCalledWith("connected");
+		});
+
+		it("fires with reconnecting on error", () => {
+			const onStatusChange = vi.fn();
+			const config = createConfig({ onStatusChange });
+			const client = createClient(config);
+			client.connect();
+			latestES().simulateOpen();
+			onStatusChange.mockClear();
+
+			latestES().simulateError();
+
+			expect(onStatusChange).toHaveBeenCalledWith("reconnecting");
+		});
+
+		it("fires with disconnected on explicit disconnect", () => {
+			const onStatusChange = vi.fn();
+			const config = createConfig({ onStatusChange });
+			const client = createClient(config);
+			client.connect();
+			latestES().simulateOpen();
+			onStatusChange.mockClear();
+
+			client.disconnect();
+
+			expect(onStatusChange).toHaveBeenCalledWith("disconnected");
+		});
+
+		it("is optional — works without it", () => {
+			const config = createConfig();
+			delete config.onStatusChange;
+			const client = createClient(config);
+
+			expect(() => {
+				client.connect();
+				latestES().simulateOpen();
+			}).not.toThrow();
+		});
+	});
+
 	// --- event dispatching ---
 
 	describe("event dispatching", () => {

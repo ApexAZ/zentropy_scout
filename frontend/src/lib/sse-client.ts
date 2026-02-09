@@ -28,6 +28,8 @@ export interface SSEClientConfig {
 	onDisconnect: () => void;
 	/** Called when the SSE connection is re-established. */
 	onReconnect: () => void;
+	/** Called whenever the connection status changes. */
+	onStatusChange?: (status: ConnectionStatus) => void;
 }
 
 export type ConnectionStatus = "connected" | "reconnecting" | "disconnected";
@@ -76,7 +78,7 @@ export class SSEClient {
 		this.eventSource = new EventSource(this.config.url);
 
 		this.eventSource.onopen = () => {
-			this.status = "connected";
+			this.updateStatus("connected");
 			this.reconnectAttempt = 0;
 
 			if (this.isReconnecting) {
@@ -92,7 +94,7 @@ export class SSEClient {
 		this.eventSource.onerror = () => {
 			this.eventSource?.close();
 			this.eventSource = null;
-			this.status = "reconnecting";
+			this.updateStatus("reconnecting");
 			this.isReconnecting = true;
 			this.config.onDisconnect();
 			this.scheduleReconnect();
@@ -104,7 +106,7 @@ export class SSEClient {
 		this.clearReconnectTimer();
 		this.eventSource?.close();
 		this.eventSource = null;
-		this.status = "disconnected";
+		this.updateStatus("disconnected");
 		this.isReconnecting = false;
 	}
 
@@ -128,6 +130,11 @@ export class SSEClient {
 	// -----------------------------------------------------------------------
 	// Private methods
 	// -----------------------------------------------------------------------
+
+	private updateStatus(newStatus: ConnectionStatus): void {
+		this.status = newStatus;
+		this.config.onStatusChange?.(newStatus);
+	}
 
 	private handleMessage(event: MessageEvent): void {
 		const data = event.data as string;
@@ -160,7 +167,7 @@ export class SSEClient {
 
 	private scheduleReconnect(): void {
 		if (this.reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
-			this.status = "disconnected";
+			this.updateStatus("disconnected");
 			return;
 		}
 		this.clearReconnectTimer();
@@ -204,7 +211,7 @@ export class SSEClient {
 			this.eventSource?.close();
 			this.eventSource = null;
 			this.closedByInactivity = true;
-			this.status = "disconnected";
+			this.updateStatus("disconnected");
 		}, INACTIVITY_TIMEOUT_MS);
 	}
 
