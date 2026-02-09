@@ -78,7 +78,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 1.4 | Configure ESLint + Prettier for TypeScript/React | `lint, commands, plan` | ✅ |
 | 1.5 | Configure Vitest for unit/component testing with React Testing Library | `test, commands, plan` | ✅ |
 | 1.6 | Configure Playwright for E2E testing | `playwright, commands, plan` | ✅ |
-| 1.7 | Create frontend `.env.example` with `NEXT_PUBLIC_API_URL` | `commands, plan` | ⬜ |
+| 1.7 | Create frontend `.env.example` with `NEXT_PUBLIC_API_URL` | `commands, plan` | ✅ |
 | 1.8 | Update `.pre-commit-config.yaml` to add frontend lint hooks | `lint, git, plan` | ⬜ |
 
 ---
