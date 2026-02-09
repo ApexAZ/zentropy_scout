@@ -56,3 +56,33 @@ export {
 	STRETCH_APPETITES,
 	WORK_MODELS,
 } from "./persona";
+
+export type {
+	AlsoFoundOn,
+	CrossSourceEntry,
+	ExtractedSkill,
+	FailedNonNegotiable,
+	FitScoreComponentKey,
+	FitScoreResult,
+	FitScoreTier,
+	GhostScoreTier,
+	GhostSignals,
+	JobPosting,
+	JobPostingStatus,
+	ScoreDetails,
+	ScoreExplanation,
+	SeniorityLevel,
+	StretchScoreComponentKey,
+	StretchScoreResult,
+	StretchScoreTier,
+} from "./job";
+
+export {
+	FIT_SCORE_COMPONENT_KEYS,
+	FIT_SCORE_TIERS,
+	GHOST_SCORE_TIERS,
+	JOB_POSTING_STATUSES,
+	SENIORITY_LEVELS,
+	STRETCH_SCORE_COMPONENT_KEYS,
+	STRETCH_SCORE_TIERS,
+} from "./job";

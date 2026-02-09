@@ -104,7 +104,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 |---|------|-------|--------|
 | 2.1 | Create shared TypeScript types: API envelope, pagination, error shapes, SSE events | `tdd, structure, plan` | ✅ |
 | 2.2 | Create Persona domain types (BasicInfo, WorkHistory, Skills, Stories, Voice, NonNegotiables, etc.) | `tdd, structure, plan` | ✅ |
-| 2.3 | Create Job domain types (JobPosting, FitScore, StretchScore, ScoreExplanation, GhostDetection) | `tdd, structure, plan` | ⬜ |
+| 2.3 | Create Job domain types (JobPosting, FitScore, StretchScore, ScoreExplanation, GhostDetection) | `tdd, structure, plan` | ✅ |
 | 2.4 | Create Resume domain types (BaseResume, JobVariant, ResumeFile, GuardrailResult) | `tdd, structure, plan` | ⬜ |
 | 2.5 | Create Application & CoverLetter domain types (Application, TimelineEvent, OfferDetails, CoverLetter, ValidationResult) | `tdd, structure, plan` | ⬜ |
 | 2.6 | Create typed API client with fetch wrapper and response envelope parsing (REQ-012 §4.3) | `tdd, structure, plan` | ⬜ |
