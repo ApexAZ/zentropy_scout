@@ -85,7 +85,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 
 ## Phase 2: Foundation
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Types, API client, SSE client, query configuration, layout shell. REQ-012 §4.2–4.4, §3.2–3.3.*
 
@@ -113,7 +113,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 2.9 | Create SSE-to-TanStack-Query bridge — `data_changed` events invalidate queries (REQ-012 §4.2.1) | `tdd, structure, plan` | ✅ |
 | 2.10 | Create root layout with providers (QueryClientProvider, SSEProvider) and CSS | `structure, plan` | ✅ |
 | 2.11 | Create app shell: top nav bar, page content area, chat sidebar slot (REQ-012 §3.2) | `tdd, structure, plan` | ✅ |
-| 2.12 | Create onboarding gate: check persona status, redirect to `/onboarding` if needed (REQ-012 §3.3) | `tdd, structure, plan` | ⬜ |
+| 2.12 | Create onboarding gate: check persona status, redirect to `/onboarding` if needed (REQ-012 §3.3) | `tdd, structure, plan` | ✅ |
 
 ---
 
