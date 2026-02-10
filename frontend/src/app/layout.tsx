@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/lib/query-provider";
 import { SSEProvider } from "@/lib/sse-provider";
 
@@ -21,6 +22,7 @@ export default function RootLayout({
 				<QueryProvider>
 					<SSEProvider>{children}</SSEProvider>
 				</QueryProvider>
+				<Toaster />
 			</body>
 		</html>
 	);
