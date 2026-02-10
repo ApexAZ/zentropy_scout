@@ -142,8 +142,8 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 3.4 | Create DataTable — sorting, column filters, and toolbar search (REQ-012 §13.3) | `tdd, structure, plan` | ✅ |
 | 3.5 | Create DataTable — pagination with page size selector (20/50/100) (REQ-012 §13.3) | `tdd, structure, plan` | ✅ |
 | 3.6 | Create DataTable — multi-select mode with checkbox column and bulk action toolbar (REQ-012 §13.3) | `tdd, structure, plan` | ✅ |
-| 3.7 | Create toast notification system (success/error/warning/info) with ARIA live region (REQ-012 §13.5) | `tdd, structure, plan` | ⬜ |
-| 3.8 | Create skeleton loading components for page layouts (REQ-012 §13.6) | `tdd, structure, plan` | ⬜ |
+| 3.7 | Create toast notification system (success/error/warning/info) with ARIA live region (REQ-012 §13.5) | `tdd, structure, plan` | ✅ |
+| 3.8 | Create skeleton loading components for page layouts (REQ-012 §13.6) | `tdd, structure, plan` | ✅ |
 | 3.9 | Create error state components: empty, failed, not found, conflict (REQ-012 §13.7) | `tdd, structure, plan` | ⬜ |
 | 3.10 | Create PDF viewer component with iframe embed, zoom, download, fullscreen (REQ-012 §13.4) | `tdd, structure, plan` | ⬜ |
 | 3.11 | Create drag-and-drop reorder component with mobile up/down arrow fallback (REQ-012 §7.4) | `tdd, structure, plan` | ⬜ |
