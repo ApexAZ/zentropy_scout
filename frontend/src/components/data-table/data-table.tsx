@@ -6,16 +6,24 @@
  * Generic data table with TanStack Table and responsive card fallback.
  *
  * REQ-012 §13.3: Table/List component with column definitions,
- * row click navigation, and responsive card fallback.
+ * row click navigation, responsive card fallback, sorting,
+ * column filtering, and global search.
  *
- * This task (§3.3) covers the base table only. Sorting, filtering,
- * pagination, and multi-select are added in §3.4–§3.6.
+ * §3.3 covers the base table. §3.4 adds sorting, filtering, and toolbar.
+ * §3.5–§3.6 add pagination and multi-select.
  */
 
+import * as React from "react";
 import {
 	type ColumnDef,
+	type ColumnFiltersState,
+	type OnChangeFn,
+	type SortingState,
+	type Table as ReactTable,
 	flexRender,
 	getCoreRowModel,
+	getFilteredRowModel,
+	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
 
@@ -41,6 +49,41 @@ export interface DataTableProps<TData> {
 	getRowId?: (row: TData) => string;
 	emptyMessage?: string;
 	className?: string;
+
+	/** Controlled sorting state. */
+	sorting?: SortingState;
+	/** Callback when sorting changes (controlled mode). */
+	onSortingChange?: OnChangeFn<SortingState>;
+
+	/** Controlled column filter state. */
+	columnFilters?: ColumnFiltersState;
+	/** Callback when column filters change (controlled mode). */
+	onColumnFiltersChange?: OnChangeFn<ColumnFiltersState>;
+
+	/** Controlled global filter value (toolbar search). */
+	globalFilter?: string;
+	/** Callback when global filter changes (controlled mode). */
+	onGlobalFilterChange?: OnChangeFn<string>;
+
+	/** Render prop for toolbar — receives the table instance. */
+	toolbar?: (table: ReactTable<TData>) => React.ReactNode;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getAriaSortValue(header: {
+	column: {
+		getIsSorted: () => false | "asc" | "desc";
+		getCanSort: () => boolean;
+	};
+}): "ascending" | "descending" | "none" | undefined {
+	const sorted = header.column.getIsSorted();
+	if (sorted === "asc") return "ascending";
+	if (sorted === "desc") return "descending";
+	if (header.column.getCanSort()) return "none";
+	return undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,17 +98,45 @@ export function DataTable<TData>({
 	getRowId,
 	emptyMessage = "No results.",
 	className,
+	sorting,
+	onSortingChange,
+	columnFilters,
+	onColumnFiltersChange,
+	globalFilter,
+	onGlobalFilterChange,
+	toolbar,
 }: DataTableProps<TData>) {
+	// Internal state for uncontrolled mode
+	const [internalSorting, setInternalSorting] = React.useState<SortingState>(
+		[],
+	);
+	const [internalColumnFilters, setInternalColumnFilters] =
+		React.useState<ColumnFiltersState>([]);
+	const [internalGlobalFilter, setInternalGlobalFilter] = React.useState("");
+
 	const table = useReactTable({
 		data,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		state: {
+			sorting: sorting ?? internalSorting,
+			columnFilters: columnFilters ?? internalColumnFilters,
+			globalFilter: globalFilter ?? internalGlobalFilter,
+		},
+		onSortingChange: onSortingChange ?? setInternalSorting,
+		onColumnFiltersChange: onColumnFiltersChange ?? setInternalColumnFilters,
+		onGlobalFilterChange: onGlobalFilterChange ?? setInternalGlobalFilter,
 	});
 
 	const hasCards = renderCard !== undefined;
 
 	return (
 		<div data-slot="data-table" className={cn(className)}>
+			{/* Toolbar (render prop) */}
+			{toolbar && <div data-slot="data-table-toolbar">{toolbar(table)}</div>}
+
 			{/* Desktop: standard table (hidden on mobile when cards exist) */}
 			<div
 				data-slot="data-table-desktop"
@@ -76,7 +147,10 @@ export function DataTable<TData>({
 						{table.getHeaderGroups().map((headerGroup) => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map((header) => (
-									<TableHead key={header.id}>
+									<TableHead
+										key={header.id}
+										aria-sort={getAriaSortValue(header)}
+									>
 										{header.isPlaceholder
 											? null
 											: flexRender(
@@ -143,10 +217,14 @@ export function DataTable<TData>({
 					data-slot="data-table-mobile"
 					className="flex flex-col gap-3 md:hidden"
 				>
-					{data.length > 0 ? (
-						data.map((row, index) => (
-							<div key={getRowId?.(row) ?? index}>{renderCard(row)}</div>
-						))
+					{table.getRowModel().rows.length > 0 ? (
+						table
+							.getRowModel()
+							.rows.map((row) => (
+								<div key={getRowId?.(row.original) ?? row.id}>
+									{renderCard(row.original)}
+								</div>
+							))
 					) : (
 						<p className="text-muted-foreground py-8 text-center text-sm">
 							{emptyMessage}

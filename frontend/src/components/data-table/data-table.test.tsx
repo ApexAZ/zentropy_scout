@@ -11,6 +11,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { describe, expect, it, vi } from "vitest";
 
 import { DataTable } from "./data-table";
+import { DataTableColumnHeader } from "./data-table-column-header";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -40,6 +41,7 @@ const CHARLIE: TestRow = {
 	email: "charlie@example.com",
 };
 const TEST_DATA: TestRow[] = [ALICE, BOB, CHARLIE];
+const UNORDERED_DATA: TestRow[] = [BOB, CHARLIE, ALICE];
 
 const TEST_COLUMNS: ColumnDef<TestRow>[] = [
 	{ accessorKey: "name", header: COL_NAME },
@@ -56,6 +58,29 @@ function testRenderCard(row: TestRow) {
 
 function testGetRowId(row: TestRow) {
 	return String(row.id);
+}
+
+const SORTABLE_COLUMNS: ColumnDef<TestRow>[] = [
+	{
+		accessorKey: "name",
+		header: ({ column }) => (
+			<DataTableColumnHeader column={column} title={COL_NAME} />
+		),
+		enableSorting: true,
+	},
+	{
+		accessorKey: "email",
+		header: COL_EMAIL,
+		enableSorting: false,
+	},
+];
+
+function getFirstColumnCells(): string[] {
+	const table = screen.getByRole("table");
+	const rows = within(table).getAllByRole("row");
+	return rows
+		.slice(1)
+		.map((row) => within(row).getAllByRole("cell")[0].textContent ?? "");
 }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +333,43 @@ describe("DataTable", () => {
 		expect(screen.getByTestId("card-1")).toBeInTheDocument();
 	});
 
+	it("filters mobile cards when global filter is active", () => {
+		render(
+			<DataTable
+				columns={TEST_COLUMNS}
+				data={TEST_DATA}
+				renderCard={testRenderCard}
+				globalFilter="alice"
+			/>,
+		);
+
+		expect(screen.getByTestId("card-1")).toBeInTheDocument();
+		expect(screen.queryByTestId("card-2")).not.toBeInTheDocument();
+		expect(screen.queryByTestId("card-3")).not.toBeInTheDocument();
+	});
+
+	it("sorts mobile cards when sorting is active", () => {
+		render(
+			<DataTable
+				columns={SORTABLE_COLUMNS}
+				data={UNORDERED_DATA}
+				renderCard={testRenderCard}
+				getRowId={testGetRowId}
+				sorting={[{ id: "name", desc: false }]}
+			/>,
+		);
+
+		const mobileContainer = document.querySelector(
+			"[data-slot='data-table-mobile']",
+		);
+		const cards = mobileContainer?.querySelectorAll("[data-testid]");
+		const cardIds = Array.from(cards ?? []).map((el) =>
+			el.getAttribute("data-testid"),
+		);
+		// Sorted by name ascending: Alice (1), Bob (2), Charlie (3)
+		expect(cardIds).toEqual(["card-1", "card-2", "card-3"]);
+	});
+
 	// -- className pass-through ----------------------------------------------
 
 	it("applies custom className to the root element", () => {
@@ -321,5 +383,151 @@ describe("DataTable", () => {
 
 		const root = container.querySelector("[data-slot='data-table']");
 		expect(root).toHaveClass("my-custom-class");
+	});
+
+	// -- Sorting -------------------------------------------------------------
+
+	describe("Sorting", () => {
+		it("sorts rows ascending when clicking sortable column header", async () => {
+			const user = userEvent.setup();
+			render(<DataTable columns={SORTABLE_COLUMNS} data={UNORDERED_DATA} />);
+
+			// Initially: Bob, Charlie, Alice (insertion order)
+			expect(getFirstColumnCells()).toEqual(["Bob", "Charlie", "Alice"]);
+
+			// Click Name header → sort ascending
+			await user.click(screen.getByRole("button", { name: /name/i }));
+
+			expect(getFirstColumnCells()).toEqual(["Alice", "Bob", "Charlie"]);
+		});
+
+		it("sorts rows descending on second header click", async () => {
+			const user = userEvent.setup();
+			render(<DataTable columns={SORTABLE_COLUMNS} data={UNORDERED_DATA} />);
+
+			const header = screen.getByRole("button", { name: /name/i });
+			await user.click(header); // asc
+			await user.click(header); // desc
+
+			expect(getFirstColumnCells()).toEqual(["Charlie", "Bob", "Alice"]);
+		});
+
+		it("calls onSortingChange for controlled sorting", async () => {
+			const user = userEvent.setup();
+			const handleSortingChange = vi.fn();
+
+			render(
+				<DataTable
+					columns={SORTABLE_COLUMNS}
+					data={UNORDERED_DATA}
+					sorting={[]}
+					onSortingChange={handleSortingChange}
+				/>,
+			);
+
+			await user.click(screen.getByRole("button", { name: /name/i }));
+			expect(handleSortingChange).toHaveBeenCalledOnce();
+		});
+
+		it("adds aria-sort to sorted column header", async () => {
+			const user = userEvent.setup();
+			render(<DataTable columns={SORTABLE_COLUMNS} data={UNORDERED_DATA} />);
+
+			const nameHeader = screen.getByText(COL_NAME).closest("th");
+			expect(nameHeader).toHaveAttribute("aria-sort", "none");
+
+			await user.click(screen.getByRole("button", { name: /name/i }));
+			expect(nameHeader).toHaveAttribute("aria-sort", "ascending");
+		});
+	});
+
+	// -- Filtering -----------------------------------------------------------
+
+	describe("Filtering", () => {
+		it("filters rows when global filter matches", () => {
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					globalFilter="alice"
+				/>,
+			);
+
+			const table = screen.getByRole("table");
+			const rows = within(table).getAllByRole("row");
+			// 1 header row + 1 matching row
+			expect(rows).toHaveLength(2);
+			expect(screen.getByText(ALICE.name)).toBeInTheDocument();
+		});
+
+		it("filters rows based on column filter", () => {
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					columnFilters={[{ id: "name", value: "Bob" }]}
+				/>,
+			);
+
+			const table = screen.getByRole("table");
+			const rows = within(table).getAllByRole("row");
+			expect(rows).toHaveLength(2);
+			expect(screen.getByText(BOB.name)).toBeInTheDocument();
+		});
+
+		it("shows empty message when all rows are filtered out", () => {
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					globalFilter="nonexistent"
+				/>,
+			);
+
+			expect(screen.getByText(EMPTY_MESSAGE)).toBeInTheDocument();
+		});
+	});
+
+	// -- Toolbar -------------------------------------------------------------
+
+	describe("Toolbar", () => {
+		it("renders toolbar when toolbar prop is provided", () => {
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					toolbar={() => <div data-testid="my-toolbar">Toolbar</div>}
+				/>,
+			);
+
+			expect(screen.getByTestId("my-toolbar")).toBeInTheDocument();
+		});
+
+		it("passes table instance to toolbar render prop", () => {
+			const toolbarFn = vi.fn().mockReturnValue(null);
+
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					toolbar={toolbarFn}
+				/>,
+			);
+
+			expect(toolbarFn).toHaveBeenCalledOnce();
+			const tableArg = toolbarFn.mock.calls[0][0];
+			expect(tableArg).toHaveProperty("getState");
+			expect(tableArg).toHaveProperty("setGlobalFilter");
+		});
+
+		it("does not render toolbar slot when toolbar is not provided", () => {
+			const { container } = render(
+				<DataTable columns={TEST_COLUMNS} data={TEST_DATA} />,
+			);
+
+			expect(
+				container.querySelector("[data-slot='data-table-toolbar']"),
+			).not.toBeInTheDocument();
+		});
 	});
 });

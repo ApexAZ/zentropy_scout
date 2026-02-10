@@ -139,7 +139,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 3.1 | Create form field components with React Hook Form + inline Zod error display (REQ-012 §13.2) | `tdd, structure, plan` | ✅ |
 | 3.2 | Create tag/chip input component for JSONB string arrays (skills, cities, exclusions) | `tdd, structure, plan` | ✅ |
 | 3.3 | Create DataTable — basic table with column definitions, row click, and responsive card fallback (REQ-012 §13.3) | `tdd, structure, plan` | ✅ |
-| 3.4 | Create DataTable — sorting, column filters, and toolbar search (REQ-012 §13.3) | `tdd, structure, plan` | ⬜ |
+| 3.4 | Create DataTable — sorting, column filters, and toolbar search (REQ-012 §13.3) | `tdd, structure, plan` | ✅ |
 | 3.5 | Create DataTable — pagination with page size selector (20/50/100) (REQ-012 §13.3) | `tdd, structure, plan` | ⬜ |
 | 3.6 | Create DataTable — multi-select mode with checkbox column and bulk action toolbar (REQ-012 §13.3) | `tdd, structure, plan` | ⬜ |
 | 3.7 | Create toast notification system (success/error/warning/info) with ARIA live region (REQ-012 §13.5) | `tdd, structure, plan` | ⬜ |
