@@ -7,7 +7,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { describe, expect, it, vi } from "vitest";
 
 import { DataTable } from "./data-table";
@@ -22,6 +22,8 @@ const COL_EMAIL = "Email";
 const EMPTY_MESSAGE = "No results.";
 const CUSTOM_EMPTY = "No jobs found";
 const CURSOR_POINTER = "cursor-pointer";
+const MOBILE_SLOT = "[data-slot='data-table-mobile']";
+const TEST_PAGINATION: PaginationState = { pageIndex: 0, pageSize: 2 };
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -285,9 +287,7 @@ describe("DataTable", () => {
 			/>,
 		);
 
-		const cardContainer = screen
-			.getByTestId("card-1")
-			.closest("[data-slot='data-table-mobile']");
+		const cardContainer = screen.getByTestId("card-1").closest(MOBILE_SLOT);
 		expect(cardContainer).toHaveClass("md:hidden");
 	});
 
@@ -296,9 +296,7 @@ describe("DataTable", () => {
 			<DataTable columns={TEST_COLUMNS} data={TEST_DATA} />,
 		);
 
-		expect(
-			container.querySelector("[data-slot='data-table-mobile']"),
-		).not.toBeInTheDocument();
+		expect(container.querySelector(MOBILE_SLOT)).not.toBeInTheDocument();
 	});
 
 	it("renders empty card list when data is empty and renderCard is provided", () => {
@@ -310,9 +308,7 @@ describe("DataTable", () => {
 			/>,
 		);
 
-		const mobileContainer = container.querySelector(
-			"[data-slot='data-table-mobile']",
-		);
+		const mobileContainer = container.querySelector(MOBILE_SLOT);
 		expect(mobileContainer).toBeInTheDocument();
 	});
 
@@ -326,9 +322,7 @@ describe("DataTable", () => {
 			/>,
 		);
 
-		const mobileContainer = container.querySelector(
-			"[data-slot='data-table-mobile']",
-		);
+		const mobileContainer = container.querySelector(MOBILE_SLOT);
 		expect(mobileContainer).toBeInTheDocument();
 		expect(screen.getByTestId("card-1")).toBeInTheDocument();
 	});
@@ -359,9 +353,7 @@ describe("DataTable", () => {
 			/>,
 		);
 
-		const mobileContainer = document.querySelector(
-			"[data-slot='data-table-mobile']",
-		);
+		const mobileContainer = document.querySelector(MOBILE_SLOT);
 		const cards = mobileContainer?.querySelectorAll("[data-testid]");
 		const cardIds = Array.from(cards ?? []).map((el) =>
 			el.getAttribute("data-testid"),
@@ -528,6 +520,117 @@ describe("DataTable", () => {
 			expect(
 				container.querySelector("[data-slot='data-table-toolbar']"),
 			).not.toBeInTheDocument();
+		});
+	});
+
+	// -- Pagination ----------------------------------------------------------
+
+	describe("Pagination", () => {
+		it("paginates rows when pagination prop is provided", () => {
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					pagination={TEST_PAGINATION}
+				/>,
+			);
+
+			const table = screen.getByRole("table");
+			const rows = within(table).getAllByRole("row");
+			// 1 header row + 2 data rows (page 1 of 2)
+			expect(rows).toHaveLength(3);
+		});
+
+		it("shows all rows when no pagination props are provided", () => {
+			render(<DataTable columns={TEST_COLUMNS} data={TEST_DATA} />);
+
+			const table = screen.getByRole("table");
+			const rows = within(table).getAllByRole("row");
+			// 1 header row + 3 data rows (all data visible)
+			expect(rows).toHaveLength(4);
+		});
+
+		it("calls onPaginationChange for controlled pagination", async () => {
+			const user = userEvent.setup();
+			const handlePaginationChange = vi.fn();
+
+			render(
+				<DataTable
+					columns={SORTABLE_COLUMNS}
+					data={TEST_DATA}
+					pagination={TEST_PAGINATION}
+					onPaginationChange={handlePaginationChange}
+				/>,
+			);
+
+			// Sorting triggers a pagination reset (autoResetPageIndex)
+			await user.click(screen.getByRole("button", { name: /name/i }));
+			expect(handlePaginationChange).toHaveBeenCalled();
+		});
+
+		it("paginates mobile cards when pagination is active", () => {
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					renderCard={testRenderCard}
+					pagination={TEST_PAGINATION}
+				/>,
+			);
+
+			const mobileContainer = document.querySelector(MOBILE_SLOT);
+			const cards = mobileContainer?.querySelectorAll("[data-testid]");
+			expect(cards).toHaveLength(2);
+		});
+
+		it("shows second page of data when pageIndex is 1", () => {
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					pagination={{ pageIndex: 1, pageSize: 2 }}
+				/>,
+			);
+
+			const table = screen.getByRole("table");
+			const rows = within(table).getAllByRole("row");
+			// 1 header row + 1 data row (page 2: only Charlie left)
+			expect(rows).toHaveLength(2);
+			expect(screen.getByText(CHARLIE.name)).toBeInTheDocument();
+		});
+
+		it("supports server-side pagination with pageCount", () => {
+			// Server-side: data is already sliced, pageCount tells total pages
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={[ALICE, BOB]}
+					pagination={TEST_PAGINATION}
+					pageCount={5}
+				/>,
+			);
+
+			const table = screen.getByRole("table");
+			const rows = within(table).getAllByRole("row");
+			// 1 header row + 2 data rows (server already sliced)
+			expect(rows).toHaveLength(3);
+		});
+
+		it("filters and paginates correctly together", () => {
+			render(
+				<DataTable
+					columns={TEST_COLUMNS}
+					data={TEST_DATA}
+					globalFilter="alice"
+					pagination={TEST_PAGINATION}
+				/>,
+			);
+
+			const table = screen.getByRole("table");
+			const rows = within(table).getAllByRole("row");
+			// 1 header row + 1 matching row (filter applied before pagination)
+			expect(rows).toHaveLength(2);
+			expect(screen.getByText(ALICE.name)).toBeInTheDocument();
 		});
 	});
 });

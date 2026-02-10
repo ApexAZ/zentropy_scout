@@ -18,11 +18,13 @@ import {
 	type ColumnDef,
 	type ColumnFiltersState,
 	type OnChangeFn,
+	type PaginationState,
 	type SortingState,
 	type Table as ReactTable,
 	flexRender,
 	getCoreRowModel,
 	getFilteredRowModel,
+	getPaginationRowModel,
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
@@ -65,6 +67,13 @@ export interface DataTableProps<TData> {
 	/** Callback when global filter changes (controlled mode). */
 	onGlobalFilterChange?: OnChangeFn<string>;
 
+	/** Controlled pagination state. Providing this enables client-side pagination. */
+	pagination?: PaginationState;
+	/** Callback when pagination changes (controlled mode). */
+	onPaginationChange?: OnChangeFn<PaginationState>;
+	/** Total page count for server-side pagination. Enables manual pagination mode. */
+	pageCount?: number;
+
 	/** Render prop for toolbar — receives the table instance. */
 	toolbar?: (table: ReactTable<TData>) => React.ReactNode;
 }
@@ -104,6 +113,9 @@ export function DataTable<TData>({
 	onColumnFiltersChange,
 	globalFilter,
 	onGlobalFilterChange,
+	pagination,
+	onPaginationChange,
+	pageCount,
 	toolbar,
 }: DataTableProps<TData>) {
 	// Internal state for uncontrolled mode
@@ -113,6 +125,11 @@ export function DataTable<TData>({
 	const [internalColumnFilters, setInternalColumnFilters] =
 		React.useState<ColumnFiltersState>([]);
 	const [internalGlobalFilter, setInternalGlobalFilter] = React.useState("");
+	const [internalPagination, setInternalPagination] =
+		React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
+
+	// Pagination enabled when consumer provides pagination state or pageCount
+	const enablePagination = pagination !== undefined || pageCount !== undefined;
 
 	const table = useReactTable({
 		data,
@@ -120,14 +137,28 @@ export function DataTable<TData>({
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
+		...(enablePagination &&
+			pageCount === undefined && {
+				getPaginationRowModel: getPaginationRowModel(),
+			}),
+		...(pageCount !== undefined && {
+			manualPagination: true,
+			pageCount,
+		}),
 		state: {
 			sorting: sorting ?? internalSorting,
 			columnFilters: columnFilters ?? internalColumnFilters,
 			globalFilter: globalFilter ?? internalGlobalFilter,
+			...(enablePagination && {
+				pagination: pagination ?? internalPagination,
+			}),
 		},
 		onSortingChange: onSortingChange ?? setInternalSorting,
 		onColumnFiltersChange: onColumnFiltersChange ?? setInternalColumnFilters,
 		onGlobalFilterChange: onGlobalFilterChange ?? setInternalGlobalFilter,
+		...(enablePagination && {
+			onPaginationChange: onPaginationChange ?? setInternalPagination,
+		}),
 	});
 
 	const hasCards = renderCard !== undefined;
