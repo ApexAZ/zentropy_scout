@@ -6,6 +6,7 @@
  */
 
 export { FormInputField } from "./form-input-field";
+export { FormTagField } from "./form-tag-field";
 export { FormTextareaField } from "./form-textarea-field";
 export { FormSelectField, type SelectOption } from "./form-select-field";
 export { FormErrorSummary } from "./form-error-summary";
