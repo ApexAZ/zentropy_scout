@@ -2,7 +2,7 @@
  * DataTable component barrel export.
  *
  * Re-exports the DataTable component, column header, toolbar,
- * and pagination for use across pages.
+ * pagination, and select column for use across pages.
  */
 
 export { DataTable, type DataTableProps } from "./data-table";
@@ -14,6 +14,7 @@ export {
 	DataTablePagination,
 	type DataTablePaginationProps,
 } from "./data-table-pagination";
+export { getSelectColumn, SELECT_ROW_LABEL } from "./data-table-select-column";
 export {
 	DataTableToolbar,
 	type DataTableToolbarProps,

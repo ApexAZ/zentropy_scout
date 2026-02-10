@@ -19,6 +19,7 @@ import {
 	type ColumnFiltersState,
 	type OnChangeFn,
 	type PaginationState,
+	type RowSelectionState,
 	type SortingState,
 	type Table as ReactTable,
 	flexRender,
@@ -30,6 +31,8 @@ import {
 } from "@tanstack/react-table";
 
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SELECT_ROW_LABEL } from "./data-table-select-column";
 import {
 	Table,
 	TableBody,
@@ -74,6 +77,13 @@ export interface DataTableProps<TData> {
 	/** Total page count for server-side pagination. Enables manual pagination mode. */
 	pageCount?: number;
 
+	/** Enable row selection via checkboxes. */
+	enableRowSelection?: boolean;
+	/** Controlled row selection state (keys are row IDs). */
+	rowSelection?: RowSelectionState;
+	/** Callback when row selection changes (controlled mode). */
+	onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+
 	/** Render prop for toolbar — receives the table instance. */
 	toolbar?: (table: ReactTable<TData>) => React.ReactNode;
 }
@@ -116,6 +126,9 @@ export function DataTable<TData>({
 	pagination,
 	onPaginationChange,
 	pageCount,
+	enableRowSelection = false,
+	rowSelection,
+	onRowSelectionChange,
 	toolbar,
 }: DataTableProps<TData>) {
 	// Internal state for uncontrolled mode
@@ -127,6 +140,8 @@ export function DataTable<TData>({
 	const [internalGlobalFilter, setInternalGlobalFilter] = React.useState("");
 	const [internalPagination, setInternalPagination] =
 		React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
+	const [internalRowSelection, setInternalRowSelection] =
+		React.useState<RowSelectionState>({});
 
 	// Pagination enabled when consumer provides pagination state or pageCount
 	const enablePagination = pagination !== undefined || pageCount !== undefined;
@@ -134,6 +149,7 @@ export function DataTable<TData>({
 	const table = useReactTable({
 		data,
 		columns,
+		getRowId,
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
@@ -145,6 +161,7 @@ export function DataTable<TData>({
 			manualPagination: true,
 			pageCount,
 		}),
+		enableRowSelection,
 		state: {
 			sorting: sorting ?? internalSorting,
 			columnFilters: columnFilters ?? internalColumnFilters,
@@ -152,6 +169,7 @@ export function DataTable<TData>({
 			...(enablePagination && {
 				pagination: pagination ?? internalPagination,
 			}),
+			rowSelection: rowSelection ?? internalRowSelection,
 		},
 		onSortingChange: onSortingChange ?? setInternalSorting,
 		onColumnFiltersChange: onColumnFiltersChange ?? setInternalColumnFilters,
@@ -159,6 +177,7 @@ export function DataTable<TData>({
 		...(enablePagination && {
 			onPaginationChange: onPaginationChange ?? setInternalPagination,
 		}),
+		onRowSelectionChange: onRowSelectionChange ?? setInternalRowSelection,
 	});
 
 	const hasCards = renderCard !== undefined;
@@ -204,6 +223,7 @@ export function DataTable<TData>({
 									)}
 									role={onRowClick ? "button" : undefined}
 									tabIndex={onRowClick ? 0 : undefined}
+									data-state={row.getIsSelected() ? "selected" : undefined}
 									onClick={
 										onRowClick ? () => onRowClick(row.original) : undefined
 									}
@@ -249,13 +269,24 @@ export function DataTable<TData>({
 					className="flex flex-col gap-3 md:hidden"
 				>
 					{table.getRowModel().rows.length > 0 ? (
-						table
-							.getRowModel()
-							.rows.map((row) => (
-								<div key={getRowId?.(row.original) ?? row.id}>
+						table.getRowModel().rows.map((row) => (
+							<div
+								key={getRowId?.(row.original) ?? row.id}
+								className={cn(enableRowSelection && "flex items-start gap-2")}
+							>
+								{enableRowSelection && (
+									<Checkbox
+										checked={row.getIsSelected()}
+										onCheckedChange={(value) => row.toggleSelected(!!value)}
+										aria-label={SELECT_ROW_LABEL}
+										className="mt-1"
+									/>
+								)}
+								<div className={cn(enableRowSelection && "flex-1")}>
 									{renderCard(row.original)}
 								</div>
-							))
+							</div>
+						))
 					) : (
 						<p className="text-muted-foreground py-8 text-center text-sm">
 							{emptyMessage}
