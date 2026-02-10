@@ -145,7 +145,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 3.7 | Create toast notification system (success/error/warning/info) with ARIA live region (REQ-012 §13.5) | `tdd, structure, plan` | ✅ |
 | 3.8 | Create skeleton loading components for page layouts (REQ-012 §13.6) | `tdd, structure, plan` | ✅ |
 | 3.9 | Create error state components: empty, failed, not found, conflict (REQ-012 §13.7) | `tdd, structure, plan` | ✅ |
-| 3.10 | Create PDF viewer component with iframe embed, zoom, download, fullscreen (REQ-012 §13.4) | `tdd, structure, plan` | ⬜ |
+| 3.10 | Create PDF viewer component with iframe embed, zoom, download, fullscreen (REQ-012 §13.4) | `tdd, structure, plan` | ✅ |
 | 3.11 | Create drag-and-drop reorder component with mobile up/down arrow fallback (REQ-012 §7.4) | `tdd, structure, plan` | ⬜ |
 | 3.12 | Create confirmation dialog with destructive variant (REQ-012 §7.5) | `tdd, structure, plan` | ⬜ |
 | 3.13 | Create connection status indicator (connected/reconnecting/disconnected) (REQ-012 §5.5) | `tdd, structure, plan` | ⬜ |
