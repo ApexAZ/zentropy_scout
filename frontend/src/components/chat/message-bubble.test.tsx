@@ -54,6 +54,8 @@ const CONTENT_SELECTOR = '[data-slot="message-content"]';
 const TIMESTAMP_SELECTOR = '[data-slot="message-timestamp"]';
 const NOTICE_SELECTOR = '[data-slot="system-notice"]';
 const CURSOR_SELECTOR = '[data-slot="streaming-cursor"]';
+const TOOL_BADGE_SELECTOR = '[data-slot="tool-execution"]';
+const TOOLS_CONTAINER_SELECTOR = '[data-slot="tool-executions"]';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -325,6 +327,104 @@ describe("MessageBubble", () => {
 
 			const wrapper = container.querySelector(BUBBLE_SELECTOR);
 			expect(wrapper).toHaveAttribute("data-streaming", "false");
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Tool execution badges (REQ-012 §5.4)
+	// -----------------------------------------------------------------------
+
+	describe("tool execution badges", () => {
+		it("renders tool badges for agent messages with tools", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				tools: [{ tool: "favorite_job", args: {}, status: "success" }],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(container.querySelector(TOOL_BADGE_SELECTOR)).toBeInTheDocument();
+		});
+
+		it("renders multiple tool badges", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				tools: [
+					{ tool: "search_jobs", args: {}, status: "success" },
+					{ tool: "score_posting", args: {}, status: "running" },
+				],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			const badges = container.querySelectorAll(TOOL_BADGE_SELECTOR);
+			expect(badges).toHaveLength(2);
+		});
+
+		it("does not render tools container when tools array is empty", () => {
+			const { container } = renderBubble({ message: AGENT_MESSAGE });
+
+			expect(
+				container.querySelector(TOOLS_CONTAINER_SELECTOR),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render tool badges for user messages", () => {
+			const msg: ChatMessage = {
+				...USER_MESSAGE,
+				tools: [{ tool: "favorite_job", args: {}, status: "success" }],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(
+				container.querySelector(TOOL_BADGE_SELECTOR),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render tool badges for system messages", () => {
+			const msg: ChatMessage = {
+				...SYSTEM_MESSAGE,
+				tools: [{ tool: "favorite_job", args: {}, status: "success" }],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(
+				container.querySelector(TOOL_BADGE_SELECTOR),
+			).not.toBeInTheDocument();
+		});
+
+		it("tools container has aria-live for screen readers", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				tools: [{ tool: "favorite_job", args: {}, status: "running" }],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			const toolsContainer = container.querySelector(TOOLS_CONTAINER_SELECTOR);
+			expect(toolsContainer).toHaveAttribute("aria-live", "polite");
+		});
+
+		it("tool badges appear between content and timestamp", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				tools: [{ tool: "favorite_job", args: {}, status: "success" }],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			const content = container.querySelector(CONTENT_SELECTOR);
+			const toolsContainer = container.querySelector(TOOLS_CONTAINER_SELECTOR);
+			const timestamp = container.querySelector(TIMESTAMP_SELECTOR);
+
+			expect(content).toBeInTheDocument();
+			expect(toolsContainer).toBeInTheDocument();
+			expect(timestamp).toBeInTheDocument();
+
+			// Verify DOM order: content → tools → timestamp
+			const parent = content?.parentElement;
+			const children = Array.from(parent?.children ?? []);
+			const contentIdx = children.indexOf(content as Element);
+			const toolsIdx = children.indexOf(toolsContainer as Element);
+			const timestampIdx = children.indexOf(timestamp as Element);
+			expect(contentIdx).toBeLessThan(toolsIdx);
+			expect(toolsIdx).toBeLessThan(timestampIdx);
 		});
 	});
 

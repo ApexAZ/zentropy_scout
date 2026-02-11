@@ -11,6 +11,7 @@ import type { ChatMessage } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
 import { StreamingCursor } from "./streaming-cursor";
+import { ToolExecutionBadge } from "./tool-execution-badge";
 
 // ---------------------------------------------------------------------------
 // Timestamp formatting
@@ -99,6 +100,20 @@ export function MessageBubble({ message, className }: MessageBubbleProps) {
 					{message.content}
 					{!isUser && message.isStreaming && <StreamingCursor />}
 				</div>
+				{!isUser && message.tools.length > 0 && (
+					<div
+						data-slot="tool-executions"
+						aria-live="polite"
+						className="flex flex-wrap gap-1"
+					>
+						{message.tools.map((tool, index) => (
+							<ToolExecutionBadge
+								key={`${tool.tool}-${index}`}
+								execution={tool}
+							/>
+						))}
+					</div>
+				)}
 				<time
 					data-slot="message-timestamp"
 					dateTime={message.timestamp}
