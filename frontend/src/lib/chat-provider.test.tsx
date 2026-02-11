@@ -18,9 +18,11 @@ import { ChatProvider, useChat } from "./chat-provider";
 
 const MESSAGES_TEST_ID = "messages";
 const STREAMING_TEST_ID = "streaming";
+const LOADING_HISTORY_TEST_ID = "loading-history";
 const SEND_BUTTON_TEST_ID = "send-btn";
 const SYSTEM_BUTTON_TEST_ID = "system-btn";
 const CLEAR_BUTTON_TEST_ID = "clear-btn";
+const LOAD_HISTORY_BUTTON_TEST_ID = "load-history-btn";
 const CHILD_TEST_ID = "child";
 
 // ---------------------------------------------------------------------------
@@ -41,8 +43,10 @@ vi.mock("./sse-provider", () => ({
 }));
 
 const mockApiPost = vi.fn();
+const mockApiGet = vi.fn();
 vi.mock("./api-client", () => ({
 	apiPost: (...args: unknown[]) => mockApiPost(...args),
+	apiGet: (...args: unknown[]) => mockApiGet(...args),
 }));
 
 let uuidCounter = 0;
@@ -55,14 +59,19 @@ function TestConsumer() {
 	const {
 		messages,
 		isStreaming,
+		isLoadingHistory,
 		sendMessage,
 		addSystemMessage,
 		clearMessages,
+		loadHistory,
 	} = useChat();
 	return (
 		<div>
 			<div data-testid={MESSAGES_TEST_ID}>{JSON.stringify(messages)}</div>
 			<div data-testid={STREAMING_TEST_ID}>{String(isStreaming)}</div>
+			<div data-testid={LOADING_HISTORY_TEST_ID}>
+				{String(isLoadingHistory)}
+			</div>
 			<button
 				data-testid={SEND_BUTTON_TEST_ID}
 				onClick={() => sendMessage("hello")}
@@ -77,6 +86,9 @@ function TestConsumer() {
 			</button>
 			<button data-testid={CLEAR_BUTTON_TEST_ID} onClick={clearMessages}>
 				Clear
+			</button>
+			<button data-testid={LOAD_HISTORY_BUTTON_TEST_ID} onClick={loadHistory}>
+				Load History
 			</button>
 		</div>
 	);
@@ -101,6 +113,7 @@ beforeEach(() => {
 	capturedHandlers = null;
 	uuidCounter = 0;
 	mockApiPost.mockResolvedValue({ data: { id: "backend-msg-1" } });
+	mockApiGet.mockResolvedValue([]);
 
 	// Deterministic UUID generation
 	vi.spyOn(crypto, "randomUUID").mockImplementation(
@@ -879,6 +892,535 @@ describe("ChatProvider", () => {
 		const tools = getMessages()[0].tools;
 		expect(tools).toHaveLength(1);
 		expect(tools[0].args).toHaveProperty("_truncated", true);
+	});
+
+	// -----------------------------------------------------------------------
+	// loadHistory
+	// -----------------------------------------------------------------------
+
+	describe("loadHistory", () => {
+		it("provides isLoadingHistory as false initially", () => {
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			expect(screen.getByTestId(LOADING_HISTORY_TEST_ID).textContent).toBe(
+				"false",
+			);
+		});
+
+		it("fetches from /chat/messages when called", async () => {
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(mockApiGet).toHaveBeenCalledWith("/chat/messages");
+		});
+
+		it("populates messages from REST response", async () => {
+			const history: ChatMessage[] = [
+				{
+					id: "hist-1",
+					role: "user",
+					content: "Previous message",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [],
+				},
+				{
+					id: "hist-2",
+					role: "agent",
+					content: "Previous reply",
+					timestamp: "2026-01-01T10:01:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [],
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			const messages = getMessages();
+			expect(messages).toHaveLength(2);
+			expect(messages[0].id).toBe("hist-1");
+			expect(messages[0].content).toBe("Previous message");
+			expect(messages[1].id).toBe("hist-2");
+			expect(messages[1].content).toBe("Previous reply");
+		});
+
+		it("sets isLoadingHistory to true during fetch", async () => {
+			let resolveApiGet!: (value: ChatMessage[]) => void;
+			mockApiGet.mockReturnValueOnce(
+				new Promise<ChatMessage[]>((resolve) => {
+					resolveApiGet = resolve;
+				}),
+			);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			act(() => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(screen.getByTestId(LOADING_HISTORY_TEST_ID).textContent).toBe(
+				"true",
+			);
+
+			await act(async () => {
+				resolveApiGet([]);
+			});
+
+			expect(screen.getByTestId(LOADING_HISTORY_TEST_ID).textContent).toBe(
+				"false",
+			);
+		});
+
+		it("sets isLoadingHistory to false after fetch completes", async () => {
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(screen.getByTestId(LOADING_HISTORY_TEST_ID).textContent).toBe(
+				"false",
+			);
+		});
+
+		it("handles fetch error gracefully", async () => {
+			mockApiGet.mockRejectedValueOnce(new Error("Network error"));
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(screen.getByTestId(LOADING_HISTORY_TEST_ID).textContent).toBe(
+				"false",
+			);
+			expect(getMessages()).toEqual([]);
+		});
+
+		it("replaces existing messages with history on reload", async () => {
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			// First: add a message via SSE
+			act(() => {
+				capturedHandlers!.onChatToken("Live message");
+			});
+			act(() => {
+				capturedHandlers!.onChatDone("live-1");
+			});
+			expect(getMessages()).toHaveLength(1);
+
+			// Then: load history (replaces)
+			const history: ChatMessage[] = [
+				{
+					id: "hist-1",
+					role: "user",
+					content: "Old message",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [],
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			const messages = getMessages();
+			expect(messages).toHaveLength(1);
+			expect(messages[0].id).toBe("hist-1");
+		});
+
+		it("resets isStreaming when loading history", async () => {
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			// Start streaming
+			act(() => {
+				capturedHandlers!.onChatToken("Streaming...");
+			});
+			expect(getIsStreaming()).toBe(true);
+
+			// Load history should reset streaming
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(getIsStreaming()).toBe(false);
+		});
+
+		it("trims history to max message limit", async () => {
+			const largeHistory: ChatMessage[] = Array.from(
+				{ length: 510 },
+				(_, i) => ({
+					id: `hist-${i}`,
+					role: "user" as const,
+					content: `Message ${i}`,
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [],
+				}),
+			);
+			mockApiGet.mockResolvedValueOnce(largeHistory);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(getMessages().length).toBeLessThanOrEqual(500);
+		});
+
+		it("filters out messages with missing id from history response", async () => {
+			const history = [
+				{ role: "user", content: "No id", timestamp: "2026-01-01T10:00:00Z" },
+				{
+					id: "valid-1",
+					role: "user",
+					content: "Valid",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [],
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			const messages = getMessages();
+			expect(messages).toHaveLength(1);
+			expect(messages[0].id).toBe("valid-1");
+		});
+
+		it("filters out messages with invalid role from history response", async () => {
+			const history = [
+				{
+					id: "bad-1",
+					role: "admin",
+					content: "Invalid role",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [],
+				},
+				{
+					id: "valid-1",
+					role: "agent",
+					content: "Valid",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [],
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			const messages = getMessages();
+			expect(messages).toHaveLength(1);
+			expect(messages[0].id).toBe("valid-1");
+		});
+
+		it("truncates oversized content in history messages", async () => {
+			const history: ChatMessage[] = [
+				{
+					id: "big-1",
+					role: "agent",
+					content: "x".repeat(200_000),
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [],
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			const messages = getMessages();
+			expect(messages).toHaveLength(1);
+			expect(messages[0].content.length).toBeLessThanOrEqual(100_000);
+		});
+
+		it("treats non-array response as empty history", async () => {
+			mockApiGet.mockResolvedValueOnce("not an array");
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(getMessages()).toEqual([]);
+		});
+
+		it("filters out invalid tool entries from history response", async () => {
+			const history = [
+				{
+					id: "hist-1",
+					role: "agent",
+					content: "Working",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [
+						{ tool: "search_jobs", args: {}, status: "success" },
+						{ tool: 123, args: {}, status: "running" },
+						{ tool: "bad_status", args: {}, status: "unknown" },
+						"not-an-object",
+					],
+					cards: [],
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			const messages = getMessages();
+			expect(messages[0].tools).toHaveLength(1);
+			expect(messages[0].tools[0].tool).toBe("search_jobs");
+		});
+
+		it("filters out invalid card entries from history response", async () => {
+			const history = [
+				{
+					id: "hist-1",
+					role: "agent",
+					content: "Here are results",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards: [
+						{
+							type: "job",
+							data: {
+								jobId: "j1",
+								jobTitle: "Dev",
+								companyName: "Acme",
+								location: null,
+								workModel: null,
+								fitScore: null,
+								stretchScore: null,
+								salaryMin: null,
+								salaryMax: null,
+								salaryCurrency: null,
+								isFavorite: false,
+							},
+						},
+						{ type: "invalid_type", data: {} },
+						{ type: "job", data: null },
+						"not-an-object",
+					],
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			const messages = getMessages();
+			expect(messages[0].cards).toHaveLength(1);
+			expect(messages[0].cards[0].type).toBe("job");
+		});
+
+		it("caps tools per message from history response", async () => {
+			const tools = Array.from({ length: 60 }, (_, i) => ({
+				tool: `tool_${i}`,
+				args: {},
+				status: "success" as const,
+			}));
+			const history: ChatMessage[] = [
+				{
+					id: "hist-1",
+					role: "agent",
+					content: "Done",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools,
+					cards: [],
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(getMessages()[0].tools.length).toBeLessThanOrEqual(50);
+		});
+
+		it("caps cards per message from history response", async () => {
+			const cards = Array.from({ length: 25 }, (_, i) => ({
+				type: "job" as const,
+				data: {
+					jobId: `j-${i}`,
+					jobTitle: "Dev",
+					companyName: "Co",
+					location: null,
+					workModel: null,
+					fitScore: null,
+					stretchScore: null,
+					salaryMin: null,
+					salaryMax: null,
+					salaryCurrency: null,
+					isFavorite: false,
+				},
+			}));
+			const history: ChatMessage[] = [
+				{
+					id: "hist-1",
+					role: "agent",
+					content: "Jobs",
+					timestamp: "2026-01-01T10:00:00Z",
+					isStreaming: false,
+					tools: [],
+					cards,
+				},
+			];
+			mockApiGet.mockResolvedValueOnce(history);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			await act(async () => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(getMessages()[0].cards.length).toBeLessThanOrEqual(20);
+		});
+
+		it("ignores duplicate loadHistory calls while one is in-flight", async () => {
+			let resolveApiGet!: (value: ChatMessage[]) => void;
+			mockApiGet.mockReturnValueOnce(
+				new Promise<ChatMessage[]>((resolve) => {
+					resolveApiGet = resolve;
+				}),
+			);
+
+			render(
+				<ChatProvider>
+					<TestConsumer />
+				</ChatProvider>,
+			);
+
+			// First call
+			act(() => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			// Second call while first is in-flight
+			act(() => {
+				screen.getByTestId(LOAD_HISTORY_BUTTON_TEST_ID).click();
+			});
+
+			expect(mockApiGet).toHaveBeenCalledTimes(1);
+
+			await act(async () => {
+				resolveApiGet([]);
+			});
+		});
 	});
 });
 

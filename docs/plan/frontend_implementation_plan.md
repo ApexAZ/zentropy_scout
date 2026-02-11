@@ -181,7 +181,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 4.6 | Create structured chat cards: job card, score summary card (REQ-012 §5.3) | `tdd, structure, plan` | ✅ |
 | 4.7 | Create ambiguity resolution UI: clickable option list, destructive confirm card (REQ-012 §5.6) | `tdd, structure, plan` | ✅ |
 | 4.8 | Create chat input: textarea, send button, Enter/Shift+Enter, disabled during streaming (REQ-012 §5.7) | `tdd, structure, plan` | ✅ |
-| 4.9 | Create chat history loading: REST fetch on mount, scroll-to-bottom, "Jump to latest" (REQ-012 §5.8) | `tdd, structure, plan` | ⬜ |
+| 4.9 | Create chat history loading: REST fetch on mount, scroll-to-bottom, "Jump to latest" (REQ-012 §5.8) | `tdd, structure, plan` | ✅ |
 
 ---
 

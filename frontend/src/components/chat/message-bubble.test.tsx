@@ -314,6 +314,20 @@ describe("MessageBubble", () => {
 			expect(container.querySelector(BUBBLE_SELECTOR)).toBeInTheDocument();
 		});
 
+		it("renders fallback text for invalid ISO timestamp", () => {
+			const badTimestamp: ChatMessage = {
+				...USER_MESSAGE,
+				timestamp: "not-a-date",
+			};
+			const { container } = renderBubble({ message: badTimestamp });
+
+			const timestamp = container.querySelector(TIMESTAMP_SELECTOR);
+			expect(timestamp).toBeInTheDocument();
+			// Should not contain "Invalid Date" or be empty — should display a fallback
+			expect(timestamp?.textContent).toBeTruthy();
+			expect(timestamp?.textContent).not.toContain("Invalid Date");
+		});
+
 		it("renders long content without breaking layout", () => {
 			const longMsg: ChatMessage = {
 				...AGENT_MESSAGE,

@@ -21,9 +21,14 @@ import {
 	type ReactNode,
 } from "react";
 
-import type { ChatMessage } from "../types/chat";
+import type {
+	ChatCard,
+	ChatMessage,
+	ToolExecution,
+	ToolExecutionStatus,
+} from "../types/chat";
 
-import { apiPost } from "./api-client";
+import { apiGet, apiPost } from "./api-client";
 import { useSSE } from "./sse-provider";
 
 // ---------------------------------------------------------------------------
@@ -55,11 +60,13 @@ export const MAX_CARDS_PER_MESSAGE = 20;
 interface ChatState {
 	messages: ChatMessage[];
 	isStreaming: boolean;
+	isLoadingHistory: boolean;
 }
 
 const initialState: ChatState = {
 	messages: [],
 	isStreaming: false,
+	isLoadingHistory: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -83,7 +90,9 @@ type ChatAction =
 	| { type: "TOOL_START"; tool: string; args: Record<string, unknown> }
 	| { type: "TOOL_RESULT"; tool: string; success: boolean }
 	| { type: "STREAM_DONE"; messageId: string }
-	| { type: "CLEAR_MESSAGES" };
+	| { type: "CLEAR_MESSAGES" }
+	| { type: "LOAD_HISTORY"; messages: ChatMessage[] }
+	| { type: "SET_LOADING_HISTORY"; loading: boolean };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -104,6 +113,106 @@ function sanitizeToolArgs(
 		return { _truncated: true, _message: "Args too large to display" };
 	}
 	return args;
+}
+
+/** Valid message roles. */
+const VALID_ROLES = new Set<string>(["user", "agent", "system"]);
+
+/** Valid tool execution statuses. */
+const VALID_TOOL_STATUSES = new Set<string>(["running", "success", "error"]);
+
+/** Valid chat card type discriminants. */
+const VALID_CARD_TYPES = new Set<string>([
+	"job",
+	"score",
+	"options",
+	"confirm",
+]);
+
+/** Validate and sanitize tool executions from history data. */
+function sanitizeTools(raw: unknown): ToolExecution[] {
+	if (!Array.isArray(raw)) return [];
+
+	const result: ToolExecution[] = [];
+	for (const item of raw) {
+		if (
+			typeof item !== "object" ||
+			item === null ||
+			typeof item.tool !== "string" ||
+			typeof item.args !== "object" ||
+			item.args === null ||
+			typeof item.status !== "string" ||
+			!VALID_TOOL_STATUSES.has(item.status)
+		) {
+			continue;
+		}
+		result.push({
+			tool: item.tool,
+			args: item.args as Record<string, unknown>,
+			status: item.status as ToolExecutionStatus,
+		});
+		if (result.length >= MAX_TOOLS_PER_MESSAGE) break;
+	}
+
+	return result;
+}
+
+/** Validate and sanitize chat cards from history data. */
+function sanitizeCards(raw: unknown): ChatCard[] {
+	if (!Array.isArray(raw)) return [];
+
+	const result: ChatCard[] = [];
+	for (const item of raw) {
+		if (
+			typeof item !== "object" ||
+			item === null ||
+			typeof item.type !== "string" ||
+			!VALID_CARD_TYPES.has(item.type) ||
+			typeof item.data !== "object" ||
+			item.data === null
+		) {
+			continue;
+		}
+		result.push(item as ChatCard);
+		if (result.length >= MAX_CARDS_PER_MESSAGE) break;
+	}
+
+	return result;
+}
+
+/** Validate and sanitize messages from REST history response. */
+function sanitizeHistoryMessages(data: unknown): ChatMessage[] {
+	if (!Array.isArray(data)) return [];
+
+	const result: ChatMessage[] = [];
+	for (const item of data) {
+		if (
+			typeof item !== "object" ||
+			item === null ||
+			typeof item.id !== "string" ||
+			typeof item.role !== "string" ||
+			typeof item.content !== "string" ||
+			typeof item.timestamp !== "string" ||
+			!VALID_ROLES.has(item.role)
+		) {
+			continue;
+		}
+
+		result.push({
+			id: item.id,
+			role: item.role as ChatMessage["role"],
+			content:
+				item.content.length > MAX_MESSAGE_CONTENT_LENGTH
+					? item.content.slice(0, MAX_MESSAGE_CONTENT_LENGTH)
+					: item.content,
+			timestamp: item.timestamp,
+			isStreaming: false,
+			tools: sanitizeTools(item.tools),
+			cards: sanitizeCards(item.cards),
+		});
+	}
+
+	return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +360,20 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 		case "CLEAR_MESSAGES":
 			return initialState;
 
+		case "LOAD_HISTORY":
+			return {
+				...state,
+				messages: trimMessages(action.messages),
+				isStreaming: false,
+				isLoadingHistory: false,
+			};
+
+		case "SET_LOADING_HISTORY":
+			return {
+				...state,
+				isLoadingHistory: action.loading,
+			};
+
 		default:
 			return state;
 	}
@@ -265,12 +388,16 @@ interface ChatContextValue {
 	messages: ChatMessage[];
 	/** Whether the agent is currently streaming a response. */
 	isStreaming: boolean;
+	/** Whether chat history is being loaded from the server. */
+	isLoadingHistory: boolean;
 	/** Send a user message. Adds to list and POSTs to backend. */
 	sendMessage: (content: string) => Promise<void>;
 	/** Add a system notice message (e.g., "Reconnecting..."). */
 	addSystemMessage: (content: string) => void;
 	/** Clear all messages from the list. */
 	clearMessages: () => void;
+	/** Fetch chat history from the server (REST). */
+	loadHistory: () => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -284,8 +411,9 @@ const ChatContext = createContext<ChatContextValue | null>(null);
  *
  * Must be called within a ChatProvider.
  *
- * @returns Object with `messages`, `isStreaming`, `sendMessage`,
- *          `addSystemMessage`, and `clearMessages`.
+ * @returns Object with `messages`, `isStreaming`, `isLoadingHistory`,
+ *          `sendMessage`, `addSystemMessage`, `clearMessages`,
+ *          and `loadHistory`.
  * @throws Error if called outside a ChatProvider.
  */
 export function useChat(): ChatContextValue {
@@ -319,6 +447,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
 	// Track streaming message ID to avoid generating a new UUID per token
 	const streamingIdRef = useRef<string | null>(null);
+
+	// Guard against duplicate loadHistory calls
+	const isLoadingHistoryRef = useRef(false);
 
 	// Track isStreaming in a ref for the sendMessage closure
 	const isStreamingRef = useRef(state.isStreaming);
@@ -401,6 +532,23 @@ export function ChatProvider({ children }: ChatProviderProps) {
 		dispatch({ type: "CLEAR_MESSAGES" });
 	}, []);
 
+	const loadHistory = useCallback(async () => {
+		if (isLoadingHistoryRef.current) return;
+		isLoadingHistoryRef.current = true;
+
+		dispatch({ type: "SET_LOADING_HISTORY", loading: true });
+		try {
+			const raw = await apiGet<unknown>("/chat/messages");
+			const messages = sanitizeHistoryMessages(raw);
+			streamingIdRef.current = null;
+			dispatch({ type: "LOAD_HISTORY", messages });
+		} catch {
+			dispatch({ type: "SET_LOADING_HISTORY", loading: false });
+		} finally {
+			isLoadingHistoryRef.current = false;
+		}
+	}, []);
+
 	// -----------------------------------------------------------------------
 	// Render
 	// -----------------------------------------------------------------------
@@ -410,9 +558,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
 			value={{
 				messages: state.messages,
 				isStreaming: state.isStreaming,
+				isLoadingHistory: state.isLoadingHistory,
 				sendMessage,
 				addSystemMessage,
 				clearMessages,
+				loadHistory,
 			}}
 		>
 			{children}

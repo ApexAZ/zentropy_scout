@@ -30,7 +30,9 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 function formatTimestamp(iso: string): string {
-	return timeFormatter.format(new Date(iso));
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return iso;
+	return timeFormatter.format(date);
 }
 
 // ---------------------------------------------------------------------------
