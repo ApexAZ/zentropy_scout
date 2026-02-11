@@ -146,7 +146,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 3.8 | Create skeleton loading components for page layouts (REQ-012 §13.6) | `tdd, structure, plan` | ✅ |
 | 3.9 | Create error state components: empty, failed, not found, conflict (REQ-012 §13.7) | `tdd, structure, plan` | ✅ |
 | 3.10 | Create PDF viewer component with iframe embed, zoom, download, fullscreen (REQ-012 §13.4) | `tdd, structure, plan` | ✅ |
-| 3.11 | Create drag-and-drop reorder component with mobile up/down arrow fallback (REQ-012 §7.4) | `tdd, structure, plan` | ⬜ |
+| 3.11 | Create drag-and-drop reorder component with mobile up/down arrow fallback (REQ-012 §7.4) | `tdd, structure, plan` | ✅ |
 | 3.12 | Create confirmation dialog with destructive variant (REQ-012 §7.5) | `tdd, structure, plan` | ⬜ |
 | 3.13 | Create connection status indicator (connected/reconnecting/disconnected) (REQ-012 §5.5) | `tdd, structure, plan` | ⬜ |
 | 3.14 | Create score tier badge component (numeric + label + color) for Fit and Stretch (REQ-012 §8.4) | `tdd, structure, plan` | ⬜ |
@@ -514,7 +514,7 @@ These require user confirmation during implementation:
 
 1. **Phase 1.3** — Which shadcn/ui components to install initially
 2. **Phase 2.12** — Onboarding gate: Next.js middleware vs client-side check (proposed: client-side)
-3. **Phase 3.11** — Drag-and-drop library: `@dnd-kit/core` (proposed) vs alternatives
+3. **Phase 3.11** — ✅ DECIDED: `@dnd-kit/core` + `@dnd-kit/sortable` for drag-and-drop
 4. **Phase 5.10** — Conversational steps: embedded chat view vs persistent sidebar
 5. **Phase 7.12** — Dashboard In Progress/History tabs: show applications inline or redirect
 
