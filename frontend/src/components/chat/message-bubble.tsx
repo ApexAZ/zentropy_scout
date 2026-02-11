@@ -10,6 +10,8 @@
 import type { ChatMessage } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
+import { StreamingCursor } from "./streaming-cursor";
+
 // ---------------------------------------------------------------------------
 // Timestamp formatting
 // ---------------------------------------------------------------------------
@@ -95,6 +97,7 @@ export function MessageBubble({ message, className }: MessageBubbleProps) {
 					)}
 				>
 					{message.content}
+					{!isUser && message.isStreaming && <StreamingCursor />}
 				</div>
 				<time
 					data-slot="message-timestamp"

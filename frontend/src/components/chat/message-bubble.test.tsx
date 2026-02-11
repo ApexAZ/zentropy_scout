@@ -53,6 +53,7 @@ const BUBBLE_SELECTOR = '[data-slot="message-bubble"]';
 const CONTENT_SELECTOR = '[data-slot="message-content"]';
 const TIMESTAMP_SELECTOR = '[data-slot="message-timestamp"]';
 const NOTICE_SELECTOR = '[data-slot="system-notice"]';
+const CURSOR_SELECTOR = '[data-slot="streaming-cursor"]';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -324,6 +325,60 @@ describe("MessageBubble", () => {
 
 			const wrapper = container.querySelector(BUBBLE_SELECTOR);
 			expect(wrapper).toHaveAttribute("data-streaming", "false");
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Streaming cursor (REQ-012 §5.4)
+	// -----------------------------------------------------------------------
+
+	describe("streaming cursor", () => {
+		it("shows cursor when agent message is streaming", () => {
+			const streamingMsg: ChatMessage = {
+				...AGENT_MESSAGE,
+				isStreaming: true,
+			};
+			const { container } = renderBubble({ message: streamingMsg });
+
+			expect(container.querySelector(CURSOR_SELECTOR)).toBeInTheDocument();
+		});
+
+		it("does not show cursor when agent message is not streaming", () => {
+			const { container } = renderBubble({ message: AGENT_MESSAGE });
+
+			expect(container.querySelector(CURSOR_SELECTOR)).not.toBeInTheDocument();
+		});
+
+		it("does not show cursor for user messages", () => {
+			const streamingUser: ChatMessage = {
+				...USER_MESSAGE,
+				isStreaming: true,
+			};
+			const { container } = renderBubble({ message: streamingUser });
+
+			expect(container.querySelector(CURSOR_SELECTOR)).not.toBeInTheDocument();
+		});
+
+		it("does not show cursor for system notices", () => {
+			const streamingSystem: ChatMessage = {
+				...SYSTEM_MESSAGE,
+				isStreaming: true,
+			};
+			const { container } = renderBubble({ message: streamingSystem });
+
+			expect(container.querySelector(CURSOR_SELECTOR)).not.toBeInTheDocument();
+		});
+
+		it("cursor is inside the content bubble", () => {
+			const streamingMsg: ChatMessage = {
+				...AGENT_MESSAGE,
+				isStreaming: true,
+			};
+			const { container } = renderBubble({ message: streamingMsg });
+
+			const content = container.querySelector(CONTENT_SELECTOR);
+			const cursor = content?.querySelector(CURSOR_SELECTOR);
+			expect(cursor).toBeInTheDocument();
 		});
 	});
 });

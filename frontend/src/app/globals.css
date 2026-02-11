@@ -228,6 +228,9 @@
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
 
+	/* Animations */
+	--animate-blink-caret: blink-caret 1s step-end infinite;
+
 	/* Border Radius */
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
@@ -256,6 +259,20 @@
  *   p-4 (16px cards), p-6 (24px sections), p-8 (32px page)
  *   Tailwind's 4px base unit (1 = 0.25rem) matches the spec.
  */
+
+/* ============================================
+ * Custom Animations
+ * ============================================ */
+
+@keyframes blink-caret {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0;
+	}
+}
 
 @layer base {
 	* {

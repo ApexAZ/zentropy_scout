@@ -176,7 +176,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 4.1 | Create chat panel layout: collapsible sidebar (desktop), drawer (mobile) (REQ-012 §5.1) | `tdd, structure, plan` | ✅ |
 | 4.2 | Create chat context provider: panel open/close, message list state, SSE connection ref | `tdd, structure, plan` | ✅ |
 | 4.3 | Create message bubble components: user (right), agent text (left), system notice (center) (REQ-012 §5.2) | `tdd, structure, plan` | ✅ |
-| 4.4 | Create streaming display: token-by-token append with blinking cursor (REQ-012 §5.4) | `tdd, structure, plan` | ⬜ |
+| 4.4 | Create streaming display: token-by-token append with blinking cursor (REQ-012 §5.4) | `tdd, structure, plan` | ✅ |
 | 4.5 | Create tool execution badge: spinner on tool_start → icon on tool_result (REQ-012 §5.4) | `tdd, structure, plan` | ⬜ |
 | 4.6 | Create structured chat cards: job card, score summary card (REQ-012 §5.3) | `tdd, structure, plan` | ⬜ |
 | 4.7 | Create ambiguity resolution UI: clickable option list, destructive confirm card (REQ-012 §5.6) | `tdd, structure, plan` | ⬜ |
