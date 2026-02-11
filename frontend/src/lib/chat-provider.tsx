@@ -45,6 +45,9 @@ const MAX_TOOLS_PER_MESSAGE = 50;
 /** Maximum serialized size (chars) of tool args before truncation. */
 const MAX_TOOL_ARGS_SIZE = 10_000;
 
+/** Maximum structured cards per agent message (REQ-012 §5.3). */
+export const MAX_CARDS_PER_MESSAGE = 20;
+
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
@@ -122,6 +125,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 						timestamp: action.timestamp,
 						isStreaming: false,
 						tools: [],
+						cards: [],
 					},
 				]),
 			};
@@ -138,6 +142,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 						timestamp: action.timestamp,
 						isStreaming: false,
 						tools: [],
+						cards: [],
 					},
 				]),
 			};
@@ -173,6 +178,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 						timestamp: action.timestamp,
 						isStreaming: true,
 						tools: [],
+						cards: [],
 					},
 				]),
 			};

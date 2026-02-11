@@ -10,7 +10,12 @@ import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it } from "vitest";
 
-import type { ChatMessage } from "@/types/chat";
+import type {
+	ChatCard,
+	ChatMessage,
+	JobCardData,
+	ScoreCardData,
+} from "@/types/chat";
 
 import { MessageBubble } from "./message-bubble";
 
@@ -25,6 +30,7 @@ const USER_MESSAGE: ChatMessage = {
 	timestamp: "2026-02-11T10:30:00.000Z",
 	isStreaming: false,
 	tools: [],
+	cards: [],
 };
 
 const AGENT_MESSAGE: ChatMessage = {
@@ -34,6 +40,7 @@ const AGENT_MESSAGE: ChatMessage = {
 	timestamp: "2026-02-11T10:30:05.000Z",
 	isStreaming: false,
 	tools: [],
+	cards: [],
 };
 
 const SYSTEM_MESSAGE: ChatMessage = {
@@ -43,6 +50,7 @@ const SYSTEM_MESSAGE: ChatMessage = {
 	timestamp: "2026-02-11T10:29:55.000Z",
 	isStreaming: false,
 	tools: [],
+	cards: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -56,6 +64,9 @@ const NOTICE_SELECTOR = '[data-slot="system-notice"]';
 const CURSOR_SELECTOR = '[data-slot="streaming-cursor"]';
 const TOOL_BADGE_SELECTOR = '[data-slot="tool-execution"]';
 const TOOLS_CONTAINER_SELECTOR = '[data-slot="tool-executions"]';
+const CARDS_CONTAINER_SELECTOR = '[data-slot="chat-cards"]';
+const JOB_CARD_SELECTOR = '[data-slot="chat-job-card"]';
+const SCORE_CARD_SELECTOR = '[data-slot="chat-score-card"]';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -479,6 +490,160 @@ describe("MessageBubble", () => {
 			const content = container.querySelector(CONTENT_SELECTOR);
 			const cursor = content?.querySelector(CURSOR_SELECTOR);
 			expect(cursor).toBeInTheDocument();
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Structured chat cards (REQ-012 §5.3)
+	// -----------------------------------------------------------------------
+
+	describe("structured chat cards", () => {
+		const JOB_CARD_DATA: JobCardData = {
+			jobId: "job-123",
+			jobTitle: "Senior Dev",
+			companyName: "Acme",
+			location: "NYC",
+			workModel: "Remote",
+			fitScore: 90,
+			stretchScore: 50,
+			salaryMin: 100_000,
+			salaryMax: 150_000,
+			salaryCurrency: "USD",
+			isFavorite: false,
+		};
+
+		const SCORE_CARD_DATA: ScoreCardData = {
+			jobId: "job-123",
+			jobTitle: "Senior Dev",
+			fit: {
+				total: 90,
+				components: {
+					hard_skills: 85,
+					soft_skills: 90,
+					experience_level: 95,
+					role_title: 88,
+					location_logistics: 100,
+				},
+				weights: {
+					hard_skills: 0.4,
+					soft_skills: 0.15,
+					experience_level: 0.25,
+					role_title: 0.1,
+					location_logistics: 0.1,
+				},
+			},
+			stretch: {
+				total: 50,
+				components: {
+					target_role: 55,
+					target_skills: 45,
+					growth_trajectory: 50,
+				},
+				weights: {
+					target_role: 0.5,
+					target_skills: 0.4,
+					growth_trajectory: 0.1,
+				},
+			},
+			explanation: {
+				summary: "Good match.",
+				strengths: ["Python"],
+				gaps: ["K8s"],
+				stretch_opportunities: [],
+				warnings: [],
+			},
+		};
+
+		const JOB_CARD: ChatCard = { type: "job", data: JOB_CARD_DATA };
+		const SCORE_CARD: ChatCard = { type: "score", data: SCORE_CARD_DATA };
+
+		it("renders job card for agent message with cards", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				cards: [JOB_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(container.querySelector(JOB_CARD_SELECTOR)).toBeInTheDocument();
+		});
+
+		it("renders score card for agent message with cards", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				cards: [SCORE_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(container.querySelector(SCORE_CARD_SELECTOR)).toBeInTheDocument();
+		});
+
+		it("renders multiple cards", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				cards: [JOB_CARD, SCORE_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(container.querySelector(JOB_CARD_SELECTOR)).toBeInTheDocument();
+			expect(container.querySelector(SCORE_CARD_SELECTOR)).toBeInTheDocument();
+		});
+
+		it("does not render cards container when cards array is empty", () => {
+			const { container } = renderBubble({ message: AGENT_MESSAGE });
+
+			expect(
+				container.querySelector(CARDS_CONTAINER_SELECTOR),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render cards for user messages", () => {
+			const msg: ChatMessage = {
+				...USER_MESSAGE,
+				cards: [JOB_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(
+				container.querySelector(JOB_CARD_SELECTOR),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render cards for system messages", () => {
+			const msg: ChatMessage = {
+				...SYSTEM_MESSAGE,
+				cards: [JOB_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(
+				container.querySelector(JOB_CARD_SELECTOR),
+			).not.toBeInTheDocument();
+		});
+
+		it("cards appear between content and tool badges", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				cards: [JOB_CARD],
+				tools: [{ tool: "search_jobs", args: {}, status: "success" }],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			const content = container.querySelector(CONTENT_SELECTOR);
+			const cardsContainer = container.querySelector(CARDS_CONTAINER_SELECTOR);
+			const toolsContainer = container.querySelector(TOOLS_CONTAINER_SELECTOR);
+
+			expect(content).toBeInTheDocument();
+			expect(cardsContainer).toBeInTheDocument();
+			expect(toolsContainer).toBeInTheDocument();
+
+			// Verify DOM order: content → cards → tools
+			const parent = content?.parentElement;
+			const children = Array.from(parent?.children ?? []);
+			const contentIdx = children.indexOf(content as Element);
+			const cardsIdx = children.indexOf(cardsContainer as Element);
+			const toolsIdx = children.indexOf(toolsContainer as Element);
+			expect(contentIdx).toBeLessThan(cardsIdx);
+			expect(cardsIdx).toBeLessThan(toolsIdx);
 		});
 	});
 });

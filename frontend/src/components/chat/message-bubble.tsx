@@ -5,11 +5,15 @@
  * and styling. User messages right-aligned with primary color,
  * agent messages left-aligned with muted background, system
  * notices centered with small muted text.
+ * REQ-012 §5.3: Renders structured chat cards (job, score) for
+ * agent messages.
  */
 
 import type { ChatMessage } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
+import { ChatJobCard } from "./chat-job-card";
+import { ChatScoreCard } from "./chat-score-card";
 import { StreamingCursor } from "./streaming-cursor";
 import { ToolExecutionBadge } from "./tool-execution-badge";
 
@@ -100,6 +104,23 @@ export function MessageBubble({ message, className }: MessageBubbleProps) {
 					{message.content}
 					{!isUser && message.isStreaming && <StreamingCursor />}
 				</div>
+				{!isUser && message.cards.length > 0 && (
+					<div data-slot="chat-cards" className="flex flex-col gap-2">
+						{message.cards.map((card, index) =>
+							card.type === "job" ? (
+								<ChatJobCard
+									key={`job-${card.data.jobId}-${index}`}
+									data={card.data}
+								/>
+							) : (
+								<ChatScoreCard
+									key={`score-${card.data.jobId}-${index}`}
+									data={card.data}
+								/>
+							),
+						)}
+					</div>
+				)}
 				{!isUser && message.tools.length > 0 && (
 					<div
 						data-slot="tool-executions"

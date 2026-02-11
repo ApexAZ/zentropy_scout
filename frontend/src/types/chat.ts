@@ -3,7 +3,15 @@
  *
  * REQ-012 §5.2: Message types include user, agent, system notices,
  * and inline tool execution indicators.
+ * REQ-012 §5.3: Structured chat cards (job card, score summary).
  */
+
+import type { WorkModel } from "./persona";
+import type {
+	FitScoreResult,
+	ScoreExplanation,
+	StretchScoreResult,
+} from "./job";
 
 // ---------------------------------------------------------------------------
 // Tool execution
@@ -21,6 +29,55 @@ export interface ToolExecution {
 	/** Current execution status. */
 	status: ToolExecutionStatus;
 }
+
+// ---------------------------------------------------------------------------
+// Structured chat cards (REQ-012 §5.3)
+// ---------------------------------------------------------------------------
+
+/** Data for a compact job card displayed inline in chat. */
+export interface JobCardData {
+	/** Job posting ID (for action callbacks). */
+	jobId: string;
+	/** Job title. */
+	jobTitle: string;
+	/** Company name. */
+	companyName: string;
+	/** Location (e.g., "Austin, TX"). Null when not specified. */
+	location: string | null;
+	/** Work arrangement. Null when not specified. */
+	workModel: WorkModel | null;
+	/** Fit score (0–100). Null when not scored. */
+	fitScore: number | null;
+	/** Stretch score (0–100). Null when not scored. */
+	stretchScore: number | null;
+	/** Minimum salary. Null when not disclosed. */
+	salaryMin: number | null;
+	/** Maximum salary. Null when not disclosed. */
+	salaryMax: number | null;
+	/** ISO 4217 currency code (e.g., "USD"). Null when not disclosed. */
+	salaryCurrency: string | null;
+	/** Whether the user has favorited this posting. */
+	isFavorite: boolean;
+}
+
+/** Data for a score summary card displayed inline in chat. */
+export interface ScoreCardData {
+	/** Job posting ID (for context). */
+	jobId: string;
+	/** Job title (display context for the card header). */
+	jobTitle: string;
+	/** Fit score breakdown. */
+	fit: FitScoreResult;
+	/** Stretch score breakdown. */
+	stretch: StretchScoreResult;
+	/** Human-readable score explanation. */
+	explanation: ScoreExplanation;
+}
+
+/** Discriminated union for structured chat card types. */
+export type ChatCard =
+	| { type: "job"; data: JobCardData }
+	| { type: "score"; data: ScoreCardData };
 
 // ---------------------------------------------------------------------------
 // Chat message
@@ -50,6 +107,8 @@ export interface ChatMessage {
 	isStreaming: boolean;
 	/** Tool executions that occurred inline during this message. */
 	tools: ToolExecution[];
+	/** Structured cards embedded in this message (REQ-012 §5.3). */
+	cards: ChatCard[];
 }
 
 // ---------------------------------------------------------------------------
