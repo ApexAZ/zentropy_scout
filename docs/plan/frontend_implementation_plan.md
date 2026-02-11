@@ -205,7 +205,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 5.1 | Create onboarding layout: full-screen (no nav), progress bar, back/skip/next buttons (REQ-012 §6.2) | `tdd, structure, plan` | ⬜ |
+| 5.1 | Create onboarding layout: full-screen (no nav), progress bar, back/skip/next buttons (REQ-012 §6.2) | `tdd, structure, plan` | ✅ |
 | 5.2 | Create onboarding state management: current step, persisted step data, checkpoint resume (REQ-012 §6.4) | `tdd, structure, plan` | ⬜ |
 | 5.3 | Step 1 — Resume upload: drag-drop, file validation, progress bar, skip option (REQ-012 §6.3.1) | `tdd, structure, plan` | ⬜ |
 | 5.4 | Step 2 — Basic info form: 7 text fields with pre-fill from resume extraction (REQ-012 §6.3.2) | `tdd, structure, plan` | ⬜ |
