@@ -56,6 +56,14 @@
 	--info: #3b82f6;
 	--info-foreground: #ffffff;
 
+	/* Stretch High — REQ-012 §8.4: Stretch "High Growth" tier (Purple-600) */
+	--stretch-high: #9333ea;
+	--stretch-high-foreground: #ffffff;
+
+	/* Stretch Lateral — REQ-012 §8.4: Stretch "Lateral" tier (Gray-300) */
+	--stretch-lateral: #d1d5db;
+	--stretch-lateral-foreground: #1f2937;
+
 	/* Border & Input — Gray-200 */
 	--border: #e5e7eb;
 	--input: #e5e7eb;
@@ -134,6 +142,14 @@
 	--info: #60a5fa;
 	--info-foreground: #ffffff;
 
+	/* Stretch High — Purple-500 (brighter for dark bg) */
+	--stretch-high: #a855f7;
+	--stretch-high-foreground: #ffffff;
+
+	/* Stretch Lateral — Gray-600 (darker for dark bg contrast) */
+	--stretch-lateral: #4b5563;
+	--stretch-lateral-foreground: #e5e7eb;
+
 	/* Border — Gray-800 */
 	--border: #1f2937;
 	--input: #1f2937;
@@ -187,6 +203,10 @@
 	--color-warning-foreground: var(--warning-foreground);
 	--color-info: var(--info);
 	--color-info-foreground: var(--info-foreground);
+	--color-stretch-high: var(--stretch-high);
+	--color-stretch-high-foreground: var(--stretch-high-foreground);
+	--color-stretch-lateral: var(--stretch-lateral);
+	--color-stretch-lateral-foreground: var(--stretch-lateral-foreground);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
