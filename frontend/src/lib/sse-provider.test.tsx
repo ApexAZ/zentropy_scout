@@ -8,7 +8,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SSEClientConfig } from "./sse-client";
@@ -325,10 +325,10 @@ describe("SSEProvider", () => {
 	});
 
 	// -----------------------------------------------------------------------
-	// Chat callbacks (no-op stubs)
+	// Chat callbacks (no-op by default, registrable)
 	// -----------------------------------------------------------------------
 
-	it("provides no-op chat callbacks to SSEClient", () => {
+	it("provides no-op chat callbacks to SSEClient by default", () => {
 		render(
 			<SSEProvider>
 				<div />
@@ -338,11 +338,189 @@ describe("SSEProvider", () => {
 
 		const config = mocks.getCapturedConfig()!;
 
-		// Calling chat callbacks should not throw
+		// Calling chat callbacks should not throw (defaults to no-ops)
 		expect(() => config.onChatToken("token")).not.toThrow();
 		expect(() => config.onChatDone("msg-id")).not.toThrow();
 		expect(() => config.onToolStart("search", { q: "test" })).not.toThrow();
 		expect(() => config.onToolResult("search", true)).not.toThrow();
+	});
+
+	// -----------------------------------------------------------------------
+	// registerChatHandlers
+	// -----------------------------------------------------------------------
+
+	it("exposes registerChatHandlers via context", () => {
+		function Probe() {
+			const { registerChatHandlers } = useSSE();
+			return <div data-testid="probe-type">{typeof registerChatHandlers}</div>;
+		}
+
+		render(
+			<SSEProvider>
+				<Probe />
+			</SSEProvider>,
+			{ wrapper: TestWrapper },
+		);
+
+		expect(screen.getByTestId("probe-type")).toHaveTextContent("function");
+	});
+
+	it("forwards chat_token to registered handler", () => {
+		const onChatToken = vi.fn();
+
+		function Register() {
+			const { registerChatHandlers } = useSSE();
+			registerChatHandlers({
+				onChatToken,
+				onChatDone: () => {},
+				onToolStart: () => {},
+				onToolResult: () => {},
+			});
+			return null;
+		}
+
+		render(
+			<SSEProvider>
+				<Register />
+			</SSEProvider>,
+			{ wrapper: TestWrapper },
+		);
+
+		act(() => {
+			mocks.getCapturedConfig()!.onChatToken("hello");
+		});
+
+		expect(onChatToken).toHaveBeenCalledWith("hello");
+	});
+
+	it("forwards chat_done to registered handler", () => {
+		const onChatDone = vi.fn();
+
+		function Register() {
+			const { registerChatHandlers } = useSSE();
+			registerChatHandlers({
+				onChatToken: () => {},
+				onChatDone,
+				onToolStart: () => {},
+				onToolResult: () => {},
+			});
+			return null;
+		}
+
+		render(
+			<SSEProvider>
+				<Register />
+			</SSEProvider>,
+			{ wrapper: TestWrapper },
+		);
+
+		act(() => {
+			mocks.getCapturedConfig()!.onChatDone("msg-42");
+		});
+
+		expect(onChatDone).toHaveBeenCalledWith("msg-42");
+	});
+
+	it("forwards tool_start to registered handler", () => {
+		const onToolStart = vi.fn();
+
+		function Register() {
+			const { registerChatHandlers } = useSSE();
+			registerChatHandlers({
+				onChatToken: () => {},
+				onChatDone: () => {},
+				onToolStart,
+				onToolResult: () => {},
+			});
+			return null;
+		}
+
+		render(
+			<SSEProvider>
+				<Register />
+			</SSEProvider>,
+			{ wrapper: TestWrapper },
+		);
+
+		const args = { job_id: "j1" };
+		act(() => {
+			mocks.getCapturedConfig()!.onToolStart("favorite_job", args);
+		});
+
+		expect(onToolStart).toHaveBeenCalledWith("favorite_job", args);
+	});
+
+	it("forwards tool_result to registered handler", () => {
+		const onToolResult = vi.fn();
+
+		function Register() {
+			const { registerChatHandlers } = useSSE();
+			registerChatHandlers({
+				onChatToken: () => {},
+				onChatDone: () => {},
+				onToolStart: () => {},
+				onToolResult,
+			});
+			return null;
+		}
+
+		render(
+			<SSEProvider>
+				<Register />
+			</SSEProvider>,
+			{ wrapper: TestWrapper },
+		);
+
+		act(() => {
+			mocks.getCapturedConfig()!.onToolResult("search", true);
+		});
+
+		expect(onToolResult).toHaveBeenCalledWith("search", true);
+	});
+
+	it("returns cleanup function that resets handlers to no-ops", () => {
+		const onChatToken = vi.fn();
+
+		function Register() {
+			const { registerChatHandlers } = useSSE();
+			const cleanupRef = useRef<(() => void) | null>(null);
+
+			useEffect(() => {
+				cleanupRef.current = registerChatHandlers({
+					onChatToken,
+					onChatDone: () => {},
+					onToolStart: () => {},
+					onToolResult: () => {},
+				});
+			}, [registerChatHandlers]);
+
+			return (
+				<button
+					data-testid="cleanup-btn"
+					onClick={() => cleanupRef.current?.()}
+				>
+					Cleanup
+				</button>
+			);
+		}
+
+		render(
+			<SSEProvider>
+				<Register />
+			</SSEProvider>,
+			{ wrapper: TestWrapper },
+		);
+
+		// Cleanup resets handlers
+		act(() => {
+			screen.getByTestId("cleanup-btn").click();
+		});
+
+		act(() => {
+			mocks.getCapturedConfig()!.onChatToken("after-cleanup");
+		});
+
+		expect(onChatToken).not.toHaveBeenCalled();
 	});
 });
 

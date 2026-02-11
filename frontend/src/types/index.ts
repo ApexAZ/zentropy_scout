@@ -7,6 +7,14 @@ export type {
 } from "./api";
 
 export type {
+	ChatHandlers,
+	ChatMessage,
+	ChatMessageRole,
+	ToolExecution,
+	ToolExecutionStatus,
+} from "./chat";
+
+export type {
 	ChatDoneEvent,
 	ChatTokenEvent,
 	DataChangedEvent,

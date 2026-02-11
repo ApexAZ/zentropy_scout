@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Toaster } from "@/components/ui/sonner";
+import { ChatProvider } from "@/lib/chat-provider";
 import { QueryProvider } from "@/lib/query-provider";
 import { SSEProvider } from "@/lib/sse-provider";
 
@@ -20,7 +21,9 @@ export default function RootLayout({
 		<html lang="en" suppressHydrationWarning>
 			<body className="font-sans antialiased">
 				<QueryProvider>
-					<SSEProvider>{children}</SSEProvider>
+					<SSEProvider>
+						<ChatProvider>{children}</ChatProvider>
+					</SSEProvider>
 				</QueryProvider>
 				<Toaster />
 			</body>
