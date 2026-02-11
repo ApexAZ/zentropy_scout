@@ -7,12 +7,15 @@
  * notices centered with small muted text.
  * REQ-012 §5.3: Renders structured chat cards (job, score) for
  * agent messages.
+ * REQ-012 §5.6: Renders ambiguity resolution cards (options, confirm).
  */
 
-import type { ChatMessage } from "@/types/chat";
+import type { ChatCard, ChatMessage } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
+import { ChatConfirmCard } from "./chat-confirm-card";
 import { ChatJobCard } from "./chat-job-card";
+import { ChatOptionList } from "./chat-option-list";
 import { ChatScoreCard } from "./chat-score-card";
 import { StreamingCursor } from "./streaming-cursor";
 import { ToolExecutionBadge } from "./tool-execution-badge";
@@ -28,6 +31,34 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
 
 function formatTimestamp(iso: string): string {
 	return timeFormatter.format(new Date(iso));
+}
+
+// ---------------------------------------------------------------------------
+// Card rendering
+// ---------------------------------------------------------------------------
+
+function renderCard(card: ChatCard, index: number) {
+	switch (card.type) {
+		case "job":
+			return (
+				<ChatJobCard key={`job-${card.data.jobId}-${index}`} data={card.data} />
+			);
+		case "score":
+			return (
+				<ChatScoreCard
+					key={`score-${card.data.jobId}-${index}`}
+					data={card.data}
+				/>
+			);
+		case "options":
+			return <ChatOptionList key={`options-${index}`} data={card.data} />;
+		case "confirm":
+			return <ChatConfirmCard key={`confirm-${index}`} data={card.data} />;
+		default: {
+			const _exhaustive: never = card;
+			return _exhaustive;
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -106,19 +137,7 @@ export function MessageBubble({ message, className }: MessageBubbleProps) {
 				</div>
 				{!isUser && message.cards.length > 0 && (
 					<div data-slot="chat-cards" className="flex flex-col gap-2">
-						{message.cards.map((card, index) =>
-							card.type === "job" ? (
-								<ChatJobCard
-									key={`job-${card.data.jobId}-${index}`}
-									data={card.data}
-								/>
-							) : (
-								<ChatScoreCard
-									key={`score-${card.data.jobId}-${index}`}
-									data={card.data}
-								/>
-							),
-						)}
+						{message.cards.map((card, index) => renderCard(card, index))}
 					</div>
 				)}
 				{!isUser && message.tools.length > 0 && (

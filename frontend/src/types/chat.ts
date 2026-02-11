@@ -74,10 +74,46 @@ export interface ScoreCardData {
 	explanation: ScoreExplanation;
 }
 
+// ---------------------------------------------------------------------------
+// Ambiguity resolution cards (REQ-012 §5.6)
+// ---------------------------------------------------------------------------
+
+/** A single selectable option in an ambiguity resolution list. */
+export interface OptionItem {
+	/** Display label (e.g., "Scrum Master at Acme Corp"). */
+	label: string;
+	/** Value sent as a user message when selected (e.g., "1"). */
+	value: string;
+}
+
+/** Data for the clickable option list card. */
+export interface OptionListData {
+	/** Selectable options. */
+	options: OptionItem[];
+}
+
+/** Data for the destructive confirmation card. */
+export interface ConfirmCardData {
+	/** Description of what will happen if the user proceeds. */
+	message: string;
+	/** Label for the proceed button. Defaults to "Proceed" if omitted. */
+	proceedLabel?: string;
+	/** Label for the cancel button. Defaults to "Cancel" if omitted. */
+	cancelLabel?: string;
+	/** Whether this is a destructive action (red proceed button). */
+	isDestructive: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Chat card union
+// ---------------------------------------------------------------------------
+
 /** Discriminated union for structured chat card types. */
 export type ChatCard =
 	| { type: "job"; data: JobCardData }
-	| { type: "score"; data: ScoreCardData };
+	| { type: "score"; data: ScoreCardData }
+	| { type: "options"; data: OptionListData }
+	| { type: "confirm"; data: ConfirmCardData };
 
 // ---------------------------------------------------------------------------
 // Chat message

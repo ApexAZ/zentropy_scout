@@ -13,7 +13,9 @@ import { describe, expect, it } from "vitest";
 import type {
 	ChatCard,
 	ChatMessage,
+	ConfirmCardData,
 	JobCardData,
+	OptionListData,
 	ScoreCardData,
 } from "@/types/chat";
 
@@ -67,6 +69,8 @@ const TOOLS_CONTAINER_SELECTOR = '[data-slot="tool-executions"]';
 const CARDS_CONTAINER_SELECTOR = '[data-slot="chat-cards"]';
 const JOB_CARD_SELECTOR = '[data-slot="chat-job-card"]';
 const SCORE_CARD_SELECTOR = '[data-slot="chat-score-card"]';
+const OPTION_LIST_SELECTOR = '[data-slot="chat-option-list"]';
+const CONFIRM_CARD_SELECTOR = '[data-slot="chat-confirm-card"]';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -644,6 +648,92 @@ describe("MessageBubble", () => {
 			const toolsIdx = children.indexOf(toolsContainer as Element);
 			expect(contentIdx).toBeLessThan(cardsIdx);
 			expect(cardsIdx).toBeLessThan(toolsIdx);
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Ambiguity resolution cards (REQ-012 §5.6)
+	// -----------------------------------------------------------------------
+
+	describe("ambiguity resolution cards", () => {
+		const OPTION_LIST_DATA: OptionListData = {
+			options: [
+				{ label: "Scrum Master at Acme Corp", value: "1" },
+				{ label: "Product Owner at TechCo", value: "2" },
+			],
+		};
+
+		const CONFIRM_DATA: ConfirmCardData = {
+			message: "Are you sure you want to dismiss this job?",
+			isDestructive: true,
+		};
+
+		const OPTION_CARD: ChatCard = {
+			type: "options",
+			data: OPTION_LIST_DATA,
+		};
+		const CONFIRM_CARD: ChatCard = {
+			type: "confirm",
+			data: CONFIRM_DATA,
+		};
+
+		it("renders option list card for agent message", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				cards: [OPTION_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(container.querySelector(OPTION_LIST_SELECTOR)).toBeInTheDocument();
+		});
+
+		it("renders confirm card for agent message", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				cards: [CONFIRM_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(
+				container.querySelector(CONFIRM_CARD_SELECTOR),
+			).toBeInTheDocument();
+		});
+
+		it("does not render option list for user messages", () => {
+			const msg: ChatMessage = {
+				...USER_MESSAGE,
+				cards: [OPTION_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(
+				container.querySelector(OPTION_LIST_SELECTOR),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render confirm card for user messages", () => {
+			const msg: ChatMessage = {
+				...USER_MESSAGE,
+				cards: [CONFIRM_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(
+				container.querySelector(CONFIRM_CARD_SELECTOR),
+			).not.toBeInTheDocument();
+		});
+
+		it("renders mixed card types together", () => {
+			const msg: ChatMessage = {
+				...AGENT_MESSAGE,
+				cards: [OPTION_CARD, CONFIRM_CARD],
+			};
+			const { container } = renderBubble({ message: msg });
+
+			expect(container.querySelector(OPTION_LIST_SELECTOR)).toBeInTheDocument();
+			expect(
+				container.querySelector(CONFIRM_CARD_SELECTOR),
+			).toBeInTheDocument();
 		});
 	});
 });
