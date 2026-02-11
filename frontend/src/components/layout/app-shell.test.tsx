@@ -92,26 +92,28 @@ describe("AppShell", () => {
 	// -------------------------------------------------------------------
 
 	it("opens chat sidebar when toggle is clicked and closes via sidebar button", () => {
+		// In JSDOM, matchMedia is unavailable so ChatSidebar renders in
+		// tablet/Sheet mode (dialog role) rather than desktop aside mode.
 		render(
 			<AppShell>
 				<div>Content</div>
 			</AppShell>,
 		);
 
-		// Initially no sidebar
-		expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+		// Initially no sidebar dialog
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
-		// Click toggle in nav → sidebar appears
+		// Click toggle in nav → sidebar Sheet appears
 		act(() => {
 			screen.getByRole("button", { name: /toggle chat/i }).click();
 		});
-		expect(screen.getByRole("complementary")).toBeInTheDocument();
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
 
-		// Click close in sidebar → sidebar disappears
+		// Click close in sidebar → sidebar Sheet disappears
 		act(() => {
 			screen.getByRole("button", { name: /close chat/i }).click();
 		});
-		expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 	});
 
 	it("forwards badge props to TopNav", () => {
