@@ -26,8 +26,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e "./backend[dev]"
 
-      - name: Run pip-audit
-        uses: pypa/gh-action-pip-audit@v1.1.0
-        with:
-          inputs: "./backend"
-          vulnerability-service: osv
+      - name: Install pip-audit
+        run: python -m pip install pip-audit
+
+      - name: Run pip-audit (with retry)
+        run: |
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "::group::Attempt $attempt of $max_attempts"
+            if pip-audit --vulnerability-service osv; then
+              echo "::endgroup::"
+              echo "pip-audit passed on attempt $attempt"
+              exit 0
+            fi
+            exit_code=$?
+            echo "::endgroup::"
+            if [ $attempt -lt $max_attempts ]; then
+              echo "::warning::pip-audit failed (attempt $attempt/$max_attempts), retrying in 30s..."
+              sleep 30
+            fi
+            attempt=$((attempt + 1))
+          done
+          echo "::error::pip-audit failed after $max_attempts attempts"
+          exit 1
