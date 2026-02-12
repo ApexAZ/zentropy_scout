@@ -218,7 +218,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 5.11 | Step 8a — Non-negotiables: location preferences section (REQ-012 §6.3.8) | `tdd, structure, plan` | ✅ |
 | 5.12 | Step 8b — Non-negotiables: compensation and work model sections (REQ-012 §6.3.8) | `tdd, structure, plan` | ✅ |
 | 5.13 | Step 8c — Non-negotiables: custom filters CRUD (add/edit/delete user-defined filters) (REQ-012 §6.3.8) | `tdd, structure, plan` | ✅ |
-| 5.14 | Step 9 — Growth targets: tag inputs for target roles/skills, stretch appetite radio (REQ-012 §6.3.9) | `tdd, structure, plan` | ⬜ |
+| 5.14 | Step 9 — Growth targets: tag inputs for target roles/skills, stretch appetite radio (REQ-012 §6.3.9) | `tdd, structure, plan` | ✅ |
 | 5.15 | Step 10 — Voice profile: agent-derived review card with inline editing (REQ-012 §6.3.10) | `tdd, structure, plan` | ⬜ |
 | 5.16 | Step 11 — Review: collapsible sections for all persona areas with edit links (REQ-012 §6.3.11) | `tdd, structure, plan` | ⬜ |
 | 5.17 | Step 12 — Base resume setup: item selection checkboxes and PDF preview (REQ-012 §6.3.12) | `tdd, structure, plan` | ⬜ |
