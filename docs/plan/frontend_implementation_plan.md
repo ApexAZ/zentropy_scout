@@ -214,7 +214,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 5.7 | Step 4 — Education form with skip option (REQ-012 §6.3.4) | `tdd, structure, plan` | ✅ |
 | 5.8 | Step 5 — Skills editor: chip list with proficiency selector and category dropdown (REQ-012 §6.3.5) | `tdd, structure, plan` | ✅ |
 | 5.9 | Step 6 — Certifications form with skip option and "Does not expire" toggle (REQ-012 §6.3.6) | `tdd, structure, plan` | ✅ |
-| 5.10 | Step 7 — Achievement stories: conversational capture (C/A/O) with review cards (REQ-012 §6.3.7) | `tdd, structure, plan` | ⬜ |
+| 5.10 | Step 7 — Achievement stories: conversational capture (C/A/O) with review cards (REQ-012 §6.3.7) | `tdd, structure, plan` | ✅ |
 | 5.11 | Step 8a — Non-negotiables: location preferences section (REQ-012 §6.3.8) | `tdd, structure, plan` | ⬜ |
 | 5.12 | Step 8b — Non-negotiables: compensation and work model sections (REQ-012 §6.3.8) | `tdd, structure, plan` | ⬜ |
 | 5.13 | Step 8c — Non-negotiables: custom filters CRUD (add/edit/delete user-defined filters) (REQ-012 §6.3.8) | `tdd, structure, plan` | ⬜ |
