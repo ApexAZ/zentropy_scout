@@ -210,7 +210,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 | 5.3 | Step 1 — Resume upload: drag-drop, file validation, progress bar, skip option (REQ-012 §6.3.1) | `tdd, structure, plan` | ✅ |
 | 5.4 | Step 2 — Basic info form: 7 text fields with pre-fill from resume extraction (REQ-012 §6.3.2) | `tdd, structure, plan` | ✅ |
 | 5.5 | Step 3a — Work history: job card list with add/edit/delete and ordering (REQ-012 §6.3.3) | `tdd, structure, plan` | ✅ |
-| 5.6 | Step 3b — Bullet editor: nested bullet list within each job card with add/edit/reorder (REQ-012 §6.3.3) | `tdd, structure, plan` | ⬜ |
+| 5.6 | Step 3b — Bullet editor: nested bullet list within each job card with add/edit/reorder (REQ-012 §6.3.3) | `tdd, structure, plan` | ✅ |
 | 5.7 | Step 4 — Education form with skip option (REQ-012 §6.3.4) | `tdd, structure, plan` | ⬜ |
 | 5.8 | Step 5 — Skills editor: chip list with proficiency selector and category dropdown (REQ-012 §6.3.5) | `tdd, structure, plan` | ⬜ |
 | 5.9 | Step 6 — Certifications form with skip option and "Does not expire" toggle (REQ-012 §6.3.6) | `tdd, structure, plan` | ⬜ |

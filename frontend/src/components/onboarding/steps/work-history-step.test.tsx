@@ -26,6 +26,24 @@ import { WorkHistoryStep } from "./work-history-step";
 const DEFAULT_PERSONA_ID = "00000000-0000-4000-a000-000000000001";
 const GENERIC_ERROR_TEXT = "Failed to save. Please try again.";
 
+const MOCK_BULLET_1 = {
+	id: "b-001",
+	work_history_id: "wh-001",
+	text: "Built scalable microservices",
+	skills_demonstrated: [],
+	metrics: null,
+	display_order: 0,
+};
+
+const MOCK_BULLET_2 = {
+	id: "b-002",
+	work_history_id: "wh-002",
+	text: "Led team of 5 engineers",
+	skills_demonstrated: [],
+	metrics: null,
+	display_order: 0,
+};
+
 const MOCK_ENTRY_1: WorkHistory = {
 	id: "wh-001",
 	persona_id: DEFAULT_PERSONA_ID,
@@ -39,7 +57,7 @@ const MOCK_ENTRY_1: WorkHistory = {
 	is_current: false,
 	description: "Built web applications",
 	display_order: 0,
-	bullets: [],
+	bullets: [MOCK_BULLET_1],
 };
 
 const MOCK_ENTRY_2: WorkHistory = {
@@ -55,7 +73,7 @@ const MOCK_ENTRY_2: WorkHistory = {
 	is_current: true,
 	description: null,
 	display_order: 1,
-	bullets: [],
+	bullets: [MOCK_BULLET_2],
 };
 
 const MOCK_LIST_RESPONSE = {
@@ -641,6 +659,83 @@ describe("WorkHistoryStep", () => {
 			await waitFor(() => {
 				expect(mocks.mockApiPost).toHaveBeenCalledTimes(1);
 			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Bullet integration
+	// -----------------------------------------------------------------------
+
+	describe("bullet integration", () => {
+		beforeEach(() => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
+		});
+
+		it("shows bullet expand toggle on each card", async () => {
+			await renderAndWaitForLoad();
+
+			const expandButtons = screen.getAllByRole("button", {
+				name: /bullets for/i,
+			});
+			expect(expandButtons).toHaveLength(2);
+		});
+
+		it("shows bullet count on cards with bullets", async () => {
+			await renderAndWaitForLoad();
+
+			const bulletLabels = screen.getAllByText("1 bullet");
+			expect(bulletLabels).toHaveLength(2);
+		});
+
+		it("disables Next when any entry has zero bullets", async () => {
+			const entryWithoutBullets: WorkHistory = {
+				...MOCK_ENTRY_1,
+				bullets: [],
+			};
+			mocks.mockApiGet.mockReset();
+			mocks.mockApiGet.mockResolvedValueOnce({
+				data: [entryWithoutBullets],
+				meta: { total: 1, page: 1, per_page: 20 },
+			});
+
+			await renderAndWaitForLoad();
+
+			expect(screen.getByTestId("next-button")).toBeDisabled();
+		});
+
+		it("shows bullet hint when entries lack bullets", async () => {
+			const entryWithoutBullets: WorkHistory = {
+				...MOCK_ENTRY_1,
+				bullets: [],
+			};
+			mocks.mockApiGet.mockReset();
+			mocks.mockApiGet.mockResolvedValueOnce({
+				data: [entryWithoutBullets],
+				meta: { total: 1, page: 1, per_page: 20 },
+			});
+
+			await renderAndWaitForLoad();
+
+			expect(screen.getByTestId("bullet-hint")).toBeInTheDocument();
+			expect(
+				screen.getByText(/at least one accomplishment bullet/i),
+			).toBeInTheDocument();
+		});
+
+		it("shows 'Add bullets' text when entry has no bullets", async () => {
+			const entryWithoutBullets: WorkHistory = {
+				...MOCK_ENTRY_1,
+				bullets: [],
+			};
+			mocks.mockApiGet.mockReset();
+			mocks.mockApiGet.mockResolvedValueOnce({
+				data: [entryWithoutBullets],
+				meta: { total: 1, page: 1, per_page: 20 },
+			});
+
+			await renderAndWaitForLoad();
+
+			expect(screen.getByText("Add bullets")).toBeInTheDocument();
 		});
 	});
 });

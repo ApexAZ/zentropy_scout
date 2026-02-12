@@ -1,10 +1,11 @@
 "use client";
 
 /**
- * Work history step for onboarding wizard (Step 3a).
+ * Work history step for onboarding wizard (Step 3).
  *
  * REQ-012 §6.3.3: Display jobs in editable cards with add/edit/delete
- * and ordering. Minimum 1 job required to proceed.
+ * and ordering. Minimum 1 job required to proceed. Each card expands
+ * to show accomplishment bullets with min 1 bullet per job.
  */
 
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
@@ -13,44 +14,20 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
-import {
-	ApiError,
-	apiDelete,
-	apiGet,
-	apiPatch,
-	apiPost,
-} from "@/lib/api-client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { toFriendlyError } from "@/lib/form-errors";
 import { useOnboarding } from "@/lib/onboarding-provider";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { WorkHistory } from "@/types/persona";
+import type { Bullet, WorkHistory } from "@/types/persona";
 
+import { BulletEditor } from "./bullet-editor";
 import { WorkHistoryCard } from "./work-history-card";
 import { WorkHistoryForm, toMonthValue } from "./work-history-form";
 import type { WorkHistoryFormData } from "./work-history-form";
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** Friendly error messages keyed by API error code. */
-const FRIENDLY_ERROR_MESSAGES: Readonly<Record<string, string>> = {
-	VALIDATION_ERROR: "Please check your input and try again.",
-};
-
-/** Fallback error message for unexpected errors. */
-const GENERIC_ERROR_MESSAGE = "Failed to save. Please try again.";
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Map an ApiError to a user-friendly message. */
-function toFriendlyError(err: unknown): string {
-	if (err instanceof ApiError) {
-		return FRIENDLY_ERROR_MESSAGES[err.code] ?? GENERIC_ERROR_MESSAGE;
-	}
-	return GENERIC_ERROR_MESSAGE;
-}
 
 /** Convert month input value (YYYY-MM) to ISO date (YYYY-MM-01). */
 function toIsoDate(monthValue: string): string {
@@ -110,6 +87,7 @@ export function WorkHistoryStep() {
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<WorkHistory | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 
 	// -----------------------------------------------------------------------
 	// Fetch work history on mount
@@ -252,6 +230,23 @@ export function WorkHistoryStep() {
 	}, []);
 
 	// -----------------------------------------------------------------------
+	// Bullet expand/collapse and change handlers
+	// -----------------------------------------------------------------------
+
+	const handleToggleExpand = useCallback((entryId: string) => {
+		setExpandedEntryId((prev) => (prev === entryId ? null : entryId));
+	}, []);
+
+	const handleBulletsChange = useCallback(
+		(entryId: string, bullets: Bullet[]) => {
+			setEntries((prev) =>
+				prev.map((e) => (e.id === entryId ? { ...e, bullets } : e)),
+			);
+		},
+		[],
+	);
+
+	// -----------------------------------------------------------------------
 	// Reorder handler
 	// -----------------------------------------------------------------------
 
@@ -336,12 +331,28 @@ export function WorkHistoryStep() {
 							onReorder={handleReorder}
 							label="Work history entries"
 							renderItem={(entry, dragHandle) => (
-								<WorkHistoryCard
-									entry={entry}
-									onEdit={handleEdit}
-									onDelete={handleDeleteRequest}
-									dragHandle={dragHandle}
-								/>
+								<div>
+									<WorkHistoryCard
+										entry={entry}
+										onEdit={handleEdit}
+										onDelete={handleDeleteRequest}
+										dragHandle={dragHandle}
+										expanded={expandedEntryId === entry.id}
+										onToggleExpand={() => handleToggleExpand(entry.id)}
+									/>
+									{expandedEntryId === entry.id && personaId && (
+										<div className="border-border ml-6 border-l-2 pt-3 pl-4">
+											<BulletEditor
+												personaId={personaId}
+												workHistoryId={entry.id}
+												initialBullets={entry.bullets}
+												onBulletsChange={(bullets) =>
+													handleBulletsChange(entry.id, bullets)
+												}
+											/>
+										</div>
+									)}
+								</div>
 							)}
 						/>
 					)}
@@ -358,6 +369,18 @@ export function WorkHistoryStep() {
 				</>
 			)}
 
+			{/* Bullet validation hint */}
+			{viewMode === "list" &&
+				entries.length > 0 &&
+				entries.some((e) => e.bullets.length === 0) && (
+					<p
+						className="text-muted-foreground text-center text-sm"
+						data-testid="bullet-hint"
+					>
+						Each job needs at least one accomplishment bullet to continue.
+					</p>
+				)}
+
 			{/* Navigation */}
 			{viewMode === "list" && (
 				<div className="flex items-center justify-between pt-4">
@@ -372,7 +395,10 @@ export function WorkHistoryStep() {
 					</Button>
 					<Button
 						type="button"
-						disabled={entries.length === 0}
+						disabled={
+							entries.length === 0 ||
+							entries.some((e) => e.bullets.length === 0)
+						}
 						onClick={next}
 						data-testid="next-button"
 					>

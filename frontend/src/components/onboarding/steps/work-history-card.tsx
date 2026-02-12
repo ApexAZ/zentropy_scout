@@ -7,7 +7,7 @@
  * with edit/delete action buttons.
  */
 
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { WorkHistory } from "@/types/persona";
@@ -34,7 +34,8 @@ function formatMonthYear(isoDate: string): string {
 		"Dec",
 	];
 	const monthIndex = parseInt(month, 10) - 1;
-	return `${monthNames[monthIndex]} ${year}`;
+	const monthName = monthNames[monthIndex] ?? "???";
+	return `${monthName} ${year}`;
 }
 
 /** Build the date range display string. */
@@ -58,6 +59,10 @@ interface WorkHistoryCardProps {
 	onEdit: (entry: WorkHistory) => void;
 	onDelete: (entry: WorkHistory) => void;
 	dragHandle: React.ReactNode | null;
+	/** Whether the bullet section is expanded. */
+	expanded?: boolean;
+	/** Toggle expand/collapse for bullet editing. */
+	onToggleExpand?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,45 +74,69 @@ export function WorkHistoryCard({
 	onEdit,
 	onDelete,
 	dragHandle,
+	expanded = false,
+	onToggleExpand,
 }: WorkHistoryCardProps) {
+	const bulletCount = entry.bullets.length;
+	const ExpandIcon = expanded ? ChevronDown : ChevronRight;
+
 	return (
-		<div className="bg-card flex items-start gap-3 rounded-lg border p-4">
-			{dragHandle}
-			<div className="min-w-0 flex-1">
-				<div className="flex items-start justify-between gap-2">
-					<div className="min-w-0">
-						<h3 className="truncate font-medium">{entry.job_title}</h3>
-						<p className="text-muted-foreground text-sm">
-							{entry.company_name}
-						</p>
+		<div className="bg-card rounded-lg border">
+			<div className="flex items-start gap-3 p-4">
+				{dragHandle}
+				<div className="min-w-0 flex-1">
+					<div className="flex items-start justify-between gap-2">
+						<div className="min-w-0">
+							<h3 className="truncate font-medium">{entry.job_title}</h3>
+							<p className="text-muted-foreground text-sm">
+								{entry.company_name}
+							</p>
+						</div>
+						<div className="flex shrink-0 gap-1">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-8 w-8"
+								onClick={() => onEdit(entry)}
+								aria-label={`Edit ${entry.job_title}`}
+							>
+								<Pencil className="h-4 w-4" />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-8 w-8"
+								onClick={() => onDelete(entry)}
+								aria-label={`Delete ${entry.job_title}`}
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
 					</div>
-					<div className="flex shrink-0 gap-1">
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-8 w-8"
-							onClick={() => onEdit(entry)}
-							aria-label={`Edit ${entry.job_title}`}
+					<p className="text-muted-foreground mt-1 text-sm">
+						{formatDateRange(entry)}
+					</p>
+					<p className="text-muted-foreground mt-0.5 text-sm">
+						{entry.location} &middot; {entry.work_model}
+					</p>
+
+					{/* Bullet expand toggle */}
+					{onToggleExpand && (
+						<button
+							type="button"
+							className="text-muted-foreground hover:text-foreground mt-2 flex items-center gap-1 text-sm"
+							onClick={onToggleExpand}
+							aria-label={`${expanded ? "Collapse" : "Expand"} bullets for ${entry.job_title}`}
 						>
-							<Pencil className="h-4 w-4" />
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-8 w-8"
-							onClick={() => onDelete(entry)}
-							aria-label={`Delete ${entry.job_title}`}
-						>
-							<Trash2 className="h-4 w-4" />
-						</Button>
-					</div>
+							<ExpandIcon className="h-4 w-4" />
+							<span>
+								{bulletCount === 0
+									? "Add bullets"
+									: `${bulletCount} bullet${bulletCount === 1 ? "" : "s"}`}
+							</span>
+						</button>
+					)}
 				</div>
-				<p className="text-muted-foreground mt-1 text-sm">
-					{formatDateRange(entry)}
-				</p>
-				<p className="text-muted-foreground mt-0.5 text-sm">
-					{entry.location} &middot; {entry.work_model}
-				</p>
 			</div>
 		</div>
 	);
