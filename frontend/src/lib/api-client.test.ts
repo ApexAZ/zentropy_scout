@@ -17,6 +17,7 @@ import {
 	apiPatch,
 	apiPost,
 	apiPut,
+	apiUploadFile,
 	buildUrl,
 } from "./api-client";
 
@@ -557,6 +558,125 @@ describe("API Client", () => {
 			expect(fetchMock).toHaveBeenCalledWith(
 				expect.stringContaining(PERSONA_PATH),
 				expect.objectContaining({ method: "DELETE" }),
+			);
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// apiUploadFile
+	// -----------------------------------------------------------------------
+
+	describe("apiUploadFile", () => {
+		const RESUME_FILES_PATH = "/resume-files";
+		const PDF_MIME_TYPE = "application/pdf";
+		const TEST_FILENAME = "resume.pdf";
+
+		function makePdfFile(name = TEST_FILENAME): File {
+			return new File(["content"], name, { type: PDF_MIME_TYPE });
+		}
+
+		it("sends FormData with file via POST", async () => {
+			fetchMock.mockResolvedValueOnce(
+				mockJsonResponse({ data: { id: "file-1" } }, { status: 201 }),
+			);
+
+			await apiUploadFile(RESUME_FILES_PATH, makePdfFile());
+
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			const [calledUrl, calledOptions] = fetchMock.mock.calls[0] as [
+				string,
+				RequestInit,
+			];
+			expect(calledUrl).toBe(`${BASE_URL}${RESUME_FILES_PATH}`);
+			expect(calledOptions.method).toBe("POST");
+			expect(calledOptions.body).toBeInstanceOf(FormData);
+		});
+
+		it("does not set Content-Type header (browser auto-sets boundary)", async () => {
+			fetchMock.mockResolvedValueOnce(
+				mockJsonResponse({ data: {} }, { status: 201 }),
+			);
+
+			await apiUploadFile(RESUME_FILES_PATH, makePdfFile());
+
+			const calledOptions = fetchMock.mock.calls[0][1] as RequestInit;
+			const headers = calledOptions.headers as
+				| Record<string, string>
+				| undefined;
+			expect(headers).toBeUndefined();
+		});
+
+		it("includes additional form fields in FormData", async () => {
+			fetchMock.mockResolvedValueOnce(
+				mockJsonResponse({ data: {} }, { status: 201 }),
+			);
+
+			await apiUploadFile(RESUME_FILES_PATH, makePdfFile(), {
+				persona_id: "p-123",
+			});
+
+			const formData = (fetchMock.mock.calls[0][1] as RequestInit)
+				.body as FormData;
+			expect(formData.get("file")).toBeInstanceOf(File);
+			expect(formData.get("persona_id")).toBe("p-123");
+		});
+
+		it("returns parsed JSON response", async () => {
+			const body = {
+				data: { id: "file-1", file_name: TEST_FILENAME },
+			};
+			fetchMock.mockResolvedValueOnce(mockJsonResponse(body, { status: 201 }));
+
+			const result = await apiUploadFile<typeof body>(
+				RESUME_FILES_PATH,
+				makePdfFile(),
+			);
+
+			expect(result.data.id).toBe("file-1");
+			expect(result.data.file_name).toBe(TEST_FILENAME);
+		});
+
+		it("throws ApiError on error response", async () => {
+			fetchMock.mockResolvedValueOnce(
+				mockErrorResponse("VALIDATION_ERROR", "Invalid file type", 400),
+			);
+			const file = new File(["content"], "bad.txt", {
+				type: "text/plain",
+			});
+
+			const error = await apiUploadFile(RESUME_FILES_PATH, file).catch(
+				(e: unknown) => e,
+			);
+
+			expect(error).toBeInstanceOf(ApiError);
+			expect((error as ApiError).code).toBe("VALIDATION_ERROR");
+			expect((error as ApiError).status).toBe(400);
+		});
+
+		it("throws NETWORK_ERROR on fetch failure", async () => {
+			fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+			const error = await apiUploadFile(RESUME_FILES_PATH, makePdfFile()).catch(
+				(e: unknown) => e,
+			);
+
+			expect(error).toBeInstanceOf(ApiError);
+			expect((error as ApiError).code).toBe("NETWORK_ERROR");
+		});
+
+		it("passes AbortSignal to fetch", async () => {
+			fetchMock.mockResolvedValueOnce(
+				mockJsonResponse({ data: {} }, { status: 201 }),
+			);
+			const controller = new AbortController();
+
+			await apiUploadFile(RESUME_FILES_PATH, makePdfFile(), undefined, {
+				signal: controller.signal,
+			});
+
+			expect(fetchMock).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({ signal: controller.signal }),
 			);
 		});
 	});

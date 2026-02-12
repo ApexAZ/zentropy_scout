@@ -233,3 +233,49 @@ export async function apiPut<T>(path: string, body?: unknown): Promise<T> {
 export async function apiDelete(path: string): Promise<void> {
 	return apiFetch<void>(path, { method: "DELETE" });
 }
+
+/**
+ * Upload a file via multipart/form-data POST.
+ *
+ * Unlike apiFetch, this does NOT set a Content-Type header — the browser
+ * auto-sets it with the multipart boundary. Does not retry on 429
+ * (re-uploading large files is problematic).
+ *
+ * @param path - API path (e.g., "/resume-files").
+ * @param file - File object to upload.
+ * @param fields - Additional form fields (e.g., { persona_id: "..." }).
+ * @param options - Optional AbortSignal for cancellation.
+ */
+export async function apiUploadFile<T>(
+	path: string,
+	file: File,
+	fields?: Record<string, string>,
+	options?: { signal?: AbortSignal },
+): Promise<T> {
+	const url = buildUrl(path);
+	const formData = new FormData();
+	formData.append("file", file);
+
+	if (fields) {
+		for (const [key, value] of Object.entries(fields)) {
+			formData.append(key, value);
+		}
+	}
+
+	let response: Response;
+	try {
+		response = await fetch(url, {
+			method: "POST",
+			body: formData,
+			signal: options?.signal,
+		});
+	} catch {
+		throw new ApiError("NETWORK_ERROR", "Unable to connect to the server", 0);
+	}
+
+	if (!response.ok) {
+		throw await parseErrorResponse(response);
+	}
+
+	return (await response.json()) as T;
+}
