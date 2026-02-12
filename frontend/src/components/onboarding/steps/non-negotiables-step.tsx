@@ -3,14 +3,18 @@
 /**
  * Non-negotiables step for onboarding wizard (Step 8).
  *
- * REQ-012 §6.3.8: Form with sections. This file implements the
- * location preferences section: remote preference radio group,
- * commutable cities tag input, max commute number input, open to
- * relocation toggle, relocation cities tag input.
+ * REQ-012 §6.3.8: Form with sections.
+ * - Location preferences: remote preference radio group, commutable cities
+ *   tag input, max commute number input, relocation toggle/cities.
+ * - Compensation: minimum base salary with currency selector, "prefer not
+ *   to set" checkbox.
+ * - Other filters: visa sponsorship toggle, industry exclusions tag input,
+ *   company size preference radio group, max travel radio group.
  *
  * Conditional visibility:
  * - Remote Only hides commutable_cities and max_commute_minutes.
  * - relocation_open = false hides relocation_cities.
+ * - prefer_no_salary = true hides minimum_base_salary input.
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,7 +40,11 @@ import { ApiError, apiGet, apiPatch } from "@/lib/api-client";
 import { useOnboarding } from "@/lib/onboarding-provider";
 import type { ApiListResponse } from "@/types/api";
 import type { Persona, RemotePreference } from "@/types/persona";
-import { REMOTE_PREFERENCES } from "@/types/persona";
+import {
+	COMPANY_SIZE_PREFERENCES,
+	MAX_TRAVEL_PERCENTS,
+	REMOTE_PREFERENCES,
+} from "@/types/persona";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -53,34 +61,64 @@ const GENERIC_ERROR_MESSAGE = "Failed to save. Please try again.";
 /** Max commute in minutes (8 hours). */
 const MAX_COMMUTE_MINUTES = 480;
 
+/** Max salary value (prevents integer overflow in DB/downstream). */
+const MAX_SALARY = 999_999_999;
+
+/** Common currency codes for the salary currency selector. */
+const CURRENCIES = [
+	"USD",
+	"EUR",
+	"GBP",
+	"CAD",
+	"AUD",
+	"CHF",
+	"JPY",
+	"CNY",
+	"INR",
+] as const;
+
 // ---------------------------------------------------------------------------
 // Validation schema
 // ---------------------------------------------------------------------------
 
 /**
- * Commute field: stored as string from the HTML number input.
- * Validates that the value is a positive number within range.
- * Conversion to number happens in toRequestBody().
+ * Positive-number string validator. Stored as string from the HTML number
+ * input. Validates that the value is a positive number. Conversion to
+ * number happens in toRequestBody().
  */
-const commuteField = z
-	.string()
-	.refine(
-		(val) => {
-			if (val === "") return true;
-			const num = Number(val);
-			return !Number.isNaN(num) && num > 0;
-		},
-		{ message: "Must be a positive number" },
-	)
-	.refine(
-		(val) => {
-			if (val === "") return true;
-			return Number(val) <= MAX_COMMUTE_MINUTES;
-		},
-		{ message: `Cannot exceed ${MAX_COMMUTE_MINUTES} minutes` },
-	);
+const positiveNumberField = z.string().refine(
+	(val) => {
+		if (val === "") return true;
+		const num = Number(val);
+		return !Number.isNaN(num) && num > 0;
+	},
+	{ message: "Must be a positive number" },
+);
 
-const locationSchema = z.object({
+/**
+ * Commute field: positive number with upper bound.
+ */
+const commuteField = positiveNumberField.refine(
+	(val) => {
+		if (val === "") return true;
+		return Number(val) <= MAX_COMMUTE_MINUTES;
+	},
+	{ message: `Cannot exceed ${MAX_COMMUTE_MINUTES} minutes` },
+);
+
+/**
+ * Salary field: positive number with upper bound.
+ */
+const salaryField = positiveNumberField.refine(
+	(val) => {
+		if (val === "") return true;
+		return Number(val) <= MAX_SALARY;
+	},
+	{ message: `Cannot exceed ${MAX_SALARY.toLocaleString()}` },
+);
+
+const nonNegotiablesSchema = z.object({
+	// Location
 	// REMOTE_PREFERENCES is readonly string[] — double assertion needed
 	// because z.enum() requires a mutable [string, ...string[]] tuple.
 	remote_preference: z.enum(
@@ -90,16 +128,39 @@ const locationSchema = z.object({
 	max_commute_minutes: commuteField,
 	relocation_open: z.boolean(),
 	relocation_cities: z.array(z.string().trim().max(100)).max(20),
+
+	// Compensation
+	prefer_no_salary: z.boolean(),
+	minimum_base_salary: salaryField,
+	// CURRENCIES is readonly string[] — double assertion needed for z.enum().
+	salary_currency: z.enum(CURRENCIES as unknown as [string, ...string[]]),
+
+	// Other filters
+	visa_sponsorship_required: z.boolean(),
+	industry_exclusions: z.array(z.string().trim().max(100)).max(20),
+	company_size_preference: z.enum(
+		COMPANY_SIZE_PREFERENCES as unknown as [string, ...string[]],
+	),
+	max_travel_percent: z.enum(
+		MAX_TRAVEL_PERCENTS as unknown as [string, ...string[]],
+	),
 });
 
-type LocationFormData = z.infer<typeof locationSchema>;
+type NonNegotiablesFormData = z.infer<typeof nonNegotiablesSchema>;
 
-const DEFAULT_VALUES: LocationFormData = {
+const DEFAULT_VALUES: NonNegotiablesFormData = {
 	remote_preference: "No Preference",
 	commutable_cities: [],
 	max_commute_minutes: "",
 	relocation_open: false,
 	relocation_cities: [],
+	prefer_no_salary: true,
+	minimum_base_salary: "",
+	salary_currency: "USD",
+	visa_sponsorship_required: false,
+	industry_exclusions: [],
+	company_size_preference: "No Preference",
+	max_travel_percent: "None",
 };
 
 // ---------------------------------------------------------------------------
@@ -115,16 +176,29 @@ function toFriendlyError(err: unknown): string {
 }
 
 /** Build API request body. Clears conditional fields and converts types. */
-function toRequestBody(data: LocationFormData) {
+function toRequestBody(data: NonNegotiablesFormData) {
 	const isRemoteOnly = data.remote_preference === "Remote Only";
 	const commute = data.max_commute_minutes;
+	const salary = data.minimum_base_salary;
 	return {
+		// Location
 		remote_preference: data.remote_preference,
 		commutable_cities: isRemoteOnly ? [] : data.commutable_cities,
 		max_commute_minutes:
 			isRemoteOnly || commute === "" ? null : Number(commute),
 		relocation_open: data.relocation_open,
 		relocation_cities: data.relocation_open ? data.relocation_cities : [],
+
+		// Compensation
+		minimum_base_salary:
+			data.prefer_no_salary || salary === "" ? null : Number(salary),
+		salary_currency: data.salary_currency,
+
+		// Other filters
+		visa_sponsorship_required: data.visa_sponsorship_required,
+		industry_exclusions: data.industry_exclusions,
+		company_size_preference: data.company_size_preference,
+		max_travel_percent: data.max_travel_percent,
 	};
 }
 
@@ -133,13 +207,11 @@ function toRequestBody(data: LocationFormData) {
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 8: Non-Negotiables — Location Preferences.
+ * Onboarding Step 8: Non-Negotiables.
  *
- * Renders a form with remote preference radio buttons, conditional
- * commutable cities tag input and max commute number field, a
- * relocation toggle with conditional relocation cities tag input.
- * On valid submission, PATCHes the persona and advances to the
- * next step.
+ * Renders a multi-section form covering location preferences, compensation,
+ * and other job filters. On valid submission, PATCHes the persona and
+ * advances to the next step.
  */
 export function NonNegotiablesStep() {
 	const { personaId, next, back } = useOnboarding();
@@ -148,8 +220,8 @@ export function NonNegotiablesStep() {
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const form = useForm<LocationFormData>({
-		resolver: zodResolver(locationSchema),
+	const form = useForm<NonNegotiablesFormData>({
+		resolver: zodResolver(nonNegotiablesSchema),
 		defaultValues: DEFAULT_VALUES,
 		mode: "onTouched",
 	});
@@ -160,6 +232,7 @@ export function NonNegotiablesStep() {
 		"remote_preference",
 	) as RemotePreference;
 	const watchedRelocationOpen = watch("relocation_open");
+	const watchedPreferNoSalary = watch("prefer_no_salary");
 
 	const isRemoteOnly = watchedRemotePreference === "Remote Only";
 
@@ -178,6 +251,7 @@ export function NonNegotiablesStep() {
 				const persona = res.data[0];
 				if (persona) {
 					reset({
+						// Location
 						remote_preference: persona.remote_preference ?? "No Preference",
 						commutable_cities: persona.commutable_cities ?? [],
 						max_commute_minutes:
@@ -186,6 +260,22 @@ export function NonNegotiablesStep() {
 								: "",
 						relocation_open: persona.relocation_open ?? false,
 						relocation_cities: persona.relocation_cities ?? [],
+
+						// Compensation
+						prefer_no_salary: persona.minimum_base_salary == null,
+						minimum_base_salary:
+							persona.minimum_base_salary != null
+								? String(persona.minimum_base_salary)
+								: "",
+						salary_currency: persona.salary_currency ?? "USD",
+
+						// Other filters
+						visa_sponsorship_required:
+							persona.visa_sponsorship_required ?? false,
+						industry_exclusions: persona.industry_exclusions ?? [],
+						company_size_preference:
+							persona.company_size_preference ?? "No Preference",
+						max_travel_percent: persona.max_travel_percent ?? "None",
 					});
 				}
 			})
@@ -206,7 +296,7 @@ export function NonNegotiablesStep() {
 	// -----------------------------------------------------------------------
 
 	const onSubmit = useCallback(
-		async (data: LocationFormData) => {
+		async (data: NonNegotiablesFormData) => {
 			if (!personaId) return;
 
 			setSubmitError(null);
@@ -369,6 +459,192 @@ export function NonNegotiablesStep() {
 								maxItems={20}
 							/>
 						)}
+					</fieldset>
+
+					{/* ---- Compensation ---- */}
+					<fieldset className="space-y-4">
+						<legend className="text-base font-semibold">Compensation</legend>
+
+						<FormField
+							control={form.control}
+							name="prefer_no_salary"
+							render={({ field }) => (
+								<FormItem className="flex items-center gap-2">
+									<FormControl>
+										<Checkbox
+											checked={field.value}
+											onCheckedChange={field.onChange}
+											id="prefer-no-salary"
+										/>
+									</FormControl>
+									<FormLabel
+										htmlFor="prefer-no-salary"
+										className="!mt-0 cursor-pointer"
+									>
+										Prefer not to set
+									</FormLabel>
+								</FormItem>
+							)}
+						/>
+
+						{!watchedPreferNoSalary && (
+							<div className="grid gap-4 sm:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="minimum_base_salary"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Minimum Base Salary</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="e.g. 100000"
+													{...field}
+													value={field.value ?? ""}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="salary_currency"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Currency</FormLabel>
+											<FormControl>
+												<select
+													aria-label="Currency"
+													className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+													value={field.value}
+													onChange={(e) => field.onChange(e.target.value)}
+													onBlur={field.onBlur}
+													ref={field.ref as React.Ref<HTMLSelectElement>}
+													name={field.name}
+												>
+													{CURRENCIES.map((code) => (
+														<option key={code} value={code}>
+															{code}
+														</option>
+													))}
+												</select>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						)}
+					</fieldset>
+
+					{/* ---- Other Filters ---- */}
+					<fieldset className="space-y-4">
+						<legend className="text-base font-semibold">Other Filters</legend>
+
+						<FormField
+							control={form.control}
+							name="visa_sponsorship_required"
+							render={({ field }) => (
+								<FormItem className="flex items-center gap-2">
+									<FormControl>
+										<Checkbox
+											checked={field.value}
+											onCheckedChange={field.onChange}
+											id="visa-sponsorship"
+										/>
+									</FormControl>
+									<FormLabel
+										htmlFor="visa-sponsorship"
+										className="!mt-0 cursor-pointer"
+									>
+										Visa sponsorship required
+									</FormLabel>
+								</FormItem>
+							)}
+						/>
+
+						<FormTagField
+							control={form.control}
+							name="industry_exclusions"
+							label="Industry Exclusions"
+							placeholder="Type an industry and press Enter"
+							description="Industries you want to exclude from job matches"
+							maxItems={20}
+						/>
+
+						{/* Company size preference radio group */}
+						<FormField
+							control={form.control}
+							name="company_size_preference"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Company Size Preference</FormLabel>
+									<FormControl>
+										<div
+											className="flex flex-wrap gap-4"
+											role="radiogroup"
+											aria-label="Company Size Preference"
+										>
+											{COMPANY_SIZE_PREFERENCES.map((option) => (
+												<label
+													key={option}
+													className="flex cursor-pointer items-center gap-2"
+												>
+													<input
+														type="radio"
+														name={field.name}
+														value={option}
+														checked={field.value === option}
+														onChange={() => field.onChange(option)}
+														className="text-primary h-4 w-4"
+													/>
+													{option}
+												</label>
+											))}
+										</div>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						{/* Max travel radio group */}
+						<FormField
+							control={form.control}
+							name="max_travel_percent"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Max Travel</FormLabel>
+									<FormControl>
+										<div
+											className="flex flex-wrap gap-4"
+											role="radiogroup"
+											aria-label="Max Travel"
+										>
+											{MAX_TRAVEL_PERCENTS.map((option) => (
+												<label
+													key={option}
+													className="flex cursor-pointer items-center gap-2"
+												>
+													<input
+														type="radio"
+														name={field.name}
+														value={option}
+														checked={field.value === option}
+														onChange={() => field.onChange(option)}
+														className="text-primary h-4 w-4"
+													/>
+													{option}
+												</label>
+											))}
+										</div>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</fieldset>
 
 					<FormErrorSummary className="mt-2" />

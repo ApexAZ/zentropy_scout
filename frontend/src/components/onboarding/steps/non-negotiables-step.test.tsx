@@ -1,11 +1,11 @@
 /**
  * Tests for the non-negotiables step component (onboarding Step 8).
  *
- * REQ-012 §6.3.8: Non-negotiables form with sections. §5.11 covers
- * the location preferences section: remote preference radio group,
- * commutable cities tag input (hidden if Remote Only), max commute
- * number input (hidden if Remote Only), open to relocation toggle,
- * relocation cities tag input (hidden if relocation = false).
+ * REQ-012 §6.3.8: Non-negotiables form with sections.
+ * §5.11: Location preferences (remote preference, commutable cities,
+ *        max commute, relocation toggle/cities).
+ * §5.12: Compensation (salary, currency, prefer-not-to-set) and
+ *        other filters (visa, industry exclusions, company size, travel).
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -31,6 +31,15 @@ const REMOTE_OPTIONS = [
 	"Onsite OK",
 	"No Preference",
 ] as const;
+
+const COMPANY_SIZE_OPTIONS = [
+	"Startup",
+	"Mid-size",
+	"Enterprise",
+	"No Preference",
+] as const;
+
+const MAX_TRAVEL_OPTIONS = ["None", "<25%", "<50%", "Any"] as const;
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -75,7 +84,7 @@ vi.mock("@/lib/onboarding-provider", () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Minimal persona response with only the fields NonNegotiablesStep reads. */
+/** Minimal persona response with all fields NonNegotiablesStep reads. */
 function makePersonaResponse(
 	overrides: Partial<{
 		remote_preference: string;
@@ -83,6 +92,12 @@ function makePersonaResponse(
 		max_commute_minutes: number | null;
 		relocation_open: boolean;
 		relocation_cities: string[];
+		minimum_base_salary: number | null;
+		salary_currency: string;
+		visa_sponsorship_required: boolean;
+		industry_exclusions: string[];
+		company_size_preference: string;
+		max_travel_percent: string;
 	}> = {},
 ) {
 	return {
@@ -94,6 +109,12 @@ function makePersonaResponse(
 				max_commute_minutes: null,
 				relocation_open: false,
 				relocation_cities: [],
+				minimum_base_salary: null,
+				salary_currency: "USD",
+				visa_sponsorship_required: false,
+				industry_exclusions: [],
+				company_size_preference: "No Preference",
+				max_travel_percent: "None",
 				...overrides,
 			},
 		],
@@ -160,8 +181,12 @@ describe("NonNegotiablesStep", () => {
 		it("renders all 4 remote preference radio options", async () => {
 			await renderFormWithUser();
 
+			const remoteGroup = screen.getByRole("radiogroup", {
+				name: /remote preference/i,
+			});
 			for (const option of REMOTE_OPTIONS) {
-				expect(screen.getByLabelText(option)).toBeInTheDocument();
+				const radio = remoteGroup.querySelector(`input[value="${option}"]`);
+				expect(radio).toBeInTheDocument();
 			}
 		});
 
@@ -169,6 +194,74 @@ describe("NonNegotiablesStep", () => {
 			await renderFormWithUser();
 
 			expect(screen.getByLabelText(/open to relocation/i)).toBeInTheDocument();
+		});
+
+		it("renders Compensation section heading", async () => {
+			await renderFormWithUser();
+
+			expect(screen.getByText("Compensation")).toBeInTheDocument();
+		});
+
+		it("renders salary input and currency selector defaulting to USD", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ minimum_base_salary: 50000 }),
+			);
+			await renderFormWithUser();
+
+			// Salary is set → prefer_no_salary = false → inputs visible
+			expect(screen.getByLabelText(/minimum base salary/i)).toHaveValue(50000);
+			expect(screen.getByLabelText(/currency/i)).toHaveValue("USD");
+		});
+
+		it("renders 'Prefer not to set' checkbox for salary", async () => {
+			await renderFormWithUser();
+
+			expect(screen.getByLabelText(/prefer not to set/i)).toBeInTheDocument();
+		});
+
+		it("renders Other Filters section heading", async () => {
+			await renderFormWithUser();
+
+			expect(screen.getByText("Other Filters")).toBeInTheDocument();
+		});
+
+		it("renders visa sponsorship toggle", async () => {
+			await renderFormWithUser();
+
+			expect(
+				screen.getByLabelText(/visa sponsorship required/i),
+			).toBeInTheDocument();
+		});
+
+		it("renders industry exclusions tag input", async () => {
+			await renderFormWithUser();
+
+			expect(screen.getByLabelText(/industry exclusions/i)).toBeInTheDocument();
+		});
+
+		it("renders all 4 company size preference radio options", async () => {
+			await renderFormWithUser();
+
+			// "No Preference" is shared with remote preference — use the radiogroup
+			const companyGroup = screen.getByRole("radiogroup", {
+				name: /company size/i,
+			});
+			for (const option of COMPANY_SIZE_OPTIONS) {
+				const radio = companyGroup.querySelector(`input[value="${option}"]`);
+				expect(radio).toBeInTheDocument();
+			}
+		});
+
+		it("renders all 4 max travel radio options", async () => {
+			await renderFormWithUser();
+
+			const travelGroup = screen.getByRole("radiogroup", {
+				name: /max travel/i,
+			});
+			for (const option of MAX_TRAVEL_OPTIONS) {
+				const radio = travelGroup.querySelector(`input[value="${option}"]`);
+				expect(radio).toBeInTheDocument();
+			}
 		});
 	});
 
@@ -217,7 +310,13 @@ describe("NonNegotiablesStep", () => {
 			mocks.mockApiGet.mockRejectedValue(new Error("Network error"));
 			await renderFormWithUser();
 
-			expect(screen.getByLabelText("No Preference")).toBeChecked();
+			const remoteGroup = screen.getByRole("radiogroup", {
+				name: /remote preference/i,
+			});
+			const noPreference = remoteGroup.querySelector(
+				'input[value="No Preference"]',
+			) as HTMLInputElement;
+			expect(noPreference).toBeChecked();
 			expect(screen.queryByLabelText(/open to relocation/i)).not.toBeChecked();
 		});
 
@@ -233,6 +332,80 @@ describe("NonNegotiablesStep", () => {
 			expect(screen.getByLabelText(/open to relocation/i)).toBeChecked();
 			expect(screen.getByText("Austin")).toBeInTheDocument();
 			expect(screen.getByText("Denver")).toBeInTheDocument();
+		});
+
+		it("pre-fills salary and currency from persona data", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({
+					minimum_base_salary: 120000,
+					salary_currency: "EUR",
+				}),
+			);
+			await renderFormWithUser();
+
+			expect(screen.getByLabelText(/minimum base salary/i)).toHaveValue(120000);
+			expect(screen.getByLabelText(/currency/i)).toHaveValue("EUR");
+			expect(screen.getByLabelText(/prefer not to set/i)).not.toBeChecked();
+		});
+
+		it("checks 'Prefer not to set' when persona salary is null", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ minimum_base_salary: null }),
+			);
+			await renderFormWithUser();
+
+			expect(screen.getByLabelText(/prefer not to set/i)).toBeChecked();
+		});
+
+		it("pre-fills visa sponsorship from persona data", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ visa_sponsorship_required: true }),
+			);
+			await renderFormWithUser();
+
+			expect(screen.getByLabelText(/visa sponsorship required/i)).toBeChecked();
+		});
+
+		it("pre-fills industry exclusions from persona data", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({
+					industry_exclusions: ["Tobacco", "Gambling"],
+				}),
+			);
+			await renderFormWithUser();
+
+			expect(screen.getByText("Tobacco")).toBeInTheDocument();
+			expect(screen.getByText("Gambling")).toBeInTheDocument();
+		});
+
+		it("pre-fills company size preference from persona data", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ company_size_preference: "Startup" }),
+			);
+			await renderFormWithUser();
+
+			const companyGroup = screen.getByRole("radiogroup", {
+				name: /company size/i,
+			});
+			const startupRadio = companyGroup.querySelector(
+				'input[value="Startup"]',
+			) as HTMLInputElement;
+			expect(startupRadio).toBeChecked();
+		});
+
+		it("pre-fills max travel percent from persona data", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ max_travel_percent: "<25%" }),
+			);
+			await renderFormWithUser();
+
+			const travelGroup = screen.getByRole("radiogroup", {
+				name: /max travel/i,
+			});
+			const radio = travelGroup.querySelector(
+				'input[value="<25%"]',
+			) as HTMLInputElement;
+			expect(radio).toBeChecked();
 		});
 	});
 
@@ -326,6 +499,37 @@ describe("NonNegotiablesStep", () => {
 				screen.queryByLabelText(/relocation cities/i),
 			).not.toBeInTheDocument();
 		});
+
+		it("hides salary input when 'Prefer not to set' is checked", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ minimum_base_salary: 90000 }),
+			);
+			const user = await renderFormWithUser();
+
+			// Salary should be visible (persona has a salary set)
+			expect(screen.getByLabelText(/minimum base salary/i)).toBeInTheDocument();
+
+			// Check "Prefer not to set"
+			await user.click(screen.getByLabelText(/prefer not to set/i));
+
+			expect(
+				screen.queryByLabelText(/minimum base salary/i),
+			).not.toBeInTheDocument();
+		});
+
+		it("shows salary input when 'Prefer not to set' is unchecked", async () => {
+			// Default: salary is null → prefer_no_salary defaults to true
+			const user = await renderFormWithUser();
+
+			expect(
+				screen.queryByLabelText(/minimum base salary/i),
+			).not.toBeInTheDocument();
+
+			// Uncheck "Prefer not to set"
+			await user.click(screen.getByLabelText(/prefer not to set/i));
+
+			expect(screen.getByLabelText(/minimum base salary/i)).toBeInTheDocument();
+		});
 	});
 
 	// -----------------------------------------------------------------------
@@ -414,6 +618,91 @@ describe("NonNegotiablesStep", () => {
 					expect.objectContaining({
 						relocation_open: false,
 						relocation_cities: [],
+					}),
+				);
+			});
+		});
+
+		it("submits salary and currency when salary is set", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({
+					minimum_base_salary: 100000,
+					salary_currency: "USD",
+				}),
+			);
+			mocks.mockApiPatch.mockResolvedValueOnce(MOCK_PATCH_RESPONSE);
+			const user = await renderFormWithUser();
+
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/personas/${DEFAULT_PERSONA_ID}`,
+					expect.objectContaining({
+						minimum_base_salary: 100000,
+						salary_currency: "USD",
+					}),
+				);
+			});
+		});
+
+		it("submits updated currency when changed by user", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ minimum_base_salary: 100000 }),
+			);
+			mocks.mockApiPatch.mockResolvedValueOnce(MOCK_PATCH_RESPONSE);
+			const user = await renderFormWithUser();
+
+			await user.selectOptions(screen.getByLabelText(/currency/i), "EUR");
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/personas/${DEFAULT_PERSONA_ID}`,
+					expect.objectContaining({ salary_currency: "EUR" }),
+				);
+			});
+		});
+
+		it("submits null salary when 'Prefer not to set' is checked", async () => {
+			// Default: null salary → prefer_no_salary = true
+			mocks.mockApiPatch.mockResolvedValueOnce(MOCK_PATCH_RESPONSE);
+			const user = await renderFormWithUser();
+
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/personas/${DEFAULT_PERSONA_ID}`,
+					expect.objectContaining({
+						minimum_base_salary: null,
+					}),
+				);
+			});
+		});
+
+		it("submits other filter fields correctly", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({
+					visa_sponsorship_required: true,
+					industry_exclusions: ["Tobacco"],
+					company_size_preference: "Enterprise",
+					max_travel_percent: "<50%",
+				}),
+			);
+			mocks.mockApiPatch.mockResolvedValueOnce(MOCK_PATCH_RESPONSE);
+			const user = await renderFormWithUser();
+
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/personas/${DEFAULT_PERSONA_ID}`,
+					expect.objectContaining({
+						visa_sponsorship_required: true,
+						industry_exclusions: ["Tobacco"],
+						company_size_preference: "Enterprise",
+						max_travel_percent: "<50%",
 					}),
 				);
 			});
@@ -518,6 +807,44 @@ describe("NonNegotiablesStep", () => {
 			});
 			expect(mocks.mockApiPatch).not.toHaveBeenCalled();
 		});
+
+		it("rejects negative salary value on submit", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ minimum_base_salary: 100000 }),
+			);
+			const user = await renderFormWithUser();
+
+			const salaryInput = screen.getByLabelText(/minimum base salary/i);
+			await user.clear(salaryInput);
+			await user.type(salaryInput, "-5000");
+
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				const errors = screen.getAllByText(/must be a positive number/i);
+				expect(errors.length).toBeGreaterThan(0);
+			});
+			expect(mocks.mockApiPatch).not.toHaveBeenCalled();
+		});
+
+		it("rejects zero salary value on submit", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makePersonaResponse({ minimum_base_salary: 100000 }),
+			);
+			const user = await renderFormWithUser();
+
+			const salaryInput = screen.getByLabelText(/minimum base salary/i);
+			await user.clear(salaryInput);
+			await user.type(salaryInput, "0");
+
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				const errors = screen.getAllByText(/must be a positive number/i);
+				expect(errors.length).toBeGreaterThan(0);
+			});
+			expect(mocks.mockApiPatch).not.toHaveBeenCalled();
+		});
 	});
 
 	// -----------------------------------------------------------------------
@@ -581,6 +908,22 @@ describe("NonNegotiablesStep", () => {
 			await user.click(screen.getByLabelText("Remove Austin"));
 
 			expect(screen.queryByText("Austin")).not.toBeInTheDocument();
+		});
+
+		it("adds and removes industry exclusions", async () => {
+			const user = await renderFormWithUser();
+
+			const input = screen.getByLabelText(/industry exclusions/i);
+			await user.type(input, "Tobacco{Enter}");
+			await user.type(input, "Gambling{Enter}");
+
+			expect(screen.getByText("Tobacco")).toBeInTheDocument();
+			expect(screen.getByText("Gambling")).toBeInTheDocument();
+
+			await user.click(screen.getByLabelText("Remove Tobacco"));
+
+			expect(screen.queryByText("Tobacco")).not.toBeInTheDocument();
+			expect(screen.getByText("Gambling")).toBeInTheDocument();
 		});
 	});
 });
