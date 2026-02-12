@@ -46,6 +46,8 @@ import {
 	REMOTE_PREFERENCES,
 } from "@/types/persona";
 
+import { CustomFiltersSection } from "./custom-filters-section";
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -342,6 +344,7 @@ export function NonNegotiablesStep() {
 
 			<Form {...form}>
 				<form
+					id="non-negotiables-form"
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="space-y-6"
 					data-testid="non-negotiables-form"
@@ -658,29 +661,31 @@ export function NonNegotiablesStep() {
 							{submitError}
 						</div>
 					)}
-
-					<div className="flex items-center justify-between pt-4">
-						<Button
-							type="button"
-							variant="ghost"
-							onClick={back}
-							data-testid="back-button"
-						>
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							Back
-						</Button>
-						<Button
-							type="submit"
-							disabled={isSubmitting}
-							data-testid="submit-button"
-						>
-							{isSubmitting && (
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-							)}
-							{isSubmitting ? "Saving..." : "Next"}
-						</Button>
-					</div>
 				</form>
+
+				{/* Custom filters — separate CRUD section with own <form> */}
+				{personaId && <CustomFiltersSection personaId={personaId} />}
+
+				<div className="flex items-center justify-between pt-4">
+					<Button
+						type="button"
+						variant="ghost"
+						onClick={back}
+						data-testid="back-button"
+					>
+						<ArrowLeft className="mr-2 h-4 w-4" />
+						Back
+					</Button>
+					<Button
+						type="submit"
+						form="non-negotiables-form"
+						disabled={isSubmitting}
+						data-testid="submit-button"
+					>
+						{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+						{isSubmitting ? "Saving..." : "Next"}
+					</Button>
+				</div>
 			</Form>
 		</div>
 	);
