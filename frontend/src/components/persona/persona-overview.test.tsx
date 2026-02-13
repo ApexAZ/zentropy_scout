@@ -477,6 +477,14 @@ describe("PersonaOverview", () => {
 			).toBeInTheDocument();
 		});
 
+		it("has edit link to /persona/basic-info", async () => {
+			await renderAndWait();
+
+			const header = screen.getByTestId("persona-header");
+			const editLink = within(header).getByRole("link", { name: /edit/i });
+			expect(editLink).toHaveAttribute("href", "/persona/basic-info");
+		});
+
 		it("shows fallback when professional fields are null", async () => {
 			const personaNoProf = {
 				...MOCK_PERSONA,

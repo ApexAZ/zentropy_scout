@@ -110,7 +110,15 @@ function PersonaHeader({ persona }: { persona: Persona }) {
 		>
 			{/* Left column: identity */}
 			<div className="space-y-1">
-				<h2 className="text-lg font-semibold">{persona.full_name}</h2>
+				<div className="flex items-center justify-between">
+					<h2 className="text-lg font-semibold">{persona.full_name}</h2>
+					<Link
+						href="/persona/basic-info"
+						className="text-primary text-xs font-medium hover:underline"
+					>
+						Edit
+					</Link>
+				</div>
 				<p className="text-muted-foreground text-sm">{persona.email}</p>
 				<p className="text-muted-foreground text-sm">{persona.phone}</p>
 				<p className="text-muted-foreground text-sm">{location}</p>
