@@ -16,6 +16,20 @@ import { Button } from "@/components/ui/button";
 import type { Certification } from "@/types/persona";
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Defense-in-depth: only render clickable links for safe URL protocols. */
+function isSafeUrl(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		return parsed.protocol === "https:" || parsed.protocol === "http:";
+	} catch {
+		return false;
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -81,16 +95,21 @@ export function CertificationCard({
 						<p className="text-muted-foreground mt-0.5 text-xs">
 							{entry.credential_id && `ID: ${entry.credential_id}`}
 							{entry.credential_id && entry.verification_url && " \u00B7 "}
-							{entry.verification_url && (
-								<a
-									href={entry.verification_url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="text-primary underline"
-								>
-									Verify
-								</a>
-							)}
+							{entry.verification_url &&
+								(isSafeUrl(entry.verification_url) ? (
+									<a
+										href={entry.verification_url}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-primary underline"
+									>
+										Verify
+									</a>
+								) : (
+									<span className="text-muted-foreground">
+										{entry.verification_url}
+									</span>
+								))}
 						</p>
 					)}
 				</div>

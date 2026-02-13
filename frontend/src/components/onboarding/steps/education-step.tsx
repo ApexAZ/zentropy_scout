@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { toFormValues, toRequestBody } from "@/lib/education-helpers";
 import { toFriendlyError } from "@/lib/form-errors";
 import { useOnboarding } from "@/lib/onboarding-provider";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
@@ -22,34 +23,6 @@ import type { Education } from "@/types/persona";
 import { EducationCard } from "./education-card";
 import { EducationForm } from "./education-form";
 import type { EducationFormData } from "./education-form";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Convert form data to API request body. */
-function toRequestBody(data: EducationFormData) {
-	return {
-		institution: data.institution,
-		degree: data.degree,
-		field_of_study: data.field_of_study,
-		graduation_year: parseInt(data.graduation_year, 10),
-		gpa: data.gpa ? parseFloat(data.gpa) : null,
-		honors: data.honors || null,
-	};
-}
-
-/** Convert an Education entry to form initial values. */
-function toFormValues(entry: Education): Partial<EducationFormData> {
-	return {
-		institution: entry.institution,
-		degree: entry.degree,
-		field_of_study: entry.field_of_study,
-		graduation_year: String(entry.graduation_year),
-		gpa: entry.gpa !== null ? String(entry.gpa) : "",
-		honors: entry.honors ?? "",
-	};
-}
 
 type ViewMode = "list" | "add" | "edit";
 

@@ -1,29 +1,34 @@
 "use client";
 
 /**
- * Certification step for onboarding wizard (Step 6).
+ * Post-onboarding certification editor (§6.6).
  *
- * REQ-012 §6.3.6: Skippable step. Certifications editor with
- * "Does not expire" toggle, CRUD, and reordering.
- * Skip button: "Skip — No certifications".
+ * REQ-012 §7.2.3: CRUD for certification entries with drag-drop
+ * reordering and "Does not expire" toggle handling. Adapts onboarding
+ * CertificationStep logic to the post-onboarding pattern.
  */
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { CertificationCard } from "@/components/onboarding/steps/certification-card";
+import { CertificationForm } from "@/components/onboarding/steps/certification-form";
+import type { CertificationFormData } from "@/components/onboarding/steps/certification-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFormValues, toRequestBody } from "@/lib/certification-helpers";
 import { toFriendlyError } from "@/lib/form-errors";
-import { useOnboarding } from "@/lib/onboarding-provider";
+import { queryKeys } from "@/lib/query-keys";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { Certification } from "@/types/persona";
+import type { Certification, Persona } from "@/types/persona";
 
-import { CertificationCard } from "./certification-card";
-import { CertificationForm } from "./certification-form";
-import type { CertificationFormData } from "./certification-form";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type ViewMode = "list" | "add" | "edit";
 
@@ -32,16 +37,30 @@ type ViewMode = "list" | "add" | "edit";
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 6: Certifications.
+ * Post-onboarding editor for certification entries.
  *
- * Renders a list of certification cards with add/edit/delete and
- * drag-and-drop reordering. 0 entries is valid (step is skippable).
+ * Receives the current persona as a prop and fetches certifications via
+ * useQuery. Provides add/edit/delete and drag-drop reordering.
+ * Invalidates the query cache after mutations.
  */
-export function CertificationStep() {
-	const { personaId, next, back, skip } = useOnboarding();
+export function CertificationEditor({ persona }: { persona: Persona }) {
+	const personaId = persona.id;
+	const queryClient = useQueryClient();
+	const certificationQueryKey = queryKeys.certifications(personaId);
+
+	// -----------------------------------------------------------------------
+	// Data fetching
+	// -----------------------------------------------------------------------
+
+	const { data, isLoading } = useQuery({
+		queryKey: certificationQueryKey,
+		queryFn: () =>
+			apiGet<ApiListResponse<Certification>>(
+				`/personas/${personaId}/certifications`,
+			),
+	});
 
 	const [entries, setEntries] = useState<Certification[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
 	const [viewMode, setViewMode] = useState<ViewMode>("list");
 	const [editingEntry, setEditingEntry] = useState<Certification | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,36 +69,12 @@ export function CertificationStep() {
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
 
-	// -----------------------------------------------------------------------
-	// Fetch certifications on mount
-	// -----------------------------------------------------------------------
-
+	// Sync query data to local state for optimistic updates
 	useEffect(() => {
-		if (!personaId) {
-			setIsLoading(false);
-			return;
+		if (data?.data) {
+			setEntries(data.data);
 		}
-
-		let cancelled = false;
-
-		apiGet<ApiListResponse<Certification>>(
-			`/personas/${personaId}/certifications`,
-		)
-			.then((res) => {
-				if (cancelled) return;
-				setEntries(res.data);
-			})
-			.catch(() => {
-				// Fetch failed — user can add entries manually
-			})
-			.finally(() => {
-				if (!cancelled) setIsLoading(false);
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [personaId]);
+	}, [data]);
 
 	// -----------------------------------------------------------------------
 	// Add handler
@@ -92,9 +87,7 @@ export function CertificationStep() {
 	}, []);
 
 	const handleSaveNew = useCallback(
-		async (data: CertificationFormData) => {
-			if (!personaId) return;
-
+		async (formData: CertificationFormData) => {
 			setSubmitError(null);
 			setIsSubmitting(true);
 
@@ -102,20 +95,23 @@ export function CertificationStep() {
 				const res = await apiPost<ApiResponse<Certification>>(
 					`/personas/${personaId}/certifications`,
 					{
-						...toRequestBody(data),
+						...toRequestBody(formData),
 						display_order: entries.length,
 					},
 				);
 
 				setEntries((prev) => [...prev, res.data]);
 				setViewMode("list");
+				await queryClient.invalidateQueries({
+					queryKey: certificationQueryKey,
+				});
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[personaId, entries.length],
+		[personaId, entries.length, queryClient, certificationQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -129,8 +125,8 @@ export function CertificationStep() {
 	}, []);
 
 	const handleSaveEdit = useCallback(
-		async (data: CertificationFormData) => {
-			if (!personaId || !editingEntry) return;
+		async (formData: CertificationFormData) => {
+			if (!editingEntry) return;
 
 			setSubmitError(null);
 			setIsSubmitting(true);
@@ -138,20 +134,23 @@ export function CertificationStep() {
 			try {
 				const res = await apiPatch<ApiResponse<Certification>>(
 					`/personas/${personaId}/certifications/${editingEntry.id}`,
-					toRequestBody(data),
+					toRequestBody(formData),
 				);
 
 				setEntries((prev) =>
 					prev.map((e) => (e.id === editingEntry.id ? res.data : e)),
 				);
 				setViewMode("list");
+				await queryClient.invalidateQueries({
+					queryKey: certificationQueryKey,
+				});
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[personaId, editingEntry],
+		[personaId, editingEntry, queryClient, certificationQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -164,7 +163,7 @@ export function CertificationStep() {
 	}, []);
 
 	const handleDeleteConfirm = useCallback(async () => {
-		if (!personaId || !deleteTarget) return;
+		if (!deleteTarget) return;
 
 		setIsDeleting(true);
 
@@ -174,12 +173,15 @@ export function CertificationStep() {
 			);
 			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
 			setDeleteTarget(null);
+			await queryClient.invalidateQueries({
+				queryKey: certificationQueryKey,
+			});
 		} catch (err) {
 			setDeleteError(toFriendlyError(err));
 		} finally {
 			setIsDeleting(false);
 		}
-	}, [personaId, deleteTarget]);
+	}, [personaId, deleteTarget, queryClient, certificationQueryKey]);
 
 	const handleDeleteCancel = useCallback(() => {
 		setDeleteTarget(null);
@@ -201,8 +203,6 @@ export function CertificationStep() {
 
 	const handleReorder = useCallback(
 		(reordered: Certification[]) => {
-			if (!personaId) return;
-
 			const previousEntries = [...entries];
 			setEntries(reordered);
 
@@ -216,12 +216,18 @@ export function CertificationStep() {
 				);
 
 			if (patches.length > 0) {
-				void Promise.all(patches).catch(() => {
-					setEntries(previousEntries);
-				});
+				void Promise.all(patches)
+					.then(() =>
+						queryClient.invalidateQueries({
+							queryKey: certificationQueryKey,
+						}),
+					)
+					.catch(() => {
+						setEntries(previousEntries);
+					});
 			}
 		},
-		[personaId, entries],
+		[personaId, entries, queryClient, certificationQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -232,7 +238,7 @@ export function CertificationStep() {
 		return (
 			<div
 				className="flex flex-1 flex-col items-center justify-center"
-				data-testid="loading-certifications"
+				data-testid="loading-certification-editor"
 			>
 				<Loader2 className="text-primary h-8 w-8 animate-spin" />
 				<p className="text-muted-foreground mt-3">
@@ -244,12 +250,10 @@ export function CertificationStep() {
 
 	return (
 		<div className="flex flex-1 flex-col gap-6">
-			<div className="text-center">
+			<div>
 				<h2 className="text-lg font-semibold">Certifications</h2>
 				<p className="text-muted-foreground mt-1">
-					{entries.length === 0
-						? "Do you have any professional certifications?"
-						: "Your certifications. Add, edit, or reorder as needed."}
+					Manage your certifications.
 				</p>
 			</div>
 
@@ -306,25 +310,13 @@ export function CertificationStep() {
 			{/* Navigation */}
 			{viewMode === "list" && (
 				<div className="flex items-center justify-between pt-4">
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={back}
-						data-testid="back-button"
+					<Link
+						href="/persona"
+						className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
-						Back
-					</Button>
-					<div className="flex gap-2">
-						{entries.length === 0 && (
-							<Button type="button" variant="outline" onClick={skip}>
-								Skip
-							</Button>
-						)}
-						<Button type="button" onClick={next} data-testid="next-button">
-							Next
-						</Button>
-					</div>
+						Back to Profile
+					</Link>
 				</div>
 			)}
 
