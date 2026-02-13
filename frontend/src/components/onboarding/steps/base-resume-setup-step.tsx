@@ -7,11 +7,12 @@
  * User enters resume name, role type, and summary, then selects which
  * work history entries (with bullets), education, certifications, and
  * skills to include. All items are checked by default. POST creates
- * the base resume and calls next().
+ * the base resume and completes onboarding.
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { apiGet, apiPost } from "@/lib/api-client";
+import { useChat } from "@/lib/chat-provider";
 import { toFriendlyError } from "@/lib/form-errors";
 import { useOnboarding } from "@/lib/onboarding-provider";
 import type { ApiListResponse } from "@/types/api";
@@ -57,6 +59,10 @@ const DEFAULT_VALUES: BaseResumeFormData = {
 	role_type: "",
 	summary: "",
 };
+
+/** REQ-012 §6.5: Welcome message shown in chat after onboarding completion. */
+const WELCOME_MESSAGE =
+	"You're all set! I'm scanning for jobs now — I'll let you know what I find.";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -284,7 +290,9 @@ function SkillsSection({
  * POST creates the base resume and advances to completion.
  */
 export function BaseResumeSetupStep() {
-	const { personaId, next, back } = useOnboarding();
+	const { personaId, completeOnboarding, back } = useOnboarding();
+	const { addSystemMessage } = useChat();
+	const router = useRouter();
 
 	const [isLoading, setIsLoading] = useState(!!personaId);
 	const [workHistories, setWorkHistories] = useState<WorkHistory[]>([]);
@@ -427,7 +435,9 @@ export function BaseResumeSetupStep() {
 					job_bullet_order: jobBulletSelections,
 					is_primary: true,
 				});
-				next();
+				await completeOnboarding();
+				addSystemMessage(WELCOME_MESSAGE);
+				router.replace("/");
 			} catch (err) {
 				setIsSubmitting(false);
 				setSubmitError(toFriendlyError(err));
@@ -435,7 +445,9 @@ export function BaseResumeSetupStep() {
 		},
 		[
 			personaId,
-			next,
+			completeOnboarding,
+			addSystemMessage,
+			router,
 			selectedJobs,
 			selectedBullets,
 			selectedEducation,

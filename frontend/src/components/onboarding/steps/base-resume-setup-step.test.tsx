@@ -5,7 +5,7 @@
  * User enters resume name, role type, and summary, then selects which
  * work history entries (with bullets), education, certifications, and
  * skills to include. All items are checked by default. POST creates
- * the base resume and calls next().
+ * the base resume and completes onboarding.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -23,6 +23,7 @@ const BASE_RESUMES_ENDPOINT = "/base-resumes";
 const LOADING_TESTID = "loading-base-resume-setup";
 const SUBMIT_BUTTON_TESTID = "submit-button";
 const BACK_BUTTON_TESTID = "back-button";
+const MOCK_BASE_RESUME_RESPONSE = { data: { id: "br-001" } };
 
 const MOCK_WORK_HISTORIES = [
 	{
@@ -174,6 +175,9 @@ const mocks = vi.hoisted(() => {
 		MockApiError,
 		mockNext: vi.fn(),
 		mockBack: vi.fn(),
+		mockCompleteOnboarding: vi.fn(),
+		mockAddSystemMessage: vi.fn(),
+		mockRouterReplace: vi.fn(),
 	};
 });
 
@@ -188,6 +192,19 @@ vi.mock("@/lib/onboarding-provider", () => ({
 		personaId: DEFAULT_PERSONA_ID,
 		next: mocks.mockNext,
 		back: mocks.mockBack,
+		completeOnboarding: mocks.mockCompleteOnboarding,
+	}),
+}));
+
+vi.mock("@/lib/chat-provider", () => ({
+	useChat: () => ({
+		addSystemMessage: mocks.mockAddSystemMessage,
+	}),
+}));
+
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({
+		replace: mocks.mockRouterReplace,
 	}),
 }));
 
@@ -261,6 +278,10 @@ describe("BaseResumeSetupStep", () => {
 		mocks.mockApiPost.mockReset();
 		mocks.mockNext.mockReset();
 		mocks.mockBack.mockReset();
+		mocks.mockCompleteOnboarding.mockReset();
+		mocks.mockAddSystemMessage.mockReset();
+		mocks.mockRouterReplace.mockReset();
+		mocks.mockCompleteOnboarding.mockResolvedValue(undefined);
 		setupApiMocks();
 	});
 
@@ -514,10 +535,8 @@ describe("BaseResumeSetupStep", () => {
 	// -----------------------------------------------------------------------
 
 	describe("submission", () => {
-		it("POSTs to /base-resumes with correct payload and calls next()", async () => {
-			mocks.mockApiPost.mockResolvedValueOnce({
-				data: { id: "br-001" },
-			});
+		it("POSTs to /base-resumes with correct payload and completes onboarding", async () => {
+			mocks.mockApiPost.mockResolvedValueOnce(MOCK_BASE_RESUME_RESPONSE);
 
 			const user = await renderAndWait();
 			await fillRequiredFields(user);
@@ -539,13 +558,12 @@ describe("BaseResumeSetupStep", () => {
 				);
 			});
 
-			expect(mocks.mockNext).toHaveBeenCalledTimes(1);
+			expect(mocks.mockCompleteOnboarding).toHaveBeenCalledTimes(1);
+			expect(mocks.mockNext).not.toHaveBeenCalled();
 		});
 
 		it("includes job_bullet_selections in POST body", async () => {
-			mocks.mockApiPost.mockResolvedValueOnce({
-				data: { id: "br-001" },
-			});
+			mocks.mockApiPost.mockResolvedValueOnce(MOCK_BASE_RESUME_RESPONSE);
 
 			const user = await renderAndWait();
 			await fillRequiredFields(user);
@@ -565,9 +583,7 @@ describe("BaseResumeSetupStep", () => {
 		});
 
 		it("excludes unchecked items from POST body", async () => {
-			mocks.mockApiPost.mockResolvedValueOnce({
-				data: { id: "br-001" },
-			});
+			mocks.mockApiPost.mockResolvedValueOnce(MOCK_BASE_RESUME_RESPONSE);
 
 			const user = await renderAndWait();
 			await fillRequiredFields(user);
@@ -604,7 +620,7 @@ describe("BaseResumeSetupStep", () => {
 				expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
 			});
 
-			expect(mocks.mockNext).not.toHaveBeenCalled();
+			expect(mocks.mockCompleteOnboarding).not.toHaveBeenCalled();
 		});
 
 		it("shows friendly error for duplicate name", async () => {
@@ -653,6 +669,51 @@ describe("BaseResumeSetupStep", () => {
 				expect(btn).not.toBeDisabled();
 				expect(btn).toHaveTextContent(/create resume/i);
 			});
+		});
+
+		it("adds welcome system message after completion", async () => {
+			mocks.mockApiPost.mockResolvedValueOnce(MOCK_BASE_RESUME_RESPONSE);
+
+			const user = await renderAndWait();
+			await fillRequiredFields(user);
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(mocks.mockAddSystemMessage).toHaveBeenCalledWith(
+					"You're all set! I'm scanning for jobs now — I'll let you know what I find.",
+				);
+			});
+		});
+
+		it("redirects to dashboard after completion", async () => {
+			mocks.mockApiPost.mockResolvedValueOnce(MOCK_BASE_RESUME_RESPONSE);
+
+			const user = await renderAndWait();
+			await fillRequiredFields(user);
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/");
+			});
+		});
+
+		it("shows error and re-enables button when completeOnboarding fails", async () => {
+			mocks.mockApiPost.mockResolvedValueOnce(MOCK_BASE_RESUME_RESPONSE);
+			mocks.mockCompleteOnboarding.mockRejectedValueOnce(
+				new Error("Completion failed"),
+			);
+
+			const user = await renderAndWait();
+			await fillRequiredFields(user);
+			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(screen.getByTestId("submit-error")).toBeInTheDocument();
+			});
+
+			const btn = screen.getByTestId(SUBMIT_BUTTON_TESTID);
+			expect(btn).not.toBeDisabled();
+			expect(mocks.mockRouterReplace).not.toHaveBeenCalled();
 		});
 	});
 

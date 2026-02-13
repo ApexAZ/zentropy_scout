@@ -9,7 +9,7 @@
  * Must be rendered inside a QueryClientProvider.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	createContext,
 	useCallback,
@@ -28,7 +28,7 @@ import {
 import type { ApiListResponse } from "@/types/api";
 import type { Persona } from "@/types/persona";
 
-import { apiGet, apiPatch } from "./api-client";
+import { apiGet, apiPatch, apiPost } from "./api-client";
 import { queryKeys } from "./query-keys";
 
 // ---------------------------------------------------------------------------
@@ -63,6 +63,8 @@ interface OnboardingState {
 	isLoadingCheckpoint: boolean;
 	/** Whether a checkpoint is being saved to the server. */
 	isSavingCheckpoint: boolean;
+	/** Whether onboarding completion is in progress. */
+	isCompleting: boolean;
 	/** Resume prompt to display. Null if no prompt needed. */
 	resumePrompt: ResumePromptType | null;
 }
@@ -72,6 +74,7 @@ const initialState: OnboardingState = {
 	personaId: null,
 	isLoadingCheckpoint: true,
 	isSavingCheckpoint: false,
+	isCompleting: false,
 	resumePrompt: null,
 };
 
@@ -89,6 +92,7 @@ type OnboardingAction =
 	| { type: "SET_STEP"; step: number }
 	| { type: "SET_PERSONA_ID"; personaId: string }
 	| { type: "SET_SAVING_CHECKPOINT"; saving: boolean }
+	| { type: "SET_COMPLETING"; completing: boolean }
 	| { type: "DISMISS_RESUME_PROMPT" };
 
 // ---------------------------------------------------------------------------
@@ -120,6 +124,9 @@ function onboardingReducer(
 		case "SET_SAVING_CHECKPOINT":
 			return { ...state, isSavingCheckpoint: action.saving };
 
+		case "SET_COMPLETING":
+			return { ...state, isCompleting: action.completing };
+
 		case "DISMISS_RESUME_PROMPT":
 			return { ...state, resumePrompt: null };
 
@@ -147,8 +154,12 @@ interface OnboardingContextValue {
 	isLoadingCheckpoint: boolean;
 	/** Whether a checkpoint save is in progress. */
 	isSavingCheckpoint: boolean;
+	/** Whether onboarding completion is in progress. */
+	isCompleting: boolean;
 	/** Resume prompt type to display. Null if none. */
 	resumePrompt: ResumePromptType | null;
+	/** Complete onboarding: PATCH persona, trigger Scouter, invalidate cache. */
+	completeOnboarding: () => Promise<void>;
 	/** Advance to the next step and save checkpoint. */
 	next: () => void;
 	/** Go back to the previous step and save checkpoint. */
@@ -351,6 +362,28 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
 	}, []);
 
 	// -----------------------------------------------------------------------
+	// Completion
+	// -----------------------------------------------------------------------
+
+	const queryClient = useQueryClient();
+
+	const completeOnboarding = useCallback(async () => {
+		const pid = personaIdRef.current;
+		if (!pid || !isValidUUID(pid)) {
+			throw new Error("Cannot complete onboarding without a valid persona");
+		}
+
+		dispatch({ type: "SET_COMPLETING", completing: true });
+		try {
+			await apiPatch(`/personas/${pid}`, { onboarding_complete: true });
+			void apiPost(`/personas/${pid}/refresh`).catch(() => {});
+			await queryClient.invalidateQueries({ queryKey: queryKeys.personas });
+		} finally {
+			dispatch({ type: "SET_COMPLETING", completing: false });
+		}
+	}, [queryClient]);
+
+	// -----------------------------------------------------------------------
 	// Derived values
 	// -----------------------------------------------------------------------
 
@@ -370,7 +403,9 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
 				personaId: state.personaId,
 				isLoadingCheckpoint: state.isLoadingCheckpoint,
 				isSavingCheckpoint: state.isSavingCheckpoint,
+				isCompleting: state.isCompleting,
 				resumePrompt: state.resumePrompt,
+				completeOnboarding,
 				next,
 				back,
 				skip,

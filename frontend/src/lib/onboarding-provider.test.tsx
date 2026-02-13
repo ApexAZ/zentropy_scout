@@ -25,11 +25,13 @@ import {
 const mocks = vi.hoisted(() => ({
 	mockApiGet: vi.fn(),
 	mockApiPatch: vi.fn(),
+	mockApiPost: vi.fn(),
 }));
 
 vi.mock("@/lib/api-client", () => ({
 	apiGet: mocks.mockApiGet,
 	apiPatch: mocks.mockApiPatch,
+	apiPost: mocks.mockApiPost,
 }));
 
 // ---------------------------------------------------------------------------
@@ -127,6 +129,7 @@ function renderUseOnboarding() {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.mockApiPatch.mockResolvedValue({});
+	mocks.mockApiPost.mockResolvedValue({});
 });
 
 // ---------------------------------------------------------------------------
@@ -739,6 +742,180 @@ describe("OnboardingProvider", () => {
 
 			await waitFor(() => {
 				expect(result.current.isSavingCheckpoint).toBe(false);
+			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Completion
+	// -----------------------------------------------------------------------
+
+	describe("completion", () => {
+		let queryClient: QueryClient;
+
+		function createCompletionWrapper(): ({
+			children,
+		}: {
+			children: ReactNode;
+		}) => React.JSX.Element {
+			queryClient = new QueryClient({
+				defaultOptions: { queries: { retry: false } },
+			});
+			return function Wrapper({ children }: { children: ReactNode }) {
+				return (
+					<QueryClientProvider client={queryClient}>
+						<OnboardingProvider>{children}</OnboardingProvider>
+					</QueryClientProvider>
+				);
+			};
+		}
+
+		function renderForCompletion() {
+			return renderHook(() => useOnboarding(), {
+				wrapper: createCompletionWrapper(),
+			});
+		}
+
+		beforeEach(() => {
+			mocks.mockApiGet.mockResolvedValue(makeListResponse([makePersona()]));
+			mocks.mockApiPatch.mockResolvedValue({});
+			mocks.mockApiPost.mockResolvedValue({});
+		});
+
+		it("PATCHes persona with onboarding_complete: true", async () => {
+			const { result } = renderForCompletion();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			await act(async () => {
+				await result.current.completeOnboarding();
+			});
+
+			expect(mocks.mockApiPatch).toHaveBeenCalledWith(PERSONA_PATCH_URL, {
+				onboarding_complete: true,
+			});
+		});
+
+		it("POSTs to /refresh to trigger Scouter", async () => {
+			const { result } = renderForCompletion();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			await act(async () => {
+				await result.current.completeOnboarding();
+			});
+
+			expect(mocks.mockApiPost).toHaveBeenCalledWith(
+				`/personas/${DEFAULT_PERSONA_ID}/refresh`,
+			);
+		});
+
+		it("invalidates personas query cache", async () => {
+			const { result } = renderForCompletion();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			const spy = vi.spyOn(queryClient, "invalidateQueries");
+
+			await act(async () => {
+				await result.current.completeOnboarding();
+			});
+
+			expect(spy).toHaveBeenCalledWith({
+				queryKey: ["personas"],
+			});
+		});
+
+		it("sets isCompleting to true during execution", async () => {
+			let resolvePatch!: () => void;
+			mocks.mockApiPatch.mockReturnValue(
+				new Promise<void>((resolve) => {
+					resolvePatch = resolve;
+				}),
+			);
+
+			const { result } = renderForCompletion();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			expect(result.current.isCompleting).toBe(false);
+
+			let completionPromise: Promise<void>;
+			act(() => {
+				completionPromise = result.current.completeOnboarding();
+			});
+
+			await waitFor(() => {
+				expect(result.current.isCompleting).toBe(true);
+			});
+
+			await act(async () => {
+				resolvePatch();
+				await completionPromise;
+			});
+
+			expect(result.current.isCompleting).toBe(false);
+		});
+
+		it("resets isCompleting on PATCH failure", async () => {
+			mocks.mockApiPatch.mockRejectedValue(new Error("Network error"));
+
+			const { result } = renderForCompletion();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			await expect(
+				act(async () => {
+					await result.current.completeOnboarding();
+				}),
+			).rejects.toThrow("Network error");
+
+			expect(result.current.isCompleting).toBe(false);
+		});
+
+		it("throws when no persona ID exists", async () => {
+			mocks.mockApiGet.mockResolvedValue(makeListResponse([]));
+
+			const { result } = renderForCompletion();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			await expect(
+				act(async () => {
+					await result.current.completeOnboarding();
+				}),
+			).rejects.toThrow("Cannot complete onboarding without a valid persona");
+		});
+
+		it("succeeds even if refresh POST fails", async () => {
+			mocks.mockApiPost.mockRejectedValue(new Error("Refresh failed"));
+
+			const { result } = renderForCompletion();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			// Should not throw
+			await act(async () => {
+				await result.current.completeOnboarding();
+			});
+
+			// PATCH still happened
+			expect(mocks.mockApiPatch).toHaveBeenCalledWith(PERSONA_PATCH_URL, {
+				onboarding_complete: true,
 			});
 		});
 	});
