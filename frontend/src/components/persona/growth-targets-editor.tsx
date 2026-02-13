@@ -1,16 +1,18 @@
 "use client";
 
 /**
- * Growth targets step for onboarding wizard (Step 9).
+ * Post-onboarding growth targets editor (§6.11).
  *
- * REQ-012 §6.3.9: Form with tag inputs for target roles and skills,
- * and a stretch appetite radio group with descriptions
- * (Low / Medium / High, default Medium).
+ * REQ-012 §7.2.8: Simple form matching §6.3.9 — tag inputs for target
+ * roles and skills, and a stretch appetite radio group with descriptions.
+ * Pre-fills from persona prop, PATCHes on save, invalidates cache.
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { FormErrorSummary } from "@/components/form/form-error-summary";
@@ -24,7 +26,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiPatch } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
 import {
 	GROWTH_TARGETS_DEFAULT_VALUES,
@@ -34,8 +36,7 @@ import {
 	toRequestBody,
 } from "@/lib/growth-targets-helpers";
 import type { GrowthTargetsFormData } from "@/lib/growth-targets-helpers";
-import { useOnboarding } from "@/lib/onboarding-provider";
-import type { ApiListResponse } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
 import type { Persona } from "@/types/persona";
 import { STRETCH_APPETITES } from "@/types/persona";
 
@@ -44,58 +45,31 @@ import { STRETCH_APPETITES } from "@/types/persona";
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 9: Growth Targets.
+ * Post-onboarding editor for growth target fields.
  *
- * Renders a form with tag inputs for target roles and skills, and a
- * stretch appetite radio group. On valid submission, PATCHes the
- * persona and advances to the next step.
+ * Receives the current persona as a prop. Pre-fills the form from persona
+ * data and saves changes via PATCH.
  */
-export function GrowthTargetsStep() {
-	const { personaId, next, back } = useOnboarding();
+export function GrowthTargetsEditor({ persona }: { persona: Persona }) {
+	const personaId = persona.id;
+	const queryClient = useQueryClient();
 
-	const [isLoadingPersona, setIsLoadingPersona] = useState(!!personaId);
-	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
+	// -----------------------------------------------------------------------
+	// Form
+	// -----------------------------------------------------------------------
 
 	const form = useForm<GrowthTargetsFormData>({
 		resolver: zodResolver(growthTargetsSchema),
-		defaultValues: GROWTH_TARGETS_DEFAULT_VALUES,
+		defaultValues: {
+			...GROWTH_TARGETS_DEFAULT_VALUES,
+			...toFormValues(persona),
+		},
 		mode: "onTouched",
 	});
 
-	const { reset } = form;
-
-	// -----------------------------------------------------------------------
-	// Pre-fill from persona data
-	// -----------------------------------------------------------------------
-
-	useEffect(() => {
-		if (!personaId) return;
-
-		let cancelled = false;
-
-		apiGet<ApiListResponse<Persona>>("/personas")
-			.then((res) => {
-				if (cancelled) return;
-				const persona = res.data[0];
-				if (persona) {
-					reset({
-						...GROWTH_TARGETS_DEFAULT_VALUES,
-						...toFormValues(persona),
-					});
-				}
-			})
-			.catch(() => {
-				// Pre-fill failed — user can fill manually
-			})
-			.finally(() => {
-				if (!cancelled) setIsLoadingPersona(false);
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [personaId, reset]);
+	const [submitError, setSubmitError] = useState<string | null>(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [saveSuccess, setSaveSuccess] = useState(false);
 
 	// -----------------------------------------------------------------------
 	// Submit handler
@@ -103,56 +77,44 @@ export function GrowthTargetsStep() {
 
 	const onSubmit = useCallback(
 		async (data: GrowthTargetsFormData) => {
-			if (!personaId) return;
-
 			setSubmitError(null);
+			setSaveSuccess(false);
 			setIsSubmitting(true);
 
 			try {
 				await apiPatch(`/personas/${personaId}`, toRequestBody(data));
-				next();
+
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.personas,
+				});
+				setSaveSuccess(true);
 			} catch (err) {
-				setIsSubmitting(false);
 				setSubmitError(toFriendlyError(err));
+			} finally {
+				setIsSubmitting(false);
 			}
 		},
-		[personaId, next],
+		[personaId, queryClient],
 	);
 
 	// -----------------------------------------------------------------------
 	// Render
 	// -----------------------------------------------------------------------
 
-	if (isLoadingPersona) {
-		return (
-			<div
-				className="flex flex-1 flex-col items-center justify-center"
-				data-testid="loading-growth-targets"
-			>
-				<Loader2 className="text-primary h-8 w-8 animate-spin" />
-				<p className="text-muted-foreground mt-3">
-					Loading your growth targets...
-				</p>
-			</div>
-		);
-	}
-
 	return (
 		<div className="flex flex-1 flex-col gap-6">
-			<div className="text-center">
+			<div>
 				<h2 className="text-lg font-semibold">Growth Targets</h2>
 				<p className="text-muted-foreground mt-1">
-					Where are you headed? Define the roles and skills you want to grow
-					into.
+					Define the roles and skills you want to grow into.
 				</p>
 			</div>
 
 			<Form {...form}>
 				<form
-					id="growth-targets-form"
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="space-y-6"
-					data-testid="growth-targets-form"
+					data-testid="growth-targets-editor-form"
 					noValidate
 				>
 					{/* Target Roles */}
@@ -227,30 +189,33 @@ export function GrowthTargetsStep() {
 							{submitError}
 						</div>
 					)}
+
+					{saveSuccess && (
+						<div
+							className="text-sm font-medium text-green-600"
+							data-testid="save-success"
+						>
+							Growth targets saved.
+						</div>
+					)}
+
+					<div className="flex items-center justify-between pt-4">
+						<Link
+							href="/persona"
+							className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm"
+						>
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Back to Profile
+						</Link>
+						<Button type="submit" disabled={isSubmitting}>
+							{isSubmitting && (
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							)}
+							{isSubmitting ? "Saving..." : "Save"}
+						</Button>
+					</div>
 				</form>
 			</Form>
-
-			{/* Navigation */}
-			<div className="flex items-center justify-between pt-4">
-				<Button
-					type="button"
-					variant="ghost"
-					onClick={back}
-					data-testid="back-button"
-				>
-					<ArrowLeft className="mr-2 h-4 w-4" />
-					Back
-				</Button>
-				<Button
-					type="submit"
-					form="growth-targets-form"
-					disabled={isSubmitting}
-					data-testid="submit-button"
-				>
-					{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-					{isSubmitting ? "Saving..." : "Next"}
-				</Button>
-			</div>
 		</div>
 	);
 }
