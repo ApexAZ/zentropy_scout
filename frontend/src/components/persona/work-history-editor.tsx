@@ -1,30 +1,34 @@
 "use client";
 
 /**
- * Work history step for onboarding wizard (Step 3).
+ * Post-onboarding work history editor (§6.4).
  *
- * REQ-012 §6.3.3: Display jobs in editable cards with add/edit/delete
- * and ordering. Minimum 1 job required to proceed. Each card expands
- * to show accomplishment bullets with min 1 bullet per job.
+ * REQ-012 §7.2.2: CRUD for work history entries with drag-drop
+ * reordering and read-only bullet expansion. Adapts onboarding
+ * WorkHistoryStep logic to the post-onboarding pattern.
  */
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { WorkHistoryCard } from "@/components/onboarding/steps/work-history-card";
+import { WorkHistoryForm } from "@/components/onboarding/steps/work-history-form";
+import type { WorkHistoryFormData } from "@/components/onboarding/steps/work-history-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
-import { useOnboarding } from "@/lib/onboarding-provider";
+import { queryKeys } from "@/lib/query-keys";
 import { toFormValues, toRequestBody } from "@/lib/work-history-helpers";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { Bullet, WorkHistory } from "@/types/persona";
+import type { Persona, WorkHistory } from "@/types/persona";
 
-import { BulletEditor } from "./bullet-editor";
-import { WorkHistoryCard } from "./work-history-card";
-import { WorkHistoryForm } from "./work-history-form";
-import type { WorkHistoryFormData } from "./work-history-form";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type ViewMode = "list" | "add" | "edit";
 
@@ -33,16 +37,30 @@ type ViewMode = "list" | "add" | "edit";
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 3a: Work History.
+ * Post-onboarding editor for work history entries.
  *
- * Renders a list of work history cards with add/edit/delete and
- * drag-and-drop reordering. Minimum 1 job is required to proceed.
+ * Receives the current persona as a prop and fetches work history via
+ * useQuery. Provides add/edit/delete, drag-drop reordering, and
+ * read-only bullet expansion. Invalidates the query cache after mutations.
  */
-export function WorkHistoryStep() {
-	const { personaId, next, back } = useOnboarding();
+export function WorkHistoryEditor({ persona }: { persona: Persona }) {
+	const personaId = persona.id;
+	const queryClient = useQueryClient();
+	const workHistoryQueryKey = queryKeys.workHistory(personaId);
+
+	// -----------------------------------------------------------------------
+	// Data fetching
+	// -----------------------------------------------------------------------
+
+	const { data, isLoading } = useQuery({
+		queryKey: workHistoryQueryKey,
+		queryFn: () =>
+			apiGet<ApiListResponse<WorkHistory>>(
+				`/personas/${personaId}/work-history`,
+			),
+	});
 
 	const [entries, setEntries] = useState<WorkHistory[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
 	const [viewMode, setViewMode] = useState<ViewMode>("list");
 	const [editingEntry, setEditingEntry] = useState<WorkHistory | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,34 +69,12 @@ export function WorkHistoryStep() {
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 
-	// -----------------------------------------------------------------------
-	// Fetch work history on mount
-	// -----------------------------------------------------------------------
-
+	// Sync query data to local state for optimistic updates
 	useEffect(() => {
-		if (!personaId) {
-			setIsLoading(false);
-			return;
+		if (data?.data) {
+			setEntries(data.data);
 		}
-
-		let cancelled = false;
-
-		apiGet<ApiListResponse<WorkHistory>>(`/personas/${personaId}/work-history`)
-			.then((res) => {
-				if (cancelled) return;
-				setEntries(res.data);
-			})
-			.catch(() => {
-				// Fetch failed — user can add entries manually
-			})
-			.finally(() => {
-				if (!cancelled) setIsLoading(false);
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [personaId]);
+	}, [data]);
 
 	// -----------------------------------------------------------------------
 	// Add handler
@@ -91,9 +87,7 @@ export function WorkHistoryStep() {
 	}, []);
 
 	const handleSaveNew = useCallback(
-		async (data: WorkHistoryFormData) => {
-			if (!personaId) return;
-
+		async (formData: WorkHistoryFormData) => {
 			setSubmitError(null);
 			setIsSubmitting(true);
 
@@ -101,20 +95,23 @@ export function WorkHistoryStep() {
 				const res = await apiPost<ApiResponse<WorkHistory>>(
 					`/personas/${personaId}/work-history`,
 					{
-						...toRequestBody(data),
+						...toRequestBody(formData),
 						display_order: entries.length,
 					},
 				);
 
 				setEntries((prev) => [...prev, res.data]);
 				setViewMode("list");
+				await queryClient.invalidateQueries({
+					queryKey: workHistoryQueryKey,
+				});
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[personaId, entries.length],
+		[personaId, entries.length, queryClient, workHistoryQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -128,8 +125,8 @@ export function WorkHistoryStep() {
 	}, []);
 
 	const handleSaveEdit = useCallback(
-		async (data: WorkHistoryFormData) => {
-			if (!personaId || !editingEntry) return;
+		async (formData: WorkHistoryFormData) => {
+			if (!editingEntry) return;
 
 			setSubmitError(null);
 			setIsSubmitting(true);
@@ -137,20 +134,23 @@ export function WorkHistoryStep() {
 			try {
 				const res = await apiPatch<ApiResponse<WorkHistory>>(
 					`/personas/${personaId}/work-history/${editingEntry.id}`,
-					toRequestBody(data),
+					toRequestBody(formData),
 				);
 
 				setEntries((prev) =>
 					prev.map((e) => (e.id === editingEntry.id ? res.data : e)),
 				);
 				setViewMode("list");
+				await queryClient.invalidateQueries({
+					queryKey: workHistoryQueryKey,
+				});
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[personaId, editingEntry],
+		[personaId, editingEntry, queryClient, workHistoryQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -162,7 +162,7 @@ export function WorkHistoryStep() {
 	}, []);
 
 	const handleDeleteConfirm = useCallback(async () => {
-		if (!personaId || !deleteTarget) return;
+		if (!deleteTarget) return;
 
 		setIsDeleting(true);
 
@@ -170,12 +170,15 @@ export function WorkHistoryStep() {
 			await apiDelete(`/personas/${personaId}/work-history/${deleteTarget.id}`);
 			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
 			setDeleteTarget(null);
+			await queryClient.invalidateQueries({
+				queryKey: workHistoryQueryKey,
+			});
 		} catch {
 			// Delete failed — dialog stays open
 		} finally {
 			setIsDeleting(false);
 		}
-	}, [personaId, deleteTarget]);
+	}, [personaId, deleteTarget, queryClient, workHistoryQueryKey]);
 
 	const handleDeleteCancel = useCallback(() => {
 		setDeleteTarget(null);
@@ -192,21 +195,12 @@ export function WorkHistoryStep() {
 	}, []);
 
 	// -----------------------------------------------------------------------
-	// Bullet expand/collapse and change handlers
+	// Bullet expand/collapse
 	// -----------------------------------------------------------------------
 
 	const handleToggleExpand = useCallback((entryId: string) => {
 		setExpandedEntryId((prev) => (prev === entryId ? null : entryId));
 	}, []);
-
-	const handleBulletsChange = useCallback(
-		(entryId: string, bullets: Bullet[]) => {
-			setEntries((prev) =>
-				prev.map((e) => (e.id === entryId ? { ...e, bullets } : e)),
-			);
-		},
-		[],
-	);
 
 	// -----------------------------------------------------------------------
 	// Reorder handler
@@ -214,12 +208,9 @@ export function WorkHistoryStep() {
 
 	const handleReorder = useCallback(
 		(reordered: WorkHistory[]) => {
-			if (!personaId) return;
-
 			const previousEntries = [...entries];
 			setEntries(reordered);
 
-			// PATCH display_order for each changed entry
 			const patches = reordered
 				.map((entry, newOrder) => ({ entry, newOrder }))
 				.filter(({ entry, newOrder }) => entry.display_order !== newOrder)
@@ -230,12 +221,18 @@ export function WorkHistoryStep() {
 				);
 
 			if (patches.length > 0) {
-				void Promise.all(patches).catch(() => {
-					setEntries(previousEntries);
-				});
+				void Promise.all(patches)
+					.then(() =>
+						queryClient.invalidateQueries({
+							queryKey: workHistoryQueryKey,
+						}),
+					)
+					.catch(() => {
+						setEntries(previousEntries);
+					});
 			}
 		},
-		[personaId, entries],
+		[personaId, entries, queryClient, workHistoryQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -246,7 +243,7 @@ export function WorkHistoryStep() {
 		return (
 			<div
 				className="flex flex-1 flex-col items-center justify-center"
-				data-testid="loading-work-history"
+				data-testid="loading-work-history-editor"
 			>
 				<Loader2 className="text-primary h-8 w-8 animate-spin" />
 				<p className="text-muted-foreground mt-3">
@@ -258,10 +255,10 @@ export function WorkHistoryStep() {
 
 	return (
 		<div className="flex flex-1 flex-col gap-6">
-			<div className="text-center">
+			<div>
 				<h2 className="text-lg font-semibold">Work History</h2>
 				<p className="text-muted-foreground mt-1">
-					Add your work experience. We&apos;ll use this to build your resume.
+					Manage your work experience entries.
 				</p>
 			</div>
 
@@ -285,7 +282,7 @@ export function WorkHistoryStep() {
 				<>
 					{entries.length === 0 ? (
 						<div className="text-muted-foreground py-8 text-center">
-							<p>Add your first job to get started.</p>
+							<p>No work history entries yet.</p>
 						</div>
 					) : (
 						<ReorderableList
@@ -302,16 +299,21 @@ export function WorkHistoryStep() {
 										expanded={expandedEntryId === entry.id}
 										onToggleExpand={() => handleToggleExpand(entry.id)}
 									/>
-									{expandedEntryId === entry.id && personaId && (
+									{expandedEntryId === entry.id && (
 										<div className="border-border ml-6 border-l-2 pt-3 pl-4">
-											<BulletEditor
-												personaId={personaId}
-												workHistoryId={entry.id}
-												initialBullets={entry.bullets}
-												onBulletsChange={(bullets) =>
-													handleBulletsChange(entry.id, bullets)
-												}
-											/>
+											{entry.bullets.length === 0 ? (
+												<p className="text-muted-foreground text-sm">
+													No bullets yet.
+												</p>
+											) : (
+												<ul className="list-disc space-y-1 pl-4">
+													{entry.bullets.map((bullet) => (
+														<li key={bullet.id} className="text-sm">
+															{bullet.text}
+														</li>
+													))}
+												</ul>
+											)}
 										</div>
 									)}
 								</div>
@@ -331,41 +333,16 @@ export function WorkHistoryStep() {
 				</>
 			)}
 
-			{/* Bullet validation hint */}
-			{viewMode === "list" &&
-				entries.length > 0 &&
-				entries.some((e) => e.bullets.length === 0) && (
-					<p
-						className="text-muted-foreground text-center text-sm"
-						data-testid="bullet-hint"
-					>
-						Each job needs at least one accomplishment bullet to continue.
-					</p>
-				)}
-
 			{/* Navigation */}
 			{viewMode === "list" && (
 				<div className="flex items-center justify-between pt-4">
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={back}
-						data-testid="back-button"
+					<Link
+						href="/persona"
+						className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
-						Back
-					</Button>
-					<Button
-						type="button"
-						disabled={
-							entries.length === 0 ||
-							entries.some((e) => e.bullets.length === 0)
-						}
-						onClick={next}
-						data-testid="next-button"
-					>
-						Next
-					</Button>
+						Back to Profile
+					</Link>
 				</div>
 			)}
 
