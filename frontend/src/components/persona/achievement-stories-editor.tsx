@@ -1,35 +1,34 @@
 "use client";
 
 /**
- * Achievement Stories step for onboarding wizard (Step 7).
+ * Post-onboarding achievement stories editor (§6.8).
  *
- * REQ-012 §6.3.7: Conversational capture of Context/Action/Outcome
- * structured stories. Minimum 3 stories required before proceeding.
- * Review cards with edit/delete and reordering.
+ * REQ-012 §7.2.5: CRUD for achievement story entries with
+ * C/A/O display, skill links, and drag-drop reordering.
+ * Adapts onboarding StoryStep logic to the post-onboarding pattern.
  */
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { StoryCard } from "@/components/onboarding/steps/story-card";
+import { StoryForm } from "@/components/onboarding/steps/story-form";
+import type { StoryFormData } from "@/components/onboarding/steps/story-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { toFormValues, toRequestBody } from "@/lib/achievement-stories-helpers";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
-import { useOnboarding } from "@/lib/onboarding-provider";
+import { queryKeys } from "@/lib/query-keys";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { AchievementStory, Skill } from "@/types/persona";
-
-import { StoryCard } from "./story-card";
-import { StoryForm } from "./story-form";
-import type { StoryFormData } from "./story-form";
+import type { AchievementStory, Persona, Skill } from "@/types/persona";
 
 // ---------------------------------------------------------------------------
-// Constants
+// Types
 // ---------------------------------------------------------------------------
-
-const MIN_STORIES = 3;
 
 type ViewMode = "list" | "add" | "edit";
 
@@ -38,18 +37,37 @@ type ViewMode = "list" | "add" | "edit";
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 7: Achievement Stories.
+ * Post-onboarding editor for achievement story entries.
  *
- * Renders a list of story review cards with add/edit/delete and
- * drag-and-drop reordering. Minimum 3 stories required before the
- * user can proceed.
+ * Receives the current persona as a prop and fetches stories and skills
+ * via useQuery. Provides add/edit/delete and drag-drop reordering with
+ * skill link resolution on cards.
  */
-export function StoryStep() {
-	const { personaId, next, back } = useOnboarding();
+export function AchievementStoriesEditor({ persona }: { persona: Persona }) {
+	const personaId = persona.id;
+	const queryClient = useQueryClient();
+	const storiesQueryKey = queryKeys.achievementStories(personaId);
+
+	// -----------------------------------------------------------------------
+	// Data fetching
+	// -----------------------------------------------------------------------
+
+	const { data: storiesData, isLoading: isLoadingStories } = useQuery({
+		queryKey: storiesQueryKey,
+		queryFn: () =>
+			apiGet<ApiListResponse<AchievementStory>>(
+				`/personas/${personaId}/achievement-stories`,
+			),
+	});
+
+	const { data: skillsData, isLoading: isLoadingSkills } = useQuery({
+		queryKey: queryKeys.skills(personaId),
+		queryFn: () =>
+			apiGet<ApiListResponse<Skill>>(`/personas/${personaId}/skills`),
+	});
 
 	const [entries, setEntries] = useState<AchievementStory[]>([]);
 	const [skills, setSkills] = useState<Skill[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
 	const [viewMode, setViewMode] = useState<ViewMode>("list");
 	const [editingEntry, setEditingEntry] = useState<AchievementStory | null>(
 		null,
@@ -62,40 +80,20 @@ export function StoryStep() {
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
 
-	// -----------------------------------------------------------------------
-	// Fetch stories and skills on mount
-	// -----------------------------------------------------------------------
+	// Sync query data to local state for optimistic updates
+	useEffect(() => {
+		if (storiesData?.data) {
+			setEntries(storiesData.data);
+		}
+	}, [storiesData]);
 
 	useEffect(() => {
-		if (!personaId) {
-			setIsLoading(false);
-			return;
+		if (skillsData?.data) {
+			setSkills(skillsData.data);
 		}
+	}, [skillsData]);
 
-		let cancelled = false;
-
-		Promise.all([
-			apiGet<ApiListResponse<AchievementStory>>(
-				`/personas/${personaId}/achievement-stories`,
-			),
-			apiGet<ApiListResponse<Skill>>(`/personas/${personaId}/skills`),
-		])
-			.then(([storiesRes, skillsRes]) => {
-				if (cancelled) return;
-				setEntries(storiesRes.data);
-				setSkills(skillsRes.data);
-			})
-			.catch(() => {
-				// Fetch failed — user can add entries manually
-			})
-			.finally(() => {
-				if (!cancelled) setIsLoading(false);
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [personaId]);
+	const isLoading = isLoadingStories || isLoadingSkills;
 
 	// -----------------------------------------------------------------------
 	// Add handler
@@ -108,9 +106,7 @@ export function StoryStep() {
 	}, []);
 
 	const handleSaveNew = useCallback(
-		async (data: StoryFormData) => {
-			if (!personaId) return;
-
+		async (formData: StoryFormData) => {
 			setSubmitError(null);
 			setIsSubmitting(true);
 
@@ -118,20 +114,23 @@ export function StoryStep() {
 				const res = await apiPost<ApiResponse<AchievementStory>>(
 					`/personas/${personaId}/achievement-stories`,
 					{
-						...toRequestBody(data),
+						...toRequestBody(formData),
 						display_order: entries.length,
 					},
 				);
 
 				setEntries((prev) => [...prev, res.data]);
 				setViewMode("list");
+				await queryClient.invalidateQueries({
+					queryKey: storiesQueryKey,
+				});
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[personaId, entries.length],
+		[personaId, entries.length, queryClient, storiesQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -145,8 +144,8 @@ export function StoryStep() {
 	}, []);
 
 	const handleSaveEdit = useCallback(
-		async (data: StoryFormData) => {
-			if (!personaId || !editingEntry) return;
+		async (formData: StoryFormData) => {
+			if (!editingEntry) return;
 
 			setSubmitError(null);
 			setIsSubmitting(true);
@@ -154,20 +153,23 @@ export function StoryStep() {
 			try {
 				const res = await apiPatch<ApiResponse<AchievementStory>>(
 					`/personas/${personaId}/achievement-stories/${editingEntry.id}`,
-					toRequestBody(data),
+					toRequestBody(formData),
 				);
 
 				setEntries((prev) =>
 					prev.map((e) => (e.id === editingEntry.id ? res.data : e)),
 				);
 				setViewMode("list");
+				await queryClient.invalidateQueries({
+					queryKey: storiesQueryKey,
+				});
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[personaId, editingEntry],
+		[personaId, editingEntry, queryClient, storiesQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -180,7 +182,7 @@ export function StoryStep() {
 	}, []);
 
 	const handleDeleteConfirm = useCallback(async () => {
-		if (!personaId || !deleteTarget) return;
+		if (!deleteTarget) return;
 
 		setIsDeleting(true);
 
@@ -190,12 +192,15 @@ export function StoryStep() {
 			);
 			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
 			setDeleteTarget(null);
+			await queryClient.invalidateQueries({
+				queryKey: storiesQueryKey,
+			});
 		} catch (err) {
 			setDeleteError(toFriendlyError(err));
 		} finally {
 			setIsDeleting(false);
 		}
-	}, [personaId, deleteTarget]);
+	}, [personaId, deleteTarget, queryClient, storiesQueryKey]);
 
 	const handleDeleteCancel = useCallback(() => {
 		setDeleteTarget(null);
@@ -217,8 +222,6 @@ export function StoryStep() {
 
 	const handleReorder = useCallback(
 		(reordered: AchievementStory[]) => {
-			if (!personaId) return;
-
 			const previousEntries = [...entries];
 			setEntries(reordered);
 
@@ -232,24 +235,19 @@ export function StoryStep() {
 				);
 
 			if (patches.length > 0) {
-				void Promise.all(patches).catch(() => {
-					setEntries(previousEntries);
-				});
+				void Promise.all(patches)
+					.then(() =>
+						queryClient.invalidateQueries({
+							queryKey: storiesQueryKey,
+						}),
+					)
+					.catch(() => {
+						setEntries(previousEntries);
+					});
 			}
 		},
-		[personaId, entries],
+		[personaId, entries, queryClient, storiesQueryKey],
 	);
-
-	// -----------------------------------------------------------------------
-	// Story counter text
-	// -----------------------------------------------------------------------
-
-	function storyCounterText(count: number): string {
-		if (count < MIN_STORIES) {
-			return `${count} of 3\u20135 stories \u00B7 minimum ${MIN_STORIES} required`;
-		}
-		return `${count} of 3\u20135 stories`;
-	}
 
 	// -----------------------------------------------------------------------
 	// Render
@@ -259,7 +257,7 @@ export function StoryStep() {
 		return (
 			<div
 				className="flex flex-1 flex-col items-center justify-center"
-				data-testid="loading-stories"
+				data-testid="loading-stories-editor"
 			>
 				<Loader2 className="text-primary h-8 w-8 animate-spin" />
 				<p className="text-muted-foreground mt-3">
@@ -271,12 +269,10 @@ export function StoryStep() {
 
 	return (
 		<div className="flex flex-1 flex-col gap-6">
-			<div className="text-center">
+			<div>
 				<h2 className="text-lg font-semibold">Achievement Stories</h2>
 				<p className="text-muted-foreground mt-1">
-					{entries.length === 0
-						? "Share stories of times you made a real impact."
-						: storyCounterText(entries.length)}
+					Manage your achievement stories.
 				</p>
 			</div>
 
@@ -335,23 +331,13 @@ export function StoryStep() {
 			{/* Navigation */}
 			{viewMode === "list" && (
 				<div className="flex items-center justify-between pt-4">
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={back}
-						data-testid="back-button"
+					<Link
+						href="/persona"
+						className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
-						Back
-					</Button>
-					<Button
-						type="button"
-						onClick={next}
-						disabled={entries.length < MIN_STORIES}
-						data-testid="next-button"
-					>
-						Next
-					</Button>
+						Back to Profile
+					</Link>
 				</div>
 			)}
 
