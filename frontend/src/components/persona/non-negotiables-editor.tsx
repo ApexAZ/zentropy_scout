@@ -1,29 +1,23 @@
 "use client";
 
 /**
- * Non-negotiables step for onboarding wizard (Step 8).
+ * Post-onboarding non-negotiables editor (§6.10).
  *
- * REQ-012 §6.3.8: Form with sections.
- * - Location preferences: remote preference radio group, commutable cities
- *   tag input, max commute number input, relocation toggle/cities.
- * - Compensation: minimum base salary with currency selector, "prefer not
- *   to set" checkbox.
- * - Other filters: visa sponsorship toggle, industry exclusions tag input,
- *   company size preference radio group, max travel radio group.
- *
- * Conditional visibility:
- * - Remote Only hides commutable_cities and max_commute_minutes.
- * - relocation_open = false hides relocation_cities.
- * - prefer_no_salary = true hides minimum_base_salary input.
+ * REQ-012 §7.2.7: Sectioned form for location preferences, compensation,
+ * other filters, and embedded custom filters CRUD. Pre-fills from persona
+ * prop, PATCHes on save, invalidates cache, shows success message.
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { FormErrorSummary } from "@/components/form/form-error-summary";
 import { FormTagField } from "@/components/form/form-tag-field";
+import { CustomFiltersSection } from "@/components/onboarding/steps/custom-filters-section";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -35,7 +29,8 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { ApiError, apiGet, apiPatch } from "@/lib/api-client";
+import { apiPatch } from "@/lib/api-client";
+import { toFriendlyError } from "@/lib/form-errors";
 import {
 	CURRENCIES,
 	NON_NEGOTIABLES_DEFAULT_VALUES,
@@ -44,8 +39,7 @@ import {
 	toRequestBody,
 } from "@/lib/non-negotiables-helpers";
 import type { NonNegotiablesFormData } from "@/lib/non-negotiables-helpers";
-import { useOnboarding } from "@/lib/onboarding-provider";
-import type { ApiListResponse } from "@/types/api";
+import { queryKeys } from "@/lib/query-keys";
 import type { Persona, RemotePreference } from "@/types/persona";
 import {
 	COMPANY_SIZE_PREFERENCES,
@@ -53,57 +47,38 @@ import {
 	REMOTE_PREFERENCES,
 } from "@/types/persona";
 
-import { CustomFiltersSection } from "./custom-filters-section";
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** Friendly error messages keyed by API error code. */
-const FRIENDLY_ERROR_MESSAGES: Readonly<Record<string, string>> = {
-	VALIDATION_ERROR: "Please check your input and try again.",
-};
-
-/** Fallback error message for unexpected errors. */
-const GENERIC_ERROR_MESSAGE = "Failed to save. Please try again.";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Map an ApiError to a user-friendly message. */
-function toFriendlyError(err: unknown): string {
-	if (err instanceof ApiError) {
-		return FRIENDLY_ERROR_MESSAGES[err.code] ?? GENERIC_ERROR_MESSAGE;
-	}
-	return GENERIC_ERROR_MESSAGE;
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 8: Non-Negotiables.
+ * Post-onboarding editor for non-negotiable fields.
  *
- * Renders a multi-section form covering location preferences, compensation,
- * and other job filters. On valid submission, PATCHes the persona and
- * advances to the next step.
+ * Receives the current persona as a prop. Pre-fills the form from persona
+ * data and saves changes via PATCH. Includes embedded CustomFiltersSection.
  */
-export function NonNegotiablesStep() {
-	const { personaId, next, back } = useOnboarding();
+export function NonNegotiablesEditor({ persona }: { persona: Persona }) {
+	const personaId = persona.id;
+	const queryClient = useQueryClient();
 
-	const [isLoadingPersona, setIsLoadingPersona] = useState(!!personaId);
-	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
+	// -----------------------------------------------------------------------
+	// Form
+	// -----------------------------------------------------------------------
 
 	const form = useForm<NonNegotiablesFormData>({
 		resolver: zodResolver(nonNegotiablesSchema),
-		defaultValues: NON_NEGOTIABLES_DEFAULT_VALUES,
+		defaultValues: {
+			...NON_NEGOTIABLES_DEFAULT_VALUES,
+			...toFormValues(persona),
+		},
 		mode: "onTouched",
 	});
 
-	const { reset, watch } = form;
+	const { watch } = form;
+
+	const [submitError, setSubmitError] = useState<string | null>(null);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [saveSuccess, setSaveSuccess] = useState(false);
 
 	const watchedRemotePreference = watch(
 		"remote_preference",
@@ -114,92 +89,49 @@ export function NonNegotiablesStep() {
 	const isRemoteOnly = watchedRemotePreference === "Remote Only";
 
 	// -----------------------------------------------------------------------
-	// Pre-fill from persona data
-	// -----------------------------------------------------------------------
-
-	useEffect(() => {
-		if (!personaId) return;
-
-		let cancelled = false;
-
-		apiGet<ApiListResponse<Persona>>("/personas")
-			.then((res) => {
-				if (cancelled) return;
-				const persona = res.data[0];
-				if (persona) {
-					reset({
-						...NON_NEGOTIABLES_DEFAULT_VALUES,
-						...toFormValues(persona),
-					});
-				}
-			})
-			.catch(() => {
-				// Pre-fill failed — user can fill manually
-			})
-			.finally(() => {
-				if (!cancelled) setIsLoadingPersona(false);
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [personaId, reset]);
-
-	// -----------------------------------------------------------------------
 	// Submit handler
 	// -----------------------------------------------------------------------
 
 	const onSubmit = useCallback(
 		async (data: NonNegotiablesFormData) => {
-			if (!personaId) return;
-
 			setSubmitError(null);
+			setSaveSuccess(false);
 			setIsSubmitting(true);
 
 			try {
 				await apiPatch(`/personas/${personaId}`, toRequestBody(data));
-				next();
+
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.personas,
+				});
+				setSaveSuccess(true);
 			} catch (err) {
-				setIsSubmitting(false);
 				setSubmitError(toFriendlyError(err));
+			} finally {
+				setIsSubmitting(false);
 			}
 		},
-		[personaId, next],
+		[personaId, queryClient],
 	);
 
 	// -----------------------------------------------------------------------
 	// Render
 	// -----------------------------------------------------------------------
 
-	if (isLoadingPersona) {
-		return (
-			<div
-				className="flex flex-1 flex-col items-center justify-center"
-				data-testid="loading-non-negotiables"
-			>
-				<Loader2 className="text-primary h-8 w-8 animate-spin" />
-				<p className="text-muted-foreground mt-3">
-					Loading your preferences...
-				</p>
-			</div>
-		);
-	}
-
 	return (
 		<div className="flex flex-1 flex-col gap-6">
-			<div className="text-center">
+			<div>
 				<h2 className="text-lg font-semibold">Non-Negotiables</h2>
 				<p className="text-muted-foreground mt-1">
-					Set your location preferences so we only surface jobs that fit.
+					Set your location preferences, compensation, and other filters.
 				</p>
 			</div>
 
 			<Form {...form}>
 				<form
-					id="non-negotiables-form"
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="space-y-6"
-					data-testid="non-negotiables-form"
+					data-testid="non-negotiables-editor-form"
 					noValidate
 				>
 					{/* ---- Location Preferences ---- */}
@@ -513,32 +445,36 @@ export function NonNegotiablesStep() {
 							{submitError}
 						</div>
 					)}
+
+					{saveSuccess && (
+						<div
+							className="text-sm font-medium text-green-600"
+							data-testid="save-success"
+						>
+							Non-negotiables saved.
+						</div>
+					)}
+
+					<div className="flex items-center justify-between pt-4">
+						<Link
+							href="/persona"
+							className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm"
+						>
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Back to Profile
+						</Link>
+						<Button type="submit" disabled={isSubmitting}>
+							{isSubmitting && (
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							)}
+							{isSubmitting ? "Saving..." : "Save"}
+						</Button>
+					</div>
 				</form>
-
-				{/* Custom filters — separate CRUD section with own <form> */}
-				{personaId && <CustomFiltersSection personaId={personaId} />}
-
-				<div className="flex items-center justify-between pt-4">
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={back}
-						data-testid="back-button"
-					>
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Back
-					</Button>
-					<Button
-						type="submit"
-						form="non-negotiables-form"
-						disabled={isSubmitting}
-						data-testid="submit-button"
-					>
-						{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-						{isSubmitting ? "Saving..." : "Next"}
-					</Button>
-				</div>
 			</Form>
+
+			{/* Custom filters — separate CRUD section with own state/API calls */}
+			<CustomFiltersSection personaId={personaId} />
 		</div>
 	);
 }

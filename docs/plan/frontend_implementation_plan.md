@@ -258,7 +258,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 6.7 | Create skills editor: Hard/Soft tabs, 6-field skill cards, category switching (REQ-012 §7.2.4) | `tdd, structure, plan` | ✅ |
 | 6.8 | Create achievement stories editor: C/A/O expand, skill links (REQ-012 §7.2.5) | `tdd, structure, plan` | ✅ |
 | 6.9 | Create voice profile editor: text fields + tag inputs for phrases and avoid-list (REQ-012 §7.2.6) | `tdd, structure, plan` | ✅ |
-| 6.10 | Create non-negotiables editor: conditional fields, custom filter CRUD (REQ-012 §7.2.7, §7.3) | `tdd, structure, plan` | ⬜ |
+| 6.10 | Create non-negotiables editor: conditional fields, custom filter CRUD (REQ-012 §7.2.7, §7.3) | `tdd, structure, plan` | ✅ |
 | 6.11 | Create growth targets and discovery preferences editors with validation (REQ-012 §7.2.8-9) | `tdd, structure, plan` | ⬜ |
 | 6.12 | Create deletion handling: reference check, three-option dialog, immutable block (REQ-012 §7.5) | `tdd, structure, plan` | ⬜ |
 | 6.13 | Create PersonaChangeFlags resolution UI: per-flag add-to-all/some/skip flow (REQ-012 §7.6) | `tdd, structure, plan` | ⬜ |
