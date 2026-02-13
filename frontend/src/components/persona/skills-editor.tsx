@@ -1,29 +1,35 @@
 "use client";
 
 /**
- * Skills step for onboarding wizard (Step 5).
+ * Post-onboarding skills editor (§6.7).
  *
- * REQ-012 §6.3.5: Not skippable. Skills editor with proficiency
- * selector, conditional category dropdown, CRUD, and reordering.
- * All 6 fields required per skill entry.
+ * REQ-012 §7.2.4: CRUD for skill entries with Hard/Soft tabs and
+ * per-type drag-drop reordering. Adapts onboarding SkillsStep logic
+ * to the post-onboarding pattern.
  */
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { SkillCard } from "@/components/onboarding/steps/skills-card";
+import { SkillForm } from "@/components/onboarding/steps/skills-form";
+import type { SkillFormData } from "@/components/onboarding/steps/skills-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
-import { useOnboarding } from "@/lib/onboarding-provider";
+import { queryKeys } from "@/lib/query-keys";
 import { toFormValues, toRequestBody } from "@/lib/skills-helpers";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { Skill } from "@/types/persona";
+import type { Persona, Skill, SkillType } from "@/types/persona";
 
-import { SkillCard } from "./skills-card";
-import { SkillForm } from "./skills-form";
-import type { SkillFormData } from "./skills-form";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type ViewMode = "list" | "add" | "edit";
 
@@ -32,16 +38,29 @@ type ViewMode = "list" | "add" | "edit";
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 5: Skills.
+ * Post-onboarding editor for skill entries.
  *
- * Renders a list of skill cards with add/edit/delete and
- * drag-and-drop reordering. Not skippable — all 6 fields required.
+ * Receives the current persona as a prop and fetches skills via
+ * useQuery. Provides add/edit/delete and per-type drag-drop reordering
+ * with Hard/Soft skill tabs.
  */
-export function SkillsStep() {
-	const { personaId, next, back } = useOnboarding();
+export function SkillsEditor({ persona }: { persona: Persona }) {
+	const personaId = persona.id;
+	const queryClient = useQueryClient();
+	const skillsQueryKey = queryKeys.skills(personaId);
+
+	// -----------------------------------------------------------------------
+	// Data fetching
+	// -----------------------------------------------------------------------
+
+	const { data, isLoading } = useQuery({
+		queryKey: skillsQueryKey,
+		queryFn: () =>
+			apiGet<ApiListResponse<Skill>>(`/personas/${personaId}/skills`),
+	});
 
 	const [entries, setEntries] = useState<Skill[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+	const [activeTab, setActiveTab] = useState<SkillType>("Hard");
 	const [viewMode, setViewMode] = useState<ViewMode>("list");
 	const [editingEntry, setEditingEntry] = useState<Skill | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,35 +69,22 @@ export function SkillsStep() {
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
 
-	// -----------------------------------------------------------------------
-	// Fetch skills on mount
-	// -----------------------------------------------------------------------
-
+	// Sync query data to local state for optimistic updates
 	useEffect(() => {
-		if (!personaId) {
-			setIsLoading(false);
-			return;
+		if (data?.data) {
+			setEntries(data.data);
 		}
+	}, [data]);
 
-		let cancelled = false;
-
-		apiGet<ApiListResponse<Skill>>(`/personas/${personaId}/skills`)
-			.then((res) => {
-				if (cancelled) return;
-				setEntries(res.data);
-			})
-			.catch(() => {
-				// Fetch failed — user can add entries manually
-			})
-			.finally(() => {
-				if (!cancelled) setIsLoading(false);
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [personaId]);
-
+	// Filter entries by active tab
+	const hardSkills = useMemo(
+		() => entries.filter((e) => e.skill_type === "Hard"),
+		[entries],
+	);
+	const softSkills = useMemo(
+		() => entries.filter((e) => e.skill_type === "Soft"),
+		[entries],
+	);
 	// -----------------------------------------------------------------------
 	// Add handler
 	// -----------------------------------------------------------------------
@@ -90,30 +96,37 @@ export function SkillsStep() {
 	}, []);
 
 	const handleSaveNew = useCallback(
-		async (data: SkillFormData) => {
-			if (!personaId) return;
-
+		async (formData: SkillFormData) => {
 			setSubmitError(null);
 			setIsSubmitting(true);
 
 			try {
+				const body = toRequestBody(formData);
+				const sameTypeCount = entries.filter(
+					(e) => e.skill_type === body.skill_type,
+				).length;
+
 				const res = await apiPost<ApiResponse<Skill>>(
 					`/personas/${personaId}/skills`,
 					{
-						...toRequestBody(data),
-						display_order: entries.length,
+						...body,
+						display_order: sameTypeCount,
 					},
 				);
 
 				setEntries((prev) => [...prev, res.data]);
+				setActiveTab(res.data.skill_type);
 				setViewMode("list");
+				await queryClient.invalidateQueries({
+					queryKey: skillsQueryKey,
+				});
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[personaId, entries.length],
+		[personaId, entries, queryClient, skillsQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -127,8 +140,8 @@ export function SkillsStep() {
 	}, []);
 
 	const handleSaveEdit = useCallback(
-		async (data: SkillFormData) => {
-			if (!personaId || !editingEntry) return;
+		async (formData: SkillFormData) => {
+			if (!editingEntry) return;
 
 			setSubmitError(null);
 			setIsSubmitting(true);
@@ -136,20 +149,23 @@ export function SkillsStep() {
 			try {
 				const res = await apiPatch<ApiResponse<Skill>>(
 					`/personas/${personaId}/skills/${editingEntry.id}`,
-					toRequestBody(data),
+					toRequestBody(formData),
 				);
 
 				setEntries((prev) =>
 					prev.map((e) => (e.id === editingEntry.id ? res.data : e)),
 				);
 				setViewMode("list");
+				await queryClient.invalidateQueries({
+					queryKey: skillsQueryKey,
+				});
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[personaId, editingEntry],
+		[personaId, editingEntry, queryClient, skillsQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -162,7 +178,7 @@ export function SkillsStep() {
 	}, []);
 
 	const handleDeleteConfirm = useCallback(async () => {
-		if (!personaId || !deleteTarget) return;
+		if (!deleteTarget) return;
 
 		setIsDeleting(true);
 
@@ -170,12 +186,15 @@ export function SkillsStep() {
 			await apiDelete(`/personas/${personaId}/skills/${deleteTarget.id}`);
 			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
 			setDeleteTarget(null);
+			await queryClient.invalidateQueries({
+				queryKey: skillsQueryKey,
+			});
 		} catch (err) {
 			setDeleteError(toFriendlyError(err));
 		} finally {
 			setIsDeleting(false);
 		}
-	}, [personaId, deleteTarget]);
+	}, [personaId, deleteTarget, queryClient, skillsQueryKey]);
 
 	const handleDeleteCancel = useCallback(() => {
 		setDeleteTarget(null);
@@ -192,15 +211,17 @@ export function SkillsStep() {
 	}, []);
 
 	// -----------------------------------------------------------------------
-	// Reorder handler
+	// Reorder handler (per-type)
 	// -----------------------------------------------------------------------
 
 	const handleReorder = useCallback(
 		(reordered: Skill[]) => {
-			if (!personaId) return;
-
+			// Merge reordered subset back into full entries list
+			const reorderedIds = new Set(reordered.map((e) => e.id));
+			const otherEntries = entries.filter((e) => !reorderedIds.has(e.id));
 			const previousEntries = [...entries];
-			setEntries(reordered);
+
+			setEntries([...otherEntries, ...reordered]);
 
 			const patches = reordered
 				.map((entry, newOrder) => ({ entry, newOrder }))
@@ -212,12 +233,18 @@ export function SkillsStep() {
 				);
 
 			if (patches.length > 0) {
-				void Promise.all(patches).catch(() => {
-					setEntries(previousEntries);
-				});
+				void Promise.all(patches)
+					.then(() =>
+						queryClient.invalidateQueries({
+							queryKey: skillsQueryKey,
+						}),
+					)
+					.catch(() => {
+						setEntries(previousEntries);
+					});
 			}
 		},
-		[personaId, entries],
+		[personaId, entries, queryClient, skillsQueryKey],
 	);
 
 	// -----------------------------------------------------------------------
@@ -228,7 +255,7 @@ export function SkillsStep() {
 		return (
 			<div
 				className="flex flex-1 flex-col items-center justify-center"
-				data-testid="loading-skills"
+				data-testid="loading-skills-editor"
 			>
 				<Loader2 className="text-primary h-8 w-8 animate-spin" />
 				<p className="text-muted-foreground mt-3">Loading your skills...</p>
@@ -238,13 +265,9 @@ export function SkillsStep() {
 
 	return (
 		<div className="flex flex-1 flex-col gap-6">
-			<div className="text-center">
+			<div>
 				<h2 className="text-lg font-semibold">Skills</h2>
-				<p className="text-muted-foreground mt-1">
-					{entries.length === 0
-						? "Add your technical and professional skills."
-						: "Your skills. Add, edit, or reorder as needed."}
-				</p>
+				<p className="text-muted-foreground mt-1">Manage your skills.</p>
 			</div>
 
 			{/* Form view (add or edit) */}
@@ -262,28 +285,68 @@ export function SkillsStep() {
 				/>
 			)}
 
-			{/* List view */}
+			{/* List view with tabs */}
 			{viewMode === "list" && (
 				<>
-					{entries.length === 0 ? (
-						<div className="text-muted-foreground py-8 text-center">
-							<p>No skills yet.</p>
-						</div>
-					) : (
-						<ReorderableList
-							items={entries}
-							onReorder={handleReorder}
-							label="Skill entries"
-							renderItem={(entry, dragHandle) => (
-								<SkillCard
-									entry={entry}
-									onEdit={handleEdit}
-									onDelete={handleDeleteRequest}
-									dragHandle={dragHandle}
+					<Tabs
+						value={activeTab}
+						onValueChange={(val) => {
+							if (val === "Hard" || val === "Soft") setActiveTab(val);
+						}}
+					>
+						<TabsList>
+							<TabsTrigger value="Hard">
+								Hard Skills ({hardSkills.length})
+							</TabsTrigger>
+							<TabsTrigger value="Soft">
+								Soft Skills ({softSkills.length})
+							</TabsTrigger>
+						</TabsList>
+
+						<TabsContent value="Hard">
+							{hardSkills.length === 0 ? (
+								<div className="text-muted-foreground py-8 text-center">
+									<p>No hard skills yet.</p>
+								</div>
+							) : (
+								<ReorderableList
+									items={hardSkills}
+									onReorder={handleReorder}
+									label="Hard skill entries"
+									renderItem={(entry, dragHandle) => (
+										<SkillCard
+											entry={entry}
+											onEdit={handleEdit}
+											onDelete={handleDeleteRequest}
+											dragHandle={dragHandle}
+										/>
+									)}
 								/>
 							)}
-						/>
-					)}
+						</TabsContent>
+
+						<TabsContent value="Soft">
+							{softSkills.length === 0 ? (
+								<div className="text-muted-foreground py-8 text-center">
+									<p>No soft skills yet.</p>
+								</div>
+							) : (
+								<ReorderableList
+									items={softSkills}
+									onReorder={handleReorder}
+									label="Soft skill entries"
+									renderItem={(entry, dragHandle) => (
+										<SkillCard
+											entry={entry}
+											onEdit={handleEdit}
+											onDelete={handleDeleteRequest}
+											dragHandle={dragHandle}
+										/>
+									)}
+								/>
+							)}
+						</TabsContent>
+					</Tabs>
 
 					<Button
 						type="button"
@@ -297,21 +360,16 @@ export function SkillsStep() {
 				</>
 			)}
 
-			{/* Navigation — no skip button (skills is not skippable) */}
+			{/* Navigation */}
 			{viewMode === "list" && (
 				<div className="flex items-center justify-between pt-4">
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={back}
-						data-testid="back-button"
+					<Link
+						href="/persona"
+						className="text-muted-foreground hover:text-foreground inline-flex items-center text-sm"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
-						Back
-					</Button>
-					<Button type="button" onClick={next} data-testid="next-button">
-						Next
-					</Button>
+						Back to Profile
+					</Link>
 				</div>
 			)}
 
