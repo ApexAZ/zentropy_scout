@@ -61,6 +61,64 @@ describe("queryKeys", () => {
 		});
 	});
 
+	describe("sub-entity keys (persona child resources)", () => {
+		it("returns ['personas', id, 'work-history'] for workHistory(id)", () => {
+			expect(queryKeys.workHistory(TEST_UUID)).toEqual([
+				"personas",
+				TEST_UUID,
+				"work-history",
+			]);
+		});
+
+		it("returns ['personas', id, 'skills'] for skills(id)", () => {
+			expect(queryKeys.skills(TEST_UUID)).toEqual([
+				"personas",
+				TEST_UUID,
+				"skills",
+			]);
+		});
+
+		it("returns ['personas', id, 'education'] for education(id)", () => {
+			expect(queryKeys.education(TEST_UUID)).toEqual([
+				"personas",
+				TEST_UUID,
+				"education",
+			]);
+		});
+
+		it("returns ['personas', id, 'certifications'] for certifications(id)", () => {
+			expect(queryKeys.certifications(TEST_UUID)).toEqual([
+				"personas",
+				TEST_UUID,
+				"certifications",
+			]);
+		});
+
+		it("returns ['personas', id, 'achievement-stories'] for achievementStories(id)", () => {
+			expect(queryKeys.achievementStories(TEST_UUID)).toEqual([
+				"personas",
+				TEST_UUID,
+				"achievement-stories",
+			]);
+		});
+
+		it("returns ['personas', id, 'voice-profile'] for voiceProfile(id)", () => {
+			expect(queryKeys.voiceProfile(TEST_UUID)).toEqual([
+				"personas",
+				TEST_UUID,
+				"voice-profile",
+			]);
+		});
+
+		it("returns ['personas', id, 'custom-non-negotiables'] for customNonNegotiables(id)", () => {
+			expect(queryKeys.customNonNegotiables(TEST_UUID)).toEqual([
+				"personas",
+				TEST_UUID,
+				"custom-non-negotiables",
+			]);
+		});
+	});
+
 	describe("detail key structure", () => {
 		it("detail key starts with list key prefix for personas", () => {
 			const listKey = queryKeys.personas;
@@ -78,6 +136,57 @@ describe("queryKeys", () => {
 			const listKey = queryKeys.applications;
 			const detailKey = queryKeys.application(TEST_UUID);
 			expect(detailKey[0]).toBe(listKey[0]);
+		});
+	});
+
+	describe("sub-entity key hierarchy", () => {
+		it("workHistory key starts with persona detail key prefix", () => {
+			const personaKey = queryKeys.persona(TEST_UUID);
+			const subKey = queryKeys.workHistory(TEST_UUID);
+			expect(subKey[0]).toBe(personaKey[0]);
+			expect(subKey[1]).toBe(personaKey[1]);
+		});
+
+		it("skills key starts with persona detail key prefix", () => {
+			const personaKey = queryKeys.persona(TEST_UUID);
+			const subKey = queryKeys.skills(TEST_UUID);
+			expect(subKey[0]).toBe(personaKey[0]);
+			expect(subKey[1]).toBe(personaKey[1]);
+		});
+
+		it("education key starts with persona detail key prefix", () => {
+			const personaKey = queryKeys.persona(TEST_UUID);
+			const subKey = queryKeys.education(TEST_UUID);
+			expect(subKey[0]).toBe(personaKey[0]);
+			expect(subKey[1]).toBe(personaKey[1]);
+		});
+
+		it("certifications key starts with persona detail key prefix", () => {
+			const personaKey = queryKeys.persona(TEST_UUID);
+			const subKey = queryKeys.certifications(TEST_UUID);
+			expect(subKey[0]).toBe(personaKey[0]);
+			expect(subKey[1]).toBe(personaKey[1]);
+		});
+
+		it("achievementStories key starts with persona detail key prefix", () => {
+			const personaKey = queryKeys.persona(TEST_UUID);
+			const subKey = queryKeys.achievementStories(TEST_UUID);
+			expect(subKey[0]).toBe(personaKey[0]);
+			expect(subKey[1]).toBe(personaKey[1]);
+		});
+
+		it("voiceProfile key starts with persona detail key prefix", () => {
+			const personaKey = queryKeys.persona(TEST_UUID);
+			const subKey = queryKeys.voiceProfile(TEST_UUID);
+			expect(subKey[0]).toBe(personaKey[0]);
+			expect(subKey[1]).toBe(personaKey[1]);
+		});
+
+		it("customNonNegotiables key starts with persona detail key prefix", () => {
+			const personaKey = queryKeys.persona(TEST_UUID);
+			const subKey = queryKeys.customNonNegotiables(TEST_UUID);
+			expect(subKey[0]).toBe(personaKey[0]);
+			expect(subKey[1]).toBe(personaKey[1]);
 		});
 	});
 

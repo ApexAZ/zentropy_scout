@@ -249,7 +249,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 6.1 | Create persona overview page: section summary cards with edit links (REQ-012 §7.1) | `tdd, structure, plan` | ⬜ |
+| 6.1 | Create persona overview page: section summary cards with edit links (REQ-012 §7.1) | `tdd, structure, plan` | ✅ |
 | 6.2 | Create PersonaChangeFlags banner with pending action count (REQ-012 §7.6) | `tdd, structure, plan` | ⬜ |
 | 6.3 | Create basic info editor: two-column form with URL validation (REQ-012 §7.2.1) | `tdd, structure, plan` | ⬜ |
 | 6.4 | Create work history editor: reorderable job cards with drag-drop (REQ-012 §7.2.2) | `tdd, structure, plan` | ⬜ |
