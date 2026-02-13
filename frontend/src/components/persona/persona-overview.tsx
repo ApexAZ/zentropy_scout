@@ -26,6 +26,8 @@ import type {
 	WorkHistory,
 } from "@/types/persona";
 
+import { ChangeFlagsBanner } from "./change-flags-banner";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -385,6 +387,8 @@ export function PersonaOverview({ persona }: { persona: Persona }) {
 			<h1 className="text-xl font-semibold">Your Professional Profile</h1>
 
 			<PersonaHeader persona={persona} />
+
+			<ChangeFlagsBanner />
 
 			<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
 				{SECTION_CARDS.map((card) => (

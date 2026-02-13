@@ -252,6 +252,10 @@ vi.mock("@/lib/api-client", () => ({
 	ApiError: mocks.MockApiError,
 }));
 
+vi.mock("./change-flags-banner", () => ({
+	ChangeFlagsBanner: () => <div data-testid="change-flags-banner" />,
+}));
+
 vi.mock("next/link", () => ({
 	default: ({
 		href,
@@ -493,6 +497,26 @@ describe("PersonaOverview", () => {
 
 			// Should still render the header without errors
 			expect(screen.getByTestId("persona-header")).toBeInTheDocument();
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Change flags banner
+	// -----------------------------------------------------------------------
+
+	describe("change flags banner", () => {
+		it("renders banner between header and card grid", async () => {
+			await renderAndWait();
+
+			const overview = screen.getByTestId("persona-overview");
+			const header = within(overview).getByTestId("persona-header");
+			const banner = within(overview).getByTestId("change-flags-banner");
+
+			// Banner should appear after the header in DOM order
+			const children = Array.from(overview.children);
+			const headerIndex = children.indexOf(header.closest("div")!);
+			const bannerIndex = children.indexOf(banner);
+			expect(bannerIndex).toBeGreaterThan(headerIndex);
 		});
 	});
 
