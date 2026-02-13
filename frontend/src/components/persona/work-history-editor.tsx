@@ -4,7 +4,7 @@
  * Post-onboarding work history editor (§6.4).
  *
  * REQ-012 §7.2.2: CRUD for work history entries with drag-drop
- * reordering and read-only bullet expansion. Adapts onboarding
+ * reordering and interactive bullet editing. Adapts onboarding
  * WorkHistoryStep logic to the post-onboarding pattern.
  */
 
@@ -13,6 +13,7 @@ import { ArrowLeft, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { BulletEditor } from "@/components/onboarding/steps/bullet-editor";
 import { WorkHistoryCard } from "@/components/onboarding/steps/work-history-card";
 import { WorkHistoryForm } from "@/components/onboarding/steps/work-history-form";
 import type { WorkHistoryFormData } from "@/components/onboarding/steps/work-history-form";
@@ -24,7 +25,7 @@ import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
 import { toFormValues, toRequestBody } from "@/lib/work-history-helpers";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { Persona, WorkHistory } from "@/types/persona";
+import type { Bullet, Persona, WorkHistory } from "@/types/persona";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,7 +42,7 @@ type ViewMode = "list" | "add" | "edit";
  *
  * Receives the current persona as a prop and fetches work history via
  * useQuery. Provides add/edit/delete, drag-drop reordering, and
- * read-only bullet expansion. Invalidates the query cache after mutations.
+ * interactive bullet editing. Invalidates the query cache after mutations.
  */
 export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 	const personaId = persona.id;
@@ -203,6 +204,22 @@ export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 	}, []);
 
 	// -----------------------------------------------------------------------
+	// Bullet change handler
+	// -----------------------------------------------------------------------
+
+	const handleBulletsChange = useCallback(
+		(workHistoryId: string, bullets: Bullet[]) => {
+			setEntries((prev) =>
+				prev.map((e) => (e.id === workHistoryId ? { ...e, bullets } : e)),
+			);
+			void queryClient.invalidateQueries({
+				queryKey: workHistoryQueryKey,
+			});
+		},
+		[queryClient, workHistoryQueryKey],
+	);
+
+	// -----------------------------------------------------------------------
 	// Reorder handler
 	// -----------------------------------------------------------------------
 
@@ -301,19 +318,14 @@ export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 									/>
 									{expandedEntryId === entry.id && (
 										<div className="border-border ml-6 border-l-2 pt-3 pl-4">
-											{entry.bullets.length === 0 ? (
-												<p className="text-muted-foreground text-sm">
-													No bullets yet.
-												</p>
-											) : (
-												<ul className="list-disc space-y-1 pl-4">
-													{entry.bullets.map((bullet) => (
-														<li key={bullet.id} className="text-sm">
-															{bullet.text}
-														</li>
-													))}
-												</ul>
-											)}
+											<BulletEditor
+												personaId={personaId}
+												workHistoryId={entry.id}
+												initialBullets={entry.bullets}
+												onBulletsChange={(bullets) =>
+													handleBulletsChange(entry.id, bullets)
+												}
+											/>
 										</div>
 									)}
 								</div>

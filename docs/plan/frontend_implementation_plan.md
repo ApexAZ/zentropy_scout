@@ -253,7 +253,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 6.2 | Create PersonaChangeFlags banner with pending action count (REQ-012 §7.6) | `tdd, structure, plan` | ✅ |
 | 6.3 | Create basic info editor: two-column form with URL validation (REQ-012 §7.2.1) | `tdd, structure, plan` | ✅ |
 | 6.4 | Create work history editor: reorderable job cards with drag-drop (REQ-012 §7.2.2) | `tdd, structure, plan` | ✅ |
-| 6.5 | Create work history bullet editor: nested bullet list with add/edit/reorder per job (REQ-012 §7.2.2) | `tdd, structure, plan` | ⬜ |
+| 6.5 | Create work history bullet editor: nested bullet list with add/edit/reorder per job (REQ-012 §7.2.2) | `tdd, structure, plan` | ✅ |
 | 6.6 | Create education and certifications editors (REQ-012 §7.2.3) | `tdd, structure, plan` | ⬜ |
 | 6.7 | Create skills editor: Hard/Soft tabs, 6-field skill cards, category switching (REQ-012 §7.2.4) | `tdd, structure, plan` | ⬜ |
 | 6.8 | Create achievement stories editor: C/A/O expand, skill links (REQ-012 §7.2.5) | `tdd, structure, plan` | ⬜ |

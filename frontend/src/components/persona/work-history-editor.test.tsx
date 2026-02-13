@@ -2,7 +2,7 @@
  * Tests for the WorkHistoryEditor component (§6.4).
  *
  * REQ-012 §7.2.2: Post-onboarding work history management with CRUD,
- * drag-drop reordering, and bullet expansion (read-only).
+ * drag-drop reordering, and interactive bullet editing.
  */
 
 import {
@@ -17,7 +17,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Persona, WorkHistory } from "@/types/persona";
+import type { Bullet, Persona, WorkHistory } from "@/types/persona";
 
 import { WorkHistoryEditor } from "./work-history-editor";
 
@@ -32,6 +32,13 @@ const NETWORK_ERROR_MESSAGE = "Network error";
 const MOCK_JOB_TITLE_1 = "Software Engineer";
 const MOCK_JOB_TITLE_2 = "Senior Developer";
 const EDITED_JOB_TITLE = "Lead Engineer";
+const ENTRY_1_TESTID = "entry-wh-001";
+const BULLET_EDITOR_1_TESTID = "bullet-editor-wh-001";
+const WORK_HISTORY_QUERY_KEY = [
+	"personas",
+	DEFAULT_PERSONA_ID,
+	"work-history",
+] as const;
 
 const MOCK_BULLET_1 = {
 	id: "b-001",
@@ -216,6 +223,34 @@ vi.mock("@/components/ui/reorderable-list", () => ({
 	},
 }));
 
+// Mock BulletEditor to capture props without pulling in its full dependency tree
+let capturedBulletEditorProps: {
+	personaId: string;
+	workHistoryId: string;
+	initialBullets: Bullet[];
+	onBulletsChange: (bullets: Bullet[]) => void;
+} | null = null;
+
+vi.mock("@/components/onboarding/steps/bullet-editor", () => ({
+	BulletEditor: (props: {
+		personaId: string;
+		workHistoryId: string;
+		initialBullets: Bullet[];
+		onBulletsChange: (bullets: Bullet[]) => void;
+	}) => {
+		capturedBulletEditorProps = props;
+		return (
+			<div
+				data-testid={`bullet-editor-${props.workHistoryId}`}
+				data-persona-id={props.personaId}
+				data-bullet-count={props.initialBullets.length}
+			>
+				BulletEditor({props.initialBullets.length} bullets)
+			</div>
+		);
+	},
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -299,6 +334,7 @@ describe("WorkHistoryEditor", () => {
 		mocks.mockApiPatch.mockReset();
 		mocks.mockApiDelete.mockReset();
 		capturedOnReorder = null;
+		capturedBulletEditorProps = null;
 	});
 
 	afterEach(() => {
@@ -496,7 +532,7 @@ describe("WorkHistoryEditor", () => {
 		it("opens form with pre-filled data when edit is clicked", async () => {
 			const user = await renderAndWaitForLoad();
 
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /edit/i }));
 
 			const form = screen.getByTestId(FORM_TESTID);
@@ -512,7 +548,7 @@ describe("WorkHistoryEditor", () => {
 			});
 
 			const user = await renderAndWaitForLoad();
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /edit/i }));
 
 			const titleInput = screen.getByDisplayValue(MOCK_JOB_TITLE_1);
@@ -530,7 +566,7 @@ describe("WorkHistoryEditor", () => {
 
 		it("cancels edit without saving changes", async () => {
 			const user = await renderAndWaitForLoad();
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /edit/i }));
 
 			await user.click(screen.getByRole("button", { name: /cancel/i }));
@@ -552,7 +588,7 @@ describe("WorkHistoryEditor", () => {
 		it("shows confirmation dialog when delete is clicked", async () => {
 			const user = await renderAndWaitForLoad();
 
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
 
 			expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
@@ -562,7 +598,7 @@ describe("WorkHistoryEditor", () => {
 			mocks.mockApiDelete.mockResolvedValueOnce(undefined);
 
 			const user = await renderAndWaitForLoad();
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
 
 			const confirmButton = screen.getByRole("button", {
@@ -584,7 +620,7 @@ describe("WorkHistoryEditor", () => {
 			);
 
 			const user = await renderAndWaitForLoad();
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
 
 			const confirmButton = screen.getByRole("button", {
@@ -600,7 +636,7 @@ describe("WorkHistoryEditor", () => {
 
 		it("cancels delete without removing card", async () => {
 			const user = await renderAndWaitForLoad();
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
 
 			await user.click(screen.getByRole("button", { name: /cancel/i }));
@@ -646,16 +682,16 @@ describe("WorkHistoryEditor", () => {
 			// After rollback, original order should be restored
 			await waitFor(() => {
 				const entries = screen.getAllByTestId(/^entry-wh-/);
-				expect(entries[0]).toHaveAttribute("data-testid", "entry-wh-001");
+				expect(entries[0]).toHaveAttribute("data-testid", ENTRY_1_TESTID);
 			});
 		});
 	});
 
 	// -----------------------------------------------------------------------
-	// Bullet expansion
+	// Bullet editing
 	// -----------------------------------------------------------------------
 
-	describe("bullet expansion", () => {
+	describe("bullet editing", () => {
 		beforeEach(() => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
 		});
@@ -676,7 +712,7 @@ describe("WorkHistoryEditor", () => {
 			expect(bulletLabels).toHaveLength(2);
 		});
 
-		it("shows read-only bullet list when expanded", async () => {
+		it("renders BulletEditor when expanded", async () => {
 			const user = await renderAndWaitForLoad();
 
 			const expandButton = screen.getAllByRole("button", {
@@ -684,23 +720,41 @@ describe("WorkHistoryEditor", () => {
 			})[0];
 			await user.click(expandButton);
 
-			expect(screen.getByText(MOCK_BULLET_1.text)).toBeInTheDocument();
+			expect(screen.getByTestId(BULLET_EDITOR_1_TESTID)).toBeInTheDocument();
 		});
 
-		it("collapses bullet list on second click", async () => {
+		it("passes correct props to BulletEditor", async () => {
 			const user = await renderAndWaitForLoad();
 
 			const expandButton = screen.getAllByRole("button", {
 				name: /bullets for/i,
 			})[0];
 			await user.click(expandButton);
-			expect(screen.getByText(MOCK_BULLET_1.text)).toBeInTheDocument();
 
-			await user.click(expandButton);
-			expect(screen.queryByText(MOCK_BULLET_1.text)).not.toBeInTheDocument();
+			expect(capturedBulletEditorProps).not.toBeNull();
+			expect(capturedBulletEditorProps!.personaId).toBe(DEFAULT_PERSONA_ID);
+			expect(capturedBulletEditorProps!.workHistoryId).toBe("wh-001");
+			expect(capturedBulletEditorProps!.initialBullets).toEqual([
+				MOCK_BULLET_1,
+			]);
 		});
 
-		it("shows 'No bullets yet' when entry has no bullets", async () => {
+		it("collapses BulletEditor on second click", async () => {
+			const user = await renderAndWaitForLoad();
+
+			const expandButton = screen.getAllByRole("button", {
+				name: /bullets for/i,
+			})[0];
+			await user.click(expandButton);
+			expect(screen.getByTestId(BULLET_EDITOR_1_TESTID)).toBeInTheDocument();
+
+			await user.click(expandButton);
+			expect(
+				screen.queryByTestId(BULLET_EDITOR_1_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("renders BulletEditor with empty bullets for entry without bullets", async () => {
 			mocks.mockApiGet.mockReset();
 			mocks.mockApiGet.mockResolvedValueOnce({
 				data: [MOCK_ENTRY_NO_BULLETS],
@@ -714,7 +768,57 @@ describe("WorkHistoryEditor", () => {
 			});
 			await user.click(expandButton);
 
-			expect(screen.getByText(/no bullets yet/i)).toBeInTheDocument();
+			const editor = screen.getByTestId("bullet-editor-wh-003");
+			expect(editor).toHaveAttribute("data-bullet-count", "0");
+		});
+
+		it("updates entry bullets when onBulletsChange is called", async () => {
+			const user = await renderAndWaitForLoad();
+
+			const expandButton = screen.getAllByRole("button", {
+				name: /bullets for/i,
+			})[0];
+			await user.click(expandButton);
+
+			expect(capturedBulletEditorProps).not.toBeNull();
+
+			const newBullet: Bullet = {
+				id: "b-new",
+				work_history_id: "wh-001",
+				text: "New accomplishment",
+				skills_demonstrated: [],
+				metrics: null,
+				display_order: 1,
+			};
+
+			// Simulate BulletEditor calling onBulletsChange
+			capturedBulletEditorProps!.onBulletsChange([MOCK_BULLET_1, newBullet]);
+
+			// The bullet count label should update to reflect the new count
+			await waitFor(() => {
+				expect(screen.getByText("2 bullets")).toBeInTheDocument();
+			});
+		});
+
+		it("invalidates workHistory query when bullets change", async () => {
+			const user = await renderAndWaitForLoad();
+			const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+			const expandButton = screen.getAllByRole("button", {
+				name: /bullets for/i,
+			})[0];
+			await user.click(expandButton);
+
+			expect(capturedBulletEditorProps).not.toBeNull();
+
+			// Simulate BulletEditor calling onBulletsChange
+			capturedBulletEditorProps!.onBulletsChange([MOCK_BULLET_1]);
+
+			await waitFor(() => {
+				expect(invalidateSpy).toHaveBeenCalledWith({
+					queryKey: [...WORK_HISTORY_QUERY_KEY],
+				});
+			});
 		});
 	});
 
@@ -742,7 +846,7 @@ describe("WorkHistoryEditor", () => {
 
 			await waitFor(() => {
 				expect(invalidateSpy).toHaveBeenCalledWith({
-					queryKey: ["personas", DEFAULT_PERSONA_ID, "work-history"],
+					queryKey: [...WORK_HISTORY_QUERY_KEY],
 				});
 			});
 		});
@@ -756,7 +860,7 @@ describe("WorkHistoryEditor", () => {
 			const user = await renderAndWaitForLoad();
 			const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /edit/i }));
 			const titleInput = screen.getByDisplayValue(MOCK_JOB_TITLE_1);
 			await user.clear(titleInput);
@@ -765,7 +869,7 @@ describe("WorkHistoryEditor", () => {
 
 			await waitFor(() => {
 				expect(invalidateSpy).toHaveBeenCalledWith({
-					queryKey: ["personas", DEFAULT_PERSONA_ID, "work-history"],
+					queryKey: [...WORK_HISTORY_QUERY_KEY],
 				});
 			});
 		});
@@ -777,7 +881,7 @@ describe("WorkHistoryEditor", () => {
 			const user = await renderAndWaitForLoad();
 			const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-			const entry1 = screen.getByTestId("entry-wh-001");
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
 			const confirmButton = screen.getByRole("button", {
 				name: /^delete$/i,
@@ -786,7 +890,7 @@ describe("WorkHistoryEditor", () => {
 
 			await waitFor(() => {
 				expect(invalidateSpy).toHaveBeenCalledWith({
-					queryKey: ["personas", DEFAULT_PERSONA_ID, "work-history"],
+					queryKey: [...WORK_HISTORY_QUERY_KEY],
 				});
 			});
 		});
