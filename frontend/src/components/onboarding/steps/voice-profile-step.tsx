@@ -15,8 +15,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-
 import { FormErrorSummary } from "@/components/form/form-error-summary";
 import { FormInputField } from "@/components/form/form-input-field";
 import { FormTagField } from "@/components/form/form-tag-field";
@@ -33,6 +31,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiGet, apiPatch } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
 import { useOnboarding } from "@/lib/onboarding-provider";
+import {
+	VOICE_PROFILE_DEFAULT_VALUES,
+	toFormValues,
+	toRequestBody,
+	voiceProfileSchema,
+} from "@/lib/voice-profile-helpers";
+import type { VoiceProfileFormData } from "@/lib/voice-profile-helpers";
 import type { ApiResponse } from "@/types/api";
 import type { VoiceProfile } from "@/types/persona";
 
@@ -70,64 +75,12 @@ const FIELD_LABELS: readonly { key: keyof ProfileData; label: string }[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Validation schema
-// ---------------------------------------------------------------------------
-
-const voiceProfileSchema = z.object({
-	tone: z.string().min(1, "Tone is required").max(500),
-	sentence_style: z.string().min(1, "Style is required").max(500),
-	vocabulary_level: z.string().min(1, "Vocabulary is required").max(500),
-	personality_markers: z.string().max(500),
-	sample_phrases: z.array(z.string().trim().min(1).max(200)).max(20),
-	things_to_avoid: z.array(z.string().trim().min(1).max(200)).max(20),
-	writing_sample_text: z.string().max(3000),
-});
-
-type VoiceProfileFormData = z.infer<typeof voiceProfileSchema>;
-
-const DEFAULT_VALUES: VoiceProfileFormData = {
-	tone: "",
-	sentence_style: "",
-	vocabulary_level: "",
-	personality_markers: "",
-	sample_phrases: [],
-	things_to_avoid: [],
-	writing_sample_text: "",
-};
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** Check if the fetched profile has meaningful data. */
 function hasProfileData(data: ProfileData): boolean {
 	return Boolean(data.tone);
-}
-
-/** Convert profile data to form values. */
-function toFormValues(data: ProfileData): Partial<VoiceProfileFormData> {
-	return {
-		tone: data.tone ?? "",
-		sentence_style: data.sentence_style ?? "",
-		vocabulary_level: data.vocabulary_level ?? "",
-		personality_markers: data.personality_markers ?? "",
-		sample_phrases: data.sample_phrases ?? [],
-		things_to_avoid: data.things_to_avoid ?? [],
-		writing_sample_text: data.writing_sample_text ?? "",
-	};
-}
-
-/** Build API request body from form data. */
-function toRequestBody(data: VoiceProfileFormData) {
-	return {
-		tone: data.tone,
-		sentence_style: data.sentence_style,
-		vocabulary_level: data.vocabulary_level,
-		personality_markers: data.personality_markers || null,
-		sample_phrases: data.sample_phrases,
-		things_to_avoid: data.things_to_avoid,
-		writing_sample_text: data.writing_sample_text || null,
-	};
 }
 
 // ---------------------------------------------------------------------------
@@ -228,7 +181,7 @@ export function VoiceProfileStep() {
 
 	const form = useForm<VoiceProfileFormData>({
 		resolver: zodResolver(voiceProfileSchema),
-		defaultValues: DEFAULT_VALUES,
+		defaultValues: VOICE_PROFILE_DEFAULT_VALUES,
 		mode: "onTouched",
 	});
 
@@ -246,11 +199,11 @@ export function VoiceProfileStep() {
 		apiGet<ApiResponse<VoiceProfile>>(`/personas/${personaId}/voice-profile`)
 			.then((res) => {
 				if (cancelled) return;
-				const data = res.data as ProfileData;
-				if (hasProfileData(data)) {
-					setProfileData(data);
+				const profile = res.data;
+				if (hasProfileData(profile)) {
+					setProfileData(profile);
 					setViewMode("review");
-					reset({ ...DEFAULT_VALUES, ...toFormValues(data) });
+					reset({ ...VOICE_PROFILE_DEFAULT_VALUES, ...toFormValues(profile) });
 				}
 			})
 			.catch(() => {
