@@ -12,13 +12,16 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiGet } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
+import { CultureSignals } from "@/components/jobs/culture-signals";
+import { ExtractedSkillsTags } from "@/components/jobs/extracted-skills-tags";
 import { FitScoreBreakdown } from "@/components/jobs/fit-score-breakdown";
+import { JobDescription } from "@/components/jobs/job-description";
+import { JobDetailHeader } from "@/components/jobs/job-detail-header";
 import { ScoreExplanation } from "@/components/jobs/score-explanation";
 import { StretchScoreBreakdown } from "@/components/jobs/stretch-score-breakdown";
-import { JobDetailHeader } from "@/components/jobs/job-detail-header";
 import { usePersonaStatus } from "@/hooks/use-persona-status";
-import type { ApiResponse } from "@/types/api";
-import type { JobPosting } from "@/types/job";
+import type { ApiListResponse, ApiResponse } from "@/types/api";
+import type { ExtractedSkill, JobPosting } from "@/types/job";
 
 /** Job detail page displaying metadata, scores, and posting details. */
 export default function JobDetailPage() {
@@ -29,6 +32,15 @@ export default function JobDetailPage() {
 		queryKey: queryKeys.job(params.id),
 		queryFn: () =>
 			apiGet<ApiResponse<JobPosting>>(`/job-postings/${params.id}`),
+		enabled: personaStatus.status === "onboarded",
+	});
+
+	const { data: skillsData } = useQuery({
+		queryKey: queryKeys.extractedSkills(params.id),
+		queryFn: () =>
+			apiGet<ApiListResponse<ExtractedSkill>>(
+				`/job-postings/${params.id}/extracted-skills`,
+			),
 		enabled: personaStatus.status === "onboarded",
 	});
 
@@ -49,6 +61,9 @@ export default function JobDetailPage() {
 						explanation={job.score_details?.explanation}
 						className="mt-4"
 					/>
+					<ExtractedSkillsTags skills={skillsData?.data} className="mt-4" />
+					<JobDescription description={job.description} className="mt-4" />
+					<CultureSignals cultureText={job.culture_text} className="mt-4" />
 				</>
 			)}
 		</div>

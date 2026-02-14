@@ -1,8 +1,9 @@
 /**
- * Tests for the JobDetailPage route component (§7.7, §7.8, §7.9).
+ * Tests for the JobDetailPage route component (§7.7–§7.10).
  *
  * Verifies guard clause, prop passthrough to JobDetailHeader,
- * FitScoreBreakdown, StretchScoreBreakdown, and ScoreExplanation
+ * FitScoreBreakdown, StretchScoreBreakdown, ScoreExplanation,
+ * ExtractedSkillsTags, JobDescription, and CultureSignals
  * rendering when job data is available.
  */
 
@@ -10,6 +11,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
+	ExtractedSkill,
 	FitScoreResult,
 	ScoreExplanation as ScoreExplanationType,
 	StretchScoreResult,
@@ -26,6 +28,9 @@ const HEADER_TESTID = "job-detail-header-stub";
 const BREAKDOWN_TESTID = "fit-breakdown-stub";
 const STRETCH_TESTID = "stretch-breakdown-stub";
 const EXPLANATION_TESTID = "explanation-stub";
+const SKILLS_TESTID = "extracted-skills-stub";
+const DESCRIPTION_TESTID = "job-description-stub";
+const CULTURE_TESTID = "culture-signals-stub";
 const ONBOARDED_STATUS = { status: "onboarded", persona: { id: "p-1" } };
 
 // ---------------------------------------------------------------------------
@@ -98,6 +103,41 @@ vi.mock("@/components/jobs/score-explanation", () => ({
 	ScoreExplanation: MockScoreExplanation,
 }));
 
+function MockExtractedSkillsTags({
+	skills,
+}: {
+	skills: ExtractedSkill[] | undefined;
+}) {
+	return (
+		<div data-testid={SKILLS_TESTID}>
+			{skills ? `${skills.length} skills` : "none"}
+		</div>
+	);
+}
+MockExtractedSkillsTags.displayName = "MockExtractedSkillsTags";
+
+vi.mock("@/components/jobs/extracted-skills-tags", () => ({
+	ExtractedSkillsTags: MockExtractedSkillsTags,
+}));
+
+function MockJobDescription({ description }: { description: string }) {
+	return <div data-testid={DESCRIPTION_TESTID}>{description}</div>;
+}
+MockJobDescription.displayName = "MockJobDescription";
+
+vi.mock("@/components/jobs/job-description", () => ({
+	JobDescription: MockJobDescription,
+}));
+
+function MockCultureSignals({ cultureText }: { cultureText: string | null }) {
+	return <div data-testid={CULTURE_TESTID}>{cultureText ?? "null"}</div>;
+}
+MockCultureSignals.displayName = "MockCultureSignals";
+
+vi.mock("@/components/jobs/culture-signals", () => ({
+	CultureSignals: MockCultureSignals,
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -152,9 +192,50 @@ function makeJobData(
 			data: {
 				id: MOCK_JOB_ID,
 				score_details: scoreDetails ?? null,
+				description: "We are hiring a senior engineer.",
+				culture_text: "Fast-paced and collaborative.",
 			},
 		},
 	};
+}
+
+function makeSkillsData(): ExtractedSkill[] {
+	return [
+		{
+			id: "s-1",
+			job_posting_id: MOCK_JOB_ID,
+			skill_name: "Python",
+			skill_type: "Hard",
+			is_required: true,
+			years_requested: 3,
+		},
+		{
+			id: "s-2",
+			job_posting_id: MOCK_JOB_ID,
+			skill_name: "FastAPI",
+			skill_type: "Hard",
+			is_required: false,
+			years_requested: null,
+		},
+	];
+}
+
+/**
+ * Sets up the useQuery mock to return different data for the job detail
+ * query and the extracted skills query.
+ */
+function setupQueries(options?: {
+	jobData?: ReturnType<typeof makeJobData>;
+	skillsData?: { data: { data: ExtractedSkill[] } };
+}) {
+	mocks.mockUseQuery.mockImplementation(
+		(opts: { queryKey: readonly string[] }) => {
+			if (opts.queryKey[2] === "extracted-skills") {
+				return options?.skillsData ?? { data: undefined };
+			}
+			return options?.jobData ?? { data: undefined };
+		},
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -165,7 +246,7 @@ describe("JobDetailPage", () => {
 	beforeEach(() => {
 		mocks.mockUseParams.mockReturnValue({ id: MOCK_JOB_ID });
 		mocks.mockUsePersonaStatus.mockReturnValue(ONBOARDED_STATUS);
-		mocks.mockUseQuery.mockReturnValue({ data: undefined });
+		setupQueries();
 	});
 
 	afterEach(() => {
@@ -204,7 +285,7 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders FitScoreBreakdown when job data is available", () => {
-		mocks.mockUseQuery.mockReturnValue(makeJobData(makeScoreDetails()));
+		setupQueries({ jobData: makeJobData(makeScoreDetails()) });
 		render(<JobDetailPage />);
 
 		expect(screen.getByTestId(BREAKDOWN_TESTID)).toBeInTheDocument();
@@ -212,7 +293,7 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders FitScoreBreakdown with undefined fit when score_details is null", () => {
-		mocks.mockUseQuery.mockReturnValue(makeJobData(null));
+		setupQueries({ jobData: makeJobData(null) });
 		render(<JobDetailPage />);
 
 		expect(screen.getByTestId(BREAKDOWN_TESTID)).toBeInTheDocument();
@@ -230,7 +311,7 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders StretchScoreBreakdown when job data is available", () => {
-		mocks.mockUseQuery.mockReturnValue(makeJobData(makeScoreDetails()));
+		setupQueries({ jobData: makeJobData(makeScoreDetails()) });
 		render(<JobDetailPage />);
 
 		expect(screen.getByTestId(STRETCH_TESTID)).toBeInTheDocument();
@@ -238,7 +319,7 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders StretchScoreBreakdown with undefined when score_details is null", () => {
-		mocks.mockUseQuery.mockReturnValue(makeJobData(null));
+		setupQueries({ jobData: makeJobData(null) });
 		render(<JobDetailPage />);
 
 		expect(screen.getByTestId(STRETCH_TESTID)).toBeInTheDocument();
@@ -256,7 +337,7 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders ScoreExplanation when job data is available", () => {
-		mocks.mockUseQuery.mockReturnValue(makeJobData(makeScoreDetails()));
+		setupQueries({ jobData: makeJobData(makeScoreDetails()) });
 		render(<JobDetailPage />);
 
 		expect(screen.getByTestId(EXPLANATION_TESTID)).toBeInTheDocument();
@@ -266,10 +347,90 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders ScoreExplanation with undefined when score_details is null", () => {
-		mocks.mockUseQuery.mockReturnValue(makeJobData(null));
+		setupQueries({ jobData: makeJobData(null) });
 		render(<JobDetailPage />);
 
 		expect(screen.getByTestId(EXPLANATION_TESTID)).toBeInTheDocument();
 		expect(screen.getByTestId(EXPLANATION_TESTID)).toHaveTextContent("none");
+	});
+
+	// -----------------------------------------------------------------------
+	// ExtractedSkillsTags
+	// -----------------------------------------------------------------------
+
+	it("does not render ExtractedSkillsTags when data is loading", () => {
+		render(<JobDetailPage />);
+
+		expect(screen.queryByTestId(SKILLS_TESTID)).not.toBeInTheDocument();
+	});
+
+	it("renders ExtractedSkillsTags when job data is available", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(SKILLS_TESTID)).toBeInTheDocument();
+	});
+
+	it("passes extracted skills from query to ExtractedSkillsTags", () => {
+		const skills = makeSkillsData();
+		setupQueries({
+			jobData: makeJobData(),
+			skillsData: { data: { data: skills } },
+		});
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(SKILLS_TESTID)).toHaveTextContent("2 skills");
+	});
+
+	// -----------------------------------------------------------------------
+	// JobDescription
+	// -----------------------------------------------------------------------
+
+	it("does not render JobDescription when data is loading", () => {
+		render(<JobDetailPage />);
+
+		expect(screen.queryByTestId(DESCRIPTION_TESTID)).not.toBeInTheDocument();
+	});
+
+	it("renders JobDescription when job data is available", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(DESCRIPTION_TESTID)).toBeInTheDocument();
+	});
+
+	it("passes description to JobDescription", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(DESCRIPTION_TESTID)).toHaveTextContent(
+			"We are hiring a senior engineer.",
+		);
+	});
+
+	// -----------------------------------------------------------------------
+	// CultureSignals
+	// -----------------------------------------------------------------------
+
+	it("does not render CultureSignals when data is loading", () => {
+		render(<JobDetailPage />);
+
+		expect(screen.queryByTestId(CULTURE_TESTID)).not.toBeInTheDocument();
+	});
+
+	it("renders CultureSignals when job data is available", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(CULTURE_TESTID)).toBeInTheDocument();
+	});
+
+	it("passes culture_text to CultureSignals", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(CULTURE_TESTID)).toHaveTextContent(
+			"Fast-paced and collaborative.",
+		);
 	});
 });
