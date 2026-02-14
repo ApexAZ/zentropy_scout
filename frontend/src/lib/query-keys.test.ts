@@ -42,6 +42,10 @@ describe("queryKeys", () => {
 		it("returns ['change-flags'] for changeFlags", () => {
 			expect(queryKeys.changeFlags).toEqual(["change-flags"]);
 		});
+
+		it("returns ['base-resumes'] for baseResumes", () => {
+			expect(queryKeys.baseResumes).toEqual(["base-resumes"]);
+		});
 	});
 
 	describe("detail keys (with id argument)", () => {
@@ -119,6 +123,16 @@ describe("queryKeys", () => {
 		});
 	});
 
+	describe("sub-entity keys (job child resources)", () => {
+		it("returns ['jobs', id, 'extracted-skills'] for extractedSkills(id)", () => {
+			expect(queryKeys.extractedSkills(TEST_UUID)).toEqual([
+				"jobs",
+				TEST_UUID,
+				"extracted-skills",
+			]);
+		});
+	});
+
 	describe("detail key structure", () => {
 		it("detail key starts with list key prefix for personas", () => {
 			const listKey = queryKeys.personas;
@@ -188,6 +202,13 @@ describe("queryKeys", () => {
 			expect(subKey[0]).toBe(personaKey[0]);
 			expect(subKey[1]).toBe(personaKey[1]);
 		});
+
+		it("extractedSkills key starts with job detail key prefix", () => {
+			const jobKey = queryKeys.job(TEST_UUID);
+			const subKey = queryKeys.extractedSkills(TEST_UUID);
+			expect(subKey[0]).toBe(jobKey[0]);
+			expect(subKey[1]).toBe(jobKey[1]);
+		});
 	});
 
 	describe("type safety", () => {
@@ -211,6 +232,14 @@ describe("queryKeys", () => {
 			const id1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 			const id2 = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 			expect(queryKeys.persona(id1)).not.toEqual(queryKeys.persona(id2));
+		});
+
+		it("sub-entity keys are readonly tuples with three elements", () => {
+			const key = queryKeys.extractedSkills(TEST_UUID);
+			expect(key).toHaveLength(3);
+			expect(typeof key[0]).toBe(TYPEOF_STRING);
+			expect(typeof key[1]).toBe(TYPEOF_STRING);
+			expect(typeof key[2]).toBe(TYPEOF_STRING);
 		});
 	});
 });

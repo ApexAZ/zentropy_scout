@@ -38,4 +38,8 @@ export const queryKeys = {
 		[PERSONAS, personaId, "voice-profile"] as const,
 	customNonNegotiables: (personaId: string) =>
 		[PERSONAS, personaId, "custom-non-negotiables"] as const,
+
+	// Sub-entity keys (nested under job for prefix invalidation)
+	extractedSkills: (jobId: string) =>
+		["jobs", jobId, "extracted-skills"] as const,
 } as const;
