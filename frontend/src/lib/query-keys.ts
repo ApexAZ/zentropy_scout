@@ -9,6 +9,7 @@
 
 const PERSONAS = "personas" as const;
 const JOBS = "jobs" as const;
+const BASE_RESUMES = "base-resumes" as const;
 
 export const queryKeys = {
 	// List keys
@@ -19,12 +20,13 @@ export const queryKeys = {
 	variants: ["variants"] as const,
 	coverLetters: ["cover-letters"] as const,
 	changeFlags: ["change-flags"] as const,
-	baseResumes: ["base-resumes"] as const,
+	baseResumes: [BASE_RESUMES] as const,
 
 	// Detail keys
 	persona: (id: string) => [PERSONAS, id] as const,
 	job: (id: string) => [JOBS, id] as const,
 	application: (id: string) => ["applications", id] as const,
+	baseResume: (id: string) => [BASE_RESUMES, id] as const,
 
 	// Sub-entity keys (nested under persona for prefix invalidation)
 	workHistory: (personaId: string) =>
