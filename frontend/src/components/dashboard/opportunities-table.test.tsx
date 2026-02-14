@@ -518,6 +518,35 @@ describe("OpportunitiesTable", () => {
 			});
 		});
 
+		it("renders Add Job button in toolbar", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByTestId("add-job-button")).toBeInTheDocument();
+			});
+		});
+
+		it("opens AddJobModal when Add Job button is clicked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByTestId("add-job-button")).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByTestId("add-job-button"));
+
+			await waitFor(() => {
+				expect(
+					screen.getByText("Paste a job posting to extract and save it."),
+				).toBeInTheDocument();
+			});
+		});
+
 		it("filters rows client-side by search text", async () => {
 			const user = userEvent.setup();
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);

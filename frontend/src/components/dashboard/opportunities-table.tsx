@@ -21,7 +21,7 @@ import type {
 	RowSelectionState,
 	SortingState,
 } from "@tanstack/react-table";
-import { ChevronDown, Heart, Loader2, TriangleAlert } from "lucide-react";
+import { ChevronDown, Heart, Loader2, Plus, TriangleAlert } from "lucide-react";
 
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { formatDaysAgo, formatSalary } from "@/lib/job-formatters";
@@ -32,6 +32,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { getSelectColumn } from "@/components/data-table/data-table-select-column";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { AddJobModal } from "@/components/dashboard/add-job-modal";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ScoreTierBadge } from "@/components/ui/score-tier-badge";
 import { FailedState } from "@/components/ui/error-states";
@@ -245,6 +246,7 @@ export function OpportunitiesTable() {
 	const [minFit, setMinFit] = useState(0);
 	const [sortField, setSortField] = useState(DEFAULT_SORT_FIELD);
 	const [showFiltered, setShowFiltered] = useState(false);
+	const [addJobOpen, setAddJobOpen] = useState(false);
 	const [selectMode, setSelectMode] = useState(false);
 	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 	const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
@@ -604,6 +606,16 @@ export function OpportunitiesTable() {
 							</Select>
 
 							<Button
+								data-testid="add-job-button"
+								variant="outline"
+								size="sm"
+								onClick={() => setAddJobOpen(true)}
+							>
+								<Plus className="mr-1 h-4 w-4" />
+								Add Job
+							</Button>
+
+							<Button
 								data-testid="select-mode-button"
 								variant="outline"
 								size="sm"
@@ -625,6 +637,7 @@ export function OpportunitiesTable() {
 					)
 				}
 			/>
+			<AddJobModal open={addJobOpen} onOpenChange={setAddJobOpen} />
 		</div>
 	);
 }
