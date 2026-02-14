@@ -1,11 +1,12 @@
 /**
- * Tests for the OpportunitiesTable component (§7.2, §7.3, §7.4).
+ * Tests for the OpportunitiesTable component (§7.2, §7.3, §7.4, §7.5).
  *
  * REQ-012 §8.2: Opportunities tab — job table with favorite,
  * title, location, salary, scores, ghost, and date columns.
  * Toolbar: search, status filter, min-fit filter, sort dropdown.
  * REQ-012 §8.5: "Show filtered jobs" toggle — dimmed rows,
  * Filtered badge, expandable failure reasons.
+ * REQ-012 §8.6: Ghost detection with severity-based icon and tooltip.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -313,20 +314,10 @@ describe("OpportunitiesTable", () => {
 			});
 		});
 
-		it("renders ghost warning icon for ghost_score >= 50", async () => {
+		it("does not render ghost icon for fresh tier (score 25)", async () => {
 			mocks.mockApiGet.mockResolvedValue(
-				makeSingleJobResponse({ ghost_score: 75 }),
+				makeSingleJobResponse({ ghost_score: 25 }),
 			);
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(screen.getByTestId(GHOST_WARNING_JOB1)).toBeInTheDocument();
-			});
-		});
-
-		it("does not render ghost icon for ghost_score < 50", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
 
 			renderTable();
 
@@ -534,6 +525,92 @@ describe("OpportunitiesTable", () => {
 				expect(mocks.mockApiGet).toHaveBeenCalledWith("/job-postings", {
 					status: "Discovered",
 				});
+			});
+		});
+	});
+
+	describe("ghost detection", () => {
+		it("shows amber icon with moderate risk label for score 26", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makeSingleJobResponse({ ghost_score: 26 }),
+			);
+
+			renderTable();
+
+			await waitFor(() => {
+				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
+				expect(icon).toBeInTheDocument();
+				expect(icon).toHaveClass("text-amber-500");
+				expect(icon).toHaveAttribute("aria-label", "Moderate ghost risk");
+			});
+		});
+
+		it("shows orange icon with elevated risk label for score 51", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makeSingleJobResponse({ ghost_score: 51 }),
+			);
+
+			renderTable();
+
+			await waitFor(() => {
+				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
+				expect(icon).toBeInTheDocument();
+				expect(icon).toHaveClass("text-orange-500");
+				expect(icon).toHaveAttribute("aria-label", "Elevated ghost risk");
+			});
+		});
+
+		it("shows red icon with high risk label for score 76", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makeSingleJobResponse({ ghost_score: 76 }),
+			);
+
+			renderTable();
+
+			await waitFor(() => {
+				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
+				expect(icon).toBeInTheDocument();
+				expect(icon).toHaveClass("text-red-500");
+				expect(icon).toHaveAttribute("aria-label", "High ghost risk");
+			});
+		});
+
+		it("shows amber for score 50 (upper moderate boundary)", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makeSingleJobResponse({ ghost_score: 50 }),
+			);
+
+			renderTable();
+
+			await waitFor(() => {
+				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
+				expect(icon).toHaveClass("text-amber-500");
+			});
+		});
+
+		it("shows orange for score 75 (upper elevated boundary)", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makeSingleJobResponse({ ghost_score: 75 }),
+			);
+
+			renderTable();
+
+			await waitFor(() => {
+				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
+				expect(icon).toHaveClass("text-orange-500");
+			});
+		});
+
+		it("shows red for score 100 (upper high risk boundary)", async () => {
+			mocks.mockApiGet.mockResolvedValue(
+				makeSingleJobResponse({ ghost_score: 100 }),
+			);
+
+			renderTable();
+
+			await waitFor(() => {
+				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
+				expect(icon).toHaveClass("text-red-500");
 			});
 		});
 	});

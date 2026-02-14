@@ -9,6 +9,7 @@
  * Default sort: fit score descending, favorites pinned to top.
  * REQ-012 §8.5: "Show filtered jobs" toggle — dimmed rows,
  * Filtered badge, expandable failure reasons.
+ * REQ-012 §8.6: Ghost detection — severity-based icon and tooltip.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -30,6 +31,12 @@ import { FailedState } from "@/components/ui/error-states";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -48,7 +55,31 @@ import { JOB_POSTING_STATUSES } from "@/types/job";
 // Constants
 // ---------------------------------------------------------------------------
 
-const GHOST_WARNING_THRESHOLD = 50;
+const GHOST_TIER_CONFIG = [
+	{
+		minScore: 76,
+		colorClass: "text-red-500",
+		ariaLabel: "High ghost risk",
+		tooltip: "High ghost risk \u2014 likely stale or fake",
+	},
+	{
+		minScore: 51,
+		colorClass: "text-orange-500",
+		ariaLabel: "Elevated ghost risk",
+		tooltip: "Elevated ghost risk \u2014 verify before applying",
+	},
+	{
+		minScore: 26,
+		colorClass: "text-amber-500",
+		ariaLabel: "Moderate ghost risk",
+		tooltip: "Moderate ghost risk \u2014 posting may be stale",
+	},
+] as const;
+
+function getGhostTierConfig(score: number) {
+	return GHOST_TIER_CONFIG.find((tier) => score >= tier.minScore) ?? null;
+}
+
 const EMPTY_MESSAGE = "No opportunities found.";
 const FAVORITE_ERROR_MESSAGE = "Failed to update favorite.";
 const LOCATION_SEPARATOR = " \u00b7 ";
@@ -363,13 +394,21 @@ export function OpportunitiesTable() {
 				),
 				cell: ({ row }) => {
 					const job = row.original;
-					if (job.ghost_score < GHOST_WARNING_THRESHOLD) return null;
+					const tier = getGhostTierConfig(job.ghost_score);
+					if (!tier) return null;
 					return (
-						<TriangleAlert
-							data-testid={`ghost-warning-${job.id}`}
-							className="h-4 w-4 text-amber-500"
-							aria-label="Ghost risk warning"
-						/>
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<TriangleAlert
+										data-testid={`ghost-warning-${job.id}`}
+										className={cn("h-4 w-4", tier.colorClass)}
+										aria-label={tier.ariaLabel}
+									/>
+								</TooltipTrigger>
+								<TooltipContent>{tier.tooltip}</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
 					);
 				},
 				enableSorting: false,
