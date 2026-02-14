@@ -26,6 +26,23 @@ const JOB_ID_INCLUDED = "wh-1";
 const JOB_ID_EXCLUDED = "wh-2";
 const INCLUDED_JOB_LABEL = /Senior Scrum Master.*Acme Corp/i;
 const EXCLUDED_JOB_LABEL = /Project Manager.*TechCo/i;
+const EDUCATION_API_PATH = "/personas/p-1/education";
+const CERTIFICATIONS_API_PATH = "/personas/p-1/certifications";
+const SKILLS_API_PATH = "/personas/p-1/skills";
+const EDU_ID_INCLUDED = "ed-1";
+const EDU_ID_EXCLUDED = "ed-2";
+const CERT_ID_INCLUDED = "cert-1";
+const CERT_ID_EXCLUDED = "cert-2";
+const SKILL_ID_EMPHASIZED = "skill-1";
+const SKILL_ID_NOT_EMPHASIZED = "skill-2";
+const INCLUDED_EDU_LABEL = /MS Computer Science.*MIT/i;
+const EXCLUDED_EDU_LABEL = /BS Mathematics.*Stanford/i;
+const INCLUDED_CERT_LABEL = /CSM.*Scrum Alliance/i;
+const EXCLUDED_CERT_LABEL = /PMP.*PMI/i;
+const INCLUDED_SKILL_LABEL = "Agile";
+const EXCLUDED_SKILL_LABEL = "Python";
+const BULLET_TEXT_AGILE = "Led agile transformation";
+const BULLET_TEXT_VARIANCE = "Reduced sprint velocity variance";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -39,11 +56,11 @@ function makeResume(overrides?: Record<string, unknown>) {
 		role_type: ROLE_TYPE,
 		summary: SUMMARY_TEXT,
 		included_jobs: [JOB_ID_INCLUDED],
-		included_education: null,
-		included_certifications: null,
-		skills_emphasis: null,
+		included_education: [EDU_ID_INCLUDED],
+		included_certifications: [CERT_ID_INCLUDED],
+		skills_emphasis: [SKILL_ID_EMPHASIZED],
 		job_bullet_selections: { [JOB_ID_INCLUDED]: ["b-1", "b-2"] },
-		job_bullet_order: {},
+		job_bullet_order: { [JOB_ID_INCLUDED]: ["b-1", "b-2", "b-3"] },
 		rendered_at: null,
 		is_primary: true,
 		status: "Active",
@@ -90,6 +107,51 @@ function makeWorkHistory(id: string, overrides?: Record<string, unknown>) {
 	};
 }
 
+function makeEducation(id: string, overrides?: Record<string, unknown>) {
+	return {
+		id,
+		persona_id: "p-1",
+		institution: `University ${id}`,
+		degree: `Degree ${id}`,
+		field_of_study: `Field ${id}`,
+		graduation_year: 2020,
+		gpa: null,
+		honors: null,
+		display_order: 0,
+		...overrides,
+	};
+}
+
+function makeCertification(id: string, overrides?: Record<string, unknown>) {
+	return {
+		id,
+		persona_id: "p-1",
+		certification_name: `Cert ${id}`,
+		issuing_organization: `Org ${id}`,
+		date_obtained: "2021-06-01",
+		expiration_date: null,
+		credential_id: null,
+		verification_url: null,
+		display_order: 0,
+		...overrides,
+	};
+}
+
+function makeSkill(id: string, overrides?: Record<string, unknown>) {
+	return {
+		id,
+		persona_id: "p-1",
+		skill_name: `Skill ${id}`,
+		skill_type: "Hard" as const,
+		category: "Technical",
+		proficiency: "Proficient" as const,
+		years_used: 5,
+		last_used: "Current",
+		display_order: 0,
+		...overrides,
+	};
+}
+
 const MOCK_RESUME_RESPONSE = {
 	data: makeResume(),
 };
@@ -100,14 +162,9 @@ const MOCK_WORK_HISTORY_RESPONSE = {
 			company_name: "Acme Corp",
 			job_title: "Senior Scrum Master",
 			bullets: [
-				makeBullet("b-1", JOB_ID_INCLUDED, "Led agile transformation", 0),
+				makeBullet("b-1", JOB_ID_INCLUDED, BULLET_TEXT_AGILE, 0),
 				makeBullet("b-2", JOB_ID_INCLUDED, "Coached 3 scrum teams", 1),
-				makeBullet(
-					"b-3",
-					JOB_ID_INCLUDED,
-					"Reduced sprint velocity variance",
-					2,
-				),
+				makeBullet("b-3", JOB_ID_INCLUDED, BULLET_TEXT_VARIANCE, 2),
 			],
 		}),
 		makeWorkHistory(JOB_ID_EXCLUDED, {
@@ -119,6 +176,51 @@ const MOCK_WORK_HISTORY_RESPONSE = {
 			bullets: [
 				makeBullet("b-4", JOB_ID_EXCLUDED, "Managed backlog refinement", 0),
 			],
+		}),
+	],
+	meta: { total: 2, page: 1, per_page: 20, total_pages: 1 },
+};
+
+const MOCK_EDUCATION_RESPONSE = {
+	data: [
+		makeEducation(EDU_ID_INCLUDED, {
+			institution: "MIT",
+			degree: "MS",
+			field_of_study: "Computer Science",
+		}),
+		makeEducation(EDU_ID_EXCLUDED, {
+			institution: "Stanford",
+			degree: "BS",
+			field_of_study: "Mathematics",
+			display_order: 1,
+		}),
+	],
+	meta: { total: 2, page: 1, per_page: 20, total_pages: 1 },
+};
+
+const MOCK_CERTIFICATIONS_RESPONSE = {
+	data: [
+		makeCertification(CERT_ID_INCLUDED, {
+			certification_name: "CSM",
+			issuing_organization: "Scrum Alliance",
+		}),
+		makeCertification(CERT_ID_EXCLUDED, {
+			certification_name: "PMP",
+			issuing_organization: "PMI",
+			display_order: 1,
+		}),
+	],
+	meta: { total: 2, page: 1, per_page: 20, total_pages: 1 },
+};
+
+const MOCK_SKILLS_RESPONSE = {
+	data: [
+		makeSkill(SKILL_ID_EMPHASIZED, {
+			skill_name: "Agile",
+		}),
+		makeSkill(SKILL_ID_NOT_EMPHASIZED, {
+			skill_name: "Python",
+			display_order: 1,
 		}),
 	],
 	meta: { total: 2, page: 1, per_page: 20, total_pages: 1 },
@@ -168,6 +270,24 @@ vi.mock("next/navigation", () => ({
 	useRouter: () => ({ push: mocks.mockPush }),
 }));
 
+vi.mock("@/components/ui/reorderable-list", () => ({
+	ReorderableList: ({
+		items,
+		renderItem,
+		label,
+	}: {
+		items: Array<{ id: string }>;
+		renderItem: (item: { id: string }, handle: null) => ReactNode;
+		label: string;
+	}) => (
+		<div data-testid="reorderable-list" aria-label={label}>
+			{items.map((item: { id: string }) => (
+				<div key={item.id}>{renderItem(item, null)}</div>
+			))}
+		</div>
+	),
+}));
+
 import { ResumeDetail } from "./resume-detail";
 
 // ---------------------------------------------------------------------------
@@ -202,11 +322,18 @@ function renderDetail(resumeId = "r-1", personaId = "p-1") {
 function setupMockApi(
 	resumeResponse: unknown = MOCK_RESUME_RESPONSE,
 	workHistoryResponse: unknown = MOCK_WORK_HISTORY_RESPONSE,
+	educationResponse: unknown = MOCK_EDUCATION_RESPONSE,
+	certificationsResponse: unknown = MOCK_CERTIFICATIONS_RESPONSE,
+	skillsResponse: unknown = MOCK_SKILLS_RESPONSE,
 ) {
 	mocks.mockApiGet.mockImplementation((path: string) => {
 		if (path === RESUME_API_PATH) return Promise.resolve(resumeResponse);
 		if (path === WORK_HISTORY_API_PATH)
 			return Promise.resolve(workHistoryResponse);
+		if (path === EDUCATION_API_PATH) return Promise.resolve(educationResponse);
+		if (path === CERTIFICATIONS_API_PATH)
+			return Promise.resolve(certificationsResponse);
+		if (path === SKILLS_API_PATH) return Promise.resolve(skillsResponse);
 		return Promise.resolve({ data: [] });
 	});
 }
@@ -354,14 +481,10 @@ describe("ResumeDetail", () => {
 			setupMockApi();
 			renderDetail();
 			await waitFor(() => {
-				expect(
-					screen.getByText("Led agile transformation"),
-				).toBeInTheDocument();
+				expect(screen.getByText(BULLET_TEXT_AGILE)).toBeInTheDocument();
 			});
 			expect(screen.getByText("Coached 3 scrum teams")).toBeInTheDocument();
-			expect(
-				screen.getByText("Reduced sprint velocity variance"),
-			).toBeInTheDocument();
+			expect(screen.getByText(BULLET_TEXT_VARIANCE)).toBeInTheDocument();
 		});
 
 		it("hides bullets for excluded job", async () => {
@@ -381,7 +504,7 @@ describe("ResumeDetail", () => {
 			await waitFor(() => {
 				expect(
 					screen.getByRole("checkbox", {
-						name: /Led agile transformation/i,
+						name: new RegExp(BULLET_TEXT_AGILE, "i"),
 					}),
 				).toBeChecked();
 			});
@@ -393,7 +516,7 @@ describe("ResumeDetail", () => {
 			await waitFor(() => {
 				expect(
 					screen.getByRole("checkbox", {
-						name: /Reduced sprint velocity variance/i,
+						name: new RegExp(BULLET_TEXT_VARIANCE, "i"),
 					}),
 				).not.toBeChecked();
 			});
@@ -407,20 +530,20 @@ describe("ResumeDetail", () => {
 			await waitFor(() => {
 				expect(
 					screen.getByRole("checkbox", {
-						name: /Led agile transformation/i,
+						name: new RegExp(BULLET_TEXT_AGILE, "i"),
 					}),
 				).toBeChecked();
 			});
 
 			await user.click(
 				screen.getByRole("checkbox", {
-					name: /Led agile transformation/i,
+					name: new RegExp(BULLET_TEXT_AGILE, "i"),
 				}),
 			);
 
 			expect(
 				screen.getByRole("checkbox", {
-					name: /Led agile transformation/i,
+					name: new RegExp(BULLET_TEXT_AGILE, "i"),
 				}),
 			).not.toBeChecked();
 		});
@@ -431,9 +554,7 @@ describe("ResumeDetail", () => {
 			renderDetail();
 
 			await waitFor(() => {
-				expect(
-					screen.getByText("Led agile transformation"),
-				).toBeInTheDocument();
+				expect(screen.getByText(BULLET_TEXT_AGILE)).toBeInTheDocument();
 			});
 
 			await user.click(
@@ -442,9 +563,7 @@ describe("ResumeDetail", () => {
 				}),
 			);
 
-			expect(
-				screen.queryByText("Led agile transformation"),
-			).not.toBeInTheDocument();
+			expect(screen.queryByText(BULLET_TEXT_AGILE)).not.toBeInTheDocument();
 		});
 
 		it("auto-selects all bullets when a job is included", async () => {
@@ -589,6 +708,254 @@ describe("ResumeDetail", () => {
 		});
 	});
 
+	describe("bullet reordering", () => {
+		it("renders reorderable list for included job bullets", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("reorderable-list")).toBeInTheDocument();
+			});
+		});
+
+		it("sends job_bullet_order in PATCH on save", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiPatch.mockResolvedValue({ data: makeResume() });
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /save/i }),
+				).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: /save/i }));
+
+			expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+				RESUME_API_PATH,
+				expect.objectContaining({
+					job_bullet_order: {
+						[JOB_ID_INCLUDED]: ["b-1", "b-2", "b-3"],
+					},
+				}),
+			);
+		});
+	});
+
+	describe("education checkboxes", () => {
+		it("renders education entries with checkboxes", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_EDU_LABEL }),
+				).toBeInTheDocument();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_EDU_LABEL }),
+			).toBeInTheDocument();
+		});
+
+		it("shows included education as checked and excluded as unchecked", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_EDU_LABEL }),
+				).toBeChecked();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_EDU_LABEL }),
+			).not.toBeChecked();
+		});
+
+		it("toggles education checkbox on click", async () => {
+			const user = userEvent.setup();
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: EXCLUDED_EDU_LABEL }),
+				).not.toBeChecked();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: EXCLUDED_EDU_LABEL }),
+			);
+
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_EDU_LABEL }),
+			).toBeChecked();
+		});
+
+		it("checks all education when included_education is null", async () => {
+			setupMockApi({ data: makeResume({ included_education: null }) });
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_EDU_LABEL }),
+				).toBeChecked();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_EDU_LABEL }),
+			).toBeChecked();
+		});
+	});
+
+	describe("certification checkboxes", () => {
+		it("renders certification entries with checkboxes", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_CERT_LABEL }),
+				).toBeInTheDocument();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_CERT_LABEL }),
+			).toBeInTheDocument();
+		});
+
+		it("shows included certification as checked and excluded as unchecked", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_CERT_LABEL }),
+				).toBeChecked();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_CERT_LABEL }),
+			).not.toBeChecked();
+		});
+
+		it("toggles certification checkbox on click", async () => {
+			const user = userEvent.setup();
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: EXCLUDED_CERT_LABEL }),
+				).not.toBeChecked();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: EXCLUDED_CERT_LABEL }),
+			);
+
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_CERT_LABEL }),
+			).toBeChecked();
+		});
+
+		it("checks all certifications when included_certifications is null", async () => {
+			setupMockApi({
+				data: makeResume({ included_certifications: null }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_CERT_LABEL }),
+				).toBeChecked();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_CERT_LABEL }),
+			).toBeChecked();
+		});
+	});
+
+	describe("skills emphasis checkboxes", () => {
+		it("renders skill entries with checkboxes", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_SKILL_LABEL }),
+				).toBeInTheDocument();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_SKILL_LABEL }),
+			).toBeInTheDocument();
+		});
+
+		it("shows emphasized skill as checked and non-emphasized as unchecked", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_SKILL_LABEL }),
+				).toBeChecked();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_SKILL_LABEL }),
+			).not.toBeChecked();
+		});
+
+		it("toggles skill checkbox on click", async () => {
+			const user = userEvent.setup();
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: EXCLUDED_SKILL_LABEL }),
+				).not.toBeChecked();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: EXCLUDED_SKILL_LABEL }),
+			);
+
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_SKILL_LABEL }),
+			).toBeChecked();
+		});
+
+		it("checks no skills when skills_emphasis is null", async () => {
+			setupMockApi({ data: makeResume({ skills_emphasis: null }) });
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: INCLUDED_SKILL_LABEL }),
+				).not.toBeChecked();
+			});
+			expect(
+				screen.getByRole("checkbox", { name: EXCLUDED_SKILL_LABEL }),
+			).not.toBeChecked();
+		});
+	});
+
+	describe("save with all fields", () => {
+		it("sends education, certifications, skills, and bullet order in PATCH", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiPatch.mockResolvedValue({ data: makeResume() });
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /save/i }),
+				).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: /save/i }));
+
+			expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+				RESUME_API_PATH,
+				expect.objectContaining({
+					included_education: [EDU_ID_INCLUDED],
+					included_certifications: [CERT_ID_INCLUDED],
+					skills_emphasis: [SKILL_ID_EMPHASIZED],
+					job_bullet_order: {
+						[JOB_ID_INCLUDED]: ["b-1", "b-2", "b-3"],
+					},
+				}),
+			);
+		});
+	});
+
 	describe("API calls", () => {
 		it("fetches resume from /base-resumes/{id}", async () => {
 			setupMockApi();
@@ -603,6 +970,30 @@ describe("ResumeDetail", () => {
 			renderDetail();
 			await waitFor(() => {
 				expect(mocks.mockApiGet).toHaveBeenCalledWith(WORK_HISTORY_API_PATH);
+			});
+		});
+
+		it("fetches education from /personas/{personaId}/education", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(mocks.mockApiGet).toHaveBeenCalledWith(EDUCATION_API_PATH);
+			});
+		});
+
+		it("fetches certifications from /personas/{personaId}/certifications", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(mocks.mockApiGet).toHaveBeenCalledWith(CERTIFICATIONS_API_PATH);
+			});
+		});
+
+		it("fetches skills from /personas/{personaId}/skills", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(mocks.mockApiGet).toHaveBeenCalledWith(SKILLS_API_PATH);
 			});
 		});
 	});

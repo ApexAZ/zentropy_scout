@@ -1,13 +1,15 @@
 "use client";
 
 /**
- * Resume detail page: summary editor and job inclusion checkboxes.
+ * Resume detail page: summary editor, job/bullet reordering,
+ * and education/certification/skill checkboxes.
  *
  * REQ-012 §9.2: Base resume editor with editable summary textarea,
- * hierarchical job/bullet inclusion checkboxes, and save via PATCH.
+ * hierarchical job/bullet inclusion checkboxes, bullet drag-and-drop
+ * reordering, education/certification/skill selection, and save via PATCH.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -18,17 +20,43 @@ import { showToast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FailedState } from "@/components/ui/error-states";
+import { ReorderableList } from "@/components/ui/reorderable-list";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { WorkHistory } from "@/types/persona";
+import type {
+	Bullet,
+	Certification,
+	Education,
+	Skill,
+	WorkHistory,
+} from "@/types/persona";
 import type { BaseResume } from "@/types/resume";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+const MAX_SUMMARY_LENGTH = 5000;
+
 interface ResumeDetailProps {
 	resumeId: string;
 	personaId: string;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Sort bullets according to a specified order. Unordered bullets go to end. */
+function orderBullets(
+	bullets: Bullet[],
+	order: string[] | undefined,
+): Bullet[] {
+	if (!order || order.length === 0) return bullets;
+	return [...bullets].sort((a, b) => {
+		const aIdx = order.indexOf(a.id);
+		const bIdx = order.indexOf(b.id);
+		return (aIdx === -1 ? Infinity : aIdx) - (bIdx === -1 ? Infinity : bIdx);
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -60,8 +88,39 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 			),
 	});
 
+	const { data: educationData, isLoading: educationLoading } = useQuery({
+		queryKey: queryKeys.education(personaId),
+		queryFn: () =>
+			apiGet<ApiListResponse<Education>>(`/personas/${personaId}/education`),
+	});
+
+	const { data: certificationData, isLoading: certificationLoading } = useQuery(
+		{
+			queryKey: queryKeys.certifications(personaId),
+			queryFn: () =>
+				apiGet<ApiListResponse<Certification>>(
+					`/personas/${personaId}/certifications`,
+				),
+		},
+	);
+
+	const { data: skillData, isLoading: skillLoading } = useQuery({
+		queryKey: queryKeys.skills(personaId),
+		queryFn: () =>
+			apiGet<ApiListResponse<Skill>>(`/personas/${personaId}/skills`),
+	});
+
 	const resume = resumeData?.data;
 	const jobs = workHistoryData?.data ?? [];
+	const educations = useMemo(
+		() => educationData?.data ?? [],
+		[educationData?.data],
+	);
+	const certifications = useMemo(
+		() => certificationData?.data ?? [],
+		[certificationData?.data],
+	);
+	const skills = useMemo(() => skillData?.data ?? [], [skillData?.data]);
 
 	// -----------------------------------------------------------------------
 	// Local editable state (initialized from server data)
@@ -72,6 +131,12 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 	const [bulletSelections, setBulletSelections] = useState<
 		Record<string, string[]>
 	>({});
+	const [bulletOrder, setBulletOrder] = useState<Record<string, string[]>>({});
+	const [includedEducation, setIncludedEducation] = useState<string[]>([]);
+	const [includedCertifications, setIncludedCertifications] = useState<
+		string[]
+	>([]);
+	const [skillsEmphasis, setSkillsEmphasis] = useState<string[]>([]);
 	const [isInitialized, setIsInitialized] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 
@@ -80,9 +145,17 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 			setSummary(resume.summary);
 			setIncludedJobs(resume.included_jobs);
 			setBulletSelections(resume.job_bullet_selections);
+			setBulletOrder(resume.job_bullet_order);
+			setIncludedEducation(
+				resume.included_education ?? educations.map((e) => e.id),
+			);
+			setIncludedCertifications(
+				resume.included_certifications ?? certifications.map((c) => c.id),
+			);
+			setSkillsEmphasis(resume.skills_emphasis ?? []);
 			setIsInitialized(true);
 		}
-	}, [resume, isInitialized]);
+	}, [resume, isInitialized, educations, certifications]);
 
 	// -----------------------------------------------------------------------
 	// Handlers
@@ -91,18 +164,27 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 	const handleToggleJob = useCallback((jobId: string, job: WorkHistory) => {
 		setIncludedJobs((prev) => {
 			if (prev.includes(jobId)) {
-				// Removing job — also clear its bullet selections
+				// Removing job — clear bullet selections and order
 				setBulletSelections((bs) => {
 					const next = { ...bs };
 					delete next[jobId];
 					return next;
 				});
+				setBulletOrder((bo) => {
+					const next = { ...bo };
+					delete next[jobId];
+					return next;
+				});
 				return prev.filter((id) => id !== jobId);
 			}
-			// Adding job — select all bullets by default
+			// Adding job — select all bullets and set initial order
 			const allBulletIds = job.bullets.map((b) => b.id);
 			setBulletSelections((bs) => ({
 				...bs,
+				[jobId]: allBulletIds,
+			}));
+			setBulletOrder((bo) => ({
+				...bo,
 				[jobId]: allBulletIds,
 			}));
 			return [...prev, jobId];
@@ -119,6 +201,40 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 		});
 	}, []);
 
+	const handleReorderBullets = useCallback(
+		(jobId: string, reorderedBullets: Bullet[]) => {
+			setBulletOrder((prev) => ({
+				...prev,
+				[jobId]: reorderedBullets.map((b) => b.id),
+			}));
+		},
+		[],
+	);
+
+	const handleToggleEducation = useCallback((eduId: string) => {
+		setIncludedEducation((prev) =>
+			prev.includes(eduId)
+				? prev.filter((id) => id !== eduId)
+				: [...prev, eduId],
+		);
+	}, []);
+
+	const handleToggleCertification = useCallback((certId: string) => {
+		setIncludedCertifications((prev) =>
+			prev.includes(certId)
+				? prev.filter((id) => id !== certId)
+				: [...prev, certId],
+		);
+	}, []);
+
+	const handleToggleSkill = useCallback((skillId: string) => {
+		setSkillsEmphasis((prev) =>
+			prev.includes(skillId)
+				? prev.filter((id) => id !== skillId)
+				: [...prev, skillId],
+		);
+	}, []);
+
 	const handleSave = useCallback(async () => {
 		setIsSaving(true);
 		try {
@@ -126,6 +242,10 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 				summary,
 				included_jobs: includedJobs,
 				job_bullet_selections: bulletSelections,
+				job_bullet_order: bulletOrder,
+				included_education: includedEducation,
+				included_certifications: includedCertifications,
+				skills_emphasis: skillsEmphasis,
 			});
 			showToast.success("Resume saved.");
 			await queryClient.invalidateQueries({
@@ -136,13 +256,28 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 		} finally {
 			setIsSaving(false);
 		}
-	}, [resumeId, summary, includedJobs, bulletSelections, queryClient]);
+	}, [
+		resumeId,
+		summary,
+		includedJobs,
+		bulletSelections,
+		bulletOrder,
+		includedEducation,
+		includedCertifications,
+		skillsEmphasis,
+		queryClient,
+	]);
 
 	// -----------------------------------------------------------------------
 	// Render states
 	// -----------------------------------------------------------------------
 
-	const isLoading = resumeLoading || workHistoryLoading;
+	const isLoading =
+		resumeLoading ||
+		workHistoryLoading ||
+		educationLoading ||
+		certificationLoading ||
+		skillLoading;
 
 	if (isLoading) {
 		return (
@@ -191,12 +326,12 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 					value={summary}
 					onChange={(e) => setSummary(e.target.value)}
 					rows={5}
-					maxLength={5000}
+					maxLength={MAX_SUMMARY_LENGTH}
 					className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
 				/>
 			</div>
 
-			{/* Job inclusion checkboxes */}
+			{/* Job inclusion checkboxes with reorderable bullets */}
 			<div className="mb-8">
 				<h2 className="mb-4 text-lg font-semibold">Included Jobs</h2>
 				<div className="space-y-4">
@@ -225,27 +360,35 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 									</span>
 								</div>
 
-								{/* Bullet-level checkboxes (shown only for included jobs) */}
+								{/* Bullet-level checkboxes with drag-and-drop reordering */}
 								{isIncluded && job.bullets.length > 0 && (
-									<div className="ml-6 space-y-1">
-										{job.bullets.map((bullet) => (
-											<div key={bullet.id} className="flex items-center gap-2">
-												<Checkbox
-													id={`bullet-${bullet.id}`}
-													checked={selectedBullets.includes(bullet.id)}
-													onCheckedChange={() =>
-														handleToggleBullet(job.id, bullet.id)
-													}
-													aria-label={bullet.text}
-												/>
-												<label
-													htmlFor={`bullet-${bullet.id}`}
-													className="text-muted-foreground cursor-pointer text-sm"
-												>
-													{bullet.text}
-												</label>
-											</div>
-										))}
+									<div className="ml-6">
+										<ReorderableList
+											items={orderBullets(job.bullets, bulletOrder[job.id])}
+											onReorder={(reordered) =>
+												handleReorderBullets(job.id, reordered)
+											}
+											label={`Bullets for ${job.job_title}`}
+											renderItem={(bullet, dragHandle) => (
+												<div className="flex items-center gap-2">
+													{dragHandle}
+													<Checkbox
+														id={`bullet-${bullet.id}`}
+														checked={selectedBullets.includes(bullet.id)}
+														onCheckedChange={() =>
+															handleToggleBullet(job.id, bullet.id)
+														}
+														aria-label={bullet.text}
+													/>
+													<label
+														htmlFor={`bullet-${bullet.id}`}
+														className="text-muted-foreground cursor-pointer text-sm"
+													>
+														{bullet.text}
+													</label>
+												</div>
+											)}
+										/>
 									</div>
 								)}
 							</div>
@@ -253,6 +396,84 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 					})}
 				</div>
 			</div>
+
+			{/* Education checkboxes */}
+			{educations.length > 0 && (
+				<div className="mb-8">
+					<h2 className="mb-4 text-lg font-semibold">Education</h2>
+					<div className="space-y-2">
+						{educations.map((edu) => (
+							<div key={edu.id} className="flex items-center gap-2">
+								<Checkbox
+									id={`education-${edu.id}`}
+									checked={includedEducation.includes(edu.id)}
+									onCheckedChange={() => handleToggleEducation(edu.id)}
+									aria-label={`${edu.degree} ${edu.field_of_study} at ${edu.institution}`}
+								/>
+								<label
+									htmlFor={`education-${edu.id}`}
+									className="cursor-pointer text-sm"
+								>
+									{edu.degree} {edu.field_of_study} &mdash; {edu.institution}
+								</label>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Certification checkboxes */}
+			{certifications.length > 0 && (
+				<div className="mb-8">
+					<h2 className="mb-4 text-lg font-semibold">Certifications</h2>
+					<div className="space-y-2">
+						{certifications.map((cert) => (
+							<div key={cert.id} className="flex items-center gap-2">
+								<Checkbox
+									id={`certification-${cert.id}`}
+									checked={includedCertifications.includes(cert.id)}
+									onCheckedChange={() => handleToggleCertification(cert.id)}
+									aria-label={`${cert.certification_name} from ${cert.issuing_organization}`}
+								/>
+								<label
+									htmlFor={`certification-${cert.id}`}
+									className="cursor-pointer text-sm"
+								>
+									{cert.certification_name} &mdash; {cert.issuing_organization}
+								</label>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Skills emphasis checkboxes */}
+			{skills.length > 0 && (
+				<div className="mb-8">
+					<h2 className="mb-4 text-lg font-semibold">Skills Emphasis</h2>
+					<div className="flex flex-wrap gap-2">
+						{skills.map((skill) => (
+							<div
+								key={skill.id}
+								className="flex items-center gap-2 rounded-md border px-2 py-1"
+							>
+								<Checkbox
+									id={`skill-${skill.id}`}
+									checked={skillsEmphasis.includes(skill.id)}
+									onCheckedChange={() => handleToggleSkill(skill.id)}
+									aria-label={skill.skill_name}
+								/>
+								<label
+									htmlFor={`skill-${skill.id}`}
+									className="cursor-pointer text-sm"
+								>
+									{skill.skill_name}
+								</label>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
 
 			{/* Save button */}
 			<Button onClick={handleSave} disabled={isSaving}>
