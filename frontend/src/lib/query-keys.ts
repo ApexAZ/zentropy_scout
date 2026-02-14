@@ -8,11 +8,12 @@
  */
 
 const PERSONAS = "personas" as const;
+const JOBS = "jobs" as const;
 
 export const queryKeys = {
 	// List keys
 	personas: [PERSONAS] as const,
-	jobs: ["jobs"] as const,
+	jobs: [JOBS] as const,
 	applications: ["applications"] as const,
 	resumes: ["resumes"] as const,
 	variants: ["variants"] as const,
@@ -22,7 +23,7 @@ export const queryKeys = {
 
 	// Detail keys
 	persona: (id: string) => [PERSONAS, id] as const,
-	job: (id: string) => ["jobs", id] as const,
+	job: (id: string) => [JOBS, id] as const,
 	application: (id: string) => ["applications", id] as const,
 
 	// Sub-entity keys (nested under persona for prefix invalidation)
@@ -41,5 +42,5 @@ export const queryKeys = {
 
 	// Sub-entity keys (nested under job for prefix invalidation)
 	extractedSkills: (jobId: string) =>
-		["jobs", jobId, "extracted-skills"] as const,
+		[JOBS, jobId, "extracted-skills"] as const,
 } as const;

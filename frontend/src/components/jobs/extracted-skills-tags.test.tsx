@@ -134,8 +134,8 @@ describe("ExtractedSkillsTags", () => {
 		it("renders each required skill as a chip", () => {
 			renderSkills(makeSkills());
 
-			expect(screen.getByTestId("skill-chip-Python")).toBeInTheDocument();
-			expect(screen.getByTestId("skill-chip-FastAPI")).toBeInTheDocument();
+			expect(screen.getByTestId("skill-chip-s-1")).toBeInTheDocument();
+			expect(screen.getByTestId("skill-chip-s-2")).toBeInTheDocument();
 		});
 
 		it("hides required group when no skills are required", () => {
@@ -167,8 +167,8 @@ describe("ExtractedSkillsTags", () => {
 		it("renders each preferred skill as a chip", () => {
 			renderSkills(makeSkills());
 
-			expect(screen.getByTestId("skill-chip-Terraform")).toBeInTheDocument();
-			expect(screen.getByTestId("skill-chip-Redis")).toBeInTheDocument();
+			expect(screen.getByTestId("skill-chip-s-3")).toBeInTheDocument();
+			expect(screen.getByTestId("skill-chip-s-4")).toBeInTheDocument();
 		});
 
 		it("hides preferred group when no skills are preferred", () => {
@@ -192,10 +192,10 @@ describe("ExtractedSkillsTags", () => {
 		it("shows years suffix when years_requested is present", () => {
 			renderSkills(makeSkills());
 
-			expect(screen.getByTestId("skill-chip-Python")).toHaveTextContent(
+			expect(screen.getByTestId("skill-chip-s-1")).toHaveTextContent(
 				"Python (3+ yr)",
 			);
-			expect(screen.getByTestId("skill-chip-Redis")).toHaveTextContent(
+			expect(screen.getByTestId("skill-chip-s-4")).toHaveTextContent(
 				"Redis (2+ yr)",
 			);
 		});
@@ -203,12 +203,8 @@ describe("ExtractedSkillsTags", () => {
 		it("omits years suffix when years_requested is null", () => {
 			renderSkills(makeSkills());
 
-			expect(screen.getByTestId("skill-chip-FastAPI")).toHaveTextContent(
-				"FastAPI",
-			);
-			expect(screen.getByTestId("skill-chip-FastAPI")).not.toHaveTextContent(
-				"yr",
-			);
+			expect(screen.getByTestId("skill-chip-s-2")).toHaveTextContent("FastAPI");
+			expect(screen.getByTestId("skill-chip-s-2")).not.toHaveTextContent("yr");
 		});
 	});
 

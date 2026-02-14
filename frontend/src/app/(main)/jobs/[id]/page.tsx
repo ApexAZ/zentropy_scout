@@ -27,12 +27,13 @@ import type { ExtractedSkill, JobPosting } from "@/types/job";
 export default function JobDetailPage() {
 	const personaStatus = usePersonaStatus();
 	const params = useParams<{ id: string }>();
+	const isOnboarded = personaStatus.status === "onboarded";
 
 	const { data } = useQuery({
 		queryKey: queryKeys.job(params.id),
 		queryFn: () =>
 			apiGet<ApiResponse<JobPosting>>(`/job-postings/${params.id}`),
-		enabled: personaStatus.status === "onboarded",
+		enabled: isOnboarded,
 	});
 
 	const { data: skillsData } = useQuery({
@@ -41,10 +42,10 @@ export default function JobDetailPage() {
 			apiGet<ApiListResponse<ExtractedSkill>>(
 				`/job-postings/${params.id}/extracted-skills`,
 			),
-		enabled: personaStatus.status === "onboarded",
+		enabled: isOnboarded,
 	});
 
-	if (personaStatus.status !== "onboarded") return null;
+	if (!isOnboarded) return null;
 
 	const job = data?.data;
 

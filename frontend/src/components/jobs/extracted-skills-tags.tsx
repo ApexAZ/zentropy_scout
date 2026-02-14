@@ -37,7 +37,7 @@ function SkillChip({
 
 	return (
 		<span
-			data-testid={`skill-chip-${skill.skill_name}`}
+			data-testid={`skill-chip-${skill.id}`}
 			className={cn(
 				"inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
 				variant === "required"
