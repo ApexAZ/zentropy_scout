@@ -62,11 +62,19 @@ vi.mock("./sse-client", () => {
 	return { SSEClient: MockSSEClient };
 });
 
+vi.mock("./embedding-staleness", () => ({
+	notifyEmbeddingComplete: vi.fn(),
+}));
+
+const { createSSEQueryBridge: mockCreateSSEQueryBridge } = vi.hoisted(() => ({
+	createSSEQueryBridge: vi.fn(),
+}));
+
 vi.mock("./sse-query-bridge", () => ({
-	createSSEQueryBridge: vi.fn(() => ({
+	createSSEQueryBridge: mockCreateSSEQueryBridge.mockReturnValue({
 		onDataChanged: mocks.mockOnDataChanged,
 		onReconnect: mocks.mockOnReconnect,
-	})),
+	}),
 }));
 
 // ---------------------------------------------------------------------------
@@ -223,6 +231,22 @@ describe("SSEProvider", () => {
 			TEST_RESOURCE,
 			TEST_ID,
 			TEST_ACTION,
+		);
+	});
+
+	it("passes onEmbeddingUpdated callback to bridge factory", () => {
+		render(
+			<SSEProvider>
+				<div />
+			</SSEProvider>,
+			{ wrapper: TestWrapper },
+		);
+
+		expect(mockCreateSSEQueryBridge).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				onEmbeddingUpdated: expect.any(Function),
+			}),
 		);
 	});
 

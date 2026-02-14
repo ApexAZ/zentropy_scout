@@ -30,6 +30,7 @@ import {
 
 import type { ChatHandlers } from "../types/chat";
 
+import { notifyEmbeddingComplete } from "./embedding-staleness";
 import { SSEClient, type ConnectionStatus } from "./sse-client";
 import { createSSEQueryBridge } from "./sse-query-bridge";
 
@@ -140,7 +141,9 @@ export function SSEProvider({
 	}, []);
 
 	useEffect(() => {
-		const bridge = createSSEQueryBridge(queryClient);
+		const bridge = createSSEQueryBridge(queryClient, {
+			onEmbeddingUpdated: notifyEmbeddingComplete,
+		});
 
 		const client = new SSEClient({
 			url,

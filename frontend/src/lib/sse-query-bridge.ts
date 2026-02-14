@@ -35,6 +35,7 @@ export const RESOURCE_QUERY_KEY_MAP = new Map<string, readonly string[]>([
 	["variant", queryKeys.variants],
 	["cover-letter", queryKeys.coverLetters],
 	["change-flag", queryKeys.changeFlags],
+	["embedding", queryKeys.jobs],
 ]);
 
 // ---------------------------------------------------------------------------
@@ -84,21 +85,41 @@ export function handleReconnect(queryClient: QueryClient): void {
 // ---------------------------------------------------------------------------
 
 /**
+ * Options for the SSE query bridge factory.
+ */
+export interface SSEQueryBridgeOptions {
+	/**
+	 * Called when embedding regeneration completes (SSE `data_changed`
+	 * with resource "embedding"). Used to show user notifications.
+	 *
+	 * REQ-012 §7.7: "Match profile updated. Job scores may have changed."
+	 */
+	onEmbeddingUpdated?: () => void;
+}
+
+/**
  * Create SSE callback handlers wired to a QueryClient.
  *
  * Returns `onDataChanged` and `onReconnect` callbacks suitable for
  * use in an SSEClientConfig.
  *
  * @param queryClient - TanStack QueryClient instance.
+ * @param options - Optional callbacks for specific resource events.
  * @returns Object with `onDataChanged` and `onReconnect` callbacks.
  */
-export function createSSEQueryBridge(queryClient: QueryClient): {
+export function createSSEQueryBridge(
+	queryClient: QueryClient,
+	options?: SSEQueryBridgeOptions,
+): {
 	onDataChanged: (resource: string, id: string, action: string) => void;
 	onReconnect: () => void;
 } {
 	return {
 		onDataChanged: (resource: string, id: string, action: string) => {
 			handleDataChanged(queryClient, resource, id, action);
+			if (resource === "embedding" && options?.onEmbeddingUpdated) {
+				options.onEmbeddingUpdated();
+			}
 		},
 		onReconnect: () => {
 			handleReconnect(queryClient);

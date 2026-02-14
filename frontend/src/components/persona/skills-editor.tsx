@@ -22,6 +22,7 @@ import { ReorderableList } from "@/components/ui/reorderable-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { notifyEmbeddingUpdate } from "@/lib/embedding-staleness";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
 import { toFormValues, toRequestBody } from "@/lib/skills-helpers";
@@ -127,6 +128,7 @@ export function SkillsEditor({ persona }: { persona: Persona }) {
 				await queryClient.invalidateQueries({
 					queryKey: skillsQueryKey,
 				});
+				notifyEmbeddingUpdate();
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
@@ -166,6 +168,7 @@ export function SkillsEditor({ persona }: { persona: Persona }) {
 				await queryClient.invalidateQueries({
 					queryKey: skillsQueryKey,
 				});
+				notifyEmbeddingUpdate();
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {

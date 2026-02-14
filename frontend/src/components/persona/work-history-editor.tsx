@@ -22,6 +22,7 @@ import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { notifyEmbeddingUpdate } from "@/lib/embedding-staleness";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
 import { toFormValues, toRequestBody } from "@/lib/work-history-helpers";
@@ -114,6 +115,7 @@ export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 				await queryClient.invalidateQueries({
 					queryKey: workHistoryQueryKey,
 				});
+				notifyEmbeddingUpdate();
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {
@@ -153,6 +155,7 @@ export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 				await queryClient.invalidateQueries({
 					queryKey: workHistoryQueryKey,
 				});
+				notifyEmbeddingUpdate();
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));
 			} finally {

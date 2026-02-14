@@ -30,6 +30,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { apiPatch } from "@/lib/api-client";
+import { notifyEmbeddingUpdate } from "@/lib/embedding-staleness";
 import { toFriendlyError } from "@/lib/form-errors";
 import {
 	CURRENCIES,
@@ -104,6 +105,7 @@ export function NonNegotiablesEditor({ persona }: { persona: Persona }) {
 				await queryClient.invalidateQueries({
 					queryKey: queryKeys.personas,
 				});
+				notifyEmbeddingUpdate();
 				setSaveSuccess(true);
 			} catch (err) {
 				setSubmitError(toFriendlyError(err));

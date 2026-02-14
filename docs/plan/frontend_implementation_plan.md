@@ -228,7 +228,7 @@ This plan breaks REQ-012 into atomic implementation tasks. Each task is sized to
 
 ## Phase 6: Persona Management
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Post-onboarding persona editing. Section editors, deletion flow, change flags. REQ-012 §7. Reuses form components from Phase 5.*
 
@@ -262,7 +262,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 6.11 | Create growth targets and discovery preferences editors with validation (REQ-012 §7.2.8-9) | `tdd, structure, plan` | ✅ |
 | 6.12 | Create deletion handling: reference check, three-option dialog, immutable block (REQ-012 §7.5) | `tdd, structure, plan` | ✅ |
 | 6.13 | Create PersonaChangeFlags resolution UI: per-flag add-to-all/some/skip flow (REQ-012 §7.6) | `tdd, structure, plan` | ✅ |
-| 6.14 | Create embedding staleness indicator and score refresh notification (REQ-012 §7.7) | `tdd, structure, plan` | ⬜ |
+| 6.14 | Create embedding staleness indicator and score refresh notification (REQ-012 §7.7) | `tdd, structure, plan` | ✅ |
 
 ---
 

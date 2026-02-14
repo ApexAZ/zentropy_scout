@@ -119,12 +119,17 @@ const mocks = vi.hoisted(() => {
 	return {
 		mockApiPatch: vi.fn(),
 		MockApiError,
+		mockNotifyEmbeddingUpdate: vi.fn(),
 	};
 });
 
 vi.mock("@/lib/api-client", () => ({
 	apiPatch: mocks.mockApiPatch,
 	ApiError: mocks.MockApiError,
+}));
+
+vi.mock("@/lib/embedding-staleness", () => ({
+	notifyEmbeddingUpdate: mocks.mockNotifyEmbeddingUpdate,
 }));
 
 vi.mock("next/link", () => ({
@@ -186,6 +191,7 @@ function renderEditor(persona: Persona = MOCK_PERSONA) {
 describe("NonNegotiablesEditor", () => {
 	beforeEach(() => {
 		mocks.mockApiPatch.mockReset();
+		mocks.mockNotifyEmbeddingUpdate.mockReset();
 	});
 
 	afterEach(() => {
@@ -587,6 +593,37 @@ describe("NonNegotiablesEditor", () => {
 
 			const link = screen.getByRole("link", { name: /back to profile/i });
 			expect(link).toHaveAttribute("href", "/persona");
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Embedding staleness notification (§6.14)
+	// -----------------------------------------------------------------------
+
+	describe("embedding staleness notification", () => {
+		it("notifies embedding update after successful save", async () => {
+			mocks.mockApiPatch.mockResolvedValueOnce(MOCK_PATCH_RESPONSE);
+			const user = renderEditor();
+
+			await user.click(screen.getByRole("button", { name: /save/i }));
+
+			await waitFor(() => {
+				expect(mocks.mockNotifyEmbeddingUpdate).toHaveBeenCalledTimes(1);
+			});
+		});
+
+		it("does not notify embedding update when save fails", async () => {
+			mocks.mockApiPatch.mockRejectedValueOnce(
+				new mocks.MockApiError("SERVER_ERROR", "Server error", 500),
+			);
+			const user = renderEditor();
+
+			await user.click(screen.getByRole("button", { name: /save/i }));
+
+			await waitFor(() => {
+				expect(screen.getByTestId("submit-error")).toBeInTheDocument();
+			});
+			expect(mocks.mockNotifyEmbeddingUpdate).not.toHaveBeenCalled();
 		});
 	});
 });

@@ -23,6 +23,7 @@ import { queryKeys } from "./query-keys";
 const RESOURCE_JOB_POSTING = "job-posting";
 const RESOURCE_COVER_LETTER = "cover-letter";
 const RESOURCE_CHANGE_FLAG = "change-flag";
+const RESOURCE_EMBEDDING = "embedding";
 const ACTION_UPDATED = "updated";
 const ACTION_CREATED = "created";
 const ACTION_DELETED = "deleted";
@@ -87,6 +88,12 @@ describe("SSE Query Bridge", () => {
 		it("maps change-flag to changeFlags query key", () => {
 			expect(RESOURCE_QUERY_KEY_MAP.get(RESOURCE_CHANGE_FLAG)).toEqual(
 				queryKeys.changeFlags,
+			);
+		});
+
+		it("maps embedding to jobs query key", () => {
+			expect(RESOURCE_QUERY_KEY_MAP.get(RESOURCE_EMBEDDING)).toEqual(
+				queryKeys.jobs,
 			);
 		});
 
@@ -168,6 +175,19 @@ describe("SSE Query Bridge", () => {
 
 			expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
 				queryKey: queryKeys.changeFlags,
+			});
+		});
+
+		it("invalidates job queries for embedding resource", () => {
+			handleDataChanged(
+				queryClient,
+				RESOURCE_EMBEDDING,
+				TEST_ID,
+				ACTION_UPDATED,
+			);
+
+			expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: queryKeys.jobs,
 			});
 		});
 
@@ -274,6 +294,38 @@ describe("SSE Query Bridge", () => {
 			bridge.onDataChanged("not-a-resource", TEST_ID, ACTION_UPDATED);
 
 			expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
+		});
+
+		it("calls onEmbeddingUpdated when embedding resource changes", () => {
+			const onEmbeddingUpdated = vi.fn();
+			const bridge = createSSEQueryBridge(queryClient, {
+				onEmbeddingUpdated,
+			});
+
+			bridge.onDataChanged(RESOURCE_EMBEDDING, TEST_ID, ACTION_UPDATED);
+
+			expect(onEmbeddingUpdated).toHaveBeenCalledTimes(1);
+		});
+
+		it("does not call onEmbeddingUpdated for non-embedding resources", () => {
+			const onEmbeddingUpdated = vi.fn();
+			const bridge = createSSEQueryBridge(queryClient, {
+				onEmbeddingUpdated,
+			});
+
+			bridge.onDataChanged(RESOURCE_JOB_POSTING, TEST_ID, ACTION_UPDATED);
+
+			expect(onEmbeddingUpdated).not.toHaveBeenCalled();
+		});
+
+		it("works without onEmbeddingUpdated option for embedding resource", () => {
+			const bridge = createSSEQueryBridge(queryClient);
+
+			bridge.onDataChanged(RESOURCE_EMBEDDING, TEST_ID, ACTION_UPDATED);
+
+			expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: queryKeys.jobs,
+			});
 		});
 	});
 });

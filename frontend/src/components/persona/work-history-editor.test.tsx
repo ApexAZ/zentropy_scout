@@ -180,6 +180,7 @@ const mocks = vi.hoisted(() => {
 			dismiss: vi.fn(),
 		},
 		MockApiError,
+		mockNotifyEmbeddingUpdate: vi.fn(),
 	};
 });
 
@@ -193,6 +194,10 @@ vi.mock("@/lib/api-client", () => ({
 
 vi.mock("@/lib/toast", () => ({
 	showToast: mocks.mockShowToast,
+}));
+
+vi.mock("@/lib/embedding-staleness", () => ({
+	notifyEmbeddingUpdate: mocks.mockNotifyEmbeddingUpdate,
 }));
 
 vi.mock("next/link", () => ({
@@ -352,6 +357,7 @@ describe("WorkHistoryEditor", () => {
 		mocks.mockApiPost.mockReset();
 		mocks.mockApiPatch.mockReset();
 		mocks.mockApiDelete.mockReset();
+		mocks.mockNotifyEmbeddingUpdate.mockReset();
 		capturedOnReorder = null;
 		capturedBulletEditorProps = null;
 	});
@@ -959,6 +965,73 @@ describe("WorkHistoryEditor", () => {
 
 			expect(screen.queryByTestId("next-button")).not.toBeInTheDocument();
 			expect(screen.queryByTestId("back-button")).not.toBeInTheDocument();
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Embedding staleness notification (§6.14)
+	// -----------------------------------------------------------------------
+
+	describe("embedding staleness notification", () => {
+		it("notifies embedding update after adding a job", async () => {
+			const newEntry: WorkHistory = {
+				...MOCK_ENTRY_1,
+				id: "wh-new",
+				job_title: "QA Engineer",
+				company_name: "TestCorp",
+				location: "Austin, TX",
+				work_model: "Remote",
+				is_current: true,
+				end_date: null,
+			};
+			mocks.mockApiPost.mockResolvedValueOnce({ data: newEntry });
+
+			const user = await renderAndWaitForLoad();
+			await user.click(screen.getByRole("button", { name: /add a job/i }));
+			await fillJobForm(user);
+			await user.click(screen.getByRole("button", { name: /save/i }));
+
+			await waitFor(() => {
+				expect(mocks.mockNotifyEmbeddingUpdate).toHaveBeenCalledTimes(1);
+			});
+		});
+
+		it("notifies embedding update after editing a job", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
+			const updatedEntry: WorkHistory = {
+				...MOCK_ENTRY_1,
+				job_title: EDITED_JOB_TITLE,
+			};
+			mocks.mockApiPatch.mockResolvedValue({ data: updatedEntry });
+
+			const user = await renderAndWaitForLoad();
+
+			const entry = screen.getByTestId(ENTRY_1_TESTID);
+			await user.click(within(entry).getByRole("button", { name: /edit/i }));
+
+			const form = screen.getByTestId(FORM_TESTID);
+			const titleInput = within(form).getByLabelText(/job title/i);
+			await user.clear(titleInput);
+			await user.type(titleInput, EDITED_JOB_TITLE);
+			await user.click(screen.getByRole("button", { name: /save/i }));
+
+			await waitFor(() => {
+				expect(mocks.mockNotifyEmbeddingUpdate).toHaveBeenCalledTimes(1);
+			});
+		});
+
+		it("does not notify embedding update when save fails", async () => {
+			mocks.mockApiPost.mockRejectedValueOnce(new Error(NETWORK_ERROR_MESSAGE));
+
+			const user = await renderAndWaitForLoad();
+			await user.click(screen.getByRole("button", { name: /add a job/i }));
+			await fillJobForm(user);
+			await user.click(screen.getByRole("button", { name: /save/i }));
+
+			await waitFor(() => {
+				expect(screen.getByText(GENERIC_ERROR_TEXT)).toBeInTheDocument();
+			});
+			expect(mocks.mockNotifyEmbeddingUpdate).not.toHaveBeenCalled();
 		});
 	});
 });

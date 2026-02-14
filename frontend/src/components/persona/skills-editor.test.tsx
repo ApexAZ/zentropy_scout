@@ -159,6 +159,7 @@ const mocks = vi.hoisted(() => {
 			dismiss: vi.fn(),
 		},
 		MockApiError,
+		mockNotifyEmbeddingUpdate: vi.fn(),
 	};
 });
 
@@ -172,6 +173,10 @@ vi.mock("@/lib/api-client", () => ({
 
 vi.mock("@/lib/toast", () => ({
 	showToast: mocks.mockShowToast,
+}));
+
+vi.mock("@/lib/embedding-staleness", () => ({
+	notifyEmbeddingUpdate: mocks.mockNotifyEmbeddingUpdate,
 }));
 
 vi.mock("next/link", () => ({
@@ -316,6 +321,7 @@ describe("SkillsEditor", () => {
 		mocks.mockApiPost.mockReset();
 		mocks.mockApiPatch.mockReset();
 		mocks.mockApiDelete.mockReset();
+		mocks.mockNotifyEmbeddingUpdate.mockReset();
 		capturedOnReorder = null;
 	});
 
@@ -804,6 +810,73 @@ describe("SkillsEditor", () => {
 					queryKey: [...SKILLS_QUERY_KEY],
 				});
 			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Embedding staleness notification (§6.14)
+	// -----------------------------------------------------------------------
+
+	describe("embedding staleness notification", () => {
+		it("notifies embedding update after adding a skill", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_EMPTY_LIST_RESPONSE);
+			const newEntry: Skill = {
+				...MOCK_HARD_SKILL,
+				id: "skill-new",
+			};
+			mocks.mockApiPost.mockResolvedValue({ data: newEntry });
+
+			const user = await renderAndWaitForLoad();
+			await user.click(screen.getByRole("button", { name: ADD_BUTTON_LABEL }));
+			await fillSkillForm(user);
+			await user.click(screen.getByRole("button", { name: SAVE_BUTTON_LABEL }));
+
+			await waitFor(() => {
+				expect(mocks.mockNotifyEmbeddingUpdate).toHaveBeenCalledTimes(1);
+			});
+		});
+
+		it("notifies embedding update after editing a skill", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
+			const updatedEntry: Skill = {
+				...MOCK_HARD_SKILL,
+				skill_name: EDITED_SKILL_NAME,
+			};
+			mocks.mockApiPatch.mockResolvedValue({ data: updatedEntry });
+
+			const user = await renderAndWaitForLoad();
+
+			const entry = screen.getByTestId(ENTRY_1_TESTID);
+			await user.click(
+				within(entry).getByRole("button", { name: EDIT_ENTRY_1_LABEL }),
+			);
+
+			const form = screen.getByTestId(FORM_TESTID);
+			const nameInput = within(form).getByLabelText(/skill name/i);
+			await user.clear(nameInput);
+			await user.type(nameInput, EDITED_SKILL_NAME);
+			await user.click(screen.getByRole("button", { name: SAVE_BUTTON_LABEL }));
+
+			await waitFor(() => {
+				expect(mocks.mockNotifyEmbeddingUpdate).toHaveBeenCalledTimes(1);
+			});
+		});
+
+		it("does not notify embedding update when save fails", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_EMPTY_LIST_RESPONSE);
+			mocks.mockApiPost.mockRejectedValue(
+				new mocks.MockApiError("VALIDATION_ERROR", NETWORK_ERROR_MESSAGE, 422),
+			);
+
+			const user = await renderAndWaitForLoad();
+			await user.click(screen.getByRole("button", { name: ADD_BUTTON_LABEL }));
+			await fillSkillForm(user);
+			await user.click(screen.getByRole("button", { name: SAVE_BUTTON_LABEL }));
+
+			await waitFor(() => {
+				expect(screen.getByTestId("submit-error")).toBeInTheDocument();
+			});
+			expect(mocks.mockNotifyEmbeddingUpdate).not.toHaveBeenCalled();
 		});
 	});
 });
