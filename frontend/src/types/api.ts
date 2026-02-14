@@ -62,3 +62,15 @@ export interface ErrorDetail {
 export interface ErrorResponse {
 	error: ErrorDetail;
 }
+
+/**
+ * Result payload for bulk action endpoints (REQ-006 §2.6).
+ *
+ * Returned inside the standard `ApiResponse<BulkActionResult>` envelope.
+ * `succeeded` lists IDs that were processed. `failed` lists IDs that
+ * could not be processed, each with an error code.
+ */
+export interface BulkActionResult {
+	succeeded: string[];
+	failed: { id: string; error: string }[];
+}

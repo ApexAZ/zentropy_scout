@@ -6,6 +6,7 @@
  * REQ-012 §8.2: Table/list view with favorite, title, location,
  * salary, fit, stretch, ghost, and discovered columns.
  * Toolbar: search, status filter, min-fit filter, sort dropdown.
+ * Multi-select mode with bulk dismiss/favorite (REQ-006 §2.6).
  * Default sort: fit score descending, favorites pinned to top.
  * REQ-012 §8.5: "Show filtered jobs" toggle — dimmed rows,
  * Filtered badge, expandable failure reasons.
@@ -15,15 +16,20 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type {
+	ColumnDef,
+	RowSelectionState,
+	SortingState,
+} from "@tanstack/react-table";
 import { ChevronDown, Heart, Loader2, TriangleAlert } from "lucide-react";
 
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { getSelectColumn } from "@/components/data-table/data-table-select-column";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ScoreTierBadge } from "@/components/ui/score-tier-badge";
@@ -43,7 +49,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import type { ApiListResponse } from "@/types/api";
+import type {
+	ApiListResponse,
+	ApiResponse,
+	BulkActionResult,
+} from "@/types/api";
 import type {
 	FailedNonNegotiable,
 	JobPosting,
@@ -82,6 +92,7 @@ function getGhostTierConfig(score: number) {
 
 const EMPTY_MESSAGE = "No opportunities found.";
 const FAVORITE_ERROR_MESSAGE = "Failed to update favorite.";
+const BULK_ACTION_ERROR = "Bulk action failed.";
 const LOCATION_SEPARATOR = " \u00b7 ";
 const DEFAULT_STATUS: JobPostingStatus = "Discovered";
 const DEFAULT_SORT_FIELD = "fit_score";
@@ -257,6 +268,9 @@ export function OpportunitiesTable() {
 	const [minFit, setMinFit] = useState(0);
 	const [sortField, setSortField] = useState(DEFAULT_SORT_FIELD);
 	const [showFiltered, setShowFiltered] = useState(false);
+	const [selectMode, setSelectMode] = useState(false);
+	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+	const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
 
 	const queryParams = useMemo(() => {
 		const params: Record<string, string | number> = {
@@ -302,8 +316,74 @@ export function OpportunitiesTable() {
 		setSorting([FAVORITE_PINNED_SORT, { id: field, desc }]);
 	}, []);
 
+	const selectedIds = useMemo(
+		() => Object.keys(rowSelection).filter((id) => rowSelection[id]),
+		[rowSelection],
+	);
+	const selectedCount = selectedIds.length;
+
+	const exitSelectMode = useCallback(() => {
+		setSelectMode(false);
+		setRowSelection({});
+	}, []);
+
+	const handleBulkDismiss = useCallback(async () => {
+		setBulkActionInProgress(true);
+		try {
+			const res = await apiPost<ApiResponse<BulkActionResult>>(
+				"/job-postings/bulk-dismiss",
+				{ ids: selectedIds },
+			);
+			const { succeeded, failed } = res.data;
+			if (failed.length === 0) {
+				const n = succeeded.length;
+				showToast.success(`${n} ${n === 1 ? "job" : "jobs"} dismissed.`);
+			} else if (succeeded.length === 0) {
+				showToast.error(BULK_ACTION_ERROR);
+			} else {
+				showToast.warning(
+					`${succeeded.length} dismissed, ${failed.length} failed.`,
+				);
+			}
+			await queryClient.invalidateQueries({ queryKey: queryKeys.jobs });
+			exitSelectMode();
+		} catch {
+			showToast.error(BULK_ACTION_ERROR);
+		} finally {
+			setBulkActionInProgress(false);
+		}
+	}, [selectedIds, queryClient, exitSelectMode]);
+
+	const handleBulkFavorite = useCallback(async () => {
+		setBulkActionInProgress(true);
+		try {
+			const res = await apiPost<ApiResponse<BulkActionResult>>(
+				"/job-postings/bulk-favorite",
+				{ ids: selectedIds, is_favorite: true },
+			);
+			const { succeeded, failed } = res.data;
+			if (failed.length === 0) {
+				const n = succeeded.length;
+				showToast.success(`${n} ${n === 1 ? "job" : "jobs"} favorited.`);
+			} else if (succeeded.length === 0) {
+				showToast.error(BULK_ACTION_ERROR);
+			} else {
+				showToast.warning(
+					`${succeeded.length} favorited, ${failed.length} failed.`,
+				);
+			}
+			await queryClient.invalidateQueries({ queryKey: queryKeys.jobs });
+			exitSelectMode();
+		} catch {
+			showToast.error(BULK_ACTION_ERROR);
+		} finally {
+			setBulkActionInProgress(false);
+		}
+	}, [selectedIds, queryClient, exitSelectMode]);
+
 	const columns = useMemo<ColumnDef<JobPosting, unknown>[]>(
 		() => [
+			...(selectMode ? [getSelectColumn<JobPosting>()] : []),
 			{
 				accessorKey: "is_favorite",
 				header: ({ column }) => (
@@ -421,7 +501,7 @@ export function OpportunitiesTable() {
 				cell: ({ row }) => formatDaysAgo(row.original.first_seen_date),
 			},
 		],
-		[togglingFavoriteId, handleFavoriteToggle],
+		[selectMode, togglingFavoriteId, handleFavoriteToggle],
 	);
 
 	const getRowClassName = useCallback(
@@ -451,70 +531,122 @@ export function OpportunitiesTable() {
 			<DataTable
 				columns={columns}
 				data={jobs}
-				onRowClick={handleRowClick}
+				onRowClick={selectMode ? undefined : handleRowClick}
 				getRowId={(job) => job.id}
 				emptyMessage={EMPTY_MESSAGE}
 				sorting={sorting}
 				onSortingChange={setSorting}
 				getRowClassName={getRowClassName}
-				toolbar={(table) => (
-					<DataTableToolbar table={table} searchPlaceholder="Search jobs...">
-						<Select
-							value={statusFilter}
-							onValueChange={(v) => setStatusFilter(v as JobPostingStatus)}
+				enableRowSelection={selectMode}
+				rowSelection={rowSelection}
+				onRowSelectionChange={setRowSelection}
+				toolbar={(table) =>
+					selectMode ? (
+						<div
+							data-testid="selection-action-bar"
+							className="flex items-center gap-2"
 						>
-							<SelectTrigger aria-label="Status filter" size="sm">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{JOB_POSTING_STATUSES.map((s) => (
-									<SelectItem key={s} value={s}>
-										{s}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-
-						<Select
-							value={String(minFit)}
-							onValueChange={(v) => setMinFit(Number(v))}
-						>
-							<SelectTrigger aria-label="Minimum fit score" size="sm">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{MIN_FIT_OPTIONS.map((opt) => (
-									<SelectItem key={opt.value} value={opt.value}>
-										{opt.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-
-						<Select value={sortField} onValueChange={handleSortFieldChange}>
-							<SelectTrigger aria-label="Sort by" size="sm">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{SORT_OPTIONS.map((opt) => (
-									<SelectItem key={opt.value} value={opt.value}>
-										{opt.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-
-						<div className="flex items-center gap-1.5">
-							<Checkbox
-								id="show-filtered"
-								checked={showFiltered}
-								onCheckedChange={(v) => setShowFiltered(!!v)}
-								aria-label="Show filtered jobs"
-							/>
-							<span className="text-sm whitespace-nowrap">Show filtered</span>
+							<span
+								data-testid="selected-count"
+								className="text-sm font-medium"
+							>
+								{selectedCount} selected
+							</span>
+							<Button
+								data-testid="bulk-dismiss-button"
+								variant="outline"
+								size="sm"
+								disabled={selectedCount === 0 || bulkActionInProgress}
+								onClick={handleBulkDismiss}
+							>
+								Bulk Dismiss
+							</Button>
+							<Button
+								data-testid="bulk-favorite-button"
+								variant="outline"
+								size="sm"
+								disabled={selectedCount === 0 || bulkActionInProgress}
+								onClick={handleBulkFavorite}
+							>
+								Bulk Favorite
+							</Button>
+							<Button
+								data-testid="cancel-select-button"
+								variant="ghost"
+								size="sm"
+								onClick={exitSelectMode}
+							>
+								Cancel
+							</Button>
 						</div>
-					</DataTableToolbar>
-				)}
+					) : (
+						<DataTableToolbar table={table} searchPlaceholder="Search jobs...">
+							<Select
+								value={statusFilter}
+								onValueChange={(v) => setStatusFilter(v as JobPostingStatus)}
+							>
+								<SelectTrigger aria-label="Status filter" size="sm">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{JOB_POSTING_STATUSES.map((s) => (
+										<SelectItem key={s} value={s}>
+											{s}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+
+							<Select
+								value={String(minFit)}
+								onValueChange={(v) => setMinFit(Number(v))}
+							>
+								<SelectTrigger aria-label="Minimum fit score" size="sm">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{MIN_FIT_OPTIONS.map((opt) => (
+										<SelectItem key={opt.value} value={opt.value}>
+											{opt.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+
+							<Select value={sortField} onValueChange={handleSortFieldChange}>
+								<SelectTrigger aria-label="Sort by" size="sm">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{SORT_OPTIONS.map((opt) => (
+										<SelectItem key={opt.value} value={opt.value}>
+											{opt.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+
+							<Button
+								data-testid="select-mode-button"
+								variant="outline"
+								size="sm"
+								onClick={() => setSelectMode(true)}
+							>
+								Select
+							</Button>
+
+							<div className="flex items-center gap-1.5">
+								<Checkbox
+									id="show-filtered"
+									checked={showFiltered}
+									onCheckedChange={(v) => setShowFiltered(!!v)}
+									aria-label="Show filtered jobs"
+								/>
+								<span className="text-sm whitespace-nowrap">Show filtered</span>
+							</div>
+						</DataTableToolbar>
+					)
+				}
 			/>
 		</div>
 	);

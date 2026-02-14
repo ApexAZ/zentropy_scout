@@ -1,9 +1,10 @@
 /**
- * Tests for the OpportunitiesTable component (§7.2, §7.3, §7.4, §7.5).
+ * Tests for the OpportunitiesTable component (§7.2, §7.3, §7.4, §7.5, §7.6).
  *
  * REQ-012 §8.2: Opportunities tab — job table with favorite,
  * title, location, salary, scores, ghost, and date columns.
  * Toolbar: search, status filter, min-fit filter, sort dropdown.
+ * Multi-select mode with bulk dismiss/favorite.
  * REQ-012 §8.5: "Show filtered jobs" toggle — dimmed rows,
  * Filtered badge, expandable failure reasons.
  * REQ-012 §8.6: Ghost detection with severity-based icon and tooltip.
@@ -30,6 +31,16 @@ const SEARCH_PLACEHOLDER = "Search jobs...";
 const FILTERED_JOB_TITLE = "Software Engineer job-filtered";
 const SHOW_FILTERED_LABEL = "Show filtered jobs";
 const EXPAND_REASONS_FILTERED = "expand-reasons-job-filtered";
+const STATUS_FILTER_LABEL = "Status filter";
+const SELECT_ROW_LABEL = "Select row";
+const SELECT_ALL_LABEL = "Select all";
+const BULK_ACTION_ERROR = "Bulk action failed.";
+const SELECT_MODE_BUTTON = "select-mode-button";
+const SELECTION_ACTION_BAR = "selection-action-bar";
+const SELECTED_COUNT = "selected-count";
+const BULK_DISMISS_BUTTON = "bulk-dismiss-button";
+const BULK_FAVORITE_BUTTON = "bulk-favorite-button";
+const CANCEL_SELECT_BUTTON = "cancel-select-button";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -110,6 +121,14 @@ function makeSingleJobResponse(overrides?: Record<string, unknown>) {
 	};
 }
 
+const MOCK_BULK_SUCCESS_SINGLE = {
+	data: { succeeded: ["job-1"], failed: [] },
+};
+
+const MOCK_BULK_SUCCESS_MULTI = {
+	data: { succeeded: ["job-1", "job-2"], failed: [] },
+};
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -128,6 +147,7 @@ const mocks = vi.hoisted(() => {
 	return {
 		mockApiGet: vi.fn(),
 		mockApiPatch: vi.fn(),
+		mockApiPost: vi.fn(),
 		MockApiError,
 		mockShowToast: {
 			success: vi.fn(),
@@ -143,6 +163,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("@/lib/api-client", () => ({
 	apiGet: mocks.mockApiGet,
 	apiPatch: mocks.mockApiPatch,
+	apiPost: mocks.mockApiPost,
 	ApiError: mocks.MockApiError,
 }));
 
@@ -183,6 +204,7 @@ function renderTable() {
 beforeEach(() => {
 	mocks.mockApiGet.mockReset();
 	mocks.mockApiPatch.mockReset();
+	mocks.mockApiPost.mockReset();
 	mocks.mockPush.mockReset();
 	Object.values(mocks.mockShowToast).forEach((fn) => fn.mockReset());
 });
@@ -467,7 +489,7 @@ describe("OpportunitiesTable", () => {
 
 			await waitFor(() => {
 				expect(
-					screen.getByRole("combobox", { name: "Status filter" }),
+					screen.getByRole("combobox", { name: STATUS_FILTER_LABEL }),
 				).toBeInTheDocument();
 			});
 		});
@@ -611,6 +633,369 @@ describe("OpportunitiesTable", () => {
 			await waitFor(() => {
 				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
 				expect(icon).toHaveClass("text-red-500");
+			});
+		});
+	});
+
+	describe("multi-select mode", () => {
+		async function enterSelectMode(user: ReturnType<typeof userEvent.setup>) {
+			await user.click(screen.getByTestId(SELECT_MODE_BUTTON));
+		}
+
+		it("renders Select button in toolbar", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByTestId(SELECT_MODE_BUTTON)).toBeInTheDocument();
+			});
+		});
+
+		it("shows checkbox column when Select is clicked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			expect(
+				screen.getByRole("checkbox", { name: SELECT_ALL_LABEL }),
+			).toBeInTheDocument();
+		});
+
+		it("hides standard toolbar filters in select mode", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("combobox", { name: STATUS_FILTER_LABEL }),
+				).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			expect(
+				screen.queryByRole("combobox", { name: STATUS_FILTER_LABEL }),
+			).not.toBeInTheDocument();
+		});
+
+		it("shows selection action bar with count and bulk buttons", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			expect(screen.getByTestId(SELECTED_COUNT)).toHaveTextContent(
+				"0 selected",
+			);
+			expect(screen.getByTestId(BULK_DISMISS_BUTTON)).toBeInTheDocument();
+			expect(screen.getByTestId(BULK_FAVORITE_BUTTON)).toBeInTheDocument();
+			expect(screen.getByTestId(CANCEL_SELECT_BUTTON)).toBeInTheDocument();
+		});
+
+		it("updates selected count when rows are checked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			const checkboxes = screen.getAllByRole("checkbox", {
+				name: SELECT_ROW_LABEL,
+			});
+			await user.click(checkboxes[0]);
+
+			expect(screen.getByTestId(SELECTED_COUNT)).toHaveTextContent(
+				"1 selected",
+			);
+		});
+
+		it("disables bulk action buttons when no rows selected", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			expect(screen.getByTestId(BULK_DISMISS_BUTTON)).toBeDisabled();
+			expect(screen.getByTestId(BULK_FAVORITE_BUTTON)).toBeDisabled();
+		});
+
+		it("calls POST /job-postings/bulk-dismiss with selected IDs", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+			mocks.mockApiPost.mockResolvedValue(MOCK_BULK_SUCCESS_SINGLE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			const checkboxes = screen.getAllByRole("checkbox", {
+				name: SELECT_ROW_LABEL,
+			});
+			await user.click(checkboxes[0]);
+			await user.click(screen.getByTestId(BULK_DISMISS_BUTTON));
+
+			expect(mocks.mockApiPost).toHaveBeenCalledWith(
+				"/job-postings/bulk-dismiss",
+				{ ids: ["job-1"] },
+			);
+		});
+
+		it("shows success toast after bulk dismiss", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+			mocks.mockApiPost.mockResolvedValue(MOCK_BULK_SUCCESS_SINGLE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			const checkboxes = screen.getAllByRole("checkbox", {
+				name: SELECT_ROW_LABEL,
+			});
+			await user.click(checkboxes[0]);
+			await user.click(screen.getByTestId(BULK_DISMISS_BUTTON));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+					"1 job dismissed.",
+				);
+			});
+		});
+
+		it("exits select mode after successful bulk dismiss", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+			mocks.mockApiPost.mockResolvedValue(MOCK_BULK_SUCCESS_SINGLE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			const checkboxes = screen.getAllByRole("checkbox", {
+				name: SELECT_ROW_LABEL,
+			});
+			await user.click(checkboxes[0]);
+			await user.click(screen.getByTestId(BULK_DISMISS_BUTTON));
+
+			await waitFor(() => {
+				expect(
+					screen.queryByTestId(SELECTION_ACTION_BAR),
+				).not.toBeInTheDocument();
+			});
+			expect(
+				screen.queryByRole("checkbox", { name: SELECT_ALL_LABEL }),
+			).not.toBeInTheDocument();
+		});
+
+		it("calls POST /job-postings/bulk-favorite with selected IDs", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+			mocks.mockApiPost.mockResolvedValue(MOCK_BULK_SUCCESS_SINGLE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			const checkboxes = screen.getAllByRole("checkbox", {
+				name: SELECT_ROW_LABEL,
+			});
+			await user.click(checkboxes[0]);
+			await user.click(screen.getByTestId(BULK_FAVORITE_BUTTON));
+
+			expect(mocks.mockApiPost).toHaveBeenCalledWith(
+				"/job-postings/bulk-favorite",
+				{ ids: ["job-1"], is_favorite: true },
+			);
+		});
+
+		it("shows success toast after bulk favorite", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+			mocks.mockApiPost.mockResolvedValue(MOCK_BULK_SUCCESS_SINGLE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			const checkboxes = screen.getAllByRole("checkbox", {
+				name: SELECT_ROW_LABEL,
+			});
+			await user.click(checkboxes[0]);
+			await user.click(screen.getByTestId(BULK_FAVORITE_BUTTON));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+					"1 job favorited.",
+				);
+			});
+		});
+
+		it("shows error toast on bulk action failure", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+			mocks.mockApiPost.mockRejectedValue(
+				new mocks.MockApiError("INTERNAL_ERROR", "Server error", 500),
+			);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			const checkboxes = screen.getAllByRole("checkbox", {
+				name: SELECT_ROW_LABEL,
+			});
+			await user.click(checkboxes[0]);
+			await user.click(screen.getByTestId(BULK_DISMISS_BUTTON));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
+					BULK_ACTION_ERROR,
+				);
+			});
+		});
+
+		it("exits select mode when Cancel is clicked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			expect(screen.getByTestId(SELECTION_ACTION_BAR)).toBeInTheDocument();
+
+			await user.click(screen.getByTestId(CANCEL_SELECT_BUTTON));
+
+			expect(
+				screen.queryByTestId(SELECTION_ACTION_BAR),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not navigate on row click in select mode", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			const row = screen.getByText(JOB1_TITLE).closest("tr");
+			await user.click(row!);
+
+			expect(mocks.mockPush).not.toHaveBeenCalled();
+		});
+
+		it("shows warning toast on partial failure", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+			mocks.mockApiPost.mockResolvedValue({
+				data: {
+					succeeded: ["job-1"],
+					failed: [{ id: "job-2", error: "NOT_FOUND" }],
+				},
+			});
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SELECT_ALL_LABEL }),
+			);
+			await user.click(screen.getByTestId(BULK_DISMISS_BUTTON));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.warning).toHaveBeenCalledWith(
+					"1 dismissed, 1 failed.",
+				);
+			});
+		});
+
+		it("shows plural toast for multiple dismissed jobs", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+			mocks.mockApiPost.mockResolvedValue(MOCK_BULK_SUCCESS_MULTI);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await enterSelectMode(user);
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SELECT_ALL_LABEL }),
+			);
+			await user.click(screen.getByTestId(BULK_DISMISS_BUTTON));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+					"2 jobs dismissed.",
+				);
 			});
 		});
 	});

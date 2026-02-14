@@ -291,7 +291,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 7.3 | Create job list toolbar: search, status filter, min-fit slider, sort dropdown (REQ-012 §8.2) | `tdd, structure, plan` | ✅ |
 | 7.4 | Create "Show filtered jobs" toggle with dimmed rows and failure reason badges (REQ-012 §8.5) | `tdd, structure, plan` | ✅ |
 | 7.5 | Create ghost detection icon with tooltip and severity-based styling (REQ-012 §8.6) | `tdd, structure, plan` | ✅ |
-| 7.6 | Create multi-select mode for jobs with bulk dismiss/favorite (REQ-012 §8.2) | `tdd, structure, plan` | ⬜ |
+| 7.6 | Create multi-select mode for jobs with bulk dismiss/favorite (REQ-012 §8.2) | `tdd, structure, plan` | ✅ |
 | 7.7 | Create job detail page header: metadata, cross-source links, repost history (REQ-012 §8.3) | `tdd, structure, plan` | ⬜ |
 | 7.8 | Create Fit score breakdown: 5 components with expandable drill-down (REQ-012 §8.3) | `tdd, structure, plan` | ⬜ |
 | 7.9 | Create Stretch score breakdown and score explanation display (REQ-012 §8.3) | `tdd, structure, plan` | ⬜ |
