@@ -26,9 +26,7 @@ const PANEL_TESTID = "fit-score-panel";
 // Test data
 // ---------------------------------------------------------------------------
 
-function makeFitScore(
-	overrides?: Partial<FitScoreResult>,
-): FitScoreResult {
+function makeFitScore(overrides?: Partial<FitScoreResult>): FitScoreResult {
 	return {
 		total: 92,
 		components: {
@@ -215,10 +213,14 @@ describe("FitScoreBreakdown", () => {
 			renderBreakdown(makeFitScore());
 
 			const toggle = screen.getByTestId(TOGGLE_TESTID);
-			expect(toggle.querySelector('[data-testid="chevron-right"]')).toBeInTheDocument();
+			expect(
+				toggle.querySelector('[data-testid="chevron-right"]'),
+			).toBeInTheDocument();
 
 			await user.click(toggle);
-			expect(toggle.querySelector('[data-testid="chevron-down"]')).toBeInTheDocument();
+			expect(
+				toggle.querySelector('[data-testid="chevron-down"]'),
+			).toBeInTheDocument();
 		});
 	});
 
