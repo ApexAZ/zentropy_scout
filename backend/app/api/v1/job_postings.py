@@ -244,7 +244,7 @@ async def confirm_ingest_job_posting(
     preview_data = token_store.consume(request.confirmation_token, user_id)
 
     if preview_data is None:
-        raise NotFoundError("Preview", request.confirmation_token)
+        raise NotFoundError("Preview")
 
     # Look up user's persona
     stmt = select(Persona).where(Persona.user_id == user_id)

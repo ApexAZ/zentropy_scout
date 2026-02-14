@@ -76,7 +76,6 @@ const mocks = vi.hoisted(() => {
 	class MockApiError extends Error {
 		code: string;
 		status: number;
-		details?: Record<string, unknown>[];
 		constructor(code: string, message: string, status: number) {
 			super(message);
 			this.name = "ApiError";
@@ -140,6 +139,40 @@ function renderModal(open = true) {
 		</Wrapper>,
 	);
 	return { ...result, onOpenChange };
+}
+
+/** Fill step 1 form and submit to transition to step 2 preview. */
+async function goToStep2() {
+	const user = userEvent.setup();
+	mocks.mockApiPost.mockResolvedValueOnce(MOCK_INGEST_RESPONSE);
+	renderModal();
+
+	await user.click(screen.getByRole("combobox"));
+	await user.click(screen.getByRole("option", { name: "LinkedIn" }));
+	await user.type(
+		screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
+		"Job text",
+	);
+	await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
+
+	await waitFor(() => {
+		expect(screen.getByText(PREVIEW_TITLE)).toBeInTheDocument();
+	});
+
+	return user;
+}
+
+/** Fill step 1 form fields and click submit (does not wait for step 2). */
+async function fillAndSubmit() {
+	const user = userEvent.setup();
+	renderModal();
+	await user.click(screen.getByRole("combobox"));
+	await user.click(screen.getByRole("option", { name: "LinkedIn" }));
+	await user.type(
+		screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
+		"Job text",
+	);
+	await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
 }
 
 beforeEach(() => {
@@ -270,39 +303,15 @@ describe("AddJobModal", () => {
 		});
 
 		it("transitions to step 2 on success", async () => {
-			const user = userEvent.setup();
-			mocks.mockApiPost.mockResolvedValue(MOCK_INGEST_RESPONSE);
-			renderModal();
+			await goToStep2();
 
-			await user.click(screen.getByRole("combobox"));
-			await user.click(screen.getByRole("option", { name: "LinkedIn" }));
-			await user.type(
-				screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
-				"Job text",
-			);
-			await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
-
-			await waitFor(() => {
-				expect(screen.getByText(PREVIEW_TITLE)).toBeInTheDocument();
-			});
+			expect(screen.getByText(PREVIEW_TITLE)).toBeInTheDocument();
 		});
 	});
 
 	// ----- Step 1: Errors -----
 
 	describe("step 1 errors", () => {
-		async function fillAndSubmit() {
-			const user = userEvent.setup();
-			renderModal();
-			await user.click(screen.getByRole("combobox"));
-			await user.click(screen.getByRole("option", { name: "LinkedIn" }));
-			await user.type(
-				screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
-				"Job text",
-			);
-			await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
-		}
-
 		it("shows toast on EXTRACTION_FAILED", async () => {
 			mocks.mockApiPost.mockRejectedValue(
 				new mocks.MockApiError("EXTRACTION_FAILED", "Failed", 422),
@@ -347,26 +356,6 @@ describe("AddJobModal", () => {
 	// ----- Step 2: Rendering -----
 
 	describe("step 2 rendering", () => {
-		async function goToStep2() {
-			const user = userEvent.setup();
-			mocks.mockApiPost.mockResolvedValue(MOCK_INGEST_RESPONSE);
-			renderModal();
-
-			await user.click(screen.getByRole("combobox"));
-			await user.click(screen.getByRole("option", { name: "LinkedIn" }));
-			await user.type(
-				screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
-				"Job text",
-			);
-			await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
-
-			await waitFor(() => {
-				expect(screen.getByText(PREVIEW_TITLE)).toBeInTheDocument();
-			});
-
-			return user;
-		}
-
 		it("displays extracted job title and company", async () => {
 			await goToStep2();
 
@@ -400,21 +389,9 @@ describe("AddJobModal", () => {
 
 	describe("step 2 countdown", () => {
 		it("shows countdown timer", async () => {
-			const user = userEvent.setup();
-			mocks.mockApiPost.mockResolvedValue(MOCK_INGEST_RESPONSE);
-			renderModal();
+			await goToStep2();
 
-			await user.click(screen.getByRole("combobox"));
-			await user.click(screen.getByRole("option", { name: "LinkedIn" }));
-			await user.type(
-				screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
-				"Job text",
-			);
-			await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
-
-			await waitFor(() => {
-				expect(screen.getByTestId("countdown-timer")).toBeInTheDocument();
-			});
+			expect(screen.getByTestId("countdown-timer")).toBeInTheDocument();
 		});
 
 		it("shows expired message and disables confirm when timer reaches 0", async () => {
@@ -462,26 +439,6 @@ describe("AddJobModal", () => {
 	// ----- Step 2: Confirm -----
 
 	describe("step 2 confirm", () => {
-		async function goToStep2() {
-			const user = userEvent.setup();
-			mocks.mockApiPost.mockResolvedValueOnce(MOCK_INGEST_RESPONSE);
-			renderModal();
-
-			await user.click(screen.getByRole("combobox"));
-			await user.click(screen.getByRole("option", { name: "LinkedIn" }));
-			await user.type(
-				screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
-				"Job text",
-			);
-			await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
-
-			await waitFor(() => {
-				expect(screen.getByText(PREVIEW_TITLE)).toBeInTheDocument();
-			});
-
-			return user;
-		}
-
 		it("calls apiPost with confirmation token on confirm", async () => {
 			const user = await goToStep2();
 			mocks.mockApiPost.mockResolvedValueOnce(MOCK_CONFIRM_RESPONSE);
@@ -525,26 +482,6 @@ describe("AddJobModal", () => {
 	// ----- Step 2: Errors -----
 
 	describe("step 2 errors", () => {
-		async function goToStep2() {
-			const user = userEvent.setup();
-			mocks.mockApiPost.mockResolvedValueOnce(MOCK_INGEST_RESPONSE);
-			renderModal();
-
-			await user.click(screen.getByRole("combobox"));
-			await user.click(screen.getByRole("option", { name: "LinkedIn" }));
-			await user.type(
-				screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
-				"Job text",
-			);
-			await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
-
-			await waitFor(() => {
-				expect(screen.getByText(PREVIEW_TITLE)).toBeInTheDocument();
-			});
-
-			return user;
-		}
-
 		it("resets to step 1 on TOKEN_EXPIRED", async () => {
 			const user = await goToStep2();
 			mocks.mockApiPost.mockRejectedValueOnce(
@@ -583,21 +520,7 @@ describe("AddJobModal", () => {
 
 	describe("modal behavior", () => {
 		it("back button returns to step 1 from step 2", async () => {
-			const user = userEvent.setup();
-			mocks.mockApiPost.mockResolvedValueOnce(MOCK_INGEST_RESPONSE);
-			renderModal();
-
-			await user.click(screen.getByRole("combobox"));
-			await user.click(screen.getByRole("option", { name: "LinkedIn" }));
-			await user.type(
-				screen.getByRole("textbox", { name: RAW_TEXT_LABEL }),
-				"Job text",
-			);
-			await user.click(screen.getByRole("button", { name: EXTRACT_BUTTON }));
-
-			await waitFor(() => {
-				expect(screen.getByText(PREVIEW_TITLE)).toBeInTheDocument();
-			});
+			const user = await goToStep2();
 
 			await user.click(screen.getByRole("button", { name: BACK_BUTTON }));
 

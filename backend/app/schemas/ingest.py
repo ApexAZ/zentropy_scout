@@ -79,6 +79,7 @@ class IngestJobPostingRequest(BaseModel):
     source_name: str = Field(
         ...,
         min_length=1,
+        max_length=100,
         description="Source name (e.g., LinkedIn)",
     )
 
@@ -117,7 +118,9 @@ class IngestConfirmRequest(BaseModel):
 
     confirmation_token: str = Field(
         ...,
-        description="Token from ingest preview",
+        min_length=36,
+        max_length=36,
+        description="Token from ingest preview (UUIDv4 format)",
     )
     # Note: TypedDict can't be used directly with Pydantic validation.
     # See ExtractedJobData TypedDict for expected field structure.
