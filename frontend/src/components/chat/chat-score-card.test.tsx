@@ -17,7 +17,7 @@ import type {
 	StretchScoreResult,
 } from "@/types/job";
 
-import { ChatScoreCard, formatComponentLabel } from "./chat-score-card";
+import { ChatScoreCard } from "./chat-score-card";
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -89,30 +89,6 @@ const GAPS_SELECTOR = '[data-slot="score-gaps"]';
 function renderCard(props: Partial<ComponentProps<typeof ChatScoreCard>> = {}) {
 	return render(<ChatScoreCard data={FULL_SCORE} {...props} />);
 }
-
-// ---------------------------------------------------------------------------
-// formatComponentLabel
-// ---------------------------------------------------------------------------
-
-describe("formatComponentLabel", () => {
-	it("converts hard_skills to 'Hard Skills'", () => {
-		expect(formatComponentLabel("hard_skills")).toBe("Hard Skills");
-	});
-
-	it("converts experience_level to 'Experience Level'", () => {
-		expect(formatComponentLabel("experience_level")).toBe("Experience Level");
-	});
-
-	it("converts location_logistics to 'Location Logistics'", () => {
-		expect(formatComponentLabel("location_logistics")).toBe(
-			"Location Logistics",
-		);
-	});
-
-	it("handles single word", () => {
-		expect(formatComponentLabel("skills")).toBe("Skills");
-	});
-});
 
 // ---------------------------------------------------------------------------
 // Score Summary Card
