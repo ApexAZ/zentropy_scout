@@ -13,6 +13,8 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { FitScoreBreakdown } from "@/components/jobs/fit-score-breakdown";
+import { ScoreExplanation } from "@/components/jobs/score-explanation";
+import { StretchScoreBreakdown } from "@/components/jobs/stretch-score-breakdown";
 import { JobDetailHeader } from "@/components/jobs/job-detail-header";
 import { usePersonaStatus } from "@/hooks/use-persona-status";
 import type { ApiResponse } from "@/types/api";
@@ -38,7 +40,16 @@ export default function JobDetailPage() {
 		<div className="mx-auto max-w-4xl px-4 py-6">
 			<JobDetailHeader jobId={params.id} />
 			{job && (
-				<FitScoreBreakdown fit={job.score_details?.fit} className="mt-6" />
+				<>
+					<div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+						<FitScoreBreakdown fit={job.score_details?.fit} />
+						<StretchScoreBreakdown stretch={job.score_details?.stretch} />
+					</div>
+					<ScoreExplanation
+						explanation={job.score_details?.explanation}
+						className="mt-4"
+					/>
+				</>
 			)}
 		</div>
 	);
