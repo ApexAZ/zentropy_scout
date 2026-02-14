@@ -14,7 +14,12 @@ import type { FitScoreComponentKey } from "@/types/job";
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Display order for fit score components (matches REQ-008 §4.1 weight order). */
+/**
+ * Display order for fit score components (matches REQ-008 §4.1 weight order).
+ *
+ * Same keys as FIT_SCORE_COMPONENT_KEYS in types/job.ts, but reordered by
+ * weight precedence (40%, 25%, 15%, 10%, 10%) for display purposes.
+ */
 export const FIT_COMPONENT_ORDER: readonly FitScoreComponentKey[] = [
 	"hard_skills",
 	"experience_level",

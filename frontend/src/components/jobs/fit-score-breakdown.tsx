@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Expandable fit score breakdown for the job detail page.
  *
@@ -5,8 +7,6 @@
  * REQ-012 §8.4: Drill-down with 5 component rows displaying
  * individual scores, weights, and weighted contributions.
  */
-
-"use client";
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";

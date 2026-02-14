@@ -18,6 +18,7 @@ import { usePersonaStatus } from "@/hooks/use-persona-status";
 import type { ApiResponse } from "@/types/api";
 import type { JobPosting } from "@/types/job";
 
+/** Job detail page displaying metadata, scores, and posting details. */
 export default function JobDetailPage() {
 	const personaStatus = usePersonaStatus();
 	const params = useParams<{ id: string }>();
