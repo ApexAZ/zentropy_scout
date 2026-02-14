@@ -5,6 +5,7 @@
  *
  * REQ-012 §8.2: Table/list view with favorite, title, location,
  * salary, fit, stretch, ghost, and discovered columns.
+ * Toolbar: search, status filter, min-fit filter, sort dropdown.
  * Default sort: fit score descending, favorites pinned to top.
  */
 
@@ -20,11 +21,20 @@ import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { ScoreTierBadge } from "@/components/ui/score-tier-badge";
 import { FailedState } from "@/components/ui/error-states";
 import { Button } from "@/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import type { ApiListResponse } from "@/types/api";
-import type { JobPosting } from "@/types/job";
+import type { JobPosting, JobPostingStatus } from "@/types/job";
+import { JOB_POSTING_STATUSES } from "@/types/job";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -34,11 +44,33 @@ const GHOST_WARNING_THRESHOLD = 50;
 const EMPTY_MESSAGE = "No opportunities found.";
 const FAVORITE_ERROR_MESSAGE = "Failed to update favorite.";
 const LOCATION_SEPARATOR = " \u00b7 ";
+const DEFAULT_STATUS: JobPostingStatus = "Discovered";
+const DEFAULT_SORT_FIELD = "fit_score";
+
+const FAVORITE_PINNED_SORT = { id: "is_favorite", desc: true } as const;
 
 const DEFAULT_SORTING: SortingState = [
-	{ id: "is_favorite", desc: true },
+	FAVORITE_PINNED_SORT,
 	{ id: "fit_score", desc: true },
 ];
+
+const MIN_FIT_OPTIONS = [
+	{ value: "0", label: "Any" },
+	{ value: "25", label: "25+" },
+	{ value: "50", label: "50+" },
+	{ value: "60", label: "60+" },
+	{ value: "70", label: "70+" },
+	{ value: "80", label: "80+" },
+	{ value: "90", label: "90+" },
+] as const;
+
+const SORT_OPTIONS = [
+	{ value: "fit_score", label: "Fit" },
+	{ value: "stretch_score", label: "Stretch" },
+	{ value: "salary_min", label: "Salary" },
+	{ value: "job_title", label: "Title" },
+	{ value: "first_seen_date", label: "Discovered" },
+] as const;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -86,13 +118,23 @@ export function OpportunitiesTable() {
 		null,
 	);
 	const [sorting, setSorting] = useState<SortingState>(DEFAULT_SORTING);
+	const [statusFilter, setStatusFilter] =
+		useState<JobPostingStatus>(DEFAULT_STATUS);
+	const [minFit, setMinFit] = useState(0);
+	const [sortField, setSortField] = useState(DEFAULT_SORT_FIELD);
+
+	const queryParams = useMemo(() => {
+		const params: Record<string, string | number> = {
+			status: statusFilter,
+		};
+		if (minFit > 0) params.fit_score_min = minFit;
+		return params;
+	}, [statusFilter, minFit]);
 
 	const { data, isLoading, error, refetch } = useQuery({
-		queryKey: queryKeys.jobs,
+		queryKey: [...queryKeys.jobs, queryParams],
 		queryFn: () =>
-			apiGet<ApiListResponse<JobPosting>>("/job-postings", {
-				status: "Discovered",
-			}),
+			apiGet<ApiListResponse<JobPosting>>("/job-postings", queryParams),
 	});
 
 	const handleFavoriteToggle = useCallback(
@@ -118,6 +160,12 @@ export function OpportunitiesTable() {
 		},
 		[router],
 	);
+
+	const handleSortFieldChange = useCallback((field: string) => {
+		setSortField(field);
+		const desc = field !== "job_title";
+		setSorting([FAVORITE_PINNED_SORT, { id: field, desc }]);
+	}, []);
 
 	const columns = useMemo<ColumnDef<JobPosting, unknown>[]>(
 		() => [
@@ -256,6 +304,54 @@ export function OpportunitiesTable() {
 				emptyMessage={EMPTY_MESSAGE}
 				sorting={sorting}
 				onSortingChange={setSorting}
+				toolbar={(table) => (
+					<DataTableToolbar table={table} searchPlaceholder="Search jobs...">
+						<Select
+							value={statusFilter}
+							onValueChange={(v) => setStatusFilter(v as JobPostingStatus)}
+						>
+							<SelectTrigger aria-label="Status filter" size="sm">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{JOB_POSTING_STATUSES.map((s) => (
+									<SelectItem key={s} value={s}>
+										{s}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+
+						<Select
+							value={String(minFit)}
+							onValueChange={(v) => setMinFit(Number(v))}
+						>
+							<SelectTrigger aria-label="Minimum fit score" size="sm">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{MIN_FIT_OPTIONS.map((opt) => (
+									<SelectItem key={opt.value} value={opt.value}>
+										{opt.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+
+						<Select value={sortField} onValueChange={handleSortFieldChange}>
+							<SelectTrigger aria-label="Sort by" size="sm">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{SORT_OPTIONS.map((opt) => (
+									<SelectItem key={opt.value} value={opt.value}>
+										{opt.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</DataTableToolbar>
+				)}
 			/>
 		</div>
 	);

@@ -1,8 +1,9 @@
 /**
- * Tests for the OpportunitiesTable component (§7.2).
+ * Tests for the OpportunitiesTable component (§7.2, §7.3).
  *
  * REQ-012 §8.2: Opportunities tab — job table with favorite,
  * title, location, salary, scores, ghost, and date columns.
+ * Toolbar: search, status filter, min-fit filter, sort dropdown.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -21,6 +22,8 @@ const EMPTY_MESSAGE = "No opportunities found.";
 const FAVORITE_ERROR_MESSAGE = "Failed to update favorite.";
 const FAVORITE_TOGGLE_JOB1 = "favorite-toggle-job-1";
 const GHOST_WARNING_JOB1 = "ghost-warning-job-1";
+const JOB1_TITLE = "Software Engineer job-1";
+const SEARCH_PLACEHOLDER = "Search jobs...";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -162,12 +165,20 @@ function createWrapper() {
 	};
 }
 
+function renderTable() {
+	const Wrapper = createWrapper();
+	return render(
+		<Wrapper>
+			<OpportunitiesTable />
+		</Wrapper>,
+	);
+}
+
 beforeEach(() => {
 	mocks.mockApiGet.mockReset();
 	mocks.mockApiPatch.mockReset();
 	mocks.mockPush.mockReset();
-	mocks.mockShowToast.success.mockReset();
-	mocks.mockShowToast.error.mockReset();
+	Object.values(mocks.mockShowToast).forEach((fn) => fn.mockReset());
 });
 
 afterEach(() => {
@@ -184,12 +195,7 @@ describe("OpportunitiesTable", () => {
 		it("shows loading spinner initially", () => {
 			mocks.mockApiGet.mockReturnValue(new Promise(() => {}));
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			expect(screen.getByTestId(LOADING_TESTID)).toBeInTheDocument();
 		});
@@ -199,12 +205,7 @@ describe("OpportunitiesTable", () => {
 		it("renders table container after data loads", async () => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByTestId(TABLE_TESTID)).toBeInTheDocument();
@@ -214,27 +215,17 @@ describe("OpportunitiesTable", () => {
 		it("renders job title", async () => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
-				expect(screen.getByText("Software Engineer job-1")).toBeInTheDocument();
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
 			});
 		});
 
 		it("renders company name", async () => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByText("Company job-1")).toBeInTheDocument();
@@ -244,12 +235,7 @@ describe("OpportunitiesTable", () => {
 		it("renders location with work model", async () => {
 			mocks.mockApiGet.mockResolvedValue(makeSingleJobResponse());
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(
@@ -261,12 +247,7 @@ describe("OpportunitiesTable", () => {
 		it("renders salary range", async () => {
 			mocks.mockApiGet.mockResolvedValue(makeSingleJobResponse());
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByText("$120k\u2013$150k USD")).toBeInTheDocument();
@@ -282,12 +263,7 @@ describe("OpportunitiesTable", () => {
 				}),
 			);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByText("Not disclosed")).toBeInTheDocument();
@@ -297,12 +273,7 @@ describe("OpportunitiesTable", () => {
 		it("renders fit score badge", async () => {
 			mocks.mockApiGet.mockResolvedValue(makeSingleJobResponse());
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(
@@ -314,12 +285,7 @@ describe("OpportunitiesTable", () => {
 		it("renders stretch score badge", async () => {
 			mocks.mockApiGet.mockResolvedValue(makeSingleJobResponse());
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(
@@ -333,12 +299,7 @@ describe("OpportunitiesTable", () => {
 				makeSingleJobResponse({ fit_score: null }),
 			);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(
@@ -352,12 +313,7 @@ describe("OpportunitiesTable", () => {
 				makeSingleJobResponse({ ghost_score: 75 }),
 			);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByTestId(GHOST_WARNING_JOB1)).toBeInTheDocument();
@@ -367,12 +323,7 @@ describe("OpportunitiesTable", () => {
 		it("does not render ghost icon for ghost_score < 50", async () => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByTestId(TABLE_TESTID)).toBeInTheDocument();
@@ -386,12 +337,7 @@ describe("OpportunitiesTable", () => {
 				makeSingleJobResponse({ first_seen_date: daysAgoDate(0) }),
 			);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByText("Today")).toBeInTheDocument();
@@ -403,12 +349,7 @@ describe("OpportunitiesTable", () => {
 		it("shows empty message when no jobs", async () => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_EMPTY_RESPONSE);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByText(EMPTY_MESSAGE)).toBeInTheDocument();
@@ -422,12 +363,7 @@ describe("OpportunitiesTable", () => {
 				new mocks.MockApiError("NETWORK_ERROR", "Connection failed", 0),
 			);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByRole("alert")).toBeInTheDocument();
@@ -440,18 +376,13 @@ describe("OpportunitiesTable", () => {
 			const user = userEvent.setup();
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
-				expect(screen.getByText("Software Engineer job-1")).toBeInTheDocument();
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
 			});
 
-			const row = screen.getByText("Software Engineer job-1").closest("tr");
+			const row = screen.getByText(JOB1_TITLE).closest("tr");
 			await user.click(row!);
 
 			expect(mocks.mockPush).toHaveBeenCalledWith("/jobs/job-1");
@@ -466,12 +397,7 @@ describe("OpportunitiesTable", () => {
 				data: makeJob("job-1", { is_favorite: true }),
 			});
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByTestId(FAVORITE_TOGGLE_JOB1)).toBeInTheDocument();
@@ -491,12 +417,7 @@ describe("OpportunitiesTable", () => {
 				data: makeJob("job-1", { is_favorite: true }),
 			});
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByTestId(FAVORITE_TOGGLE_JOB1)).toBeInTheDocument();
@@ -514,12 +435,7 @@ describe("OpportunitiesTable", () => {
 				new mocks.MockApiError("INTERNAL_ERROR", "Server error", 500),
 			);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(screen.getByTestId(FAVORITE_TOGGLE_JOB1)).toBeInTheDocument();
@@ -535,16 +451,79 @@ describe("OpportunitiesTable", () => {
 		});
 	});
 
+	describe("toolbar", () => {
+		it("renders search input with placeholder", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(
+					screen.getByPlaceholderText(SEARCH_PLACEHOLDER),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("renders status filter dropdown", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("combobox", { name: "Status filter" }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("renders min-fit filter dropdown", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("combobox", { name: "Minimum fit score" }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("renders sort dropdown", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("combobox", { name: "Sort by" }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("filters rows client-side by search text", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.type(screen.getByPlaceholderText(SEARCH_PLACEHOLDER), "job-2");
+
+			await waitFor(() => {
+				expect(screen.queryByText(JOB1_TITLE)).not.toBeInTheDocument();
+			});
+			expect(screen.getByText("Software Engineer job-2")).toBeInTheDocument();
+		});
+	});
+
 	describe("API call", () => {
 		it("calls apiGet with status=Discovered", async () => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_EMPTY_RESPONSE);
 
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<OpportunitiesTable />
-				</Wrapper>,
-			);
+			renderTable();
 
 			await waitFor(() => {
 				expect(mocks.mockApiGet).toHaveBeenCalledWith("/job-postings", {
