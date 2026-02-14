@@ -35,7 +35,6 @@ const ENTRY_1_TESTID = "entry-skill-001";
 const ADD_BUTTON_LABEL = "Add skill";
 const SAVE_BUTTON_LABEL = "Save";
 const CANCEL_BUTTON_LABEL = "Cancel";
-const DELETE_BUTTON_LABEL = "Delete";
 const EDIT_ENTRY_1_LABEL = `Edit ${MOCK_SKILL_NAME_1}`;
 const DELETE_ENTRY_1_LABEL = `Delete ${MOCK_SKILL_NAME_1}`;
 const SKILLS_QUERY_KEY = ["personas", DEFAULT_PERSONA_ID, "skills"] as const;
@@ -84,6 +83,14 @@ const MOCK_LIST_RESPONSE = {
 const MOCK_EMPTY_LIST_RESPONSE = {
 	data: [],
 	meta: { total: 0, page: 1, per_page: 20 },
+};
+
+const MOCK_NO_REFS_RESPONSE = {
+	data: {
+		has_references: false,
+		has_immutable_references: false,
+		references: [],
+	},
 };
 
 const MOCK_PERSONA: Persona = {
@@ -144,6 +151,13 @@ const mocks = vi.hoisted(() => {
 		mockApiPost: vi.fn(),
 		mockApiPatch: vi.fn(),
 		mockApiDelete: vi.fn(),
+		mockShowToast: {
+			success: vi.fn(),
+			error: vi.fn(),
+			warning: vi.fn(),
+			info: vi.fn(),
+			dismiss: vi.fn(),
+		},
 		MockApiError,
 	};
 });
@@ -154,6 +168,10 @@ vi.mock("@/lib/api-client", () => ({
 	apiPatch: mocks.mockApiPatch,
 	apiDelete: mocks.mockApiDelete,
 	ApiError: mocks.MockApiError,
+}));
+
+vi.mock("@/lib/toast", () => ({
+	showToast: mocks.mockShowToast,
 }));
 
 vi.mock("next/link", () => ({
@@ -601,8 +619,13 @@ describe("SkillsEditor", () => {
 	// -----------------------------------------------------------------------
 
 	describe("delete", () => {
-		it("shows confirmation dialog when delete is clicked", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
+		it("shows checking state when delete is clicked", async () => {
+			mocks.mockApiGet.mockImplementation((path: string) => {
+				if (path.includes("/references")) {
+					return new Promise(() => {}); // never resolves — stays in checking
+				}
+				return Promise.resolve(MOCK_LIST_RESPONSE);
+			});
 			const user = await renderAndWaitForLoad();
 
 			const entry = screen.getByTestId(ENTRY_1_TESTID);
@@ -612,11 +635,16 @@ describe("SkillsEditor", () => {
 				}),
 			);
 
-			expect(screen.getByText("Delete skill")).toBeInTheDocument();
+			expect(screen.getByText("Checking references...")).toBeInTheDocument();
 		});
 
-		it("removes entry on confirm", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
+		it("removes entry when no references found", async () => {
+			mocks.mockApiGet.mockImplementation((path: string) => {
+				if (path.includes("/references")) {
+					return Promise.resolve(MOCK_NO_REFS_RESPONSE);
+				}
+				return Promise.resolve(MOCK_LIST_RESPONSE);
+			});
 			mocks.mockApiDelete.mockResolvedValue(undefined);
 
 			const user = await renderAndWaitForLoad();
@@ -627,9 +655,6 @@ describe("SkillsEditor", () => {
 					name: DELETE_ENTRY_1_LABEL,
 				}),
 			);
-			await user.click(
-				screen.getByRole("button", { name: DELETE_BUTTON_LABEL }),
-			);
 
 			await waitFor(() => {
 				expect(screen.queryByText(MOCK_SKILL_NAME_1)).not.toBeInTheDocument();
@@ -637,10 +662,29 @@ describe("SkillsEditor", () => {
 			expect(mocks.mockApiDelete).toHaveBeenCalledWith(
 				`/personas/${DEFAULT_PERSONA_ID}/skills/${MOCK_HARD_SKILL.id}`,
 			);
+			expect(mocks.mockShowToast.success).toHaveBeenCalled();
 		});
 
 		it("keeps entry when cancel is clicked", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
+			mocks.mockApiGet.mockImplementation((path: string) => {
+				if (path.includes("/references")) {
+					return Promise.resolve({
+						data: {
+							has_references: true,
+							has_immutable_references: false,
+							references: [
+								{
+									id: "ref-1",
+									name: "My Resume",
+									type: "base_resume",
+									immutable: false,
+								},
+							],
+						},
+					});
+				}
+				return Promise.resolve(MOCK_LIST_RESPONSE);
+			});
 			const user = await renderAndWaitForLoad();
 
 			const entry = screen.getByTestId(ENTRY_1_TESTID);
@@ -649,6 +693,11 @@ describe("SkillsEditor", () => {
 					name: DELETE_ENTRY_1_LABEL,
 				}),
 			);
+
+			await waitFor(() => {
+				expect(screen.getByText(/used in 1 document/i)).toBeInTheDocument();
+			});
+
 			await user.click(
 				screen.getByRole("button", { name: CANCEL_BUTTON_LABEL }),
 			);
@@ -731,7 +780,12 @@ describe("SkillsEditor", () => {
 		});
 
 		it("invalidates skills query after delete", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
+			mocks.mockApiGet.mockImplementation((path: string) => {
+				if (path.includes("/references")) {
+					return Promise.resolve(MOCK_NO_REFS_RESPONSE);
+				}
+				return Promise.resolve(MOCK_LIST_RESPONSE);
+			});
 			mocks.mockApiDelete.mockResolvedValue(undefined);
 
 			const user = await renderAndWaitForLoad();
@@ -743,9 +797,6 @@ describe("SkillsEditor", () => {
 				within(entry).getByRole("button", {
 					name: DELETE_ENTRY_1_LABEL,
 				}),
-			);
-			await user.click(
-				screen.getByRole("button", { name: DELETE_BUTTON_LABEL }),
 			);
 
 			await waitFor(() => {

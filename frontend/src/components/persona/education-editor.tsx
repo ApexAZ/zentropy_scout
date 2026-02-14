@@ -17,9 +17,10 @@ import { EducationCard } from "@/components/onboarding/steps/education-card";
 import { EducationForm } from "@/components/onboarding/steps/education-form";
 import type { EducationFormData } from "@/components/onboarding/steps/education-form";
 import { Button } from "@/components/ui/button";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFormValues, toRequestBody } from "@/lib/education-helpers";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
@@ -63,9 +64,15 @@ export function EducationEditor({ persona }: { persona: Persona }) {
 	const [editingEntry, setEditingEntry] = useState<Education | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [deleteTarget, setDeleteTarget] = useState<Education | null>(null);
-	const [isDeleting, setIsDeleting] = useState(false);
-	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const deleteHandler = useDeleteWithReferences<Education>({
+		personaId,
+		itemType: "education",
+		collection: "education",
+		getItemLabel: (e) => e.institution,
+		onDeleted: (id) => setEntries((prev) => prev.filter((e) => e.id !== id)),
+		queryClient,
+		queryKey: educationQueryKey,
+	});
 
 	// Sync query data to local state for optimistic updates
 	useEffect(() => {
@@ -150,38 +157,6 @@ export function EducationEditor({ persona }: { persona: Persona }) {
 		},
 		[personaId, editingEntry, queryClient, educationQueryKey],
 	);
-
-	// -----------------------------------------------------------------------
-	// Delete handler
-	// -----------------------------------------------------------------------
-
-	const handleDeleteRequest = useCallback((entry: Education) => {
-		setDeleteError(null);
-		setDeleteTarget(entry);
-	}, []);
-
-	const handleDeleteConfirm = useCallback(async () => {
-		if (!deleteTarget) return;
-
-		setIsDeleting(true);
-
-		try {
-			await apiDelete(`/personas/${personaId}/education/${deleteTarget.id}`);
-			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
-			setDeleteTarget(null);
-			await queryClient.invalidateQueries({
-				queryKey: educationQueryKey,
-			});
-		} catch (err) {
-			setDeleteError(toFriendlyError(err));
-		} finally {
-			setIsDeleting(false);
-		}
-	}, [personaId, deleteTarget, queryClient, educationQueryKey]);
-
-	const handleDeleteCancel = useCallback(() => {
-		setDeleteTarget(null);
-	}, []);
 
 	// -----------------------------------------------------------------------
 	// Cancel form
@@ -282,7 +257,7 @@ export function EducationEditor({ persona }: { persona: Persona }) {
 								<EducationCard
 									entry={entry}
 									onEdit={handleEdit}
-									onDelete={handleDeleteRequest}
+									onDelete={deleteHandler.requestDelete}
 									dragHandle={dragHandle}
 								/>
 							)}
@@ -314,22 +289,20 @@ export function EducationEditor({ persona }: { persona: Persona }) {
 				</div>
 			)}
 
-			{/* Delete confirmation dialog */}
-			<ConfirmationDialog
-				open={deleteTarget !== null}
-				onOpenChange={(open) => {
-					if (!open) handleDeleteCancel();
-				}}
-				title="Delete education entry"
-				description={
-					deleteError
-						? `Failed to delete "${deleteTarget?.degree ?? ""}". ${deleteError}`
-						: `Are you sure you want to delete "${deleteTarget?.degree ?? ""} in ${deleteTarget?.field_of_study ?? ""}" at ${deleteTarget?.institution ?? ""}? This cannot be undone.`
-				}
-				confirmLabel="Delete"
-				variant="destructive"
-				onConfirm={handleDeleteConfirm}
-				loading={isDeleting}
+			{/* Delete reference dialog */}
+			<DeleteReferenceDialog
+				open={deleteHandler.flowState !== "idle"}
+				onCancel={deleteHandler.cancel}
+				flowState={deleteHandler.flowState}
+				deleteError={deleteHandler.deleteError}
+				itemLabel={deleteHandler.deleteTarget?.institution ?? ""}
+				references={deleteHandler.references}
+				hasImmutableReferences={deleteHandler.hasImmutableReferences}
+				reviewSelections={deleteHandler.reviewSelections}
+				onRemoveAllAndDelete={deleteHandler.removeAllAndDelete}
+				onExpandReviewEach={deleteHandler.expandReviewEach}
+				onToggleReviewSelection={deleteHandler.toggleReviewSelection}
+				onConfirmReviewAndDelete={deleteHandler.confirmReviewAndDelete}
 			/>
 		</div>
 	);

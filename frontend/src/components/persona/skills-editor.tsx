@@ -17,10 +17,11 @@ import { SkillCard } from "@/components/onboarding/steps/skills-card";
 import { SkillForm } from "@/components/onboarding/steps/skills-form";
 import type { SkillFormData } from "@/components/onboarding/steps/skills-form";
 import { Button } from "@/components/ui/button";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
 import { toFormValues, toRequestBody } from "@/lib/skills-helpers";
@@ -65,9 +66,15 @@ export function SkillsEditor({ persona }: { persona: Persona }) {
 	const [editingEntry, setEditingEntry] = useState<Skill | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [deleteTarget, setDeleteTarget] = useState<Skill | null>(null);
-	const [isDeleting, setIsDeleting] = useState(false);
-	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const deleteHandler = useDeleteWithReferences<Skill>({
+		personaId,
+		itemType: "skill",
+		collection: "skills",
+		getItemLabel: (s) => s.skill_name,
+		onDeleted: (id) => setEntries((prev) => prev.filter((e) => e.id !== id)),
+		queryClient,
+		queryKey: skillsQueryKey,
+	});
 
 	// Sync query data to local state for optimistic updates
 	useEffect(() => {
@@ -167,38 +174,6 @@ export function SkillsEditor({ persona }: { persona: Persona }) {
 		},
 		[personaId, editingEntry, queryClient, skillsQueryKey],
 	);
-
-	// -----------------------------------------------------------------------
-	// Delete handler
-	// -----------------------------------------------------------------------
-
-	const handleDeleteRequest = useCallback((entry: Skill) => {
-		setDeleteError(null);
-		setDeleteTarget(entry);
-	}, []);
-
-	const handleDeleteConfirm = useCallback(async () => {
-		if (!deleteTarget) return;
-
-		setIsDeleting(true);
-
-		try {
-			await apiDelete(`/personas/${personaId}/skills/${deleteTarget.id}`);
-			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
-			setDeleteTarget(null);
-			await queryClient.invalidateQueries({
-				queryKey: skillsQueryKey,
-			});
-		} catch (err) {
-			setDeleteError(toFriendlyError(err));
-		} finally {
-			setIsDeleting(false);
-		}
-	}, [personaId, deleteTarget, queryClient, skillsQueryKey]);
-
-	const handleDeleteCancel = useCallback(() => {
-		setDeleteTarget(null);
-	}, []);
 
 	// -----------------------------------------------------------------------
 	// Cancel form
@@ -317,7 +292,7 @@ export function SkillsEditor({ persona }: { persona: Persona }) {
 										<SkillCard
 											entry={entry}
 											onEdit={handleEdit}
-											onDelete={handleDeleteRequest}
+											onDelete={deleteHandler.requestDelete}
 											dragHandle={dragHandle}
 										/>
 									)}
@@ -339,7 +314,7 @@ export function SkillsEditor({ persona }: { persona: Persona }) {
 										<SkillCard
 											entry={entry}
 											onEdit={handleEdit}
-											onDelete={handleDeleteRequest}
+											onDelete={deleteHandler.requestDelete}
 											dragHandle={dragHandle}
 										/>
 									)}
@@ -373,22 +348,20 @@ export function SkillsEditor({ persona }: { persona: Persona }) {
 				</div>
 			)}
 
-			{/* Delete confirmation dialog */}
-			<ConfirmationDialog
-				open={deleteTarget !== null}
-				onOpenChange={(open) => {
-					if (!open) handleDeleteCancel();
-				}}
-				title="Delete skill"
-				description={
-					deleteError
-						? `Failed to delete "${deleteTarget?.skill_name ?? ""}". ${deleteError}`
-						: `Are you sure you want to delete "${deleteTarget?.skill_name ?? ""}"? This cannot be undone.`
-				}
-				confirmLabel="Delete"
-				variant="destructive"
-				onConfirm={handleDeleteConfirm}
-				loading={isDeleting}
+			{/* Delete reference dialog */}
+			<DeleteReferenceDialog
+				open={deleteHandler.flowState !== "idle"}
+				onCancel={deleteHandler.cancel}
+				flowState={deleteHandler.flowState}
+				deleteError={deleteHandler.deleteError}
+				itemLabel={deleteHandler.deleteTarget?.skill_name ?? ""}
+				references={deleteHandler.references}
+				hasImmutableReferences={deleteHandler.hasImmutableReferences}
+				reviewSelections={deleteHandler.reviewSelections}
+				onRemoveAllAndDelete={deleteHandler.removeAllAndDelete}
+				onExpandReviewEach={deleteHandler.expandReviewEach}
+				onToggleReviewSelection={deleteHandler.toggleReviewSelection}
+				onConfirmReviewAndDelete={deleteHandler.confirmReviewAndDelete}
 			/>
 		</div>
 	);

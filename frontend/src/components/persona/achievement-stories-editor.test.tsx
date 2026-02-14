@@ -38,7 +38,6 @@ const ENTRY_1_TESTID = `entry-${MOCK_STORY_ID_1}`;
 const ADD_BUTTON_LABEL = "Add story";
 const SAVE_BUTTON_LABEL = "Save";
 const CANCEL_BUTTON_LABEL = "Cancel";
-const DELETE_BUTTON_LABEL = "Delete";
 const EDIT_ENTRY_1_LABEL = `Edit ${MOCK_STORY_TITLE_1}`;
 const DELETE_ENTRY_1_LABEL = `Delete ${MOCK_STORY_TITLE_1}`;
 const STORIES_QUERY_KEY = [
@@ -101,6 +100,14 @@ const MOCK_EMPTY_STORIES_RESPONSE = {
 	meta: { total: 0, page: 1, per_page: 20 },
 };
 
+const MOCK_NO_REFS_RESPONSE = {
+	data: {
+		has_references: false,
+		has_immutable_references: false,
+		references: [],
+	},
+};
+
 const MOCK_PERSONA: Persona = {
 	id: DEFAULT_PERSONA_ID,
 	user_id: "00000000-0000-4000-a000-000000000002",
@@ -159,6 +166,13 @@ const mocks = vi.hoisted(() => {
 		mockApiPost: vi.fn(),
 		mockApiPatch: vi.fn(),
 		mockApiDelete: vi.fn(),
+		mockShowToast: {
+			success: vi.fn(),
+			error: vi.fn(),
+			warning: vi.fn(),
+			info: vi.fn(),
+			dismiss: vi.fn(),
+		},
 		MockApiError,
 	};
 });
@@ -169,6 +183,10 @@ vi.mock("@/lib/api-client", () => ({
 	apiPatch: mocks.mockApiPatch,
 	apiDelete: mocks.mockApiDelete,
 	ApiError: mocks.MockApiError,
+}));
+
+vi.mock("@/lib/toast", () => ({
+	showToast: mocks.mockShowToast,
 }));
 
 vi.mock("next/link", () => ({
@@ -561,8 +579,15 @@ describe("AchievementStoriesEditor", () => {
 	// -----------------------------------------------------------------------
 
 	describe("delete", () => {
-		it("shows confirmation dialog when delete is clicked", async () => {
-			mockDefaultApiGet();
+		it("shows checking state when delete is clicked", async () => {
+			mocks.mockApiGet.mockImplementation((url: string) => {
+				if (url.includes("/references")) {
+					return new Promise(() => {});
+				}
+				if (url === STORIES_URL) return Promise.resolve(MOCK_STORIES_RESPONSE);
+				if (url === SKILLS_URL) return Promise.resolve(MOCK_SKILLS_RESPONSE);
+				return Promise.reject(new Error(`Unexpected GET: ${url}`));
+			});
 			const user = await renderAndWaitForLoad();
 
 			const entry = screen.getByTestId(ENTRY_1_TESTID);
@@ -572,11 +597,17 @@ describe("AchievementStoriesEditor", () => {
 				}),
 			);
 
-			expect(screen.getByText("Delete story")).toBeInTheDocument();
+			expect(screen.getByText("Checking references...")).toBeInTheDocument();
 		});
 
-		it("removes entry on confirm", async () => {
-			mockDefaultApiGet();
+		it("removes entry when no references found", async () => {
+			mocks.mockApiGet.mockImplementation((url: string) => {
+				if (url.includes("/references"))
+					return Promise.resolve(MOCK_NO_REFS_RESPONSE);
+				if (url === STORIES_URL) return Promise.resolve(MOCK_STORIES_RESPONSE);
+				if (url === SKILLS_URL) return Promise.resolve(MOCK_SKILLS_RESPONSE);
+				return Promise.reject(new Error(`Unexpected GET: ${url}`));
+			});
 			mocks.mockApiDelete.mockResolvedValue(undefined);
 
 			const user = await renderAndWaitForLoad();
@@ -587,9 +618,6 @@ describe("AchievementStoriesEditor", () => {
 					name: DELETE_ENTRY_1_LABEL,
 				}),
 			);
-			await user.click(
-				screen.getByRole("button", { name: DELETE_BUTTON_LABEL }),
-			);
 
 			await waitFor(() => {
 				expect(screen.queryByText(MOCK_STORY_TITLE_1)).not.toBeInTheDocument();
@@ -597,10 +625,31 @@ describe("AchievementStoriesEditor", () => {
 			expect(mocks.mockApiDelete).toHaveBeenCalledWith(
 				`${STORIES_URL}/${MOCK_STORY_1.id}`,
 			);
+			expect(mocks.mockShowToast.success).toHaveBeenCalled();
 		});
 
 		it("keeps entry when cancel is clicked", async () => {
-			mockDefaultApiGet();
+			mocks.mockApiGet.mockImplementation((url: string) => {
+				if (url.includes("/references")) {
+					return Promise.resolve({
+						data: {
+							has_references: true,
+							has_immutable_references: false,
+							references: [
+								{
+									id: "ref-1",
+									name: "My Resume",
+									type: "base_resume",
+									immutable: false,
+								},
+							],
+						},
+					});
+				}
+				if (url === STORIES_URL) return Promise.resolve(MOCK_STORIES_RESPONSE);
+				if (url === SKILLS_URL) return Promise.resolve(MOCK_SKILLS_RESPONSE);
+				return Promise.reject(new Error(`Unexpected GET: ${url}`));
+			});
 			const user = await renderAndWaitForLoad();
 
 			const entry = screen.getByTestId(ENTRY_1_TESTID);
@@ -609,6 +658,11 @@ describe("AchievementStoriesEditor", () => {
 					name: DELETE_ENTRY_1_LABEL,
 				}),
 			);
+
+			await waitFor(() => {
+				expect(screen.getByText(/used in 1 document/i)).toBeInTheDocument();
+			});
+
 			await user.click(
 				screen.getByRole("button", { name: CANCEL_BUTTON_LABEL }),
 			);
@@ -690,7 +744,13 @@ describe("AchievementStoriesEditor", () => {
 		});
 
 		it("invalidates stories query after delete", async () => {
-			mockDefaultApiGet();
+			mocks.mockApiGet.mockImplementation((url: string) => {
+				if (url.includes("/references"))
+					return Promise.resolve(MOCK_NO_REFS_RESPONSE);
+				if (url === STORIES_URL) return Promise.resolve(MOCK_STORIES_RESPONSE);
+				if (url === SKILLS_URL) return Promise.resolve(MOCK_SKILLS_RESPONSE);
+				return Promise.reject(new Error(`Unexpected GET: ${url}`));
+			});
 			mocks.mockApiDelete.mockResolvedValue(undefined);
 
 			const user = await renderAndWaitForLoad();
@@ -702,9 +762,6 @@ describe("AchievementStoriesEditor", () => {
 				within(entry).getByRole("button", {
 					name: DELETE_ENTRY_1_LABEL,
 				}),
-			);
-			await user.click(
-				screen.getByRole("button", { name: DELETE_BUTTON_LABEL }),
 			);
 
 			await waitFor(() => {

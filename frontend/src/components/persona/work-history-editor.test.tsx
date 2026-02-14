@@ -106,6 +106,14 @@ const MOCK_EMPTY_LIST_RESPONSE = {
 	meta: { total: 0, page: 1, per_page: 20 },
 };
 
+const MOCK_NO_REFS_RESPONSE = {
+	data: {
+		has_references: false,
+		has_immutable_references: false,
+		references: [],
+	},
+};
+
 const MOCK_PERSONA: Persona = {
 	id: DEFAULT_PERSONA_ID,
 	user_id: "00000000-0000-4000-a000-000000000002",
@@ -164,6 +172,13 @@ const mocks = vi.hoisted(() => {
 		mockApiPost: vi.fn(),
 		mockApiPatch: vi.fn(),
 		mockApiDelete: vi.fn(),
+		mockShowToast: {
+			success: vi.fn(),
+			error: vi.fn(),
+			warning: vi.fn(),
+			info: vi.fn(),
+			dismiss: vi.fn(),
+		},
 		MockApiError,
 	};
 });
@@ -174,6 +189,10 @@ vi.mock("@/lib/api-client", () => ({
 	apiPatch: mocks.mockApiPatch,
 	apiDelete: mocks.mockApiDelete,
 	ApiError: mocks.MockApiError,
+}));
+
+vi.mock("@/lib/toast", () => ({
+	showToast: mocks.mockShowToast,
 }));
 
 vi.mock("next/link", () => ({
@@ -581,67 +600,75 @@ describe("WorkHistoryEditor", () => {
 	// -----------------------------------------------------------------------
 
 	describe("delete flow", () => {
-		beforeEach(() => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
-		});
-
-		it("shows confirmation dialog when delete is clicked", async () => {
-			const user = await renderAndWaitForLoad();
-
-			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
-			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
-
-			expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
-		});
-
-		it("deletes job on confirm and removes card", async () => {
-			mocks.mockApiDelete.mockResolvedValueOnce(undefined);
-
-			const user = await renderAndWaitForLoad();
-			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
-			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
-
-			const confirmButton = screen.getByRole("button", {
-				name: /^delete$/i,
+		it("shows checking state when delete is clicked", async () => {
+			mocks.mockApiGet.mockImplementation((path: string) => {
+				if (path.includes("/references")) {
+					return new Promise(() => {});
+				}
+				return Promise.resolve(MOCK_LIST_RESPONSE);
 			});
-			await user.click(confirmButton);
+			const user = await renderAndWaitForLoad();
+
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
+			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
+
+			expect(screen.getByText("Checking references...")).toBeInTheDocument();
+		});
+
+		it("removes entry when no references found", async () => {
+			mocks.mockApiGet.mockImplementation((path: string) => {
+				if (path.includes("/references")) {
+					return Promise.resolve(MOCK_NO_REFS_RESPONSE);
+				}
+				return Promise.resolve(MOCK_LIST_RESPONSE);
+			});
+			mocks.mockApiDelete.mockResolvedValue(undefined);
+
+			const user = await renderAndWaitForLoad();
+
+			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
+			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
 
 			await waitFor(() => {
-				expect(mocks.mockApiDelete).toHaveBeenCalledWith(
-					`/personas/${DEFAULT_PERSONA_ID}/work-history/wh-001`,
-				);
+				expect(screen.queryByText(MOCK_JOB_TITLE_1)).not.toBeInTheDocument();
 			});
-			expect(screen.queryByText(MOCK_JOB_TITLE_1)).not.toBeInTheDocument();
-		});
-
-		it("keeps card when delete API call fails", async () => {
-			mocks.mockApiDelete.mockRejectedValueOnce(
-				new Error(NETWORK_ERROR_MESSAGE),
+			expect(mocks.mockApiDelete).toHaveBeenCalledWith(
+				`/personas/${DEFAULT_PERSONA_ID}/work-history/${MOCK_ENTRY_1.id}`,
 			);
-
-			const user = await renderAndWaitForLoad();
-			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
-			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
-
-			const confirmButton = screen.getByRole("button", {
-				name: /^delete$/i,
-			});
-			await user.click(confirmButton);
-
-			await waitFor(() => {
-				expect(mocks.mockApiDelete).toHaveBeenCalledTimes(1);
-			});
-			expect(screen.getByText(MOCK_JOB_TITLE_1)).toBeInTheDocument();
+			expect(mocks.mockShowToast.success).toHaveBeenCalled();
 		});
 
-		it("cancels delete without removing card", async () => {
+		it("keeps card when cancel is clicked with mutable refs", async () => {
+			mocks.mockApiGet.mockImplementation((path: string) => {
+				if (path.includes("/references")) {
+					return Promise.resolve({
+						data: {
+							has_references: true,
+							has_immutable_references: false,
+							references: [
+								{
+									id: "ref-1",
+									name: "My Resume",
+									type: "base_resume",
+									immutable: false,
+								},
+							],
+						},
+					});
+				}
+				return Promise.resolve(MOCK_LIST_RESPONSE);
+			});
 			const user = await renderAndWaitForLoad();
+
 			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
+
+			await waitFor(() => {
+				expect(screen.getByText(/used in 1 document/i)).toBeInTheDocument();
+			});
 
 			await user.click(screen.getByRole("button", { name: /cancel/i }));
 
-			expect(mocks.mockApiDelete).not.toHaveBeenCalled();
 			expect(screen.getByText(MOCK_JOB_TITLE_1)).toBeInTheDocument();
 		});
 	});
@@ -875,18 +902,19 @@ describe("WorkHistoryEditor", () => {
 		});
 
 		it("invalidates workHistory query after delete", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_LIST_RESPONSE);
-			mocks.mockApiDelete.mockResolvedValueOnce(undefined);
+			mocks.mockApiGet.mockImplementation((path: string) => {
+				if (path.includes("/references")) {
+					return Promise.resolve(MOCK_NO_REFS_RESPONSE);
+				}
+				return Promise.resolve(MOCK_LIST_RESPONSE);
+			});
+			mocks.mockApiDelete.mockResolvedValue(undefined);
 
 			const user = await renderAndWaitForLoad();
 			const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
 			const entry1 = screen.getByTestId(ENTRY_1_TESTID);
 			await user.click(within(entry1).getByRole("button", { name: /delete/i }));
-			const confirmButton = screen.getByRole("button", {
-				name: /^delete$/i,
-			});
-			await user.click(confirmButton);
 
 			await waitFor(() => {
 				expect(invalidateSpy).toHaveBeenCalledWith({

@@ -17,9 +17,10 @@ import { CertificationCard } from "@/components/onboarding/steps/certification-c
 import { CertificationForm } from "@/components/onboarding/steps/certification-form";
 import type { CertificationFormData } from "@/components/onboarding/steps/certification-form";
 import { Button } from "@/components/ui/button";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFormValues, toRequestBody } from "@/lib/certification-helpers";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
@@ -65,9 +66,15 @@ export function CertificationEditor({ persona }: { persona: Persona }) {
 	const [editingEntry, setEditingEntry] = useState<Certification | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [deleteTarget, setDeleteTarget] = useState<Certification | null>(null);
-	const [isDeleting, setIsDeleting] = useState(false);
-	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const deleteHandler = useDeleteWithReferences<Certification>({
+		personaId,
+		itemType: "certification",
+		collection: "certifications",
+		getItemLabel: (c) => c.certification_name,
+		onDeleted: (id) => setEntries((prev) => prev.filter((e) => e.id !== id)),
+		queryClient,
+		queryKey: certificationQueryKey,
+	});
 
 	// Sync query data to local state for optimistic updates
 	useEffect(() => {
@@ -152,40 +159,6 @@ export function CertificationEditor({ persona }: { persona: Persona }) {
 		},
 		[personaId, editingEntry, queryClient, certificationQueryKey],
 	);
-
-	// -----------------------------------------------------------------------
-	// Delete handler
-	// -----------------------------------------------------------------------
-
-	const handleDeleteRequest = useCallback((entry: Certification) => {
-		setDeleteError(null);
-		setDeleteTarget(entry);
-	}, []);
-
-	const handleDeleteConfirm = useCallback(async () => {
-		if (!deleteTarget) return;
-
-		setIsDeleting(true);
-
-		try {
-			await apiDelete(
-				`/personas/${personaId}/certifications/${deleteTarget.id}`,
-			);
-			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
-			setDeleteTarget(null);
-			await queryClient.invalidateQueries({
-				queryKey: certificationQueryKey,
-			});
-		} catch (err) {
-			setDeleteError(toFriendlyError(err));
-		} finally {
-			setIsDeleting(false);
-		}
-	}, [personaId, deleteTarget, queryClient, certificationQueryKey]);
-
-	const handleDeleteCancel = useCallback(() => {
-		setDeleteTarget(null);
-	}, []);
 
 	// -----------------------------------------------------------------------
 	// Cancel form
@@ -288,7 +261,7 @@ export function CertificationEditor({ persona }: { persona: Persona }) {
 								<CertificationCard
 									entry={entry}
 									onEdit={handleEdit}
-									onDelete={handleDeleteRequest}
+									onDelete={deleteHandler.requestDelete}
 									dragHandle={dragHandle}
 								/>
 							)}
@@ -320,22 +293,20 @@ export function CertificationEditor({ persona }: { persona: Persona }) {
 				</div>
 			)}
 
-			{/* Delete confirmation dialog */}
-			<ConfirmationDialog
-				open={deleteTarget !== null}
-				onOpenChange={(open) => {
-					if (!open) handleDeleteCancel();
-				}}
-				title="Delete certification"
-				description={
-					deleteError
-						? `Failed to delete "${deleteTarget?.certification_name ?? ""}". ${deleteError}`
-						: `Are you sure you want to delete "${deleteTarget?.certification_name ?? ""}"? This cannot be undone.`
-				}
-				confirmLabel="Delete"
-				variant="destructive"
-				onConfirm={handleDeleteConfirm}
-				loading={isDeleting}
+			{/* Delete reference dialog */}
+			<DeleteReferenceDialog
+				open={deleteHandler.flowState !== "idle"}
+				onCancel={deleteHandler.cancel}
+				flowState={deleteHandler.flowState}
+				deleteError={deleteHandler.deleteError}
+				itemLabel={deleteHandler.deleteTarget?.certification_name ?? ""}
+				references={deleteHandler.references}
+				hasImmutableReferences={deleteHandler.hasImmutableReferences}
+				reviewSelections={deleteHandler.reviewSelections}
+				onRemoveAllAndDelete={deleteHandler.removeAllAndDelete}
+				onExpandReviewEach={deleteHandler.expandReviewEach}
+				onToggleReviewSelection={deleteHandler.toggleReviewSelection}
+				onConfirmReviewAndDelete={deleteHandler.confirmReviewAndDelete}
 			/>
 		</div>
 	);

@@ -18,9 +18,10 @@ import { WorkHistoryCard } from "@/components/onboarding/steps/work-history-card
 import { WorkHistoryForm } from "@/components/onboarding/steps/work-history-form";
 import type { WorkHistoryFormData } from "@/components/onboarding/steps/work-history-form";
 import { Button } from "@/components/ui/button";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
 import { toFormValues, toRequestBody } from "@/lib/work-history-helpers";
@@ -66,8 +67,15 @@ export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 	const [editingEntry, setEditingEntry] = useState<WorkHistory | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [deleteTarget, setDeleteTarget] = useState<WorkHistory | null>(null);
-	const [isDeleting, setIsDeleting] = useState(false);
+	const deleteHandler = useDeleteWithReferences<WorkHistory>({
+		personaId,
+		itemType: "work-history",
+		collection: "work-history",
+		getItemLabel: (j) => `${j.job_title} at ${j.company_name}`,
+		onDeleted: (id) => setEntries((prev) => prev.filter((e) => e.id !== id)),
+		queryClient,
+		queryKey: workHistoryQueryKey,
+	});
 	const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 
 	// Sync query data to local state for optimistic updates
@@ -153,37 +161,6 @@ export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 		},
 		[personaId, editingEntry, queryClient, workHistoryQueryKey],
 	);
-
-	// -----------------------------------------------------------------------
-	// Delete handler
-	// -----------------------------------------------------------------------
-
-	const handleDeleteRequest = useCallback((entry: WorkHistory) => {
-		setDeleteTarget(entry);
-	}, []);
-
-	const handleDeleteConfirm = useCallback(async () => {
-		if (!deleteTarget) return;
-
-		setIsDeleting(true);
-
-		try {
-			await apiDelete(`/personas/${personaId}/work-history/${deleteTarget.id}`);
-			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
-			setDeleteTarget(null);
-			await queryClient.invalidateQueries({
-				queryKey: workHistoryQueryKey,
-			});
-		} catch {
-			// Delete failed — dialog stays open
-		} finally {
-			setIsDeleting(false);
-		}
-	}, [personaId, deleteTarget, queryClient, workHistoryQueryKey]);
-
-	const handleDeleteCancel = useCallback(() => {
-		setDeleteTarget(null);
-	}, []);
 
 	// -----------------------------------------------------------------------
 	// Cancel form
@@ -311,7 +288,7 @@ export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 									<WorkHistoryCard
 										entry={entry}
 										onEdit={handleEdit}
-										onDelete={handleDeleteRequest}
+										onDelete={deleteHandler.requestDelete}
 										dragHandle={dragHandle}
 										expanded={expandedEntryId === entry.id}
 										onToggleExpand={() => handleToggleExpand(entry.id)}
@@ -358,18 +335,24 @@ export function WorkHistoryEditor({ persona }: { persona: Persona }) {
 				</div>
 			)}
 
-			{/* Delete confirmation dialog */}
-			<ConfirmationDialog
-				open={deleteTarget !== null}
-				onOpenChange={(open) => {
-					if (!open) handleDeleteCancel();
-				}}
-				title="Delete job entry"
-				description={`Are you sure you want to delete "${deleteTarget?.job_title ?? ""}" at ${deleteTarget?.company_name ?? ""}? This cannot be undone.`}
-				confirmLabel="Delete"
-				variant="destructive"
-				onConfirm={handleDeleteConfirm}
-				loading={isDeleting}
+			{/* Delete reference dialog */}
+			<DeleteReferenceDialog
+				open={deleteHandler.flowState !== "idle"}
+				onCancel={deleteHandler.cancel}
+				flowState={deleteHandler.flowState}
+				deleteError={deleteHandler.deleteError}
+				itemLabel={
+					deleteHandler.deleteTarget
+						? `${deleteHandler.deleteTarget.job_title} at ${deleteHandler.deleteTarget.company_name}`
+						: ""
+				}
+				references={deleteHandler.references}
+				hasImmutableReferences={deleteHandler.hasImmutableReferences}
+				reviewSelections={deleteHandler.reviewSelections}
+				onRemoveAllAndDelete={deleteHandler.removeAllAndDelete}
+				onExpandReviewEach={deleteHandler.expandReviewEach}
+				onToggleReviewSelection={deleteHandler.toggleReviewSelection}
+				onConfirmReviewAndDelete={deleteHandler.confirmReviewAndDelete}
 			/>
 		</div>
 	);
