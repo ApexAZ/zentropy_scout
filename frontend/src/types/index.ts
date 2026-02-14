@@ -141,3 +141,15 @@ export {
 	TIMELINE_EVENT_TYPES,
 	VALIDATION_SEVERITIES,
 } from "./application";
+
+export type {
+	ExtractedSkillPreview,
+	IngestConfirmRequest,
+	IngestConfirmResponse,
+	IngestJobPostingRequest,
+	IngestJobPostingResponse,
+	IngestPreview,
+	IngestSourceName,
+} from "./ingest";
+
+export { INGEST_SOURCE_NAMES } from "./ingest";
