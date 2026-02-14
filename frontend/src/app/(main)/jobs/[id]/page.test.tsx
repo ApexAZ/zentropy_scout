@@ -26,6 +26,7 @@ const HEADER_TESTID = "job-detail-header-stub";
 const BREAKDOWN_TESTID = "fit-breakdown-stub";
 const STRETCH_TESTID = "stretch-breakdown-stub";
 const EXPLANATION_TESTID = "explanation-stub";
+const ONBOARDED_STATUS = { status: "onboarded", persona: { id: "p-1" } };
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -163,7 +164,7 @@ function makeJobData(
 describe("JobDetailPage", () => {
 	beforeEach(() => {
 		mocks.mockUseParams.mockReturnValue({ id: MOCK_JOB_ID });
-		mocks.mockUsePersonaStatus.mockReset();
+		mocks.mockUsePersonaStatus.mockReturnValue(ONBOARDED_STATUS);
 		mocks.mockUseQuery.mockReturnValue({ data: undefined });
 	});
 
@@ -189,10 +190,6 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders JobDetailHeader with jobId from route params", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
 		render(<JobDetailPage />);
 
 		const header = screen.getByTestId(HEADER_TESTID);
@@ -201,21 +198,12 @@ describe("JobDetailPage", () => {
 	});
 
 	it("does not render FitScoreBreakdown when data is loading", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
-		mocks.mockUseQuery.mockReturnValue({ data: undefined });
 		render(<JobDetailPage />);
 
 		expect(screen.queryByTestId(BREAKDOWN_TESTID)).not.toBeInTheDocument();
 	});
 
 	it("renders FitScoreBreakdown when job data is available", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
 		mocks.mockUseQuery.mockReturnValue(makeJobData(makeScoreDetails()));
 		render(<JobDetailPage />);
 
@@ -224,10 +212,6 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders FitScoreBreakdown with undefined fit when score_details is null", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
 		mocks.mockUseQuery.mockReturnValue(makeJobData(null));
 		render(<JobDetailPage />);
 
@@ -240,21 +224,12 @@ describe("JobDetailPage", () => {
 	// -----------------------------------------------------------------------
 
 	it("does not render StretchScoreBreakdown when data is loading", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
-		mocks.mockUseQuery.mockReturnValue({ data: undefined });
 		render(<JobDetailPage />);
 
 		expect(screen.queryByTestId(STRETCH_TESTID)).not.toBeInTheDocument();
 	});
 
 	it("renders StretchScoreBreakdown when job data is available", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
 		mocks.mockUseQuery.mockReturnValue(makeJobData(makeScoreDetails()));
 		render(<JobDetailPage />);
 
@@ -263,10 +238,6 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders StretchScoreBreakdown with undefined when score_details is null", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
 		mocks.mockUseQuery.mockReturnValue(makeJobData(null));
 		render(<JobDetailPage />);
 
@@ -279,21 +250,12 @@ describe("JobDetailPage", () => {
 	// -----------------------------------------------------------------------
 
 	it("does not render ScoreExplanation when data is loading", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
-		mocks.mockUseQuery.mockReturnValue({ data: undefined });
 		render(<JobDetailPage />);
 
 		expect(screen.queryByTestId(EXPLANATION_TESTID)).not.toBeInTheDocument();
 	});
 
 	it("renders ScoreExplanation when job data is available", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
 		mocks.mockUseQuery.mockReturnValue(makeJobData(makeScoreDetails()));
 		render(<JobDetailPage />);
 
@@ -304,10 +266,6 @@ describe("JobDetailPage", () => {
 	});
 
 	it("renders ScoreExplanation with undefined when score_details is null", () => {
-		mocks.mockUsePersonaStatus.mockReturnValue({
-			status: "onboarded",
-			persona: { id: "p-1" },
-		});
 		mocks.mockUseQuery.mockReturnValue(makeJobData(null));
 		render(<JobDetailPage />);
 
