@@ -45,6 +45,12 @@ vi.mock("next/navigation", () => ({
 	}),
 }));
 
+vi.mock("./opportunities-table", () => ({
+	OpportunitiesTable: () => (
+		<div data-testid="opportunities-table">Opportunities</div>
+	),
+}));
+
 import { DashboardTabs } from "./dashboard-tabs";
 
 // ---------------------------------------------------------------------------

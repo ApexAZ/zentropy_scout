@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Three-tab dashboard layout with URL-persisted tab state.
  *
@@ -6,12 +8,11 @@
  * Active tab is persisted in the URL as `?tab=<value>`.
  */
 
-"use client";
-
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { OpportunitiesTable } from "./opportunities-table";
 
 // ---------------------------------------------------------------------------
 // Tab definitions
@@ -72,7 +73,9 @@ export function DashboardTabs() {
 				</TabsList>
 
 				<TabsContent value={TAB_OPPORTUNITIES}>
-					<div data-testid="tab-content-opportunities" className="py-4" />
+					<div data-testid="tab-content-opportunities" className="py-4">
+						<OpportunitiesTable />
+					</div>
 				</TabsContent>
 
 				<TabsContent value={TAB_IN_PROGRESS}>
