@@ -286,7 +286,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 7.1 | Create dashboard page with three-tab layout, URL-persisted tab state (REQ-012 §8.1) | `tdd, structure, plan` | ⬜ |
+| 7.1 | Create dashboard page with three-tab layout, URL-persisted tab state (REQ-012 §8.1) | `tdd, structure, plan` | ✅ |
 | 7.2 | Create Opportunities tab: job table with favorite, title, location, salary, scores, ghost, date columns (REQ-012 §8.2) | `tdd, structure, plan` | ⬜ |
 | 7.3 | Create job list toolbar: search, status filter, min-fit slider, sort dropdown (REQ-012 §8.2) | `tdd, structure, plan` | ⬜ |
 | 7.4 | Create "Show filtered jobs" toggle with dimmed rows and failure reason badges (REQ-012 §8.5) | `tdd, structure, plan` | ⬜ |
