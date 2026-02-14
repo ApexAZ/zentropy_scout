@@ -6,7 +6,11 @@
 
 import { describe, expect, it } from "vitest";
 
-import { FIT_COMPONENT_ORDER, formatComponentLabel } from "./score-formatters";
+import {
+	FIT_COMPONENT_ORDER,
+	STRETCH_COMPONENT_ORDER,
+	formatComponentLabel,
+} from "./score-formatters";
 
 // ---------------------------------------------------------------------------
 // formatComponentLabel
@@ -47,5 +51,23 @@ describe("FIT_COMPONENT_ORDER", () => {
 
 	it("has location_logistics last (lowest weight)", () => {
 		expect(FIT_COMPONENT_ORDER[4]).toBe("location_logistics");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// STRETCH_COMPONENT_ORDER
+// ---------------------------------------------------------------------------
+
+describe("STRETCH_COMPONENT_ORDER", () => {
+	it("contains all 3 stretch score components", () => {
+		expect(STRETCH_COMPONENT_ORDER).toHaveLength(3);
+	});
+
+	it("has target_role first (50% — highest weight)", () => {
+		expect(STRETCH_COMPONENT_ORDER[0]).toBe("target_role");
+	});
+
+	it("has growth_trajectory last (10% — lowest weight)", () => {
+		expect(STRETCH_COMPONENT_ORDER[2]).toBe("growth_trajectory");
 	});
 });

@@ -1,14 +1,18 @@
 /**
- * Shared formatting utilities for fit score component display.
+ * Shared formatting utilities for fit and stretch score component display.
  *
  * Extracted from chat-score-card.tsx for reuse across score display
- * components (ChatScoreCard, FitScoreBreakdown).
+ * components (ChatScoreCard, FitScoreBreakdown, StretchScoreBreakdown).
  *
  * REQ-008 §4.1: Fit score component keys and weight order.
+ * REQ-008 §5.1: Stretch score component keys and weight order.
  * REQ-012 §8.3: Score display formatting.
  */
 
-import type { FitScoreComponentKey } from "@/types/job";
+import type {
+	FitScoreComponentKey,
+	StretchScoreComponentKey,
+} from "@/types/job";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -26,6 +30,18 @@ export const FIT_COMPONENT_ORDER: readonly FitScoreComponentKey[] = [
 	"soft_skills",
 	"role_title",
 	"location_logistics",
+] as const;
+
+/**
+ * Display order for stretch score components (matches REQ-008 §5.1 weight order).
+ *
+ * Same keys as STRETCH_SCORE_COMPONENT_KEYS in types/job.ts, but reordered by
+ * weight precedence (50%, 40%, 10%) for display purposes.
+ */
+export const STRETCH_COMPONENT_ORDER: readonly StretchScoreComponentKey[] = [
+	"target_role",
+	"target_skills",
+	"growth_trajectory",
 ] as const;
 
 // ---------------------------------------------------------------------------
