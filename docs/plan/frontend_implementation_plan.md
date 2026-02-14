@@ -293,7 +293,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 7.5 | Create ghost detection icon with tooltip and severity-based styling (REQ-012 §8.6) | `tdd, structure, plan` | ✅ |
 | 7.6 | Create multi-select mode for jobs with bulk dismiss/favorite (REQ-012 §8.2) | `tdd, structure, plan` | ✅ |
 | 7.7 | Create job detail page header: metadata, cross-source links, repost history (REQ-012 §8.3) | `tdd, structure, plan` | ✅ |
-| 7.8 | Create Fit score breakdown: 5 components with expandable drill-down (REQ-012 §8.3) | `tdd, structure, plan` | ⬜ |
+| 7.8 | Create Fit score breakdown: 5 components with expandable drill-down (REQ-012 §8.3) | `tdd, structure, plan` | ✅ |
 | 7.9 | Create Stretch score breakdown and score explanation display (REQ-012 §8.3) | `tdd, structure, plan` | ⬜ |
 | 7.10 | Create job detail body: extracted skills tags, description, culture signals (REQ-012 §8.3) | `tdd, structure, plan` | ⬜ |
 | 7.11 | Create manual job ingest two-step modal: submit raw → preview/modify → confirm (REQ-012 §8.7) | `tdd, structure, plan` | ⬜ |
