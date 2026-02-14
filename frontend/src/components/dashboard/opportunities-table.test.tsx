@@ -1,9 +1,11 @@
 /**
- * Tests for the OpportunitiesTable component (§7.2, §7.3).
+ * Tests for the OpportunitiesTable component (§7.2, §7.3, §7.4).
  *
  * REQ-012 §8.2: Opportunities tab — job table with favorite,
  * title, location, salary, scores, ghost, and date columns.
  * Toolbar: search, status filter, min-fit filter, sort dropdown.
+ * REQ-012 §8.5: "Show filtered jobs" toggle — dimmed rows,
+ * Filtered badge, expandable failure reasons.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -24,6 +26,9 @@ const FAVORITE_TOGGLE_JOB1 = "favorite-toggle-job-1";
 const GHOST_WARNING_JOB1 = "ghost-warning-job-1";
 const JOB1_TITLE = "Software Engineer job-1";
 const SEARCH_PLACEHOLDER = "Search jobs...";
+const FILTERED_JOB_TITLE = "Software Engineer job-filtered";
+const SHOW_FILTERED_LABEL = "Show filtered jobs";
+const EXPAND_REASONS_FILTERED = "expand-reasons-job-filtered";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -530,6 +535,268 @@ describe("OpportunitiesTable", () => {
 					status: "Discovered",
 				});
 			});
+		});
+	});
+
+	describe("filtered jobs toggle", () => {
+		function makeMixedResponse() {
+			return {
+				data: [
+					makeJob("job-1"),
+					makeJob("job-filtered", {
+						failed_non_negotiables: [
+							{ filter: "salary_min", job_value: 90000, persona_value: 120000 },
+						],
+						fit_score: null,
+						stretch_score: null,
+					}),
+				],
+				meta: MOCK_LIST_META,
+			};
+		}
+
+		it("renders 'Show filtered jobs' checkbox in toolbar", async () => {
+			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("hides jobs with failed_non_negotiables by default", async () => {
+			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			expect(screen.queryByText(FILTERED_JOB_TITLE)).not.toBeInTheDocument();
+		});
+
+		it("shows filtered jobs when toggle is checked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			expect(screen.getByText(FILTERED_JOB_TITLE)).toBeInTheDocument();
+		});
+
+		it("applies dimmed styling to filtered job rows", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			const filteredRow = screen.getByText(FILTERED_JOB_TITLE).closest("tr");
+			expect(filteredRow).toHaveClass("opacity-50");
+		});
+
+		it("does not dim normal job rows", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			const normalRow = screen.getByText(JOB1_TITLE).closest("tr");
+			expect(normalRow).not.toHaveClass("opacity-50");
+		});
+
+		it("shows Filtered badge on filtered job rows", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			expect(screen.getByLabelText("Status: Filtered")).toBeInTheDocument();
+		});
+
+		it("expands failure reasons when expand button is clicked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			await user.click(screen.getByTestId(EXPAND_REASONS_FILTERED));
+
+			expect(
+				screen.getByTestId("failure-reasons-job-filtered"),
+			).toBeInTheDocument();
+		});
+
+		it("formats salary failure reason correctly", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			await user.click(screen.getByTestId(EXPAND_REASONS_FILTERED));
+
+			expect(
+				screen.getByText(/Salary below minimum \(\$90k < \$120k\)/),
+			).toBeInTheDocument();
+		});
+
+		it("shows warning text for undisclosed data", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: [
+					makeJob("job-1"),
+					makeJob("job-undisclosed", {
+						failed_non_negotiables: [
+							{
+								filter: "salary_min",
+								job_value: null,
+								persona_value: 120000,
+							},
+						],
+						fit_score: null,
+						stretch_score: null,
+					}),
+				],
+				meta: MOCK_LIST_META,
+			});
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			await user.click(screen.getByTestId("expand-reasons-job-undisclosed"));
+
+			expect(screen.getByText(/Salary not disclosed/)).toBeInTheDocument();
+		});
+
+		it("treats empty failed_non_negotiables array as non-filtered", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: [makeJob("job-1", { failed_non_negotiables: [] })],
+				meta: { ...MOCK_LIST_META, total: 1 },
+			});
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+		});
+
+		it("formats generic failure reason correctly", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: [
+					makeJob("job-1"),
+					makeJob("job-wm", {
+						failed_non_negotiables: [
+							{
+								filter: "work_model",
+								job_value: "Onsite",
+								persona_value: "Remote Only",
+							},
+						],
+						fit_score: null,
+						stretch_score: null,
+					}),
+				],
+				meta: MOCK_LIST_META,
+			});
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			await user.click(screen.getByTestId("expand-reasons-job-wm"));
+
+			expect(
+				screen.getByText(/Work model: Onsite.*your preference: Remote Only/),
+			).toBeInTheDocument();
+		});
+
+		it("hides filtered jobs when toggle is unchecked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
+
+			renderTable();
+
+			await waitFor(() => {
+				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
+			});
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			expect(screen.getByText(FILTERED_JOB_TITLE)).toBeInTheDocument();
+
+			await user.click(
+				screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
+			);
+
+			expect(screen.queryByText(FILTERED_JOB_TITLE)).not.toBeInTheDocument();
 		});
 	});
 });

@@ -7,13 +7,15 @@
  * salary, fit, stretch, ghost, and discovered columns.
  * Toolbar: search, status filter, min-fit filter, sort dropdown.
  * Default sort: fit score descending, favorites pinned to top.
+ * REQ-012 §8.5: "Show filtered jobs" toggle — dimmed rows,
+ * Filtered badge, expandable failure reasons.
  */
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-import { Heart, Loader2, TriangleAlert } from "lucide-react";
+import { ChevronDown, Heart, Loader2, TriangleAlert } from "lucide-react";
 
 import { apiGet, apiPatch } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
@@ -22,9 +24,11 @@ import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ScoreTierBadge } from "@/components/ui/score-tier-badge";
 import { FailedState } from "@/components/ui/error-states";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Select,
 	SelectContent,
@@ -33,7 +37,11 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import type { ApiListResponse } from "@/types/api";
-import type { JobPosting, JobPostingStatus } from "@/types/job";
+import type {
+	FailedNonNegotiable,
+	JobPosting,
+	JobPostingStatus,
+} from "@/types/job";
 import { JOB_POSTING_STATUSES } from "@/types/job";
 
 // ---------------------------------------------------------------------------
@@ -107,6 +115,101 @@ function formatLocation(job: JobPosting): string {
 	return parts.join(LOCATION_SEPARATOR) || "\u2014";
 }
 
+const FILTER_LABELS: Record<string, string> = {
+	salary_min: "Salary",
+	salary_max: "Salary",
+	work_model: "Work model",
+	location: "Location",
+	seniority_level: "Seniority",
+};
+
+function formatFilterLabel(filter: string): string {
+	return (
+		FILTER_LABELS[filter] ??
+		filter.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())
+	);
+}
+
+function formatFailureReason(f: FailedNonNegotiable): {
+	text: string;
+	isWarning: boolean;
+} {
+	const label = formatFilterLabel(f.filter);
+	if (f.job_value === null) {
+		return { text: `${label} not disclosed`, isWarning: true };
+	}
+	if (f.filter === "salary_min" || f.filter === "salary_max") {
+		const fmtVal = (v: string | number) =>
+			typeof v === "number" ? `$${Math.round(v / 1000)}k` : v;
+		const personaFmt =
+			f.persona_value !== null ? fmtVal(f.persona_value) : "N/A";
+		return {
+			text: `${label} below minimum (${fmtVal(f.job_value)} < ${personaFmt})`,
+			isWarning: false,
+		};
+	}
+	return {
+		text: `${label}: ${f.job_value} \u2014 your preference: ${f.persona_value}`,
+		isWarning: false,
+	};
+}
+
+function isFilteredJob(job: JobPosting): boolean {
+	return (
+		job.failed_non_negotiables !== null && job.failed_non_negotiables.length > 0
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Sub-component: Filtered job info (badge + expandable reasons)
+// ---------------------------------------------------------------------------
+
+function FilteredJobInfo({ job }: { job: JobPosting }) {
+	const [expanded, setExpanded] = useState(false);
+
+	if (!job.failed_non_negotiables?.length) return null;
+
+	return (
+		<div className="mt-1">
+			<button
+				type="button"
+				data-testid={`expand-reasons-${job.id}`}
+				className="inline-flex items-center gap-1"
+				onClick={(e) => {
+					e.stopPropagation();
+					setExpanded(!expanded);
+				}}
+			>
+				<StatusBadge status="Filtered" />
+				<ChevronDown
+					className={cn(
+						"h-3 w-3 transition-transform",
+						expanded && "rotate-180",
+					)}
+				/>
+			</button>
+			{expanded && (
+				<ul
+					data-testid={`failure-reasons-${job.id}`}
+					className="mt-1 space-y-0.5 text-xs"
+				>
+					{job.failed_non_negotiables.map((f) => {
+						const { text, isWarning } = formatFailureReason(f);
+						return (
+							<li
+								key={f.filter}
+								className={isWarning ? "text-amber-500" : "text-destructive"}
+							>
+								{text}
+							</li>
+						);
+					})}
+				</ul>
+			)}
+		</div>
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -122,6 +225,7 @@ export function OpportunitiesTable() {
 		useState<JobPostingStatus>(DEFAULT_STATUS);
 	const [minFit, setMinFit] = useState(0);
 	const [sortField, setSortField] = useState(DEFAULT_SORT_FIELD);
+	const [showFiltered, setShowFiltered] = useState(false);
 
 	const queryParams = useMemo(() => {
 		const params: Record<string, string | number> = {
@@ -210,6 +314,7 @@ export function OpportunitiesTable() {
 						<div className="text-muted-foreground text-sm">
 							{row.original.company_name}
 						</div>
+						<FilteredJobInfo job={row.original} />
 					</div>
 				),
 			},
@@ -280,6 +385,11 @@ export function OpportunitiesTable() {
 		[togglingFavoriteId, handleFavoriteToggle],
 	);
 
+	const getRowClassName = useCallback(
+		(job: JobPosting) => (isFilteredJob(job) ? "opacity-50" : undefined),
+		[],
+	);
+
 	if (isLoading) {
 		return (
 			<div data-testid="loading-spinner" className="flex justify-center py-12">
@@ -292,7 +402,10 @@ export function OpportunitiesTable() {
 		return <FailedState onRetry={() => refetch()} />;
 	}
 
-	const jobs = data?.data ?? [];
+	const allJobs = data?.data ?? [];
+	const jobs = showFiltered
+		? allJobs
+		: allJobs.filter((j) => !isFilteredJob(j));
 
 	return (
 		<div data-testid="opportunities-table">
@@ -304,6 +417,7 @@ export function OpportunitiesTable() {
 				emptyMessage={EMPTY_MESSAGE}
 				sorting={sorting}
 				onSortingChange={setSorting}
+				getRowClassName={getRowClassName}
 				toolbar={(table) => (
 					<DataTableToolbar table={table} searchPlaceholder="Search jobs...">
 						<Select
@@ -350,6 +464,16 @@ export function OpportunitiesTable() {
 								))}
 							</SelectContent>
 						</Select>
+
+						<div className="flex items-center gap-1.5">
+							<Checkbox
+								id="show-filtered"
+								checked={showFiltered}
+								onCheckedChange={(v) => setShowFiltered(!!v)}
+								aria-label="Show filtered jobs"
+							/>
+							<span className="text-sm whitespace-nowrap">Show filtered</span>
+						</div>
 					</DataTableToolbar>
 				)}
 			/>

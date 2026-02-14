@@ -86,6 +86,9 @@ export interface DataTableProps<TData> {
 
 	/** Render prop for toolbar — receives the table instance. */
 	toolbar?: (table: ReactTable<TData>) => React.ReactNode;
+
+	/** Returns additional CSS class(es) for a table row based on its data. */
+	getRowClassName?: (row: TData) => string | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +133,7 @@ export function DataTable<TData>({
 	rowSelection,
 	onRowSelectionChange,
 	toolbar,
+	getRowClassName,
 }: DataTableProps<TData>) {
 	// Internal state for uncontrolled mode
 	const [internalSorting, setInternalSorting] = React.useState<SortingState>(
@@ -220,6 +224,7 @@ export function DataTable<TData>({
 									className={cn(
 										onRowClick &&
 											"focus-visible:ring-ring cursor-pointer focus-visible:ring-2 focus-visible:outline-none",
+										getRowClassName?.(row.original),
 									)}
 									role={onRowClick ? "button" : undefined}
 									tabIndex={onRowClick ? 0 : undefined}
