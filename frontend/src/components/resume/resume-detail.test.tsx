@@ -43,6 +43,10 @@ const INCLUDED_SKILL_LABEL = "Agile";
 const EXCLUDED_SKILL_LABEL = "Python";
 const BULLET_TEXT_AGILE = "Led agile transformation";
 const BULLET_TEXT_VARIANCE = "Reduced sprint velocity variance";
+const RENDER_API_PATH = "/base-resumes/r-1/render";
+const DOWNLOAD_URL = "http://localhost:8000/api/v1/base-resumes/r-1/download";
+const RENDERED_AT_STALE = "2026-02-11T12:00:00Z";
+const RENDERED_AT_CURRENT = "2026-02-12T14:00:00Z";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -244,6 +248,7 @@ const mocks = vi.hoisted(() => {
 	return {
 		mockApiGet: vi.fn(),
 		mockApiPatch: vi.fn(),
+		mockApiPost: vi.fn(),
 		MockApiError,
 		mockShowToast: {
 			success: vi.fn(),
@@ -259,6 +264,8 @@ const mocks = vi.hoisted(() => {
 vi.mock("@/lib/api-client", () => ({
 	apiGet: mocks.mockApiGet,
 	apiPatch: mocks.mockApiPatch,
+	apiPost: mocks.mockApiPost,
+	buildUrl: (path: string) => `http://localhost:8000/api/v1${path}`,
 	ApiError: mocks.MockApiError,
 }));
 
@@ -285,6 +292,16 @@ vi.mock("@/components/ui/reorderable-list", () => ({
 				<div key={item.id}>{renderItem(item, null)}</div>
 			))}
 		</div>
+	),
+}));
+
+vi.mock("@/components/ui/pdf-viewer", () => ({
+	PdfViewer: ({ src, fileName }: { src: string | Blob; fileName: string }) => (
+		<div
+			data-testid="pdf-viewer"
+			data-src={typeof src === "string" ? src : "blob"}
+			data-filename={fileName}
+		/>
 	),
 }));
 
@@ -341,6 +358,7 @@ function setupMockApi(
 beforeEach(() => {
 	mocks.mockApiGet.mockReset();
 	mocks.mockApiPatch.mockReset();
+	mocks.mockApiPost.mockReset();
 	mocks.mockPush.mockReset();
 	Object.values(mocks.mockShowToast).forEach((fn) => fn.mockReset());
 });
@@ -994,6 +1012,183 @@ describe("ResumeDetail", () => {
 			renderDetail();
 			await waitFor(() => {
 				expect(mocks.mockApiGet).toHaveBeenCalledWith(SKILLS_API_PATH);
+			});
+		});
+	});
+
+	describe("render PDF button", () => {
+		it("shows Render PDF button when rendered_at is null", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /render pdf/i }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("shows Re-render PDF button when content changed after last render", async () => {
+			setupMockApi({
+				data: makeResume({ rendered_at: RENDERED_AT_STALE }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /re-render pdf/i }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("hides render button when PDF is up to date", async () => {
+			setupMockApi({
+				data: makeResume({ rendered_at: RENDERED_AT_CURRENT }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByText(RESUME_NAME)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByRole("button", { name: /render pdf/i }),
+			).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("button", { name: /re-render pdf/i }),
+			).not.toBeInTheDocument();
+		});
+
+		it("calls POST /base-resumes/{id}/render on click", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiPost.mockResolvedValue({
+				data: makeResume({ rendered_at: RENDERED_AT_CURRENT }),
+			});
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /render pdf/i }),
+				).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: /render pdf/i }));
+
+			expect(mocks.mockApiPost).toHaveBeenCalledWith(RENDER_API_PATH);
+		});
+
+		it("shows success toast after render completes", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiPost.mockResolvedValue({
+				data: makeResume({ rendered_at: RENDERED_AT_CURRENT }),
+			});
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /render pdf/i }),
+				).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: /render pdf/i }));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+					expect.stringMatching(/pdf rendered/i),
+				);
+			});
+		});
+
+		it("shows error toast on render failure", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiPost.mockRejectedValue(
+				new mocks.MockApiError("SERVER_ERROR", "Render failed", 500),
+			);
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /render pdf/i }),
+				).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: /render pdf/i }));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalled();
+			});
+		});
+
+		it("disables button during rendering", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiPost.mockReturnValue(new Promise(() => {}));
+			setupMockApi();
+			renderDetail();
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /render pdf/i }),
+				).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: /render pdf/i }));
+
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /rendering/i }),
+				).toBeDisabled();
+			});
+		});
+	});
+
+	describe("status display", () => {
+		it("shows Active status badge", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByText("Active")).toBeInTheDocument();
+			});
+		});
+
+		it("shows Archived status badge", async () => {
+			setupMockApi({
+				data: makeResume({ status: "Archived" }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByText("Archived")).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe("PDF preview", () => {
+		it("shows PDF viewer when rendered_at is not null", async () => {
+			setupMockApi({
+				data: makeResume({ rendered_at: RENDERED_AT_CURRENT }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("pdf-viewer")).toBeInTheDocument();
+			});
+		});
+
+		it("does not show PDF viewer when rendered_at is null", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByText(RESUME_NAME)).toBeInTheDocument();
+			});
+			expect(screen.queryByTestId("pdf-viewer")).not.toBeInTheDocument();
+		});
+
+		it("passes download URL and file name to PdfViewer", async () => {
+			setupMockApi({
+				data: makeResume({ rendered_at: RENDERED_AT_CURRENT }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				const viewer = screen.getByTestId("pdf-viewer");
+				expect(viewer).toHaveAttribute("data-src", DOWNLOAD_URL);
+				expect(viewer).toHaveAttribute("data-filename", "Scrum Master.pdf");
 			});
 		});
 	});

@@ -14,12 +14,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, apiPost, buildUrl } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FailedState } from "@/components/ui/error-states";
+import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type {
@@ -139,6 +140,7 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 	const [skillsEmphasis, setSkillsEmphasis] = useState<string[]>([]);
 	const [isInitialized, setIsInitialized] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
+	const [isRendering, setIsRendering] = useState(false);
 
 	useEffect(() => {
 		if (resume && !isInitialized) {
@@ -268,6 +270,21 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 		queryClient,
 	]);
 
+	const handleRenderPdf = useCallback(async () => {
+		setIsRendering(true);
+		try {
+			await apiPost(`/base-resumes/${resumeId}/render`);
+			showToast.success("PDF rendered.");
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.baseResume(resumeId),
+			});
+		} catch {
+			showToast.error("Failed to render PDF.");
+		} finally {
+			setIsRendering(false);
+		}
+	}, [resumeId, queryClient]);
+
 	// -----------------------------------------------------------------------
 	// Render states
 	// -----------------------------------------------------------------------
@@ -293,6 +310,13 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 
 	if (!resume) return null;
 
+	const needsRender =
+		!resume.rendered_at || resume.updated_at > resume.rendered_at;
+	const renderButtonLabel = !resume.rendered_at
+		? "Render PDF"
+		: "Re-render PDF";
+	const downloadUrl = buildUrl(`/base-resumes/${resumeId}/download`);
+
 	// -----------------------------------------------------------------------
 	// Main render
 	// -----------------------------------------------------------------------
@@ -309,7 +333,15 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 					<ArrowLeft className="h-4 w-4" />
 					Back to Resumes
 				</Link>
-				<h1 className="text-2xl font-bold">{resume.name}</h1>
+				<div className="flex items-center gap-2">
+					<h1 className="text-2xl font-bold">{resume.name}</h1>
+					<span
+						aria-label={`Status: ${resume.status}`}
+						className="bg-muted rounded px-2 py-0.5 text-xs font-medium"
+					>
+						{resume.status}
+					</span>
+				</div>
 				<p className="text-muted-foreground text-sm">{resume.role_type}</p>
 			</div>
 
@@ -475,17 +507,45 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 				</div>
 			)}
 
-			{/* Save button */}
-			<Button onClick={handleSave} disabled={isSaving}>
-				{isSaving ? (
-					<>
-						<Loader2 className="mr-1 h-4 w-4 animate-spin" />
-						Saving...
-					</>
-				) : (
-					"Save"
+			{/* Actions */}
+			<div className="flex items-center gap-2">
+				<Button onClick={handleSave} disabled={isSaving}>
+					{isSaving ? (
+						<>
+							<Loader2 className="mr-1 h-4 w-4 animate-spin" />
+							Saving...
+						</>
+					) : (
+						"Save"
+					)}
+				</Button>
+				{needsRender && (
+					<Button
+						variant="outline"
+						onClick={handleRenderPdf}
+						disabled={isRendering}
+					>
+						{isRendering ? (
+							<>
+								<Loader2 className="mr-1 h-4 w-4 animate-spin" />
+								Rendering...
+							</>
+						) : (
+							renderButtonLabel
+						)}
+					</Button>
 				)}
-			</Button>
+			</div>
+
+			{/* PDF preview */}
+			{resume.rendered_at && (
+				<div className="mt-8">
+					<h2 className="mb-4 text-lg font-semibold">PDF Preview</h2>
+					<div className="h-[600px] rounded-md border">
+						<PdfViewer src={downloadUrl} fileName={`${resume.name}.pdf`} />
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

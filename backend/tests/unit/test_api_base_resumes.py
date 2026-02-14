@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from tests.conftest import TEST_PERSONA_ID
 
 _BASE_URL = "/api/v1/base-resumes"
+_RENDER_PDF_MOCK = "app.api.v1.base_resumes.render_base_resume_pdf"
 
 
 # =============================================================================
@@ -50,7 +51,9 @@ async def base_resume_in_db(db_session: AsyncSession):
 
 @pytest_asyncio.fixture
 async def base_resume_with_pdf(db_session: AsyncSession):
-    """Create a base resume that has a rendered document."""
+    """Create a base resume that has a rendered document and rendered_at timestamp."""
+    from datetime import UTC, datetime
+
     from app.models.resume import BaseResume
 
     resume = BaseResume(
@@ -60,6 +63,7 @@ async def base_resume_with_pdf(db_session: AsyncSession):
         role_type="Product Owner",
         summary="Product strategist with customer-centric delivery focus.",
         rendered_document=b"%PDF-1.4 test content",
+        rendered_at=datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC),
     )
     db_session.add(resume)
     await db_session.commit()
@@ -447,3 +451,72 @@ class TestRestoreBaseResume:
         fake_id = uuid.uuid4()
         response = await client.post(f"{_BASE_URL}/{fake_id}/restore")
         assert response.status_code == 404
+
+
+# =============================================================================
+# Render Base Resume PDF
+# =============================================================================
+
+
+class TestRenderBaseResume:
+    """POST /api/v1/base-resumes/{id}/render — trigger PDF re-render.
+
+    REQ-012 §9.2: "Re-render PDF" button triggers a new render and stores
+    the result in rendered_document / rendered_at.
+    """
+
+    @pytest.mark.asyncio
+    async def test_render_requires_auth(
+        self, unauthenticated_client: AsyncClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        fake_id = uuid.uuid4()
+        response = await unauthenticated_client.post(f"{_BASE_URL}/{fake_id}/render")
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_render_success(
+        self, client: AsyncClient, base_resume_in_db, mocker
+    ) -> None:
+        """Renders PDF and updates rendered_at timestamp."""
+        mock_render = mocker.patch(
+            _RENDER_PDF_MOCK,
+            return_value=b"%PDF-1.4 rendered content",
+        )
+
+        response = await client.post(f"{_BASE_URL}/{base_resume_in_db.id}/render")
+        assert response.status_code == 200
+
+        body = response.json()
+        assert body["data"]["rendered_at"] is not None
+        assert body["data"]["id"] == str(base_resume_in_db.id)
+
+        mock_render.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_render_not_found(self, client: AsyncClient) -> None:
+        """Non-existent ID returns 404."""
+        fake_id = uuid.uuid4()
+        response = await client.post(f"{_BASE_URL}/{fake_id}/render")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_render_updates_existing_pdf(
+        self, client: AsyncClient, base_resume_with_pdf, mocker
+    ) -> None:
+        """Re-rendering replaces existing rendered_document and updates rendered_at."""
+        old_rendered_at = base_resume_with_pdf.rendered_at
+
+        mocker.patch(
+            _RENDER_PDF_MOCK,
+            return_value=b"%PDF-1.4 new content",
+        )
+
+        response = await client.post(f"{_BASE_URL}/{base_resume_with_pdf.id}/render")
+        assert response.status_code == 200
+
+        body = response.json()
+        new_rendered_at = body["data"]["rendered_at"]
+        assert new_rendered_at is not None
+        if old_rendered_at is not None:
+            assert new_rendered_at >= old_rendered_at.isoformat()

@@ -18,6 +18,7 @@ from app.core.errors import ConflictError, InvalidStateError, NotFoundError
 from app.core.file_validation import sanitize_filename_for_header
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
+from app.services.pdf_generation import render_base_resume_pdf
 
 _MAX_JSONB_LIST_LENGTH = 200
 """Safety bound on JSONB list field lengths (defense-in-depth)."""
@@ -374,6 +375,39 @@ async def restore_base_resume(
     resume.status = _STATUS_ACTIVE
     resume.archived_at = None
     resume.updated_at = datetime.now(UTC)
+    await db.commit()
+    await db.refresh(resume)
+
+    return DataResponse(data=_resume_to_dict(resume))
+
+
+@router.post("/{resume_id}/render")
+async def render_base_resume(
+    resume_id: uuid.UUID,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> DataResponse[dict]:
+    """Render (or re-render) the base resume PDF.
+
+    REQ-012 §9.2: "Re-render PDF" button triggers PDF generation.
+    Stores the rendered bytes in rendered_document and sets rendered_at.
+
+    Args:
+        resume_id: The base resume ID.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+
+    Returns:
+        DataResponse with updated base resume (includes new rendered_at).
+
+    Raises:
+        NotFoundError: If resume not found or not owned by user.
+    """
+    resume = await _get_owned_resume(resume_id, user_id, db)
+
+    pdf_bytes = await render_base_resume_pdf(db, resume.id)
+    resume.rendered_document = pdf_bytes
+    resume.rendered_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(resume)
 

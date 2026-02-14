@@ -324,7 +324,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 8.1 | Create resume list page with base resume cards (name, role, updated, variant count, primary badge) (REQ-012 §9.1) | `tdd, structure, plan` | ✅ |
 | 8.2 | Create base resume detail: summary editor and job inclusion checkboxes (REQ-012 §9.2) | `tdd, structure, plan` | ✅ |
 | 8.3 | Create base resume detail: bullet reordering, education/cert/skill checkboxes (REQ-012 §9.2) | `tdd, structure, plan` | ✅ |
-| 8.4 | Create "Re-render PDF" button, approval status display, and inline PDF preview (REQ-012 §9.2) | `tdd, structure, plan` | ⬜ |
+| 8.4 | Create "Re-render PDF" button, approval status display, and inline PDF preview (REQ-012 §9.2) | `tdd, structure, plan` | ✅ |
 | 8.5 | Create job variants list on resume detail: status badges, review/archive actions (REQ-012 §9.2) | `tdd, structure, plan` | ⬜ |
 | 8.6 | Create variant review page: side-by-side diff with change highlighting (REQ-012 §9.3) | `tdd, structure, plan` | ⬜ |
 | 8.7 | Create agent reasoning and guardrail violation displays for variant review (REQ-012 §9.3-9.4) | `tdd, structure, plan` | ⬜ |
