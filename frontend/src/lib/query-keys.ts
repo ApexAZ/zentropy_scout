@@ -18,6 +18,7 @@ export const queryKeys = {
 	variants: ["variants"] as const,
 	coverLetters: ["cover-letters"] as const,
 	changeFlags: ["change-flags"] as const,
+	baseResumes: ["base-resumes"] as const,
 
 	// Detail keys
 	persona: (id: string) => [PERSONAS, id] as const,
