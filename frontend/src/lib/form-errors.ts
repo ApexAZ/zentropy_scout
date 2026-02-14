@@ -16,6 +16,10 @@ const FRIENDLY_ERROR_MESSAGES: Readonly<Record<string, string>> = {
 	VALIDATION_ERROR: "Please check your input and try again.",
 	DUPLICATE_NAME:
 		"A resume with this name already exists. Please choose a different name.",
+	EXTRACTION_FAILED:
+		"Couldn't extract job details. Try pasting more of the description.",
+	DUPLICATE_JOB: "This job is already in your list.",
+	TOKEN_EXPIRED: "Preview expired. Please resubmit.",
 };
 
 /** Fallback error message for unexpected errors. */
