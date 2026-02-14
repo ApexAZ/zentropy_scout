@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ApplicationsTable } from "./applications-table";
 import { OpportunitiesTable } from "./opportunities-table";
 
 // ---------------------------------------------------------------------------
@@ -79,11 +80,15 @@ export function DashboardTabs() {
 				</TabsContent>
 
 				<TabsContent value={TAB_IN_PROGRESS}>
-					<div data-testid="tab-content-in-progress" className="py-4" />
+					<div data-testid="tab-content-in-progress" className="py-4">
+						<ApplicationsTable variant="in-progress" />
+					</div>
 				</TabsContent>
 
 				<TabsContent value={TAB_HISTORY}>
-					<div data-testid="tab-content-history" className="py-4" />
+					<div data-testid="tab-content-history" className="py-4">
+						<ApplicationsTable variant="history" />
+					</div>
 				</TabsContent>
 			</Tabs>
 		</div>

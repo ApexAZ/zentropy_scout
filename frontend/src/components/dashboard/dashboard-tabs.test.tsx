@@ -45,6 +45,14 @@ vi.mock("next/navigation", () => ({
 	}),
 }));
 
+vi.mock("./applications-table", () => ({
+	ApplicationsTable: ({ variant }: { variant: string }) => (
+		<div data-testid={`applications-table-${variant}`}>
+			Applications ({variant})
+		</div>
+	),
+}));
+
 vi.mock("./opportunities-table", () => ({
 	OpportunitiesTable: () => (
 		<div data-testid="opportunities-table">Opportunities</div>
@@ -217,6 +225,28 @@ describe("DashboardTabs", () => {
 			await user.click(screen.getByRole("tab", { name: LABEL_OPPORTUNITIES }));
 
 			expect(mocks.mockReplace).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("tab content", () => {
+		it("renders ApplicationsTable with variant='in-progress' in In Progress tab", () => {
+			mocks.mockGet.mockImplementation(mockTabParam(TAB_VALUE_IN_PROGRESS));
+
+			render(<DashboardTabs />);
+
+			expect(
+				screen.getByTestId("applications-table-in-progress"),
+			).toBeInTheDocument();
+		});
+
+		it("renders ApplicationsTable with variant='history' in History tab", () => {
+			mocks.mockGet.mockImplementation(mockTabParam(TAB_VALUE_HISTORY));
+
+			render(<DashboardTabs />);
+
+			expect(
+				screen.getByTestId("applications-table-history"),
+			).toBeInTheDocument();
 		});
 	});
 });

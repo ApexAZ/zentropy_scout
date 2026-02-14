@@ -40,3 +40,24 @@ export function formatDaysAgo(dateString: string): string {
 	if (days === 1) return "1 day ago";
 	return `${days} days ago`;
 }
+
+/** Format an ISO 8601 datetime string as relative days ago (UTC calendar days). */
+export function formatDateTimeAgo(isoString: string): string {
+	const parsed = new Date(isoString);
+	const inputDate = new Date(
+		Date.UTC(
+			parsed.getUTCFullYear(),
+			parsed.getUTCMonth(),
+			parsed.getUTCDate(),
+		),
+	);
+	const now = new Date();
+	const todayUtc = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+	);
+	const diffMs = todayUtc.getTime() - inputDate.getTime();
+	const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+	if (days === 0) return "Today";
+	if (days === 1) return "1 day ago";
+	return `${days} days ago`;
+}
