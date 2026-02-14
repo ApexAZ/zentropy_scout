@@ -72,8 +72,8 @@ class IngestJobPostingRequest(BaseModel):
         max_length=50000,
         description="Full job posting text",
     )
-    source_url: HttpUrl = Field(
-        ...,
+    source_url: HttpUrl | None = Field(
+        default=None,
         description="URL where job was found",
     )
     source_name: str = Field(

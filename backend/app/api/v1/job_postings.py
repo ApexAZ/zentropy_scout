@@ -161,17 +161,18 @@ async def ingest_job_posting(
     Raises:
         ConflictError: If job from this URL already exists (409).
     """
-    # Check for duplicate URL
-    source_url_str = str(body.source_url)
-    stmt = select(JobPosting).where(JobPosting.source_url == source_url_str)
-    result = await db.execute(stmt)
-    existing = result.scalar_one_or_none()
-    if existing:
-        raise ConflictError(
-            code="DUPLICATE_JOB",
-            message="Job from this URL already exists",
-            details=[{"existing_id": str(existing.id)}],
-        )
+    # Check for duplicate URL (only when source_url is provided)
+    source_url_str = str(body.source_url) if body.source_url is not None else None
+    if source_url_str is not None:
+        stmt = select(JobPosting).where(JobPosting.source_url == source_url_str)
+        result = await db.execute(stmt)
+        existing = result.scalar_one_or_none()
+        if existing:
+            raise ConflictError(
+                code="DUPLICATE_JOB",
+                message="Job from this URL already exists",
+                details=[{"existing_id": str(existing.id)}],
+            )
 
     # Extract job data from raw text
     extracted = await extract_job_data(body.raw_text)

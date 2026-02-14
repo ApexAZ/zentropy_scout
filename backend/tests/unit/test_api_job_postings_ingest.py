@@ -54,8 +54,12 @@ class TestIngestRequestSchema:
         assert response.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_ingest_requires_source_url(self, client: AsyncClient) -> None:
-        """Ingest requires source_url field."""
+    async def test_ingest_accepts_missing_source_url(
+        self,
+        client: AsyncClient,
+        mock_llm: Any,  # noqa: ARG002
+    ) -> None:
+        """Ingest succeeds without source_url (optional field)."""
         response = await client.post(
             "/api/v1/job-postings/ingest",
             json={
@@ -63,7 +67,10 @@ class TestIngestRequestSchema:
                 "source_name": "Example",
             },
         )
-        assert response.status_code == 400
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert "preview" in data
+        assert "confirmation_token" in data
 
     @pytest.mark.asyncio
     async def test_ingest_requires_source_name(self, client: AsyncClient) -> None:
