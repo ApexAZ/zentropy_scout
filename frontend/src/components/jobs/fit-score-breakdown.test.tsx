@@ -179,7 +179,7 @@ describe("FitScoreBreakdown", () => {
 
 			await user.click(screen.getByTestId(TOGGLE_TESTID));
 
-			const panel = screen.getByTestId(PANEL_TESTID);
+			expect(screen.getByTestId(PANEL_TESTID)).toBeInTheDocument();
 			// hard_skills: Math.round(82 * 0.4) = 33
 			const hardSkillsRow = screen.getByTestId("fit-component-hard_skills");
 			expect(hardSkillsRow.textContent).toContain("33");

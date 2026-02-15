@@ -188,6 +188,12 @@ export interface JobVariant {
 	snapshot_included_certifications: string[] | null;
 	snapshot_skills_emphasis: string[] | null;
 
+	// Agent reasoning & guardrails (REQ-012 §9.3-9.4)
+	/** Markdown explanation of why the agent made specific changes. */
+	agent_reasoning: string | null;
+	/** Guardrail validation result. Null when not yet validated. */
+	guardrail_result: GuardrailResult | null;
+
 	// Lifecycle
 	/** ISO 8601 datetime. Set when status transitions to Approved. */
 	approved_at: string | null;

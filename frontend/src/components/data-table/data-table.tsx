@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable react-hooks/incompatible-library -- useReactTable is safe; opt out of React Compiler memoization */
 "use no memo";
 
 /**

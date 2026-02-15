@@ -8,12 +8,15 @@ const eslintConfig = defineConfig([
 	...nextTs,
 	// Allow underscore-prefixed parameters to satisfy callback signatures
 	// where not all arguments are used.
+	// Disable react-hooks/incompatible-library — false positives on
+	// React Hook Form's watch() API (eslint-plugin-react-hooks v5).
 	{
 		rules: {
 			"@typescript-eslint/no-unused-vars": [
 				"warn",
 				{ argsIgnorePattern: "^_" },
 			],
+			"react-hooks/incompatible-library": "off",
 		},
 	},
 	// Disable ESLint formatting rules that conflict with Prettier.

@@ -1,9 +1,11 @@
 /**
- * Tests for the VariantReview component (§8.6).
+ * Tests for the VariantReview component (§8.6, §8.7).
  *
  * REQ-012 §9.3: Side-by-side comparison of base resume and
  * tailored variant with diff highlighting, move indicators,
- * and Approve/Archive actions.
+ * and Approve/Regenerate/Archive actions.
+ * REQ-012 §9.3-9.4: Agent reasoning display and guardrail
+ * violation banners with blocking behavior.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -29,9 +31,60 @@ const APPROVE_LABEL = /approve/i;
 const ARCHIVE_LABEL = /archive/i;
 const REGENERATE_LABEL = /regenerate/i;
 const CONFIRM_ARCHIVE_LABEL = /^archive$/i;
+const VARIANT_REVIEW_TESTID = "variant-review";
+const REASONING_TESTID = "agent-reasoning";
+const REASONING_TOGGLE_TESTID = "agent-reasoning-toggle";
+const GUARDRAIL_BANNER_TESTID = "guardrail-violations";
+const GO_TO_PERSONA_TESTID = "go-to-persona-link";
 
 const MOCK_TIMESTAMP = "2024-01-15T10:00:00Z";
 const MOCK_VARIANT_TIMESTAMP = "2024-02-01T14:30:00Z";
+
+const MOCK_REASONING =
+	'Added emphasis on "SAFe" and "scaled Agile" — mentioned 3x in posting. Moved SAFe implementation bullet to position 1.';
+
+const MOCK_GUARDRAIL_PASSED = {
+	passed: true,
+	violations: [],
+};
+
+const MOCK_GUARDRAIL_ERROR = {
+	passed: false,
+	violations: [
+		{
+			severity: "error" as const,
+			rule: "unknown_skills_referenced",
+			message: 'Summary mentions skills not in your profile: "Go", "Rust"',
+		},
+	],
+};
+
+const MOCK_GUARDRAIL_WARNING = {
+	passed: true,
+	violations: [
+		{
+			severity: "warning" as const,
+			rule: "summary_length_change",
+			message: "Summary length changed by more than 20%.",
+		},
+	],
+};
+
+const MOCK_GUARDRAIL_MIXED = {
+	passed: false,
+	violations: [
+		{
+			severity: "error" as const,
+			rule: "unknown_skills_referenced",
+			message: 'Summary mentions skills not in your profile: "Go", "Rust"',
+		},
+		{
+			severity: "warning" as const,
+			rule: "summary_length_change",
+			message: "Summary length changed by more than 20%.",
+		},
+	],
+};
 
 const BASE_SUMMARY =
 	"Experienced Scrum Master with 8 years of project management";
@@ -74,6 +127,8 @@ function makeVariant(overrides?: Record<string, unknown>) {
 		summary: VARIANT_SUMMARY,
 		job_bullet_order: { [JOB_ID]: ["b-3", "b-1", "b-2"] },
 		modifications_description: null,
+		agent_reasoning: null,
+		guardrail_result: null,
 		status: "Draft",
 		snapshot_included_jobs: null,
 		snapshot_job_bullet_selections: null,
@@ -567,13 +622,216 @@ describe("VariantReview", () => {
 			});
 		});
 
-		it("is disabled (placeholder for §8.7)", async () => {
+		it("is disabled when no guardrail violations present", async () => {
 			setupMockApi();
 			renderVariantReview();
 			await waitFor(() => {
 				expect(
 					screen.getByRole("button", { name: REGENERATE_LABEL }),
 				).toBeDisabled();
+			});
+		});
+
+		it("is enabled when error-severity guardrail violations exist", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: MOCK_GUARDRAIL_ERROR }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: REGENERATE_LABEL }),
+				).toBeEnabled();
+			});
+		});
+	});
+
+	describe("agent reasoning (§8.7)", () => {
+		it("shows reasoning section when agent_reasoning is present", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ agent_reasoning: MOCK_REASONING }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REASONING_TESTID)).toBeInTheDocument();
+			});
+		});
+
+		it("hides reasoning section when agent_reasoning is null", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ agent_reasoning: null }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.queryByTestId(REASONING_TESTID)).not.toBeInTheDocument();
+		});
+
+		it("displays reasoning text content", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ agent_reasoning: MOCK_REASONING }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REASONING_TESTID)).toHaveTextContent(
+					"Added emphasis",
+				);
+			});
+		});
+
+		it("is collapsible via toggle button with aria-expanded", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ agent_reasoning: MOCK_REASONING }),
+				},
+			});
+			const user = userEvent.setup();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REASONING_TESTID)).toBeInTheDocument();
+			});
+
+			const toggle = screen.getByTestId(REASONING_TOGGLE_TESTID);
+
+			// Initially expanded
+			expect(screen.getByText(/Added emphasis/)).toBeInTheDocument();
+			expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+			// Click toggle to collapse
+			await user.click(toggle);
+
+			// Content hidden, aria-expanded false
+			expect(screen.queryByText(/Added emphasis/)).not.toBeInTheDocument();
+			expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+			// Click toggle to expand again
+			await user.click(toggle);
+
+			// Content visible, aria-expanded true
+			expect(screen.getByText(/Added emphasis/)).toBeInTheDocument();
+			expect(toggle).toHaveAttribute("aria-expanded", "true");
+		});
+	});
+
+	describe("guardrail violations (§8.7)", () => {
+		it("shows violation banner when guardrail_result has error violations", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: MOCK_GUARDRAIL_ERROR }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(GUARDRAIL_BANNER_TESTID)).toBeInTheDocument();
+			});
+		});
+
+		it("hides violation banner when guardrail_result is null", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: null }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(GUARDRAIL_BANNER_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("hides violation banner when guardrail_result passed with no violations", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: MOCK_GUARDRAIL_PASSED }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(GUARDRAIL_BANNER_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("shows warning banner even when guardrail_result passed", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: MOCK_GUARDRAIL_WARNING }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(GUARDRAIL_BANNER_TESTID)).toBeInTheDocument();
+			});
+		});
+
+		it("displays each violation message", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: MOCK_GUARDRAIL_MIXED }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				const banner = screen.getByTestId(GUARDRAIL_BANNER_TESTID);
+				expect(banner).toHaveTextContent(
+					'Summary mentions skills not in your profile: "Go", "Rust"',
+				);
+				expect(banner).toHaveTextContent(
+					"Summary length changed by more than 20%.",
+				);
+			});
+		});
+
+		it("disables Approve button when error-severity violations exist", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: MOCK_GUARDRAIL_ERROR }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: APPROVE_LABEL }),
+				).toBeDisabled();
+			});
+		});
+
+		it("keeps Approve button enabled when only warnings present", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: MOCK_GUARDRAIL_WARNING }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: APPROVE_LABEL }),
+				).toBeEnabled();
+			});
+		});
+
+		it("shows 'Go to Persona' link navigating to persona page", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ guardrail_result: MOCK_GUARDRAIL_ERROR }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				const link = screen.getByTestId(GO_TO_PERSONA_TESTID);
+				expect(link).toHaveAttribute("href", `/persona`);
 			});
 		});
 	});

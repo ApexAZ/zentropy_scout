@@ -117,6 +117,8 @@ function makeJobVariant(overrides: Partial<JobVariant> = {}): JobVariant {
 		},
 		modifications_description:
 			"Reordered bullets to emphasize leadership experience",
+		agent_reasoning: null,
+		guardrail_result: null,
 		status: "Draft",
 		snapshot_included_jobs: null,
 		snapshot_job_bullet_selections: null,

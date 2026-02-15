@@ -57,6 +57,8 @@ function makeVariant(
 		summary: "Variant summary text",
 		job_bullet_order: {},
 		modifications_description: null,
+		agent_reasoning: null,
+		guardrail_result: null,
 		status: "Draft",
 		snapshot_included_jobs: null,
 		snapshot_job_bullet_selections: null,

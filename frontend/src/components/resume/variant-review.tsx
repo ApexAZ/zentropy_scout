@@ -1,17 +1,25 @@
 "use client";
 
 /**
- * Variant review page with side-by-side diff (§8.6).
+ * Variant review page with side-by-side diff (§8.6, §8.7).
  *
  * REQ-012 §9.3: Side-by-side comparison of base resume and
  * tailored variant with diff highlighting, move indicators,
  * and Approve/Regenerate/Archive actions.
+ * REQ-012 §9.3-9.4: Agent reasoning display and guardrail
+ * violation banners with blocking behavior.
  */
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import {
+	AlertTriangle,
+	ArrowLeft,
+	ChevronDown,
+	ChevronRight,
+	Loader2,
+} from "lucide-react";
 import Link from "next/link";
 
 import { apiDelete, apiGet, apiPost } from "@/lib/api-client";
@@ -26,7 +34,11 @@ import { FailedState } from "@/components/ui/error-states";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type { JobPosting } from "@/types/job";
 import type { WorkHistory } from "@/types/persona";
-import type { BaseResume, JobVariant } from "@/types/resume";
+import type {
+	BaseResume,
+	GuardrailViolation,
+	JobVariant,
+} from "@/types/resume";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -81,6 +93,69 @@ function DiffText({
 				);
 			})}
 		</p>
+	);
+}
+
+function AgentReasoning({ reasoning }: { reasoning: string }) {
+	const [expanded, setExpanded] = useState(true);
+
+	return (
+		<div data-testid="agent-reasoning" className="mt-4">
+			<button
+				type="button"
+				data-testid="agent-reasoning-toggle"
+				aria-expanded={expanded}
+				onClick={() => setExpanded((prev) => !prev)}
+				className="flex items-center gap-2"
+			>
+				{expanded ? (
+					<ChevronDown className="h-4 w-4" />
+				) : (
+					<ChevronRight className="h-4 w-4" />
+				)}
+				<span className="text-sm font-semibold">Agent Reasoning</span>
+			</button>
+			{expanded && (
+				<div className="text-muted-foreground mt-2 rounded-lg border p-3 text-sm leading-relaxed">
+					{reasoning}
+				</div>
+			)}
+		</div>
+	);
+}
+
+function GuardrailViolationBanner({
+	violations,
+}: {
+	violations: GuardrailViolation[];
+}) {
+	return (
+		<div
+			data-testid="guardrail-violations"
+			role="alert"
+			className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950"
+		>
+			<div className="mb-2 flex items-center gap-2">
+				<AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+				<span className="text-sm font-semibold text-red-800 dark:text-red-200">
+					Guardrail Violation
+				</span>
+			</div>
+			<ul className="mb-3 list-disc space-y-1 pl-5 text-sm text-red-700 dark:text-red-300">
+				{violations.map((v) => (
+					<li key={v.rule}>{v.message}</li>
+				))}
+			</ul>
+			<div className="flex items-center gap-2">
+				<Link
+					href="/persona"
+					data-testid="go-to-persona-link"
+					className="text-sm font-medium text-red-700 underline hover:text-red-900 dark:text-red-300 dark:hover:text-red-100"
+				>
+					Go to Persona
+				</Link>
+			</div>
+		</div>
 	);
 }
 
@@ -175,6 +250,11 @@ export function VariantReview({
 	const headerTitle = jobPosting
 		? `${jobPosting.job_title} at ${jobPosting.company_name}`
 		: "Variant Review";
+
+	const guardrailViolations = variant?.guardrail_result?.violations ?? [];
+	const hasGuardrailErrors = guardrailViolations.some(
+		(v) => v.severity === "error",
+	);
 
 	// -----------------------------------------------------------------------
 	// Handlers
@@ -347,12 +427,25 @@ export function VariantReview({
 				</div>
 			</div>
 
+			{/* Agent Reasoning (§8.7) */}
+			{variant.agent_reasoning && (
+				<AgentReasoning reasoning={variant.agent_reasoning} />
+			)}
+
+			{/* Guardrail Violations (§8.7) */}
+			{guardrailViolations.length > 0 && (
+				<GuardrailViolationBanner violations={guardrailViolations} />
+			)}
+
 			{/* Actions */}
 			<div className="mt-6 flex items-center gap-3">
-				<Button onClick={handleApprove} disabled={isApproving}>
+				<Button
+					onClick={handleApprove}
+					disabled={isApproving || hasGuardrailErrors}
+				>
 					{isApproving ? "Approving..." : "Approve"}
 				</Button>
-				<Button variant="outline" disabled>
+				<Button variant="outline" disabled={!hasGuardrailErrors}>
 					Regenerate
 				</Button>
 				<Button
