@@ -438,7 +438,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 |---|------|-------|--------|
 | 12.1 | E2E: New user onboarding flow (12 steps with mocked agent responses) | `playwright, test, plan` | ✅ |
 | 12.2 | E2E: Job discovery flow (dashboard, job detail, draft materials) | `playwright, test, plan` | ✅ |
-| 12.3 | E2E: Application tracking flow (apply, update status, capture offer, timeline) | `playwright, test, plan` | ⬜ |
+| 12.3 | E2E: Application tracking flow (apply, update status, capture offer, timeline) | `playwright, test, plan` | ✅ |
 | 12.4 | E2E: Persona update flow (edit section, change flag resolution) | `playwright, test, plan` | ⬜ |
 | 12.5 | E2E: Chat interaction flow (send message, SSE streaming, tool execution) | `playwright, test, plan` | ⬜ |
 | 12.6 | Accessibility audit: keyboard nav, ARIA labels, color contrast, focus management (REQ-012 §13.8) | `test, lint, plan` | ⬜ |
