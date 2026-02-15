@@ -63,6 +63,17 @@ describe("queryKeys", () => {
 				TEST_UUID,
 			]);
 		});
+
+		it("returns ['base-resumes', id] for baseResume(id)", () => {
+			expect(queryKeys.baseResume(TEST_UUID)).toEqual([
+				"base-resumes",
+				TEST_UUID,
+			]);
+		});
+
+		it("returns ['variants', id] for variant(id)", () => {
+			expect(queryKeys.variant(TEST_UUID)).toEqual(["variants", TEST_UUID]);
+		});
 	});
 
 	describe("sub-entity keys (persona child resources)", () => {
@@ -149,6 +160,18 @@ describe("queryKeys", () => {
 		it("detail key starts with list key prefix for applications", () => {
 			const listKey = queryKeys.applications;
 			const detailKey = queryKeys.application(TEST_UUID);
+			expect(detailKey[0]).toBe(listKey[0]);
+		});
+
+		it("detail key starts with list key prefix for baseResumes", () => {
+			const listKey = queryKeys.baseResumes;
+			const detailKey = queryKeys.baseResume(TEST_UUID);
+			expect(detailKey[0]).toBe(listKey[0]);
+		});
+
+		it("detail key starts with list key prefix for variants", () => {
+			const listKey = queryKeys.variants;
+			const detailKey = queryKeys.variant(TEST_UUID);
 			expect(detailKey[0]).toBe(listKey[0]);
 		});
 	});

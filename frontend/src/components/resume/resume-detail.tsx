@@ -16,6 +16,7 @@ import Link from "next/link";
 
 import { apiGet, apiPatch, apiPost, buildUrl } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
+import { orderBullets } from "@/lib/resume-helpers";
 import { showToast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,23 +43,6 @@ const MAX_SUMMARY_LENGTH = 5000;
 interface ResumeDetailProps {
 	resumeId: string;
 	personaId: string;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Sort bullets according to a specified order. Unordered bullets go to end. */
-function orderBullets(
-	bullets: Bullet[],
-	order: string[] | undefined,
-): Bullet[] {
-	if (!order || order.length === 0) return bullets;
-	return [...bullets].sort((a, b) => {
-		const aIdx = order.indexOf(a.id);
-		const bIdx = order.indexOf(b.id);
-		return (aIdx === -1 ? Infinity : aIdx) - (bIdx === -1 ? Infinity : bIdx);
-	});
 }
 
 // ---------------------------------------------------------------------------

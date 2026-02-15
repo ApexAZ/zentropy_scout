@@ -1,0 +1,580 @@
+/**
+ * Tests for the VariantReview component (§8.6).
+ *
+ * REQ-012 §9.3: Side-by-side comparison of base resume and
+ * tailored variant with diff highlighting, move indicators,
+ * and Approve/Archive actions.
+ */
+
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const BASE_RESUME_ID = "br-1";
+const VARIANT_ID = "v-1";
+const PERSONA_ID = "p-1";
+const JOB_POSTING_ID = "jp-1";
+const JOB_ID = "job-1";
+const LOADING_TESTID = "loading-spinner";
+const BACK_LINK_TESTID = "back-link";
+const BASE_PANEL_TESTID = "base-panel";
+const VARIANT_PANEL_TESTID = "variant-panel";
+const APPROVE_LABEL = /approve/i;
+const ARCHIVE_LABEL = /archive/i;
+const REGENERATE_LABEL = /regenerate/i;
+const CONFIRM_ARCHIVE_LABEL = /^archive$/i;
+
+const MOCK_TIMESTAMP = "2024-01-15T10:00:00Z";
+const MOCK_VARIANT_TIMESTAMP = "2024-02-01T14:30:00Z";
+
+const BASE_SUMMARY =
+	"Experienced Scrum Master with 8 years of project management";
+const VARIANT_SUMMARY =
+	"Experienced Scrum Master with 8 years of scaled Agile leadership";
+
+// ---------------------------------------------------------------------------
+// Mock data factories
+// ---------------------------------------------------------------------------
+
+function makeBaseResume(overrides?: Record<string, unknown>) {
+	return {
+		id: BASE_RESUME_ID,
+		persona_id: PERSONA_ID,
+		name: "My Resume",
+		role_type: "Scrum Master",
+		summary: BASE_SUMMARY,
+		included_jobs: [JOB_ID],
+		included_education: null,
+		included_certifications: null,
+		skills_emphasis: null,
+		job_bullet_selections: { [JOB_ID]: ["b-1", "b-2", "b-3"] },
+		job_bullet_order: { [JOB_ID]: ["b-1", "b-2", "b-3"] },
+		rendered_at: null,
+		is_primary: true,
+		status: "Active",
+		display_order: 0,
+		archived_at: null,
+		created_at: MOCK_TIMESTAMP,
+		updated_at: MOCK_TIMESTAMP,
+		...overrides,
+	};
+}
+
+function makeVariant(overrides?: Record<string, unknown>) {
+	return {
+		id: VARIANT_ID,
+		base_resume_id: BASE_RESUME_ID,
+		job_posting_id: JOB_POSTING_ID,
+		summary: VARIANT_SUMMARY,
+		job_bullet_order: { [JOB_ID]: ["b-3", "b-1", "b-2"] },
+		modifications_description: null,
+		status: "Draft",
+		snapshot_included_jobs: null,
+		snapshot_job_bullet_selections: null,
+		snapshot_included_education: null,
+		snapshot_included_certifications: null,
+		snapshot_skills_emphasis: null,
+		approved_at: null,
+		archived_at: null,
+		created_at: MOCK_VARIANT_TIMESTAMP,
+		updated_at: MOCK_VARIANT_TIMESTAMP,
+		...overrides,
+	};
+}
+
+function makeWorkHistory() {
+	return {
+		id: JOB_ID,
+		persona_id: PERSONA_ID,
+		company_name: "TechCorp",
+		company_industry: null,
+		job_title: "Scrum Master",
+		start_date: "2020-01-01",
+		end_date: null,
+		is_current: true,
+		location: "Remote",
+		work_model: "Remote",
+		description: null,
+		display_order: 0,
+		bullets: [
+			{
+				id: "b-1",
+				work_history_id: JOB_ID,
+				text: "Led team of 12 engineers",
+				skills_demonstrated: [],
+				metrics: null,
+				display_order: 0,
+			},
+			{
+				id: "b-2",
+				work_history_id: JOB_ID,
+				text: "Reduced cycle time by 40%",
+				skills_demonstrated: [],
+				metrics: null,
+				display_order: 1,
+			},
+			{
+				id: "b-3",
+				work_history_id: JOB_ID,
+				text: "Implemented SAFe framework",
+				skills_demonstrated: [],
+				metrics: null,
+				display_order: 2,
+			},
+		],
+	};
+}
+
+function makeJobPosting(overrides?: Record<string, unknown>) {
+	return {
+		id: JOB_POSTING_ID,
+		persona_id: PERSONA_ID,
+		external_id: null,
+		source_id: "src-1",
+		also_found_on: [],
+		job_title: "Senior Scrum Master",
+		company_name: "Acme Corp",
+		company_url: null,
+		source_url: null,
+		apply_url: null,
+		location: null,
+		work_model: null,
+		seniority_level: null,
+		salary_min: null,
+		salary_max: null,
+		salary_currency: null,
+		description: "Job description",
+		culture_text: null,
+		extracted_skills: [],
+		first_seen_at: MOCK_TIMESTAMP,
+		last_seen_at: MOCK_TIMESTAMP,
+		fit_score: null,
+		stretch_score: null,
+		score_details: null,
+		ghost_score: null,
+		ghost_signals: null,
+		status: "Discovered",
+		dismissed_reason: null,
+		repost_history: [],
+		created_at: MOCK_TIMESTAMP,
+		updated_at: MOCK_TIMESTAMP,
+		...overrides,
+	};
+}
+
+const MOCK_BASE_RESUME_RESPONSE = { data: makeBaseResume() };
+const MOCK_VARIANT_RESPONSE = { data: makeVariant() };
+const MOCK_WORK_HISTORY_RESPONSE = {
+	data: [makeWorkHistory()],
+	meta: { total: 1, page: 1, per_page: 20, total_pages: 1 },
+};
+const MOCK_JOB_POSTING_RESPONSE = { data: makeJobPosting() };
+
+// ---------------------------------------------------------------------------
+// Mocks
+// ---------------------------------------------------------------------------
+
+const mocks = vi.hoisted(() => {
+	class MockApiError extends Error {
+		code: string;
+		status: number;
+		constructor(code: string, message: string, status: number) {
+			super(message);
+			this.name = "ApiError";
+			this.code = code;
+			this.status = status;
+		}
+	}
+	return {
+		mockApiGet: vi.fn(),
+		mockApiPost: vi.fn(),
+		mockApiDelete: vi.fn(),
+		MockApiError,
+		mockShowToast: {
+			success: vi.fn(),
+			error: vi.fn(),
+			warning: vi.fn(),
+			info: vi.fn(),
+			dismiss: vi.fn(),
+		},
+		mockPush: vi.fn(),
+	};
+});
+
+vi.mock("@/lib/api-client", () => ({
+	apiGet: mocks.mockApiGet,
+	apiPost: mocks.mockApiPost,
+	apiDelete: mocks.mockApiDelete,
+	ApiError: mocks.MockApiError,
+}));
+
+vi.mock("@/lib/toast", () => ({
+	showToast: mocks.mockShowToast,
+}));
+
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({ push: mocks.mockPush }),
+}));
+
+import { VariantReview } from "./variant-review";
+
+// ---------------------------------------------------------------------------
+// Setup / Teardown
+// ---------------------------------------------------------------------------
+
+function createWrapper() {
+	const queryClient = new QueryClient({
+		defaultOptions: { queries: { retry: false } },
+	});
+	return function Wrapper({ children }: { children: ReactNode }) {
+		return (
+			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+		);
+	};
+}
+
+function renderVariantReview(
+	baseResumeId = BASE_RESUME_ID,
+	variantId = VARIANT_ID,
+	personaId = PERSONA_ID,
+) {
+	const Wrapper = createWrapper();
+	return render(
+		<Wrapper>
+			<VariantReview
+				baseResumeId={baseResumeId}
+				variantId={variantId}
+				personaId={personaId}
+			/>
+		</Wrapper>,
+	);
+}
+
+/**
+ * Configure mockApiGet to return different responses based on path.
+ */
+function setupMockApi(overrides?: {
+	variant?: unknown;
+	baseResume?: unknown;
+	workHistory?: unknown;
+	jobPosting?: unknown;
+}) {
+	mocks.mockApiGet.mockImplementation((path: string) => {
+		if (path === `/job-variants/${VARIANT_ID}`)
+			return Promise.resolve(overrides?.variant ?? MOCK_VARIANT_RESPONSE);
+		if (path === `/base-resumes/${BASE_RESUME_ID}`)
+			return Promise.resolve(
+				overrides?.baseResume ?? MOCK_BASE_RESUME_RESPONSE,
+			);
+		if (path.includes("/work-history"))
+			return Promise.resolve(
+				overrides?.workHistory ?? MOCK_WORK_HISTORY_RESPONSE,
+			);
+		if (path === `/job-postings/${JOB_POSTING_ID}`)
+			return Promise.resolve(
+				overrides?.jobPosting ?? MOCK_JOB_POSTING_RESPONSE,
+			);
+		return Promise.resolve({ data: [] });
+	});
+}
+
+beforeEach(() => {
+	mocks.mockApiGet.mockReset();
+	mocks.mockApiPost.mockReset();
+	mocks.mockApiDelete.mockReset();
+	mocks.mockPush.mockReset();
+	Object.values(mocks.mockShowToast).forEach((fn) => fn.mockReset());
+});
+
+afterEach(() => {
+	cleanup();
+	vi.restoreAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe("VariantReview", () => {
+	describe("loading state", () => {
+		it("shows spinner while fetching", () => {
+			mocks.mockApiGet.mockReturnValue(new Promise(() => {}));
+			renderVariantReview();
+			expect(screen.getByTestId(LOADING_TESTID)).toBeInTheDocument();
+		});
+	});
+
+	describe("error state", () => {
+		it("shows FailedState when API fails", async () => {
+			mocks.mockApiGet.mockRejectedValue(
+				new mocks.MockApiError("SERVER_ERROR", "Internal error", 500),
+			);
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByRole("alert")).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe("header", () => {
+		it("shows job posting title and company", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByText("Senior Scrum Master at Acme Corp"),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("has a back link to the resume detail page", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				const backLink = screen.getByTestId(BACK_LINK_TESTID);
+				expect(backLink).toBeInTheDocument();
+				expect(backLink).toHaveAttribute("href", `/resumes/${BASE_RESUME_ID}`);
+			});
+		});
+	});
+
+	describe("summary diff", () => {
+		it("shows base summary in left panel", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				const basePanel = screen.getByTestId(BASE_PANEL_TESTID);
+				expect(basePanel).toHaveTextContent("project");
+				expect(basePanel).toHaveTextContent("management");
+			});
+		});
+
+		it("shows variant summary in right panel", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				const variantPanel = screen.getByTestId(VARIANT_PANEL_TESTID);
+				expect(variantPanel).toHaveTextContent("scaled");
+				expect(variantPanel).toHaveTextContent("Agile");
+				expect(variantPanel).toHaveTextContent("leadership");
+			});
+		});
+
+		it("highlights added words in variant panel", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				const addedTokens = screen
+					.getByTestId(VARIANT_PANEL_TESTID)
+					.querySelectorAll("[data-diff='added']");
+				const addedTexts = Array.from(addedTokens).map((el) => el.textContent);
+				expect(addedTexts).toContain("scaled");
+				expect(addedTexts).toContain("Agile");
+				expect(addedTexts).toContain("leadership");
+			});
+		});
+
+		it("highlights removed words in base panel", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				const removedTokens = screen
+					.getByTestId(BASE_PANEL_TESTID)
+					.querySelectorAll("[data-diff='removed']");
+				const removedTexts = Array.from(removedTokens).map(
+					(el) => el.textContent,
+				);
+				expect(removedTexts).toContain("project");
+				expect(removedTexts).toContain("management");
+			});
+		});
+	});
+
+	describe("bullet diff", () => {
+		it("shows job company as section header in both panels", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				// TechCorp appears in both base and variant panels
+				expect(screen.getAllByText("TechCorp")).toHaveLength(2);
+			});
+		});
+
+		it("shows bullets in base order in left panel", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				const basePanel = screen.getByTestId(BASE_PANEL_TESTID);
+				expect(basePanel).toHaveTextContent("Led team of 12 engineers");
+				expect(basePanel).toHaveTextContent("Reduced cycle time by 40%");
+				expect(basePanel).toHaveTextContent("Implemented SAFe framework");
+			});
+		});
+
+		it("shows bullets in variant order in right panel", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				const variantPanel = screen.getByTestId(VARIANT_PANEL_TESTID);
+				// Variant order: b-3, b-1, b-2
+				expect(variantPanel).toHaveTextContent("Implemented SAFe framework");
+				expect(variantPanel).toHaveTextContent("Led team of 12 engineers");
+			});
+		});
+
+		it("shows move indicator for reordered bullets", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				// b-3 moved from position 3 to position 1
+				expect(screen.getByText(/from #3/)).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe("approve action", () => {
+		it("calls POST /approve and shows success toast", async () => {
+			setupMockApi();
+			mocks.mockApiPost.mockResolvedValueOnce({
+				data: makeVariant({ status: "Approved" }),
+			});
+			const user = userEvent.setup();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: APPROVE_LABEL }),
+				).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+			await waitFor(() => {
+				expect(mocks.mockApiPost).toHaveBeenCalledWith(
+					`/job-variants/${VARIANT_ID}/approve`,
+				);
+			});
+			expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+				"Variant approved.",
+			);
+		});
+
+		it("shows error toast on approval failure", async () => {
+			setupMockApi();
+			mocks.mockApiPost.mockRejectedValueOnce(
+				new mocks.MockApiError("SERVER_ERROR", "Failed", 500),
+			);
+			const user = userEvent.setup();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: APPROVE_LABEL }),
+				).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
+					"Failed to approve variant.",
+				);
+			});
+		});
+
+		it("navigates back to resume page after successful approval", async () => {
+			setupMockApi();
+			mocks.mockApiPost.mockResolvedValueOnce({
+				data: makeVariant({ status: "Approved" }),
+			});
+			const user = userEvent.setup();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: APPROVE_LABEL }),
+				).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+			await waitFor(() => {
+				expect(mocks.mockPush).toHaveBeenCalledWith(
+					`/resumes/${BASE_RESUME_ID}`,
+				);
+			});
+		});
+	});
+
+	describe("archive action", () => {
+		it("opens confirmation dialog, then calls DELETE and shows success toast", async () => {
+			setupMockApi();
+			mocks.mockApiDelete.mockResolvedValueOnce(undefined);
+			const user = userEvent.setup();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: ARCHIVE_LABEL }),
+				).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: ARCHIVE_LABEL }));
+			await waitFor(() => {
+				expect(screen.getByText("Archive Variant")).toBeInTheDocument();
+			});
+			await user.click(
+				screen.getByRole("button", { name: CONFIRM_ARCHIVE_LABEL }),
+			);
+			await waitFor(() => {
+				expect(mocks.mockApiDelete).toHaveBeenCalledWith(
+					`/job-variants/${VARIANT_ID}`,
+				);
+			});
+			expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+				"Variant archived.",
+			);
+		});
+
+		it("navigates back to resume page after successful archive", async () => {
+			setupMockApi();
+			mocks.mockApiDelete.mockResolvedValueOnce(undefined);
+			const user = userEvent.setup();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: ARCHIVE_LABEL }),
+				).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: ARCHIVE_LABEL }));
+			await waitFor(() => {
+				expect(screen.getByText("Archive Variant")).toBeInTheDocument();
+			});
+			await user.click(
+				screen.getByRole("button", { name: CONFIRM_ARCHIVE_LABEL }),
+			);
+			await waitFor(() => {
+				expect(mocks.mockPush).toHaveBeenCalledWith(
+					`/resumes/${BASE_RESUME_ID}`,
+				);
+			});
+		});
+	});
+
+	describe("regenerate button", () => {
+		it("renders a regenerate button", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: REGENERATE_LABEL }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("is disabled (placeholder for §8.7)", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: REGENERATE_LABEL }),
+				).toBeDisabled();
+			});
+		});
+	});
+});
