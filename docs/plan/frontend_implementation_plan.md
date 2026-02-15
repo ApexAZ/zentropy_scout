@@ -362,7 +362,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 
 ## Phase 10: Application Tracking
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Application pipeline, timeline, offer/rejection capture. REQ-012 §11. Depends on Phase 0 §A.1 (pin/archive columns).*
 
@@ -388,7 +388,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 10.6 | Create rejection details capture form with pre-populated stage (REQ-012 §11.6) | `tdd, structure, plan` | ✅ |
 | 10.7 | Create timeline component: vertical chronological timeline with event icons (REQ-012 §11.7) | `tdd, structure, plan` | ✅ |
 | 10.8 | Create "Add Event" form for timeline (event type, description, conditional fields) (REQ-012 §11.7) | `tdd, structure, plan` | ✅ |
-| 10.9 | Create job snapshot display and pin/archive/bulk-archive actions (REQ-012 §11.9-10) | `tdd, structure, plan` | ⬜ |
+| 10.9 | Create job snapshot display and pin/archive/bulk-archive actions (REQ-012 §11.9-10) | `tdd, structure, plan` | ✅ |
 
 ---
 
