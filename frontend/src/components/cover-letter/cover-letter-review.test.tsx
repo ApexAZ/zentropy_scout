@@ -34,6 +34,10 @@ const WORD_COUNT_TESTID = "word-count";
 const VALIDATION_ERRORS_TESTID = "validation-errors";
 const VALIDATION_WARNINGS_TESTID = "validation-warnings";
 const VOICE_CHECK_TESTID = "voice-check";
+const APPROVE_SPINNER_TESTID = "approve-spinner";
+const DOWNLOAD_PDF_TESTID = "download-pdf";
+
+const APPROVE_BUTTON = "Approve";
 
 const MOCK_TIMESTAMP = "2024-01-15T10:00:00Z";
 
@@ -209,6 +213,7 @@ const mocks = vi.hoisted(() => {
 	}
 	return {
 		mockApiGet: vi.fn(),
+		mockApiPatch: vi.fn(),
 		MockApiError,
 		mockShowToast: {
 			success: vi.fn(),
@@ -217,21 +222,19 @@ const mocks = vi.hoisted(() => {
 			info: vi.fn(),
 			dismiss: vi.fn(),
 		},
-		mockPush: vi.fn(),
+		mockInvalidateQueries: vi.fn().mockResolvedValue(undefined),
 	};
 });
 
 vi.mock("@/lib/api-client", () => ({
 	apiGet: mocks.mockApiGet,
+	apiPatch: mocks.mockApiPatch,
+	buildUrl: (path: string) => `http://localhost:8000/api/v1${path}`,
 	ApiError: mocks.MockApiError,
 }));
 
 vi.mock("@/lib/toast", () => ({
 	showToast: mocks.mockShowToast,
-}));
-
-vi.mock("next/navigation", () => ({
-	useRouter: () => ({ push: mocks.mockPush }),
 }));
 
 import { CoverLetterReview } from "./cover-letter-review";
@@ -244,6 +247,7 @@ function createWrapper() {
 	const queryClient = new QueryClient({
 		defaultOptions: { queries: { retry: false } },
 	});
+	queryClient.invalidateQueries = mocks.mockInvalidateQueries;
 	return function Wrapper({ children }: { children: ReactNode }) {
 		return (
 			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -290,7 +294,8 @@ function setupMockApi(overrides?: {
 
 beforeEach(() => {
 	mocks.mockApiGet.mockReset();
-	mocks.mockPush.mockReset();
+	mocks.mockApiPatch.mockReset();
+	mocks.mockInvalidateQueries.mockReset().mockResolvedValue(undefined);
 	Object.values(mocks.mockShowToast).forEach((fn) => fn.mockReset());
 });
 
@@ -837,5 +842,176 @@ describe("CoverLetterReview", () => {
 		expect(mocks.mockApiGet).toHaveBeenCalledWith(
 			`/personas/${PERSONA_ID}/voice-profile`,
 		);
+	});
+
+	// Approval Flow (§9.5)
+	// -----------------------------------------------------------------------
+
+	describe("approval flow", () => {
+		it("shows approve button when status is Draft", async () => {
+			setupMockApi();
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.getByRole("button", { name: APPROVE_BUTTON }),
+			).toBeInTheDocument();
+		});
+
+		it("hides approve button when status is Approved", async () => {
+			setupMockApi({
+				coverLetter: { data: makeCoverLetter({ status: "Approved" }) },
+			});
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByRole("button", { name: APPROVE_BUTTON }),
+			).not.toBeInTheDocument();
+		});
+
+		it("calls PATCH with status Approved when clicked", async () => {
+			const user = userEvent.setup();
+			setupMockApi();
+			mocks.mockApiPatch.mockResolvedValueOnce({
+				data: makeCoverLetter({ status: "Approved" }),
+			});
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: APPROVE_BUTTON }));
+
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/cover-letters/${COVER_LETTER_ID}`,
+					{ status: "Approved" },
+				);
+			});
+		});
+
+		it("shows loading state during approval", async () => {
+			const user = userEvent.setup();
+			setupMockApi();
+			mocks.mockApiPatch.mockReturnValue(new Promise(() => {}));
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: APPROVE_BUTTON }));
+
+			await waitFor(() => {
+				expect(screen.getByTestId(APPROVE_SPINNER_TESTID)).toBeInTheDocument();
+			});
+			const approveButton = screen.getByRole("button", {
+				name: /approv/i,
+			});
+			expect(approveButton).toBeDisabled();
+		});
+
+		it("shows success toast and invalidates cache on approval", async () => {
+			const user = userEvent.setup();
+			setupMockApi();
+			mocks.mockApiPatch.mockResolvedValueOnce({
+				data: makeCoverLetter({ status: "Approved" }),
+			});
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: APPROVE_BUTTON }));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+					"Cover letter approved.",
+				);
+			});
+			expect(mocks.mockInvalidateQueries).toHaveBeenCalled();
+		});
+
+		it("shows error toast on approval failure", async () => {
+			const user = userEvent.setup();
+			setupMockApi();
+			mocks.mockApiPatch.mockRejectedValueOnce(
+				new mocks.MockApiError("SERVER_ERROR", "Internal error", 500),
+			);
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+
+			await user.click(screen.getByRole("button", { name: APPROVE_BUTTON }));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalled();
+			});
+		});
+
+		it("shows final_text in textarea when status is Approved", async () => {
+			setupMockApi({
+				coverLetter: {
+					data: makeCoverLetter({
+						status: "Approved",
+						draft_text: "Draft version",
+						final_text: "Final approved version",
+					}),
+				},
+			});
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			const textarea = screen.getByRole("textbox", {
+				name: /cover letter/i,
+			});
+			expect(textarea).toHaveValue("Final approved version");
+		});
+	});
+
+	// PDF Download (§9.5)
+	// -----------------------------------------------------------------------
+
+	describe("PDF download", () => {
+		it("shows download link when status is Approved", async () => {
+			setupMockApi({
+				coverLetter: { data: makeCoverLetter({ status: "Approved" }) },
+			});
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.getByTestId(DOWNLOAD_PDF_TESTID)).toBeInTheDocument();
+		});
+
+		it("hides download link when status is Draft", async () => {
+			setupMockApi();
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.queryByTestId(DOWNLOAD_PDF_TESTID)).not.toBeInTheDocument();
+		});
+
+		it("download link points to submitted cover letter PDF endpoint", async () => {
+			setupMockApi({
+				coverLetter: { data: makeCoverLetter({ status: "Approved" }) },
+			});
+			renderReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			const link = screen.getByTestId(DOWNLOAD_PDF_TESTID);
+			expect(link).toHaveAttribute(
+				"href",
+				expect.stringContaining(
+					`/submitted-cover-letter-pdfs/${COVER_LETTER_ID}/download`,
+				),
+			);
+		});
 	});
 });

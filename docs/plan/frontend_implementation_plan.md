@@ -355,7 +355,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 9.2 | Create validation display: error/warning banners, voice check badge (REQ-012 §10.3) | `tdd, structure, plan` | ✅ |
 | 9.3 | Create regeneration feedback modal: text input, excluded stories, quick option chips (REQ-012 §10.4) | `tdd, structure, plan` | ✅ |
 | 9.4 | Create story override modal: selected/available stories with relevance scores (REQ-012 §10.5) | `tdd, structure, plan` | ✅ |
-| 9.5 | Create approval flow: approve button, read-only transition, PDF download (REQ-012 §10.6) | `tdd, structure, plan` | ⬜ |
+| 9.5 | Create approval flow: approve button, read-only transition, PDF download (REQ-012 §10.6) | `tdd, structure, plan` | ✅ |
 | 9.6 | Create unified Ghostwriter review: tabbed resume + cover letter with "Approve Both" (REQ-012 §10.7) | `tdd, structure, plan` | ⬜ |
 
 ---

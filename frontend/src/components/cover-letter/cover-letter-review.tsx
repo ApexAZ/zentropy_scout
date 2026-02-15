@@ -10,12 +10,15 @@
  */
 
 import { Fragment, useCallback, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Loader2, X } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, Download, Loader2, X } from "lucide-react";
 
-import { apiGet } from "@/lib/api-client";
+import { apiGet, apiPatch, buildUrl } from "@/lib/api-client";
+import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
+import { showToast } from "@/lib/toast";
 import { AgentReasoning } from "@/components/ui/agent-reasoning";
+import { Button } from "@/components/ui/button";
 import { FailedState } from "@/components/ui/error-states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
@@ -164,6 +167,8 @@ function VoiceCheckBadge({ tone }: { tone: string }) {
 // ---------------------------------------------------------------------------
 
 export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
+	const queryClient = useQueryClient();
+
 	// -----------------------------------------------------------------------
 	// Data fetching
 	// -----------------------------------------------------------------------
@@ -264,8 +269,11 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 	// -----------------------------------------------------------------------
 
 	const [draftText, setDraftText] = useState<string | null>(null);
-	const displayText = draftText ?? coverLetter?.draft_text ?? "";
+	const [isApproving, setIsApproving] = useState(false);
 	const isReadOnly = coverLetter?.status !== "Draft";
+	const displayText = isReadOnly
+		? (coverLetter?.final_text ?? coverLetter?.draft_text ?? "")
+		: (draftText ?? coverLetter?.draft_text ?? "");
 
 	const handleTextChange = useCallback(
 		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -273,6 +281,22 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 		},
 		[],
 	);
+
+	const handleApprove = useCallback(async () => {
+		setIsApproving(true);
+		try {
+			await apiPatch(`/cover-letters/${coverLetterId}`, {
+				status: "Approved",
+			});
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.coverLetter(coverLetterId),
+			});
+			showToast.success("Cover letter approved.");
+		} catch (err) {
+			setIsApproving(false);
+			showToast.error(toFriendlyError(err));
+		}
+	}, [coverLetterId, queryClient]);
 
 	// -----------------------------------------------------------------------
 	// Loading / Error — staged checks for dependent queries
@@ -355,6 +379,47 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 			)}
 			{validationWarnings.length > 0 && (
 				<ValidationWarnings issues={validationWarnings} />
+			)}
+
+			{/* Approval Flow (§10.6) */}
+			{coverLetter.status === "Draft" && (
+				<div className="mt-6">
+					<Button
+						type="button"
+						disabled={isApproving}
+						onClick={handleApprove}
+						className="gap-2"
+					>
+						{isApproving && (
+							<Loader2
+								data-testid="approve-spinner"
+								className="h-4 w-4 animate-spin"
+								aria-hidden="true"
+							/>
+						)}
+						{isApproving ? "Approving..." : "Approve"}
+					</Button>
+				</div>
+			)}
+
+			{/* PDF Download (§10.6) */}
+			{coverLetter.status === "Approved" && (
+				<div className="mt-6">
+					<Button variant="outline" asChild>
+						<a
+							data-testid="download-pdf"
+							href={buildUrl(
+								`/submitted-cover-letter-pdfs/${coverLetterId}/download`,
+							)}
+							aria-label="Download PDF"
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							<Download className="h-4 w-4" />
+							Download PDF
+						</a>
+					</Button>
+				</div>
 			)}
 		</div>
 	);
