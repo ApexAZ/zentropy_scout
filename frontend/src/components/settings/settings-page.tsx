@@ -7,6 +7,7 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AgentConfigurationSection } from "./agent-configuration-section";
 import { JobSourcesSection } from "./job-sources-section";
 
 // ---------------------------------------------------------------------------
@@ -43,9 +44,7 @@ export function SettingsPage({ personaId }: SettingsPageProps) {
 					<CardTitle>Agent Configuration</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<p className="text-muted-foreground text-sm">
-						Model routing (read-only)
-					</p>
+					<AgentConfigurationSection />
 				</CardContent>
 			</Card>
 

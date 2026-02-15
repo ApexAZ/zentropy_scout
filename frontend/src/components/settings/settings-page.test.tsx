@@ -12,6 +12,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // Mocks
 // ---------------------------------------------------------------------------
 
+vi.mock("./agent-configuration-section", () => ({
+	AgentConfigurationSection: () => (
+		<div data-testid="mock-agent-configuration-section" />
+	),
+}));
+
 vi.mock("./job-sources-section", () => ({
 	JobSourcesSection: ({ personaId }: { personaId: string }) => (
 		<div data-testid="mock-job-sources-section" data-persona-id={personaId} />
@@ -79,10 +85,10 @@ describe("SettingsPage", () => {
 		expect(mockChild).toHaveAttribute("data-persona-id", PERSONA_ID);
 	});
 
-	it("shows placeholder text in Agent Configuration section", () => {
+	it("renders AgentConfigurationSection in the Agent Configuration card", () => {
 		render(<SettingsPage personaId={PERSONA_ID} />);
-		const section = screen.getByTestId(AGENT_CONFIG_TESTID);
-		expect(section).toHaveTextContent("Model routing (read-only)");
+		const mockChild = screen.getByTestId("mock-agent-configuration-section");
+		expect(mockChild).toBeInTheDocument();
 	});
 
 	it("shows version info in About section", () => {
