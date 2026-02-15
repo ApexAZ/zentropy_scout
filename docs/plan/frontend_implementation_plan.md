@@ -394,7 +394,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 
 ## Phase 11: Settings & Configuration
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Job source preferences, agent config, about section. REQ-012 §12.*
 
@@ -413,7 +413,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 11.1 | Create settings page layout with sections (REQ-012 §12.1) | `tdd, structure, plan` | ✅ |
 | 11.2 | Create job source preferences: toggle switches, drag-reorder, tooltips (REQ-012 §12.2) | `tdd, structure, plan` | ✅ |
 | 11.3 | Create agent configuration display (read-only model routing table) (REQ-012 §12.3) | `tdd, structure, plan` | ✅ |
-| 11.4 | Create about section with version info and auth placeholder (REQ-012 §12.4) | `structure, plan` | ⬜ |
+| 11.4 | Create about section with version info and auth placeholder (REQ-012 §12.4) | `structure, plan` | ✅ (implemented inline in §11.1 — content is 2 static `<p>` tags; extracting into a separate component would be over-engineering per CLAUDE.md) |
 
 ---
 

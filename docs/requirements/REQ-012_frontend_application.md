@@ -1838,6 +1838,12 @@ Covered in §7.2.9 (Persona → Discovery Preferences editor). Not duplicated in
 
 MVP: No auth settings. Section placeholder: "Single-user mode — no configuration needed."
 
+> **Implementation note (§11.4):** The About section (version info + AGPL-3.0) and
+> auth placeholder text were implemented inline in `settings-page.tsx` during §11.1
+> rather than as a separate `AboutSection` component. The content is two static `<p>`
+> tags with no interactivity, props, or API calls — a separate component would add
+> files without adding value. Tests in `settings-page.test.tsx` verify both strings.
+
 Future: Provider selection (OAuth, email/password), API key management (BYOK mode).
 
 ---

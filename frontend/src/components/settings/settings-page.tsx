@@ -3,7 +3,8 @@
  *
  * REQ-012 §12.1: Settings page with three sections —
  * Job Sources, Agent Configuration, and About.
- * Child sections are placeholders filled by §11.2–11.4.
+ * Child sections filled by §11.2 (JobSourcesSection), §11.3 (AgentConfigurationSection),
+ * and §11.4 (About — inline, see comment below).
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +49,9 @@ export function SettingsPage({ personaId }: SettingsPageProps) {
 				</CardContent>
 			</Card>
 
-			{/* About */}
+			{/* About — §11.4 (REQ-012 §12.1 + §12.4): Implemented inline rather than
+			   as a separate component because the content is two static <p> tags with
+			   no interactivity. See frontend_implementation_plan.md §11.4 note. */}
 			<Card data-testid="settings-about">
 				<CardHeader>
 					<CardTitle>About</CardTitle>
