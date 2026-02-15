@@ -16,7 +16,13 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Download, ExternalLink, Loader2 } from "lucide-react";
 
-import { ApiError, apiGet, apiPatch, buildUrl } from "@/lib/api-client";
+import {
+	ApiError,
+	apiGet,
+	apiPatch,
+	apiPost,
+	buildUrl,
+} from "@/lib/api-client";
 import { formatDateTimeAgo } from "@/lib/job-formatters";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
@@ -30,6 +36,8 @@ import { OfferDetailsCard } from "./offer-details-card";
 import { OfferDetailsDialog } from "./offer-details-dialog";
 import { RejectionDetailsCard } from "./rejection-details-card";
 import { RejectionDetailsDialog } from "./rejection-details-dialog";
+import { AddTimelineEventDialog } from "./add-timeline-event-dialog";
+import type { CreateTimelineEventPayload } from "./add-timeline-event-dialog";
 import { ApplicationTimeline } from "./application-timeline";
 import { StatusTransitionDropdown } from "./status-transition-dropdown";
 import type { ApiResponse } from "@/types/api";
@@ -47,6 +55,8 @@ const NOTES_MAX_LENGTH = 10_000;
 const NOTES_SAVE_ERROR = "Failed to save notes.";
 const NOTES_SAVE_SUCCESS = "Notes updated.";
 const NOTES_PLACEHOLDER = "No notes yet.";
+const EVENT_SAVE_ERROR = "Failed to add event.";
+const EVENT_SAVE_SUCCESS = "Event added.";
 const OFFER_SAVE_ERROR = "Failed to update offer details.";
 const OFFER_SAVE_SUCCESS = "Offer details updated.";
 const REJECTION_SAVE_ERROR = "Failed to update rejection details.";
@@ -182,6 +192,40 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 				showToast.error(REJECTION_SAVE_ERROR);
 			} finally {
 				setSavingRejection(false);
+			}
+		},
+		[applicationId, queryClient],
+	);
+
+	// -----------------------------------------------------------------------
+	// Add Event state
+	// -----------------------------------------------------------------------
+
+	const [showAddEventDialog, setShowAddEventDialog] = useState(false);
+	const [savingEvent, setSavingEvent] = useState(false);
+
+	const handleAddEvent = useCallback(() => {
+		setShowAddEventDialog(true);
+	}, []);
+
+	const handleCancelAddEvent = useCallback(() => {
+		setShowAddEventDialog(false);
+	}, []);
+
+	const handleSaveEvent = useCallback(
+		async (payload: CreateTimelineEventPayload) => {
+			setSavingEvent(true);
+			try {
+				await apiPost(`/applications/${applicationId}/timeline`, payload);
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.timelineEvents(applicationId),
+				});
+				showToast.success(EVENT_SAVE_SUCCESS);
+				setShowAddEventDialog(false);
+			} catch {
+				showToast.error(EVENT_SAVE_ERROR);
+			} finally {
+				setSavingEvent(false);
 			}
 		},
 		[applicationId, queryClient],
@@ -364,7 +408,16 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 
 				{/* Timeline Panel */}
 				<div data-testid="timeline-panel">
-					<ApplicationTimeline applicationId={applicationId} />
+					<ApplicationTimeline
+						applicationId={applicationId}
+						onAddEvent={handleAddEvent}
+					/>
+					<AddTimelineEventDialog
+						open={showAddEventDialog}
+						onConfirm={handleSaveEvent}
+						onCancel={handleCancelAddEvent}
+						loading={savingEvent}
+					/>
 				</div>
 			</div>
 

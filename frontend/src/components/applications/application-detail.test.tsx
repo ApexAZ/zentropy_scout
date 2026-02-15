@@ -9,6 +9,7 @@
  * and edit dialog integration.
  * REQ-012 §11.6: Rejection details card display with stage, reason,
  * feedback, and date.
+ * REQ-012 §11.7: Add Event dialog integration for timeline.
  */
 
 import {
@@ -106,6 +107,7 @@ const mocks = vi.hoisted(() => {
 	return {
 		mockApiGet: vi.fn(),
 		mockApiPatch: vi.fn(),
+		mockApiPost: vi.fn(),
 		mockBuildUrl: vi.fn(
 			(path: string) => `http://localhost:8000/api/v1${path}`,
 		),
@@ -125,6 +127,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("@/lib/api-client", () => ({
 	apiGet: mocks.mockApiGet,
 	apiPatch: mocks.mockApiPatch,
+	apiPost: mocks.mockApiPost,
 	buildUrl: mocks.mockBuildUrl,
 	ApiError: mocks.MockApiError,
 }));
@@ -159,9 +162,61 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("./application-timeline", () => ({
-	ApplicationTimeline: ({ applicationId }: { applicationId: string }) => (
-		<div data-testid="mock-application-timeline" data-app-id={applicationId} />
+	ApplicationTimeline: ({
+		applicationId,
+		onAddEvent,
+	}: {
+		applicationId: string;
+		onAddEvent?: () => void;
+	}) => (
+		<div data-testid="mock-application-timeline" data-app-id={applicationId}>
+			{onAddEvent && (
+				<button
+					data-testid="mock-add-event-btn"
+					onClick={onAddEvent}
+					type="button"
+				>
+					Add Event
+				</button>
+			)}
+		</div>
 	),
+}));
+
+vi.mock("./add-timeline-event-dialog", () => ({
+	AddTimelineEventDialog: ({
+		open,
+		onConfirm,
+		onCancel,
+	}: {
+		open: boolean;
+		onConfirm: (data: unknown) => void;
+		onCancel: () => void;
+		loading?: boolean;
+	}) =>
+		open ? (
+			<div data-testid="mock-add-event-dialog">
+				<button
+					data-testid="mock-add-event-save"
+					onClick={() =>
+						onConfirm({
+							event_type: "custom",
+							event_date: "2026-02-15T10:00",
+						})
+					}
+					type="button"
+				>
+					Save
+				</button>
+				<button
+					data-testid="mock-add-event-cancel"
+					onClick={onCancel}
+					type="button"
+				>
+					Cancel
+				</button>
+			</div>
+		) : null,
 }));
 
 import { ApplicationDetail } from "./application-detail";
@@ -194,6 +249,7 @@ function renderDetail(applicationId = MOCK_APP_ID) {
 beforeEach(() => {
 	mocks.mockApiGet.mockReset();
 	mocks.mockApiPatch.mockReset();
+	mocks.mockApiPost.mockReset();
 	mocks.mockBuildUrl.mockReset();
 	mocks.mockBuildUrl.mockImplementation(
 		(path: string) => `http://localhost:8000/api/v1${path}`,
@@ -504,6 +560,95 @@ describe("ApplicationDetail", () => {
 			const timeline = screen.getByTestId("mock-application-timeline");
 			expect(timeline).toBeInTheDocument();
 			expect(timeline).toHaveAttribute("data-app-id", MOCK_APP_ID);
+		});
+
+		it("passes onAddEvent to ApplicationTimeline", async () => {
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(TIMELINE_PANEL_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.getByTestId("mock-add-event-btn")).toBeInTheDocument();
+		});
+
+		it("opens Add Event dialog when Add Event button is clicked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(TIMELINE_PANEL_TESTID)).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("mock-add-event-btn"));
+			expect(screen.getByTestId("mock-add-event-dialog")).toBeInTheDocument();
+		});
+
+		it("closes Add Event dialog when Cancel is clicked", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(TIMELINE_PANEL_TESTID)).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("mock-add-event-btn"));
+			expect(screen.getByTestId("mock-add-event-dialog")).toBeInTheDocument();
+			await user.click(screen.getByTestId("mock-add-event-cancel"));
+			expect(
+				screen.queryByTestId("mock-add-event-dialog"),
+			).not.toBeInTheDocument();
+		});
+
+		it("saves event via POST and shows success toast", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			mocks.mockApiPost.mockResolvedValue({ data: {} });
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(TIMELINE_PANEL_TESTID)).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("mock-add-event-btn"));
+			await user.click(screen.getByTestId("mock-add-event-save"));
+			await waitFor(() => {
+				expect(mocks.mockApiPost).toHaveBeenCalledWith(
+					`/applications/${MOCK_APP_ID}/timeline`,
+					{
+						event_type: "custom",
+						event_date: "2026-02-15T10:00",
+					},
+				);
+			});
+			expect(mocks.mockShowToast.success).toHaveBeenCalledWith("Event added.");
+		});
+
+		it("shows error toast when event save fails", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			mocks.mockApiPost.mockRejectedValue(new Error("Network error"));
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(TIMELINE_PANEL_TESTID)).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("mock-add-event-btn"));
+			await user.click(screen.getByTestId("mock-add-event-save"));
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
+					"Failed to add event.",
+				);
+			});
+		});
+
+		it("invalidates timeline query on successful event save", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			mocks.mockApiPost.mockResolvedValue({ data: {} });
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(TIMELINE_PANEL_TESTID)).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("mock-add-event-btn"));
+			await user.click(screen.getByTestId("mock-add-event-save"));
+			await waitFor(() => {
+				expect(mocks.mockInvalidateQueries).toHaveBeenCalled();
+			});
 		});
 	});
 
