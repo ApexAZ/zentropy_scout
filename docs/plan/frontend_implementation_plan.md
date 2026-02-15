@@ -436,14 +436,46 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 12.1 | E2E: New user onboarding flow (12 steps with mocked agent responses) | `playwright, test, plan` | ⬜ |
+| 12.1 | E2E: New user onboarding flow (12 steps with mocked agent responses) | `playwright, test, plan` | ✅ |
 | 12.2 | E2E: Job discovery flow (dashboard, job detail, draft materials) | `playwright, test, plan` | ⬜ |
 | 12.3 | E2E: Application tracking flow (apply, update status, capture offer, timeline) | `playwright, test, plan` | ⬜ |
 | 12.4 | E2E: Persona update flow (edit section, change flag resolution) | `playwright, test, plan` | ⬜ |
 | 12.5 | E2E: Chat interaction flow (send message, SSE streaming, tool execution) | `playwright, test, plan` | ⬜ |
 | 12.6 | Accessibility audit: keyboard nav, ARIA labels, color contrast, focus management (REQ-012 §13.8) | `test, lint, plan` | ⬜ |
 | 12.7 | Responsive testing: verify all pages at sm/md/lg breakpoints (REQ-012 §4.5) | `playwright, test, plan` | ⬜ |
-| 12.8 | Update CI config for combined backend + frontend test suite | `lint, git, commands, plan` | ⬜ |
+| 12.8 | Update CI config: SonarCloud frontend inclusion, Vitest coverage (lcov), npm audit in CI, Dependabot npm scanning | `lint, git, commands, plan` | ⬜ |
+
+---
+
+## Phase 13: Security Audit & Hardening
+
+**Status:** ⬜ Incomplete
+
+*Comprehensive security audit covering DAST, fuzz testing, custom SAST rules, container scanning, and manual OWASP review. Final phase before production readiness.*
+
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read CLAUDE.md security tooling section and `.claude/agents/security-references.md` |
+| 🔒 **Audit** | Run each tool, analyze findings, fix or document exceptions |
+| 🧪 **Test** | Verify fixes don't break existing tests |
+| 🔍 **Review** | Use `security-reviewer` agent after each task |
+| 📝 **Commit** | Follow `zentropy-git` |
+
+#### Context
+Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, Dependabot), and secrets detection (Gitleaks). This phase fills the remaining gaps: DAST, fuzzing, container scanning, custom rules, and hardening.
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 13.1 | OWASP ZAP baseline scan against FastAPI API endpoints (DAST) | `security, commands, plan` | ⬜ |
+| 13.2 | Hypothesis property-based fuzz testing for LLM sanitization pipeline | `security, test, plan` | ⬜ |
+| 13.3 | Custom Semgrep rules for LLM prompt injection and sanitization bypass patterns | `security, lint, plan` | ⬜ |
+| 13.4 | Container image scanning with Trivy in CI (PostgreSQL + pgvector) | `security, commands, plan` | ⬜ |
+| 13.5 | Security headers validation (CORS, CSP, X-Frame-Options) in E2E tests | `security, playwright, plan` | ⬜ |
+| 13.6 | Add mypy to pre-commit hooks for backend type safety enforcement | `security, lint, plan` | ⬜ |
+| 13.7 | Load testing rate limits with k6 or locust (verify slowapi enforcement) | `security, test, plan` | ⬜ |
+| 13.8 | Full manual security review — OWASP Top 10 walkthrough across all endpoints | `security, plan` | ⬜ |
 
 ---
 
@@ -464,7 +496,8 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 10: Application Tracking | 9 | Pipeline, timeline, offers |
 | 11: Settings | 4 | Sources, config, about |
 | 12: Integration & E2E | 8 | E2E tests, a11y, CI |
-| **Total** | **126** | |
+| 13: Security Audit | 8 | DAST, fuzzing, hardening |
+| **Total** | **134** | |
 
 ---
 
@@ -491,6 +524,8 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
                               │           └──► Phase 11 (Settings)
                               │
                               └──► Phase 12 (Integration) [after all above]
+                                         │
+                                         └──► Phase 13 (Security Audit) [after Phase 12]
 ```
 
 ---
