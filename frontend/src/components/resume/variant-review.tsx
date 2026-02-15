@@ -13,13 +13,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-	AlertTriangle,
-	ArrowLeft,
-	ChevronDown,
-	ChevronRight,
-	Loader2,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { apiDelete, apiGet, apiPost } from "@/lib/api-client";
@@ -28,6 +22,7 @@ import type { DiffToken } from "@/lib/diff-utils";
 import { queryKeys } from "@/lib/query-keys";
 import { orderBullets } from "@/lib/resume-helpers";
 import { showToast } from "@/lib/toast";
+import { AgentReasoning } from "@/components/ui/agent-reasoning";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { FailedState } from "@/components/ui/error-states";
@@ -93,34 +88,6 @@ function DiffText({
 				);
 			})}
 		</p>
-	);
-}
-
-function AgentReasoning({ reasoning }: { reasoning: string }) {
-	const [expanded, setExpanded] = useState(true);
-
-	return (
-		<div data-testid="agent-reasoning" className="mt-4">
-			<button
-				type="button"
-				data-testid="agent-reasoning-toggle"
-				aria-expanded={expanded}
-				onClick={() => setExpanded((prev) => !prev)}
-				className="flex items-center gap-2"
-			>
-				{expanded ? (
-					<ChevronDown className="h-4 w-4" />
-				) : (
-					<ChevronRight className="h-4 w-4" />
-				)}
-				<span className="text-sm font-semibold">Agent Reasoning</span>
-			</button>
-			{expanded && (
-				<div className="text-muted-foreground mt-2 rounded-lg border p-3 text-sm leading-relaxed">
-					{reasoning}
-				</div>
-			)}
-		</div>
 	);
 }
 

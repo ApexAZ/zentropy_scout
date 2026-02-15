@@ -351,7 +351,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 9.1 | Create cover letter review component: agent reasoning, stories used, editable textarea, word count (REQ-012 §10.2) | `tdd, structure, plan` | ⬜ |
+| 9.1 | Create cover letter review component: agent reasoning, stories used, editable textarea, word count (REQ-012 §10.2) | `tdd, structure, plan` | ✅ |
 | 9.2 | Create validation display: error/warning banners, voice check badge (REQ-012 §10.3) | `tdd, structure, plan` | ⬜ |
 | 9.3 | Create regeneration feedback modal: text input, excluded stories, quick option chips (REQ-012 §10.4) | `tdd, structure, plan` | ⬜ |
 | 9.4 | Create story override modal: selected/available stories with relevance scores (REQ-012 §10.5) | `tdd, structure, plan` | ⬜ |

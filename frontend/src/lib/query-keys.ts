@@ -28,6 +28,7 @@ export const queryKeys = {
 	application: (id: string) => ["applications", id] as const,
 	baseResume: (id: string) => [BASE_RESUMES, id] as const,
 	variant: (id: string) => ["variants", id] as const,
+	coverLetter: (id: string) => ["cover-letters", id] as const,
 
 	// Sub-entity keys (nested under persona for prefix invalidation)
 	workHistory: (personaId: string) =>
