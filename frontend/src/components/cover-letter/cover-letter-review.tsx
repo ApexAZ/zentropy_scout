@@ -46,6 +46,7 @@ const LOADING_SPINNER = (
 
 interface CoverLetterReviewProps {
 	coverLetterId: string;
+	hideActions?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +167,10 @@ function VoiceCheckBadge({ tone }: { tone: string }) {
 // Component
 // ---------------------------------------------------------------------------
 
-export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
+export function CoverLetterReview({
+	coverLetterId,
+	hideActions,
+}: CoverLetterReviewProps) {
 	const queryClient = useQueryClient();
 
 	// -----------------------------------------------------------------------
@@ -332,11 +336,13 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 
 	return (
 		<div data-testid="cover-letter-review">
-			{/* Header */}
-			<div className="mb-6 flex items-center gap-3">
-				<h1 className="text-xl font-semibold">{headerTitle}</h1>
-				<StatusBadge status={coverLetter.status} />
-			</div>
+			{/* Header (hidden when embedded in unified review) */}
+			{!hideActions && (
+				<div className="mb-6 flex items-center gap-3">
+					<h1 className="text-xl font-semibold">{headerTitle}</h1>
+					<StatusBadge status={coverLetter.status} />
+				</div>
+			)}
 
 			{/* Agent Reasoning */}
 			{coverLetter.agent_reasoning && (
@@ -381,8 +387,8 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 				<ValidationWarnings issues={validationWarnings} />
 			)}
 
-			{/* Approval Flow (§10.6) */}
-			{coverLetter.status === "Draft" && (
+			{/* Approval Flow (§10.6) — hidden when embedded in unified review */}
+			{!hideActions && coverLetter.status === "Draft" && (
 				<div className="mt-6">
 					<Button
 						type="button"
@@ -402,8 +408,8 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 				</div>
 			)}
 
-			{/* PDF Download (§10.6) */}
-			{coverLetter.status === "Approved" && (
+			{/* PDF Download (§10.6) — hidden when embedded in unified review */}
+			{!hideActions && coverLetter.status === "Approved" && (
 				<div className="mt-6">
 					<Button variant="outline" asChild>
 						<a

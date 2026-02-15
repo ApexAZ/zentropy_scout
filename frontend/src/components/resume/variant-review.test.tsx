@@ -835,4 +835,53 @@ describe("VariantReview", () => {
 			});
 		});
 	});
+
+	describe("hideActions mode", () => {
+		it("hides header and action buttons when hideActions is true", async () => {
+			setupMockApi();
+			const Wrapper = createWrapper();
+			render(
+				<Wrapper>
+					<VariantReview
+						baseResumeId={BASE_RESUME_ID}
+						variantId={VARIANT_ID}
+						personaId={PERSONA_ID}
+						hideActions
+					/>
+				</Wrapper>,
+			);
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.queryByTestId(BACK_LINK_TESTID)).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("button", { name: APPROVE_LABEL }),
+			).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("button", { name: ARCHIVE_LABEL }),
+			).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("button", { name: REGENERATE_LABEL }),
+			).not.toBeInTheDocument();
+		});
+
+		it("still shows diff panels when hideActions is true", async () => {
+			setupMockApi();
+			const Wrapper = createWrapper();
+			render(
+				<Wrapper>
+					<VariantReview
+						baseResumeId={BASE_RESUME_ID}
+						variantId={VARIANT_ID}
+						personaId={PERSONA_ID}
+						hideActions
+					/>
+				</Wrapper>,
+			);
+			await waitFor(() => {
+				expect(screen.getByTestId(BASE_PANEL_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.getByTestId(VARIANT_PANEL_TESTID)).toBeInTheDocument();
+		});
+	});
 });

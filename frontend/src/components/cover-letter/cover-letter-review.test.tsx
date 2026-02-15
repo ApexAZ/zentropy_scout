@@ -1014,4 +1014,64 @@ describe("CoverLetterReview", () => {
 			);
 		});
 	});
+
+	// hideActions mode (§9.6)
+	// -----------------------------------------------------------------------
+
+	describe("hideActions mode", () => {
+		it("hides header and action buttons when hideActions is true", async () => {
+			setupMockApi();
+			const Wrapper = createWrapper();
+			render(
+				<Wrapper>
+					<CoverLetterReview coverLetterId={COVER_LETTER_ID} hideActions />
+				</Wrapper>,
+			);
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			// Header hidden
+			expect(
+				screen.queryByText(/Senior Scrum Master at Acme Corp/),
+			).not.toBeInTheDocument();
+			expect(screen.queryByText("Draft")).not.toBeInTheDocument();
+			// Approve button hidden
+			expect(
+				screen.queryByRole("button", { name: APPROVE_BUTTON }),
+			).not.toBeInTheDocument();
+		});
+
+		it("hides PDF download when hideActions is true", async () => {
+			setupMockApi({
+				coverLetter: { data: makeCoverLetter({ status: "Approved" }) },
+			});
+			const Wrapper = createWrapper();
+			render(
+				<Wrapper>
+					<CoverLetterReview coverLetterId={COVER_LETTER_ID} hideActions />
+				</Wrapper>,
+			);
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.queryByTestId(DOWNLOAD_PDF_TESTID)).not.toBeInTheDocument();
+		});
+
+		it("still shows letter body and word count when hideActions is true", async () => {
+			setupMockApi();
+			const Wrapper = createWrapper();
+			render(
+				<Wrapper>
+					<CoverLetterReview coverLetterId={COVER_LETTER_ID} hideActions />
+				</Wrapper>,
+			);
+			await waitFor(() => {
+				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.getByRole("textbox", { name: /cover letter/i }),
+			).toBeInTheDocument();
+			expect(screen.getByTestId(WORD_COUNT_TESTID)).toBeInTheDocument();
+		});
+	});
 });

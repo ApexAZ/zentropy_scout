@@ -43,6 +43,7 @@ interface VariantReviewProps {
 	baseResumeId: string;
 	variantId: string;
 	personaId: string;
+	hideActions?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -134,6 +135,7 @@ export function VariantReview({
 	baseResumeId,
 	variantId,
 	personaId,
+	hideActions,
 }: VariantReviewProps) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
@@ -287,18 +289,20 @@ export function VariantReview({
 
 	return (
 		<div data-testid="variant-review">
-			{/* Header */}
-			<div className="mb-6 flex items-center gap-3">
-				<Link
-					href={`/resumes/${baseResumeId}`}
-					data-testid="back-link"
-					aria-label="Back to resume detail"
-					className="text-muted-foreground hover:text-foreground"
-				>
-					<ArrowLeft className="h-5 w-5" />
-				</Link>
-				<h1 className="text-xl font-semibold">{headerTitle}</h1>
-			</div>
+			{/* Header (hidden when embedded in unified review) */}
+			{!hideActions && (
+				<div className="mb-6 flex items-center gap-3">
+					<Link
+						href={`/resumes/${baseResumeId}`}
+						data-testid="back-link"
+						aria-label="Back to resume detail"
+						className="text-muted-foreground hover:text-foreground"
+					>
+						<ArrowLeft className="h-5 w-5" />
+					</Link>
+					<h1 className="text-xl font-semibold">{headerTitle}</h1>
+				</div>
+			)}
 
 			{/* Side-by-side comparison */}
 			<div className="grid grid-cols-2 gap-4">
@@ -404,38 +408,42 @@ export function VariantReview({
 				<GuardrailViolationBanner violations={guardrailViolations} />
 			)}
 
-			{/* Actions */}
-			<div className="mt-6 flex items-center gap-3">
-				<Button
-					onClick={handleApprove}
-					disabled={isApproving || hasGuardrailErrors}
-				>
-					{isApproving ? "Approving..." : "Approve"}
-				</Button>
-				<Button variant="outline" disabled={!hasGuardrailErrors}>
-					Regenerate
-				</Button>
-				<Button
-					variant="ghost"
-					onClick={() => setShowArchiveDialog(true)}
-					disabled={isArchiving}
-				>
-					Archive
-				</Button>
-			</div>
+			{/* Actions (hidden when embedded in unified review) */}
+			{!hideActions && (
+				<>
+					<div className="mt-6 flex items-center gap-3">
+						<Button
+							onClick={handleApprove}
+							disabled={isApproving || hasGuardrailErrors}
+						>
+							{isApproving ? "Approving..." : "Approve"}
+						</Button>
+						<Button variant="outline" disabled={!hasGuardrailErrors}>
+							Regenerate
+						</Button>
+						<Button
+							variant="ghost"
+							onClick={() => setShowArchiveDialog(true)}
+							disabled={isArchiving}
+						>
+							Archive
+						</Button>
+					</div>
 
-			<ConfirmationDialog
-				open={showArchiveDialog}
-				onOpenChange={(open) => {
-					if (!open) setShowArchiveDialog(false);
-				}}
-				title="Archive Variant"
-				description="Are you sure you want to archive this variant?"
-				confirmLabel="Archive"
-				variant="destructive"
-				loading={isArchiving}
-				onConfirm={handleArchiveConfirm}
-			/>
+					<ConfirmationDialog
+						open={showArchiveDialog}
+						onOpenChange={(open) => {
+							if (!open) setShowArchiveDialog(false);
+						}}
+						title="Archive Variant"
+						description="Are you sure you want to archive this variant?"
+						confirmLabel="Archive"
+						variant="destructive"
+						loading={isArchiving}
+						onConfirm={handleArchiveConfirm}
+					/>
+				</>
+			)}
 		</div>
 	);
 }
