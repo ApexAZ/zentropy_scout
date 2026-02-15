@@ -7,6 +7,7 @@
  * status badge with interview stage, documents panel (resume, cover letter,
  * job snapshot), and editable notes section.
  * REQ-012 §11.5: Offer details card with deadline countdown and edit dialog.
+ * REQ-012 §11.6: Rejection details card with stage, reason, feedback, and date.
  */
 
 import { useCallback, useState } from "react";
@@ -27,9 +28,15 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Textarea } from "@/components/ui/textarea";
 import { OfferDetailsCard } from "./offer-details-card";
 import { OfferDetailsDialog } from "./offer-details-dialog";
+import { RejectionDetailsCard } from "./rejection-details-card";
+import { RejectionDetailsDialog } from "./rejection-details-dialog";
 import { StatusTransitionDropdown } from "./status-transition-dropdown";
 import type { ApiResponse } from "@/types/api";
-import type { Application, OfferDetails } from "@/types/application";
+import type {
+	Application,
+	OfferDetails,
+	RejectionDetails,
+} from "@/types/application";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -41,6 +48,8 @@ const NOTES_SAVE_SUCCESS = "Notes updated.";
 const NOTES_PLACEHOLDER = "No notes yet.";
 const OFFER_SAVE_ERROR = "Failed to update offer details.";
 const OFFER_SAVE_SUCCESS = "Offer details updated.";
+const REJECTION_SAVE_ERROR = "Failed to update rejection details.";
+const REJECTION_SAVE_SUCCESS = "Rejection details updated.";
 const DOT_SEPARATOR = " \u00b7 ";
 
 // ---------------------------------------------------------------------------
@@ -142,6 +151,42 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 	);
 
 	// -----------------------------------------------------------------------
+	// Rejection edit state
+	// -----------------------------------------------------------------------
+
+	const [showRejectionEditDialog, setShowRejectionEditDialog] = useState(false);
+	const [savingRejection, setSavingRejection] = useState(false);
+
+	const handleEditRejection = useCallback(() => {
+		setShowRejectionEditDialog(true);
+	}, []);
+
+	const handleCancelRejectionEdit = useCallback(() => {
+		setShowRejectionEditDialog(false);
+	}, []);
+
+	const handleSaveRejection = useCallback(
+		async (details: RejectionDetails) => {
+			setSavingRejection(true);
+			try {
+				await apiPatch(`/applications/${applicationId}`, {
+					rejection_details: details,
+				});
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.application(applicationId),
+				});
+				showToast.success(REJECTION_SAVE_SUCCESS);
+				setShowRejectionEditDialog(false);
+			} catch {
+				showToast.error(REJECTION_SAVE_ERROR);
+			} finally {
+				setSavingRejection(false);
+			}
+		},
+		[applicationId, queryClient],
+	);
+
+	// -----------------------------------------------------------------------
 	// Loading / Error
 	// -----------------------------------------------------------------------
 
@@ -174,6 +219,8 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 	const showOfferCard =
 		app.offer_details !== null &&
 		(app.status === "Offer" || app.status === "Accepted");
+	const showRejectionCard =
+		app.rejection_details !== null && app.status === "Rejected";
 
 	return (
 		<div data-testid="application-detail">
@@ -205,6 +252,7 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 					<StatusTransitionDropdown
 						applicationId={applicationId}
 						currentStatus={app.status}
+						currentInterviewStage={app.current_interview_stage}
 					/>
 				</div>
 			</div>
@@ -327,6 +375,23 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 						onCancel={handleCancelOfferEdit}
 						loading={savingOffer}
 						initialData={app.offer_details}
+					/>
+				</div>
+			)}
+
+			{/* Rejection Details Section */}
+			{showRejectionCard && (
+				<div data-testid="rejection-details-section" className="mt-6">
+					<RejectionDetailsCard
+						rejectionDetails={app.rejection_details!}
+						onEdit={handleEditRejection}
+					/>
+					<RejectionDetailsDialog
+						open={showRejectionEditDialog}
+						onConfirm={handleSaveRejection}
+						onCancel={handleCancelRejectionEdit}
+						loading={savingRejection}
+						initialData={app.rejection_details}
 					/>
 				</div>
 			)}

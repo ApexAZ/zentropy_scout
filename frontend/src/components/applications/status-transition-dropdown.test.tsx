@@ -1,7 +1,8 @@
 /**
- * Tests for the StatusTransitionDropdown component (§10.3).
+ * Tests for the StatusTransitionDropdown component (§10.3, §10.6).
  *
  * REQ-012 §11.3: Status transition dropdown with conditional prompts.
+ * REQ-012 §11.6: Rejected status opens rejection details dialog.
  * Transition matrix: Applied → Interviewing/Rejected/Withdrawn,
  * Interviewing → Offer/Rejected/Withdrawn, Offer → Accepted/Rejected/Withdrawn.
  * Terminal statuses (Accepted, Rejected, Withdrawn) disable the dropdown.
@@ -21,6 +22,7 @@ const TRIGGER_LABEL = "Update status";
 const MOCK_APP_ID = "app-1";
 const INTERVIEW_STAGE_TITLE = "Select Interview Stage";
 const OFFER_DIALOG_TITLE = "Offer Details";
+const REJECTION_DIALOG_TITLE = "Rejection Details";
 const STATUS_UPDATE_ERROR = "Failed to update status.";
 
 // ---------------------------------------------------------------------------
@@ -504,19 +506,78 @@ describe("StatusTransitionDropdown", () => {
 	});
 
 	// -----------------------------------------------------------------------
-	// Rejected transition (confirmation placeholder for §10.6)
+	// Rejected transition (with rejection details dialog, §10.6)
 	// -----------------------------------------------------------------------
 
 	describe("rejected transition", () => {
-		it("shows confirmation dialog when Rejected is selected", async () => {
+		it("shows rejection details dialog when Rejected is selected", async () => {
 			const user = userEvent.setup();
 			renderDropdown("Applied");
 
 			await selectTransition(user, "Rejected");
 
 			await waitFor(() => {
-				expect(screen.getByText(/Mark as Rejected/)).toBeInTheDocument();
+				expect(screen.getByText(REJECTION_DIALOG_TITLE)).toBeInTheDocument();
 			});
+		});
+
+		it("calls PATCH with rejection_details on confirm", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiPatch.mockResolvedValue({ data: {} });
+			renderDropdown("Applied");
+
+			await selectTransition(user, "Rejected");
+
+			await waitFor(() => {
+				expect(screen.getByText(REJECTION_DIALOG_TITLE)).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: "Save" }));
+
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/applications/${MOCK_APP_ID}`,
+					{ status: "Rejected", rejection_details: {} },
+				);
+			});
+		});
+
+		it("closes rejection dialog on cancel", async () => {
+			const user = userEvent.setup();
+			renderDropdown("Applied");
+
+			await selectTransition(user, "Rejected");
+
+			await waitFor(() => {
+				expect(screen.getByText(REJECTION_DIALOG_TITLE)).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+			await waitFor(() => {
+				expect(
+					screen.queryByText(REJECTION_DIALOG_TITLE),
+				).not.toBeInTheDocument();
+			});
+		});
+
+		it("pre-populates rejection stage from currentInterviewStage", async () => {
+			const user = userEvent.setup();
+			const Wrapper = createWrapper();
+			render(
+				<Wrapper>
+					<StatusTransitionDropdown
+						applicationId={MOCK_APP_ID}
+						currentStatus="Interviewing"
+						currentInterviewStage="Onsite"
+					/>
+				</Wrapper>,
+			);
+
+			await selectTransition(user, "Rejected");
+
+			await waitFor(() => {
+				expect(screen.getByText(REJECTION_DIALOG_TITLE)).toBeInTheDocument();
+			});
+			expect(screen.getByText("Onsite")).toBeInTheDocument();
 		});
 	});
 

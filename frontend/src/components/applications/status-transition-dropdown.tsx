@@ -14,7 +14,7 @@
  *   → Interviewing: Interview stage selector (Phone Screen / Onsite / Final Round)
  *   → Accepted/Withdrawn: Simple confirmation dialog
  *   → Offer: Opens OfferDetailsDialog (§10.5)
- *   → Rejected: Simple confirmation (detail form in §10.6)
+ *   → Rejected: Opens RejectionDetailsDialog (§10.6)
  */
 
 import { useCallback, useState } from "react";
@@ -33,10 +33,12 @@ import {
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { InterviewStageDialog } from "./interview-stage-dialog";
 import { OfferDetailsDialog } from "./offer-details-dialog";
+import { RejectionDetailsDialog } from "./rejection-details-dialog";
 import type {
 	ApplicationStatus,
 	InterviewStage,
 	OfferDetails,
+	RejectionDetails,
 } from "@/types/application";
 
 // ---------------------------------------------------------------------------
@@ -71,6 +73,7 @@ const TERMINAL_STATUSES: ReadonlySet<ApplicationStatus> = new Set([
 export interface StatusTransitionDropdownProps {
 	applicationId: string;
 	currentStatus: ApplicationStatus;
+	currentInterviewStage?: InterviewStage | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,6 +83,7 @@ export interface StatusTransitionDropdownProps {
 export function StatusTransitionDropdown({
 	applicationId,
 	currentStatus,
+	currentInterviewStage,
 }: StatusTransitionDropdownProps) {
 	const queryClient = useQueryClient();
 
@@ -98,6 +102,9 @@ export function StatusTransitionDropdown({
 
 	// Offer details dialog state
 	const [showOfferDialog, setShowOfferDialog] = useState(false);
+
+	// Rejection details dialog state
+	const [showRejectionDialog, setShowRejectionDialog] = useState(false);
 
 	// Confirmation dialog state
 	const [showConfirmation, setShowConfirmation] = useState(false);
@@ -123,6 +130,8 @@ export function StatusTransitionDropdown({
 				setShowInterviewStageDialog(true);
 			} else if (selected === "Offer") {
 				setShowOfferDialog(true);
+			} else if (selected === "Rejected") {
+				setShowRejectionDialog(true);
 			} else {
 				setShowConfirmation(true);
 			}
@@ -146,6 +155,7 @@ export function StatusTransitionDropdown({
 				setShowConfirmation(false);
 				setShowInterviewStageDialog(false);
 				setShowOfferDialog(false);
+				setShowRejectionDialog(false);
 				setTargetStatus(null);
 			}
 		},
@@ -177,10 +187,21 @@ export function StatusTransitionDropdown({
 		[handleConfirmTransition],
 	);
 
+	const handleConfirmRejection = useCallback(
+		(details: RejectionDetails) => {
+			void handleConfirmTransition({
+				status: "Rejected",
+				rejection_details: details,
+			});
+		},
+		[handleConfirmTransition],
+	);
+
 	const handleCancel = useCallback(() => {
 		setShowConfirmation(false);
 		setShowInterviewStageDialog(false);
 		setShowOfferDialog(false);
+		setShowRejectionDialog(false);
 		setTargetStatus(null);
 	}, []);
 
@@ -238,6 +259,15 @@ export function StatusTransitionDropdown({
 				onConfirm={handleConfirmOffer}
 				onCancel={handleCancel}
 				loading={loading}
+			/>
+
+			{/* Rejection details dialog */}
+			<RejectionDetailsDialog
+				open={showRejectionDialog}
+				onConfirm={handleConfirmRejection}
+				onCancel={handleCancel}
+				loading={loading}
+				initialStage={currentInterviewStage}
 			/>
 		</>
 	);

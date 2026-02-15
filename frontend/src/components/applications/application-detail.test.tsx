@@ -1,5 +1,5 @@
 /**
- * Tests for the ApplicationDetail component (§10.2, §10.5).
+ * Tests for the ApplicationDetail component (§10.2, §10.5, §10.6).
  *
  * REQ-012 §11.2: Application detail page — header with back link,
  * job title/company, applied date, status badge, interview stage,
@@ -7,6 +7,8 @@
  * and editable notes section.
  * REQ-012 §11.5: Offer details card display with deadline countdown
  * and edit dialog integration.
+ * REQ-012 §11.6: Rejection details card display with stage, reason,
+ * feedback, and date.
  */
 
 import {
@@ -31,6 +33,8 @@ const HEADER_TESTID = "application-header";
 const DOCUMENTS_TESTID = "documents-panel";
 const NOTES_TESTID = "notes-section";
 const OFFER_SECTION_TESTID = "offer-details-section";
+const DETAIL_TESTID = "application-detail";
+const REJECTION_SECTION_TESTID = "rejection-details-section";
 
 const MOCK_APP_ID = "app-1";
 
@@ -663,7 +667,7 @@ describe("ApplicationDetail", () => {
 			});
 			renderDetail();
 			await waitFor(() => {
-				expect(screen.getByTestId("application-detail")).toBeInTheDocument();
+				expect(screen.getByTestId(DETAIL_TESTID)).toBeInTheDocument();
 			});
 			expect(
 				screen.queryByTestId(OFFER_SECTION_TESTID),
@@ -679,7 +683,7 @@ describe("ApplicationDetail", () => {
 			});
 			renderDetail();
 			await waitFor(() => {
-				expect(screen.getByTestId("application-detail")).toBeInTheDocument();
+				expect(screen.getByTestId(DETAIL_TESTID)).toBeInTheDocument();
 			});
 			expect(
 				screen.queryByTestId(OFFER_SECTION_TESTID),
@@ -701,6 +705,180 @@ describe("ApplicationDetail", () => {
 				expect(screen.getByTestId(OFFER_SECTION_TESTID)).toBeInTheDocument();
 			});
 			expect(screen.getByText(/\$155,000/)).toBeInTheDocument();
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Rejection Details Section (§10.6)
+	// -----------------------------------------------------------------------
+
+	describe("rejection details section", () => {
+		it("renders rejection details card when status is Rejected and rejection_details exists", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Rejected",
+					rejection_details: {
+						stage: "Onsite",
+						reason: "Culture fit concerns",
+					},
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByTestId(REJECTION_SECTION_TESTID),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("does not render rejection section when status is Applied", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ status: "Applied" }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(DETAIL_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(REJECTION_SECTION_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render rejection section when rejection_details is null", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Rejected",
+					rejection_details: null,
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(DETAIL_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(REJECTION_SECTION_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("displays stage in the rejection card", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Rejected",
+					rejection_details: {
+						stage: "Onsite",
+						reason: "Culture fit concerns",
+					},
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByTestId(REJECTION_SECTION_TESTID),
+				).toBeInTheDocument();
+			});
+			expect(screen.getByText("Onsite")).toBeInTheDocument();
+		});
+
+		it("displays reason in the rejection card", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Rejected",
+					rejection_details: {
+						stage: "Phone Screen",
+						reason: "Culture fit concerns",
+					},
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByTestId(REJECTION_SECTION_TESTID),
+				).toBeInTheDocument();
+			});
+			expect(screen.getByText("Culture fit concerns")).toBeInTheDocument();
+		});
+
+		it("renders rejection card for empty rejection_details object", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Rejected",
+					rejection_details: {},
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByTestId(REJECTION_SECTION_TESTID),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("saves rejection details via PATCH and shows success toast", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Rejected",
+					rejection_details: { stage: "Onsite", reason: "Culture fit" },
+				}),
+			});
+			mocks.mockApiPatch.mockResolvedValue({
+				data: makeApplication({
+					status: "Rejected",
+					rejection_details: { stage: "Onsite", reason: "Updated reason" },
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByTestId(REJECTION_SECTION_TESTID),
+				).toBeInTheDocument();
+			});
+			// Click Edit on the rejection card
+			const section = screen.getByTestId(REJECTION_SECTION_TESTID);
+			await user.click(within(section).getByRole("button", { name: "Edit" }));
+			// The rejection dialog should open — verify via dialog-only field
+			await waitFor(() => {
+				expect(screen.getByLabelText("Reason")).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: "Save" }));
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/applications/${MOCK_APP_ID}`,
+					expect.objectContaining({ rejection_details: expect.any(Object) }),
+				);
+			});
+			expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+				"Rejection details updated.",
+			);
+		});
+
+		it("shows error toast when rejection save fails", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Rejected",
+					rejection_details: { stage: "Onsite" },
+				}),
+			});
+			mocks.mockApiPatch.mockRejectedValue(new Error("Network error"));
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByTestId(REJECTION_SECTION_TESTID),
+				).toBeInTheDocument();
+			});
+			const section = screen.getByTestId(REJECTION_SECTION_TESTID);
+			await user.click(within(section).getByRole("button", { name: "Edit" }));
+			// The rejection dialog should open — verify via dialog-only field
+			await waitFor(() => {
+				expect(screen.getByLabelText("Reason")).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: "Save" }));
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
+					"Failed to update rejection details.",
+				);
+			});
 		});
 	});
 
