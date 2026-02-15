@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FailedState, NotFoundState } from "@/components/ui/error-states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Textarea } from "@/components/ui/textarea";
+import { StatusTransitionDropdown } from "./status-transition-dropdown";
 import type { ApiResponse } from "@/types/api";
 import type { Application } from "@/types/application";
 
@@ -157,6 +158,10 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 							{app.current_interview_stage}
 						</span>
 					)}
+					<StatusTransitionDropdown
+						applicationId={applicationId}
+						currentStatus={app.status}
+					/>
 				</div>
 			</div>
 
