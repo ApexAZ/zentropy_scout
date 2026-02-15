@@ -17,6 +17,7 @@ import { ExtractedSkillsTags } from "@/components/jobs/extracted-skills-tags";
 import { FitScoreBreakdown } from "@/components/jobs/fit-score-breakdown";
 import { JobDescription } from "@/components/jobs/job-description";
 import { JobDetailHeader } from "@/components/jobs/job-detail-header";
+import { MarkAsAppliedCard } from "@/components/jobs/mark-as-applied-card";
 import { ScoreExplanation } from "@/components/jobs/score-explanation";
 import { StretchScoreBreakdown } from "@/components/jobs/stretch-score-breakdown";
 import { usePersonaStatus } from "@/hooks/use-persona-status";
@@ -54,6 +55,9 @@ export default function JobDetailPage() {
 			<JobDetailHeader jobId={params.id} />
 			{job && (
 				<>
+					<div className="mt-6">
+						<MarkAsAppliedCard jobId={params.id} applyUrl={job.apply_url} />
+					</div>
 					<div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
 						<FitScoreBreakdown fit={job.score_details?.fit} />
 						<StretchScoreBreakdown stretch={job.score_details?.stretch} />

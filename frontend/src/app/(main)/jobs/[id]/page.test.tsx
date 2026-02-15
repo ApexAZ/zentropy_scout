@@ -1,10 +1,10 @@
 /**
- * Tests for the JobDetailPage route component (§7.7–§7.10).
+ * Tests for the JobDetailPage route component (§7.7–§7.10, §10.4).
  *
  * Verifies guard clause, prop passthrough to JobDetailHeader,
  * FitScoreBreakdown, StretchScoreBreakdown, ScoreExplanation,
- * ExtractedSkillsTags, JobDescription, and CultureSignals
- * rendering when job data is available.
+ * ExtractedSkillsTags, JobDescription, CultureSignals, and
+ * MarkAsAppliedCard rendering when job data is available.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -31,6 +31,7 @@ const EXPLANATION_TESTID = "explanation-stub";
 const SKILLS_TESTID = "extracted-skills-stub";
 const DESCRIPTION_TESTID = "job-description-stub";
 const CULTURE_TESTID = "culture-signals-stub";
+const MARK_AS_APPLIED_TESTID = "mark-as-applied-stub";
 const ONBOARDED_STATUS = { status: "onboarded", persona: { id: "p-1" } };
 
 // ---------------------------------------------------------------------------
@@ -138,6 +139,25 @@ vi.mock("@/components/jobs/culture-signals", () => ({
 	CultureSignals: MockCultureSignals,
 }));
 
+function MockMarkAsAppliedCard({
+	jobId,
+	applyUrl,
+}: {
+	jobId: string;
+	applyUrl: string | null;
+}) {
+	return (
+		<div data-testid={MARK_AS_APPLIED_TESTID}>
+			{jobId}|{applyUrl ?? "null"}
+		</div>
+	);
+}
+MockMarkAsAppliedCard.displayName = "MockMarkAsAppliedCard";
+
+vi.mock("@/components/jobs/mark-as-applied-card", () => ({
+	MarkAsAppliedCard: MockMarkAsAppliedCard,
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -194,6 +214,7 @@ function makeJobData(
 				score_details: scoreDetails ?? null,
 				description: "We are hiring a senior engineer.",
 				culture_text: "Fast-paced and collaborative.",
+				apply_url: "https://example.com/apply",
 			},
 		},
 	};
@@ -431,6 +452,34 @@ describe("JobDetailPage", () => {
 
 		expect(screen.getByTestId(CULTURE_TESTID)).toHaveTextContent(
 			"Fast-paced and collaborative.",
+		);
+	});
+
+	// -----------------------------------------------------------------------
+	// MarkAsAppliedCard
+	// -----------------------------------------------------------------------
+
+	it("does not render MarkAsAppliedCard when data is loading", () => {
+		render(<JobDetailPage />);
+
+		expect(
+			screen.queryByTestId(MARK_AS_APPLIED_TESTID),
+		).not.toBeInTheDocument();
+	});
+
+	it("renders MarkAsAppliedCard when job data is available", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(MARK_AS_APPLIED_TESTID)).toBeInTheDocument();
+	});
+
+	it("passes apply_url to MarkAsAppliedCard", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(MARK_AS_APPLIED_TESTID)).toHaveTextContent(
+			"https://example.com/apply",
 		);
 	});
 });
