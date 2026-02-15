@@ -381,7 +381,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 10.1 | Create applications list page: status badges, interview stage, toolbar with filters (REQ-012 §11.1) | `tdd, structure, plan` | ✅ |
-| 10.2 | Create application detail: header, documents panel, notes section (REQ-012 §11.2) | `tdd, structure, plan` | ⬜ |
+| 10.2 | Create application detail: header, documents panel, notes section (REQ-012 §11.2) | `tdd, structure, plan` | ✅ |
 | 10.3 | Create status transition dropdown with conditional prompts per target status (REQ-012 §11.3) | `tdd, structure, plan` | ⬜ |
 | 10.4 | Create "Mark as Applied" flow: download materials → apply externally → confirm (REQ-012 §11.4) | `tdd, structure, plan` | ⬜ |
 | 10.5 | Create offer details capture form with optional fields and deadline countdown (REQ-012 §11.5) | `tdd, structure, plan` | ⬜ |
