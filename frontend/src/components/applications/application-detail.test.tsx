@@ -1,10 +1,12 @@
 /**
- * Tests for the ApplicationDetail component (§10.2).
+ * Tests for the ApplicationDetail component (§10.2, §10.5).
  *
  * REQ-012 §11.2: Application detail page — header with back link,
  * job title/company, applied date, status badge, interview stage,
  * documents panel (resume, cover letter, job snapshot),
  * and editable notes section.
+ * REQ-012 §11.5: Offer details card display with deadline countdown
+ * and edit dialog integration.
  */
 
 import {
@@ -17,7 +19,6 @@ import {
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
@@ -29,6 +30,7 @@ const BACK_LINK_TESTID = "back-to-applications";
 const HEADER_TESTID = "application-header";
 const DOCUMENTS_TESTID = "documents-panel";
 const NOTES_TESTID = "notes-section";
+const OFFER_SECTION_TESTID = "offer-details-section";
 
 const MOCK_APP_ID = "app-1";
 
@@ -130,20 +132,25 @@ vi.mock("next/navigation", () => ({
 	useRouter: () => ({ push: mocks.mockPush }),
 }));
 
-vi.mock("next/link", () => ({
-	default: ({
-		children,
-		href,
-		...rest
-	}: {
-		children: React.ReactNode;
-		href: string;
-		[key: string]: unknown;
-	}) => (
+function MockLink({
+	children,
+	href,
+	...rest
+}: {
+	children: ReactNode;
+	href: string;
+	[key: string]: unknown;
+}) {
+	return (
 		<a href={href} {...rest}>
 			{children}
 		</a>
-	),
+	);
+}
+MockLink.displayName = "MockLink";
+
+vi.mock("next/link", () => ({
+	default: MockLink,
 }));
 
 import { ApplicationDetail } from "./application-detail";
@@ -610,6 +617,90 @@ describe("ApplicationDetail", () => {
 			await waitFor(() => {
 				expect(mocks.mockInvalidateQueries).toHaveBeenCalled();
 			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Offer Details Section (§10.5)
+	// -----------------------------------------------------------------------
+
+	describe("offer details section", () => {
+		it("renders offer details card when status is Offer and offer_details exists", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Offer",
+					offer_details: {
+						base_salary: 155000,
+						salary_currency: "USD",
+					},
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(OFFER_SECTION_TESTID)).toBeInTheDocument();
+			});
+		});
+
+		it("renders offer details card when status is Accepted and offer_details exists", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Accepted",
+					offer_details: {
+						base_salary: 155000,
+						salary_currency: "USD",
+					},
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(OFFER_SECTION_TESTID)).toBeInTheDocument();
+			});
+		});
+
+		it("does not render offer section when status is Applied", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ status: "Applied" }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("application-detail")).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(OFFER_SECTION_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render offer section when offer_details is null", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Offer",
+					offer_details: null,
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("application-detail")).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(OFFER_SECTION_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("displays salary in the offer card", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({
+					status: "Offer",
+					offer_details: {
+						base_salary: 155000,
+						salary_currency: "USD",
+					},
+				}),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(OFFER_SECTION_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.getByText(/\$155,000/)).toBeInTheDocument();
 		});
 	});
 

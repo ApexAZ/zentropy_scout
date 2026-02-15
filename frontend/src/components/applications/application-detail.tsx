@@ -6,6 +6,7 @@
  * REQ-012 §11.2: Header with back link, job title/company, applied date,
  * status badge with interview stage, documents panel (resume, cover letter,
  * job snapshot), and editable notes section.
+ * REQ-012 §11.5: Offer details card with deadline countdown and edit dialog.
  */
 
 import { useCallback, useState } from "react";
@@ -24,9 +25,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FailedState, NotFoundState } from "@/components/ui/error-states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Textarea } from "@/components/ui/textarea";
+import { OfferDetailsCard } from "./offer-details-card";
+import { OfferDetailsDialog } from "./offer-details-dialog";
 import { StatusTransitionDropdown } from "./status-transition-dropdown";
 import type { ApiResponse } from "@/types/api";
-import type { Application } from "@/types/application";
+import type { Application, OfferDetails } from "@/types/application";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -36,6 +39,8 @@ const NOTES_MAX_LENGTH = 10_000;
 const NOTES_SAVE_ERROR = "Failed to save notes.";
 const NOTES_SAVE_SUCCESS = "Notes updated.";
 const NOTES_PLACEHOLDER = "No notes yet.";
+const OFFER_SAVE_ERROR = "Failed to update offer details.";
+const OFFER_SAVE_SUCCESS = "Offer details updated.";
 const DOT_SEPARATOR = " \u00b7 ";
 
 // ---------------------------------------------------------------------------
@@ -101,6 +106,42 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 	}, [applicationId, notesText, queryClient]);
 
 	// -----------------------------------------------------------------------
+	// Offer edit state
+	// -----------------------------------------------------------------------
+
+	const [showOfferEditDialog, setShowOfferEditDialog] = useState(false);
+	const [savingOffer, setSavingOffer] = useState(false);
+
+	const handleEditOffer = useCallback(() => {
+		setShowOfferEditDialog(true);
+	}, []);
+
+	const handleCancelOfferEdit = useCallback(() => {
+		setShowOfferEditDialog(false);
+	}, []);
+
+	const handleSaveOffer = useCallback(
+		async (details: OfferDetails) => {
+			setSavingOffer(true);
+			try {
+				await apiPatch(`/applications/${applicationId}`, {
+					offer_details: details,
+				});
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.application(applicationId),
+				});
+				showToast.success(OFFER_SAVE_SUCCESS);
+				setShowOfferEditDialog(false);
+			} catch {
+				showToast.error(OFFER_SAVE_ERROR);
+			} finally {
+				setSavingOffer(false);
+			}
+		},
+		[applicationId, queryClient],
+	);
+
+	// -----------------------------------------------------------------------
 	// Loading / Error
 	// -----------------------------------------------------------------------
 
@@ -130,6 +171,9 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 
 	const app = data!.data;
 	const { job_snapshot: snapshot } = app;
+	const showOfferCard =
+		app.offer_details !== null &&
+		(app.status === "Offer" || app.status === "Accepted");
 
 	return (
 		<div data-testid="application-detail">
@@ -269,6 +313,23 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 					</Card>
 				</div>
 			</div>
+
+			{/* Offer Details Section */}
+			{showOfferCard && (
+				<div data-testid="offer-details-section" className="mt-6">
+					<OfferDetailsCard
+						offerDetails={app.offer_details!}
+						onEdit={handleEditOffer}
+					/>
+					<OfferDetailsDialog
+						open={showOfferEditDialog}
+						onConfirm={handleSaveOffer}
+						onCancel={handleCancelOfferEdit}
+						loading={savingOffer}
+						initialData={app.offer_details}
+					/>
+				</div>
+			)}
 
 			{/* Notes Section */}
 			<div data-testid="notes-section" className="mt-6">

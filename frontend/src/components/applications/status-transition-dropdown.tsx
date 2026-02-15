@@ -13,7 +13,8 @@
  * Conditional prompts:
  *   → Interviewing: Interview stage selector (Phone Screen / Onsite / Final Round)
  *   → Accepted/Withdrawn: Simple confirmation dialog
- *   → Offer/Rejected: Simple confirmation (detail forms in §10.5/§10.6)
+ *   → Offer: Opens OfferDetailsDialog (§10.5)
+ *   → Rejected: Simple confirmation (detail form in §10.6)
  */
 
 import { useCallback, useState } from "react";
@@ -31,7 +32,12 @@ import {
 } from "@/components/ui/select";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { InterviewStageDialog } from "./interview-stage-dialog";
-import type { ApplicationStatus, InterviewStage } from "@/types/application";
+import { OfferDetailsDialog } from "./offer-details-dialog";
+import type {
+	ApplicationStatus,
+	InterviewStage,
+	OfferDetails,
+} from "@/types/application";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -90,6 +96,9 @@ export function StatusTransitionDropdown({
 	const [showInterviewStageDialog, setShowInterviewStageDialog] =
 		useState(false);
 
+	// Offer details dialog state
+	const [showOfferDialog, setShowOfferDialog] = useState(false);
+
 	// Confirmation dialog state
 	const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -112,6 +121,8 @@ export function StatusTransitionDropdown({
 
 			if (selected === "Interviewing") {
 				setShowInterviewStageDialog(true);
+			} else if (selected === "Offer") {
+				setShowOfferDialog(true);
 			} else {
 				setShowConfirmation(true);
 			}
@@ -134,6 +145,7 @@ export function StatusTransitionDropdown({
 				setLoading(false);
 				setShowConfirmation(false);
 				setShowInterviewStageDialog(false);
+				setShowOfferDialog(false);
 				setTargetStatus(null);
 			}
 		},
@@ -155,9 +167,20 @@ export function StatusTransitionDropdown({
 		[handleConfirmTransition],
 	);
 
+	const handleConfirmOffer = useCallback(
+		(details: OfferDetails) => {
+			void handleConfirmTransition({
+				status: "Offer",
+				offer_details: details,
+			});
+		},
+		[handleConfirmTransition],
+	);
+
 	const handleCancel = useCallback(() => {
 		setShowConfirmation(false);
 		setShowInterviewStageDialog(false);
+		setShowOfferDialog(false);
 		setTargetStatus(null);
 	}, []);
 
@@ -167,7 +190,11 @@ export function StatusTransitionDropdown({
 
 	return (
 		<>
-			<Select value="" onValueChange={handleStatusSelect} disabled={isTerminal}>
+			<Select
+				value=""
+				onValueChange={handleStatusSelect}
+				disabled={isTerminal || loading}
+			>
 				<SelectTrigger
 					aria-label="Update status"
 					size="sm"
@@ -201,6 +228,14 @@ export function StatusTransitionDropdown({
 			<InterviewStageDialog
 				open={showInterviewStageDialog}
 				onConfirm={handleConfirmInterviewStage}
+				onCancel={handleCancel}
+				loading={loading}
+			/>
+
+			{/* Offer details dialog */}
+			<OfferDetailsDialog
+				open={showOfferDialog}
+				onConfirm={handleConfirmOffer}
 				onCancel={handleCancel}
 				loading={loading}
 			/>

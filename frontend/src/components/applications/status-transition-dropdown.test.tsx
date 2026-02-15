@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const TRIGGER_LABEL = "Update status";
 const MOCK_APP_ID = "app-1";
 const INTERVIEW_STAGE_TITLE = "Select Interview Stage";
+const OFFER_DIALOG_TITLE = "Offer Details";
 const STATUS_UPDATE_ERROR = "Failed to update status.";
 
 // ---------------------------------------------------------------------------
@@ -447,21 +448,66 @@ describe("StatusTransitionDropdown", () => {
 	});
 
 	// -----------------------------------------------------------------------
-	// Offer / Rejected (confirmation placeholders for §10.5/§10.6)
+	// Offer transition (with offer details dialog, §10.5)
 	// -----------------------------------------------------------------------
 
-	describe("offer and rejected transitions", () => {
-		it("shows confirmation dialog when Offer is selected", async () => {
+	describe("offer transition", () => {
+		it("shows offer details dialog when Offer is selected", async () => {
 			const user = userEvent.setup();
 			renderDropdown("Interviewing");
 
 			await selectTransition(user, "Offer");
 
 			await waitFor(() => {
-				expect(screen.getByText(/Mark as Offer/)).toBeInTheDocument();
+				expect(screen.getByText(OFFER_DIALOG_TITLE)).toBeInTheDocument();
 			});
 		});
 
+		it("calls PATCH with offer_details when offer dialog is saved", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiPatch.mockResolvedValue({ data: {} });
+			renderDropdown("Interviewing");
+
+			await selectTransition(user, "Offer");
+
+			await waitFor(() => {
+				expect(screen.getByText(OFFER_DIALOG_TITLE)).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: "Save" }));
+
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/applications/${MOCK_APP_ID}`,
+					{
+						status: "Offer",
+						offer_details: { salary_currency: "USD" },
+					},
+				);
+			});
+		});
+
+		it("closes offer dialog on cancel", async () => {
+			const user = userEvent.setup();
+			renderDropdown("Interviewing");
+
+			await selectTransition(user, "Offer");
+
+			await waitFor(() => {
+				expect(screen.getByText(OFFER_DIALOG_TITLE)).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+			await waitFor(() => {
+				expect(screen.queryByText(OFFER_DIALOG_TITLE)).not.toBeInTheDocument();
+			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Rejected transition (confirmation placeholder for §10.6)
+	// -----------------------------------------------------------------------
+
+	describe("rejected transition", () => {
 		it("shows confirmation dialog when Rejected is selected", async () => {
 			const user = userEvent.setup();
 			renderDropdown("Applied");
@@ -470,26 +516,6 @@ describe("StatusTransitionDropdown", () => {
 
 			await waitFor(() => {
 				expect(screen.getByText(/Mark as Rejected/)).toBeInTheDocument();
-			});
-		});
-
-		it("calls PATCH when Offer transition is confirmed", async () => {
-			const user = userEvent.setup();
-			mocks.mockApiPatch.mockResolvedValue({ data: {} });
-			renderDropdown("Interviewing");
-
-			await selectTransition(user, "Offer");
-
-			await waitFor(() => {
-				expect(screen.getByText(/Mark as Offer/)).toBeInTheDocument();
-			});
-			await user.click(screen.getByRole("button", { name: "Confirm" }));
-
-			await waitFor(() => {
-				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
-					`/applications/${MOCK_APP_ID}`,
-					{ status: "Offer" },
-				);
 			});
 		});
 	});
