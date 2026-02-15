@@ -303,7 +303,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 
 ## Phase 8: Resume Management
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Base resume editor, job variants, diff display, PDF preview. REQ-012 §9.*
 
@@ -328,7 +328,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 8.5 | Create job variants list on resume detail: status badges, review/archive actions (REQ-012 §9.2) | `tdd, structure, plan` | ✅ |
 | 8.6 | Create variant review page: side-by-side diff with change highlighting (REQ-012 §9.3) | `tdd, structure, plan` | ✅ |
 | 8.7 | Create agent reasoning and guardrail violation displays for variant review (REQ-012 §9.3-9.4) | `tdd, structure, plan` | ✅ |
-| 8.8 | Create "New Resume" wizard with persona item selection (REQ-012 §9.2) | `tdd, structure, plan` | ⬜ |
+| 8.8 | Create "New Resume" wizard with persona item selection (REQ-012 §9.2) | `tdd, structure, plan` | ✅ |
 
 ---
 
