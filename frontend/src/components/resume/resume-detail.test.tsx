@@ -305,6 +305,12 @@ vi.mock("@/components/ui/pdf-viewer", () => ({
 	),
 }));
 
+vi.mock("@/components/resume/variants-list", () => ({
+	VariantsList: ({ baseResumeId }: { baseResumeId: string }) => (
+		<div data-testid="variants-list" data-base-resume-id={baseResumeId} />
+	),
+}));
+
 import { ResumeDetail } from "./resume-detail";
 
 // ---------------------------------------------------------------------------
@@ -1189,6 +1195,17 @@ describe("ResumeDetail", () => {
 				const viewer = screen.getByTestId("pdf-viewer");
 				expect(viewer).toHaveAttribute("data-src", DOWNLOAD_URL);
 				expect(viewer).toHaveAttribute("data-filename", "Scrum Master.pdf");
+			});
+		});
+	});
+
+	describe("variants list integration", () => {
+		it("renders VariantsList with correct baseResumeId", async () => {
+			setupMockApi();
+			renderDetail();
+			await waitFor(() => {
+				const variantsList = screen.getByTestId("variants-list");
+				expect(variantsList).toHaveAttribute("data-base-resume-id", "r-1");
 			});
 		});
 	});

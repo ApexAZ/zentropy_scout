@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FailedState } from "@/components/ui/error-states";
 import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { ReorderableList } from "@/components/ui/reorderable-list";
+import { VariantsList } from "@/components/resume/variants-list";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type {
 	Bullet,
@@ -546,6 +547,11 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 					</div>
 				</div>
 			)}
+
+			{/* Job Variants */}
+			<div className="mt-8">
+				<VariantsList baseResumeId={resumeId} />
+			</div>
 		</div>
 	);
 }
