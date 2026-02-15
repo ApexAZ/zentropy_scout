@@ -13,15 +13,27 @@ import type { JobPosting } from "@/types/job";
 
 /** Format a job's salary range as a human-readable string. */
 export function formatSalary(job: JobPosting): string {
-	if (job.salary_min === null && job.salary_max === null)
-		return "Not disclosed";
-	const currency = job.salary_currency ?? "USD";
+	return formatSnapshotSalary(
+		job.salary_min,
+		job.salary_max,
+		job.salary_currency,
+	);
+}
+
+/** Format salary from individual fields (used by job snapshot display). */
+export function formatSnapshotSalary(
+	salaryMin: number | null,
+	salaryMax: number | null,
+	salaryCurrency: string | null,
+): string {
+	if (salaryMin === null && salaryMax === null) return "Not disclosed";
+	const currency = salaryCurrency ?? "USD";
 	const fmt = (n: number) => `$${Math.round(n / 1000)}k`;
-	if (job.salary_min !== null && job.salary_max !== null) {
-		return `${fmt(job.salary_min)}\u2013${fmt(job.salary_max)} ${currency}`;
+	if (salaryMin !== null && salaryMax !== null) {
+		return `${fmt(salaryMin)}\u2013${fmt(salaryMax)} ${currency}`;
 	}
-	if (job.salary_min !== null) return `${fmt(job.salary_min)}+ ${currency}`;
-	return `Up to ${fmt(job.salary_max!)} ${currency}`;
+	if (salaryMin !== null) return `${fmt(salaryMin)}+ ${currency}`;
+	return `Up to ${fmt(salaryMax!)} ${currency}`;
 }
 
 // ---------------------------------------------------------------------------

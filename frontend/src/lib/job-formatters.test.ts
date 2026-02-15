@@ -12,6 +12,7 @@ import {
 	formatDateTimeAgo,
 	formatDaysAgo,
 	formatSalary,
+	formatSnapshotSalary,
 } from "./job-formatters";
 import type { JobPosting } from "@/types/job";
 
@@ -100,6 +101,42 @@ describe("formatSalary", () => {
 			salary_currency: "USD",
 		});
 		expect(formatSalary(job)).toBe("Up to $200k USD");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// formatSnapshotSalary
+// ---------------------------------------------------------------------------
+
+describe("formatSnapshotSalary", () => {
+	it("returns 'Not disclosed' when both min and max are null", () => {
+		expect(formatSnapshotSalary(null, null, null)).toBe("Not disclosed");
+	});
+
+	it("formats min-max salary range", () => {
+		expect(formatSnapshotSalary(120000, 150000, "USD")).toBe(
+			"$120k\u2013$150k USD",
+		);
+	});
+
+	it("formats min-only salary with plus sign", () => {
+		expect(formatSnapshotSalary(120000, null, "USD")).toBe("$120k+ USD");
+	});
+
+	it("formats max-only salary with 'Up to'", () => {
+		expect(formatSnapshotSalary(null, 150000, "USD")).toBe("Up to $150k USD");
+	});
+
+	it("defaults to USD when currency is null", () => {
+		expect(formatSnapshotSalary(100000, 130000, null)).toBe(
+			"$100k\u2013$130k USD",
+		);
+	});
+
+	it("uses custom currency when provided", () => {
+		expect(formatSnapshotSalary(80000, 100000, "EUR")).toBe(
+			"$80k\u2013$100k EUR",
+		);
 	});
 });
 

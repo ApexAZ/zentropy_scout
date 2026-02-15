@@ -14,10 +14,18 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, ExternalLink, Loader2 } from "lucide-react";
+import {
+	Archive,
+	ArchiveRestore,
+	ArrowLeft,
+	Download,
+	Loader2,
+	Pin,
+} from "lucide-react";
 
 import {
 	ApiError,
+	apiDelete,
 	apiGet,
 	apiPatch,
 	apiPost,
@@ -26,7 +34,7 @@ import {
 import { formatDateTimeAgo } from "@/lib/job-formatters";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
-import { isSafeUrl } from "@/lib/url-utils";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FailedState, NotFoundState } from "@/components/ui/error-states";
@@ -39,6 +47,7 @@ import { RejectionDetailsDialog } from "./rejection-details-dialog";
 import { AddTimelineEventDialog } from "./add-timeline-event-dialog";
 import type { CreateTimelineEventPayload } from "./add-timeline-event-dialog";
 import { ApplicationTimeline } from "./application-timeline";
+import { JobSnapshotSection } from "./job-snapshot-section";
 import { StatusTransitionDropdown } from "./status-transition-dropdown";
 import type { ApiResponse } from "@/types/api";
 import type {
@@ -61,6 +70,13 @@ const OFFER_SAVE_ERROR = "Failed to update offer details.";
 const OFFER_SAVE_SUCCESS = "Offer details updated.";
 const REJECTION_SAVE_ERROR = "Failed to update rejection details.";
 const REJECTION_SAVE_SUCCESS = "Rejection details updated.";
+const PIN_TOGGLE_ERROR = "Failed to update pin status.";
+const PIN_SUCCESS = "Application pinned.";
+const UNPIN_SUCCESS = "Application unpinned.";
+const ARCHIVE_ERROR = "Failed to archive application.";
+const ARCHIVE_SUCCESS = "Application archived.";
+const RESTORE_ERROR = "Failed to restore application.";
+const RESTORE_SUCCESS = "Application restored.";
 const DOT_SEPARATOR = " \u00b7 ";
 
 // ---------------------------------------------------------------------------
@@ -232,6 +248,75 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 	);
 
 	// -----------------------------------------------------------------------
+	// Pin toggle state
+	// -----------------------------------------------------------------------
+
+	const [togglingPin, setTogglingPin] = useState(false);
+
+	const handleTogglePin = useCallback(
+		async (currentlyPinned: boolean) => {
+			setTogglingPin(true);
+			try {
+				await apiPatch(`/applications/${applicationId}`, {
+					is_pinned: !currentlyPinned,
+				});
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.application(applicationId),
+				});
+				showToast.success(currentlyPinned ? UNPIN_SUCCESS : PIN_SUCCESS);
+			} catch {
+				showToast.error(PIN_TOGGLE_ERROR);
+			} finally {
+				setTogglingPin(false);
+			}
+		},
+		[applicationId, queryClient],
+	);
+
+	// -----------------------------------------------------------------------
+	// Archive state
+	// -----------------------------------------------------------------------
+
+	const [archiving, setArchiving] = useState(false);
+
+	const handleArchive = useCallback(async () => {
+		setArchiving(true);
+		try {
+			await apiDelete(`/applications/${applicationId}`);
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.applications,
+			});
+			showToast.success(ARCHIVE_SUCCESS);
+			router.push("/applications");
+		} catch {
+			showToast.error(ARCHIVE_ERROR);
+		} finally {
+			setArchiving(false);
+		}
+	}, [applicationId, queryClient, router]);
+
+	// -----------------------------------------------------------------------
+	// Restore state
+	// -----------------------------------------------------------------------
+
+	const [restoring, setRestoring] = useState(false);
+
+	const handleRestore = useCallback(async () => {
+		setRestoring(true);
+		try {
+			await apiPost(`/applications/${applicationId}/restore`);
+			await queryClient.invalidateQueries({
+				queryKey: queryKeys.application(applicationId),
+			});
+			showToast.success(RESTORE_SUCCESS);
+		} catch {
+			showToast.error(RESTORE_ERROR);
+		} finally {
+			setRestoring(false);
+		}
+	}, [applicationId, queryClient]);
+
+	// -----------------------------------------------------------------------
 	// Loading / Error
 	// -----------------------------------------------------------------------
 
@@ -299,7 +384,44 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 						currentStatus={app.status}
 						currentInterviewStage={app.current_interview_stage}
 					/>
+					<Button
+						variant="ghost"
+						size="sm"
+						data-testid="pin-toggle"
+						aria-label={app.is_pinned ? "Unpin application" : "Pin application"}
+						onClick={() => handleTogglePin(app.is_pinned)}
+						disabled={togglingPin}
+					>
+						<Pin className={cn("h-4 w-4", app.is_pinned && "fill-current")} />
+					</Button>
 				</div>
+			</div>
+
+			{/* Archive / Restore action bar */}
+			<div className="mt-4 flex gap-2">
+				{app.archived_at === null ? (
+					<Button
+						variant="outline"
+						size="sm"
+						data-testid="archive-button"
+						onClick={handleArchive}
+						disabled={archiving}
+					>
+						<Archive className="mr-1 h-4 w-4" />
+						Archive
+					</Button>
+				) : (
+					<Button
+						variant="outline"
+						size="sm"
+						data-testid="restore-button"
+						onClick={handleRestore}
+						disabled={restoring}
+					>
+						<ArchiveRestore className="mr-1 h-4 w-4" />
+						Restore
+					</Button>
+				)}
 			</div>
 
 			{/* Two-column layout: Documents + Timeline */}
@@ -375,35 +497,7 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 					)}
 
 					{/* Job Snapshot */}
-					<Card data-testid="job-snapshot-section">
-						<CardHeader>
-							<CardTitle className="text-sm">Job Snapshot</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<p className="text-muted-foreground mb-2 text-sm">
-								Captured {formatDateTimeAgo(snapshot.captured_at)}
-							</p>
-							<div className="flex items-center gap-2">
-								{snapshot.source_url && isSafeUrl(snapshot.source_url) && (
-									<Button
-										variant="outline"
-										size="sm"
-										asChild
-										data-testid="view-live-posting"
-									>
-										<a
-											href={snapshot.source_url}
-											target="_blank"
-											rel="noopener noreferrer"
-										>
-											<ExternalLink className="mr-1 h-4 w-4" />
-											View live posting
-										</a>
-									</Button>
-								)}
-							</div>
-						</CardContent>
-					</Card>
+					<JobSnapshotSection snapshot={snapshot} />
 				</div>
 
 				{/* Timeline Panel */}

@@ -108,6 +108,7 @@ const mocks = vi.hoisted(() => {
 		mockApiGet: vi.fn(),
 		mockApiPatch: vi.fn(),
 		mockApiPost: vi.fn(),
+		mockApiDelete: vi.fn(),
 		mockBuildUrl: vi.fn(
 			(path: string) => `http://localhost:8000/api/v1${path}`,
 		),
@@ -128,6 +129,7 @@ vi.mock("@/lib/api-client", () => ({
 	apiGet: mocks.mockApiGet,
 	apiPatch: mocks.mockApiPatch,
 	apiPost: mocks.mockApiPost,
+	apiDelete: mocks.mockApiDelete,
 	buildUrl: mocks.mockBuildUrl,
 	ApiError: mocks.MockApiError,
 }));
@@ -219,6 +221,15 @@ vi.mock("./add-timeline-event-dialog", () => ({
 		) : null,
 }));
 
+vi.mock("./job-snapshot-section", () => ({
+	JobSnapshotSection: ({ snapshot }: { snapshot: unknown }) => (
+		<div
+			data-testid="mock-job-snapshot-section"
+			data-snapshot={JSON.stringify(snapshot)}
+		/>
+	),
+}));
+
 import { ApplicationDetail } from "./application-detail";
 
 // ---------------------------------------------------------------------------
@@ -250,6 +261,7 @@ beforeEach(() => {
 	mocks.mockApiGet.mockReset();
 	mocks.mockApiPatch.mockReset();
 	mocks.mockApiPost.mockReset();
+	mocks.mockApiDelete.mockReset();
 	mocks.mockBuildUrl.mockReset();
 	mocks.mockBuildUrl.mockImplementation(
 		(path: string) => `http://localhost:8000/api/v1${path}`,
@@ -465,7 +477,7 @@ describe("ApplicationDetail", () => {
 			).not.toBeInTheDocument();
 		});
 
-		it("shows job snapshot section with captured date", async () => {
+		it("shows job snapshot section (delegated to JobSnapshotSection)", async () => {
 			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
 			renderDetail();
 			await waitFor(() => {
@@ -473,76 +485,8 @@ describe("ApplicationDetail", () => {
 			});
 			const panel = screen.getByTestId(DOCUMENTS_TESTID);
 			expect(
-				within(panel).getByTestId("job-snapshot-section"),
+				within(panel).getByTestId("mock-job-snapshot-section"),
 			).toBeInTheDocument();
-		});
-
-		it("shows View live posting link when source_url exists", async () => {
-			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId(DOCUMENTS_TESTID)).toBeInTheDocument();
-			});
-			const panel = screen.getByTestId(DOCUMENTS_TESTID);
-			const liveLink = within(panel).getByTestId("view-live-posting");
-			expect(liveLink).toHaveAttribute("href", "https://example.com/job/123");
-		});
-
-		it("hides View live posting link when no source_url", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: makeApplication({
-					job_snapshot: {
-						...makeApplication().job_snapshot,
-						source_url: null,
-					},
-				}),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId(DOCUMENTS_TESTID)).toBeInTheDocument();
-			});
-			const panel = screen.getByTestId(DOCUMENTS_TESTID);
-			expect(
-				within(panel).queryByTestId("view-live-posting"),
-			).not.toBeInTheDocument();
-		});
-
-		it("hides View live posting link when source_url has javascript: scheme", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: makeApplication({
-					job_snapshot: {
-						...makeApplication().job_snapshot,
-						source_url: "javascript:alert(1)",
-					},
-				}),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId(DOCUMENTS_TESTID)).toBeInTheDocument();
-			});
-			const panel = screen.getByTestId(DOCUMENTS_TESTID);
-			expect(
-				within(panel).queryByTestId("view-live-posting"),
-			).not.toBeInTheDocument();
-		});
-
-		it("hides View live posting link when source_url has data: scheme", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: makeApplication({
-					job_snapshot: {
-						...makeApplication().job_snapshot,
-						source_url: "data:text/html,<script>alert(1)</script>",
-					},
-				}),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId(DOCUMENTS_TESTID)).toBeInTheDocument();
-			});
-			const panel = screen.getByTestId(DOCUMENTS_TESTID);
-			expect(
-				within(panel).queryByTestId("view-live-posting"),
-			).not.toBeInTheDocument();
 		});
 	});
 
@@ -1047,6 +991,312 @@ describe("ApplicationDetail", () => {
 				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
 					"Failed to update rejection details.",
 				);
+			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Pin toggle (§10.9)
+	// -----------------------------------------------------------------------
+
+	describe("pin toggle", () => {
+		it("renders pin toggle button in header", async () => {
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
+			});
+		});
+
+		it("has aria-label 'Pin application' when unpinned", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ is_pinned: false }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
+			});
+			expect(screen.getByTestId("pin-toggle")).toHaveAttribute(
+				"aria-label",
+				"Pin application",
+			);
+		});
+
+		it("has aria-label 'Unpin application' when pinned", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ is_pinned: true }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
+			});
+			expect(screen.getByTestId("pin-toggle")).toHaveAttribute(
+				"aria-label",
+				"Unpin application",
+			);
+		});
+
+		it("sends PATCH with is_pinned: true when pinning", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ is_pinned: false }),
+			});
+			mocks.mockApiPatch.mockResolvedValue({
+				data: makeApplication({ is_pinned: true }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("pin-toggle"));
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/applications/${MOCK_APP_ID}`,
+					{ is_pinned: true },
+				);
+			});
+		});
+
+		it("sends PATCH with is_pinned: false when unpinning", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ is_pinned: true }),
+			});
+			mocks.mockApiPatch.mockResolvedValue({
+				data: makeApplication({ is_pinned: false }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("pin-toggle"));
+			await waitFor(() => {
+				expect(mocks.mockApiPatch).toHaveBeenCalledWith(
+					`/applications/${MOCK_APP_ID}`,
+					{ is_pinned: false },
+				);
+			});
+		});
+
+		it("shows success toast when pinning", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ is_pinned: false }),
+			});
+			mocks.mockApiPatch.mockResolvedValue({
+				data: makeApplication({ is_pinned: true }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("pin-toggle"));
+			await waitFor(() => {
+				expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+					"Application pinned.",
+				);
+			});
+		});
+
+		it("shows error toast when pin toggle fails", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ is_pinned: false }),
+			});
+			mocks.mockApiPatch.mockRejectedValue(new Error("Network error"));
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("pin-toggle"));
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
+					"Failed to update pin status.",
+				);
+			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Archive (§10.9)
+	// -----------------------------------------------------------------------
+
+	describe("archive", () => {
+		it("shows archive button when not archived", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: null }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("archive-button")).toBeInTheDocument();
+			});
+		});
+
+		it("hides archive button when archived", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: "2026-02-10T00:00:00Z" }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(DETAIL_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.queryByTestId("archive-button")).not.toBeInTheDocument();
+		});
+
+		it("calls apiDelete and shows success toast", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: null }),
+			});
+			mocks.mockApiDelete.mockResolvedValue(undefined);
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("archive-button")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("archive-button"));
+			await waitFor(() => {
+				expect(mocks.mockApiDelete).toHaveBeenCalledWith(
+					`/applications/${MOCK_APP_ID}`,
+				);
+			});
+			expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+				"Application archived.",
+			);
+		});
+
+		it("navigates to /applications after archiving", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: null }),
+			});
+			mocks.mockApiDelete.mockResolvedValue(undefined);
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("archive-button")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("archive-button"));
+			await waitFor(() => {
+				expect(mocks.mockPush).toHaveBeenCalledWith("/applications");
+			});
+		});
+
+		it("shows error toast when archive fails", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: null }),
+			});
+			mocks.mockApiDelete.mockRejectedValue(new Error("Network error"));
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("archive-button")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("archive-button"));
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
+					"Failed to archive application.",
+				);
+			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Restore (§10.9)
+	// -----------------------------------------------------------------------
+
+	describe("restore", () => {
+		it("shows restore button when archived", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: "2026-02-10T00:00:00Z" }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("restore-button")).toBeInTheDocument();
+			});
+		});
+
+		it("hides restore button when not archived", async () => {
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: null }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(DETAIL_TESTID)).toBeInTheDocument();
+			});
+			expect(screen.queryByTestId("restore-button")).not.toBeInTheDocument();
+		});
+
+		it("calls apiPost restore and shows success toast", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: "2026-02-10T00:00:00Z" }),
+			});
+			mocks.mockApiPost.mockResolvedValue({
+				data: makeApplication({ archived_at: null }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("restore-button")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("restore-button"));
+			await waitFor(() => {
+				expect(mocks.mockApiPost).toHaveBeenCalledWith(
+					`/applications/${MOCK_APP_ID}/restore`,
+				);
+			});
+			expect(mocks.mockShowToast.success).toHaveBeenCalledWith(
+				"Application restored.",
+			);
+		});
+
+		it("shows error toast when restore fails", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: "2026-02-10T00:00:00Z" }),
+			});
+			mocks.mockApiPost.mockRejectedValue(new Error("Network error"));
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("restore-button")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("restore-button"));
+			await waitFor(() => {
+				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
+					"Failed to restore application.",
+				);
+			});
+		});
+
+		it("invalidates query cache on successful restore", async () => {
+			const user = userEvent.setup();
+			mocks.mockApiGet.mockResolvedValue({
+				data: makeApplication({ archived_at: "2026-02-10T00:00:00Z" }),
+			});
+			mocks.mockApiPost.mockResolvedValue({
+				data: makeApplication({ archived_at: null }),
+			});
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId("restore-button")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId("restore-button"));
+			await waitFor(() => {
+				expect(mocks.mockInvalidateQueries).toHaveBeenCalled();
+			});
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Job Snapshot Section integration (§10.9)
+	// -----------------------------------------------------------------------
+
+	describe("job snapshot section integration", () => {
+		it("renders JobSnapshotSection with snapshot data", async () => {
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			renderDetail();
+			await waitFor(() => {
+				expect(
+					screen.getByTestId("mock-job-snapshot-section"),
+				).toBeInTheDocument();
 			});
 		});
 	});
