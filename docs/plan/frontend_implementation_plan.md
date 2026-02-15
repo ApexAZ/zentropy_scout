@@ -410,7 +410,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 11.1 | Create settings page layout with sections (REQ-012 §12.1) | `tdd, structure, plan` | ⬜ |
+| 11.1 | Create settings page layout with sections (REQ-012 §12.1) | `tdd, structure, plan` | ✅ |
 | 11.2 | Create job source preferences: toggle switches, drag-reorder, tooltips (REQ-012 §12.2) | `tdd, structure, plan` | ⬜ |
 | 11.3 | Create agent configuration display (read-only model routing table) (REQ-012 §12.3) | `tdd, structure, plan` | ⬜ |
 | 11.4 | Create about section with version info and auth placeholder (REQ-012 §12.4) | `structure, plan` | ⬜ |
