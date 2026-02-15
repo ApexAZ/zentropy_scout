@@ -44,6 +44,10 @@ export const queryKeys = {
 	customNonNegotiables: (personaId: string) =>
 		[PERSONAS, personaId, "custom-non-negotiables"] as const,
 
+	// Sub-entity keys (nested under application for prefix invalidation)
+	timelineEvents: (applicationId: string) =>
+		["applications", applicationId, "timeline"] as const,
+
 	// Sub-entity keys (nested under job for prefix invalidation)
 	extractedSkills: (jobId: string) =>
 		[JOBS, jobId, "extracted-skills"] as const,

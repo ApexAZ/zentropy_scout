@@ -30,6 +30,7 @@ import { OfferDetailsCard } from "./offer-details-card";
 import { OfferDetailsDialog } from "./offer-details-dialog";
 import { RejectionDetailsCard } from "./rejection-details-card";
 import { RejectionDetailsDialog } from "./rejection-details-dialog";
+import { ApplicationTimeline } from "./application-timeline";
 import { StatusTransitionDropdown } from "./status-transition-dropdown";
 import type { ApiResponse } from "@/types/api";
 import type {
@@ -257,7 +258,7 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 				</div>
 			</div>
 
-			{/* Two-column layout: Documents + placeholder for Timeline */}
+			{/* Two-column layout: Documents + Timeline */}
 			<div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
 				{/* Documents Panel */}
 				<div data-testid="documents-panel" className="space-y-4">
@@ -359,6 +360,11 @@ export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
 							</div>
 						</CardContent>
 					</Card>
+				</div>
+
+				{/* Timeline Panel */}
+				<div data-testid="timeline-panel">
+					<ApplicationTimeline applicationId={applicationId} />
 				</div>
 			</div>
 

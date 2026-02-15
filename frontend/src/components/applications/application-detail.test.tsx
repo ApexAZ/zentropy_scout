@@ -35,6 +35,7 @@ const NOTES_TESTID = "notes-section";
 const OFFER_SECTION_TESTID = "offer-details-section";
 const DETAIL_TESTID = "application-detail";
 const REJECTION_SECTION_TESTID = "rejection-details-section";
+const TIMELINE_PANEL_TESTID = "timeline-panel";
 
 const MOCK_APP_ID = "app-1";
 
@@ -155,6 +156,12 @@ MockLink.displayName = "MockLink";
 
 vi.mock("next/link", () => ({
 	default: MockLink,
+}));
+
+vi.mock("./application-timeline", () => ({
+	ApplicationTimeline: ({ applicationId }: { applicationId: string }) => (
+		<div data-testid="mock-application-timeline" data-app-id={applicationId} />
+	),
 }));
 
 import { ApplicationDetail } from "./application-detail";
@@ -480,6 +487,23 @@ describe("ApplicationDetail", () => {
 			expect(
 				within(panel).queryByTestId("view-live-posting"),
 			).not.toBeInTheDocument();
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Timeline Panel
+	// -----------------------------------------------------------------------
+
+	describe("timeline panel", () => {
+		it("renders the timeline panel with ApplicationTimeline", async () => {
+			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
+			renderDetail();
+			await waitFor(() => {
+				expect(screen.getByTestId(TIMELINE_PANEL_TESTID)).toBeInTheDocument();
+			});
+			const timeline = screen.getByTestId("mock-application-timeline");
+			expect(timeline).toBeInTheDocument();
+			expect(timeline).toHaveAttribute("data-app-id", MOCK_APP_ID);
 		});
 	});
 
