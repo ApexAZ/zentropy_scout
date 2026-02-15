@@ -295,6 +295,9 @@ export interface CoverLetter {
 	/** Agent's story selection reasoning. Null if not yet generated. */
 	agent_reasoning: string | null;
 
+	/** Validation results from content checks. Null before validation runs. */
+	validation_result: CoverLetterValidation | null;
+
 	// Lifecycle timestamps
 	/** ISO 8601 datetime. Set when status transitions to Approved. */
 	approved_at: string | null;

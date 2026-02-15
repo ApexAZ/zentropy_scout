@@ -2,14 +2,16 @@
 
 /**
  * Cover letter review with agent reasoning, stories used,
- * editable textarea, and word count indicator.
+ * editable textarea, word count indicator, validation display,
+ * and voice check badge.
  *
  * REQ-012 §10.2: Cover letter review component.
+ * REQ-012 §10.3: Validation display with error/warning banners.
  */
 
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, X } from "lucide-react";
 
 import { apiGet } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
@@ -17,9 +19,9 @@ import { AgentReasoning } from "@/components/ui/agent-reasoning";
 import { FailedState } from "@/components/ui/error-states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { CoverLetter } from "@/types/application";
+import type { CoverLetter, ValidationIssue } from "@/types/application";
 import type { JobPosting } from "@/types/job";
-import type { AchievementStory, Skill } from "@/types/persona";
+import type { AchievementStory, Skill, VoiceProfile } from "@/types/persona";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -102,6 +104,61 @@ function WordCount({ text }: { text: string }) {
 	);
 }
 
+function ValidationErrors({ issues }: { issues: ValidationIssue[] }) {
+	return (
+		<div
+			data-testid="validation-errors"
+			role="alert"
+			className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950"
+		>
+			<div className="mb-2 flex items-center gap-2">
+				<X className="h-4 w-4 text-red-600 dark:text-red-400" />
+				<span className="text-sm font-semibold text-red-800 dark:text-red-200">
+					Validation Error
+				</span>
+			</div>
+			<ul className="list-disc space-y-1 pl-5 text-sm text-red-700 dark:text-red-300">
+				{issues.map((issue) => (
+					<li key={issue.rule}>{issue.message}</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+function ValidationWarnings({ issues }: { issues: ValidationIssue[] }) {
+	return (
+		<div
+			data-testid="validation-warnings"
+			role="status"
+			className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950"
+		>
+			<div className="mb-2 flex items-center gap-2">
+				<AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+				<span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+					Warning
+				</span>
+			</div>
+			<ul className="list-disc space-y-1 pl-5 text-sm text-amber-700 dark:text-amber-300">
+				{issues.map((issue) => (
+					<li key={issue.rule}>{issue.message}</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+function VoiceCheckBadge({ tone }: { tone: string }) {
+	return (
+		<div
+			data-testid="voice-check"
+			className="text-muted-foreground mt-1 text-sm"
+		>
+			Voice: &quot;{tone}&quot; ✓
+		</div>
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -150,6 +207,15 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 		enabled: !!coverLetter?.persona_id,
 	});
 
+	const { data: voiceProfileData } = useQuery({
+		queryKey: queryKeys.voiceProfile(coverLetter?.persona_id ?? ""),
+		queryFn: () =>
+			apiGet<ApiResponse<VoiceProfile>>(
+				`/personas/${coverLetter?.persona_id}/voice-profile`,
+			),
+		enabled: !!coverLetter?.persona_id,
+	});
+
 	// -----------------------------------------------------------------------
 	// Derived state
 	// -----------------------------------------------------------------------
@@ -174,6 +240,24 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 		const usedIds = new Set(coverLetter.achievement_stories_used);
 		return allStories.filter((s) => usedIds.has(s.id));
 	}, [coverLetter, allStories]);
+
+	const voiceProfile = voiceProfileData?.data ?? null;
+
+	const validationErrors = useMemo(
+		() =>
+			coverLetter?.validation_result?.issues.filter(
+				(i) => i.severity === "error",
+			) ?? [],
+		[coverLetter?.validation_result],
+	);
+
+	const validationWarnings = useMemo(
+		() =>
+			coverLetter?.validation_result?.issues.filter(
+				(i) => i.severity === "warning",
+			) ?? [],
+		[coverLetter?.validation_result],
+	);
 
 	// -----------------------------------------------------------------------
 	// Form state
@@ -260,7 +344,18 @@ export function CoverLetterReview({ coverLetterId }: CoverLetterReviewProps) {
 
 				{/* Word Count */}
 				<WordCount text={displayText} />
+
+				{/* Voice Check Badge */}
+				{voiceProfile && <VoiceCheckBadge tone={voiceProfile.tone} />}
 			</div>
+
+			{/* Validation Display (§10.3) */}
+			{validationErrors.length > 0 && (
+				<ValidationErrors issues={validationErrors} />
+			)}
+			{validationWarnings.length > 0 && (
+				<ValidationWarnings issues={validationWarnings} />
+			)}
 		</div>
 	);
 }

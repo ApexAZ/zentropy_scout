@@ -166,6 +166,7 @@ function makeCoverLetter(overrides: Partial<CoverLetter> = {}): CoverLetter {
 		final_text: null,
 		status: "Draft",
 		agent_reasoning: "Selected stories for leadership and technical alignment.",
+		validation_result: null,
 		approved_at: null,
 		created_at: TIMESTAMPS.created,
 		updated_at: TIMESTAMPS.updated,

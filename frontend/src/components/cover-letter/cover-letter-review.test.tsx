@@ -1,8 +1,10 @@
 /**
- * Tests for the CoverLetterReview component (§9.1).
+ * Tests for the CoverLetterReview component (§9.1, §9.2).
  *
  * REQ-012 §10.2: Cover letter review with agent reasoning,
  * stories used, editable textarea, and word count indicator.
+ * REQ-012 §10.3: Validation display with error/warning banners
+ * and voice check badge.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -29,6 +31,9 @@ const REASONING_TESTID = "agent-reasoning";
 const REASONING_TOGGLE_TESTID = "agent-reasoning-toggle";
 const STORIES_TESTID = "stories-used";
 const WORD_COUNT_TESTID = "word-count";
+const VALIDATION_ERRORS_TESTID = "validation-errors";
+const VALIDATION_WARNINGS_TESTID = "validation-warnings";
+const VOICE_CHECK_TESTID = "voice-check";
 
 const MOCK_TIMESTAMP = "2024-01-15T10:00:00Z";
 
@@ -53,10 +58,28 @@ function makeCoverLetter(overrides?: Record<string, unknown>) {
 		final_text: null,
 		status: "Draft",
 		agent_reasoning: MOCK_REASONING,
+		validation_result: null,
 		approved_at: null,
 		created_at: MOCK_TIMESTAMP,
 		updated_at: MOCK_TIMESTAMP,
 		archived_at: null,
+		...overrides,
+	};
+}
+
+function makeVoiceProfile(overrides?: Record<string, unknown>) {
+	return {
+		id: "vp-1",
+		persona_id: PERSONA_ID,
+		tone: "Direct, confident",
+		sentence_style: "Short, active voice",
+		vocabulary_level: "Professional",
+		personality_markers: null,
+		sample_phrases: [],
+		things_to_avoid: [],
+		writing_sample_text: null,
+		created_at: MOCK_TIMESTAMP,
+		updated_at: MOCK_TIMESTAMP,
 		...overrides,
 	};
 }
@@ -167,6 +190,7 @@ const MOCK_SKILLS_RESPONSE = {
 	data: makeSkills(),
 	meta: { total: 3, page: 1, per_page: 20, total_pages: 1 },
 };
+const MOCK_VOICE_PROFILE_RESPONSE = { data: makeVoiceProfile() };
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -241,6 +265,7 @@ function setupMockApi(overrides?: {
 	jobPosting?: unknown;
 	stories?: unknown;
 	skills?: unknown;
+	voiceProfile?: unknown;
 }) {
 	mocks.mockApiGet.mockImplementation((path: string) => {
 		if (path === `/cover-letters/${COVER_LETTER_ID}`)
@@ -255,6 +280,10 @@ function setupMockApi(overrides?: {
 			return Promise.resolve(overrides?.stories ?? MOCK_STORIES_RESPONSE);
 		if (path.includes("/skills"))
 			return Promise.resolve(overrides?.skills ?? MOCK_SKILLS_RESPONSE);
+		if (path.includes("/voice-profile"))
+			return Promise.resolve(
+				overrides?.voiceProfile ?? MOCK_VOICE_PROFILE_RESPONSE,
+			);
 		return Promise.reject(new Error(`Unexpected API call: ${path}`));
 	});
 }
@@ -575,10 +604,218 @@ describe("CoverLetterReview", () => {
 		);
 	});
 
+	// Validation Display (§9.2)
+	// -----------------------------------------------------------------------
+
+	it("shows error banner with red styling for error-severity issues", async () => {
+		setupMockApi({
+			coverLetter: {
+				data: makeCoverLetter({
+					validation_result: {
+						passed: false,
+						issues: [
+							{
+								severity: "error",
+								rule: "length_min",
+								message: "Cover letter is too short (minimum 250 words).",
+							},
+						],
+						word_count: 150,
+					},
+				}),
+			},
+		});
+		renderReview();
+		await waitFor(() => {
+			expect(screen.getByTestId(VALIDATION_ERRORS_TESTID)).toBeInTheDocument();
+		});
+		expect(screen.getByTestId(VALIDATION_ERRORS_TESTID)).toHaveAttribute(
+			"role",
+			"alert",
+		);
+		expect(
+			screen.getByText("Cover letter is too short (minimum 250 words)."),
+		).toBeInTheDocument();
+	});
+
+	it("shows warning notice with amber styling for warning-severity issues", async () => {
+		setupMockApi({
+			coverLetter: {
+				data: makeCoverLetter({
+					validation_result: {
+						passed: true,
+						issues: [
+							{
+								severity: "warning",
+								rule: "company_specificity",
+								message: "Company name not mentioned in opening paragraph.",
+							},
+						],
+						word_count: 300,
+					},
+				}),
+			},
+		});
+		renderReview();
+		await waitFor(() => {
+			expect(
+				screen.getByTestId(VALIDATION_WARNINGS_TESTID),
+			).toBeInTheDocument();
+		});
+		expect(screen.getByTestId(VALIDATION_WARNINGS_TESTID)).toHaveAttribute(
+			"role",
+			"status",
+		);
+		expect(
+			screen.getByText("Company name not mentioned in opening paragraph."),
+		).toBeInTheDocument();
+	});
+
+	it("shows both error and warning banners when mixed severities", async () => {
+		setupMockApi({
+			coverLetter: {
+				data: makeCoverLetter({
+					validation_result: {
+						passed: false,
+						issues: [
+							{
+								severity: "error",
+								rule: "blacklist_violation",
+								message: "Contains blacklisted phrase.",
+							},
+							{
+								severity: "warning",
+								rule: "company_specificity",
+								message: "Company name not mentioned.",
+							},
+						],
+						word_count: 300,
+					},
+				}),
+			},
+		});
+		renderReview();
+		await waitFor(() => {
+			expect(screen.getByTestId(VALIDATION_ERRORS_TESTID)).toBeInTheDocument();
+		});
+		expect(screen.getByTestId(VALIDATION_WARNINGS_TESTID)).toBeInTheDocument();
+		expect(
+			screen.getByText("Contains blacklisted phrase."),
+		).toBeInTheDocument();
+		expect(screen.getByText("Company name not mentioned.")).toBeInTheDocument();
+	});
+
+	it("hides validation section when no issues", async () => {
+		setupMockApi({
+			coverLetter: {
+				data: makeCoverLetter({
+					validation_result: {
+						passed: true,
+						issues: [],
+						word_count: 300,
+					},
+				}),
+			},
+		});
+		renderReview();
+		await waitFor(() => {
+			expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+		});
+		expect(
+			screen.queryByTestId(VALIDATION_ERRORS_TESTID),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByTestId(VALIDATION_WARNINGS_TESTID),
+		).not.toBeInTheDocument();
+	});
+
+	it("hides validation section when validation_result is null", async () => {
+		setupMockApi({
+			coverLetter: {
+				data: makeCoverLetter({ validation_result: null }),
+			},
+		});
+		renderReview();
+		await waitFor(() => {
+			expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+		});
+		expect(
+			screen.queryByTestId(VALIDATION_ERRORS_TESTID),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByTestId(VALIDATION_WARNINGS_TESTID),
+		).not.toBeInTheDocument();
+	});
+
+	it("shows multiple error messages in error banner", async () => {
+		setupMockApi({
+			coverLetter: {
+				data: makeCoverLetter({
+					validation_result: {
+						passed: false,
+						issues: [
+							{
+								severity: "error",
+								rule: "length_min",
+								message: "Too short.",
+							},
+							{
+								severity: "error",
+								rule: "metric_accuracy",
+								message: "Metric not verifiable.",
+							},
+						],
+						word_count: 100,
+					},
+				}),
+			},
+		});
+		renderReview();
+		await waitFor(() => {
+			expect(screen.getByTestId(VALIDATION_ERRORS_TESTID)).toBeInTheDocument();
+		});
+		expect(screen.getByText("Too short.")).toBeInTheDocument();
+		expect(screen.getByText("Metric not verifiable.")).toBeInTheDocument();
+	});
+
+	// Voice Check Badge (§9.2)
+	// -----------------------------------------------------------------------
+
+	it("shows voice check badge with persona tone", async () => {
+		setupMockApi();
+		renderReview();
+		await waitFor(() => {
+			expect(screen.getByTestId(VOICE_CHECK_TESTID)).toBeInTheDocument();
+		});
+		expect(screen.getByTestId(VOICE_CHECK_TESTID)).toHaveTextContent(
+			/Direct, confident/,
+		);
+	});
+
+	it("shows checkmark on voice badge", async () => {
+		setupMockApi();
+		renderReview();
+		await waitFor(() => {
+			expect(screen.getByTestId(VOICE_CHECK_TESTID)).toBeInTheDocument();
+		});
+		expect(screen.getByTestId(VOICE_CHECK_TESTID)).toHaveTextContent("✓");
+	});
+
+	it("hides voice badge when voice profile not available", async () => {
+		setupMockApi({
+			voiceProfile: { data: null },
+		});
+		renderReview();
+		await waitFor(() => {
+			expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
+		});
+		expect(screen.queryByTestId(VOICE_CHECK_TESTID)).not.toBeInTheDocument();
+	});
+
 	// API Calls
 	// -----------------------------------------------------------------------
 
-	it("fetches cover letter, job posting, stories, and skills", async () => {
+	it("fetches cover letter, job posting, stories, skills, and voice profile", async () => {
 		setupMockApi();
 		renderReview();
 		await waitFor(() => {
@@ -596,6 +833,9 @@ describe("CoverLetterReview", () => {
 		);
 		expect(mocks.mockApiGet).toHaveBeenCalledWith(
 			`/personas/${PERSONA_ID}/skills`,
+		);
+		expect(mocks.mockApiGet).toHaveBeenCalledWith(
+			`/personas/${PERSONA_ID}/voice-profile`,
 		);
 	});
 });
