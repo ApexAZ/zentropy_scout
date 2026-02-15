@@ -7,13 +7,22 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { JobSourcesSection } from "./job-sources-section";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface SettingsPageProps {
+	personaId: string;
+}
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 /** Settings page with section cards for Job Sources, Agent Config, and About. */
-export function SettingsPage() {
+export function SettingsPage({ personaId }: SettingsPageProps) {
 	return (
 		<div data-testid="settings-page" className="space-y-6">
 			<h1 className="text-2xl font-bold">Settings</h1>
@@ -24,9 +33,7 @@ export function SettingsPage() {
 					<CardTitle>Job Sources</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<p className="text-muted-foreground text-sm">
-						Configure which job sources to search and their priority order.
-					</p>
+					<JobSourcesSection personaId={personaId} />
 				</CardContent>
 			</Card>
 

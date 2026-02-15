@@ -16,5 +16,5 @@ export default function SettingsRoute() {
 
 	if (personaStatus.status !== "onboarded") return null;
 
-	return <SettingsPage />;
+	return <SettingsPage personaId={personaStatus.persona.id} />;
 }

@@ -153,3 +153,7 @@ export type {
 } from "./ingest";
 
 export { INGEST_SOURCE_NAMES } from "./ingest";
+
+export type { JobSource, SourceType, UserSourcePreference } from "./source";
+
+export { SOURCE_TYPES } from "./source";

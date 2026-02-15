@@ -21,6 +21,7 @@ export const queryKeys = {
 	coverLetters: ["cover-letters"] as const,
 	changeFlags: ["change-flags"] as const,
 	baseResumes: [BASE_RESUMES] as const,
+	jobSources: ["job-sources"] as const,
 
 	// Detail keys
 	persona: (id: string) => [PERSONAS, id] as const,
@@ -43,6 +44,10 @@ export const queryKeys = {
 		[PERSONAS, personaId, "voice-profile"] as const,
 	customNonNegotiables: (personaId: string) =>
 		[PERSONAS, personaId, "custom-non-negotiables"] as const,
+
+	// Sub-entity keys (nested under persona for prefix invalidation — sources)
+	sourcePreferences: (personaId: string) =>
+		[PERSONAS, personaId, "source-preferences"] as const,
 
 	// Sub-entity keys (nested under application for prefix invalidation)
 	timelineEvents: (applicationId: string) =>
