@@ -139,6 +139,23 @@ export function buildUrl(
 	return url.toString();
 }
 
+/** Build the RequestInit object from API request options. */
+function buildFetchInit(options?: RequestOptions): RequestInit {
+	const headers: Record<string, string> = { ...options?.headers };
+	if (options?.body !== undefined) {
+		headers["Content-Type"] = "application/json";
+	}
+
+	return {
+		method: options?.method ?? "GET",
+		headers,
+		signal: options?.signal,
+		...(options?.body !== undefined && {
+			body: JSON.stringify(options.body),
+		}),
+	};
+}
+
 /**
  * Core typed fetch wrapper with error handling and 429 retry.
  *
@@ -153,21 +170,7 @@ export async function apiFetch<T>(
 	options?: RequestOptions,
 ): Promise<T> {
 	const url = buildUrl(path, options?.params);
-	const method = options?.method ?? "GET";
-
-	const headers: Record<string, string> = { ...options?.headers };
-	if (options?.body !== undefined) {
-		headers["Content-Type"] = "application/json";
-	}
-
-	const fetchOptions: RequestInit = {
-		method,
-		headers,
-		signal: options?.signal,
-		...(options?.body !== undefined && {
-			body: JSON.stringify(options.body),
-		}),
-	};
+	const fetchOptions = buildFetchInit(options);
 
 	let lastRetryAfter: string | null = null;
 

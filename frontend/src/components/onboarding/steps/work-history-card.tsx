@@ -133,7 +133,7 @@ export function WorkHistoryCard({
 							<span>
 								{bulletCount === 0
 									? "Add bullets"
-									: `${bulletCount} bullet${bulletCount === 1 ? "" : "s"}`}
+									: `${bulletCount} ${bulletCount === 1 ? "bullet" : "bullets"}`}
 							</span>
 						</button>
 					)}

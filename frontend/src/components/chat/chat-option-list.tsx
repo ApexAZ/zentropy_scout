@@ -42,11 +42,10 @@ export function ChatOptionList({
 	className,
 }: Readonly<ChatOptionListProps>) {
 	return (
-		<div
+		<fieldset
 			data-slot="chat-option-list"
-			role="group"
 			aria-label="Select an option"
-			className={cn("bg-card rounded-lg border p-3 text-sm", className)}
+			className={cn("bg-card m-0 rounded-lg border p-3 text-sm", className)}
 		>
 			<ul className="flex flex-col gap-1">
 				{data.options.map((option, index) => (
@@ -64,6 +63,6 @@ export function ChatOptionList({
 			<p data-slot="option-hint" className="text-muted-foreground mt-2 text-xs">
 				Or type to describe...
 			</p>
-		</div>
+		</fieldset>
 	);
 }

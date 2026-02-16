@@ -267,16 +267,9 @@ export function ResumeUploadStep() {
 
 			{/* Idle: Drop zone */}
 			{status === "idle" && (
-				<div
-					role="button"
-					tabIndex={0}
+				<button
+					type="button"
 					onClick={openFilePicker}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" || e.key === " ") {
-							e.preventDefault();
-							openFilePicker();
-						}
-					}}
 					onDrop={handleDrop}
 					onDragOver={handleDragOverOrEnter}
 					onDragEnter={handleDragOverOrEnter}
@@ -297,7 +290,7 @@ export function ResumeUploadStep() {
 					<p className="text-muted-foreground mt-3 text-xs">
 						Max {MAX_FILE_SIZE_LABEL} &middot; PDF or DOCX
 					</p>
-				</div>
+				</button>
 			)}
 
 			{/* Uploading: Progress indicator */}

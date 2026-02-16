@@ -49,13 +49,12 @@ export function ChatConfirmCard({
 	const cancelLabel = data.cancelLabel ?? "Cancel";
 
 	return (
-		<div
+		<fieldset
 			data-slot="chat-confirm-card"
 			data-destructive={String(data.isDestructive)}
-			role="group"
 			aria-label="Confirmation required"
 			className={cn(
-				"bg-card rounded-lg border p-3 text-sm",
+				"bg-card m-0 rounded-lg border p-3 text-sm",
 				data.isDestructive && "border-destructive/50",
 				className,
 			)}
@@ -84,6 +83,6 @@ export function ChatConfirmCard({
 					{cancelLabel}
 				</button>
 			</div>
-		</div>
+		</fieldset>
 	);
 }

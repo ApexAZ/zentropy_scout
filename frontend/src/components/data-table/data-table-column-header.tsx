@@ -27,6 +27,25 @@ export interface DataTableColumnHeaderProps<TData, TValue> {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Renders the appropriate sort direction icon. */
+function SortDirectionIcon({
+	direction,
+}: Readonly<{ direction: false | "asc" | "desc" }>) {
+	if (direction === "asc") {
+		return <ArrowUp data-testid="sort-asc" className="h-4 w-4" />;
+	}
+	if (direction === "desc") {
+		return <ArrowDown data-testid="sort-desc" className="h-4 w-4" />;
+	}
+	return (
+		<ArrowUpDown data-testid="sort-unsorted" className="h-4 w-4 opacity-50" />
+	);
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -51,16 +70,7 @@ export function DataTableColumnHeader<TData, TValue>({
 			onClick={() => column.toggleSorting()}
 		>
 			<span>{title}</span>
-			{sorted === "asc" ? (
-				<ArrowUp data-testid="sort-asc" className="h-4 w-4" />
-			) : sorted === "desc" ? (
-				<ArrowDown data-testid="sort-desc" className="h-4 w-4" />
-			) : (
-				<ArrowUpDown
-					data-testid="sort-unsorted"
-					className="h-4 w-4 opacity-50"
-				/>
-			)}
+			<SortDirectionIcon direction={sorted} />
 		</button>
 	);
 }

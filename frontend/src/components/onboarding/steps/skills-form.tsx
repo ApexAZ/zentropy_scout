@@ -169,15 +169,11 @@ export function SkillForm({
 
 	const watchedType = form.watch("skill_type");
 
-	const categoryOptions = useMemo(
-		() =>
-			watchedType === "Hard"
-				? HARD_SKILL_CATEGORIES
-				: watchedType === "Soft"
-					? SOFT_SKILL_CATEGORIES
-					: [],
-		[watchedType],
-	);
+	const categoryOptions = useMemo(() => {
+		if (watchedType === "Hard") return HARD_SKILL_CATEGORIES;
+		if (watchedType === "Soft") return SOFT_SKILL_CATEGORIES;
+		return [];
+	}, [watchedType]);
 
 	// Clear category when skill_type changes and current category is invalid
 	useEffect(() => {

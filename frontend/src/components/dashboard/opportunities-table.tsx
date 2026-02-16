@@ -17,9 +17,12 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+	CellContext,
 	ColumnDef,
+	HeaderContext,
 	RowSelectionState,
 	SortingState,
+	Table as ReactTable,
 } from "@tanstack/react-table";
 import { ChevronDown, Heart, Loader2, Plus, TriangleAlert } from "lucide-react";
 
@@ -231,6 +234,244 @@ function FilteredJobInfo({ job }: Readonly<{ job: JobPosting }>) {
 }
 
 // ---------------------------------------------------------------------------
+// Column renderers (extracted to module scope per S6478)
+// ---------------------------------------------------------------------------
+
+function FavoriteHeader({ column }: HeaderContext<JobPosting, unknown>) {
+	return <DataTableColumnHeader column={column} title="Favorite" />;
+}
+
+function JobTitleHeader({ column }: HeaderContext<JobPosting, unknown>) {
+	return <DataTableColumnHeader column={column} title="Job Title" />;
+}
+
+function JobTitleCell({ row }: CellContext<JobPosting, unknown>) {
+	return (
+		<div>
+			<div className="font-medium">{row.original.job_title}</div>
+			<div className="text-muted-foreground text-sm">
+				{row.original.company_name}
+			</div>
+			<FilteredJobInfo job={row.original} />
+		</div>
+	);
+}
+
+function LocationHeader({ column }: HeaderContext<JobPosting, unknown>) {
+	return <DataTableColumnHeader column={column} title="Location" />;
+}
+
+function SalaryHeader({ column }: HeaderContext<JobPosting, unknown>) {
+	return <DataTableColumnHeader column={column} title="Salary" />;
+}
+
+function FitScoreHeader({ column }: HeaderContext<JobPosting, unknown>) {
+	return <DataTableColumnHeader column={column} title="Fit" />;
+}
+
+function FitScoreCell({ row }: CellContext<JobPosting, unknown>) {
+	return <ScoreTierBadge score={row.original.fit_score} scoreType="fit" />;
+}
+
+function StretchScoreHeader({ column }: HeaderContext<JobPosting, unknown>) {
+	return <DataTableColumnHeader column={column} title="Stretch" />;
+}
+
+function StretchScoreCell({ row }: CellContext<JobPosting, unknown>) {
+	return (
+		<ScoreTierBadge score={row.original.stretch_score} scoreType="stretch" />
+	);
+}
+
+function GhostScoreHeader({ column }: HeaderContext<JobPosting, unknown>) {
+	return <DataTableColumnHeader column={column} title="Ghost" />;
+}
+
+function GhostScoreCell({ row }: CellContext<JobPosting, unknown>) {
+	const job = row.original;
+	const tier = getGhostTierConfig(job.ghost_score);
+	if (!tier) return null;
+	return (
+		<TooltipProvider>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<TriangleAlert
+						data-testid={`ghost-warning-${job.id}`}
+						className={cn("h-4 w-4", tier.colorClass)}
+						aria-label={tier.ariaLabel}
+					/>
+				</TooltipTrigger>
+				<TooltipContent>{tier.tooltip}</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	);
+}
+
+function DiscoveredHeader({ column }: HeaderContext<JobPosting, unknown>) {
+	return <DataTableColumnHeader column={column} title="Discovered" />;
+}
+
+// ---------------------------------------------------------------------------
+// Toolbars (extracted to module scope per S6478)
+// ---------------------------------------------------------------------------
+
+interface OpportunitiesSelectionBarProps {
+	selectedCount: number;
+	bulkActionInProgress: boolean;
+	onBulkDismiss: () => void;
+	onBulkFavorite: () => void;
+	onCancel: () => void;
+}
+
+function OpportunitiesSelectionBar({
+	selectedCount,
+	bulkActionInProgress,
+	onBulkDismiss,
+	onBulkFavorite,
+	onCancel,
+}: Readonly<OpportunitiesSelectionBarProps>) {
+	return (
+		<div data-testid="selection-action-bar" className="flex items-center gap-2">
+			<span data-testid="selected-count" className="text-sm font-medium">
+				{selectedCount} selected
+			</span>
+			<Button
+				data-testid="bulk-dismiss-button"
+				variant="outline"
+				size="sm"
+				disabled={selectedCount === 0 || bulkActionInProgress}
+				onClick={onBulkDismiss}
+			>
+				Bulk Dismiss
+			</Button>
+			<Button
+				data-testid="bulk-favorite-button"
+				variant="outline"
+				size="sm"
+				disabled={selectedCount === 0 || bulkActionInProgress}
+				onClick={onBulkFavorite}
+			>
+				Bulk Favorite
+			</Button>
+			<Button
+				data-testid="cancel-select-button"
+				variant="ghost"
+				size="sm"
+				onClick={onCancel}
+			>
+				Cancel
+			</Button>
+		</div>
+	);
+}
+
+interface OpportunitiesToolbarProps {
+	table: ReactTable<JobPosting>;
+	statusFilter: JobPostingStatus;
+	onStatusFilterChange: (value: JobPostingStatus) => void;
+	minFit: number;
+	onMinFitChange: (value: number) => void;
+	sortField: string;
+	onSortFieldChange: (field: string) => void;
+	onAddJob: () => void;
+	onSelectMode: () => void;
+	showFiltered: boolean;
+	onShowFilteredChange: (value: boolean) => void;
+}
+
+function OpportunitiesToolbar({
+	table,
+	statusFilter,
+	onStatusFilterChange,
+	minFit,
+	onMinFitChange,
+	sortField,
+	onSortFieldChange,
+	onAddJob,
+	onSelectMode,
+	showFiltered,
+	onShowFilteredChange,
+}: Readonly<OpportunitiesToolbarProps>) {
+	return (
+		<DataTableToolbar table={table} searchPlaceholder="Search jobs...">
+			<Select
+				value={statusFilter}
+				onValueChange={(v) => onStatusFilterChange(v as JobPostingStatus)}
+			>
+				<SelectTrigger aria-label="Status filter" size="sm">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{JOB_POSTING_STATUSES.map((s) => (
+						<SelectItem key={s} value={s}>
+							{s}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+
+			<Select
+				value={String(minFit)}
+				onValueChange={(v) => onMinFitChange(Number(v))}
+			>
+				<SelectTrigger aria-label="Minimum fit score" size="sm">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{MIN_FIT_OPTIONS.map((opt) => (
+						<SelectItem key={opt.value} value={opt.value}>
+							{opt.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+
+			<Select value={sortField} onValueChange={onSortFieldChange}>
+				<SelectTrigger aria-label="Sort by" size="sm">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{SORT_OPTIONS.map((opt) => (
+						<SelectItem key={opt.value} value={opt.value}>
+							{opt.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+
+			<Button
+				data-testid="add-job-button"
+				variant="outline"
+				size="sm"
+				onClick={onAddJob}
+			>
+				<Plus className="mr-1 h-4 w-4" />
+				Add Job
+			</Button>
+
+			<Button
+				data-testid="select-mode-button"
+				variant="outline"
+				size="sm"
+				onClick={onSelectMode}
+			>
+				Select
+			</Button>
+
+			<div className="flex items-center gap-1.5">
+				<Checkbox
+					id="show-filtered"
+					checked={showFiltered}
+					onCheckedChange={(v) => onShowFilteredChange(!!v)}
+					aria-label="Show filtered jobs"
+				/>
+				<span className="text-sm whitespace-nowrap">Show filtered</span>
+			</div>
+		</DataTableToolbar>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -360,14 +601,52 @@ export function OpportunitiesTable() {
 		}
 	}, [selectedIds, queryClient, exitSelectMode]);
 
+	const renderToolbar = useCallback(
+		(table: ReactTable<JobPosting>) =>
+			selectMode ? (
+				<OpportunitiesSelectionBar
+					selectedCount={selectedCount}
+					bulkActionInProgress={bulkActionInProgress}
+					onBulkDismiss={handleBulkDismiss}
+					onBulkFavorite={handleBulkFavorite}
+					onCancel={exitSelectMode}
+				/>
+			) : (
+				<OpportunitiesToolbar
+					table={table}
+					statusFilter={statusFilter}
+					onStatusFilterChange={setStatusFilter}
+					minFit={minFit}
+					onMinFitChange={setMinFit}
+					sortField={sortField}
+					onSortFieldChange={handleSortFieldChange}
+					onAddJob={() => setAddJobOpen(true)}
+					onSelectMode={() => setSelectMode(true)}
+					showFiltered={showFiltered}
+					onShowFilteredChange={setShowFiltered}
+				/>
+			),
+		[
+			selectMode,
+			selectedCount,
+			bulkActionInProgress,
+			handleBulkDismiss,
+			handleBulkFavorite,
+			exitSelectMode,
+			statusFilter,
+			minFit,
+			sortField,
+			handleSortFieldChange,
+			showFiltered,
+		],
+	);
+
 	const columns = useMemo<ColumnDef<JobPosting, unknown>[]>(
 		() => [
 			...(selectMode ? [getSelectColumn<JobPosting>()] : []),
 			{
 				accessorKey: "is_favorite",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Favorite" />
-				),
+				header: FavoriteHeader,
 				cell: ({ row }) => {
 					const job = row.original;
 					const isToggling = togglingFavoriteId === job.id;
@@ -395,88 +674,41 @@ export function OpportunitiesTable() {
 			},
 			{
 				accessorKey: "job_title",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Job Title" />
-				),
-				cell: ({ row }) => (
-					<div>
-						<div className="font-medium">{row.original.job_title}</div>
-						<div className="text-muted-foreground text-sm">
-							{row.original.company_name}
-						</div>
-						<FilteredJobInfo job={row.original} />
-					</div>
-				),
+				header: JobTitleHeader,
+				cell: JobTitleCell,
 			},
 			{
 				id: "location",
 				accessorFn: (row) => row.location,
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Location" />
-				),
+				header: LocationHeader,
 				cell: ({ row }) => formatLocation(row.original),
 				enableSorting: false,
 			},
 			{
 				id: "salary",
 				accessorFn: (row) => row.salary_min,
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Salary" />
-				),
+				header: SalaryHeader,
 				cell: ({ row }) => formatSalary(row.original),
 			},
 			{
 				accessorKey: "fit_score",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Fit" />
-				),
-				cell: ({ row }) => (
-					<ScoreTierBadge score={row.original.fit_score} scoreType="fit" />
-				),
+				header: FitScoreHeader,
+				cell: FitScoreCell,
 			},
 			{
 				accessorKey: "stretch_score",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Stretch" />
-				),
-				cell: ({ row }) => (
-					<ScoreTierBadge
-						score={row.original.stretch_score}
-						scoreType="stretch"
-					/>
-				),
+				header: StretchScoreHeader,
+				cell: StretchScoreCell,
 			},
 			{
 				accessorKey: "ghost_score",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Ghost" />
-				),
-				cell: ({ row }) => {
-					const job = row.original;
-					const tier = getGhostTierConfig(job.ghost_score);
-					if (!tier) return null;
-					return (
-						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<TriangleAlert
-										data-testid={`ghost-warning-${job.id}`}
-										className={cn("h-4 w-4", tier.colorClass)}
-										aria-label={tier.ariaLabel}
-									/>
-								</TooltipTrigger>
-								<TooltipContent>{tier.tooltip}</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
-					);
-				},
+				header: GhostScoreHeader,
+				cell: GhostScoreCell,
 				enableSorting: false,
 			},
 			{
 				accessorKey: "first_seen_date",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Discovered" />
-				),
+				header: DiscoveredHeader,
 				cell: ({ row }) => formatDaysAgo(row.original.first_seen_date),
 			},
 		],
@@ -519,123 +751,7 @@ export function OpportunitiesTable() {
 				enableRowSelection={selectMode}
 				rowSelection={rowSelection}
 				onRowSelectionChange={setRowSelection}
-				toolbar={(table) =>
-					selectMode ? (
-						<div
-							data-testid="selection-action-bar"
-							className="flex items-center gap-2"
-						>
-							<span
-								data-testid="selected-count"
-								className="text-sm font-medium"
-							>
-								{selectedCount} selected
-							</span>
-							<Button
-								data-testid="bulk-dismiss-button"
-								variant="outline"
-								size="sm"
-								disabled={selectedCount === 0 || bulkActionInProgress}
-								onClick={handleBulkDismiss}
-							>
-								Bulk Dismiss
-							</Button>
-							<Button
-								data-testid="bulk-favorite-button"
-								variant="outline"
-								size="sm"
-								disabled={selectedCount === 0 || bulkActionInProgress}
-								onClick={handleBulkFavorite}
-							>
-								Bulk Favorite
-							</Button>
-							<Button
-								data-testid="cancel-select-button"
-								variant="ghost"
-								size="sm"
-								onClick={exitSelectMode}
-							>
-								Cancel
-							</Button>
-						</div>
-					) : (
-						<DataTableToolbar table={table} searchPlaceholder="Search jobs...">
-							<Select
-								value={statusFilter}
-								onValueChange={(v) => setStatusFilter(v as JobPostingStatus)}
-							>
-								<SelectTrigger aria-label="Status filter" size="sm">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{JOB_POSTING_STATUSES.map((s) => (
-										<SelectItem key={s} value={s}>
-											{s}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-
-							<Select
-								value={String(minFit)}
-								onValueChange={(v) => setMinFit(Number(v))}
-							>
-								<SelectTrigger aria-label="Minimum fit score" size="sm">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{MIN_FIT_OPTIONS.map((opt) => (
-										<SelectItem key={opt.value} value={opt.value}>
-											{opt.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-
-							<Select value={sortField} onValueChange={handleSortFieldChange}>
-								<SelectTrigger aria-label="Sort by" size="sm">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{SORT_OPTIONS.map((opt) => (
-										<SelectItem key={opt.value} value={opt.value}>
-											{opt.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-
-							<Button
-								data-testid="add-job-button"
-								variant="outline"
-								size="sm"
-								onClick={() => setAddJobOpen(true)}
-							>
-								<Plus className="mr-1 h-4 w-4" />
-								Add Job
-							</Button>
-
-							<Button
-								data-testid="select-mode-button"
-								variant="outline"
-								size="sm"
-								onClick={() => setSelectMode(true)}
-							>
-								Select
-							</Button>
-
-							<div className="flex items-center gap-1.5">
-								<Checkbox
-									id="show-filtered"
-									checked={showFiltered}
-									onCheckedChange={(v) => setShowFiltered(!!v)}
-									aria-label="Show filtered jobs"
-								/>
-								<span className="text-sm whitespace-nowrap">Show filtered</span>
-							</div>
-						</DataTableToolbar>
-					)
-				}
+				toolbar={renderToolbar}
 			/>
 			<AddJobModal open={addJobOpen} onOpenChange={setAddJobOpen} />
 		</div>

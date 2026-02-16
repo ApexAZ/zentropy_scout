@@ -47,6 +47,18 @@ interface VariantReviewProps {
 }
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** CSS classes for diff token highlighting keyed by token type. */
+const DIFF_CLASS_MAP: Readonly<Record<string, string | undefined>> = {
+	same: undefined,
+	added: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+	removed:
+		"bg-red-100 text-red-800 line-through dark:bg-red-900 dark:text-red-200",
+};
+
+// ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
@@ -65,19 +77,9 @@ function DiffText({
 	return (
 		<p className="text-sm leading-relaxed">
 			{filtered.map((token, idx) => {
-				const diffType =
-					token.type === "same"
-						? undefined
-						: token.type === "added"
-							? "added"
-							: "removed";
+				const diffType = token.type === "same" ? undefined : token.type;
 
-				const className =
-					token.type === "added"
-						? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-						: token.type === "removed"
-							? "bg-red-100 text-red-800 line-through dark:bg-red-900 dark:text-red-200"
-							: undefined;
+				const className = DIFF_CLASS_MAP[token.type];
 
 				return (
 					<span key={`${token.type}-${idx}`}>

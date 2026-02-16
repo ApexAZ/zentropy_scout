@@ -36,10 +36,9 @@ export function ChangeFlagsBanner() {
 		count === 1 ? "1 change needs review" : `${count} changes need review`;
 
 	return (
-		<div
+		<output
 			className="border-warning/50 bg-warning/10 flex items-center justify-between rounded-lg border p-4"
 			data-testid="change-flags-banner"
-			role="status"
 		>
 			<div className="flex items-center gap-2 text-sm">
 				<TriangleAlert className="text-warning h-4 w-4" />
@@ -51,6 +50,6 @@ export function ChangeFlagsBanner() {
 			>
 				Review
 			</Link>
-		</div>
+		</output>
 	);
 }

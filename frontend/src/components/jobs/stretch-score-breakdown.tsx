@@ -87,10 +87,9 @@ function StretchScoreBreakdown({
 
 			{/* Expanded panel: component rows */}
 			{expanded && (
-				<div
+				<section
 					id="stretch-score-panel"
 					data-testid="stretch-score-panel"
-					role="region"
 					aria-label="Stretch score component breakdown"
 				>
 					<ul className="ml-6 space-y-1">
@@ -122,7 +121,7 @@ function StretchScoreBreakdown({
 							);
 						})}
 					</ul>
-				</div>
+				</section>
 			)}
 		</div>
 	);

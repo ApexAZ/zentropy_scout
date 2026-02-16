@@ -18,10 +18,10 @@ import { usePersonaStatus } from "@/hooks/use-persona-status";
 
 function Spinner({ label }: Readonly<{ label: string }>) {
 	return (
-		<div role="status" className="flex h-full items-center justify-center">
+		<output className="flex h-full items-center justify-center">
 			<span className="border-primary h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
 			<span className="sr-only">{label}</span>
-		</div>
+		</output>
 	);
 }
 

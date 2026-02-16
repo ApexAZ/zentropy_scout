@@ -9,7 +9,7 @@ const stateLayoutClasses =
 const stateTitleClasses = "text-lg font-semibold";
 const mutedIconClasses = "text-muted-foreground size-12";
 
-interface EmptyStateProps extends React.ComponentProps<"div"> {
+interface EmptyStateProps extends React.ComponentProps<"output"> {
 	icon?: React.ComponentType<{ className?: string }>;
 	title: string;
 	description?: string;
@@ -46,9 +46,8 @@ function EmptyState({
 	...props
 }: Readonly<EmptyStateProps>) {
 	return (
-		<div
+		<output
 			data-slot="empty-state"
-			role="status"
 			className={cn(stateLayoutClasses, className)}
 			{...props}
 		>
@@ -60,7 +59,7 @@ function EmptyState({
 				)}
 			</div>
 			{action && <Button onClick={action.onClick}>{action.label}</Button>}
-		</div>
+		</output>
 	);
 }
 

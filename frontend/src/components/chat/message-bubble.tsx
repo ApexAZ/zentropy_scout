@@ -94,17 +94,16 @@ export function MessageBubble({
 }: Readonly<MessageBubbleProps>) {
 	if (message.role === "system") {
 		return (
-			<div
+			<output
 				data-slot="system-notice"
 				data-role="system"
-				role="status"
 				className={cn(
-					"text-muted-foreground py-1 text-center text-xs",
+					"text-muted-foreground block py-1 text-center text-xs",
 					className,
 				)}
 			>
 				{message.content}
-			</div>
+			</output>
 		);
 	}
 

@@ -134,10 +134,9 @@ function ValidationWarnings({
 	issues,
 }: Readonly<{ issues: ValidationIssue[] }>) {
 	return (
-		<div
+		<output
 			data-testid="validation-warnings"
-			role="status"
-			className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950"
+			className="mt-4 block rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950"
 		>
 			<div className="mb-2 flex items-center gap-2">
 				<AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -150,7 +149,7 @@ function ValidationWarnings({
 					<li key={issue.rule}>{issue.message}</li>
 				))}
 			</ul>
-		</div>
+		</output>
 	);
 }
 

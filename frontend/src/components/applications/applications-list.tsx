@@ -12,9 +12,12 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+	CellContext,
 	ColumnDef,
+	HeaderContext,
 	RowSelectionState,
 	SortingState,
+	Table as ReactTable,
 } from "@tanstack/react-table";
 import { Loader2 } from "lucide-react";
 
@@ -71,6 +74,205 @@ const DEFAULT_SORT_FIELD = "status_updated_at";
 const EMPTY_MESSAGE = "No applications yet.";
 const BULK_ACTION_ERROR = "Bulk archive failed.";
 const EM_DASH = "\u2014";
+
+// ---------------------------------------------------------------------------
+// Column renderers (extracted to module scope per S6478)
+// ---------------------------------------------------------------------------
+
+function JobTitleHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Job Title" />;
+}
+
+function JobTitleCell({ row }: CellContext<Application, unknown>) {
+	return (
+		<div>
+			<div className="font-medium">{row.original.job_snapshot.title}</div>
+			<div className="text-muted-foreground text-sm">
+				{row.original.job_snapshot.company_name}
+			</div>
+		</div>
+	);
+}
+
+function StatusHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Status" />;
+}
+
+function StatusCell({ row }: CellContext<Application, unknown>) {
+	return <StatusBadge status={row.original.status} />;
+}
+
+function InterviewStageHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Interview Stage" />;
+}
+
+function InterviewStageCell({ row }: CellContext<Application, unknown>) {
+	const stage = row.original.current_interview_stage;
+	if (stage) {
+		return (
+			<span className="bg-warning/20 text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
+				{stage}
+			</span>
+		);
+	}
+	return EM_DASH;
+}
+
+function AppliedAtHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Applied" />;
+}
+
+function LastUpdatedHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Last Updated" />;
+}
+
+const BASE_APPLICATION_COLUMNS: ColumnDef<Application, unknown>[] = [
+	{
+		id: "job_title",
+		accessorFn: (row) =>
+			`${row.job_snapshot.title} ${row.job_snapshot.company_name}`,
+		header: JobTitleHeader,
+		cell: JobTitleCell,
+		enableSorting: false,
+	},
+	{
+		accessorKey: "status",
+		header: StatusHeader,
+		cell: StatusCell,
+		enableSorting: false,
+	},
+	{
+		id: "interview_stage",
+		accessorFn: (row) => row.current_interview_stage,
+		header: InterviewStageHeader,
+		cell: InterviewStageCell,
+		enableSorting: false,
+	},
+	{
+		accessorKey: "applied_at",
+		header: AppliedAtHeader,
+		cell: ({ row }) => formatDateTimeAgo(row.original.applied_at),
+	},
+	{
+		accessorKey: "status_updated_at",
+		header: LastUpdatedHeader,
+		cell: ({ row }) => formatDateTimeAgo(row.original.status_updated_at),
+	},
+];
+
+// ---------------------------------------------------------------------------
+// Toolbars (extracted to module scope per S6478)
+// ---------------------------------------------------------------------------
+
+interface SelectionActionBarProps {
+	selectedCount: number;
+	bulkActionInProgress: boolean;
+	onBulkArchive: () => void;
+	onCancel: () => void;
+}
+
+function SelectionActionBar({
+	selectedCount,
+	bulkActionInProgress,
+	onBulkArchive,
+	onCancel,
+}: Readonly<SelectionActionBarProps>) {
+	return (
+		<div data-testid="selection-action-bar" className="flex items-center gap-2">
+			<span data-testid="selected-count" className="text-sm font-medium">
+				{selectedCount} selected
+			</span>
+			<Button
+				data-testid="bulk-archive-button"
+				variant="outline"
+				size="sm"
+				disabled={selectedCount === 0 || bulkActionInProgress}
+				onClick={onBulkArchive}
+			>
+				Bulk Archive
+			</Button>
+			<Button
+				data-testid="cancel-select-button"
+				variant="ghost"
+				size="sm"
+				onClick={onCancel}
+			>
+				Cancel
+			</Button>
+		</div>
+	);
+}
+
+interface ApplicationsListToolbarProps {
+	table: ReactTable<Application>;
+	statusFilter: string;
+	onStatusFilterChange: (value: string) => void;
+	sortField: string;
+	onSortFieldChange: (field: string) => void;
+	showArchived: boolean;
+	onShowArchivedChange: (value: boolean) => void;
+	onSelectMode: () => void;
+}
+
+function ApplicationsListToolbar({
+	table,
+	statusFilter,
+	onStatusFilterChange,
+	sortField,
+	onSortFieldChange,
+	showArchived,
+	onShowArchivedChange,
+	onSelectMode,
+}: Readonly<ApplicationsListToolbarProps>) {
+	return (
+		<DataTableToolbar table={table} searchPlaceholder="Search applications...">
+			<Select value={statusFilter} onValueChange={onStatusFilterChange}>
+				<SelectTrigger aria-label="Status filter" size="sm">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{STATUS_OPTIONS.map((opt) => (
+						<SelectItem key={opt.value} value={opt.value}>
+							{opt.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+
+			<Select value={sortField} onValueChange={onSortFieldChange}>
+				<SelectTrigger aria-label="Sort by" size="sm">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{SORT_OPTIONS.map((opt) => (
+						<SelectItem key={opt.value} value={opt.value}>
+							{opt.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+
+			<Button
+				data-testid="select-mode-button"
+				variant="outline"
+				size="sm"
+				onClick={onSelectMode}
+			>
+				Select
+			</Button>
+
+			<div className="flex items-center gap-1.5">
+				<Checkbox
+					id="show-archived"
+					checked={showArchived}
+					onCheckedChange={(v) => onShowArchivedChange(!!v)}
+					aria-label="Show archived"
+				/>
+				<span className="text-sm whitespace-nowrap">Show archived</span>
+			</div>
+		</DataTableToolbar>
+	);
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -173,6 +375,40 @@ export function ApplicationsList() {
 		}
 	}, [selectedIds, queryClient, exitSelectMode]);
 
+	const renderToolbar = useCallback(
+		(table: ReactTable<Application>) =>
+			selectMode ? (
+				<SelectionActionBar
+					selectedCount={selectedCount}
+					bulkActionInProgress={bulkActionInProgress}
+					onBulkArchive={handleBulkArchive}
+					onCancel={exitSelectMode}
+				/>
+			) : (
+				<ApplicationsListToolbar
+					table={table}
+					statusFilter={statusFilter}
+					onStatusFilterChange={setStatusFilter}
+					sortField={sortField}
+					onSortFieldChange={handleSortFieldChange}
+					showArchived={showArchived}
+					onShowArchivedChange={setShowArchived}
+					onSelectMode={() => setSelectMode(true)}
+				/>
+			),
+		[
+			selectMode,
+			selectedCount,
+			bulkActionInProgress,
+			handleBulkArchive,
+			exitSelectMode,
+			statusFilter,
+			sortField,
+			handleSortFieldChange,
+			showArchived,
+		],
+	);
+
 	// -----------------------------------------------------------------------
 	// Columns
 	// -----------------------------------------------------------------------
@@ -180,64 +416,7 @@ export function ApplicationsList() {
 	const columns = useMemo<ColumnDef<Application, unknown>[]>(
 		() => [
 			...(selectMode ? [getSelectColumn<Application>()] : []),
-			{
-				id: "job_title",
-				accessorFn: (row) =>
-					`${row.job_snapshot.title} ${row.job_snapshot.company_name}`,
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Job Title" />
-				),
-				cell: ({ row }) => (
-					<div>
-						<div className="font-medium">{row.original.job_snapshot.title}</div>
-						<div className="text-muted-foreground text-sm">
-							{row.original.job_snapshot.company_name}
-						</div>
-					</div>
-				),
-				enableSorting: false,
-			},
-			{
-				accessorKey: "status",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Status" />
-				),
-				cell: ({ row }) => <StatusBadge status={row.original.status} />,
-				enableSorting: false,
-			},
-			{
-				id: "interview_stage",
-				accessorFn: (row) => row.current_interview_stage,
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Interview Stage" />
-				),
-				cell: ({ row }) => {
-					const stage = row.original.current_interview_stage;
-					if (stage) {
-						return (
-							<span className="bg-warning/20 text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
-								{stage}
-							</span>
-						);
-					}
-					return EM_DASH;
-				},
-				enableSorting: false,
-			},
-			{
-				accessorKey: "applied_at",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Applied" />
-				),
-				cell: ({ row }) => formatDateTimeAgo(row.original.applied_at),
-			},
-			{
-				accessorKey: "status_updated_at",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Last Updated" />
-				),
-				cell: ({ row }) => formatDateTimeAgo(row.original.status_updated_at),
-			},
+			...BASE_APPLICATION_COLUMNS,
 		],
 		[selectMode],
 	);
@@ -279,88 +458,7 @@ export function ApplicationsList() {
 				enableRowSelection={selectMode}
 				rowSelection={rowSelection}
 				onRowSelectionChange={setRowSelection}
-				toolbar={(table) =>
-					selectMode ? (
-						<div
-							data-testid="selection-action-bar"
-							className="flex items-center gap-2"
-						>
-							<span
-								data-testid="selected-count"
-								className="text-sm font-medium"
-							>
-								{selectedCount} selected
-							</span>
-							<Button
-								data-testid="bulk-archive-button"
-								variant="outline"
-								size="sm"
-								disabled={selectedCount === 0 || bulkActionInProgress}
-								onClick={handleBulkArchive}
-							>
-								Bulk Archive
-							</Button>
-							<Button
-								data-testid="cancel-select-button"
-								variant="ghost"
-								size="sm"
-								onClick={exitSelectMode}
-							>
-								Cancel
-							</Button>
-						</div>
-					) : (
-						<DataTableToolbar
-							table={table}
-							searchPlaceholder="Search applications..."
-						>
-							<Select value={statusFilter} onValueChange={setStatusFilter}>
-								<SelectTrigger aria-label="Status filter" size="sm">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{STATUS_OPTIONS.map((opt) => (
-										<SelectItem key={opt.value} value={opt.value}>
-											{opt.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-
-							<Select value={sortField} onValueChange={handleSortFieldChange}>
-								<SelectTrigger aria-label="Sort by" size="sm">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{SORT_OPTIONS.map((opt) => (
-										<SelectItem key={opt.value} value={opt.value}>
-											{opt.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-
-							<Button
-								data-testid="select-mode-button"
-								variant="outline"
-								size="sm"
-								onClick={() => setSelectMode(true)}
-							>
-								Select
-							</Button>
-
-							<div className="flex items-center gap-1.5">
-								<Checkbox
-									id="show-archived"
-									checked={showArchived}
-									onCheckedChange={(v) => setShowArchived(!!v)}
-									aria-label="Show archived"
-								/>
-								<span className="text-sm whitespace-nowrap">Show archived</span>
-							</div>
-						</DataTableToolbar>
-					)
-				}
+				toolbar={renderToolbar}
 			/>
 		</div>
 	);

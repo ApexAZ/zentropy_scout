@@ -667,9 +667,9 @@ describe("CoverLetterReview", () => {
 				screen.getByTestId(VALIDATION_WARNINGS_TESTID),
 			).toBeInTheDocument();
 		});
-		expect(screen.getByTestId(VALIDATION_WARNINGS_TESTID)).toHaveAttribute(
-			"role",
-			"status",
+		// <output> provides implicit role="status" — verify semantic element
+		expect(screen.getByTestId(VALIDATION_WARNINGS_TESTID).tagName).toBe(
+			"OUTPUT",
 		);
 		expect(
 			screen.getByText("Company name not mentioned in opening paragraph."),

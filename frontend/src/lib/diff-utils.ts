@@ -18,6 +18,33 @@ export interface DiffToken {
 // Word-level diff
 // ---------------------------------------------------------------------------
 
+/** Backtrack the LCS DP table to produce diff tokens. */
+function backtrackLcs(
+	baseWords: string[],
+	variantWords: string[],
+	dp: number[][],
+): DiffToken[] {
+	const reversed: DiffToken[] = [];
+	let i = baseWords.length;
+	let j = variantWords.length;
+
+	while (i > 0 || j > 0) {
+		if (i > 0 && j > 0 && baseWords[i - 1] === variantWords[j - 1]) {
+			reversed.push({ text: baseWords[i - 1], type: "same" });
+			i--;
+			j--;
+		} else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+			reversed.push({ text: variantWords[j - 1], type: "added" });
+			j--;
+		} else {
+			reversed.push({ text: baseWords[i - 1], type: "removed" });
+			i--;
+		}
+	}
+
+	return reversed.reverse();
+}
+
 /**
  * Compute word-level diff between base and variant strings.
  *
@@ -48,26 +75,7 @@ export function computeWordDiff(base: string, variant: string): DiffToken[] {
 		}
 	}
 
-	// Backtrack to produce diff tokens (in reverse)
-	const reversed: DiffToken[] = [];
-	let i = m;
-	let j = n;
-
-	while (i > 0 || j > 0) {
-		if (i > 0 && j > 0 && baseWords[i - 1] === variantWords[j - 1]) {
-			reversed.push({ text: baseWords[i - 1], type: "same" });
-			i--;
-			j--;
-		} else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-			reversed.push({ text: variantWords[j - 1], type: "added" });
-			j--;
-		} else {
-			reversed.push({ text: baseWords[i - 1], type: "removed" });
-			i--;
-		}
-	}
-
-	return reversed.reverse();
+	return backtrackLcs(baseWords, variantWords, dp);
 }
 
 // ---------------------------------------------------------------------------

@@ -87,10 +87,9 @@ function FitScoreBreakdown({
 
 			{/* Expanded panel: component rows */}
 			{expanded && (
-				<div
+				<section
 					id="fit-score-panel"
 					data-testid="fit-score-panel"
-					role="region"
 					aria-label="Fit score component breakdown"
 				>
 					<ul className="ml-6 space-y-1">
@@ -122,7 +121,7 @@ function FitScoreBreakdown({
 							);
 						})}
 					</ul>
-				</div>
+				</section>
 			)}
 		</div>
 	);

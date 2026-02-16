@@ -244,7 +244,8 @@ describe("ChatConfirmCard", () => {
 			const { container } = renderCard();
 
 			const card = container.querySelector(CARD_SELECTOR);
-			expect(card).toHaveAttribute("role", "group");
+			// <fieldset> provides implicit role="group"
+			expect(card?.tagName).toBe("FIELDSET");
 			expect(card).toHaveAttribute(
 				"aria-label",
 				expect.stringContaining("Confirmation"),

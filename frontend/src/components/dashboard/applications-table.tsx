@@ -11,7 +11,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type {
+	CellContext,
+	ColumnDef,
+	HeaderContext,
+	SortingState,
+	Table as ReactTable,
+} from "@tanstack/react-table";
 import { Loader2 } from "lucide-react";
 
 import { apiGet } from "@/lib/api-client";
@@ -73,6 +79,161 @@ const EMPTY_MESSAGE = "No applications found.";
 const EM_DASH = "\u2014";
 
 // ---------------------------------------------------------------------------
+// Column renderers (extracted to module scope per S6478)
+// ---------------------------------------------------------------------------
+
+function JobTitleHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Job Title" />;
+}
+
+function JobTitleCell({ row }: CellContext<Application, unknown>) {
+	return (
+		<div>
+			<div className="font-medium">{row.original.job_snapshot.title}</div>
+			<div className="text-muted-foreground text-sm">
+				{row.original.job_snapshot.company_name}
+			</div>
+		</div>
+	);
+}
+
+function StatusHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Status" />;
+}
+
+function StatusCell({ row }: CellContext<Application, unknown>) {
+	return <StatusBadge status={row.original.status} />;
+}
+
+function InterviewStageHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Interview Stage" />;
+}
+
+function InterviewStageCell({ row }: CellContext<Application, unknown>) {
+	const stage = row.original.current_interview_stage;
+	if (stage) {
+		return (
+			<span className="bg-warning/20 text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
+				{stage}
+			</span>
+		);
+	}
+	return EM_DASH;
+}
+
+function AppliedAtHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Applied" />;
+}
+
+function LastUpdatedHeader({ column }: HeaderContext<Application, unknown>) {
+	return <DataTableColumnHeader column={column} title="Last Updated" />;
+}
+
+const APPLICATION_COLUMNS: ColumnDef<Application, unknown>[] = [
+	{
+		id: "job_title",
+		accessorFn: (row) =>
+			`${row.job_snapshot.title} ${row.job_snapshot.company_name}`,
+		header: JobTitleHeader,
+		cell: JobTitleCell,
+		enableSorting: false,
+	},
+	{
+		accessorKey: "status",
+		header: StatusHeader,
+		cell: StatusCell,
+		enableSorting: false,
+	},
+	{
+		id: "interview_stage",
+		accessorFn: (row) => row.current_interview_stage,
+		header: InterviewStageHeader,
+		cell: InterviewStageCell,
+		enableSorting: false,
+	},
+	{
+		accessorKey: "applied_at",
+		header: AppliedAtHeader,
+		cell: ({ row }) => formatDateTimeAgo(row.original.applied_at),
+	},
+	{
+		accessorKey: "status_updated_at",
+		header: LastUpdatedHeader,
+		cell: ({ row }) => formatDateTimeAgo(row.original.status_updated_at),
+	},
+];
+
+// ---------------------------------------------------------------------------
+// Toolbar (extracted to module scope per S6478)
+// ---------------------------------------------------------------------------
+
+interface ApplicationsTableToolbarProps {
+	table: ReactTable<Application>;
+	statusFilter: string;
+	onStatusFilterChange: (value: string) => void;
+	statusOptions: readonly { readonly value: string; readonly label: string }[];
+	sortField: string;
+	onSortFieldChange: (field: string) => void;
+	isHistory: boolean;
+	showArchived: boolean;
+	onShowArchivedChange: (value: boolean) => void;
+}
+
+function ApplicationsTableToolbar({
+	table,
+	statusFilter,
+	onStatusFilterChange,
+	statusOptions,
+	sortField,
+	onSortFieldChange,
+	isHistory,
+	showArchived,
+	onShowArchivedChange,
+}: Readonly<ApplicationsTableToolbarProps>) {
+	return (
+		<DataTableToolbar table={table} searchPlaceholder="Search applications...">
+			<Select value={statusFilter} onValueChange={onStatusFilterChange}>
+				<SelectTrigger aria-label="Status filter" size="sm">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{statusOptions.map((opt) => (
+						<SelectItem key={opt.value} value={opt.value}>
+							{opt.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+
+			<Select value={sortField} onValueChange={onSortFieldChange}>
+				<SelectTrigger aria-label="Sort by" size="sm">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{SORT_OPTIONS.map((opt) => (
+						<SelectItem key={opt.value} value={opt.value}>
+							{opt.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+
+			{isHistory && (
+				<div className="flex items-center gap-1.5">
+					<Checkbox
+						id="show-archived"
+						checked={showArchived}
+						onCheckedChange={(v) => onShowArchivedChange(!!v)}
+						aria-label="Show archived"
+					/>
+					<span className="text-sm whitespace-nowrap">Show archived</span>
+				</div>
+			)}
+		</DataTableToolbar>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -124,68 +285,28 @@ export function ApplicationsTable({
 		setSorting([{ id: field, desc }]);
 	}, []);
 
-	const columns = useMemo<ColumnDef<Application, unknown>[]>(
-		() => [
-			{
-				id: "job_title",
-				accessorFn: (row) =>
-					`${row.job_snapshot.title} ${row.job_snapshot.company_name}`,
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Job Title" />
-				),
-				cell: ({ row }) => (
-					<div>
-						<div className="font-medium">{row.original.job_snapshot.title}</div>
-						<div className="text-muted-foreground text-sm">
-							{row.original.job_snapshot.company_name}
-						</div>
-					</div>
-				),
-				enableSorting: false,
-			},
-			{
-				accessorKey: "status",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Status" />
-				),
-				cell: ({ row }) => <StatusBadge status={row.original.status} />,
-				enableSorting: false,
-			},
-			{
-				id: "interview_stage",
-				accessorFn: (row) => row.current_interview_stage,
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Interview Stage" />
-				),
-				cell: ({ row }) => {
-					const stage = row.original.current_interview_stage;
-					if (stage) {
-						return (
-							<span className="bg-warning/20 text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
-								{stage}
-							</span>
-						);
-					}
-					return EM_DASH;
-				},
-				enableSorting: false,
-			},
-			{
-				accessorKey: "applied_at",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Applied" />
-				),
-				cell: ({ row }) => formatDateTimeAgo(row.original.applied_at),
-			},
-			{
-				accessorKey: "status_updated_at",
-				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title="Last Updated" />
-				),
-				cell: ({ row }) => formatDateTimeAgo(row.original.status_updated_at),
-			},
+	const renderToolbar = useCallback(
+		(table: ReactTable<Application>) => (
+			<ApplicationsTableToolbar
+				table={table}
+				statusFilter={statusFilter}
+				onStatusFilterChange={setStatusFilter}
+				statusOptions={statusOptions}
+				sortField={sortField}
+				onSortFieldChange={handleSortFieldChange}
+				isHistory={isHistory}
+				showArchived={showArchived}
+				onShowArchivedChange={setShowArchived}
+			/>
+		),
+		[
+			statusFilter,
+			statusOptions,
+			sortField,
+			handleSortFieldChange,
+			isHistory,
+			showArchived,
 		],
-		[],
 	);
 
 	if (isLoading) {
@@ -205,57 +326,14 @@ export function ApplicationsTable({
 	return (
 		<div data-testid="applications-table">
 			<DataTable
-				columns={columns}
+				columns={APPLICATION_COLUMNS}
 				data={applications}
 				onRowClick={handleRowClick}
 				getRowId={(app) => app.id}
 				emptyMessage={EMPTY_MESSAGE}
 				sorting={sorting}
 				onSortingChange={setSorting}
-				toolbar={(table) => (
-					<DataTableToolbar
-						table={table}
-						searchPlaceholder="Search applications..."
-					>
-						<Select value={statusFilter} onValueChange={setStatusFilter}>
-							<SelectTrigger aria-label="Status filter" size="sm">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{statusOptions.map((opt) => (
-									<SelectItem key={opt.value} value={opt.value}>
-										{opt.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-
-						<Select value={sortField} onValueChange={handleSortFieldChange}>
-							<SelectTrigger aria-label="Sort by" size="sm">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{SORT_OPTIONS.map((opt) => (
-									<SelectItem key={opt.value} value={opt.value}>
-										{opt.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-
-						{isHistory && (
-							<div className="flex items-center gap-1.5">
-								<Checkbox
-									id="show-archived"
-									checked={showArchived}
-									onCheckedChange={(v) => setShowArchived(!!v)}
-									aria-label="Show archived"
-								/>
-								<span className="text-sm whitespace-nowrap">Show archived</span>
-							</div>
-						)}
-					</DataTableToolbar>
-				)}
+				toolbar={renderToolbar}
 			/>
 		</div>
 	);

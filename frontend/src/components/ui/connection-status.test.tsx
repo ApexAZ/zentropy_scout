@@ -51,10 +51,12 @@ describe("ConnectionStatus", () => {
 			expect(screen.getByRole("status")).toBeInTheDocument();
 		});
 
-		it("has aria-live=polite for dynamic updates", () => {
-			renderStatus();
+		it("uses <output> element for implicit aria-live polite", () => {
+			const { container } = renderStatus();
 
-			expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+			// <output> provides implicit role="status" and aria-live="polite"
+			const output = container.querySelector("output");
+			expect(output).toBeInTheDocument();
 		});
 
 		it("sets data-status attribute matching status prop", () => {

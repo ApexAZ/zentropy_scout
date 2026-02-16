@@ -62,11 +62,9 @@ function ConnectionStatus({
 	const config = STATUS_CONFIG[status];
 
 	return (
-		<div
+		<output
 			data-slot="connection-status"
 			data-status={status}
-			role="status"
-			aria-live="polite"
 			aria-label={`Connection status: ${config.ariaLabel}`}
 			className={cn("flex items-center gap-1.5", className)}
 		>
@@ -79,7 +77,7 @@ function ConnectionStatus({
 				)}
 			/>
 			<span className="text-muted-foreground text-xs">{config.label}</span>
-		</div>
+		</output>
 	);
 }
 

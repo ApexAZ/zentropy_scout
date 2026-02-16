@@ -41,11 +41,12 @@ describe("TypingIndicator", () => {
 		expect(screen.getByRole("status")).toBeInTheDocument();
 	});
 
-	it("has aria-live polite for screen readers", () => {
-		render(<TypingIndicator />);
+	it("uses <output> element for implicit aria-live polite", () => {
+		const { container } = render(<TypingIndicator />);
 
-		const status = screen.getByRole("status");
-		expect(status).toHaveAttribute("aria-live", "polite");
+		// <output> provides implicit role="status" and aria-live="polite"
+		const output = container.querySelector("output");
+		expect(output).toBeInTheDocument();
 	});
 
 	it("uses muted small text styling", () => {

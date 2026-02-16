@@ -21,7 +21,6 @@ import {
 	FormControl,
 	FormField,
 	FormItem,
-	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
 import { apiGet, apiPatch } from "@/lib/api-client";
@@ -181,7 +180,9 @@ export function GrowthTargetsStep() {
 						name="stretch_appetite"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Stretch Appetite</FormLabel>
+								<span className="text-sm leading-none font-medium">
+									Stretch Appetite
+								</span>
 								<FormControl>
 									<div
 										className="space-y-3"
