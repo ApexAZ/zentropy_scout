@@ -115,6 +115,7 @@ function TagInputArea({
 	}
 
 	return (
+		/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Wrapper click delegates focus to the inner <input>; keyboard users reach it via Tab. */
 		<div
 			data-slot="tag-input-area"
 			className={cn(

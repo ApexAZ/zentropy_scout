@@ -287,3 +287,26 @@ body {
 	font-size: 0.875rem; /* 14px — REQ-012 §13.1 */
 	line-height: 1.5;
 }
+
+/* ============================================
+ * Reduced Motion — REQ-012 §13.8
+ *
+ * Users who prefer reduced motion get near-instant
+ * transitions and no CSS animations. Covers all
+ * tw-animate-css animations (dialog, sheet, select,
+ * tooltip) and CSS transitions.
+ *
+ * Uses 0.01ms (not 0s) so animationend/transitionend
+ * events still fire — required by Radix state transitions.
+ * ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

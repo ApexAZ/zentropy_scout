@@ -126,6 +126,7 @@ export function WorkHistoryCard({
 							type="button"
 							className="text-muted-foreground hover:text-foreground mt-2 flex items-center gap-1 text-sm"
 							onClick={onToggleExpand}
+							aria-expanded={expanded}
 							aria-label={`${expanded ? "Collapse" : "Expand"} bullets for ${entry.job_title}`}
 						>
 							<ExpandIcon className="h-4 w-4" />

@@ -156,7 +156,6 @@ vi.mock("@/components/ui/checkbox", () => ({
 			checked={checked ?? false}
 			onChange={(e) => onCheckedChange?.(e.target.checked)}
 			id={id}
-			role="checkbox"
 			{...props}
 		/>
 	),

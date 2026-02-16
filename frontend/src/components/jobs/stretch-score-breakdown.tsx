@@ -93,7 +93,7 @@ function StretchScoreBreakdown({
 					role="region"
 					aria-label="Stretch score component breakdown"
 				>
-					<ul role="list" className="ml-6 space-y-1">
+					<ul className="ml-6 space-y-1">
 						{STRETCH_COMPONENT_ORDER.map((key) => {
 							const score = stretch.components[key];
 							const weight = stretch.weights[key];

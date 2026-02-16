@@ -41,7 +41,7 @@ function CategorySection({ testId, label, icon, items }: CategoryConfig) {
 				{icon}
 				<span>{label}</span>
 			</div>
-			<ul role="list" className="ml-6 space-y-0.5">
+			<ul className="ml-6 space-y-0.5">
 				{items.map((item) => (
 					<li key={item} className="text-muted-foreground text-sm">
 						{item}

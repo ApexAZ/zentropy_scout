@@ -48,7 +48,7 @@ export function ChatOptionList({
 			aria-label="Select an option"
 			className={cn("bg-card rounded-lg border p-3 text-sm", className)}
 		>
-			<ul role="list" className="flex flex-col gap-1">
+			<ul className="flex flex-col gap-1">
 				{data.options.map((option, index) => (
 					<li key={`${option.value}-${index}`} data-slot="option-item">
 						<button

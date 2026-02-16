@@ -90,7 +90,7 @@ function FitScoreBreakdown({ fit, className }: FitScoreBreakdownProps) {
 					role="region"
 					aria-label="Fit score component breakdown"
 				>
-					<ul role="list" className="ml-6 space-y-1">
+					<ul className="ml-6 space-y-1">
 						{FIT_COMPONENT_ORDER.map((key) => {
 							const score = fit.components[key];
 							const weight = fit.weights[key];

@@ -185,7 +185,7 @@ export function ReorderableList<T extends ReorderableItem>({
 	if (isMobile) {
 		return (
 			<div data-slot="reorderable-list" className={cn(className)}>
-				<ul role="list" aria-label={label} className="flex flex-col gap-2">
+				<ul aria-label={label} className="flex flex-col gap-2">
 					{items.map((item, index) => (
 						<MobileItem
 							key={item.id}
@@ -276,7 +276,7 @@ function DesktopList<T extends ReorderableItem>({
 					items={items.map((item) => item.id)}
 					strategy={verticalListSortingStrategy}
 				>
-					<ul role="list" aria-label={label} className="flex flex-col gap-2">
+					<ul aria-label={label} className="flex flex-col gap-2">
 						{items.map((item) => (
 							<SortableItem key={item.id} item={item} renderItem={renderItem} />
 						))}

@@ -722,6 +722,25 @@ describe("WorkHistoryStep", () => {
 			).toBeInTheDocument();
 		});
 
+		it("toggles aria-expanded on bullet expand button", async () => {
+			const user = await renderAndWaitForLoad();
+
+			const expandButton = screen.getAllByRole("button", {
+				name: /bullets for/i,
+			})[0];
+
+			// Initially collapsed
+			expect(expandButton).toHaveAttribute("aria-expanded", "false");
+
+			// Click to expand
+			await user.click(expandButton);
+			expect(expandButton).toHaveAttribute("aria-expanded", "true");
+
+			// Click to collapse
+			await user.click(expandButton);
+			expect(expandButton).toHaveAttribute("aria-expanded", "false");
+		});
+
 		it("shows 'Add bullets' text when entry has no bullets", async () => {
 			const entryWithoutBullets: WorkHistory = {
 				...MOCK_ENTRY_1,
