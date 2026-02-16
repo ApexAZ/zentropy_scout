@@ -440,7 +440,7 @@ Many section editors reuse form components from Phase 5 (onboarding). Extract sh
 | 12.2 | E2E: Job discovery flow (dashboard, job detail, draft materials) | `playwright, test, plan` | ✅ |
 | 12.3 | E2E: Application tracking flow (apply, update status, capture offer, timeline) | `playwright, test, plan` | ✅ |
 | 12.4 | E2E: Persona update flow (edit section, change flag resolution) | `playwright, test, plan` | ✅ |
-| 12.5 | E2E: Chat interaction flow (send message, SSE streaming, tool execution) | `playwright, test, plan` | ⬜ |
+| 12.5 | E2E: Chat interaction flow (send message, SSE streaming, tool execution) | `playwright, test, plan` | ✅ |
 | 12.6 | Accessibility audit: keyboard nav, ARIA labels, color contrast, focus management (REQ-012 §13.8) | `test, lint, plan` | ⬜ |
 | 12.7 | Responsive testing: verify all pages at sm/md/lg breakpoints (REQ-012 §4.5) | `playwright, test, plan` | ⬜ |
 | 12.8 | Update CI config: SonarCloud frontend inclusion, Vitest coverage (lcov), npm audit in CI, Dependabot npm scanning | `lint, git, commands, plan` | ⬜ |
