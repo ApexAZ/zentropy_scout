@@ -39,6 +39,30 @@ vi.mock("next/link", () => ({
 	},
 }));
 
+vi.mock("@/lib/chat-provider", () => ({
+	useChat: () => ({
+		messages: [],
+		isStreaming: false,
+		isLoadingHistory: false,
+		sendMessage: vi.fn(),
+		addSystemMessage: vi.fn(),
+		clearMessages: vi.fn(),
+		loadHistory: vi.fn(),
+	}),
+}));
+
+vi.mock("../chat/chat-message-list", () => ({
+	ChatMessageList: () => <div data-slot="chat-message-list" />,
+}));
+
+vi.mock("../chat/chat-input", () => ({
+	ChatInput: () => <div data-slot="chat-input" />,
+}));
+
+vi.mock("../chat/typing-indicator", () => ({
+	TypingIndicator: () => <div data-slot="typing-indicator" />,
+}));
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

@@ -19,7 +19,15 @@ const mocks = vi.hoisted(() => {
 	const mockClose = vi.fn();
 	const mockIsOpen = { value: false };
 	const mockMediaQueries: Record<string, boolean> = {};
-	return { mockClose, mockIsOpen, mockMediaQueries };
+	const mockLoadHistory = vi.fn();
+	const mockSendMessage = vi.fn();
+	return {
+		mockClose,
+		mockIsOpen,
+		mockMediaQueries,
+		mockLoadHistory,
+		mockSendMessage,
+	};
 });
 
 vi.mock("@/lib/chat-panel-provider", () => ({
@@ -37,6 +45,34 @@ vi.mock("@/hooks/use-media-query", () => ({
 
 vi.mock("@/hooks/use-is-mobile", () => ({
 	useIsMobile: () => mocks.mockMediaQueries["(max-width: 767px)"] ?? false,
+}));
+
+vi.mock("@/lib/chat-provider", () => ({
+	useChat: () => ({
+		messages: [],
+		isStreaming: false,
+		isLoadingHistory: false,
+		sendMessage: mocks.mockSendMessage,
+		addSystemMessage: vi.fn(),
+		clearMessages: vi.fn(),
+		loadHistory: mocks.mockLoadHistory,
+	}),
+}));
+
+vi.mock("../chat/chat-message-list", () => ({
+	ChatMessageList: () => <div data-slot="chat-message-list" />,
+}));
+
+vi.mock("../chat/chat-input", () => ({
+	ChatInput: () => (
+		<div data-slot="chat-input">
+			<textarea aria-label="Message" />
+		</div>
+	),
+}));
+
+vi.mock("../chat/typing-indicator", () => ({
+	TypingIndicator: () => <div data-slot="typing-indicator" />,
 }));
 
 // ---------------------------------------------------------------------------
@@ -273,6 +309,26 @@ describe("ChatSidebar", () => {
 			render(<ChatSidebar />);
 
 			expect(document.querySelector(CHAT_SIDEBAR_SELECTOR)).toBeInTheDocument();
+		});
+
+		it("renders ChatMessageList when open", () => {
+			setDesktop();
+			mocks.mockIsOpen.value = true;
+			render(<ChatSidebar />);
+
+			expect(
+				document.querySelector('[data-slot="chat-message-list"]'),
+			).toBeInTheDocument();
+		});
+
+		it("renders ChatInput when open", () => {
+			setDesktop();
+			mocks.mockIsOpen.value = true;
+			render(<ChatSidebar />);
+
+			expect(
+				screen.getByRole("textbox", { name: /message/i }),
+			).toBeInTheDocument();
 		});
 	});
 });

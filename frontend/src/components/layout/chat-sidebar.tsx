@@ -10,17 +10,23 @@
  * - Tablet (md, 768-1023px): Slide-over sheet from right edge, 400px max.
  * - Mobile (<768px): Full-screen sheet with back button.
  *
- * Actual chat messages, input, and streaming content will be implemented
- * in Phase 5.
+ * Chat content (message list, typing indicator, input) is wired via
+ * the ChatProvider / useChat hook.
  */
+
+import { useEffect } from "react";
 
 import { ArrowLeft, Minus, X } from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useChatPanel } from "@/lib/chat-panel-provider";
+import { useChat } from "@/lib/chat-provider";
 import { cn } from "@/lib/utils";
 
+import { ChatInput } from "../chat/chat-input";
+import { ChatMessageList } from "../chat/chat-message-list";
+import { TypingIndicator } from "../chat/typing-indicator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 
 // ---------------------------------------------------------------------------
@@ -33,13 +39,22 @@ const ICON_BUTTON_CLASSES =
 	"text-muted-foreground hover:bg-secondary/50 hover:text-foreground rounded-md p-1 transition-colors";
 
 // ---------------------------------------------------------------------------
-// Shared inner content (placeholder for Phase 5 chat content)
+// Shared inner content — wired to chat provider
 // ---------------------------------------------------------------------------
 
-function ChatPlaceholder() {
+function ChatContent() {
+	const { messages, isStreaming, isLoadingHistory, sendMessage, loadHistory } =
+		useChat();
+
+	useEffect(() => {
+		loadHistory();
+	}, [loadHistory]);
+
 	return (
-		<div className="text-muted-foreground flex flex-1 items-center justify-center p-4 text-sm">
-			Chat will be available here.
+		<div className="flex flex-1 flex-col overflow-hidden">
+			<ChatMessageList messages={messages} isLoading={isLoadingHistory} />
+			{isStreaming && <TypingIndicator className="px-4 pb-1" />}
+			<ChatInput onSend={sendMessage} disabled={isStreaming} />
 		</div>
 	);
 }
@@ -84,7 +99,7 @@ function DesktopSidebar({
 					</button>
 				</div>
 			</div>
-			<ChatPlaceholder />
+			<ChatContent />
 		</aside>
 	);
 }
@@ -131,7 +146,7 @@ function SheetSidebar({
 						<X className="h-4 w-4" />
 					</button>
 				</SheetHeader>
-				<ChatPlaceholder />
+				<ChatContent />
 			</SheetContent>
 		</Sheet>
 	);
