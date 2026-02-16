@@ -12,12 +12,14 @@ jobs:
   pip-audit:
     name: pip-audit (Python Dependencies)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6
         with:
           python-version: '3.11'
 
@@ -49,4 +51,44 @@ jobs:
             attempt=$((attempt + 1))
           done
           echo "::error::pip-audit failed after $max_attempts attempts"
+          exit 1
+
+  npm-audit:
+    name: npm audit (Node.js Dependencies)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Run npm audit (with retry)
+        run: |
+          max_attempts=3
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "::group::Attempt $attempt of $max_attempts"
+            if (cd frontend && npm audit --audit-level=moderate); then
+              echo "::endgroup::"
+              echo "npm audit passed on attempt $attempt"
+              exit 0
+            fi
+            echo "::endgroup::"
+            if [ $attempt -lt $max_attempts ]; then
+              echo "::warning::npm audit failed (attempt $attempt/$max_attempts), retrying in 30s..."
+              sleep 30
+            fi
+            attempt=$((attempt + 1))
+          done
+          echo "::error::npm audit failed after $max_attempts attempts"
           exit 1
