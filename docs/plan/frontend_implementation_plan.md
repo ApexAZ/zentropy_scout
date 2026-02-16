@@ -468,7 +468,7 @@ Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, 
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 13.1 | OWASP ZAP baseline scan against FastAPI API endpoints (DAST) | `security, commands, plan` | ⬜ |
+| 13.1 | OWASP ZAP baseline scan against FastAPI API endpoints (DAST) | `security, commands, plan` | ✅ |
 | 13.2 | Hypothesis property-based fuzz testing for LLM sanitization pipeline | `security, test, plan` | ⬜ |
 | 13.3 | Custom Semgrep rules for LLM prompt injection and sanitization bypass patterns | `security, lint, plan` | ⬜ |
 | 13.4 | Container image scanning with Trivy in CI (PostgreSQL + pgvector) | `security, commands, plan` | ⬜ |
