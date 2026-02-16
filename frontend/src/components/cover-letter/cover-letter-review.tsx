@@ -56,10 +56,10 @@ interface CoverLetterReviewProps {
 function StoriesUsed({
 	stories,
 	skillMap,
-}: {
+}: Readonly<{
 	stories: AchievementStory[];
 	skillMap: Map<string, string>;
-}) {
+}>) {
 	return (
 		<div data-testid="stories-used" className="mt-4">
 			<h2 className="mb-2 text-sm font-semibold">Stories Used</h2>
@@ -92,7 +92,7 @@ function StoriesUsed({
 	);
 }
 
-function WordCount({ text }: { text: string }) {
+function WordCount({ text }: Readonly<{ text: string }>) {
 	const wordCount = text.split(/\s+/).filter(Boolean).length;
 	const inRange = wordCount >= WORD_COUNT_MIN && wordCount <= WORD_COUNT_MAX;
 
@@ -108,7 +108,7 @@ function WordCount({ text }: { text: string }) {
 	);
 }
 
-function ValidationErrors({ issues }: { issues: ValidationIssue[] }) {
+function ValidationErrors({ issues }: Readonly<{ issues: ValidationIssue[] }>) {
 	return (
 		<div
 			data-testid="validation-errors"
@@ -130,7 +130,9 @@ function ValidationErrors({ issues }: { issues: ValidationIssue[] }) {
 	);
 }
 
-function ValidationWarnings({ issues }: { issues: ValidationIssue[] }) {
+function ValidationWarnings({
+	issues,
+}: Readonly<{ issues: ValidationIssue[] }>) {
 	return (
 		<div
 			data-testid="validation-warnings"
@@ -152,7 +154,7 @@ function ValidationWarnings({ issues }: { issues: ValidationIssue[] }) {
 	);
 }
 
-function VoiceCheckBadge({ tone }: { tone: string }) {
+function VoiceCheckBadge({ tone }: Readonly<{ tone: string }>) {
 	return (
 		<div
 			data-testid="voice-check"
@@ -170,7 +172,7 @@ function VoiceCheckBadge({ tone }: { tone: string }) {
 export function CoverLetterReview({
 	coverLetterId,
 	hideActions,
-}: CoverLetterReviewProps) {
+}: Readonly<CoverLetterReviewProps>) {
 	const queryClient = useQueryClient();
 
 	// -----------------------------------------------------------------------

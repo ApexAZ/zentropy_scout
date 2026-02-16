@@ -41,7 +41,7 @@ interface StretchScoreBreakdownProps {
 function StretchScoreBreakdown({
 	stretch,
 	className,
-}: StretchScoreBreakdownProps) {
+}: Readonly<StretchScoreBreakdownProps>) {
 	const [expanded, setExpanded] = useState(false);
 
 	// Not scored state — no toggle, no chevron

@@ -38,7 +38,10 @@ interface FitScoreBreakdownProps {
  * Renders the fit score total with tier badge, expandable to reveal
  * component-level breakdown with scores, weights, and weighted contributions.
  */
-function FitScoreBreakdown({ fit, className }: FitScoreBreakdownProps) {
+function FitScoreBreakdown({
+	fit,
+	className,
+}: Readonly<FitScoreBreakdownProps>) {
 	const [expanded, setExpanded] = useState(false);
 
 	// Not scored state — no toggle, no chevron

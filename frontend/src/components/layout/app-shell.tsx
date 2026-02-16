@@ -32,7 +32,7 @@ interface AppShellProps extends TopNavProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function AppShell({ children, ...navProps }: AppShellProps) {
+export function AppShell({ children, ...navProps }: Readonly<AppShellProps>) {
 	return (
 		<ChatPanelProvider>
 			<div className="flex h-screen flex-col">

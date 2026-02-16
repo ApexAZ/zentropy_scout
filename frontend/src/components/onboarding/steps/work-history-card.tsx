@@ -76,7 +76,7 @@ export function WorkHistoryCard({
 	dragHandle,
 	expanded = false,
 	onToggleExpand,
-}: WorkHistoryCardProps) {
+}: Readonly<WorkHistoryCardProps>) {
 	const bulletCount = entry.bullets.length;
 	const ExpandIcon = expanded ? ChevronDown : ChevronRight;
 

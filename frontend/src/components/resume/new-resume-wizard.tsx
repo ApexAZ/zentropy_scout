@@ -50,7 +50,7 @@ interface NewResumeWizardProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function NewResumeWizard({ personaId }: NewResumeWizardProps) {
+export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 

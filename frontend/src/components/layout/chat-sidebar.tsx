@@ -66,10 +66,10 @@ function ChatContent() {
 function DesktopSidebar({
 	isOpen,
 	onClose,
-}: {
+}: Readonly<{
 	isOpen: boolean;
 	onClose: () => void;
-}) {
+}>) {
 	return (
 		<aside
 			className={cn(
@@ -112,11 +112,11 @@ function SheetSidebar({
 	isOpen,
 	isMobile,
 	onClose,
-}: {
+}: Readonly<{
 	isOpen: boolean;
 	isMobile: boolean;
 	onClose: () => void;
-}) {
+}>) {
 	return (
 		<Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<SheetContent

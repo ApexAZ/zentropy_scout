@@ -65,7 +65,7 @@ export function OnboardingShell({
 	isNextLoading = false,
 	children,
 	className,
-}: OnboardingShellProps) {
+}: Readonly<OnboardingShellProps>) {
 	const safeTotal = Math.max(totalSteps, 1);
 	const safeStep = Math.min(Math.max(currentStep, 0), safeTotal);
 	const progressPercent = Math.round((safeStep / safeTotal) * 100);

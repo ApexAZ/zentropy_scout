@@ -33,7 +33,7 @@ export function toFormValues(entry: Education): Partial<EducationFormData> {
 		degree: entry.degree,
 		field_of_study: entry.field_of_study,
 		graduation_year: String(entry.graduation_year),
-		gpa: entry.gpa !== null ? String(entry.gpa) : "",
+		gpa: entry.gpa === null ? "" : String(entry.gpa),
 		honors: entry.honors ?? "",
 	};
 }

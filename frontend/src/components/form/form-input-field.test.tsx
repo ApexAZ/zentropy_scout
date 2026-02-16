@@ -29,8 +29,8 @@ const NAME_MIN_ERROR = "Name must be at least 2 characters";
 
 const schema = z.object({
 	name: z.string().min(2, NAME_MIN_ERROR),
-	email: z.string().email("Invalid email address"),
-	age: z.string().min(1, "Age is required"),
+	email: z.string().email({ message: "Invalid email address" }),
+	age: z.string().min(1, { message: "Age is required" }),
 });
 
 type TestValues = z.infer<typeof schema>;

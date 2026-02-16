@@ -41,9 +41,12 @@ export interface VoiceProfileRequestBody {
 // ---------------------------------------------------------------------------
 
 export const voiceProfileSchema = z.object({
-	tone: z.string().min(1, "Tone is required").max(500),
-	sentence_style: z.string().min(1, "Style is required").max(500),
-	vocabulary_level: z.string().min(1, "Vocabulary is required").max(500),
+	tone: z.string().min(1, { message: "Tone is required" }).max(500),
+	sentence_style: z.string().min(1, { message: "Style is required" }).max(500),
+	vocabulary_level: z
+		.string()
+		.min(1, { message: "Vocabulary is required" })
+		.max(500),
 	personality_markers: z.string().max(500),
 	sample_phrases: z.array(z.string().trim().min(1).max(200)).max(20),
 	things_to_avoid: z.array(z.string().trim().min(1).max(200)).max(20),

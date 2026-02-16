@@ -51,7 +51,9 @@ import { POLLING_FREQUENCIES } from "@/types/persona";
  * from persona data. Shows behavioral explanations and a cross-field
  * validation warning.
  */
-export function DiscoveryPreferencesEditor({ persona }: { persona: Persona }) {
+export function DiscoveryPreferencesEditor({
+	persona,
+}: Readonly<{ persona: Persona }>) {
 	const personaId = persona.id;
 	const queryClient = useQueryClient();
 

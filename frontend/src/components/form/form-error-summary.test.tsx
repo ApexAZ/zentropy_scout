@@ -26,8 +26,8 @@ const SUBMIT_LABEL = "Submit";
 // ---------------------------------------------------------------------------
 
 const schema = z.object({
-	name: z.string().min(1, "Name is required"),
-	email: z.string().email("Invalid email address"),
+	name: z.string().min(1, { message: "Name is required" }),
+	email: z.string().email({ message: "Invalid email address" }),
 });
 
 type TestValues = z.infer<typeof schema>;

@@ -44,7 +44,7 @@ function EmptyState({
 	action,
 	className,
 	...props
-}: EmptyStateProps) {
+}: Readonly<EmptyStateProps>) {
 	return (
 		<div
 			data-slot="empty-state"
@@ -70,7 +70,7 @@ function FailedState({
 	onRetry,
 	className,
 	...props
-}: FailedStateProps) {
+}: Readonly<FailedStateProps>) {
 	return (
 		<div
 			data-slot="failed-state"
@@ -99,7 +99,7 @@ function NotFoundState({
 	onBack,
 	className,
 	...props
-}: NotFoundStateProps) {
+}: Readonly<NotFoundStateProps>) {
 	return (
 		<div
 			data-slot="not-found-state"
@@ -123,7 +123,7 @@ function ConflictState({
 	onRefresh,
 	className,
 	...props
-}: ConflictStateProps) {
+}: Readonly<ConflictStateProps>) {
 	return (
 		<div
 			data-slot="conflict-state"

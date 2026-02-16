@@ -91,7 +91,9 @@ export interface ApplicationDetailProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function ApplicationDetail({ applicationId }: ApplicationDetailProps) {
+export function ApplicationDetail({
+	applicationId,
+}: Readonly<ApplicationDetailProps>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 

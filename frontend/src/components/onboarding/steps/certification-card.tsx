@@ -49,7 +49,7 @@ export function CertificationCard({
 	onEdit,
 	onDelete,
 	dragHandle,
-}: CertificationCardProps) {
+}: Readonly<CertificationCardProps>) {
 	return (
 		<div className="bg-card rounded-lg border">
 			<div className="flex items-start gap-3 p-4">

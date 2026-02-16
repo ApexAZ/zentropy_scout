@@ -162,7 +162,7 @@ function formatFailureReason(f: FailedNonNegotiable): {
 		const fmtVal = (v: string | number) =>
 			typeof v === "number" ? `$${Math.round(v / 1000)}k` : v;
 		const personaFmt =
-			f.persona_value !== null ? fmtVal(f.persona_value) : "N/A";
+			f.persona_value === null ? "N/A" : fmtVal(f.persona_value);
 		return {
 			text: `${label} below minimum (${fmtVal(f.job_value)} < ${personaFmt})`,
 			isWarning: false,
@@ -184,7 +184,7 @@ function isFilteredJob(job: JobPosting): boolean {
 // Sub-component: Filtered job info (badge + expandable reasons)
 // ---------------------------------------------------------------------------
 
-function FilteredJobInfo({ job }: { job: JobPosting }) {
+function FilteredJobInfo({ job }: Readonly<{ job: JobPosting }>) {
 	const [expanded, setExpanded] = useState(false);
 
 	if (!job.failed_non_negotiables?.length) return null;

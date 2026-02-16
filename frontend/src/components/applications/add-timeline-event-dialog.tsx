@@ -94,7 +94,7 @@ export function AddTimelineEventDialog({
 	onConfirm,
 	onCancel,
 	loading = false,
-}: AddTimelineEventDialogProps) {
+}: Readonly<AddTimelineEventDialogProps>) {
 	const [eventType, setEventType] = useState<TimelineEventType | "">("");
 	const [eventDate, setEventDate] = useState("");
 	const [description, setDescription] = useState("");

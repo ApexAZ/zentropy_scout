@@ -66,7 +66,9 @@ interface CustomFiltersSectionProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function CustomFiltersSection({ personaId }: CustomFiltersSectionProps) {
+export function CustomFiltersSection({
+	personaId,
+}: Readonly<CustomFiltersSectionProps>) {
 	const basePath = `/personas/${personaId}/custom-non-negotiables`;
 
 	const [entries, setEntries] = useState<CustomNonNegotiable[]>([]);

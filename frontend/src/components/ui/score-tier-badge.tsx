@@ -83,7 +83,11 @@ function getTierConfig(
 // Component
 // ---------------------------------------------------------------------------
 
-function ScoreTierBadge({ score, scoreType, className }: ScoreTierBadgeProps) {
+function ScoreTierBadge({
+	score,
+	scoreType,
+	className,
+}: Readonly<ScoreTierBadgeProps>) {
 	const typeLabel = scoreType === "fit" ? "Fit" : "Stretch";
 
 	if (score === null) {

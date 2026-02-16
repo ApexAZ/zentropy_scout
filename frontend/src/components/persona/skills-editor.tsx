@@ -46,7 +46,7 @@ type ViewMode = "list" | "add" | "edit";
  * useQuery. Provides add/edit/delete and per-type drag-drop reordering
  * with Hard/Soft skill tabs.
  */
-export function SkillsEditor({ persona }: { persona: Persona }) {
+export function SkillsEditor({ persona }: Readonly<{ persona: Persona }>) {
 	const personaId = persona.id;
 	const queryClient = useQueryClient();
 	const skillsQueryKey = queryKeys.skills(personaId);

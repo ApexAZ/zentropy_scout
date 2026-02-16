@@ -88,7 +88,10 @@ interface MessageBubbleProps {
  * @param props.message - The ChatMessage to display.
  * @param props.className - Optional extra CSS classes on the wrapper.
  */
-export function MessageBubble({ message, className }: MessageBubbleProps) {
+export function MessageBubble({
+	message,
+	className,
+}: Readonly<MessageBubbleProps>) {
 	if (message.role === "system") {
 		return (
 			<div

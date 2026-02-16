@@ -29,7 +29,7 @@ const OPTIONS = [
 ];
 
 const schema = z.object({
-	size: z.string().min(1, "Size is required"),
+	size: z.string().min(1, { message: "Size is required" }),
 });
 
 type TestValues = z.infer<typeof schema>;

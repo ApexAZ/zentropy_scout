@@ -49,20 +49,22 @@ const OTHER_FIELD_VALUE = "other";
 const customFilterSchema = z.object({
 	filter_name: z
 		.string()
-		.min(1, "Filter name is required")
-		.max(255, "Filter name is too long"),
+		.min(1, { message: "Filter name is required" })
+		.max(255, { message: "Filter name is too long" }),
 	filter_type: z.enum(FILTER_TYPES, {
 		message: "Filter type is required",
 	}),
-	filter_field_select: z.string().min(1, "Field is required"),
+	filter_field_select: z.string().min(1, { message: "Field is required" }),
 	filter_field_custom: z
 		.string()
-		.max(100, "Field name is too long")
-		.regex(/^[a-z_]*$/, "Only lowercase letters and underscores allowed"),
+		.max(100, { message: "Field name is too long" })
+		.regex(/^[a-z_]*$/, {
+			message: "Only lowercase letters and underscores allowed",
+		}),
 	filter_value: z
 		.string()
-		.min(1, "Value is required")
-		.max(500, "Value is too long"),
+		.min(1, { message: "Value is required" })
+		.max(500, { message: "Value is too long" }),
 });
 
 export type CustomFilterFormData = z.infer<typeof customFilterSchema>;
@@ -128,7 +130,7 @@ export function CustomFilterForm({
 	onCancel,
 	isSubmitting,
 	submitError,
-}: CustomFilterFormProps) {
+}: Readonly<CustomFilterFormProps>) {
 	const form = useForm<CustomFilterFormData>({
 		resolver: zodResolver(customFilterSchema),
 		defaultValues: { ...DEFAULT_VALUES, ...initialValues },

@@ -86,21 +86,21 @@ const PROFICIENCY_OPTIONS = [
 const skillFormSchema = z.object({
 	skill_name: z
 		.string()
-		.min(1, "Skill name is required")
-		.max(MAX_SKILL_NAME_LENGTH, "Skill name is too long"),
+		.min(1, { message: "Skill name is required" })
+		.max(MAX_SKILL_NAME_LENGTH, { message: "Skill name is too long" }),
 	skill_type: z.enum(["Hard", "Soft"], {
 		message: "Skill type is required",
 	}),
 	category: z
 		.string()
-		.min(1, "Category is required")
-		.max(MAX_CATEGORY_LENGTH, "Category is too long"),
+		.min(1, { message: "Category is required" })
+		.max(MAX_CATEGORY_LENGTH, { message: "Category is too long" }),
 	proficiency: z.enum(["Learning", "Familiar", "Proficient", "Expert"], {
 		message: "Proficiency is required",
 	}),
 	years_used: z
 		.string()
-		.min(1, "Years used is required")
+		.min(1, { message: "Years used is required" })
 		.refine((val) => /^\d+$/.test(val), {
 			message: "Enter a valid number",
 		})
@@ -112,8 +112,8 @@ const skillFormSchema = z.object({
 		}),
 	last_used: z
 		.string()
-		.min(1, "Last used is required")
-		.max(MAX_LAST_USED_LENGTH, "Last used is too long"),
+		.min(1, { message: "Last used is required" })
+		.max(MAX_LAST_USED_LENGTH, { message: "Last used is too long" }),
 });
 
 export type SkillFormData = z.infer<typeof skillFormSchema>;
@@ -155,7 +155,7 @@ export function SkillForm({
 	onCancel,
 	isSubmitting,
 	submitError,
-}: SkillFormProps) {
+}: Readonly<SkillFormProps>) {
 	const defaultVals: SkillFormData = {
 		...DEFAULT_VALUES,
 		...initialValues,

@@ -36,11 +36,11 @@ const MAX_METRICS_LENGTH = 255;
 const bulletFormSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Bullet text is required")
-		.max(MAX_TEXT_LENGTH, "Bullet text is too long"),
+		.min(1, { message: "Bullet text is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Bullet text is too long" }),
 	metrics: z
 		.string()
-		.max(MAX_METRICS_LENGTH, "Metrics is too long")
+		.max(MAX_METRICS_LENGTH, { message: "Metrics is too long" })
 		.optional()
 		.or(z.literal("")),
 });
@@ -80,7 +80,7 @@ export function BulletForm({
 	onCancel,
 	isSubmitting,
 	submitError,
-}: BulletFormProps) {
+}: Readonly<BulletFormProps>) {
 	const form = useForm<BulletFormData>({
 		resolver: zodResolver(bulletFormSchema),
 		defaultValues: { ...DEFAULT_VALUES, ...initialValues },

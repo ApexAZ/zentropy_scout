@@ -34,7 +34,7 @@ export function SubmitButton({
 	loadingLabel,
 	disabled,
 	className,
-}: SubmitButtonProps) {
+}: Readonly<SubmitButtonProps>) {
 	return (
 		<Button
 			type="submit"

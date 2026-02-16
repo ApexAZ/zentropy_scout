@@ -36,7 +36,10 @@ interface ChatScoreCardProps {
  * Shows fit score with component breakdown, stretch score with tier,
  * and strengths/gaps from the score explanation.
  */
-export function ChatScoreCard({ data, className }: ChatScoreCardProps) {
+export function ChatScoreCard({
+	data,
+	className,
+}: Readonly<ChatScoreCardProps>) {
 	const { fit, stretch, explanation } = data;
 	const hasStrengths = explanation.strengths.length > 0;
 	const hasGaps = explanation.gaps.length > 0;

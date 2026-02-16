@@ -50,7 +50,9 @@ import { STRETCH_APPETITES } from "@/types/persona";
  * Receives the current persona as a prop. Pre-fills the form from persona
  * data and saves changes via PATCH.
  */
-export function GrowthTargetsEditor({ persona }: { persona: Persona }) {
+export function GrowthTargetsEditor({
+	persona,
+}: Readonly<{ persona: Persona }>) {
 	const personaId = persona.id;
 	const queryClient = useQueryClient();
 

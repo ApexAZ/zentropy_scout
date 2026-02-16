@@ -26,14 +26,14 @@ interface ExtractedSkillsTagsProps {
 function SkillChip({
 	skill,
 	variant,
-}: {
+}: Readonly<{
 	skill: ExtractedSkill;
 	variant: "required" | "preferred";
-}) {
+}>) {
 	const label =
-		skill.years_requested !== null
-			? `${skill.skill_name} (${skill.years_requested}+ yr)`
-			: skill.skill_name;
+		skill.years_requested === null
+			? skill.skill_name
+			: `${skill.skill_name} (${skill.years_requested}+ yr)`;
 
 	return (
 		<span
@@ -55,12 +55,12 @@ function SkillGroup({
 	label,
 	skills,
 	variant,
-}: {
+}: Readonly<{
 	testId: string;
 	label: string;
 	skills: ExtractedSkill[];
 	variant: "required" | "preferred";
-}) {
+}>) {
 	if (skills.length === 0) return null;
 
 	return (
@@ -80,7 +80,10 @@ function SkillGroup({
 // ---------------------------------------------------------------------------
 
 /** Renders extracted job skills as grouped tag chips (Required / Preferred). */
-function ExtractedSkillsTags({ skills, className }: ExtractedSkillsTagsProps) {
+function ExtractedSkillsTags({
+	skills,
+	className,
+}: Readonly<ExtractedSkillsTagsProps>) {
 	const hasSkills = skills && skills.length > 0;
 
 	if (!hasSkills) {

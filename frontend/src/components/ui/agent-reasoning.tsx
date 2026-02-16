@@ -14,7 +14,7 @@ interface AgentReasoningProps {
 	reasoning: string;
 }
 
-function AgentReasoning({ reasoning }: AgentReasoningProps) {
+function AgentReasoning({ reasoning }: Readonly<AgentReasoningProps>) {
 	const [expanded, setExpanded] = useState(true);
 
 	return (

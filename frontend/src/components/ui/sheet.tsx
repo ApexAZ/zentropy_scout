@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 function Sheet({
 	...props
-}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+}: Readonly<React.ComponentProps<typeof DialogPrimitive.Root>>) {
 	return <DialogPrimitive.Root data-slot="sheet" {...props} />;
 }
 
@@ -39,7 +39,7 @@ function SheetTrigger({
 
 function SheetPortal({
 	...props
-}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
+}: Readonly<React.ComponentProps<typeof DialogPrimitive.Portal>>) {
 	return <DialogPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
 

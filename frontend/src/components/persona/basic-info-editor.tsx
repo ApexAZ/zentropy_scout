@@ -54,7 +54,7 @@ const MAX_FIELD_LENGTH = 255;
 const INVALID_URL_MESSAGE = "Invalid URL format";
 const httpUrl = z
 	.string()
-	.url(INVALID_URL_MESSAGE)
+	.url({ message: INVALID_URL_MESSAGE })
 	.max(MAX_URL_LENGTH, "URL is too long")
 	.refine(
 		(val) => val.startsWith("https://") || val.startsWith("http://"),
@@ -64,34 +64,34 @@ const httpUrl = z
 const basicInfoEditorSchema = z.object({
 	full_name: z
 		.string()
-		.min(1, "Full name is required")
-		.max(MAX_TEXT_LENGTH, "Full name is too long"),
+		.min(1, { message: "Full name is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Full name is too long" }),
 	email: z
 		.string()
-		.min(1, "Email is required")
-		.email("Invalid email format")
-		.max(MAX_EMAIL_LENGTH, "Email is too long"),
+		.min(1, { message: "Email is required" })
+		.email({ message: "Invalid email format" })
+		.max(MAX_EMAIL_LENGTH, { message: "Email is too long" }),
 	phone: z
 		.string()
-		.min(1, "Phone number is required")
-		.max(MAX_PHONE_LENGTH, "Phone number is too long"),
+		.min(1, { message: "Phone number is required" })
+		.max(MAX_PHONE_LENGTH, { message: "Phone number is too long" }),
 	linkedin_url: z.union([httpUrl, z.literal("")]),
 	portfolio_url: z.union([httpUrl, z.literal("")]),
 	home_city: z
 		.string()
-		.min(1, "City is required")
-		.max(MAX_TEXT_LENGTH, "City name is too long"),
+		.min(1, { message: "City is required" })
+		.max(MAX_TEXT_LENGTH, { message: "City name is too long" }),
 	home_state: z
 		.string()
-		.min(1, "State is required")
-		.max(MAX_TEXT_LENGTH, "State name is too long"),
+		.min(1, { message: "State is required" })
+		.max(MAX_TEXT_LENGTH, { message: "State name is too long" }),
 	home_country: z
 		.string()
-		.min(1, "Country is required")
-		.max(MAX_TEXT_LENGTH, "Country name is too long"),
+		.min(1, { message: "Country is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Country name is too long" }),
 	professional_summary: z
 		.string()
-		.max(MAX_SUMMARY_LENGTH, "Summary is too long")
+		.max(MAX_SUMMARY_LENGTH, { message: "Summary is too long" })
 		.optional()
 		.or(z.literal("")),
 	years_experience: z.string().refine((val) => {
@@ -136,7 +136,7 @@ function toFriendlyError(err: unknown): string {
  * and saves changes via PATCH /personas/{id}. On success, invalidates
  * the personas query cache and navigates back to /persona.
  */
-export function BasicInfoEditor({ persona }: { persona: Persona }) {
+export function BasicInfoEditor({ persona }: Readonly<{ persona: Persona }>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 
@@ -156,9 +156,9 @@ export function BasicInfoEditor({ persona }: { persona: Persona }) {
 			home_country: persona.home_country ?? "",
 			professional_summary: persona.professional_summary ?? "",
 			years_experience:
-				persona.years_experience != null
-					? String(persona.years_experience)
-					: "",
+				persona.years_experience == null
+					? ""
+					: String(persona.years_experience),
 			current_role: persona.current_role ?? "",
 			current_company: persona.current_company ?? "",
 		},

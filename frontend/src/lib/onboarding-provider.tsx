@@ -216,7 +216,9 @@ interface OnboardingProviderProps {
  *
  * @param props.children - React children to render.
  */
-export function OnboardingProvider({ children }: OnboardingProviderProps) {
+export function OnboardingProvider({
+	children,
+}: Readonly<OnboardingProviderProps>) {
 	const { data, isLoading: isQueryLoading } = useQuery({
 		queryKey: queryKeys.personas,
 		queryFn: () => apiGet<ApiListResponse<Persona>>("/personas"),

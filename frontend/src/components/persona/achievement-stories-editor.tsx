@@ -44,7 +44,9 @@ type ViewMode = "list" | "add" | "edit";
  * via useQuery. Provides add/edit/delete and drag-drop reordering with
  * skill link resolution on cards.
  */
-export function AchievementStoriesEditor({ persona }: { persona: Persona }) {
+export function AchievementStoriesEditor({
+	persona,
+}: Readonly<{ persona: Persona }>) {
 	const personaId = persona.id;
 	const queryClient = useQueryClient();
 	const storiesQueryKey = queryKeys.achievementStories(personaId);

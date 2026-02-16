@@ -91,11 +91,11 @@ function ReviewCard({
 	profile,
 	onAccept,
 	onEdit,
-}: {
+}: Readonly<{
 	profile: ProfileData;
 	onAccept: () => void;
 	onEdit: () => void;
-}) {
+}>) {
 	return (
 		<div data-testid="voice-profile-review" className="space-y-4">
 			<p className="text-muted-foreground text-sm">

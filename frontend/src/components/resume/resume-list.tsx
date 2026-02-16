@@ -164,7 +164,7 @@ export function ResumeList() {
 										<p>Last updated: {formatDateTimeAgo(resume.updated_at)}</p>
 										{counts && counts.total > 0 && (
 											<p>
-												{counts.total} variant{counts.total !== 1 ? "s" : ""}
+												{counts.total} variant{counts.total === 1 ? "" : "s"}
 												{counts.pendingReview > 0 && (
 													<> ({counts.pendingReview} pending review)</>
 												)}

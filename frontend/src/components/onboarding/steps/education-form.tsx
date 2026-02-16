@@ -52,19 +52,19 @@ const GRID_TWO_COL = "grid gap-4 sm:grid-cols-2";
 const educationFormSchema = z.object({
 	institution: z
 		.string()
-		.min(1, "Institution is required")
-		.max(MAX_INSTITUTION_LENGTH, "Institution name is too long"),
+		.min(1, { message: "Institution is required" })
+		.max(MAX_INSTITUTION_LENGTH, { message: "Institution name is too long" }),
 	degree: z
 		.string()
-		.min(1, "Degree is required")
-		.max(MAX_DEGREE_LENGTH, "Degree is too long"),
+		.min(1, { message: "Degree is required" })
+		.max(MAX_DEGREE_LENGTH, { message: "Degree is too long" }),
 	field_of_study: z
 		.string()
-		.min(1, "Field of study is required")
-		.max(MAX_FIELD_LENGTH, "Field of study is too long"),
+		.min(1, { message: "Field of study is required" })
+		.max(MAX_FIELD_LENGTH, { message: "Field of study is too long" }),
 	graduation_year: z
 		.string()
-		.min(1, "Graduation year is required")
+		.min(1, { message: "Graduation year is required" })
 		.refine((val) => /^\d{4}$/.test(val), {
 			message: "Enter a valid 4-digit year",
 		})
@@ -140,7 +140,7 @@ export function EducationForm({
 	onCancel,
 	isSubmitting,
 	submitError,
-}: EducationFormProps) {
+}: Readonly<EducationFormProps>) {
 	const defaultVals: EducationFormData = {
 		...DEFAULT_VALUES,
 		...initialValues,

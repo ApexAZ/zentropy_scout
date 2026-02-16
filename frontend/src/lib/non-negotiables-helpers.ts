@@ -155,18 +155,18 @@ export function toFormValues(persona: Persona): NonNegotiablesFormData {
 		remote_preference: persona.remote_preference ?? "No Preference",
 		commutable_cities: persona.commutable_cities ?? [],
 		max_commute_minutes:
-			persona.max_commute_minutes != null
-				? String(persona.max_commute_minutes)
-				: "",
+			persona.max_commute_minutes == null
+				? ""
+				: String(persona.max_commute_minutes),
 		relocation_open: persona.relocation_open ?? false,
 		relocation_cities: persona.relocation_cities ?? [],
 
 		// Compensation
 		prefer_no_salary: persona.minimum_base_salary == null,
 		minimum_base_salary:
-			persona.minimum_base_salary != null
-				? String(persona.minimum_base_salary)
-				: "",
+			persona.minimum_base_salary == null
+				? ""
+				: String(persona.minimum_base_salary),
 		salary_currency: persona.salary_currency ?? "USD",
 
 		// Other filters

@@ -42,23 +42,23 @@ const MAX_TEXT_LENGTH = 5000;
 const storyFormSchema = z.object({
 	title: z
 		.string()
-		.min(1, "Title is required")
-		.max(MAX_TITLE_LENGTH, "Title is too long"),
+		.min(1, { message: "Title is required" })
+		.max(MAX_TITLE_LENGTH, { message: "Title is too long" }),
 	context: z
 		.string()
-		.min(1, "Context is required")
-		.max(MAX_TEXT_LENGTH, "Context is too long"),
+		.min(1, { message: "Context is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Context is too long" }),
 	action: z
 		.string()
-		.min(1, "Action is required")
-		.max(MAX_TEXT_LENGTH, "Action is too long"),
+		.min(1, { message: "Action is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Action is too long" }),
 	outcome: z
 		.string()
-		.min(1, "Outcome is required")
-		.max(MAX_TEXT_LENGTH, "Outcome is too long"),
+		.min(1, { message: "Outcome is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Outcome is too long" }),
 	skills_demonstrated: z
-		.array(z.string().uuid("Invalid skill ID"))
-		.max(50, "Too many skills selected"),
+		.array(z.string().uuid({ message: "Invalid skill ID" }))
+		.max(50, { message: "Too many skills selected" }),
 });
 
 export type StoryFormData = z.infer<typeof storyFormSchema>;
@@ -102,7 +102,7 @@ export function StoryForm({
 	isSubmitting,
 	submitError,
 	skills,
-}: StoryFormProps) {
+}: Readonly<StoryFormProps>) {
 	const defaultVals: StoryFormData = {
 		...DEFAULT_VALUES,
 		...initialValues,

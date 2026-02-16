@@ -11,8 +11,8 @@ import {
 	useCallback,
 	useRef,
 	useState,
-	type FormEvent,
 	type KeyboardEvent,
+	type SubmitEvent,
 } from "react";
 
 import { cn } from "@/lib/utils";
@@ -58,7 +58,7 @@ export function ChatInput({
 	disabled = false,
 	maxLength,
 	className,
-}: ChatInputProps) {
+}: Readonly<ChatInputProps>) {
 	const [value, setValue] = useState("");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -76,7 +76,7 @@ export function ChatInput({
 	}, [canSend, onSend, trimmed]);
 
 	const handleSubmit = useCallback(
-		(e: FormEvent) => {
+		(e: SubmitEvent<HTMLFormElement>) => {
 			e.preventDefault();
 			handleSend();
 		},

@@ -66,7 +66,7 @@ export function DeleteReferenceDialog({
 	onExpandReviewEach,
 	onToggleReviewSelection,
 	onConfirmReviewAndDelete,
-}: DeleteReferenceDialogProps) {
+}: Readonly<DeleteReferenceDialogProps>) {
 	const isProcessing = flowState === "checking" || flowState === "deleting";
 
 	return (
@@ -111,7 +111,7 @@ export function DeleteReferenceDialog({
 						<DialogHeader>
 							<DialogTitle>
 								Used in {references.length} document
-								{references.length !== 1 ? "s" : ""}
+								{references.length === 1 ? "" : "s"}
 							</DialogTitle>
 							<DialogDescription>
 								&quot;{itemLabel}&quot; is referenced by:

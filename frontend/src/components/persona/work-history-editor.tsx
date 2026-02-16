@@ -46,7 +46,7 @@ type ViewMode = "list" | "add" | "edit";
  * useQuery. Provides add/edit/delete, drag-drop reordering, and
  * interactive bullet editing. Invalidates the query cache after mutations.
  */
-export function WorkHistoryEditor({ persona }: { persona: Persona }) {
+export function WorkHistoryEditor({ persona }: Readonly<{ persona: Persona }>) {
 	const personaId = persona.id;
 	const queryClient = useQueryClient();
 	const workHistoryQueryKey = queryKeys.workHistory(personaId);

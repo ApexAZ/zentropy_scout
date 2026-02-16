@@ -53,10 +53,10 @@ interface VariantReviewProps {
 function DiffText({
 	tokens,
 	side,
-}: {
+}: Readonly<{
 	tokens: DiffToken[];
 	side: "base" | "variant";
-}) {
+}>) {
 	const filtered =
 		side === "base"
 			? tokens.filter((t) => t.type !== "added")
@@ -94,9 +94,9 @@ function DiffText({
 
 function GuardrailViolationBanner({
 	violations,
-}: {
+}: Readonly<{
 	violations: GuardrailViolation[];
-}) {
+}>) {
 	return (
 		<div
 			data-testid="guardrail-violations"
@@ -136,7 +136,7 @@ export function VariantReview({
 	variantId,
 	personaId,
 	hideActions,
-}: VariantReviewProps) {
+}: Readonly<VariantReviewProps>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const [isApproving, setIsApproving] = useState(false);

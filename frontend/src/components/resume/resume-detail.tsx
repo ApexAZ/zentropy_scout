@@ -49,7 +49,10 @@ interface ResumeDetailProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
+export function ResumeDetail({
+	resumeId,
+	personaId,
+}: Readonly<ResumeDetailProps>) {
 	const queryClient = useQueryClient();
 
 	// -----------------------------------------------------------------------
@@ -297,9 +300,7 @@ export function ResumeDetail({ resumeId, personaId }: ResumeDetailProps) {
 
 	const needsRender =
 		!resume.rendered_at || resume.updated_at > resume.rendered_at;
-	const renderButtonLabel = !resume.rendered_at
-		? "Render PDF"
-		: "Re-render PDF";
+	const renderButtonLabel = resume.rendered_at ? "Re-render PDF" : "Render PDF";
 	const downloadUrl = buildUrl(`/base-resumes/${resumeId}/download`);
 
 	// -----------------------------------------------------------------------

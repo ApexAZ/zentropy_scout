@@ -30,7 +30,12 @@ function isAllowedUrl(url: string): boolean {
 	}
 }
 
-function PdfViewer({ src, fileName, className, ...props }: PdfViewerProps) {
+function PdfViewer({
+	src,
+	fileName,
+	className,
+	...props
+}: Readonly<PdfViewerProps>) {
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const iframeRef = React.useRef<HTMLIFrameElement>(null);
 	const [iframeSrc, setIframeSrc] = React.useState("");

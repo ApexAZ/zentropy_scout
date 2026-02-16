@@ -95,7 +95,7 @@ export function TopNav({
 	pendingFlagsCount = 0,
 	pendingReviewsCount = 0,
 	activeApplicationsCount = 0,
-}: TopNavProps) {
+}: Readonly<TopNavProps>) {
 	const pathname = usePathname();
 	const { toggle } = useChatPanel();
 

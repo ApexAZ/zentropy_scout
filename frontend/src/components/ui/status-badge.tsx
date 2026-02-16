@@ -69,7 +69,7 @@ const STATUS_STYLES: Record<StatusBadgeStatus, string> = {
 // Component
 // ---------------------------------------------------------------------------
 
-function StatusBadge({ status, className }: StatusBadgeProps) {
+function StatusBadge({ status, className }: Readonly<StatusBadgeProps>) {
 	return (
 		<span
 			data-slot="status-badge"

@@ -57,7 +57,7 @@ export function OfferDetailsDialog({
 	onCancel,
 	loading = false,
 	initialData,
-}: OfferDetailsDialogProps) {
+}: Readonly<OfferDetailsDialogProps>) {
 	const [form, setForm] = useState<OfferDetails>({
 		salary_currency: DEFAULT_CURRENCY,
 	});

@@ -37,7 +37,7 @@ export function InterviewStageDialog({
 	onConfirm,
 	onCancel,
 	loading = false,
-}: InterviewStageDialogProps) {
+}: Readonly<InterviewStageDialogProps>) {
 	const [selectedStage, setSelectedStage] = useState<InterviewStage | "">("");
 
 	const handleConfirm = () => {

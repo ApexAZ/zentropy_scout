@@ -441,7 +441,7 @@ interface ChatProviderProps {
  *
  * @param props.children - React children to render.
  */
-export function ChatProvider({ children }: ChatProviderProps) {
+export function ChatProvider({ children }: Readonly<ChatProviderProps>) {
 	const { registerChatHandlers } = useSSE();
 	const [state, dispatch] = useReducer(chatReducer, initialState);
 

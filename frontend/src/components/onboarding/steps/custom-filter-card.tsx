@@ -30,7 +30,7 @@ export function CustomFilterCard({
 	entry,
 	onEdit,
 	onDelete,
-}: CustomFilterCardProps) {
+}: Readonly<CustomFilterCardProps>) {
 	return (
 		<div className="bg-card rounded-lg border" data-testid="custom-filter-card">
 			<div className="flex items-start gap-3 p-4">

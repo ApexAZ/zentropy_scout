@@ -40,7 +40,7 @@ export function ChatOptionList({
 	data,
 	onSelect,
 	className,
-}: ChatOptionListProps) {
+}: Readonly<ChatOptionListProps>) {
 	return (
 		<div
 			data-slot="chat-option-list"

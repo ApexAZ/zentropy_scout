@@ -49,7 +49,7 @@ export function ChatMessageList({
 	messages,
 	isLoading = false,
 	className,
-}: ChatMessageListProps) {
+}: Readonly<ChatMessageListProps>) {
 	const { containerRef, bottomRef, showJumpToLatest, scrollToBottom } =
 		useChatScroll({ messageCount: messages.length });
 

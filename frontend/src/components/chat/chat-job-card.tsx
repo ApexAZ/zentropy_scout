@@ -112,7 +112,7 @@ export function ChatJobCard({
 	onFavorite,
 	onDismiss,
 	className,
-}: ChatJobCardProps) {
+}: Readonly<ChatJobCardProps>) {
 	const {
 		jobId,
 		jobTitle,

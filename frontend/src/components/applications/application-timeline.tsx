@@ -94,7 +94,7 @@ function formatEventDate(isoString: string): string {
 export function ApplicationTimeline({
 	applicationId,
 	onAddEvent,
-}: ApplicationTimelineProps) {
+}: Readonly<ApplicationTimelineProps>) {
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: queryKeys.timelineEvents(applicationId),
 		queryFn: () =>

@@ -71,7 +71,7 @@ const STATUS_STYLES: Record<ToolExecutionStatus, string> = {
 export function ToolExecutionBadge({
 	execution,
 	className,
-}: ToolExecutionBadgeProps) {
+}: Readonly<ToolExecutionBadgeProps>) {
 	const { tool, status } = execution;
 	const label = formatToolLabel(tool);
 	const isRunning = status === "running";

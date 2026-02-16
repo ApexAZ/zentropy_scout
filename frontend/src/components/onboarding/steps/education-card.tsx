@@ -32,7 +32,7 @@ export function EducationCard({
 	onEdit,
 	onDelete,
 	dragHandle,
-}: EducationCardProps) {
+}: Readonly<EducationCardProps>) {
 	return (
 		<div className="bg-card rounded-lg border">
 			<div className="flex items-start gap-3 p-4">

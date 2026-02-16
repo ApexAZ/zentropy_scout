@@ -28,7 +28,7 @@ interface StreamingCursorProps {
  *
  * @param props.className - Optional extra CSS classes.
  */
-export function StreamingCursor({ className }: StreamingCursorProps) {
+export function StreamingCursor({ className }: Readonly<StreamingCursorProps>) {
 	return (
 		<span
 			data-slot="streaming-cursor"

@@ -60,7 +60,9 @@ export interface JobSourcesSectionProps {
 // ---------------------------------------------------------------------------
 
 /** Job source preferences with toggle, reorder, and tooltip. */
-export function JobSourcesSection({ personaId }: JobSourcesSectionProps) {
+export function JobSourcesSection({
+	personaId,
+}: Readonly<JobSourcesSectionProps>) {
 	const queryClient = useQueryClient();
 
 	// -----------------------------------------------------------------------

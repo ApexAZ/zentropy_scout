@@ -84,7 +84,7 @@ function formatDeadlineCountdown(dateString: string): string {
 export function OfferDetailsCard({
 	offerDetails,
 	onEdit,
-}: OfferDetailsCardProps) {
+}: Readonly<OfferDetailsCardProps>) {
 	const {
 		base_salary,
 		salary_currency,

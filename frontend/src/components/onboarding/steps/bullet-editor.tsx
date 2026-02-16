@@ -59,7 +59,7 @@ export function BulletEditor({
 	workHistoryId,
 	initialBullets,
 	onBulletsChange,
-}: BulletEditorProps) {
+}: Readonly<BulletEditorProps>) {
 	const [bullets, setBullets] = useState<Bullet[]>(initialBullets);
 	const [viewMode, setViewMode] = useState<ViewMode>("list");
 	const [editingBullet, setEditingBullet] = useState<Bullet | null>(null);

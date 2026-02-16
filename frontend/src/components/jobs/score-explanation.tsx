@@ -32,7 +32,12 @@ interface CategoryConfig {
 	items: string[];
 }
 
-function CategorySection({ testId, label, icon, items }: CategoryConfig) {
+function CategorySection({
+	testId,
+	label,
+	icon,
+	items,
+}: Readonly<CategoryConfig>) {
 	if (items.length === 0) return null;
 
 	return (
@@ -61,7 +66,10 @@ function CategorySection({ testId, label, icon, items }: CategoryConfig) {
  * categorized icon lists for strengths, gaps, stretch opportunities,
  * and warnings.
  */
-function ScoreExplanation({ explanation, className }: ScoreExplanationProps) {
+function ScoreExplanation({
+	explanation,
+	className,
+}: Readonly<ScoreExplanationProps>) {
 	if (!explanation) {
 		return (
 			<section

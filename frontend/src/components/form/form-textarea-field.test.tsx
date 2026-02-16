@@ -26,7 +26,7 @@ const BIO_PLACEHOLDER = "Tell us about yourself";
 // ---------------------------------------------------------------------------
 
 const schema = z.object({
-	bio: z.string().min(10, "Bio must be at least 10 characters"),
+	bio: z.string().min(10, { message: "Bio must be at least 10 characters" }),
 });
 
 type TestValues = z.infer<typeof schema>;

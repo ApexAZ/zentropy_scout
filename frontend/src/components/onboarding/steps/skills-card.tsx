@@ -32,7 +32,7 @@ export function SkillCard({
 	onEdit,
 	onDelete,
 	dragHandle,
-}: SkillCardProps) {
+}: Readonly<SkillCardProps>) {
 	return (
 		<div className="bg-card rounded-lg border">
 			<div className="flex items-start gap-3 p-4">

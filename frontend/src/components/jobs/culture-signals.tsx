@@ -22,7 +22,10 @@ interface CultureSignalsProps {
 // ---------------------------------------------------------------------------
 
 /** Renders culture signals as a quoted italic paragraph, or a "not available" badge. */
-function CultureSignals({ cultureText, className }: CultureSignalsProps) {
+function CultureSignals({
+	cultureText,
+	className,
+}: Readonly<CultureSignalsProps>) {
 	if (cultureText === null) {
 		return (
 			<section

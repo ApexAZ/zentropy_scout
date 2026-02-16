@@ -28,7 +28,9 @@ export interface JobSnapshotSectionProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function JobSnapshotSection({ snapshot }: JobSnapshotSectionProps) {
+export function JobSnapshotSection({
+	snapshot,
+}: Readonly<JobSnapshotSectionProps>) {
 	const [expanded, setExpanded] = useState(false);
 
 	return (

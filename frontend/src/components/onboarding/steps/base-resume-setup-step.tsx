@@ -47,9 +47,9 @@ import type {
 // ---------------------------------------------------------------------------
 
 const baseResumeSchema = z.object({
-	name: z.string().min(1, "Resume name is required").max(100),
-	role_type: z.string().min(1, "Role type is required").max(255),
-	summary: z.string().min(1, "Summary is required").max(5000),
+	name: z.string().min(1, { message: "Resume name is required" }).max(100),
+	role_type: z.string().min(1, { message: "Role type is required" }).max(255),
+	summary: z.string().min(1, { message: "Summary is required" }).max(5000),
 });
 
 type BaseResumeFormData = z.infer<typeof baseResumeSchema>;
@@ -95,12 +95,12 @@ function CheckboxSection({
 	emptyText,
 	hasItems,
 	children,
-}: {
+}: Readonly<{
 	title: string;
 	emptyText: string;
 	hasItems: boolean;
 	children: ReactNode;
-}) {
+}>) {
 	return (
 		<div className="space-y-2">
 			<h3 className="text-sm font-semibold">{title}</h3>
@@ -120,13 +120,13 @@ function WorkHistorySection({
 	selectedBullets,
 	onToggleJob,
 	onToggleBullet,
-}: {
+}: Readonly<{
 	workHistories: WorkHistory[];
 	selectedJobs: Set<string>;
 	selectedBullets: Set<string>;
 	onToggleJob: (id: string, checked: boolean) => void;
 	onToggleBullet: (id: string, checked: boolean) => void;
-}) {
+}>) {
 	return (
 		<CheckboxSection
 			title="Work History"
@@ -179,11 +179,11 @@ function EducationSection({
 	educations,
 	selectedEducation,
 	onToggle,
-}: {
+}: Readonly<{
 	educations: Education[];
 	selectedEducation: Set<string>;
 	onToggle: (id: string, checked: boolean) => void;
-}) {
+}>) {
 	return (
 		<CheckboxSection
 			title="Education"
@@ -213,11 +213,11 @@ function CertificationsSection({
 	certifications,
 	selectedCertifications,
 	onToggle,
-}: {
+}: Readonly<{
 	certifications: Certification[];
 	selectedCertifications: Set<string>;
 	onToggle: (id: string, checked: boolean) => void;
-}) {
+}>) {
 	return (
 		<CheckboxSection
 			title="Certifications"
@@ -245,11 +245,11 @@ function SkillsSection({
 	skills,
 	selectedSkills,
 	onToggle,
-}: {
+}: Readonly<{
 	skills: Skill[];
 	selectedSkills: Set<string>;
 	onToggle: (id: string, checked: boolean) => void;
-}) {
+}>) {
 	return (
 		<CheckboxSection
 			title="Skills"

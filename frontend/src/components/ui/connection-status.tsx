@@ -55,7 +55,10 @@ const STATUS_CONFIG = {
 // Component
 // ---------------------------------------------------------------------------
 
-function ConnectionStatus({ status, className }: ConnectionStatusProps) {
+function ConnectionStatus({
+	status,
+	className,
+}: Readonly<ConnectionStatusProps>) {
 	const config = STATUS_CONFIG[status];
 
 	return (

@@ -48,23 +48,23 @@ const GRID_TWO_COL = "grid gap-4 sm:grid-cols-2";
 const certificationFormSchema = z.object({
 	certification_name: z
 		.string()
-		.min(1, "Certification name is required")
-		.max(MAX_CERT_NAME_LENGTH, "Certification name is too long"),
+		.min(1, { message: "Certification name is required" })
+		.max(MAX_CERT_NAME_LENGTH, { message: "Certification name is too long" }),
 	issuing_organization: z
 		.string()
-		.min(1, "Issuing organization is required")
-		.max(MAX_ISSUER_LENGTH, "Issuing organization is too long"),
-	date_obtained: z.string().min(1, "Date obtained is required"),
+		.min(1, { message: "Issuing organization is required" })
+		.max(MAX_ISSUER_LENGTH, { message: "Issuing organization is too long" }),
+	date_obtained: z.string().min(1, { message: "Date obtained is required" }),
 	does_not_expire: z.boolean(),
 	expiration_date: z.string().optional().or(z.literal("")),
 	credential_id: z
 		.string()
-		.max(MAX_CREDENTIAL_ID_LENGTH, "Credential ID is too long")
+		.max(MAX_CREDENTIAL_ID_LENGTH, { message: "Credential ID is too long" })
 		.optional()
 		.or(z.literal("")),
 	verification_url: z
 		.string()
-		.max(MAX_URL_LENGTH, "URL is too long")
+		.max(MAX_URL_LENGTH, { message: "URL is too long" })
 		.optional()
 		.or(z.literal(""))
 		.refine(
@@ -121,7 +121,7 @@ export function CertificationForm({
 	onCancel,
 	isSubmitting,
 	submitError,
-}: CertificationFormProps) {
+}: Readonly<CertificationFormProps>) {
 	const defaultVals: CertificationFormData = {
 		...DEFAULT_VALUES,
 		...initialValues,

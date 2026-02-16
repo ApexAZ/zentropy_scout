@@ -50,7 +50,9 @@ import type { Persona, VoiceProfile } from "@/types/persona";
  * Receives the current persona as a prop and fetches the voice profile
  * via useQuery. Pre-fills the form and saves changes via PATCH.
  */
-export function VoiceProfileEditor({ persona }: { persona: Persona }) {
+export function VoiceProfileEditor({
+	persona,
+}: Readonly<{ persona: Persona }>) {
 	const personaId = persona.id;
 	const queryClient = useQueryClient();
 	const voiceProfileQueryKey = queryKeys.voiceProfile(personaId);

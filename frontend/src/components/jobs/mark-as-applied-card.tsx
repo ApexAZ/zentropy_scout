@@ -45,7 +45,10 @@ export interface MarkAsAppliedCardProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function MarkAsAppliedCard({ jobId, applyUrl }: MarkAsAppliedCardProps) {
+export function MarkAsAppliedCard({
+	jobId,
+	applyUrl,
+}: Readonly<MarkAsAppliedCardProps>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const [submitting, setSubmitting] = useState(false);

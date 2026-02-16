@@ -80,7 +80,7 @@ interface JobDetailHeaderProps {
 // Component
 // ---------------------------------------------------------------------------
 
-function JobDetailHeader({ jobId }: JobDetailHeaderProps) {
+function JobDetailHeader({ jobId }: Readonly<JobDetailHeaderProps>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const [togglingFavorite, setTogglingFavorite] = useState(false);

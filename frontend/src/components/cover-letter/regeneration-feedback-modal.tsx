@@ -63,7 +63,7 @@ export function RegenerationFeedbackModal({
 	onOpenChange,
 	coverLetterId,
 	usedStories,
-}: RegenerationFeedbackModalProps) {
+}: Readonly<RegenerationFeedbackModalProps>) {
 	const queryClient = useQueryClient();
 
 	// -----------------------------------------------------------------------

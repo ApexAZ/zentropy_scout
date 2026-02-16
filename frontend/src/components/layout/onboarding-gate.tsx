@@ -16,7 +16,7 @@ import { usePersonaStatus } from "@/hooks/use-persona-status";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function Spinner({ label }: { label: string }) {
+function Spinner({ label }: Readonly<{ label: string }>) {
 	return (
 		<div role="status" className="flex h-full items-center justify-center">
 			<span className="border-primary h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
@@ -29,7 +29,9 @@ function Spinner({ label }: { label: string }) {
 // Component
 // ---------------------------------------------------------------------------
 
-export function OnboardingGate({ children }: { children: ReactNode }) {
+export function OnboardingGate({
+	children,
+}: Readonly<{ children: ReactNode }>) {
 	const personaStatus = usePersonaStatus();
 	const router = useRouter();
 

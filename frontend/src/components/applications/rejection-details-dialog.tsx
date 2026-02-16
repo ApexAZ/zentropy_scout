@@ -58,7 +58,7 @@ export function RejectionDetailsDialog({
 	loading = false,
 	initialData,
 	initialStage,
-}: RejectionDetailsDialogProps) {
+}: Readonly<RejectionDetailsDialogProps>) {
 	const [form, setForm] = useState<RejectionDetails>({});
 
 	// Adjust state when dialog opens (React "deriving state from props" pattern)

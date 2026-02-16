@@ -50,7 +50,7 @@ export function ConfirmationDialog({
 	variant = "default",
 	loading = false,
 	className,
-}: ConfirmationDialogProps) {
+}: Readonly<ConfirmationDialogProps>) {
 	return (
 		<AlertDialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
 			<AlertDialogPrimitive.Portal>

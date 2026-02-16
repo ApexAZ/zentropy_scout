@@ -44,7 +44,7 @@ export function ChatConfirmCard({
 	onProceed,
 	onCancel,
 	className,
-}: ChatConfirmCardProps) {
+}: Readonly<ChatConfirmCardProps>) {
 	const proceedLabel = data.proceedLabel ?? "Proceed";
 	const cancelLabel = data.cancelLabel ?? "Cancel";
 

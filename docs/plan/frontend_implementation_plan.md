@@ -469,6 +469,8 @@ Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 13.1 | OWASP ZAP baseline scan against FastAPI API endpoints (DAST) | `security, commands, plan` | ✅ |
+| 13.1a | SonarCloud frontend remediation: bulk readonly props (S6759 ~180 issues) and mechanical fixes (S7735, S7760, S1874) | `lint, plan` | ✅ |
+| 13.1b | SonarCloud frontend remediation: extract nested components (S6478 ~23), accessibility roles (S6819, S6853), complexity (S3776, S3358) | `lint, plan` | ⬜ |
 | 13.2 | Hypothesis property-based fuzz testing for LLM sanitization pipeline | `security, test, plan` | ⬜ |
 | 13.3 | Custom Semgrep rules for LLM prompt injection and sanitization bypass patterns | `security, lint, plan` | ⬜ |
 | 13.4 | Container image scanning with Trivy in CI (PostgreSQL + pgvector) | `security, commands, plan` | ⬜ |
@@ -496,8 +498,8 @@ Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, 
 | 10: Application Tracking | 9 | Pipeline, timeline, offers |
 | 11: Settings | 4 | Sources, config, about |
 | 12: Integration & E2E | 8 | E2E tests, a11y, CI |
-| 13: Security Audit | 8 | DAST, fuzzing, hardening |
-| **Total** | **134** | |
+| 13: Security Audit | 10 | DAST, SonarCloud, fuzzing, hardening |
+| **Total** | **136** | |
 
 ---
 

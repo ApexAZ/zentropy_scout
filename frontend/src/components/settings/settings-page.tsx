@@ -24,7 +24,7 @@ export interface SettingsPageProps {
 // ---------------------------------------------------------------------------
 
 /** Settings page with section cards for Job Sources, Agent Config, and About. */
-export function SettingsPage({ personaId }: SettingsPageProps) {
+export function SettingsPage({ personaId }: Readonly<SettingsPageProps>) {
 	return (
 		<div data-testid="settings-page" className="space-y-6">
 			<h1 className="text-2xl font-bold">Settings</h1>

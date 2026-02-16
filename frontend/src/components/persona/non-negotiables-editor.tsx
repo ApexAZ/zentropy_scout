@@ -58,7 +58,9 @@ import {
  * Receives the current persona as a prop. Pre-fills the form from persona
  * data and saves changes via PATCH. Includes embedded CustomFiltersSection.
  */
-export function NonNegotiablesEditor({ persona }: { persona: Persona }) {
+export function NonNegotiablesEditor({
+	persona,
+}: Readonly<{ persona: Persona }>) {
 	const personaId = persona.id;
 	const queryClient = useQueryClient();
 

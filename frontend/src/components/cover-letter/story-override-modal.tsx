@@ -55,7 +55,7 @@ export function StoryOverrideModal({
 	coverLetterId,
 	stories,
 	selectedStoryIds,
-}: StoryOverrideModalProps) {
+}: Readonly<StoryOverrideModalProps>) {
 	const queryClient = useQueryClient();
 
 	// -----------------------------------------------------------------------

@@ -55,14 +55,14 @@ function TagInputArea({
 	disabled,
 	placeholder,
 	maxItems,
-}: {
+}: Readonly<{
 	value: string[];
 	onChange: (tags: string[]) => void;
 	onBlur: () => void;
 	disabled?: boolean;
 	placeholder?: string;
 	maxItems?: number;
-}) {
+}>) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const { formItemId, formDescriptionId, formMessageId, error } =
 		useFormField();
@@ -99,7 +99,7 @@ function TagInputArea({
 		}
 	}
 
-	function handleInput(e: React.FormEvent<HTMLInputElement>) {
+	function handleInput(e: React.InputEvent<HTMLInputElement>) {
 		const input = e.currentTarget;
 		if (input.value.includes(",")) {
 			const parts = input.value.split(",");
@@ -161,7 +161,7 @@ function TagInputArea({
 					placeholder={value.length === 0 ? placeholder : undefined}
 					disabled={disabled}
 					aria-describedby={
-						!error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`
+						error ? `${formDescriptionId} ${formMessageId}` : formDescriptionId
 					}
 					aria-invalid={!!error}
 					className="placeholder:text-muted-foreground min-w-[120px] flex-1 bg-transparent outline-none disabled:cursor-not-allowed"

@@ -52,7 +52,7 @@ function formatDateTime(isoString: string): string {
 export function RejectionDetailsCard({
 	rejectionDetails,
 	onEdit,
-}: RejectionDetailsCardProps) {
+}: Readonly<RejectionDetailsCardProps>) {
 	const { stage, reason, feedback, rejected_at } = rejectionDetails;
 
 	const hasStage = stage !== undefined && stage !== "";

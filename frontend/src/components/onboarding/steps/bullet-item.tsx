@@ -32,7 +32,7 @@ export function BulletItem({
 	onEdit,
 	onDelete,
 	dragHandle,
-}: BulletItemProps) {
+}: Readonly<BulletItemProps>) {
 	return (
 		<div className="flex items-start gap-2 rounded-md border p-3">
 			{dragHandle}

@@ -38,7 +38,7 @@ interface VariantsListProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function VariantsList({ baseResumeId }: VariantsListProps) {
+export function VariantsList({ baseResumeId }: Readonly<VariantsListProps>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const [archiveTarget, setArchiveTarget] = useState<string | null>(null);

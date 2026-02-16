@@ -98,7 +98,7 @@ function isSafeUrl(url: string): boolean {
 // PersonaHeader sub-component
 // ---------------------------------------------------------------------------
 
-function PersonaHeader({ persona }: { persona: Persona }) {
+function PersonaHeader({ persona }: Readonly<{ persona: Persona }>) {
 	const location = [persona.home_city, persona.home_state, persona.home_country]
 		.filter(Boolean)
 		.join(", ");
@@ -178,12 +178,12 @@ function SectionCard({
 	title,
 	summary,
 	editHref,
-}: {
+}: Readonly<{
 	sectionKey: string;
 	title: string;
 	summary: string;
 	editHref: string;
-}) {
+}>) {
 	return (
 		<div
 			className="flex flex-col justify-between rounded-lg border p-4"
@@ -210,10 +210,10 @@ function SectionCard({
 function DiscoveryPreferences({
 	persona,
 	editHref,
-}: {
+}: Readonly<{
 	persona: Persona;
 	editHref: string;
-}) {
+}>) {
 	return (
 		<div
 			className="flex items-center justify-between rounded-lg border p-4"
@@ -254,7 +254,7 @@ function DiscoveryPreferences({
  * an 8-card grid with section counts and edit links, and a
  * Discovery Preferences block.
  */
-export function PersonaOverview({ persona }: { persona: Persona }) {
+export function PersonaOverview({ persona }: Readonly<{ persona: Persona }>) {
 	const personaId = persona.id;
 
 	// Sub-entity queries (parallel, individually cached)

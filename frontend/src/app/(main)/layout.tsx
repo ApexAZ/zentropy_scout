@@ -23,7 +23,7 @@ import type { PersonaChangeFlag } from "@/types/persona";
 // Mounted inside OnboardingGate so persona API calls are safe.
 // ---------------------------------------------------------------------------
 
-function MainLayoutContent({ children }: { children: ReactNode }) {
+function MainLayoutContent({ children }: Readonly<{ children: ReactNode }>) {
 	const { data } = useQuery({
 		queryKey: queryKeys.changeFlags,
 		queryFn: () =>
@@ -41,7 +41,9 @@ function MainLayoutContent({ children }: { children: ReactNode }) {
 // Layout
 // ---------------------------------------------------------------------------
 
-export default function MainLayout({ children }: { children: ReactNode }) {
+export default function MainLayout({
+	children,
+}: Readonly<{ children: ReactNode }>) {
 	return (
 		<OnboardingGate>
 			<MainLayoutContent>{children}</MainLayoutContent>

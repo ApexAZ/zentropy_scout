@@ -57,17 +57,17 @@ const SOURCE_OPTIONS = INGEST_SOURCE_NAMES.map((name) => ({
 // ---------------------------------------------------------------------------
 
 const ingestFormSchema = z.object({
-	source_name: z.string().min(1, "Source is required"),
+	source_name: z.string().min(1, { message: "Source is required" }),
 	source_url: z
 		.string()
-		.url("Must be a valid URL")
+		.url({ message: "Must be a valid URL" })
 		.or(z.literal(""))
 		.optional()
 		.transform((v) => (v === "" ? undefined : v)),
 	raw_text: z
 		.string()
-		.min(1, "Job posting text is required")
-		.max(50000, "Text must be under 50,000 characters"),
+		.min(1, { message: "Job posting text is required" })
+		.max(50000, { message: "Text must be under 50,000 characters" }),
 });
 
 type IngestFormValues = z.input<typeof ingestFormSchema>;
@@ -106,10 +106,10 @@ function formatCountdown(seconds: number): string {
 function PreviewField({
 	label,
 	value,
-}: {
+}: Readonly<{
 	label: string;
 	value: string | null | undefined;
-}) {
+}>) {
 	return (
 		<div>
 			<dt className="text-muted-foreground text-xs font-medium">{label}</dt>
@@ -118,16 +118,16 @@ function PreviewField({
 	);
 }
 
-function PreviewContent({ preview }: { preview: IngestPreview }) {
+function PreviewContent({ preview }: Readonly<{ preview: IngestPreview }>) {
 	const salaryText =
 		preview.salary_min !== null || preview.salary_max !== null
 			? [
-					preview.salary_min !== null
-						? formatCurrency(preview.salary_min, preview.salary_currency)
-						: null,
-					preview.salary_max !== null
-						? formatCurrency(preview.salary_max, preview.salary_currency)
-						: null,
+					preview.salary_min === null
+						? null
+						: formatCurrency(preview.salary_min, preview.salary_currency),
+					preview.salary_max === null
+						? null
+						: formatCurrency(preview.salary_max, preview.salary_currency),
 				]
 					.filter(Boolean)
 					.join(" \u2013 ")
@@ -169,7 +169,10 @@ function PreviewContent({ preview }: { preview: IngestPreview }) {
 // Component
 // ---------------------------------------------------------------------------
 
-export function AddJobModal({ open, onOpenChange }: AddJobModalProps) {
+export function AddJobModal({
+	open,
+	onOpenChange,
+}: Readonly<AddJobModalProps>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const [step, setStep] = useState<"submit" | "preview">("submit");

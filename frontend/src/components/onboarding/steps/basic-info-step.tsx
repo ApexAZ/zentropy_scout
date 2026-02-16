@@ -57,7 +57,7 @@ const MAX_URL_LENGTH = 2083;
 const INVALID_URL_MESSAGE = "Invalid URL format";
 const httpUrl = z
 	.string()
-	.url(INVALID_URL_MESSAGE)
+	.url({ message: INVALID_URL_MESSAGE })
 	.max(MAX_URL_LENGTH, "URL is too long")
 	.refine(
 		(val) => val.startsWith("https://") || val.startsWith("http://"),
@@ -67,31 +67,31 @@ const httpUrl = z
 const basicInfoSchema = z.object({
 	full_name: z
 		.string()
-		.min(1, "Full name is required")
-		.max(MAX_TEXT_LENGTH, "Full name is too long"),
+		.min(1, { message: "Full name is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Full name is too long" }),
 	email: z
 		.string()
-		.min(1, "Email is required")
-		.email("Invalid email format")
-		.max(MAX_EMAIL_LENGTH, "Email is too long"),
+		.min(1, { message: "Email is required" })
+		.email({ message: "Invalid email format" })
+		.max(MAX_EMAIL_LENGTH, { message: "Email is too long" }),
 	phone: z
 		.string()
-		.min(1, "Phone number is required")
-		.max(MAX_PHONE_LENGTH, "Phone number is too long"),
+		.min(1, { message: "Phone number is required" })
+		.max(MAX_PHONE_LENGTH, { message: "Phone number is too long" }),
 	linkedin_url: z.union([httpUrl, z.literal("")]),
 	portfolio_url: z.union([httpUrl, z.literal("")]),
 	home_city: z
 		.string()
-		.min(1, "City is required")
-		.max(MAX_TEXT_LENGTH, "City name is too long"),
+		.min(1, { message: "City is required" })
+		.max(MAX_TEXT_LENGTH, { message: "City name is too long" }),
 	home_state: z
 		.string()
-		.min(1, "State is required")
-		.max(MAX_TEXT_LENGTH, "State name is too long"),
+		.min(1, { message: "State is required" })
+		.max(MAX_TEXT_LENGTH, { message: "State name is too long" }),
 	home_country: z
 		.string()
-		.min(1, "Country is required")
-		.max(MAX_TEXT_LENGTH, "Country name is too long"),
+		.min(1, { message: "Country is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Country name is too long" }),
 });
 
 type BasicInfoFormData = z.infer<typeof basicInfoSchema>;

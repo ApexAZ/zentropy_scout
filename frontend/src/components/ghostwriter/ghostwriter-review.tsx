@@ -45,7 +45,7 @@ export function GhostwriterReview({
 	coverLetterId,
 	baseResumeId,
 	personaId,
-}: GhostwriterReviewProps) {
+}: Readonly<GhostwriterReviewProps>) {
 	const queryClient = useQueryClient();
 
 	// -----------------------------------------------------------------------

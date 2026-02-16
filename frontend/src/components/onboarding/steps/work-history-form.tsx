@@ -57,37 +57,37 @@ const workHistoryFormSchema = z
 	.object({
 		job_title: z
 			.string()
-			.min(1, "Job title is required")
-			.max(MAX_TEXT_LENGTH, "Job title is too long"),
+			.min(1, { message: "Job title is required" })
+			.max(MAX_TEXT_LENGTH, { message: "Job title is too long" }),
 		company_name: z
 			.string()
-			.min(1, "Company name is required")
-			.max(MAX_TEXT_LENGTH, "Company name is too long"),
+			.min(1, { message: "Company name is required" })
+			.max(MAX_TEXT_LENGTH, { message: "Company name is too long" }),
 		company_industry: z
 			.string()
-			.max(MAX_INDUSTRY_LENGTH, "Industry is too long")
+			.max(MAX_INDUSTRY_LENGTH, { message: "Industry is too long" })
 			.optional()
 			.or(z.literal("")),
 		location: z
 			.string()
-			.min(1, "Location is required")
-			.max(MAX_TEXT_LENGTH, "Location is too long"),
+			.min(1, { message: "Location is required" })
+			.max(MAX_TEXT_LENGTH, { message: "Location is too long" }),
 		work_model: z.enum(["Remote", "Hybrid", "Onsite"] as const, {
 			message: "Work model is required",
 		}),
 		start_date: z
 			.string()
-			.min(1, "Start date is required")
-			.regex(MONTH_PATTERN, "Invalid date format"),
+			.min(1, { message: "Start date is required" })
+			.regex(MONTH_PATTERN, { message: "Invalid date format" }),
 		end_date: z
 			.string()
-			.regex(MONTH_PATTERN, "Invalid date format")
+			.regex(MONTH_PATTERN, { message: "Invalid date format" })
 			.optional()
 			.or(z.literal("")),
 		is_current: z.boolean(),
 		description: z
 			.string()
-			.max(MAX_DESCRIPTION_LENGTH, "Description is too long")
+			.max(MAX_DESCRIPTION_LENGTH, { message: "Description is too long" })
 			.optional()
 			.or(z.literal("")),
 	})
@@ -148,7 +148,7 @@ export function WorkHistoryForm({
 	onCancel,
 	isSubmitting,
 	submitError,
-}: WorkHistoryFormProps) {
+}: Readonly<WorkHistoryFormProps>) {
 	const defaultVals: WorkHistoryFormData = {
 		...DEFAULT_VALUES,
 		...initialValues,

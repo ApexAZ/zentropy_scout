@@ -29,7 +29,7 @@ const TAG_DESCRIPTION = "Add your skills";
 // ---------------------------------------------------------------------------
 
 const schema = z.object({
-	tags: z.array(z.string()).min(1, "At least one tag is required"),
+	tags: z.array(z.string()).min(1, { message: "At least one tag is required" }),
 });
 
 type TestValues = z.infer<typeof schema>;

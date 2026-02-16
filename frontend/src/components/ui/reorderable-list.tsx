@@ -66,7 +66,7 @@ interface SortableItemProps<T extends ReorderableItem> {
 function SortableItem<T extends ReorderableItem>({
 	item,
 	renderItem,
-}: SortableItemProps<T>) {
+}: Readonly<SortableItemProps<T>>) {
 	const {
 		attributes,
 		listeners,
@@ -129,7 +129,7 @@ function MobileItem<T extends ReorderableItem>({
 	onMoveUp,
 	onMoveDown,
 	renderItem,
-}: MobileItemProps<T>) {
+}: Readonly<MobileItemProps<T>>) {
 	return (
 		<li data-slot="reorderable-item" className="list-none">
 			<div className="flex items-center gap-1">
@@ -169,7 +169,7 @@ export function ReorderableList<T extends ReorderableItem>({
 	renderItem,
 	label,
 	className,
-}: ReorderableListProps<T>) {
+}: Readonly<ReorderableListProps<T>>) {
 	const isMobile = useIsMobile();
 
 	const handleMoveUp = (index: number) => {
@@ -223,7 +223,7 @@ function DesktopList<T extends ReorderableItem>({
 	renderItem,
 	label,
 	className,
-}: ReorderableListProps<T>) {
+}: Readonly<ReorderableListProps<T>>) {
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
 		useSensor(KeyboardSensor, {

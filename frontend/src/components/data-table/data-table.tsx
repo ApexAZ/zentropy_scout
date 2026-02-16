@@ -133,7 +133,7 @@ export function DataTable<TData>({
 	onRowSelectionChange,
 	toolbar,
 	getRowClassName,
-}: DataTableProps<TData>) {
+}: Readonly<DataTableProps<TData>>) {
 	// Internal state for uncontrolled mode
 	const [internalSorting, setInternalSorting] = React.useState<SortingState>(
 		[],

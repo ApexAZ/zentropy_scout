@@ -84,7 +84,7 @@ export function StatusTransitionDropdown({
 	applicationId,
 	currentStatus,
 	currentInterviewStage,
-}: StatusTransitionDropdownProps) {
+}: Readonly<StatusTransitionDropdownProps>) {
 	const queryClient = useQueryClient();
 
 	// -----------------------------------------------------------------------

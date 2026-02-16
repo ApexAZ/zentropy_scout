@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils";
 // Component
 // ---------------------------------------------------------------------------
 
-export function FormErrorSummary({ className }: { className?: string }) {
+export function FormErrorSummary({
+	className,
+}: Readonly<{ className?: string }>) {
 	const { errors } = useFormState();
 
 	const errorMessages = Object.entries(errors)

@@ -38,7 +38,7 @@ export function StoryCard({
 	onEdit,
 	onDelete,
 	dragHandle,
-}: StoryCardProps) {
+}: Readonly<StoryCardProps>) {
 	const skillNames = entry.skills_demonstrated
 		.map((id) => skills.find((s) => s.id === id)?.skill_name)
 		.filter(Boolean);

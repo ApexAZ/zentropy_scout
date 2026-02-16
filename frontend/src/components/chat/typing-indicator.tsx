@@ -29,7 +29,7 @@ interface TypingIndicatorProps {
  *
  * @param props.className - Optional extra CSS classes.
  */
-export function TypingIndicator({ className }: TypingIndicatorProps) {
+export function TypingIndicator({ className }: Readonly<TypingIndicatorProps>) {
 	return (
 		<div
 			data-slot="typing-indicator"

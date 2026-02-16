@@ -94,12 +94,12 @@ function CollapsibleSection({
 	title,
 	onEdit,
 	children,
-}: {
+}: Readonly<{
 	sectionKey: string;
 	title: string;
 	onEdit: () => void;
 	children: ReactNode;
-}) {
+}>) {
 	const [isOpen, setIsOpen] = useState(true);
 
 	return (
@@ -141,7 +141,10 @@ function CollapsibleSection({
 // ---------------------------------------------------------------------------
 
 /** Render a single labeled field row. */
-function FieldRow({ label, value }: { label: string; value: ReactNode }) {
+function FieldRow({
+	label,
+	value,
+}: Readonly<{ label: string; value: ReactNode }>) {
 	return (
 		<div className="flex gap-2 text-sm">
 			<span className="text-muted-foreground w-24 shrink-0 font-medium">
@@ -152,7 +155,7 @@ function FieldRow({ label, value }: { label: string; value: ReactNode }) {
 	);
 }
 
-function BasicInfoContent({ persona }: { persona: Persona | null }) {
+function BasicInfoContent({ persona }: Readonly<{ persona: Persona | null }>) {
 	if (!persona) return <NoDataPlaceholder />;
 	const location = [persona.home_city, persona.home_state, persona.home_country]
 		.filter(Boolean)
@@ -173,7 +176,9 @@ function BasicInfoContent({ persona }: { persona: Persona | null }) {
 	);
 }
 
-function ProfessionalOverviewContent({ persona }: { persona: Persona | null }) {
+function ProfessionalOverviewContent({
+	persona,
+}: Readonly<{ persona: Persona | null }>) {
 	if (!persona) return <NoDataPlaceholder />;
 	return (
 		<div className="space-y-1">
@@ -196,17 +201,17 @@ function ProfessionalOverviewContent({ persona }: { persona: Persona | null }) {
 	);
 }
 
-function WorkHistoryContent({ items }: { items: WorkHistory[] }) {
+function WorkHistoryContent({ items }: Readonly<{ items: WorkHistory[] }>) {
 	return <p className="text-sm">{pluralize(items.length, "position")}</p>;
 }
 
-function EducationContent({ items }: { items: Education[] }) {
+function EducationContent({ items }: Readonly<{ items: Education[] }>) {
 	return (
 		<p className="text-sm">{pluralize(items.length, "entry", "entries")}</p>
 	);
 }
 
-function SkillsContent({ items }: { items: Skill[] }) {
+function SkillsContent({ items }: Readonly<{ items: Skill[] }>) {
 	const hardCount = items.filter((s) => s.skill_type === "Hard").length;
 	const softCount = items.filter((s) => s.skill_type === "Soft").length;
 	return (
@@ -216,17 +221,21 @@ function SkillsContent({ items }: { items: Skill[] }) {
 	);
 }
 
-function CertificationsContent({ items }: { items: Certification[] }) {
+function CertificationsContent({
+	items,
+}: Readonly<{ items: Certification[] }>) {
 	return <p className="text-sm">{pluralize(items.length, "certification")}</p>;
 }
 
-function StoriesContent({ items }: { items: AchievementStory[] }) {
+function StoriesContent({ items }: Readonly<{ items: AchievementStory[] }>) {
 	return (
 		<p className="text-sm">{pluralize(items.length, "story", "stories")}</p>
 	);
 }
 
-function NonNegotiablesContent({ persona }: { persona: Persona | null }) {
+function NonNegotiablesContent({
+	persona,
+}: Readonly<{ persona: Persona | null }>) {
 	if (!persona) return <NoDataPlaceholder />;
 	return (
 		<div className="space-y-1">
@@ -241,7 +250,9 @@ function NonNegotiablesContent({ persona }: { persona: Persona | null }) {
 	);
 }
 
-function GrowthTargetsContent({ persona }: { persona: Persona | null }) {
+function GrowthTargetsContent({
+	persona,
+}: Readonly<{ persona: Persona | null }>) {
 	if (!persona) return <NoDataPlaceholder />;
 	return (
 		<div className="space-y-2">
@@ -284,7 +295,9 @@ function GrowthTargetsContent({ persona }: { persona: Persona | null }) {
 	);
 }
 
-function VoiceProfileContent({ profile }: { profile: VoiceProfile | null }) {
+function VoiceProfileContent({
+	profile,
+}: Readonly<{ profile: VoiceProfile | null }>) {
 	if (!profile?.tone) return <NoDataPlaceholder />;
 	return (
 		<div className="space-y-1">

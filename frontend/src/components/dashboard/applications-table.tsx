@@ -76,7 +76,9 @@ const EM_DASH = "\u2014";
 // Component
 // ---------------------------------------------------------------------------
 
-export function ApplicationsTable({ variant }: ApplicationsTableProps) {
+export function ApplicationsTable({
+	variant,
+}: Readonly<ApplicationsTableProps>) {
 	const router = useRouter();
 
 	const isHistory = variant === "history";

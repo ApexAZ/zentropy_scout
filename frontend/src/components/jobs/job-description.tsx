@@ -22,7 +22,10 @@ interface JobDescriptionProps {
 // ---------------------------------------------------------------------------
 
 /** Renders the full job posting description with preserved whitespace. */
-function JobDescription({ description, className }: JobDescriptionProps) {
+function JobDescription({
+	description,
+	className,
+}: Readonly<JobDescriptionProps>) {
 	return (
 		<section
 			data-testid="job-description"

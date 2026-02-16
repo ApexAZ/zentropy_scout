@@ -27,13 +27,14 @@ export function formatSnapshotSalary(
 	salaryCurrency: string | null,
 ): string {
 	if (salaryMin === null && salaryMax === null) return "Not disclosed";
-	const currency = salaryCurrency ?? "USD";
+	const c = salaryCurrency ?? "USD";
 	const fmt = (n: number) => `$${Math.round(n / 1000)}k`;
 	if (salaryMin !== null && salaryMax !== null) {
-		return `${fmt(salaryMin)}\u2013${fmt(salaryMax)} ${currency}`;
+		return `${fmt(salaryMin)}\u2013${fmt(salaryMax)} ${c}`;
 	}
-	if (salaryMin !== null) return `${fmt(salaryMin)}+ ${currency}`;
-	return `Up to ${fmt(salaryMax!)} ${currency}`;
+	return salaryMin !== null
+		? `${fmt(salaryMin)}+ ${c}`
+		: `Up to ${fmt(salaryMax!)} ${c}`;
 }
 
 // ---------------------------------------------------------------------------
