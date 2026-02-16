@@ -35,6 +35,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - Referrer-Policy: Controls referrer information leakage
     - Cache-Control: Prevents caching of sensitive data on API responses
     - Content-Security-Policy: Restricts resource loading (API returns no HTML)
+    - Cross-Origin-Opener-Policy: Isolates browsing context (Spectre mitigation)
+    - Cross-Origin-Embedder-Policy: Requires CORP for cross-origin resources (Spectre)
     - Strict-Transport-Security: Forces HTTPS (production only)
     """
 
@@ -67,6 +69,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = (
             "default-src 'none'; frame-ancestors 'none'"
         )
+
+        # Spectre vulnerability mitigation (ZAP alert 90004)
+        # COOP isolates the browsing context group so cross-origin documents
+        # cannot access the window object. COEP ensures all cross-origin
+        # resources opt in via CORP headers.
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
 
         # HSTS only in production (assumes HTTPS via reverse proxy)
         if settings.environment == "production":

@@ -316,3 +316,22 @@ class TestSecurityHeadersMiddleware:
         assert hsts is not None
         assert "max-age=31536000" in hsts
         assert "includeSubDomains" in hsts
+
+    @pytest.mark.asyncio
+    async def test_cross_origin_opener_policy_header(self, client):
+        """Cross-Origin-Opener-Policy should isolate browsing context (Spectre mitigation)."""
+        response = await client.get("/health")
+        assert response.headers.get("cross-origin-opener-policy") == "same-origin"
+
+    @pytest.mark.asyncio
+    async def test_cross_origin_embedder_policy_header(self, client):
+        """Cross-Origin-Embedder-Policy should require CORP (Spectre mitigation)."""
+        response = await client.get("/health")
+        assert response.headers.get("cross-origin-embedder-policy") == "require-corp"
+
+    @pytest.mark.asyncio
+    async def test_spectre_headers_on_api_endpoints(self, client):
+        """Spectre mitigation headers should be present on API endpoints too."""
+        response = await client.get("/api/v1/personas")
+        assert response.headers.get("cross-origin-opener-policy") == "same-origin"
+        assert response.headers.get("cross-origin-embedder-policy") == "require-corp"
