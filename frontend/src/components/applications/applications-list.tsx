@@ -12,9 +12,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-	CellContext,
 	ColumnDef,
-	HeaderContext,
 	RowSelectionState,
 	SortingState,
 	Table as ReactTable,
@@ -22,16 +20,14 @@ import type {
 import { Loader2 } from "lucide-react";
 
 import { apiGet, apiPost } from "@/lib/api-client";
-import { formatDateTimeAgo } from "@/lib/job-formatters";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
+import { APPLICATION_COLUMNS } from "@/components/applications/application-columns";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/data-table/data-table";
-import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { getSelectColumn } from "@/components/data-table/data-table-select-column";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { FailedState } from "@/components/ui/error-states";
 import {
 	Select,
@@ -73,92 +69,6 @@ const SORT_OPTIONS = [
 const DEFAULT_SORT_FIELD = "status_updated_at";
 const EMPTY_MESSAGE = "No applications yet.";
 const BULK_ACTION_ERROR = "Bulk archive failed.";
-const EM_DASH = "\u2014";
-
-// ---------------------------------------------------------------------------
-// Column renderers (extracted to module scope per S6478)
-// ---------------------------------------------------------------------------
-
-function JobTitleHeader({ column }: HeaderContext<Application, unknown>) {
-	return <DataTableColumnHeader column={column} title="Job Title" />;
-}
-
-function JobTitleCell({ row }: CellContext<Application, unknown>) {
-	return (
-		<div>
-			<div className="font-medium">{row.original.job_snapshot.title}</div>
-			<div className="text-muted-foreground text-sm">
-				{row.original.job_snapshot.company_name}
-			</div>
-		</div>
-	);
-}
-
-function StatusHeader({ column }: HeaderContext<Application, unknown>) {
-	return <DataTableColumnHeader column={column} title="Status" />;
-}
-
-function StatusCell({ row }: CellContext<Application, unknown>) {
-	return <StatusBadge status={row.original.status} />;
-}
-
-function InterviewStageHeader({ column }: HeaderContext<Application, unknown>) {
-	return <DataTableColumnHeader column={column} title="Interview Stage" />;
-}
-
-function InterviewStageCell({ row }: CellContext<Application, unknown>) {
-	const stage = row.original.current_interview_stage;
-	if (stage) {
-		return (
-			<span className="bg-warning/20 text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
-				{stage}
-			</span>
-		);
-	}
-	return EM_DASH;
-}
-
-function AppliedAtHeader({ column }: HeaderContext<Application, unknown>) {
-	return <DataTableColumnHeader column={column} title="Applied" />;
-}
-
-function LastUpdatedHeader({ column }: HeaderContext<Application, unknown>) {
-	return <DataTableColumnHeader column={column} title="Last Updated" />;
-}
-
-const BASE_APPLICATION_COLUMNS: ColumnDef<Application, unknown>[] = [
-	{
-		id: "job_title",
-		accessorFn: (row) =>
-			`${row.job_snapshot.title} ${row.job_snapshot.company_name}`,
-		header: JobTitleHeader,
-		cell: JobTitleCell,
-		enableSorting: false,
-	},
-	{
-		accessorKey: "status",
-		header: StatusHeader,
-		cell: StatusCell,
-		enableSorting: false,
-	},
-	{
-		id: "interview_stage",
-		accessorFn: (row) => row.current_interview_stage,
-		header: InterviewStageHeader,
-		cell: InterviewStageCell,
-		enableSorting: false,
-	},
-	{
-		accessorKey: "applied_at",
-		header: AppliedAtHeader,
-		cell: ({ row }) => formatDateTimeAgo(row.original.applied_at),
-	},
-	{
-		accessorKey: "status_updated_at",
-		header: LastUpdatedHeader,
-		cell: ({ row }) => formatDateTimeAgo(row.original.status_updated_at),
-	},
-];
 
 // ---------------------------------------------------------------------------
 // Toolbars (extracted to module scope per S6478)
@@ -416,7 +326,7 @@ export function ApplicationsList() {
 	const columns = useMemo<ColumnDef<Application, unknown>[]>(
 		() => [
 			...(selectMode ? [getSelectColumn<Application>()] : []),
-			...BASE_APPLICATION_COLUMNS,
+			...APPLICATION_COLUMNS,
 		],
 		[selectMode],
 	);
