@@ -481,6 +481,7 @@ Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, 
 | 13.3 | Custom Semgrep rules for LLM prompt injection and sanitization bypass patterns | `security, lint, plan` | ⬜ |
 | 13.4 | Container image scanning with Trivy in CI (PostgreSQL + pgvector) | `security, commands, plan` | ⬜ |
 | 13.5 | Security headers validation (CORS, CSP, X-Frame-Options) in E2E tests | `security, playwright, plan` | ⬜ |
+| 13.5a | Pre-deployment: disable ZAP public issue writing (`allow_issue_writing: false`), keep artifacts-only | `security, commands, plan` | ⬜ |
 | 13.6 | Add mypy to pre-commit hooks for backend type safety enforcement | `security, lint, plan` | ⬜ |
 | 13.7 | Load testing rate limits with k6 or locust (verify slowapi enforcement) | `security, test, plan` | ⬜ |
 | 13.8 | Full manual security review — OWASP Top 10 walkthrough across all endpoints | `security, plan` | ⬜ |
@@ -504,8 +505,8 @@ Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, 
 | 10: Application Tracking | 9 | Pipeline, timeline, offers |
 | 11: Settings | 4 | Sources, config, about |
 | 12: Integration & E2E | 8 | E2E tests, a11y, CI |
-| 13: Security Audit | 13 | DAST, SonarCloud, fuzzing, hardening |
-| **Total** | **136** | |
+| 13: Security Audit | 14 | DAST, SonarCloud, fuzzing, hardening |
+| **Total** | **137** | |
 
 ---
 
