@@ -19,8 +19,8 @@ Zentropy Scout is an AI-powered job application assistant that helps users:
 | **Backend** | FastAPI (Python 3.11+) | Async, Pydantic v2 |
 | **Frontend** | Next.js 14+ (TypeScript) | App Router, Tailwind CSS |
 | **Database** | PostgreSQL 16 + pgvector | Vector similarity for job matching |
-| **LLM (Local)** | Claude Agent SDK | Uses user's Claude subscription |
-| **LLM (Hosted)** | Anthropic API (BYOK) | Future: user provides API key |
+| **Agent Framework** | LangGraph | State machine graphs with checkpointing |
+| **LLM Providers** | Claude, OpenAI, Gemini | Swappable via provider abstraction layer |
 | **Embeddings** | OpenAI text-embedding-3-small | 1536 dimensions |
 | **PDF Generation** | ReportLab + Platypus | Pure Python, no system deps |
 | **Browser Extension** | Chrome Extension (Manifest V3) | Job posting capture |
