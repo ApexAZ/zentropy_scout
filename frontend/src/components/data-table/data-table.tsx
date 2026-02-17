@@ -88,6 +88,10 @@ export interface DataTableProps<TData> {
 
 	/** Returns additional CSS class(es) for a table row based on its data. */
 	getRowClassName?: (row: TData) => string | undefined;
+
+	/** Arbitrary metadata passed to cell renderers via table.options.meta. */
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Table meta is typed as `any` by design
+	meta?: Record<string, any>;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,6 +137,7 @@ export function DataTable<TData>({
 	onRowSelectionChange,
 	toolbar,
 	getRowClassName,
+	meta,
 }: Readonly<DataTableProps<TData>>) {
 	// Internal state for uncontrolled mode
 	const [internalSorting, setInternalSorting] = React.useState<SortingState>(
@@ -165,6 +170,7 @@ export function DataTable<TData>({
 			pageCount,
 		}),
 		enableRowSelection,
+		meta,
 		state: {
 			sorting: sorting ?? internalSorting,
 			columnFilters: columnFilters ?? internalColumnFilters,

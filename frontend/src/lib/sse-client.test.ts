@@ -111,9 +111,12 @@ describe("SSEClient", () => {
 		vi.useFakeTimers();
 		MockEventSource.instances = [];
 		vi.stubGlobal("EventSource", MockEventSource);
-		// Jitter factor = 0.5 + 1.0 * 0.5 = 1.0 → no effective jitter.
+		// Jitter factor = 0.5 + (0xffffffff / 0xffffffff) * 0.5 = 1.0 → no effective jitter.
 		// Individual tests override this to verify jitter behavior.
-		vi.spyOn(Math, "random").mockReturnValue(1);
+		vi.spyOn(crypto, "getRandomValues").mockImplementation((arr) => {
+			(arr as Uint32Array)[0] = 0xffffffff;
+			return arr;
+		});
 	});
 
 	afterEach(() => {
@@ -506,8 +509,11 @@ describe("SSEClient", () => {
 		});
 
 		it("applies jitter to backoff delay", () => {
-			// Math.random = 0 → jitter = 0.5 + 0 * 0.5 = 0.5 → delay = 500ms
-			vi.spyOn(Math, "random").mockReturnValue(0);
+			// crypto value = 0 → jitter = 0.5 + 0 * 0.5 = 0.5 → delay = 500ms
+			vi.spyOn(crypto, "getRandomValues").mockImplementation((arr) => {
+				(arr as Uint32Array)[0] = 0;
+				return arr;
+			});
 			const config = createConfig();
 			const client = createClient(config);
 			client.connect();

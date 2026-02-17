@@ -327,23 +327,28 @@ function DiscoveredHeader({
 	return <DataTableColumnHeader column={column} title="Discovered" />;
 }
 
-interface FavoriteCellProps {
-	readonly job: JobPosting;
-	readonly isToggling: boolean;
-	readonly onToggle: (job: JobPosting) => void;
+interface OpportunitiesTableMeta {
+	togglingFavoriteId: string | null;
+	handleFavoriteToggle: (job: JobPosting) => void;
 }
 
-function FavoriteCell({ job, isToggling, onToggle }: FavoriteCellProps) {
+function FavoriteCell({
+	row,
+	table,
+}: Readonly<CellContext<JobPosting, unknown>>) {
+	const { togglingFavoriteId, handleFavoriteToggle } = table.options
+		.meta as OpportunitiesTableMeta;
+	const job = row.original;
 	return (
 		<Button
 			variant="ghost"
 			size="icon"
 			data-testid={`favorite-toggle-${job.id}`}
-			disabled={isToggling}
+			disabled={togglingFavoriteId === job.id}
 			aria-label={job.is_favorite ? "Unfavorite" : "Favorite"}
 			onClick={(e) => {
 				e.stopPropagation();
-				onToggle(job);
+				handleFavoriteToggle(job);
 			}}
 		>
 			<Heart
@@ -692,13 +697,7 @@ export function OpportunitiesTable() {
 			{
 				accessorKey: "is_favorite",
 				header: FavoriteHeader,
-				cell: ({ row }) => (
-					<FavoriteCell
-						job={row.original}
-						isToggling={togglingFavoriteId === row.original.id}
-						onToggle={handleFavoriteToggle}
-					/>
-				),
+				cell: FavoriteCell,
 			},
 			{
 				accessorKey: "job_title",
@@ -740,7 +739,12 @@ export function OpportunitiesTable() {
 				cell: ({ row }) => formatDaysAgo(row.original.first_seen_date),
 			},
 		],
-		[selectMode, togglingFavoriteId, handleFavoriteToggle],
+		[selectMode],
+	);
+
+	const tableMeta: OpportunitiesTableMeta = useMemo(
+		() => ({ togglingFavoriteId, handleFavoriteToggle }),
+		[togglingFavoriteId, handleFavoriteToggle],
 	);
 
 	const getRowClassName = useCallback(
@@ -770,6 +774,7 @@ export function OpportunitiesTable() {
 			<DataTable
 				columns={columns}
 				data={jobs}
+				meta={tableMeta}
 				onRowClick={selectMode ? undefined : handleRowClick}
 				getRowId={(job) => job.id}
 				emptyMessage={EMPTY_MESSAGE}

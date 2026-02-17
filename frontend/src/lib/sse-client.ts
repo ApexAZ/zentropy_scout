@@ -175,7 +175,9 @@ export class SSEClient {
 			INITIAL_BACKOFF_MS * 2 ** this.reconnectAttempt,
 			MAX_BACKOFF_MS,
 		);
-		const jitter = 0.5 + Math.random() * 0.5;
+		const jitterArray = new Uint32Array(1);
+		crypto.getRandomValues(jitterArray);
+		const jitter = 0.5 + (jitterArray[0] / 0xffffffff) * 0.5;
 		const delay = Math.floor(baseDelay * jitter);
 		this.reconnectAttempt += 1;
 		this.reconnectTimer = setTimeout(() => {

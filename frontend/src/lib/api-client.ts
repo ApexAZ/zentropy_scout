@@ -127,7 +127,8 @@ export function buildUrl(
 	path: string,
 	params?: Record<string, string | number | boolean | undefined | null>,
 ): string {
-	const base = getBaseUrl().replace(/\/+$/, "");
+	let base = getBaseUrl();
+	while (base.endsWith("/")) base = base.slice(0, -1);
 	const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 	const url = new URL(`${base}${normalizedPath}`);
 
