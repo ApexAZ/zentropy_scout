@@ -45,7 +45,7 @@ export function toRequestBody(data: SkillFormData): SkillRequestBody {
 		skill_type: data.skill_type,
 		category: data.category,
 		proficiency: data.proficiency,
-		years_used: parseInt(data.years_used, 10),
+		years_used: Number.parseInt(data.years_used, 10),
 		last_used: data.last_used,
 	};
 }

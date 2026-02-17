@@ -70,14 +70,14 @@ const educationFormSchema = z.object({
 		})
 		.refine(
 			(val) => {
-				const year = parseInt(val, 10);
+				const year = Number.parseInt(val, 10);
 				return year >= MIN_GRADUATION_YEAR;
 			},
 			{ message: `Year must be ${MIN_GRADUATION_YEAR} or later` },
 		)
 		.refine(
 			(val) => {
-				const year = parseInt(val, 10);
+				const year = Number.parseInt(val, 10);
 				return year <= MAX_GRADUATION_YEAR;
 			},
 			{ message: `Year must be ${MAX_GRADUATION_YEAR} or earlier` },
@@ -89,8 +89,8 @@ const educationFormSchema = z.object({
 		.refine(
 			(val) => {
 				if (!val || val === "") return true;
-				const num = parseFloat(val);
-				return !isNaN(num) && num >= 0 && num <= MAX_GPA;
+				const num = Number.parseFloat(val);
+				return !Number.isNaN(num) && num >= 0 && num <= MAX_GPA;
 			},
 			{ message: `GPA must be between 0 and ${MAX_GPA}` },
 		),

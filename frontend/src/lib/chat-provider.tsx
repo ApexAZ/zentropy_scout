@@ -257,7 +257,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 			};
 
 		case "APPEND_TOKEN": {
-			const lastMsg = state.messages[state.messages.length - 1];
+			const lastMsg = state.messages.at(-1);
 			if (lastMsg?.role === "agent" && lastMsg.isStreaming) {
 				// Drop tokens if content exceeds max length
 				if (lastMsg.content.length >= MAX_MESSAGE_CONTENT_LENGTH) {
@@ -294,7 +294,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 		}
 
 		case "TOOL_START": {
-			const lastMsg = state.messages[state.messages.length - 1];
+			const lastMsg = state.messages.at(-1);
 			if (!lastMsg || lastMsg.role !== "agent") return state;
 			if (lastMsg.tools.length >= MAX_TOOLS_PER_MESSAGE) return state;
 			return {
@@ -318,7 +318,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 		}
 
 		case "TOOL_RESULT": {
-			const lastMsg = state.messages[state.messages.length - 1];
+			const lastMsg = state.messages.at(-1);
 			if (!lastMsg || lastMsg.role !== "agent") return state;
 			return {
 				...state,

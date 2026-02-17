@@ -106,7 +106,7 @@ function TagInputArea({
 			for (const part of parts.slice(0, -1)) {
 				addTag(part);
 			}
-			input.value = parts[parts.length - 1];
+			input.value = parts.at(-1) ?? "";
 		}
 	}
 

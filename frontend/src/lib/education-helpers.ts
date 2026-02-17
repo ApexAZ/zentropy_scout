@@ -44,8 +44,8 @@ export function toRequestBody(data: EducationFormData): EducationRequestBody {
 		institution: data.institution,
 		degree: data.degree,
 		field_of_study: data.field_of_study,
-		graduation_year: parseInt(data.graduation_year, 10),
-		gpa: data.gpa ? parseFloat(data.gpa) : null,
+		graduation_year: Number.parseInt(data.graduation_year, 10),
+		gpa: data.gpa ? Number.parseFloat(data.gpa) : null,
 		honors: data.honors || null,
 	};
 }

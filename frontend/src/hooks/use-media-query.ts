@@ -9,14 +9,14 @@ import { useEffect, useState } from "react";
 
 export function useMediaQuery(query: string): boolean {
 	const [matches, setMatches] = useState(() => {
-		if (typeof window === "undefined" || !window.matchMedia) return false;
-		return window.matchMedia(query).matches;
+		if (typeof globalThis.matchMedia !== "function") return false;
+		return globalThis.matchMedia(query).matches;
 	});
 
 	useEffect(() => {
-		if (typeof window === "undefined" || !window.matchMedia) return;
+		if (typeof globalThis.matchMedia !== "function") return;
 
-		const mql = window.matchMedia(query);
+		const mql = globalThis.matchMedia(query);
 
 		const handleChange = (
 			event: MediaQueryListEvent | { matches: boolean },

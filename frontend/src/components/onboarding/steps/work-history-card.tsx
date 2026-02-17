@@ -33,7 +33,7 @@ function formatMonthYear(isoDate: string): string {
 		"Nov",
 		"Dec",
 	];
-	const monthIndex = parseInt(month, 10) - 1;
+	const monthIndex = Number.parseInt(month, 10) - 1;
 	const monthName = monthNames[monthIndex] ?? "???";
 	return `${monthName} ${year}`;
 }

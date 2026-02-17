@@ -104,10 +104,10 @@ const skillFormSchema = z.object({
 		.refine((val) => /^\d+$/.test(val), {
 			message: "Enter a valid number",
 		})
-		.refine((val) => parseInt(val, 10) >= 1, {
+		.refine((val) => Number.parseInt(val, 10) >= 1, {
 			message: "Must be at least 1",
 		})
-		.refine((val) => parseInt(val, 10) <= MAX_YEARS_USED, {
+		.refine((val) => Number.parseInt(val, 10) <= MAX_YEARS_USED, {
 			message: `Must be at most ${MAX_YEARS_USED}`,
 		}),
 	last_used: z

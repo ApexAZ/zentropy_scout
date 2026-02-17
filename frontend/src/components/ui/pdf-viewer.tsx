@@ -23,7 +23,7 @@ function sanitizeFileName(name: string): string {
 
 function isAllowedUrl(url: string): boolean {
 	try {
-		const parsed = new URL(url, window.location.origin);
+		const parsed = new URL(url, globalThis.location.origin);
 		return ALLOWED_PROTOCOLS.has(parsed.protocol);
 	} catch {
 		return false;
