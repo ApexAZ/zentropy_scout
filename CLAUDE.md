@@ -34,13 +34,18 @@ zentropy_scout/
 ├── CLAUDE.md                    # THIS FILE
 ├── docker-compose.yml           # PostgreSQL + pgvector
 ├── .env.example                 # Environment template
+├── .pre-commit-config.yaml      # Pre-commit/pre-push hooks
+├── .github/
+│   ├── workflows/               # CI: Semgrep, SonarCloud, ZAP DAST, pip-audit
+│   ├── dependabot.yml           # Dependency scanning (pip, npm, GitHub Actions)
+│   └── zap-rules.tsv            # ZAP alert suppressions
 ├── docs/
 │   ├── prd/                     # Product requirements
-│   ├── requirements/            # DETAILED SPECS (REQ-001 to REQ-011)
-│   └── plan/                    # Implementation plan
+│   ├── requirements/            # DETAILED SPECS (REQ-001 to REQ-012)
+│   ├── plan/                    # Implementation plans (backend + frontend)
+│   └── backlog/                 # Feature backlog (future work)
 ├── backend/                     # FastAPI app
-├── frontend/                    # Next.js app
-└── extension/                   # Chrome extension
+└── frontend/                    # Next.js app
 ```
 
 **For detailed module organization, the `zentropy-structure` skill will auto-load.**
@@ -49,14 +54,39 @@ zentropy_scout/
 
 ## Implementation Phases
 
+### Backend (all ✅ complete)
+
 | Phase | Focus | Key REQs |
 |-------|-------|----------|
 | **1.1** | Database Schema | REQ-005 |
 | **1.2** | Provider Abstraction | REQ-009 |
 | **1.3** | API Scaffold | REQ-006 |
-| **2.x** | Agent Framework | REQ-007 (split into 8 sub-phases) |
+| **2.x** | Agent Framework | REQ-007 (8 sub-phases) |
 | **3.x** | Document Generation | REQ-002, REQ-002b, REQ-010 |
+
+### Frontend (Phases 1–12 ✅ complete, Phase 13 in progress)
+
+| Phase | Focus | Key REQs |
+|-------|-------|----------|
+| **1–3** | Scaffold, Foundation, Shared Components | REQ-012 §4, §13 |
+| **4** | Chat Interface | REQ-012 §5 |
+| **5** | Onboarding Flow (12-step wizard) | REQ-012 §6 |
+| **6** | Persona Management | REQ-012 §7 |
+| **7** | Job Dashboard & Scoring | REQ-012 §8 |
+| **8** | Resume Management | REQ-012 §9 |
+| **9** | Cover Letter Management | REQ-012 §10 |
+| **10** | Application Tracking | REQ-012 §11 |
+| **11** | Settings & Configuration | REQ-012 §12 |
+| **12** | Integration, Polish & E2E Tests | REQ-012 |
+| **13** | Security Audit & Hardening | OWASP, DAST, SonarCloud |
+
+### Postponed
+
+| Phase | Focus | Key REQs |
+|-------|-------|----------|
 | **4.1** | Chrome Extension | REQ-011 |
+
+**Plans:** `docs/plan/implementation_plan.md` (backend), `docs/plan/frontend_implementation_plan.md` (frontend)
 
 **Rule:** Complete each phase before starting the next. Dependencies are strict.
 
@@ -92,8 +122,8 @@ s3_key: str    # No S3 references
 | Python classes | PascalCase | `PersonaRepository` |
 | DB tables | snake_case, plural | `personas`, `job_postings` |
 | API routes | kebab-case | `/api/v1/job-postings` |
-| TypeScript files | camelCase | `usePersona.ts` |
-| React components | PascalCase | `PersonaForm.tsx` |
+| TypeScript files | kebab-case | `use-persona.ts` |
+| React components | kebab-case (PascalCase export) | `basic-info-editor.tsx` |
 
 ### Error Handling
 
@@ -110,11 +140,33 @@ class ValidationError(ZentropyError): ...
 
 ## Environment Variables
 
+See `.env.example` for all variables with documentation. Key ones:
+
 ```bash
-DATABASE_URL=postgresql+asyncpg://zentropy_user:zentropy_dev_password@localhost:5432/zentropy_scout
-OPENAI_API_KEY=sk-...          # Required for embeddings
-ANTHROPIC_API_KEY=sk-ant-...   # Only for hosted mode (future)
-PROVIDER_MODE=local            # "local" or "hosted"
+# Database (split vars, not a monolithic URL)
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=zentropy_scout
+DATABASE_USER=zentropy_user
+DATABASE_PASSWORD=zentropy_dev_password
+
+# LLM Providers
+LLM_PROVIDER=claude              # claude | openai | gemini
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...            # Also used for embeddings
+GOOGLE_API_KEY=...
+
+# Embedding
+EMBEDDING_PROVIDER=openai
+EMBEDDING_MODEL=text-embedding-3-small
+
+# Auth (local-first mode)
+AUTH_ENABLED=false
+DEFAULT_USER_ID=                 # Set to your user UUID
+
+# Rate Limiting
+RATE_LIMIT_LLM=10/minute
+RATE_LIMIT_ENABLED=true
 ```
 
 ---
@@ -133,6 +185,7 @@ PROVIDER_MODE=local            # "local" or "hosted"
 | Agents | REQ-007 |
 | Scoring | REQ-008 |
 | Content generation | REQ-010 |
+| Frontend application | REQ-012 |
 
 ---
 
@@ -141,7 +194,7 @@ PROVIDER_MODE=local            # "local" or "hosted"
 Run these checks at the start of every session (before any implementation work):
 
 1. **Docker/PostgreSQL** — Run `docker compose ps` to verify the database container is running and healthy. If not running, start it with `docker compose up -d` and wait for the healthcheck to pass.
-2. **Implementation plan** — Read `docs/plan/implementation_plan.md` to find the current task (first 🟡 or ⬜).
+2. **Implementation plan** — Read `docs/plan/frontend_implementation_plan.md` (or `implementation_plan.md` for backend) to find the current task (first 🟡 or ⬜).
 3. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker status.
 
 ---
@@ -244,7 +297,8 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
 pre-commit run --all-files
 ```
 
-**Hooks run:** ruff, bandit, gitleaks, trailing whitespace (on commit); full pytest suite (on push). See `.pre-commit-config.yaml` for details.
+**On commit:** ruff (lint + format), bandit, gitleaks, trailing whitespace, ESLint, Prettier, TypeScript type check.
+**On push:** Full pytest suite (backend) + Vitest suite (frontend). See `.pre-commit-config.yaml` for details.
 
 **IMPORTANT:** Never use `--no-verify` to bypass hooks. If tests fail, fix them before committing/pushing. "Pre-existing" failures are still your responsibility to fix.
 
@@ -258,14 +312,18 @@ Layered security scanning across local development and CI:
 |-------|------|-----------------|--------------|
 | **SAST (deep)** | Semgrep Team | Cross-file taint analysis, FastAPI-native injection detection | CI (GitHub Actions) |
 | **SAST (fast)** | Bandit | Python security patterns (injection, secrets, weak crypto) | Pre-commit hook |
-| **Code quality** | SonarCloud | Code smells, security hotspots, complexity | CI (post-push) |
+| **DAST** | OWASP ZAP | Runtime API vulnerabilities (injection, auth, headers) | CI (push to main) |
+| **Code quality** | SonarCloud | Code smells, duplication, security hotspots, complexity | CI (post-push) |
+| **Frontend lint** | ESLint + Prettier + TypeScript | React/TS lint, formatting, type safety | Pre-commit hook |
 | **Dependencies** | pip-audit | Known CVEs in Python packages (OSV database) | CI (GitHub Actions) |
-| **Dependencies** | Dependabot | Automated vulnerability alerts + auto-PRs | GitHub (continuous) |
+| **Dependencies** | Dependabot | Automated vulnerability alerts + auto-PRs | GitHub (weekly) |
 | **Secrets** | gitleaks | Leaked API keys, passwords, tokens in commits | Pre-commit hook |
 
 **Semgrep Team** is free for ≤10 contributors and provides cross-function, cross-file taint tracking with FastAPI-native understanding. Requires `SEMGREP_APP_TOKEN` secret in GitHub repo settings.
 
-**Dependabot** scans pip (backend) and GitHub Actions dependencies weekly. Configured in `.github/dependabot.yml`.
+**OWASP ZAP** runs API scans against the FastAPI OpenAPI spec in CI. Alert suppressions in `.github/zap-rules.tsv`. Reports uploaded as workflow artifacts and posted to GitHub Issues.
+
+**Dependabot** scans pip (backend), npm (frontend), and GitHub Actions dependencies weekly. Configured in `.github/dependabot.yml`.
 
 **pip-audit** uses Google's OSV database for broadest CVE coverage. Runs on every PR and push to main.
 
@@ -282,7 +340,7 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `zentropy-api` | endpoint, router, REST, response, API | FastAPI patterns, response envelopes, error handling |
 | `zentropy-agents` | agent, LangGraph, graph, state, HITL | Graph structure, state schemas, checkpointing |
 | `zentropy-db` | database, migration, postgres, SQL | pgvector, BYTEA, Alembic patterns |
-| `zentropy-provider` | LLM, Claude, API, extract, generate | Claude Agent SDK, provider abstraction |
+| `zentropy-provider` | LLM, Claude, API, extract, generate | Provider abstraction, adapter pattern, task-based model routing |
 | `zentropy-test` | test, pytest, mock, fixture, coverage | Testing patterns, mock LLM |
 | `zentropy-tdd` | implement, create, build, add feature | Red-Green-Refactor cycle |
 | `zentropy-playwright` | playwright, e2e, end-to-end, UI testing | E2E tests, mocking, selectors |
@@ -347,13 +405,17 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ## Current Status
 
-**Phase:** All backend phases complete. Frontend GUI next.
-**Progress:** Phases 0–3.2 ✅ complete. Phase 4.1 (Chrome Extension) ⏸️ postponed.
+**Phase:** Frontend Phase 13 (Security Audit & Hardening) — tasks 13.2–13.8 remain.
+**Backend:** All phases complete (1.1–3.2). Chrome Extension (4.1) postponed.
+**Frontend:** Phases 1–12 complete. Phase 13 in progress (13.1–13.1h ✅, 13.2–13.8 ⬜).
+**Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
 
-**Completed Phases:** 1.1 Database Schema, 1.2 Provider Abstraction (3 future tasks remain), 1.3 API Scaffold, 2.1 LangGraph Foundation, 2.2 Chat Agent, 2.3 Onboarding Agent, 2.4 Scouter Agent, 2.5 Scoring Engine, 2.6 Strategist Agent, 2.7 Ghostwriter Agent, 2.8 Agent Communication, 3.1 Resume Generation, 3.2 Cover Letter Generation
+**IMPORTANT:** After completing ANY subtask, update the relevant plan file status (⬜ → ✅). See `plan-tracker` skill.
+- Backend: `docs/plan/implementation_plan.md`
+- Frontend: `docs/plan/frontend_implementation_plan.md`
 
-**IMPORTANT:** After completing ANY subtask, update `docs/plan/implementation_plan.md` status (⬜ → ✅). See `plan-tracker` skill.
+**Feature backlog:** `docs/backlog/feature-backlog.md` — 6 items (OpenRouter, auth, multi-tenant, tiered fetch, content TTL, Railway deployment).
 
 ---
 
-*Last updated: 2026-02-07*
+*Last updated: 2026-02-17*
