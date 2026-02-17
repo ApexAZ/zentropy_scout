@@ -27,11 +27,14 @@ const MAX_RETRY_AFTER_SECONDS = 30;
 // Types
 // ---------------------------------------------------------------------------
 
+/** Allowed parameter value types for query string serialization. */
+type ParamValue = string | number | boolean | undefined | null;
+
 /** Options for API requests. */
 export interface RequestOptions {
 	method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 	body?: unknown;
-	params?: Record<string, string | number | boolean | undefined | null>;
+	params?: Record<string, ParamValue>;
 	signal?: AbortSignal;
 	headers?: Record<string, string>;
 }

@@ -105,7 +105,7 @@ function ScoreTierBadge({
 	}
 
 	const { tier, colorClass } = getTierConfig(scoreType, score);
-	const tierSlug = tier.toLowerCase().replace(/\s+/g, "-");
+	const tierSlug = tier.toLowerCase().replaceAll(/\s+/g, "-");
 
 	return (
 		<span

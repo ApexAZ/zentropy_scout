@@ -45,7 +45,7 @@ export function usePersonaStatus(): PersonaStatus {
 
 	const persona = data?.data[0];
 
-	if (!persona || !persona.onboarding_complete) {
+	if (!persona?.onboarding_complete) {
 		return { status: "needs-onboarding" };
 	}
 

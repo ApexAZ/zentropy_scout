@@ -52,7 +52,7 @@ vi.mock("@/lib/job-formatters", () => ({
 	formatSnapshotSalary: (
 		min: number | null,
 		max: number | null,
-		currency: string | null,
+		currency = "USD",
 	) => `salary(${min},${max},${currency})`,
 }));
 

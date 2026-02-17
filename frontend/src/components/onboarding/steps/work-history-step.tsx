@@ -332,16 +332,14 @@ export function WorkHistoryStep() {
 			)}
 
 			{/* Bullet validation hint */}
-			{viewMode === "list" &&
-				entries.length > 0 &&
-				entries.some((e) => e.bullets.length === 0) && (
-					<p
-						className="text-muted-foreground text-center text-sm"
-						data-testid="bullet-hint"
-					>
-						Each job needs at least one accomplishment bullet to continue.
-					</p>
-				)}
+			{viewMode === "list" && entries.some((e) => e.bullets.length === 0) && (
+				<p
+					className="text-muted-foreground text-center text-sm"
+					data-testid="bullet-hint"
+				>
+					Each job needs at least one accomplishment bullet to continue.
+				</p>
+			)}
 
 			{/* Navigation */}
 			{viewMode === "list" && (

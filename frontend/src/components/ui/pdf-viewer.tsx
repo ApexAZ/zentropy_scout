@@ -18,7 +18,7 @@ interface PdfViewerProps extends React.ComponentProps<"div"> {
 }
 
 function sanitizeFileName(name: string): string {
-	return name.replace(/[/\\]/g, "_").slice(0, 255);
+	return name.replaceAll(/[/\\]/g, "_").slice(0, 255);
 }
 
 function isAllowedUrl(url: string): boolean {
@@ -103,7 +103,7 @@ function PdfViewer({
 		anchor.download = safeFileName;
 		document.body.appendChild(anchor);
 		anchor.click();
-		document.body.removeChild(anchor);
+		anchor.remove();
 	}
 
 	function toggleFullscreen() {

@@ -295,7 +295,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
 		case "TOOL_START": {
 			const lastMsg = state.messages.at(-1);
-			if (!lastMsg || lastMsg.role !== "agent") return state;
+			if (lastMsg?.role !== "agent") return state;
 			if (lastMsg.tools.length >= MAX_TOOLS_PER_MESSAGE) return state;
 			return {
 				...state,
@@ -319,7 +319,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
 		case "TOOL_RESULT": {
 			const lastMsg = state.messages.at(-1);
-			if (!lastMsg || lastMsg.role !== "agent") return state;
+			if (lastMsg?.role !== "agent") return state;
 			return {
 				...state,
 				messages: state.messages.map((msg, i) =>

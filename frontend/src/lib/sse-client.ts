@@ -190,7 +190,7 @@ export class SSEClient {
 		}
 	}
 
-	private handleVisibilityChange = (): void => {
+	private readonly handleVisibilityChange = (): void => {
 		if (document.visibilityState === "hidden") {
 			if (this.status === "connected") {
 				this.startInactivityTimer();

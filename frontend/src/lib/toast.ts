@@ -15,21 +15,19 @@ const DURATION = {
 	info: 5000,
 } as const;
 
-type ToastMessage = string;
-
-function success(message: ToastMessage, options?: ExternalToast) {
+function success(message: string, options?: ExternalToast) {
 	return toast.success(message, { duration: DURATION.success, ...options });
 }
 
-function error(message: ToastMessage, options?: ExternalToast) {
+function error(message: string, options?: ExternalToast) {
 	return toast.error(message, { duration: DURATION.error, ...options });
 }
 
-function warning(message: ToastMessage, options?: ExternalToast) {
+function warning(message: string, options?: ExternalToast) {
 	return toast.warning(message, { duration: DURATION.warning, ...options });
 }
 
-function info(message: ToastMessage, options?: ExternalToast) {
+function info(message: string, options?: ExternalToast) {
 	return toast.info(message, { duration: DURATION.info, ...options });
 }
 

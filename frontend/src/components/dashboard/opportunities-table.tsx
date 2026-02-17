@@ -149,7 +149,7 @@ const FILTER_LABELS: Record<string, string> = {
 function formatFilterLabel(filter: string): string {
 	return (
 		FILTER_LABELS[filter] ??
-		filter.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())
+		filter.replaceAll("_", " ").replace(/^\w/, (c) => c.toUpperCase())
 	);
 }
 

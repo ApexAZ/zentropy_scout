@@ -110,7 +110,7 @@ describe("formatSalary", () => {
 
 describe("formatSnapshotSalary", () => {
 	it("returns 'Not disclosed' when both min and max are null", () => {
-		expect(formatSnapshotSalary(null, null, null)).toBe("Not disclosed");
+		expect(formatSnapshotSalary(null, null, undefined)).toBe("Not disclosed");
 	});
 
 	it("formats min-max salary range", () => {
@@ -127,10 +127,8 @@ describe("formatSnapshotSalary", () => {
 		expect(formatSnapshotSalary(null, 150000, "USD")).toBe("Up to $150k USD");
 	});
 
-	it("defaults to USD when currency is null", () => {
-		expect(formatSnapshotSalary(100000, 130000, null)).toBe(
-			"$100k\u2013$130k USD",
-		);
+	it("defaults to USD when currency is omitted", () => {
+		expect(formatSnapshotSalary(100000, 130000)).toBe("$100k\u2013$130k USD");
 	});
 
 	it("uses custom currency when provided", () => {

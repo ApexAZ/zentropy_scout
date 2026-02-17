@@ -78,6 +78,7 @@ export function WorkHistoryCard({
 	onToggleExpand,
 }: Readonly<WorkHistoryCardProps>) {
 	const bulletCount = entry.bullets.length;
+	const bulletNoun = bulletCount === 1 ? "bullet" : "bullets";
 	const ExpandIcon = expanded ? ChevronDown : ChevronRight;
 
 	return (
@@ -133,7 +134,7 @@ export function WorkHistoryCard({
 							<span>
 								{bulletCount === 0
 									? "Add bullets"
-									: `${bulletCount} ${bulletCount === 1 ? "bullet" : "bullets"}`}
+									: `${bulletCount} ${bulletNoun}`}
 							</span>
 						</button>
 					)}

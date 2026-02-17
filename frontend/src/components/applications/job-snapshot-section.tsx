@@ -121,7 +121,7 @@ export function JobSnapshotSection({
 								{formatSnapshotSalary(
 									snapshot.salary_min,
 									snapshot.salary_max,
-									snapshot.salary_currency,
+									snapshot.salary_currency ?? undefined,
 								)}
 							</p>
 						</div>

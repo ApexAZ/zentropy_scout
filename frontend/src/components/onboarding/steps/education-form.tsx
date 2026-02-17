@@ -36,7 +36,7 @@ const MAX_FIELD_LENGTH = 255;
 const MAX_HONORS_LENGTH = 255;
 const MIN_GRADUATION_YEAR = 1950;
 const MAX_GRADUATION_YEAR = 2100;
-const MAX_GPA = 4.0;
+const MAX_GPA = 4;
 
 /** Shared two-column grid layout class. */
 const GRID_TWO_COL = "grid gap-4 sm:grid-cols-2";

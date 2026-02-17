@@ -38,4 +38,4 @@ function Toaster(props: Readonly<ToasterProps>) {
 }
 
 export { Toaster };
-export type { ToasterProps };
+export type { ToasterProps } from "sonner";

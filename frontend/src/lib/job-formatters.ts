@@ -16,7 +16,7 @@ export function formatSalary(job: JobPosting): string {
 	return formatSnapshotSalary(
 		job.salary_min,
 		job.salary_max,
-		job.salary_currency,
+		job.salary_currency ?? undefined,
 	);
 }
 
@@ -24,17 +24,16 @@ export function formatSalary(job: JobPosting): string {
 export function formatSnapshotSalary(
 	salaryMin: number | null,
 	salaryMax: number | null,
-	salaryCurrency: string | null,
+	salaryCurrency = "USD",
 ): string {
 	if (salaryMin === null && salaryMax === null) return "Not disclosed";
-	const c = salaryCurrency ?? "USD";
 	const fmt = (n: number) => `$${Math.round(n / 1000)}k`;
 	if (salaryMin !== null && salaryMax !== null) {
-		return `${fmt(salaryMin)}\u2013${fmt(salaryMax)} ${c}`;
+		return `${fmt(salaryMin)}\u2013${fmt(salaryMax)} ${salaryCurrency}`;
 	}
-	return salaryMin !== null
-		? `${fmt(salaryMin)}+ ${c}`
-		: `Up to ${fmt(salaryMax!)} ${c}`;
+	return salaryMin === null
+		? `Up to ${fmt(salaryMax!)} ${salaryCurrency}`
+		: `${fmt(salaryMin)}+ ${salaryCurrency}`;
 }
 
 // ---------------------------------------------------------------------------
