@@ -1,0 +1,44 @@
+name: Container Security Scan
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    # Weekly Monday 6am UTC — catches new CVEs in upstream images
+    - cron: '0 6 * * 1'
+
+jobs:
+  trivy-image-scan:
+    name: Trivy Image Scan (pgvector/pgvector:pg16)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284  # 0.34.0
+        with:
+          image-ref: 'pgvector/pgvector:pg16'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln'
+          trivyignores: '.trivyignore'
+          limit-severities-for-sarif: true
+
+      - name: Upload results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@9e907b5e64f6b83e7804b09294d44122997950d6  # v4.32.3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-container'

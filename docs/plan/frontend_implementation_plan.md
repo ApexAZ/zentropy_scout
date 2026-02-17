@@ -479,7 +479,7 @@ Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, 
 | 13.1h | Fix ZAP DAST alert 90004: add CORP header + suppress informational alerts (GH #15) | `security, api, plan` | ✅ |
 | 13.2 | Hypothesis property-based fuzz testing for LLM sanitization pipeline | `security, test, plan` | ✅ |
 | 13.3 | Custom Semgrep rules for LLM prompt injection and sanitization bypass patterns | `security, lint, plan` | ✅ |
-| 13.4 | Container image scanning with Trivy in CI (PostgreSQL + pgvector) | `security, commands, plan` | ⬜ |
+| 13.4 | Container image scanning with Trivy in CI (PostgreSQL + pgvector) | `security, commands, plan` | ✅ |
 | 13.5 | Security headers validation (CORS, CSP, X-Frame-Options) in E2E tests | `security, playwright, plan` | ⬜ |
 | 13.5a | Pre-deployment: disable ZAP public issue writing (`allow_issue_writing: false`), keep artifacts-only | `security, commands, plan` | ⬜ |
 | 13.6 | Add mypy to pre-commit hooks for backend type safety enforcement | `security, lint, plan` | ⬜ |

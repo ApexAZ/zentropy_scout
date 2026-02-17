@@ -1,0 +1,8 @@
+# Trivy vulnerability ignore list
+# Add CVE IDs here for accepted risks in third-party container images.
+# Each line should document the justification:
+#
+#   CVE-YYYY-NNNNN  # [image] reason for acceptance, date assessed
+#
+# Example:
+#   CVE-2024-99999  # [pgvector/pgvector:pg16] no upstream fix, mitigated by network isolation, 2026-02-17
