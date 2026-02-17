@@ -18,8 +18,9 @@ import { apiGet, apiPost } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
 import { toFriendlyError } from "@/lib/form-errors";
+import { useResumeContentSelection } from "@/hooks/use-resume-content-selection";
+import { ResumeContentCheckboxes } from "@/components/resume/resume-content-checkboxes";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { FailedState } from "@/components/ui/error-states";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type {
@@ -120,31 +121,22 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 	const [name, setName] = useState("");
 	const [roleType, setRoleType] = useState("");
 	const [summary, setSummary] = useState("");
-	const [includedJobs, setIncludedJobs] = useState<string[]>([]);
-	const [bulletSelections, setBulletSelections] = useState<
-		Record<string, string[]>
-	>({});
-	const [bulletOrder, setBulletOrder] = useState<Record<string, string[]>>({});
-	const [includedEducation, setIncludedEducation] = useState<string[]>([]);
-	const [includedCertifications, setIncludedCertifications] = useState<
-		string[]
-	>([]);
-	const [skillsEmphasis, setSkillsEmphasis] = useState<string[]>([]);
+	const selection = useResumeContentSelection();
 	const [isCreating, setIsCreating] = useState(false);
 	const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
 	// Default education and certifications to all selected (§6.3.12)
 	useEffect(() => {
 		if (!defaultsInitialized && educations.length > 0) {
-			setIncludedEducation(educations.map((e) => e.id));
+			selection.setIncludedEducation(educations.map((e) => e.id));
 		}
-	}, [defaultsInitialized, educations]);
+	}, [defaultsInitialized, educations, selection]);
 
 	useEffect(() => {
 		if (!defaultsInitialized && certifications.length > 0) {
-			setIncludedCertifications(certifications.map((c) => c.id));
+			selection.setIncludedCertifications(certifications.map((c) => c.id));
 		}
-	}, [defaultsInitialized, certifications]);
+	}, [defaultsInitialized, certifications, selection]);
 
 	// Mark defaults as initialized once data has arrived
 	useEffect(() => {
@@ -161,68 +153,6 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 	// Handlers
 	// -----------------------------------------------------------------------
 
-	const handleToggleJob = useCallback((jobId: string, job: WorkHistory) => {
-		setIncludedJobs((prev) => {
-			if (prev.includes(jobId)) {
-				setBulletSelections((bs) => {
-					const next = { ...bs };
-					delete next[jobId];
-					return next;
-				});
-				setBulletOrder((bo) => {
-					const next = { ...bo };
-					delete next[jobId];
-					return next;
-				});
-				return prev.filter((id) => id !== jobId);
-			}
-			const allBulletIds = job.bullets.map((b) => b.id);
-			setBulletSelections((bs) => ({
-				...bs,
-				[jobId]: allBulletIds,
-			}));
-			setBulletOrder((bo) => ({
-				...bo,
-				[jobId]: allBulletIds,
-			}));
-			return [...prev, jobId];
-		});
-	}, []);
-
-	const handleToggleBullet = useCallback((jobId: string, bulletId: string) => {
-		setBulletSelections((prev) => {
-			const current = prev[jobId] ?? [];
-			const next = current.includes(bulletId)
-				? current.filter((id) => id !== bulletId)
-				: [...current, bulletId];
-			return { ...prev, [jobId]: next };
-		});
-	}, []);
-
-	const handleToggleEducation = useCallback((eduId: string) => {
-		setIncludedEducation((prev) =>
-			prev.includes(eduId)
-				? prev.filter((id) => id !== eduId)
-				: [...prev, eduId],
-		);
-	}, []);
-
-	const handleToggleCertification = useCallback((certId: string) => {
-		setIncludedCertifications((prev) =>
-			prev.includes(certId)
-				? prev.filter((id) => id !== certId)
-				: [...prev, certId],
-		);
-	}, []);
-
-	const handleToggleSkill = useCallback((skillId: string) => {
-		setSkillsEmphasis((prev) =>
-			prev.includes(skillId)
-				? prev.filter((id) => id !== skillId)
-				: [...prev, skillId],
-		);
-	}, []);
-
 	const canSubmit =
 		name.trim().length > 0 &&
 		roleType.trim().length > 0 &&
@@ -238,12 +168,12 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 				name: name.trim(),
 				role_type: roleType.trim(),
 				summary: summary.trim(),
-				included_jobs: includedJobs,
-				included_education: includedEducation,
-				included_certifications: includedCertifications,
-				skills_emphasis: skillsEmphasis,
-				job_bullet_selections: bulletSelections,
-				job_bullet_order: bulletOrder,
+				included_jobs: selection.includedJobs,
+				included_education: selection.includedEducation,
+				included_certifications: selection.includedCertifications,
+				skills_emphasis: selection.skillsEmphasis,
+				job_bullet_selections: selection.bulletSelections,
+				job_bullet_order: selection.bulletOrder,
 			});
 			showToast.success("Resume created.");
 			await queryClient.invalidateQueries({
@@ -261,12 +191,7 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 		name,
 		roleType,
 		summary,
-		includedJobs,
-		includedEducation,
-		includedCertifications,
-		skillsEmphasis,
-		bulletSelections,
-		bulletOrder,
+		selection,
 		queryClient,
 		router,
 	]);
@@ -369,139 +294,23 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 				/>
 			</div>
 
-			{/* Job inclusion checkboxes */}
-			<div className="mb-8">
-				<h2 className="mb-4 text-lg font-semibold">Included Jobs</h2>
-				<div className="space-y-4">
-					{jobs.map((job) => {
-						const isIncluded = includedJobs.includes(job.id);
-						const selectedBullets = bulletSelections[job.id] ?? [];
-
-						return (
-							<div key={job.id} className="space-y-2">
-								<div className="flex items-center gap-2">
-									<Checkbox
-										id={`job-${job.id}`}
-										checked={isIncluded}
-										onCheckedChange={() => handleToggleJob(job.id, job)}
-										aria-label={`${job.job_title} at ${job.company_name}`}
-									/>
-									<label
-										htmlFor={`job-${job.id}`}
-										className="cursor-pointer text-sm font-medium"
-									>
-										{job.job_title}
-									</label>
-									<span className="text-muted-foreground text-sm">
-										{job.company_name}
-									</span>
-								</div>
-
-								{isIncluded && job.bullets.length > 0 && (
-									<div className="ml-6 space-y-1">
-										{job.bullets.map((bullet) => (
-											<div key={bullet.id} className="flex items-center gap-2">
-												<Checkbox
-													id={`bullet-${bullet.id}`}
-													checked={selectedBullets.includes(bullet.id)}
-													onCheckedChange={() =>
-														handleToggleBullet(job.id, bullet.id)
-													}
-													aria-label={bullet.text}
-												/>
-												<label
-													htmlFor={`bullet-${bullet.id}`}
-													className="text-muted-foreground cursor-pointer text-sm"
-												>
-													{bullet.text}
-												</label>
-											</div>
-										))}
-									</div>
-								)}
-							</div>
-						);
-					})}
-				</div>
-			</div>
-
-			{/* Education checkboxes */}
-			{educations.length > 0 && (
-				<div className="mb-8">
-					<h2 className="mb-4 text-lg font-semibold">Education</h2>
-					<div className="space-y-2">
-						{educations.map((edu) => (
-							<div key={edu.id} className="flex items-center gap-2">
-								<Checkbox
-									id={`education-${edu.id}`}
-									checked={includedEducation.includes(edu.id)}
-									onCheckedChange={() => handleToggleEducation(edu.id)}
-									aria-label={`${edu.degree} ${edu.field_of_study} at ${edu.institution}`}
-								/>
-								<label
-									htmlFor={`education-${edu.id}`}
-									className="cursor-pointer text-sm"
-								>
-									{edu.degree} {edu.field_of_study} &mdash; {edu.institution}
-								</label>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
-
-			{/* Certification checkboxes */}
-			{certifications.length > 0 && (
-				<div className="mb-8">
-					<h2 className="mb-4 text-lg font-semibold">Certifications</h2>
-					<div className="space-y-2">
-						{certifications.map((cert) => (
-							<div key={cert.id} className="flex items-center gap-2">
-								<Checkbox
-									id={`certification-${cert.id}`}
-									checked={includedCertifications.includes(cert.id)}
-									onCheckedChange={() => handleToggleCertification(cert.id)}
-									aria-label={`${cert.certification_name} from ${cert.issuing_organization}`}
-								/>
-								<label
-									htmlFor={`certification-${cert.id}`}
-									className="cursor-pointer text-sm"
-								>
-									{cert.certification_name} &mdash; {cert.issuing_organization}
-								</label>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
-
-			{/* Skills emphasis checkboxes */}
-			{skills.length > 0 && (
-				<div className="mb-8">
-					<h2 className="mb-4 text-lg font-semibold">Skills Emphasis</h2>
-					<div className="flex flex-wrap gap-2">
-						{skills.map((skill) => (
-							<div
-								key={skill.id}
-								className="flex items-center gap-2 rounded-md border px-2 py-1"
-							>
-								<Checkbox
-									id={`skill-${skill.id}`}
-									checked={skillsEmphasis.includes(skill.id)}
-									onCheckedChange={() => handleToggleSkill(skill.id)}
-									aria-label={skill.skill_name}
-								/>
-								<label
-									htmlFor={`skill-${skill.id}`}
-									className="cursor-pointer text-sm"
-								>
-									{skill.skill_name}
-								</label>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
+			{/* Content selection checkboxes */}
+			<ResumeContentCheckboxes
+				jobs={jobs}
+				educations={educations}
+				certifications={certifications}
+				skills={skills}
+				includedJobs={selection.includedJobs}
+				bulletSelections={selection.bulletSelections}
+				includedEducation={selection.includedEducation}
+				includedCertifications={selection.includedCertifications}
+				skillsEmphasis={selection.skillsEmphasis}
+				onToggleJob={selection.handleToggleJob}
+				onToggleBullet={selection.handleToggleBullet}
+				onToggleEducation={selection.handleToggleEducation}
+				onToggleCertification={selection.handleToggleCertification}
+				onToggleSkill={selection.handleToggleSkill}
+			/>
 
 			{/* Submit */}
 			<div className="flex items-center gap-2">

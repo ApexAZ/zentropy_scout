@@ -18,6 +18,8 @@ import { apiGet, apiPatch, apiPost, buildUrl } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { orderBullets } from "@/lib/resume-helpers";
 import { showToast } from "@/lib/toast";
+import { useResumeContentSelection } from "@/hooks/use-resume-content-selection";
+import { ResumeContentCheckboxes } from "@/components/resume/resume-content-checkboxes";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FailedState } from "@/components/ui/error-states";
@@ -116,16 +118,7 @@ export function ResumeDetail({
 	// -----------------------------------------------------------------------
 
 	const [summary, setSummary] = useState("");
-	const [includedJobs, setIncludedJobs] = useState<string[]>([]);
-	const [bulletSelections, setBulletSelections] = useState<
-		Record<string, string[]>
-	>({});
-	const [bulletOrder, setBulletOrder] = useState<Record<string, string[]>>({});
-	const [includedEducation, setIncludedEducation] = useState<string[]>([]);
-	const [includedCertifications, setIncludedCertifications] = useState<
-		string[]
-	>([]);
-	const [skillsEmphasis, setSkillsEmphasis] = useState<string[]>([]);
+	const selection = useResumeContentSelection();
 	const [isInitialized, setIsInitialized] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isRendering, setIsRendering] = useState(false);
@@ -133,109 +126,45 @@ export function ResumeDetail({
 	useEffect(() => {
 		if (resume && !isInitialized) {
 			setSummary(resume.summary);
-			setIncludedJobs(resume.included_jobs);
-			setBulletSelections(resume.job_bullet_selections);
-			setBulletOrder(resume.job_bullet_order);
-			setIncludedEducation(
+			selection.setIncludedJobs(resume.included_jobs);
+			selection.setBulletSelections(resume.job_bullet_selections);
+			selection.setBulletOrder(resume.job_bullet_order);
+			selection.setIncludedEducation(
 				resume.included_education ?? educations.map((e) => e.id),
 			);
-			setIncludedCertifications(
+			selection.setIncludedCertifications(
 				resume.included_certifications ?? certifications.map((c) => c.id),
 			);
-			setSkillsEmphasis(resume.skills_emphasis ?? []);
+			selection.setSkillsEmphasis(resume.skills_emphasis ?? []);
 			setIsInitialized(true);
 		}
-	}, [resume, isInitialized, educations, certifications]);
+	}, [resume, isInitialized, educations, certifications, selection]);
 
 	// -----------------------------------------------------------------------
 	// Handlers
 	// -----------------------------------------------------------------------
 
-	const handleToggleJob = useCallback((jobId: string, job: WorkHistory) => {
-		setIncludedJobs((prev) => {
-			if (prev.includes(jobId)) {
-				// Removing job — clear bullet selections and order
-				setBulletSelections((bs) => {
-					const next = { ...bs };
-					delete next[jobId];
-					return next;
-				});
-				setBulletOrder((bo) => {
-					const next = { ...bo };
-					delete next[jobId];
-					return next;
-				});
-				return prev.filter((id) => id !== jobId);
-			}
-			// Adding job — select all bullets and set initial order
-			const allBulletIds = job.bullets.map((b) => b.id);
-			setBulletSelections((bs) => ({
-				...bs,
-				[jobId]: allBulletIds,
-			}));
-			setBulletOrder((bo) => ({
-				...bo,
-				[jobId]: allBulletIds,
-			}));
-			return [...prev, jobId];
-		});
-	}, []);
-
-	const handleToggleBullet = useCallback((jobId: string, bulletId: string) => {
-		setBulletSelections((prev) => {
-			const current = prev[jobId] ?? [];
-			const next = current.includes(bulletId)
-				? current.filter((id) => id !== bulletId)
-				: [...current, bulletId];
-			return { ...prev, [jobId]: next };
-		});
-	}, []);
-
 	const handleReorderBullets = useCallback(
 		(jobId: string, reorderedBullets: Bullet[]) => {
-			setBulletOrder((prev) => ({
+			selection.setBulletOrder((prev) => ({
 				...prev,
 				[jobId]: reorderedBullets.map((b) => b.id),
 			}));
 		},
-		[],
+		[selection],
 	);
-
-	const handleToggleEducation = useCallback((eduId: string) => {
-		setIncludedEducation((prev) =>
-			prev.includes(eduId)
-				? prev.filter((id) => id !== eduId)
-				: [...prev, eduId],
-		);
-	}, []);
-
-	const handleToggleCertification = useCallback((certId: string) => {
-		setIncludedCertifications((prev) =>
-			prev.includes(certId)
-				? prev.filter((id) => id !== certId)
-				: [...prev, certId],
-		);
-	}, []);
-
-	const handleToggleSkill = useCallback((skillId: string) => {
-		setSkillsEmphasis((prev) =>
-			prev.includes(skillId)
-				? prev.filter((id) => id !== skillId)
-				: [...prev, skillId],
-		);
-	}, []);
 
 	const handleSave = useCallback(async () => {
 		setIsSaving(true);
 		try {
 			await apiPatch(`/base-resumes/${resumeId}`, {
 				summary,
-				included_jobs: includedJobs,
-				job_bullet_selections: bulletSelections,
-				job_bullet_order: bulletOrder,
-				included_education: includedEducation,
-				included_certifications: includedCertifications,
-				skills_emphasis: skillsEmphasis,
+				included_jobs: selection.includedJobs,
+				job_bullet_selections: selection.bulletSelections,
+				job_bullet_order: selection.bulletOrder,
+				included_education: selection.includedEducation,
+				included_certifications: selection.includedCertifications,
+				skills_emphasis: selection.skillsEmphasis,
 			});
 			showToast.success("Resume saved.");
 			await queryClient.invalidateQueries({
@@ -246,17 +175,7 @@ export function ResumeDetail({
 		} finally {
 			setIsSaving(false);
 		}
-	}, [
-		resumeId,
-		summary,
-		includedJobs,
-		bulletSelections,
-		bulletOrder,
-		includedEducation,
-		includedCertifications,
-		skillsEmphasis,
-		queryClient,
-	]);
+	}, [resumeId, summary, selection, queryClient]);
 
 	const handleRenderPdf = useCallback(async () => {
 		setIsRendering(true);
@@ -349,149 +268,51 @@ export function ResumeDetail({
 				/>
 			</div>
 
-			{/* Job inclusion checkboxes with reorderable bullets */}
-			<div className="mb-8">
-				<h2 className="mb-4 text-lg font-semibold">Included Jobs</h2>
-				<div className="space-y-4">
-					{jobs.map((job) => {
-						const isIncluded = includedJobs.includes(job.id);
-						const selectedBullets = bulletSelections[job.id] ?? [];
-
-						return (
-							<div key={job.id} className="space-y-2">
-								{/* Job-level checkbox */}
+			{/* Content selection checkboxes */}
+			<ResumeContentCheckboxes
+				jobs={jobs}
+				educations={educations}
+				certifications={certifications}
+				skills={skills}
+				includedJobs={selection.includedJobs}
+				bulletSelections={selection.bulletSelections}
+				includedEducation={selection.includedEducation}
+				includedCertifications={selection.includedCertifications}
+				skillsEmphasis={selection.skillsEmphasis}
+				onToggleJob={selection.handleToggleJob}
+				onToggleBullet={selection.handleToggleBullet}
+				onToggleEducation={selection.handleToggleEducation}
+				onToggleCertification={selection.handleToggleCertification}
+				onToggleSkill={selection.handleToggleSkill}
+				renderBullets={(job, selectedBullets) => (
+					<div className="ml-6">
+						<ReorderableList
+							items={orderBullets(job.bullets, selection.bulletOrder[job.id])}
+							onReorder={(reordered) => handleReorderBullets(job.id, reordered)}
+							label={`Bullets for ${job.job_title}`}
+							renderItem={(bullet, dragHandle) => (
 								<div className="flex items-center gap-2">
+									{dragHandle}
 									<Checkbox
-										id={`job-${job.id}`}
-										checked={isIncluded}
-										onCheckedChange={() => handleToggleJob(job.id, job)}
-										aria-label={`${job.job_title} at ${job.company_name}`}
+										id={`bullet-${bullet.id}`}
+										checked={selectedBullets.includes(bullet.id)}
+										onCheckedChange={() =>
+											selection.handleToggleBullet(job.id, bullet.id)
+										}
+										aria-label={bullet.text}
 									/>
 									<label
-										htmlFor={`job-${job.id}`}
-										className="cursor-pointer text-sm font-medium"
+										htmlFor={`bullet-${bullet.id}`}
+										className="text-muted-foreground cursor-pointer text-sm"
 									>
-										{job.job_title}
+										{bullet.text}
 									</label>
-									<span className="text-muted-foreground text-sm">
-										{job.company_name}
-									</span>
 								</div>
-
-								{/* Bullet-level checkboxes with drag-and-drop reordering */}
-								{isIncluded && job.bullets.length > 0 && (
-									<div className="ml-6">
-										<ReorderableList
-											items={orderBullets(job.bullets, bulletOrder[job.id])}
-											onReorder={(reordered) =>
-												handleReorderBullets(job.id, reordered)
-											}
-											label={`Bullets for ${job.job_title}`}
-											renderItem={(bullet, dragHandle) => (
-												<div className="flex items-center gap-2">
-													{dragHandle}
-													<Checkbox
-														id={`bullet-${bullet.id}`}
-														checked={selectedBullets.includes(bullet.id)}
-														onCheckedChange={() =>
-															handleToggleBullet(job.id, bullet.id)
-														}
-														aria-label={bullet.text}
-													/>
-													<label
-														htmlFor={`bullet-${bullet.id}`}
-														className="text-muted-foreground cursor-pointer text-sm"
-													>
-														{bullet.text}
-													</label>
-												</div>
-											)}
-										/>
-									</div>
-								)}
-							</div>
-						);
-					})}
-				</div>
-			</div>
-
-			{/* Education checkboxes */}
-			{educations.length > 0 && (
-				<div className="mb-8">
-					<h2 className="mb-4 text-lg font-semibold">Education</h2>
-					<div className="space-y-2">
-						{educations.map((edu) => (
-							<div key={edu.id} className="flex items-center gap-2">
-								<Checkbox
-									id={`education-${edu.id}`}
-									checked={includedEducation.includes(edu.id)}
-									onCheckedChange={() => handleToggleEducation(edu.id)}
-									aria-label={`${edu.degree} ${edu.field_of_study} at ${edu.institution}`}
-								/>
-								<label
-									htmlFor={`education-${edu.id}`}
-									className="cursor-pointer text-sm"
-								>
-									{edu.degree} {edu.field_of_study} &mdash; {edu.institution}
-								</label>
-							</div>
-						))}
+							)}
+						/>
 					</div>
-				</div>
-			)}
-
-			{/* Certification checkboxes */}
-			{certifications.length > 0 && (
-				<div className="mb-8">
-					<h2 className="mb-4 text-lg font-semibold">Certifications</h2>
-					<div className="space-y-2">
-						{certifications.map((cert) => (
-							<div key={cert.id} className="flex items-center gap-2">
-								<Checkbox
-									id={`certification-${cert.id}`}
-									checked={includedCertifications.includes(cert.id)}
-									onCheckedChange={() => handleToggleCertification(cert.id)}
-									aria-label={`${cert.certification_name} from ${cert.issuing_organization}`}
-								/>
-								<label
-									htmlFor={`certification-${cert.id}`}
-									className="cursor-pointer text-sm"
-								>
-									{cert.certification_name} &mdash; {cert.issuing_organization}
-								</label>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
-
-			{/* Skills emphasis checkboxes */}
-			{skills.length > 0 && (
-				<div className="mb-8">
-					<h2 className="mb-4 text-lg font-semibold">Skills Emphasis</h2>
-					<div className="flex flex-wrap gap-2">
-						{skills.map((skill) => (
-							<div
-								key={skill.id}
-								className="flex items-center gap-2 rounded-md border px-2 py-1"
-							>
-								<Checkbox
-									id={`skill-${skill.id}`}
-									checked={skillsEmphasis.includes(skill.id)}
-									onCheckedChange={() => handleToggleSkill(skill.id)}
-									aria-label={skill.skill_name}
-								/>
-								<label
-									htmlFor={`skill-${skill.id}`}
-									className="cursor-pointer text-sm"
-								>
-									{skill.skill_name}
-								</label>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
+				)}
+			/>
 
 			{/* Actions */}
 			<div className="flex items-center gap-2">
