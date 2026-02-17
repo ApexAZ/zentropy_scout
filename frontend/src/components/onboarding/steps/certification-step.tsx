@@ -9,23 +9,18 @@
  */
 
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { useCrudStep } from "@/hooks/use-crud-step";
 import { toFormValues, toRequestBody } from "@/lib/certification-helpers";
-import { toFriendlyError } from "@/lib/form-errors";
 import { useOnboarding } from "@/lib/onboarding-provider";
-import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type { Certification } from "@/types/persona";
 
 import { CertificationCard } from "./certification-card";
 import { CertificationForm } from "./certification-form";
 import type { CertificationFormData } from "./certification-form";
-
-type ViewMode = "list" | "add" | "edit";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -40,195 +35,19 @@ type ViewMode = "list" | "add" | "edit";
 export function CertificationStep() {
 	const { personaId, next, back, skip } = useOnboarding();
 
-	const [entries, setEntries] = useState<Certification[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [viewMode, setViewMode] = useState<ViewMode>("list");
-	const [editingEntry, setEditingEntry] = useState<Certification | null>(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [deleteTarget, setDeleteTarget] = useState<Certification | null>(null);
-	const [isDeleting, setIsDeleting] = useState(false);
-	const [deleteError, setDeleteError] = useState<string | null>(null);
-
-	// -----------------------------------------------------------------------
-	// Fetch certifications on mount
-	// -----------------------------------------------------------------------
-
-	useEffect(() => {
-		if (!personaId) {
-			setIsLoading(false);
-			return;
-		}
-
-		let cancelled = false;
-
-		apiGet<ApiListResponse<Certification>>(
-			`/personas/${personaId}/certifications`,
-		)
-			.then((res) => {
-				if (cancelled) return;
-				setEntries(res.data);
-			})
-			.catch(() => {
-				// Fetch failed — user can add entries manually
-			})
-			.finally(() => {
-				if (!cancelled) setIsLoading(false);
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [personaId]);
-
-	// -----------------------------------------------------------------------
-	// Add handler
-	// -----------------------------------------------------------------------
-
-	const handleAdd = useCallback(() => {
-		setEditingEntry(null);
-		setSubmitError(null);
-		setViewMode("add");
-	}, []);
-
-	const handleSaveNew = useCallback(
-		async (data: CertificationFormData) => {
-			if (!personaId) return;
-
-			setSubmitError(null);
-			setIsSubmitting(true);
-
-			try {
-				const res = await apiPost<ApiResponse<Certification>>(
-					`/personas/${personaId}/certifications`,
-					{
-						...toRequestBody(data),
-						display_order: entries.length,
-					},
-				);
-
-				setEntries((prev) => [...prev, res.data]);
-				setViewMode("list");
-			} catch (err) {
-				setSubmitError(toFriendlyError(err));
-			} finally {
-				setIsSubmitting(false);
-			}
-		},
-		[personaId, entries.length],
-	);
-
-	// -----------------------------------------------------------------------
-	// Edit handler
-	// -----------------------------------------------------------------------
-
-	const handleEdit = useCallback((entry: Certification) => {
-		setEditingEntry(entry);
-		setSubmitError(null);
-		setViewMode("edit");
-	}, []);
-
-	const handleSaveEdit = useCallback(
-		async (data: CertificationFormData) => {
-			if (!personaId || !editingEntry) return;
-
-			setSubmitError(null);
-			setIsSubmitting(true);
-
-			try {
-				const res = await apiPatch<ApiResponse<Certification>>(
-					`/personas/${personaId}/certifications/${editingEntry.id}`,
-					toRequestBody(data),
-				);
-
-				setEntries((prev) =>
-					prev.map((e) => (e.id === editingEntry.id ? res.data : e)),
-				);
-				setViewMode("list");
-			} catch (err) {
-				setSubmitError(toFriendlyError(err));
-			} finally {
-				setIsSubmitting(false);
-			}
-		},
-		[personaId, editingEntry],
-	);
-
-	// -----------------------------------------------------------------------
-	// Delete handler
-	// -----------------------------------------------------------------------
-
-	const handleDeleteRequest = useCallback((entry: Certification) => {
-		setDeleteError(null);
-		setDeleteTarget(entry);
-	}, []);
-
-	const handleDeleteConfirm = useCallback(async () => {
-		if (!personaId || !deleteTarget) return;
-
-		setIsDeleting(true);
-
-		try {
-			await apiDelete(
-				`/personas/${personaId}/certifications/${deleteTarget.id}`,
-			);
-			setEntries((prev) => prev.filter((e) => e.id !== deleteTarget.id));
-			setDeleteTarget(null);
-		} catch (err) {
-			setDeleteError(toFriendlyError(err));
-		} finally {
-			setIsDeleting(false);
-		}
-	}, [personaId, deleteTarget]);
-
-	const handleDeleteCancel = useCallback(() => {
-		setDeleteTarget(null);
-	}, []);
-
-	// -----------------------------------------------------------------------
-	// Cancel form
-	// -----------------------------------------------------------------------
-
-	const handleCancel = useCallback(() => {
-		setEditingEntry(null);
-		setSubmitError(null);
-		setViewMode("list");
-	}, []);
-
-	// -----------------------------------------------------------------------
-	// Reorder handler
-	// -----------------------------------------------------------------------
-
-	const handleReorder = useCallback(
-		(reordered: Certification[]) => {
-			if (!personaId) return;
-
-			const previousEntries = [...entries];
-			setEntries(reordered);
-
-			const patches = reordered
-				.map((entry, newOrder) => ({ entry, newOrder }))
-				.filter(({ entry, newOrder }) => entry.display_order !== newOrder)
-				.map(({ entry, newOrder }) =>
-					apiPatch(`/personas/${personaId}/certifications/${entry.id}`, {
-						display_order: newOrder,
-					}),
-				);
-
-			if (patches.length > 0) {
-				void Promise.all(patches).catch(() => {
-					setEntries(previousEntries);
-				});
-			}
-		},
-		[personaId, entries],
-	);
+	const crud = useCrudStep<Certification, CertificationFormData>({
+		personaId,
+		collection: "certifications",
+		toFormValues,
+		toRequestBody,
+		hasDeleteError: true,
+	});
 
 	// -----------------------------------------------------------------------
 	// Render
 	// -----------------------------------------------------------------------
 
-	if (isLoading) {
+	if (crud.isLoading) {
 		return (
 			<div
 				className="flex flex-1 flex-col items-center justify-center"
@@ -247,44 +66,46 @@ export function CertificationStep() {
 			<div className="text-center">
 				<h2 className="text-lg font-semibold">Certifications</h2>
 				<p className="text-muted-foreground mt-1">
-					{entries.length === 0
+					{crud.entries.length === 0
 						? "Do you have any professional certifications?"
 						: "Your certifications. Add, edit, or reorder as needed."}
 				</p>
 			</div>
 
 			{/* Form view (add or edit) */}
-			{viewMode !== "list" && (
+			{crud.viewMode !== "list" && (
 				<CertificationForm
 					initialValues={
-						viewMode === "edit" && editingEntry
-							? toFormValues(editingEntry)
+						crud.viewMode === "edit" && crud.editingEntry
+							? toFormValues(crud.editingEntry)
 							: undefined
 					}
-					onSave={viewMode === "add" ? handleSaveNew : handleSaveEdit}
-					onCancel={handleCancel}
-					isSubmitting={isSubmitting}
-					submitError={submitError}
+					onSave={
+						crud.viewMode === "add" ? crud.handleSaveNew : crud.handleSaveEdit
+					}
+					onCancel={crud.handleCancel}
+					isSubmitting={crud.isSubmitting}
+					submitError={crud.submitError}
 				/>
 			)}
 
 			{/* List view */}
-			{viewMode === "list" && (
+			{crud.viewMode === "list" && (
 				<>
-					{entries.length === 0 ? (
+					{crud.entries.length === 0 ? (
 						<div className="text-muted-foreground py-8 text-center">
 							<p>No certifications yet.</p>
 						</div>
 					) : (
 						<ReorderableList
-							items={entries}
-							onReorder={handleReorder}
+							items={crud.entries}
+							onReorder={crud.handleReorder}
 							label="Certification entries"
 							renderItem={(entry, dragHandle) => (
 								<CertificationCard
 									entry={entry}
-									onEdit={handleEdit}
-									onDelete={handleDeleteRequest}
+									onEdit={crud.handleEdit}
+									onDelete={crud.handleDeleteRequest}
 									dragHandle={dragHandle}
 								/>
 							)}
@@ -294,7 +115,7 @@ export function CertificationStep() {
 					<Button
 						type="button"
 						variant="outline"
-						onClick={handleAdd}
+						onClick={crud.handleAdd}
 						className="self-center"
 					>
 						<Plus className="mr-2 h-4 w-4" />
@@ -304,7 +125,7 @@ export function CertificationStep() {
 			)}
 
 			{/* Navigation */}
-			{viewMode === "list" && (
+			{crud.viewMode === "list" && (
 				<div className="flex items-center justify-between pt-4">
 					<Button
 						type="button"
@@ -316,7 +137,7 @@ export function CertificationStep() {
 						Back
 					</Button>
 					<div className="flex gap-2">
-						{entries.length === 0 && (
+						{crud.entries.length === 0 && (
 							<Button type="button" variant="outline" onClick={skip}>
 								Skip
 							</Button>
@@ -330,20 +151,20 @@ export function CertificationStep() {
 
 			{/* Delete confirmation dialog */}
 			<ConfirmationDialog
-				open={deleteTarget !== null}
+				open={crud.deleteTarget !== null}
 				onOpenChange={(open) => {
-					if (!open) handleDeleteCancel();
+					if (!open) crud.handleDeleteCancel();
 				}}
 				title="Delete certification"
 				description={
-					deleteError
-						? `Failed to delete "${deleteTarget?.certification_name ?? ""}". ${deleteError}`
-						: `Are you sure you want to delete "${deleteTarget?.certification_name ?? ""}"? This cannot be undone.`
+					crud.deleteError
+						? `Failed to delete "${crud.deleteTarget?.certification_name ?? ""}". ${crud.deleteError}`
+						: `Are you sure you want to delete "${crud.deleteTarget?.certification_name ?? ""}"? This cannot be undone.`
 				}
 				confirmLabel="Delete"
 				variant="destructive"
-				onConfirm={handleDeleteConfirm}
-				loading={isDeleting}
+				onConfirm={crud.handleDeleteConfirm}
+				loading={crud.isDeleting}
 			/>
 		</div>
 	);
