@@ -43,7 +43,7 @@ rules:
         focus-metavariable: $SINK
     paths:
       exclude:
-        - "tests/**"
+        - "**/tests/**"
         - "**/mock_adapter.py"
 
   # =========================================================================
@@ -75,7 +75,7 @@ rules:
       LLMMessage(role=..., content=f"...")
     paths:
       exclude:
-        - "tests/**"
+        - "**/tests/**"
         - "**/mock_adapter.py"
 
   # =========================================================================
@@ -117,7 +117,7 @@ rules:
       - pattern: exec(...)
     paths:
       exclude:
-        - "tests/**"
+        - "**/tests/**"
 
   # =========================================================================
   # Rule 4: Raw user input in prompt template
@@ -157,5 +157,5 @@ rules:
           regex: (?i)(prompt|instruction|system_prompt|context_prompt|template|content_str)
     paths:
       exclude:
-        - "tests/**"
+        - "**/tests/**"
         - "**/errors.py"

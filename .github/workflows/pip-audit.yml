@@ -74,21 +74,56 @@ jobs:
 
       - name: Run npm audit (with retry)
         run: |
+          # Temporarily accepted advisories (dev-only, no upstream fix available).
+          # These are checked via npm audit --json and filtered out. Any NEW
+          # advisory will still fail CI. Remove entries when upstream fixes land.
+          #
+          # GHSA-2g4f-4pwh-qvx6: ajv ReDoS (moderate, dev-only)
+          #   - ESLint pins ajv@6.x; fix only in ajv@8.18.0+
+          #   - ESLint team declined to upgrade (github.com/eslint/eslint/issues/18947)
+          #   - Accepted 2026-02-17, zero production risk (linter config input only)
+          ACCEPTED_ADVISORIES="GHSA-2g4f-4pwh-qvx6"
+
           max_attempts=3
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "::group::Attempt $attempt of $max_attempts"
-            if (cd frontend && npm audit --audit-level=moderate); then
+            audit_json=$(cd frontend && npm audit --json --audit-level=moderate 2>/dev/null) || true
+            # Extract unique advisory URLs from findings
+            found=$(echo "$audit_json" | jq -r '
+              [.vulnerabilities // {} | to_entries[] | .value.via[]
+               | select(type == "object") | .url // empty] | unique | .[]
+            ' 2>/dev/null) || found=""
+            # Filter out accepted advisories
+            unexpected=""
+            for url in $found; do
+              is_accepted=false
+              for ghsa in $ACCEPTED_ADVISORIES; do
+                if echo "$url" | grep -q "$ghsa"; then
+                  is_accepted=true
+                  break
+                fi
+              done
+              if [ "$is_accepted" = false ]; then
+                unexpected="$unexpected $url"
+              fi
+            done
+            if [ -z "$unexpected" ]; then
               echo "::endgroup::"
-              echo "npm audit passed on attempt $attempt"
+              if [ -n "$found" ]; then
+                echo "::notice::npm audit passed (accepted advisories only: $ACCEPTED_ADVISORIES)"
+              else
+                echo "npm audit passed on attempt $attempt"
+              fi
               exit 0
             fi
             echo "::endgroup::"
             if [ $attempt -lt $max_attempts ]; then
-              echo "::warning::npm audit failed (attempt $attempt/$max_attempts), retrying in 30s..."
+              echo "::warning::npm audit found unexpected vulnerabilities (attempt $attempt/$max_attempts), retrying in 30s..."
               sleep 30
             fi
             attempt=$((attempt + 1))
           done
-          echo "::error::npm audit failed after $max_attempts attempts"
+          echo "::error::npm audit found unexpected vulnerabilities:$unexpected"
+          cd frontend && npm audit --audit-level=moderate
           exit 1

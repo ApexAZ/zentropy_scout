@@ -140,9 +140,9 @@ async def generate_cover_letter(
 
     messages = [
         LLMMessage(role="system", content=COVER_LETTER_SYSTEM_PROMPT),
-        LLMMessage(
+        LLMMessage(  # nosemgrep: zentropy.llm-unsanitized-input  # sanitized inside build_cover_letter_prompt()
             role="user", content=user_prompt
-        ),  # nosemgrep: zentropy.llm-unsanitized-input  # sanitized inside build_cover_letter_prompt()
+        ),
     ]
 
     try:
