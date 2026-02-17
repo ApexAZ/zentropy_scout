@@ -8,14 +8,12 @@
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { FormErrorSummary } from "@/components/form/form-error-summary";
+import { FormActionFooter } from "@/components/form/form-action-footer";
 import { FormInputField } from "@/components/form/form-input-field";
-import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -270,34 +268,11 @@ export function CustomFilterForm({
 						placeholder="e.g. Raytheon"
 					/>
 
-					<FormErrorSummary className="mt-2" />
-
-					{submitError && (
-						<div
-							role="alert"
-							className="text-destructive text-sm font-medium"
-							data-testid="submit-error"
-						>
-							{submitError}
-						</div>
-					)}
-
-					<div className="flex items-center justify-end gap-3 pt-2">
-						<Button
-							type="button"
-							variant="ghost"
-							onClick={onCancel}
-							disabled={isSubmitting}
-						>
-							Cancel
-						</Button>
-						<Button type="submit" disabled={isSubmitting}>
-							{isSubmitting && (
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-							)}
-							{isSubmitting ? "Saving..." : "Save"}
-						</Button>
-					</div>
+					<FormActionFooter
+						submitError={submitError}
+						isSubmitting={isSubmitting}
+						onCancel={onCancel}
+					/>
 				</form>
 			</Form>
 		</div>
