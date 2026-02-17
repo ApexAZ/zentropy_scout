@@ -71,7 +71,7 @@ jobs:
         run: cd frontend && npx vitest run --coverage
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8  # v5.0.0
+        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8  # v5.0.0  # nosemgrep: detected-sonarqube-docs-api-key
         with:
           args: >
             -Dsonar.python.version=3.11
