@@ -485,6 +485,7 @@ Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, 
 | 13.6 | Add mypy to pre-commit hooks for backend type safety enforcement | `security, lint, plan` | ⬜ |
 | 13.7 | Load testing rate limits with k6 or locust (verify slowapi enforcement) | `security, test, plan` | ⬜ |
 | 13.8 | Full manual security review — OWASP Top 10 walkthrough across all endpoints | `security, plan` | ⬜ |
+| 13.8a | Tooling audit: review all skills, subagents, hooks, and memory files for usefulness; prune dead weight, update stale docs, consider adding a QA subagent for E2E test generation | `plan` | ⬜ |
 | 13.9 | Add Playwright E2E tests to CI workflow (run on push to main) and verify all 93 existing tests pass | `playwright, e2e, commands, plan` | ⬜ |
 
 ---
