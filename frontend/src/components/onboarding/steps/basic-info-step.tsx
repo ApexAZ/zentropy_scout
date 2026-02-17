@@ -19,79 +19,18 @@ import { FormInputField } from "@/components/form/form-input-field";
 import { FormErrorSummary } from "@/components/form/form-error-summary";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { ApiError, apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch } from "@/lib/api-client";
+import { BASIC_INFO_FIELDS } from "@/lib/basic-info-schema";
+import { toFriendlyError } from "@/lib/form-errors";
 import { useOnboarding } from "@/lib/onboarding-provider";
 import type { ApiListResponse } from "@/types/api";
 import type { Persona } from "@/types/persona";
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** Friendly error messages keyed by API error code. */
-const FRIENDLY_ERROR_MESSAGES: Readonly<Record<string, string>> = {
-	VALIDATION_ERROR: "Please check your input and try again.",
-	DUPLICATE_EMAIL: "This email address is already in use.",
-};
-
-/** Fallback error message for unexpected errors. */
-const GENERIC_ERROR_MESSAGE = "Failed to save. Please try again.";
-
-// ---------------------------------------------------------------------------
 // Validation schema
 // ---------------------------------------------------------------------------
 
-/** Max length for general text fields. */
-const MAX_TEXT_LENGTH = 200;
-
-/** Max length for email per RFC 5321. */
-const MAX_EMAIL_LENGTH = 254;
-
-/** Max length for phone numbers (international format). */
-const MAX_PHONE_LENGTH = 30;
-
-/** Max length for URL fields (browser practical limit). */
-const MAX_URL_LENGTH = 2083;
-
-/** Reusable URL schema: must be http(s) and within length limit. */
-const INVALID_URL_MESSAGE = "Invalid URL format";
-const httpUrl = z
-	.url({ message: INVALID_URL_MESSAGE })
-	.max(MAX_URL_LENGTH, "URL is too long")
-	.refine(
-		(val) => val.startsWith("https://") || val.startsWith("http://"),
-		"URL must start with http:// or https://",
-	);
-
-const basicInfoSchema = z.object({
-	full_name: z
-		.string()
-		.min(1, { message: "Full name is required" })
-		.max(MAX_TEXT_LENGTH, { message: "Full name is too long" }),
-	email: z
-		.string()
-		.min(1, { message: "Email is required" })
-		.max(MAX_EMAIL_LENGTH, { message: "Email is too long" })
-		.check(z.email({ message: "Invalid email format" })),
-	phone: z
-		.string()
-		.min(1, { message: "Phone number is required" })
-		.max(MAX_PHONE_LENGTH, { message: "Phone number is too long" }),
-	linkedin_url: z.union([httpUrl, z.literal("")]),
-	portfolio_url: z.union([httpUrl, z.literal("")]),
-	home_city: z
-		.string()
-		.min(1, { message: "City is required" })
-		.max(MAX_TEXT_LENGTH, { message: "City name is too long" }),
-	home_state: z
-		.string()
-		.min(1, { message: "State is required" })
-		.max(MAX_TEXT_LENGTH, { message: "State name is too long" }),
-	home_country: z
-		.string()
-		.min(1, { message: "Country is required" })
-		.max(MAX_TEXT_LENGTH, { message: "Country name is too long" }),
-});
+const basicInfoSchema = z.object(BASIC_INFO_FIELDS);
 
 type BasicInfoFormData = z.infer<typeof basicInfoSchema>;
 
@@ -105,18 +44,6 @@ const DEFAULT_VALUES: BasicInfoFormData = {
 	home_state: "",
 	home_country: "",
 };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Map an ApiError to a user-friendly message. */
-function toFriendlyError(err: unknown): string {
-	if (err instanceof ApiError) {
-		return FRIENDLY_ERROR_MESSAGES[err.code] ?? GENERIC_ERROR_MESSAGE;
-	}
-	return GENERIC_ERROR_MESSAGE;
-}
 
 // ---------------------------------------------------------------------------
 // Component

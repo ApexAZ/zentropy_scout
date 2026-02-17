@@ -7,6 +7,7 @@
  */
 
 import { Checkbox } from "@/components/ui/checkbox";
+import type { UseResumeContentSelectionReturn } from "@/hooks/use-resume-content-selection";
 import type {
 	Certification,
 	Education,
@@ -27,26 +28,8 @@ interface ResumeContentCheckboxesProps {
 	certifications: Certification[];
 	/** Skill entries to render as checkboxes. */
 	skills: Skill[];
-	/** IDs of currently included jobs. */
-	includedJobs: string[];
-	/** Per-job bullet selection map. */
-	bulletSelections: Record<string, string[]>;
-	/** IDs of currently included education entries. */
-	includedEducation: string[];
-	/** IDs of currently included certifications. */
-	includedCertifications: string[];
-	/** IDs of currently emphasized skills. */
-	skillsEmphasis: string[];
-	/** Handler for toggling a job's inclusion. */
-	onToggleJob: (jobId: string, job: WorkHistory) => void;
-	/** Handler for toggling a bullet's inclusion. */
-	onToggleBullet: (jobId: string, bulletId: string) => void;
-	/** Handler for toggling an education entry's inclusion. */
-	onToggleEducation: (eduId: string) => void;
-	/** Handler for toggling a certification's inclusion. */
-	onToggleCertification: (certId: string) => void;
-	/** Handler for toggling a skill's emphasis. */
-	onToggleSkill: (skillId: string) => void;
+	/** Selection state and handlers from useResumeContentSelection. */
+	selection: UseResumeContentSelectionReturn;
 	/**
 	 * Optional render prop for bullet items within an included job.
 	 * When provided, the consumer controls bullet rendering (e.g. for
@@ -68,16 +51,7 @@ function ResumeContentCheckboxes({
 	educations,
 	certifications,
 	skills,
-	includedJobs,
-	bulletSelections,
-	includedEducation,
-	includedCertifications,
-	skillsEmphasis,
-	onToggleJob,
-	onToggleBullet,
-	onToggleEducation,
-	onToggleCertification,
-	onToggleSkill,
+	selection,
 	renderBullets,
 }: Readonly<ResumeContentCheckboxesProps>) {
 	return (
@@ -87,8 +61,8 @@ function ResumeContentCheckboxes({
 				<h2 className="mb-4 text-lg font-semibold">Included Jobs</h2>
 				<div className="space-y-4">
 					{jobs.map((job) => {
-						const isIncluded = includedJobs.includes(job.id);
-						const selectedBullets = bulletSelections[job.id] ?? [];
+						const isIncluded = selection.includedJobs.includes(job.id);
+						const selectedBullets = selection.bulletSelections[job.id] ?? [];
 
 						return (
 							<div key={job.id} className="space-y-2">
@@ -96,7 +70,9 @@ function ResumeContentCheckboxes({
 									<Checkbox
 										id={`job-${job.id}`}
 										checked={isIncluded}
-										onCheckedChange={() => onToggleJob(job.id, job)}
+										onCheckedChange={() =>
+											selection.handleToggleJob(job.id, job)
+										}
 										aria-label={`${job.job_title} at ${job.company_name}`}
 									/>
 									<label
@@ -125,7 +101,7 @@ function ResumeContentCheckboxes({
 														id={`bullet-${bullet.id}`}
 														checked={selectedBullets.includes(bullet.id)}
 														onCheckedChange={() =>
-															onToggleBullet(job.id, bullet.id)
+															selection.handleToggleBullet(job.id, bullet.id)
 														}
 														aria-label={bullet.text}
 													/>
@@ -154,8 +130,10 @@ function ResumeContentCheckboxes({
 							<div key={edu.id} className="flex items-center gap-2">
 								<Checkbox
 									id={`education-${edu.id}`}
-									checked={includedEducation.includes(edu.id)}
-									onCheckedChange={() => onToggleEducation(edu.id)}
+									checked={selection.includedEducation.includes(edu.id)}
+									onCheckedChange={() =>
+										selection.handleToggleEducation(edu.id)
+									}
 									aria-label={`${edu.degree} ${edu.field_of_study} at ${edu.institution}`}
 								/>
 								<label
@@ -179,8 +157,10 @@ function ResumeContentCheckboxes({
 							<div key={cert.id} className="flex items-center gap-2">
 								<Checkbox
 									id={`certification-${cert.id}`}
-									checked={includedCertifications.includes(cert.id)}
-									onCheckedChange={() => onToggleCertification(cert.id)}
+									checked={selection.includedCertifications.includes(cert.id)}
+									onCheckedChange={() =>
+										selection.handleToggleCertification(cert.id)
+									}
 									aria-label={`${cert.certification_name} from ${cert.issuing_organization}`}
 								/>
 								<label
@@ -207,8 +187,8 @@ function ResumeContentCheckboxes({
 							>
 								<Checkbox
 									id={`skill-${skill.id}`}
-									checked={skillsEmphasis.includes(skill.id)}
-									onCheckedChange={() => onToggleSkill(skill.id)}
+									checked={selection.skillsEmphasis.includes(skill.id)}
+									onCheckedChange={() => selection.handleToggleSkill(skill.id)}
 									aria-label={skill.skill_name}
 								/>
 								<label

@@ -19,15 +19,9 @@ import { queryKeys } from "@/lib/query-keys";
 import { APPLICATION_COLUMNS } from "@/components/applications/application-columns";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { ToolbarSelect } from "@/components/data-table/toolbar-select";
 import { FailedState } from "@/components/ui/error-states";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import type { ApiListResponse } from "@/types/api";
 import type { Application } from "@/types/application";
 
@@ -98,31 +92,19 @@ function ApplicationsTableToolbar({
 }: Readonly<ApplicationsTableToolbarProps>) {
 	return (
 		<DataTableToolbar table={table} searchPlaceholder="Search applications...">
-			<Select value={statusFilter} onValueChange={onStatusFilterChange}>
-				<SelectTrigger aria-label="Status filter" size="sm">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					{statusOptions.map((opt) => (
-						<SelectItem key={opt.value} value={opt.value}>
-							{opt.label}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+			<ToolbarSelect
+				value={statusFilter}
+				onValueChange={onStatusFilterChange}
+				label="Status filter"
+				options={statusOptions}
+			/>
 
-			<Select value={sortField} onValueChange={onSortFieldChange}>
-				<SelectTrigger aria-label="Sort by" size="sm">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					{SORT_OPTIONS.map((opt) => (
-						<SelectItem key={opt.value} value={opt.value}>
-							{opt.label}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+			<ToolbarSelect
+				value={sortField}
+				onValueChange={onSortFieldChange}
+				label="Sort by"
+				options={SORT_OPTIONS}
+			/>
 
 			{isHistory && (
 				<div className="flex items-center gap-1.5">

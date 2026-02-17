@@ -130,12 +130,13 @@ function CrudStepLayout<TEntity extends CrudEntity, TFormData>({
 		);
 	}
 
-	const subtitle =
-		crud.entries.length === 0
-			? emptySubtitle
-			: typeof listSubtitle === "function"
+	let subtitle = emptySubtitle;
+	if (crud.entries.length > 0) {
+		subtitle =
+			typeof listSubtitle === "function"
 				? listSubtitle(crud.entries.length)
 				: listSubtitle;
+	}
 
 	const skipVisible =
 		showSkip ?? (skip !== undefined && crud.entries.length === 0);

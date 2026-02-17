@@ -274,16 +274,7 @@ export function ResumeDetail({
 				educations={educations}
 				certifications={certifications}
 				skills={skills}
-				includedJobs={selection.includedJobs}
-				bulletSelections={selection.bulletSelections}
-				includedEducation={selection.includedEducation}
-				includedCertifications={selection.includedCertifications}
-				skillsEmphasis={selection.skillsEmphasis}
-				onToggleJob={selection.handleToggleJob}
-				onToggleBullet={selection.handleToggleBullet}
-				onToggleEducation={selection.handleToggleEducation}
-				onToggleCertification={selection.handleToggleCertification}
-				onToggleSkill={selection.handleToggleSkill}
+				selection={selection}
 				renderBullets={(job, selectedBullets) => (
 					<div className="ml-6">
 						<ReorderableList

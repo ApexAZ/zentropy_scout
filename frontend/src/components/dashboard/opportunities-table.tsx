@@ -35,6 +35,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { getSelectColumn } from "@/components/data-table/data-table-select-column";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { ToolbarSelect } from "@/components/data-table/toolbar-select";
 import { AddJobModal } from "@/components/dashboard/add-job-modal";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ScoreTierBadge } from "@/components/ui/score-tier-badge";
@@ -47,13 +48,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import type {
 	ApiListResponse,
 	ApiResponse,
@@ -108,6 +102,11 @@ const DEFAULT_SORTING: SortingState = [
 	FAVORITE_PINNED_SORT,
 	{ id: "fit_score", desc: true },
 ];
+
+const STATUS_OPTIONS = JOB_POSTING_STATUSES.map((s) => ({
+	value: s,
+	label: s,
+}));
 
 const MIN_FIT_OPTIONS = [
 	{ value: "0", label: "Any" },
@@ -444,50 +443,26 @@ function OpportunitiesToolbar({
 }: Readonly<OpportunitiesToolbarProps>) {
 	return (
 		<DataTableToolbar table={table} searchPlaceholder="Search jobs...">
-			<Select
+			<ToolbarSelect
 				value={statusFilter}
 				onValueChange={(v) => onStatusFilterChange(v as JobPostingStatus)}
-			>
-				<SelectTrigger aria-label="Status filter" size="sm">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					{JOB_POSTING_STATUSES.map((s) => (
-						<SelectItem key={s} value={s}>
-							{s}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+				label="Status filter"
+				options={STATUS_OPTIONS}
+			/>
 
-			<Select
+			<ToolbarSelect
 				value={String(minFit)}
 				onValueChange={(v) => onMinFitChange(Number(v))}
-			>
-				<SelectTrigger aria-label="Minimum fit score" size="sm">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					{MIN_FIT_OPTIONS.map((opt) => (
-						<SelectItem key={opt.value} value={opt.value}>
-							{opt.label}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+				label="Minimum fit score"
+				options={MIN_FIT_OPTIONS}
+			/>
 
-			<Select value={sortField} onValueChange={onSortFieldChange}>
-				<SelectTrigger aria-label="Sort by" size="sm">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					{SORT_OPTIONS.map((opt) => (
-						<SelectItem key={opt.value} value={opt.value}>
-							{opt.label}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+			<ToolbarSelect
+				value={sortField}
+				onValueChange={onSortFieldChange}
+				label="Sort by"
+				options={SORT_OPTIONS}
+			/>
 
 			<Button
 				data-testid="add-job-button"

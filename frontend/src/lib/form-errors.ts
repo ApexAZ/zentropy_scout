@@ -14,6 +14,7 @@ import { ApiError } from "@/lib/api-client";
 /** Friendly error messages keyed by API error code. */
 const FRIENDLY_ERROR_MESSAGES: Readonly<Record<string, string>> = {
 	VALIDATION_ERROR: "Please check your input and try again.",
+	DUPLICATE_EMAIL: "This email address is already in use.",
 	DUPLICATE_NAME:
 		"A resume with this name already exists. Please choose a different name.",
 	EXTRACTION_FAILED:

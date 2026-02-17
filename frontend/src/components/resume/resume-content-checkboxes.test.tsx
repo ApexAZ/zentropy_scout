@@ -9,6 +9,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { UseResumeContentSelectionReturn } from "@/hooks/use-resume-content-selection";
 import type {
 	Certification,
 	Education,
@@ -103,22 +104,40 @@ const MOCK_SKILLS: Skill[] = [
 // Default props factory
 // ---------------------------------------------------------------------------
 
-function defaultProps() {
+function defaultSelection(
+	overrides: Partial<UseResumeContentSelectionReturn> = {},
+): UseResumeContentSelectionReturn {
+	return {
+		includedJobs: [],
+		bulletSelections: {},
+		bulletOrder: {},
+		includedEducation: ["edu-1"],
+		includedCertifications: ["cert-1"],
+		skillsEmphasis: ["skill-1"],
+		setIncludedJobs: vi.fn(),
+		setBulletSelections: vi.fn(),
+		setBulletOrder: vi.fn(),
+		setIncludedEducation: vi.fn(),
+		setIncludedCertifications: vi.fn(),
+		setSkillsEmphasis: vi.fn(),
+		handleToggleJob: vi.fn(),
+		handleToggleBullet: vi.fn(),
+		handleToggleEducation: vi.fn(),
+		handleToggleCertification: vi.fn(),
+		handleToggleSkill: vi.fn(),
+		...overrides,
+	};
+}
+
+function defaultProps(
+	selectionOverrides: Partial<UseResumeContentSelectionReturn> = {},
+) {
 	return {
 		jobs: MOCK_JOBS,
 		educations: MOCK_EDUCATIONS,
 		certifications: MOCK_CERTIFICATIONS,
 		skills: MOCK_SKILLS,
-		includedJobs: [] as string[],
-		bulletSelections: {} as Record<string, string[]>,
-		includedEducation: ["edu-1"],
-		includedCertifications: ["cert-1"],
-		skillsEmphasis: ["skill-1"],
-		onToggleJob: vi.fn(),
-		onToggleBullet: vi.fn(),
-		onToggleEducation: vi.fn(),
-		onToggleCertification: vi.fn(),
-		onToggleSkill: vi.fn(),
+		selection: defaultSelection(selectionOverrides),
 	};
 }
 
@@ -207,7 +226,7 @@ describe("ResumeContentCheckboxes", () => {
 			expect(screen.getByText("Acme")).toBeInTheDocument();
 		});
 
-		it("calls onToggleJob when job checkbox clicked", async () => {
+		it("calls handleToggleJob when job checkbox clicked", async () => {
 			const props = defaultProps();
 			const user = userEvent.setup();
 			render(<ResumeContentCheckboxes {...props} />);
@@ -218,15 +237,19 @@ describe("ResumeContentCheckboxes", () => {
 				}),
 			);
 
-			expect(props.onToggleJob).toHaveBeenCalledWith("job-1", MOCK_JOBS[0]);
+			expect(props.selection.handleToggleJob).toHaveBeenCalledWith(
+				"job-1",
+				MOCK_JOBS[0],
+			);
 		});
 
 		it("shows bullets when job is included", () => {
 			render(
 				<ResumeContentCheckboxes
-					{...defaultProps()}
-					includedJobs={["job-1"]}
-					bulletSelections={{ "job-1": ["b-1", "b-2"] }}
+					{...defaultProps({
+						includedJobs: ["job-1"],
+						bulletSelections: { "job-1": ["b-1", "b-2"] },
+					})}
 				/>,
 			);
 
@@ -240,16 +263,20 @@ describe("ResumeContentCheckboxes", () => {
 			expect(screen.queryByText("First bullet")).not.toBeInTheDocument();
 		});
 
-		it("calls onToggleBullet when bullet checkbox clicked", async () => {
-			const props = defaultProps();
-			props.includedJobs = ["job-1"];
-			props.bulletSelections = { "job-1": ["b-1", "b-2"] };
+		it("calls handleToggleBullet when bullet checkbox clicked", async () => {
+			const props = defaultProps({
+				includedJobs: ["job-1"],
+				bulletSelections: { "job-1": ["b-1", "b-2"] },
+			});
 			const user = userEvent.setup();
 			render(<ResumeContentCheckboxes {...props} />);
 
 			await user.click(screen.getByRole("checkbox", { name: "First bullet" }));
 
-			expect(props.onToggleBullet).toHaveBeenCalledWith("job-1", "b-1");
+			expect(props.selection.handleToggleBullet).toHaveBeenCalledWith(
+				"job-1",
+				"b-1",
+			);
 		});
 	});
 
@@ -268,7 +295,7 @@ describe("ResumeContentCheckboxes", () => {
 			).toBeInTheDocument();
 		});
 
-		it("calls onToggleEducation when clicked", async () => {
+		it("calls handleToggleEducation when clicked", async () => {
 			const props = defaultProps();
 			const user = userEvent.setup();
 			render(<ResumeContentCheckboxes {...props} />);
@@ -279,7 +306,9 @@ describe("ResumeContentCheckboxes", () => {
 				}),
 			);
 
-			expect(props.onToggleEducation).toHaveBeenCalledWith("edu-1");
+			expect(props.selection.handleToggleEducation).toHaveBeenCalledWith(
+				"edu-1",
+			);
 		});
 	});
 
@@ -298,7 +327,7 @@ describe("ResumeContentCheckboxes", () => {
 			).toBeInTheDocument();
 		});
 
-		it("calls onToggleCertification when clicked", async () => {
+		it("calls handleToggleCertification when clicked", async () => {
 			const props = defaultProps();
 			const user = userEvent.setup();
 			render(<ResumeContentCheckboxes {...props} />);
@@ -309,7 +338,9 @@ describe("ResumeContentCheckboxes", () => {
 				}),
 			);
 
-			expect(props.onToggleCertification).toHaveBeenCalledWith("cert-1");
+			expect(props.selection.handleToggleCertification).toHaveBeenCalledWith(
+				"cert-1",
+			);
 		});
 	});
 
@@ -326,14 +357,14 @@ describe("ResumeContentCheckboxes", () => {
 			).toBeInTheDocument();
 		});
 
-		it("calls onToggleSkill when clicked", async () => {
+		it("calls handleToggleSkill when clicked", async () => {
 			const props = defaultProps();
 			const user = userEvent.setup();
 			render(<ResumeContentCheckboxes {...props} />);
 
 			await user.click(screen.getByRole("checkbox", { name: /typescript/i }));
 
-			expect(props.onToggleSkill).toHaveBeenCalledWith("skill-1");
+			expect(props.selection.handleToggleSkill).toHaveBeenCalledWith("skill-1");
 		});
 	});
 
@@ -345,9 +376,10 @@ describe("ResumeContentCheckboxes", () => {
 		it("uses renderBullets when provided", () => {
 			render(
 				<ResumeContentCheckboxes
-					{...defaultProps()}
-					includedJobs={["job-1"]}
-					bulletSelections={{ "job-1": ["b-1"] }}
+					{...defaultProps({
+						includedJobs: ["job-1"],
+						bulletSelections: { "job-1": ["b-1"] },
+					})}
 					renderBullets={(job) => (
 						<div data-testid="custom-bullets">Custom for {job.job_title}</div>
 					)}
