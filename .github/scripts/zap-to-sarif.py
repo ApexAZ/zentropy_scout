@@ -33,8 +33,16 @@ def _severity(riskdesc: str) -> str:
 
 
 def _uri_to_path(uri: str) -> str:
-    """Strip protocol, host, and port from a URL to get the path."""
-    return re.sub(r"^\w+://[^/]+(:\d+)?", "", uri) or "/"
+    """Strip protocol, host, port, and query string from a URL to get the path.
+
+    Query strings are stripped because SARIF artifact locations must be valid
+    file paths.  ZAP attack payloads (e.g. ``php://input``) in query params
+    contain ``://`` which GitHub CodeQL rejects.  The full URI including query
+    string is preserved in the result ``message.text`` field.
+    """
+    path = re.sub(r"^\w+://[^/]+(:\d+)?", "", uri) or "/"
+    path = path.split("?", 1)[0]
+    return path
 
 
 def convert(zap_json: dict) -> dict:
