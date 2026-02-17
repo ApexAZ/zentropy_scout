@@ -327,6 +327,35 @@ function DiscoveredHeader({
 	return <DataTableColumnHeader column={column} title="Discovered" />;
 }
 
+interface FavoriteCellProps {
+	readonly job: JobPosting;
+	readonly isToggling: boolean;
+	readonly onToggle: (job: JobPosting) => void;
+}
+
+function FavoriteCell({ job, isToggling, onToggle }: FavoriteCellProps) {
+	return (
+		<Button
+			variant="ghost"
+			size="icon"
+			data-testid={`favorite-toggle-${job.id}`}
+			disabled={isToggling}
+			aria-label={job.is_favorite ? "Unfavorite" : "Favorite"}
+			onClick={(e) => {
+				e.stopPropagation();
+				onToggle(job);
+			}}
+		>
+			<Heart
+				className={cn(
+					"h-4 w-4",
+					job.is_favorite && "fill-current text-red-500",
+				)}
+			/>
+		</Button>
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Toolbars (extracted to module scope per S6478)
 // ---------------------------------------------------------------------------
@@ -663,30 +692,13 @@ export function OpportunitiesTable() {
 			{
 				accessorKey: "is_favorite",
 				header: FavoriteHeader,
-				cell: ({ row }) => {
-					const job = row.original;
-					const isToggling = togglingFavoriteId === job.id;
-					return (
-						<Button
-							variant="ghost"
-							size="icon"
-							data-testid={`favorite-toggle-${job.id}`}
-							disabled={isToggling}
-							aria-label={job.is_favorite ? "Unfavorite" : "Favorite"}
-							onClick={(e) => {
-								e.stopPropagation();
-								handleFavoriteToggle(job);
-							}}
-						>
-							<Heart
-								className={cn(
-									"h-4 w-4",
-									job.is_favorite && "fill-current text-red-500",
-								)}
-							/>
-						</Button>
-					);
-				},
+				cell: ({ row }) => (
+					<FavoriteCell
+						job={row.original}
+						isToggling={togglingFavoriteId === row.original.id}
+						onToggle={handleFavoriteToggle}
+					/>
+				),
 			},
 			{
 				accessorKey: "job_title",

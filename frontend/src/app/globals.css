@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *)); /* NOSONAR S4662 — valid Tailwind v4 syntax, not recognized by SonarCloud's CSS parser */
 
 /* ============================================
  * Design Tokens — REQ-012 §13.1

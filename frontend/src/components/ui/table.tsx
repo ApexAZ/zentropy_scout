@@ -10,7 +10,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
 			data-slot="table-container"
 			className="relative w-full overflow-x-auto"
 		>
-			<table
+			<table // NOSONAR S5256 — headers provided via TableHeader/TableHead children (shadcn/ui composition pattern)
 				data-slot="table"
 				className={cn("w-full caption-bottom text-sm", className)}
 				{...props}
