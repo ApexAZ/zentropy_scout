@@ -15,19 +15,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { FormErrorSummary } from "@/components/form/form-error-summary";
-import { FormInputField } from "@/components/form/form-input-field";
-import { FormTagField } from "@/components/form/form-tag-field";
+import { VoiceProfileFormFields } from "@/components/persona/voice-profile-form-fields";
 import { Button } from "@/components/ui/button";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
+import { Form } from "@/components/ui/form";
 import { apiGet, apiPatch } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
 import { useOnboarding } from "@/lib/onboarding-provider";
@@ -299,81 +289,7 @@ export function VoiceProfileStep() {
 						data-testid="voice-profile-form"
 						noValidate
 					>
-						<FormInputField
-							control={form.control}
-							name="tone"
-							label="Tone"
-							placeholder='e.g., "Direct, confident, avoids buzzwords"'
-						/>
-
-						<FormInputField
-							control={form.control}
-							name="sentence_style"
-							label="Style"
-							placeholder='e.g., "Short sentences, active voice"'
-						/>
-
-						<FormInputField
-							control={form.control}
-							name="vocabulary_level"
-							label="Vocabulary"
-							placeholder='e.g., "Technical when relevant, plain otherwise"'
-						/>
-
-						<FormInputField
-							control={form.control}
-							name="personality_markers"
-							label="Personality"
-							placeholder='e.g., "Occasional dry humor" (optional)'
-						/>
-
-						<FormTagField
-							control={form.control}
-							name="sample_phrases"
-							label="Sample Phrases"
-							placeholder="e.g., I led..., The result was..."
-							description="Phrases that sound like you"
-							maxItems={20}
-						/>
-
-						<FormTagField
-							control={form.control}
-							name="things_to_avoid"
-							label="Things to Avoid"
-							placeholder="e.g., Passionate, Synergy"
-							description="Words or phrases you never use"
-							maxItems={20}
-						/>
-
-						<FormField
-							control={form.control}
-							name="writing_sample_text"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Writing Sample (optional)</FormLabel>
-									<FormControl>
-										<Textarea
-											placeholder="Paste a writing sample for better voice matching..."
-											className="min-h-[100px] resize-y"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormErrorSummary className="mt-2" />
-
-						{submitError && (
-							<div
-								role="alert"
-								className="text-destructive text-sm font-medium"
-								data-testid="submit-error"
-							>
-								{submitError}
-							</div>
-						)}
+						<VoiceProfileFormFields form={form} submitError={submitError} />
 					</form>
 				</Form>
 			)}
