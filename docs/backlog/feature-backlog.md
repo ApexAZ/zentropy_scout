@@ -28,6 +28,10 @@ Add an OpenRouter adapter to enable mixing models from different providers (Anth
 
 **Motivation:** Cost optimization — route cheap extraction tasks to budget models (e.g., Mistral Small) while keeping quality tasks on Claude Sonnet. Single API key simplifies configuration.
 
+**Existing overlap:**
+- Provider abstraction layer already exists with adapter pattern, task-based model routing, and singleton factory (`backend/app/providers/`). Claude, OpenAI, and Gemini adapters are implemented. OpenRouter adapter follows the same pattern — no new architecture needed.
+- Task-based routing (`TaskType` enum → model lookup) already maps each agent task to a specific model. OpenRouter just adds more model options to the routing table.
+
 **Key files:**
 - `backend/app/providers/llm/openai_adapter.py` (base to extend)
 - `backend/app/providers/factory.py` (add `"openrouter"` case)
@@ -65,6 +69,12 @@ Implement user authentication with three identity providers:
 - REQ-006 §6 (current auth placeholder)
 - REQ-012 §12.4 (frontend auth placeholder)
 
+**Existing overlap:**
+- **Onboarding gate** already exists at `frontend/src/components/onboarding/onboarding-gate.tsx` — checks whether persona exists and redirects to `/onboarding` if not. Needs to be extended to check auth status first, then persona status.
+- **Onboarding flow** (12-step wizard) is fully built (Phase 5). The "job preferences" step the user completes before seeing the dashboard is already implemented — just needs to run after auth instead of on first visit.
+- **Auth placeholder** exists in REQ-006 §6 (backend) and REQ-012 §12.4 (frontend settings page has an "About" section with auth placeholder text).
+- **API client** (`frontend/src/lib/api-client.ts`) currently makes unauthenticated requests. Needs auth header injection (Bearer token or cookie forwarding).
+
 **Open questions:**
 - Auth.js runs on the Next.js side — does the FastAPI backend verify JWT tokens from Auth.js, or does Auth.js proxy all API calls?
 - Password option vs magic-link-only? (Magic link is simpler but requires email delivery service.)
@@ -91,6 +101,12 @@ Convert from single-user local-first architecture to multi-tenant hosted service
 - **Frontend:** Login/register pages, token storage, auth-aware API client, redirect to login on 401.
 - **LLM/Embeddings:** Per-user usage tracking and potential rate limiting.
 - **File storage:** BYTEA columns already tenant-safe (no shared filesystem paths).
+
+**Existing overlap:**
+- **Database schema** (REQ-005) currently has a single `personas` table as the root — all other tables (work_history, skills, resumes, etc.) hang off `persona_id`. Multi-tenant adds a `users` table above personas, with `user_id` FK on personas and other top-level tables (job_postings, applications).
+- **Repository pattern** (`backend/repositories/`) already centralizes all DB queries. Adding `user_id` filtering means modifying each repository's query methods rather than hunting through scattered SQL.
+- **BYTEA file storage** is already tenant-safe — no shared filesystem paths to worry about.
+- **Frontend API client** already uses a centralized `apiGet`/`apiPost`/etc. pattern — auth header injection is a single-point change.
 
 **Open questions:**
 - Shared database with row-level isolation vs schema-per-tenant? (Row-level is simpler for MVP scale.)
@@ -125,7 +141,11 @@ API-first job fetching engine with a cost-conscious tier system:
 - How to handle rate limits across multiple sources?
 - User-configurable source priority? (Already spec'd in REQ-003 §4.2b and frontend settings page.)
 
-**Note:** The deduplication/normalization service (ensuring "Senior Dev at Meta" and "Sr. React Engineer at Facebook" don't show as separate entries) is partially addressed by the Scouter agent's cross-source matching (REQ-003 §8-9, REQ-007 §6.4). May need enhancement for multi-source fetch.
+**Existing overlap:**
+- **Scouter agent** (`backend/app/agents/scouter/`) already defines the job discovery flow (REQ-007 §6) but doesn't implement specific source adapters or tiered priority. The agent calls service-layer functions that would need to be built/extended.
+- **Cross-source deduplication** is partially spec'd in REQ-003 §8-9 (repost history, "Also found on" display) and REQ-007 §6.4 (Scouter cross-source matching). The normalization service (ensuring "Senior Dev at Meta" and "Sr. React Engineer at Facebook" merge) would extend this existing logic.
+- **Job source preferences** UI already exists in the frontend settings page (`frontend/src/app/settings/`) — users can toggle sources on/off and drag-reorder priority (REQ-003 §4.2b, REQ-012 §12.2). The tiered fetch engine would respect these preferences.
+- **Frontend job list** already supports source display, cross-source links, and ghost detection badges.
 
 ---
 
@@ -146,6 +166,11 @@ After TTL expires, the full content is purged but metadata and extracted data re
 - `backend/app/models/job_posting.py` (current schema — single table)
 - REQ-003 (job posting schema)
 - REQ-005 (database schema)
+
+**Existing overlap:**
+- **Job posting schema** (REQ-003, `backend/app/models/job_posting.py`) currently stores everything in one table — description, raw content, extracted skills, scores, metadata all in `job_postings`. This feature would split that table.
+- **Extracted data** (skills, culture signals, salary parsing) is already stored as structured JSONB fields separate from raw text. These are derivatives, not original content — likely safe to keep permanently.
+- **Frontend job detail page** renders description text and extracted data. Would need a "content expired" state when raw text is purged, with a "View on source site" link.
 
 **Open questions:**
 - Is 24 hours the right TTL? Some ToS may allow longer.
@@ -172,6 +197,12 @@ Configure `railway.toml` to deploy both the Next.js frontend and Python backend 
 - **Networking:** Internal service communication, public domain routing
 
 **Motivation:** Move from local-only development to hosted deployment for real-world use.
+
+**Existing overlap:**
+- **Docker Compose** (`docker-compose.yml`) already defines the PostgreSQL + pgvector service for local dev. Railway config mirrors this but uses Railway-managed Postgres.
+- **Backend is deployable** — FastAPI app with uvicorn, Alembic migrations, structured settings via env vars. No filesystem dependencies (BYTEA storage).
+- **Frontend is deployable** — standard Next.js 14 App Router app with `npm run build && npm start`.
+- **Pre-deployment security task** §13.5a (disable ZAP public issue writing) should be completed before Railway goes live.
 
 **Open questions:**
 - Railway pricing tier — which plan supports the required services?
