@@ -1,0 +1,161 @@
+rules:
+  # =========================================================================
+  # Rule 1: Unsanitized input in LLM messages (taint tracking)
+  # =========================================================================
+  # Detects when function parameters flow into LLMMessage content without
+  # passing through sanitize_llm_input() or sanitize_user_feedback().
+  # This caught the ghost_detection.py vulnerability where job description
+  # text was concatenated directly into a prompt.
+  #
+  # LIMITATION: Taint source matches ALL function parameters, which is
+  # intentionally broad. Semgrep OSS taint tracks within a single function
+  # body only — cross-function sanitization (e.g., sanitize inside a builder
+  # function) requires nosemgrep suppression with a justification comment.
+  # Monitor CI for false positives and add nosemgrep as needed.
+  - id: zentropy.llm-unsanitized-input
+    mode: taint
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Unsanitized input in LLM message. All user-controlled text must pass
+      through `sanitize_llm_input()` or `sanitize_user_feedback()` before
+      being included in LLM prompts. See backend/app/core/llm_sanitization.py.
+    metadata:
+      cwe:
+        - "CWE-77: Improper Neutralization of Special Elements used in a Command"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+      technology:
+        - python
+      confidence: MEDIUM
+    pattern-sources:
+      - patterns:
+          - pattern: |
+              def $FUNC(..., $PARAM, ...):
+                ...
+          - focus-metavariable: $PARAM
+    pattern-sanitizers:
+      - pattern: sanitize_llm_input(...)
+      - pattern: sanitize_user_feedback(...)
+    pattern-sinks:
+      - pattern: LLMMessage(role=..., content=$SINK)
+        focus-metavariable: $SINK
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/mock_adapter.py"
+
+  # =========================================================================
+  # Rule 2: f-string in LLM message content
+  # =========================================================================
+  # Catches f-strings used directly in LLMMessage content construction.
+  # Even if the embedded variable happens to be safe, f-strings in LLM
+  # messages are a code smell that should be reviewed.
+  #
+  # LIMITATION: Only catches f-strings passed directly to LLMMessage().
+  # Indirect construction (f-string assigned to a variable, then passed)
+  # is not caught. Rule 1 taint tracking covers this gap for unsanitized
+  # parameters flowing into LLMMessage content.
+  - id: zentropy.llm-fstring-in-message
+    languages: [python]
+    severity: WARNING
+    message: >-
+      f-string detected in LLM message content. Prefer explicit
+      `sanitize_llm_input()` on any variable before string concatenation
+      or formatting in LLM prompts.
+    metadata:
+      cwe:
+        - "CWE-77: Improper Neutralization of Special Elements used in a Command"
+      category: security
+      technology:
+        - python
+      confidence: LOW
+    pattern: |
+      LLMMessage(role=..., content=f"...")
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/mock_adapter.py"
+
+  # =========================================================================
+  # Rule 3: eval/exec on LLM response
+  # =========================================================================
+  # Detects eval() or exec() called on LLM response content. LLM output
+  # is untrusted and must never be executed as code.
+  #
+  # LIMITATION: Taint source only matches direct `.content` access on
+  # `await llm.complete(...)` results. Wrapper functions that return
+  # response.content indirectly are not tracked (Semgrep OSS limitation).
+  # Mitigated by code review convention: never eval/exec any string.
+  - id: zentropy.llm-response-code-execution
+    mode: taint
+    languages: [python]
+    severity: ERROR
+    message: >-
+      LLM response content passed to eval() or exec(). Never execute
+      LLM-generated content as code. Parse and validate output instead.
+    metadata:
+      cwe:
+        - "CWE-94: Improper Control of Generation of Code"
+      owasp:
+        - "A03:2021 - Injection"
+      category: security
+      technology:
+        - python
+      confidence: HIGH
+    pattern-sources:
+      - patterns:
+          - pattern: $RESPONSE.content
+          - metavariable-pattern:
+              metavariable: $RESPONSE
+              pattern-either:
+                - pattern: await $LLM.complete(...)
+                - pattern: $LLM.complete(...)
+    pattern-sinks:
+      - pattern: eval(...)
+      - pattern: exec(...)
+    paths:
+      exclude:
+        - "tests/**"
+
+  # =========================================================================
+  # Rule 4: Raw user input in prompt template
+  # =========================================================================
+  # Catches common patterns where request body fields are formatted into
+  # strings that look like prompt templates without sanitization.
+  #
+  # LIMITATION: Only fires when the target variable name matches the regex
+  # (prompt, instruction, system_prompt, context_prompt, template,
+  # content_str). Variables named differently (e.g., user_text, msg) are
+  # not caught. Rule 1 taint tracking covers the critical path regardless
+  # of variable naming.
+  - id: zentropy.llm-unsanitized-prompt-format
+    languages: [python]
+    severity: WARNING
+    message: >-
+      User input formatted into prompt string without sanitization. Use
+      `sanitize_llm_input()` on all user-controlled text before embedding
+      in prompts. See backend/app/core/llm_sanitization.py.
+    metadata:
+      cwe:
+        - "CWE-77: Improper Neutralization of Special Elements used in a Command"
+      category: security
+      technology:
+        - python
+      confidence: LOW
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PROMPT = f"...{$VAR}..."
+          - pattern: |
+              $PROMPT = "..." + $VAR
+          - pattern: |
+              $PROMPT = "...".format(..., $VAR, ...)
+      - metavariable-regex:
+          metavariable: $PROMPT
+          regex: (?i)(prompt|instruction|system_prompt|context_prompt|template|content_str)
+    paths:
+      exclude:
+        - "tests/**"
+        - "**/errors.py"

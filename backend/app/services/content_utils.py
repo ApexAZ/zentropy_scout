@@ -66,7 +66,7 @@ RULES:
 
 Example: ["kubernetes", "python", "distributed systems", "team leadership"]""",
             ),
-            LLMMessage(
+            LLMMessage(  # nosemgrep: zentropy.llm-fstring-in-message  # safe_text sanitized on line 51
                 role="user",
                 content=f"Extract keywords from:\n\n{safe_text}",
             ),
@@ -128,7 +128,7 @@ async def extract_skills_from_text(
     response = await llm.complete(
         task=TaskType.EXTRACTION,
         messages=[
-            LLMMessage(
+            LLMMessage(  # nosemgrep: zentropy.llm-fstring-in-message  # skill_hint sanitized on lines 119,124
                 role="system",
                 content=f"""Identify skills mentioned in the text.
 
@@ -139,7 +139,7 @@ RULES:
 4. Lowercase everything
 5. Output as JSON array only{skill_hint}""",
             ),
-            LLMMessage(
+            LLMMessage(  # nosemgrep: zentropy.llm-fstring-in-message  # safe_text sanitized on line 119
                 role="user",
                 content=f"Extract skills from:\n\n{safe_text}",
             ),
@@ -258,7 +258,7 @@ multipliers (10x), team sizes, etc.
 Output as JSON array of strings. If no metrics found, output [].
 Example: ["40%", "$1.2M", "500 users", "3x faster"]""",
             ),
-            LLMMessage(
+            LLMMessage(  # nosemgrep: zentropy.llm-fstring-in-message  # safe_text sanitized on line 246
                 role="user",
                 content=f"Extract metrics from:\n\n{safe_text}",
             ),

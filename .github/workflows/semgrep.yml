@@ -20,7 +20,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
 
-      - name: Run Semgrep
+      - name: Run Semgrep (SaaS rules)
         run: semgrep ci
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: Run custom LLM security rules (fail on ERROR)
+        run: semgrep scan --config .semgrep/ backend/app/ --error --severity ERROR
+        if: always()
+
+      - name: Run custom LLM security rules (advisory WARNINGs)
+        run: semgrep scan --config .semgrep/ backend/app/ --severity WARNING
+        if: always()
+        continue-on-error: true

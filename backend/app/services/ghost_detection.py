@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
 
+from app.core.llm_sanitization import sanitize_llm_input
 from app.providers import ProviderError, factory
 from app.providers.llm.base import LLMMessage, TaskType
 
@@ -304,7 +305,10 @@ Job Description:
             messages=[
                 # WHY 2000 chars: Vagueness assessment only needs enough text to assess
                 # specificity. Longer text increases cost without improving accuracy.
-                LLMMessage(role="user", content=prompt + description[:2000]),
+                LLMMessage(
+                    role="user",
+                    content=prompt + sanitize_llm_input(description[:2000]),
+                ),
             ],
             task=TaskType.GHOST_DETECTION,
         )
