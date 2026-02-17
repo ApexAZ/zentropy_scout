@@ -30,13 +30,13 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_FILE_SIZE_LABEL = "10MB";
 
 /** Accepted file extensions (lowercase). */
-const ACCEPTED_EXTENSIONS: readonly string[] = [".pdf", ".docx"];
+const ACCEPTED_EXTENSIONS = new Set([".pdf", ".docx"]);
 
 /** Accepted MIME types (client-side hint, backend validates magic bytes). */
-const ACCEPTED_MIME_TYPES: readonly string[] = [
+const ACCEPTED_MIME_TYPES = new Set([
 	"application/pdf",
 	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
+]);
 
 /** File input accept attribute value. */
 const FILE_INPUT_ACCEPT = ".pdf,.docx";
@@ -81,10 +81,10 @@ function getFileExtension(fileName: string): string {
 /** Validate file type (extension + MIME hint) and size. Returns error or null. */
 function validateFile(file: File): string | null {
 	const ext = getFileExtension(file.name);
-	if (!ACCEPTED_EXTENSIONS.includes(ext)) {
+	if (!ACCEPTED_EXTENSIONS.has(ext)) {
 		return "Only PDF and DOCX files are accepted.";
 	}
-	if (file.type && !ACCEPTED_MIME_TYPES.includes(file.type)) {
+	if (file.type && !ACCEPTED_MIME_TYPES.has(file.type)) {
 		return "Only PDF and DOCX files are accepted.";
 	}
 	if (file.size > MAX_FILE_SIZE_BYTES) {

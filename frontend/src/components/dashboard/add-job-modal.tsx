@@ -59,7 +59,6 @@ const SOURCE_OPTIONS = INGEST_SOURCE_NAMES.map((name) => ({
 const ingestFormSchema = z.object({
 	source_name: z.string().min(1, { message: "Source is required" }),
 	source_url: z
-		.string()
 		.url({ message: "Must be a valid URL" })
 		.or(z.literal(""))
 		.optional()

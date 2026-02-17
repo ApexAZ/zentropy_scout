@@ -193,9 +193,11 @@ describe("GrowthTargetsEditor", () => {
 		it("renders all 3 stretch appetite options with descriptions", () => {
 			renderEditor();
 
-			expect(screen.getByLabelText(/low/i)).toBeInTheDocument();
-			expect(screen.getByLabelText(/medium/i)).toBeInTheDocument();
-			expect(screen.getByLabelText(/high/i)).toBeInTheDocument();
+			expect(screen.getByRole("radio", { name: /low/i })).toBeInTheDocument();
+			expect(
+				screen.getByRole("radio", { name: /medium/i }),
+			).toBeInTheDocument();
+			expect(screen.getByRole("radio", { name: /high/i })).toBeInTheDocument();
 			expect(
 				screen.getByText("Show me roles I'm already qualified for"),
 			).toBeInTheDocument();
@@ -250,14 +252,14 @@ describe("GrowthTargetsEditor", () => {
 		it("pre-fills stretch appetite radio selection", () => {
 			renderEditor();
 
-			const highRadio = screen.getByLabelText(/high/i);
+			const highRadio = screen.getByRole("radio", { name: /high/i });
 			expect(highRadio).toBeChecked();
 		});
 
 		it("defaults to Medium when persona has default values", () => {
 			renderEditor(MOCK_PERSONA_DEFAULTS);
 
-			const mediumRadio = screen.getByLabelText(/medium/i);
+			const mediumRadio = screen.getByRole("radio", { name: /medium/i });
 			expect(mediumRadio).toBeChecked();
 		});
 	});

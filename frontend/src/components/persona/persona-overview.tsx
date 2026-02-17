@@ -75,7 +75,8 @@ const SECTION_CARDS: readonly SectionCardDef[] = [
 
 /** Pluralize a count with a label (e.g., 2 "position" -> "2 positions"). */
 function pluralize(count: number, singular: string, plural?: string): string {
-	return `${count} ${count === 1 ? singular : (plural ?? `${singular}s`)}`;
+	const pluralForm = plural ?? `${singular}s`;
+	return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
 /** Check if a voice profile response has meaningful data. */

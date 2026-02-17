@@ -57,7 +57,7 @@ const storyFormSchema = z.object({
 		.min(1, { message: "Outcome is required" })
 		.max(MAX_TEXT_LENGTH, { message: "Outcome is too long" }),
 	skills_demonstrated: z
-		.array(z.string().uuid({ message: "Invalid skill ID" }))
+		.array(z.uuid({ message: "Invalid skill ID" }))
 		.max(50, { message: "Too many skills selected" }),
 });
 

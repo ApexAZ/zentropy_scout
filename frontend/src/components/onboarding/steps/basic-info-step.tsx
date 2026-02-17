@@ -56,7 +56,6 @@ const MAX_URL_LENGTH = 2083;
 /** Reusable URL schema: must be http(s) and within length limit. */
 const INVALID_URL_MESSAGE = "Invalid URL format";
 const httpUrl = z
-	.string()
 	.url({ message: INVALID_URL_MESSAGE })
 	.max(MAX_URL_LENGTH, "URL is too long")
 	.refine(
@@ -72,8 +71,8 @@ const basicInfoSchema = z.object({
 	email: z
 		.string()
 		.min(1, { message: "Email is required" })
-		.email({ message: "Invalid email format" })
-		.max(MAX_EMAIL_LENGTH, { message: "Email is too long" }),
+		.max(MAX_EMAIL_LENGTH, { message: "Email is too long" })
+		.check(z.email({ message: "Invalid email format" })),
 	phone: z
 		.string()
 		.min(1, { message: "Phone number is required" })
