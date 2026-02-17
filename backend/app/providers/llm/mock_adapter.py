@@ -104,7 +104,7 @@ class MockLLMProvider(LLMProvider):
             latency_ms=10,
         )
 
-    async def stream(
+    async def stream(  # type: ignore[override]
         self,
         messages: list[LLMMessage],
         task: TaskType,

@@ -17,7 +17,7 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUserId, DbSession
 from app.core.errors import InvalidStateError, NotFoundError
-from app.core.responses import DataResponse, ListResponse
+from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import Persona
 from app.models.persona_settings import PersonaChangeFlag
 
@@ -112,7 +112,7 @@ async def list_persona_change_flags(
 
     return ListResponse(
         data=[_flag_to_dict(f) for f in flags],
-        meta={"total": len(flags), "page": 1, "per_page": len(flags)},
+        meta=PaginationMeta(total=len(flags), page=1, per_page=len(flags)),
     )
 
 

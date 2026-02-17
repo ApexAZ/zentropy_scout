@@ -245,7 +245,7 @@ async def run_discovery(
 
     # Invoke the Scouter graph
     graph = get_scouter_graph()
-    final_state = await graph.ainvoke(initial_state)
+    final_state = await graph.ainvoke(initial_state)  # type: ignore[attr-defined]
 
     # Extract results from final state
     jobs = final_state.get("processed_jobs", [])

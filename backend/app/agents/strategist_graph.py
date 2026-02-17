@@ -92,7 +92,7 @@ def check_embedding_freshness_node(
     # Placeholder: would fetch current version from DB
     current_version = state_version
 
-    embeddings_stale = state_version < current_version
+    embeddings_stale = state_version < current_version  # type: ignore[operator]
 
     logger.debug(
         "Embedding check: state_version=%d, current_version=%d, stale=%s",
@@ -126,7 +126,7 @@ def regenerate_embeddings_node(
     persona_id = state.get("persona_id")
     logger.info("Regenerating embeddings for persona %s", persona_id)
 
-    new_version = state.get("persona_embedding_version", 0) + 1
+    new_version = state.get("persona_embedding_version", 0) + 1  # type: ignore[operator]
 
     return {
         **state,
@@ -576,8 +576,8 @@ def get_strategist_graph() -> StateGraph:
     """
     global _strategist_graph
     if _strategist_graph is None:
-        _strategist_graph = create_strategist_graph().compile()
-    return _strategist_graph
+        _strategist_graph = create_strategist_graph().compile()  # type: ignore[assignment]
+    return _strategist_graph  # type: ignore[return-value]
 
 
 def reset_strategist_graph() -> None:
@@ -653,7 +653,7 @@ async def score_jobs(
             "auto_draft_threshold": auto_draft_threshold,
         }
 
-        final_state = await graph.ainvoke(initial_state)
+        final_state = await graph.ainvoke(initial_state)  # type: ignore[attr-defined]
 
         score_result = final_state.get("score_result")
         if score_result is not None:

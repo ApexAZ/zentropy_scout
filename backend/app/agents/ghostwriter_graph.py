@@ -605,8 +605,8 @@ def get_ghostwriter_graph() -> StateGraph:
     """
     global _ghostwriter_graph  # noqa: PLW0603
     if _ghostwriter_graph is None:
-        _ghostwriter_graph = create_ghostwriter_graph().compile()
-    return _ghostwriter_graph
+        _ghostwriter_graph = create_ghostwriter_graph().compile()  # type: ignore[assignment]
+    return _ghostwriter_graph  # type: ignore[return-value]
 
 
 def reset_ghostwriter_graph() -> None:
@@ -682,6 +682,6 @@ async def generate_materials(
         "existing_variant_id": existing_variant_id,
     }
 
-    final_state = await graph.ainvoke(initial_state)
+    final_state = await graph.ainvoke(initial_state)  # type: ignore[attr-defined]
 
-    return final_state
+    return final_state  # type: ignore[no-any-return]

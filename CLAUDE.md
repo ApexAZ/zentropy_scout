@@ -297,7 +297,7 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
 pre-commit run --all-files
 ```
 
-**On commit:** ruff (lint + format), bandit, gitleaks, trailing whitespace, ESLint, Prettier, TypeScript type check.
+**On commit:** ruff (lint + format), bandit, gitleaks, mypy (backend type check), trailing whitespace, ESLint, Prettier, TypeScript type check.
 **On push:** Full pytest suite (backend) + Vitest suite (frontend). See `.pre-commit-config.yaml` for details.
 
 **IMPORTANT:** Never use `--no-verify` to bypass hooks. If tests fail, fix them before committing/pushing. "Pre-existing" failures are still your responsibility to fix.

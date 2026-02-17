@@ -36,6 +36,7 @@ Architecture:
   State    State     State      State       State
 """
 
+from datetime import datetime
 from enum import Enum
 from typing import Any, TypedDict
 
@@ -186,6 +187,9 @@ class ScouterState(BaseAgentState, total=False):
             Includes raw data before deduplication.
         processed_jobs: Jobs after deduplication and validation.
         error_sources: Sources that failed during polling.
+        saved_job_ids: IDs of jobs saved to DB during persist step.
+        last_polled_at: Timestamp of last completed poll.
+        next_poll_at: Calculated next poll time based on frequency.
     """
 
     enabled_sources: list[str]
@@ -194,6 +198,9 @@ class ScouterState(BaseAgentState, total=False):
     discovered_jobs: list[dict[str, Any]]
     processed_jobs: list[dict[str, Any]]
     error_sources: list[str]
+    saved_job_ids: list[str]
+    last_polled_at: datetime
+    next_poll_at: datetime
 
 
 class ScoreResult(TypedDict, total=False):

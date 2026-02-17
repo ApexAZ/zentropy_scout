@@ -120,7 +120,7 @@ async def cleanup_resolved_change_flags(db: AsyncSession) -> int:
         result = await db.execute(
             text("SELECT cleanup_resolved_change_flags() AS count")
         )
-        return result.scalar_one()
+        return int(result.scalar_one())
     except SQLAlchemyError as exc:
         logger.error("Resolved change flag cleanup failed: %s", exc)
         raise CleanupError("Resolved change flag cleanup failed") from exc
@@ -170,7 +170,7 @@ async def cleanup_expired_jobs(db: AsyncSession) -> int:
     """
     try:
         result = await db.execute(text("SELECT cleanup_expired_jobs() AS count"))
-        return result.scalar_one()
+        return int(result.scalar_one())
     except SQLAlchemyError as exc:
         logger.error("Expired jobs cleanup failed: %s", exc)
         raise CleanupError("Expired jobs cleanup failed") from exc

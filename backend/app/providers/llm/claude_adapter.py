@@ -105,9 +105,9 @@ def _convert_tool_result_message(msg: LLMMessage) -> dict:
         "content": [
             {
                 "type": "tool_result",
-                "tool_use_id": msg.tool_result.tool_call_id,
-                "content": msg.tool_result.content,
-                "is_error": msg.tool_result.is_error,
+                "tool_use_id": msg.tool_result.tool_call_id,  # type: ignore[union-attr]
+                "content": msg.tool_result.content,  # type: ignore[union-attr]
+                "is_error": msg.tool_result.is_error,  # type: ignore[union-attr]
             }
         ],
     }
@@ -121,7 +121,7 @@ def _convert_tool_call_message(msg: LLMMessage) -> dict:
     content_blocks: list[dict] = []
     if msg.content:
         content_blocks.append({"type": "text", "text": msg.content})
-    for tc in msg.tool_calls:
+    for tc in msg.tool_calls:  # type: ignore[union-attr]
         content_blocks.append(
             {
                 "type": "tool_use",
@@ -166,7 +166,7 @@ def _parse_claude_response(
     content = None
     tool_calls: list[ToolCall] | None = None
 
-    for block in response.content:
+    for block in response.content:  # type: ignore[attr-defined]
         if block.type == "text":
             content = block.text
         elif block.type == "tool_use":
@@ -180,7 +180,7 @@ def _parse_claude_response(
                 )
             )
 
-    return content, tool_calls, response.stop_reason
+    return content, tool_calls, response.stop_reason  # type: ignore[attr-defined]
 
 
 class ClaudeAdapter(LLMProvider):
@@ -276,10 +276,10 @@ class ClaudeAdapter(LLMProvider):
                 temperature=temperature
                 if temperature is not None
                 else self.config.default_temperature,
-                system=system_msg,
-                messages=api_messages,
-                stop_sequences=stop_sequences,
-                tools=api_tools,
+                system=system_msg,  # type: ignore[arg-type]
+                messages=api_messages,  # type: ignore[arg-type]
+                stop_sequences=stop_sequences,  # type: ignore[arg-type]
+                tools=api_tools,  # type: ignore[arg-type]
             )
         except (
             anthropic.RateLimitError,
@@ -321,7 +321,7 @@ class ClaudeAdapter(LLMProvider):
             tool_calls=tool_calls,
         )
 
-    async def stream(
+    async def stream(  # type: ignore[override]
         self,
         messages: list[LLMMessage],
         task: TaskType,
@@ -369,8 +369,8 @@ class ClaudeAdapter(LLMProvider):
                 temperature=temperature
                 if temperature is not None
                 else self.config.default_temperature,
-                system=system_msg,
-                messages=api_messages,
+                system=system_msg,  # type: ignore[arg-type]
+                messages=api_messages,  # type: ignore[arg-type]
             ) as stream:
                 async for text in stream.text_stream:
                     yield text

@@ -106,8 +106,8 @@ def _convert_tool_result_message(msg: LLMMessage) -> dict[str, str]:
     """
     return {
         "role": "tool",
-        "tool_call_id": msg.tool_result.tool_call_id,
-        "content": msg.tool_result.content,
+        "tool_call_id": msg.tool_result.tool_call_id,  # type: ignore[union-attr]
+        "content": msg.tool_result.content,  # type: ignore[union-attr]
     }
 
 
@@ -129,7 +129,7 @@ def _convert_tool_call_message(msg: LLMMessage) -> dict:
                     "arguments": json.dumps(tc.arguments),
                 },
             }
-            for tc in msg.tool_calls
+            for tc in msg.tool_calls  # type: ignore[union-attr]
         ],
     }
 
@@ -161,7 +161,7 @@ def _parse_openai_response(
     Returns:
         Tuple of (content, tool_calls, finish_reason).
     """
-    choice = response.choices[0]
+    choice = response.choices[0]  # type: ignore[attr-defined]
 
     tool_calls: list[ToolCall] | None = None
     if choice.message.tool_calls:
@@ -258,7 +258,7 @@ class OpenAIAdapter(LLMProvider):
         start_time = time.monotonic()
 
         try:
-            response = await self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(  # type: ignore[call-overload]
                 model=model,
                 max_tokens=max_tokens
                 if max_tokens is not None
@@ -311,7 +311,7 @@ class OpenAIAdapter(LLMProvider):
             tool_calls=tool_calls,
         )
 
-    async def stream(
+    async def stream(  # type: ignore[override]
         self,
         messages: list[LLMMessage],
         task: TaskType,
@@ -350,11 +350,11 @@ class OpenAIAdapter(LLMProvider):
                 temperature=temperature
                 if temperature is not None
                 else self.config.default_temperature,
-                messages=api_messages,
+                messages=api_messages,  # type: ignore[arg-type]
                 stream=True,
             )
 
-            async for chunk in response:
+            async for chunk in response:  # type: ignore[union-attr]
                 if chunk.choices and chunk.choices[0].delta.content is not None:
                     yield chunk.choices[0].delta.content
         except (

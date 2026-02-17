@@ -51,6 +51,16 @@ repos:
         language: system
         pass_filenames: false
 
+  # Mypy - Python type checking (runs on COMMIT)
+  - repo: local
+    hooks:
+      - id: backend-mypy
+        name: mypy (backend)
+        entry: bash -c 'cd backend && .venv/bin/python -m mypy app/ --ignore-missing-imports --warn-unused-ignores'
+        language: system
+        pass_filenames: false
+        files: ^backend/app/
+
   # Frontend ESLint - TypeScript/React linter (runs on COMMIT)
   - repo: local
     hooks:
@@ -106,5 +116,5 @@ repos:
 
 # Summary:
 # ON COMMIT: ruff lint/format, bandit security scan, gitleaks secret detection,
-#            ESLint, Prettier format check, TypeScript type check (fast)
+#            mypy type check, ESLint, Prettier format check, TypeScript type check (fast)
 # ON PUSH: Full pytest + Vitest suites (comprehensive - all tests must pass)

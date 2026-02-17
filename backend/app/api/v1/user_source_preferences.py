@@ -11,7 +11,7 @@ import uuid
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUserId
-from app.core.responses import DataResponse, ListResponse
+from app.core.responses import DataResponse, ListResponse, PaginationMeta
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ async def list_user_source_preferences(
     _user_id: CurrentUserId,
 ) -> ListResponse[dict]:
     """List user's job source preferences."""
-    return ListResponse(data=[], meta={"total": 0, "page": 1, "per_page": 20})
+    return ListResponse(data=[], meta=PaginationMeta(total=0, page=1, per_page=20))
 
 
 @router.get("/{preference_id}")

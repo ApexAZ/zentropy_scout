@@ -201,9 +201,9 @@ def create_app() -> FastAPI:
 
     # Register exception handlers
     # Order matters: specific handlers first, then catch-all
-    app.add_exception_handler(APIError, api_error_handler)
-    app.add_exception_handler(RequestValidationError, validation_error_handler)
-    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+    app.add_exception_handler(APIError, api_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, internal_error_handler)
 
     # Rate limiting (Security)

@@ -35,6 +35,7 @@ Interview Steps (§5.2):
 """
 
 import re
+from typing import Any
 
 from langgraph.graph import END, StateGraph
 
@@ -253,7 +254,7 @@ TRANSITION_PROMPTS: dict[tuple[str, str], str] = {
 # =============================================================================
 
 
-def _format_basic_info(gathered_data: dict[str, object]) -> str | None:
+def _format_basic_info(gathered_data: dict[str, Any]) -> str | None:
     """Format basic info section for summary."""
     basic = gathered_data.get("basic_info", {})
     if isinstance(basic, dict) and basic.get("full_name"):
@@ -261,7 +262,7 @@ def _format_basic_info(gathered_data: dict[str, object]) -> str | None:
     return None
 
 
-def _format_work_history(gathered_data: dict[str, object]) -> str | None:
+def _format_work_history(gathered_data: dict[str, Any]) -> str | None:
     """Format work history section for summary."""
     work = gathered_data.get("work_history", {})
     if isinstance(work, dict):
@@ -271,7 +272,7 @@ def _format_work_history(gathered_data: dict[str, object]) -> str | None:
     return None
 
 
-def _format_skills(gathered_data: dict[str, object]) -> str | None:
+def _format_skills(gathered_data: dict[str, Any]) -> str | None:
     """Format skills section for summary."""
     skills = gathered_data.get("skills", {})
     if not isinstance(skills, dict):
@@ -288,7 +289,7 @@ def _format_skills(gathered_data: dict[str, object]) -> str | None:
     return result
 
 
-def _format_stories(gathered_data: dict[str, object]) -> str | None:
+def _format_stories(gathered_data: dict[str, Any]) -> str | None:
     """Format achievement stories section for summary."""
     stories = gathered_data.get("achievement_stories", {})
     if isinstance(stories, dict):
@@ -298,7 +299,7 @@ def _format_stories(gathered_data: dict[str, object]) -> str | None:
     return None
 
 
-def _format_skipped_sections(gathered_data: dict[str, object]) -> str | None:
+def _format_skipped_sections(gathered_data: dict[str, Any]) -> str | None:
     """Format skipped sections for summary."""
     skipped = []
     for section in ["education", "certifications", "resume_upload"]:
@@ -310,7 +311,7 @@ def _format_skipped_sections(gathered_data: dict[str, object]) -> str | None:
     return None
 
 
-def format_gathered_data_summary(gathered_data: dict[str, object]) -> str:
+def format_gathered_data_summary(gathered_data: dict[str, Any]) -> str:
     """Format gathered data into a human-readable summary.
 
     REQ-007 §5.6.1: System Prompt Template Variables
@@ -335,8 +336,8 @@ def format_gathered_data_summary(gathered_data: dict[str, object]) -> str:
         _format_stories,
         _format_skipped_sections,
     ]
-    summary_parts = [f(gathered_data) for f in formatters]
-    summary_parts = [p for p in summary_parts if p is not None]
+    raw_parts = [f(gathered_data) for f in formatters]
+    summary_parts: list[str] = [p for p in raw_parts if p is not None]
 
     return "\n".join(summary_parts) if summary_parts else _NO_DATA_COLLECTED_MSG
 
@@ -362,7 +363,7 @@ def get_system_prompt(current_step: str, gathered_data_summary: str) -> str:
     )
 
 
-def get_work_history_prompt(job_entry: dict[str, object]) -> str:
+def get_work_history_prompt(job_entry: dict[str, Any]) -> str:
     """Get the work history expansion prompt for a specific job.
 
     REQ-007 §5.6.2: Step-Specific Prompts
@@ -1050,9 +1051,9 @@ def check_resume_upload(state: OnboardingState) -> OnboardingState:
 def _handle_work_history_response(
     user_response: str,
     question_lower: str,
-    work_history: dict[str, object],
+    work_history: dict[str, Any],
     new_state: OnboardingState,
-    gathered: dict[str, object],
+    gathered: dict[str, Any],
 ) -> OnboardingState:
     """Handle user response during work history gathering."""
     # User is done adding jobs - check this FIRST before other keyword parsing
@@ -1226,9 +1227,9 @@ def gather_work_history(state: OnboardingState) -> OnboardingState:
 def _handle_education_response(
     user_response: str,
     question_lower: str,
-    education: dict[str, object],
+    education: dict[str, Any],
     new_state: OnboardingState,
-    gathered: dict[str, object],
+    gathered: dict[str, Any],
 ) -> OnboardingState:
     """Handle user response during education gathering."""
     response_lower = user_response.lower().strip()
@@ -1369,9 +1370,9 @@ def gather_education(state: OnboardingState) -> OnboardingState:
 def _handle_skills_response(
     user_response: str,
     question_lower: str,
-    skills: dict[str, object],
+    skills: dict[str, Any],
     new_state: OnboardingState,
-    gathered: dict[str, object],
+    gathered: dict[str, Any],
 ) -> OnboardingState:
     """Handle user response during skills gathering."""
     response_lower = user_response.lower().strip()
@@ -1527,9 +1528,9 @@ def gather_skills(state: OnboardingState) -> OnboardingState:
 def _handle_certifications_response(
     user_response: str,
     question_lower: str,
-    certifications: dict[str, object],
+    certifications: dict[str, Any],
     new_state: OnboardingState,
-    gathered: dict[str, object],
+    gathered: dict[str, Any],
 ) -> OnboardingState:
     """Handle user response during certifications gathering."""
     response_lower = user_response.lower().strip()
@@ -1669,10 +1670,10 @@ def gather_certifications(state: OnboardingState) -> OnboardingState:
 
 
 def _complete_story_entry(
-    stories: dict[str, object],
+    stories: dict[str, Any],
     user_response: str,
     new_state: OnboardingState,
-    gathered: dict[str, object],
+    gathered: dict[str, Any],
 ) -> OnboardingState:
     """Complete a story entry and prompt for the next one."""
     stories["current_entry"]["skills_demonstrated"] = user_response
@@ -1704,9 +1705,9 @@ def _complete_story_entry(
 def _handle_stories_response(
     user_response: str,
     question_lower: str,
-    stories: dict[str, object],
+    stories: dict[str, Any],
     new_state: OnboardingState,
-    gathered: dict[str, object],
+    gathered: dict[str, Any],
 ) -> OnboardingState:
     """Handle user response during achievement stories gathering."""
     response_lower = user_response.lower().strip()
@@ -1875,9 +1876,9 @@ def _get_remote_followup_question(user_response: str) -> str:
 def _handle_non_negotiables_response(
     user_response: str,
     question_lower: str,
-    non_neg: dict[str, object],
+    non_neg: dict[str, Any],
     new_state: OnboardingState,
-    gathered: dict[str, object],
+    gathered: dict[str, Any],
 ) -> OnboardingState:
     """Handle user response during non-negotiables gathering."""
     # Custom filters response (last field - completes the step)
@@ -2092,9 +2093,9 @@ def gather_growth_targets(state: OnboardingState) -> OnboardingState:
 def _handle_voice_profile_response(
     user_response: str,
     question_lower: str,
-    voice: dict[str, object],
+    voice: dict[str, Any],
     new_state: OnboardingState,
-    gathered: dict[str, object],
+    gathered: dict[str, Any],
 ) -> OnboardingState:
     """Handle user response during voice profile gathering."""
     response_lower = user_response.lower().strip()
@@ -2485,5 +2486,5 @@ def get_onboarding_graph() -> StateGraph:
     """
     global _onboarding_graph
     if _onboarding_graph is None:
-        _onboarding_graph = create_onboarding_graph().compile()
-    return _onboarding_graph
+        _onboarding_graph = create_onboarding_graph().compile()  # type: ignore[assignment]
+    return _onboarding_graph  # type: ignore[return-value]

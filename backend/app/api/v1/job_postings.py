@@ -35,6 +35,7 @@ from app.schemas.bulk import (
     BulkOperationResult,
 )
 from app.schemas.ingest import (
+    ExtractedSkillPreview,
     IngestConfirmRequest,
     IngestJobPostingRequest,
     IngestJobPostingResponse,
@@ -187,12 +188,12 @@ async def ingest_job_posting(
         salary_currency=extracted.get("salary_currency"),
         employment_type=extracted.get("employment_type"),
         extracted_skills=[
-            {
-                "skill_name": s.get("skill_name", ""),
-                "skill_type": s.get("skill_type", "Hard"),
-                "is_required": s.get("is_required", True),
-                "years_requested": s.get("years_requested"),
-            }
+            ExtractedSkillPreview(
+                skill_name=s.get("skill_name", ""),
+                skill_type=s.get("skill_type", "Hard"),
+                is_required=s.get("is_required", True),
+                years_requested=s.get("years_requested"),
+            )
             for s in extracted.get("extracted_skills", [])
         ],
         culture_text=extracted.get("culture_text"),
@@ -204,7 +205,7 @@ async def ingest_job_posting(
     token, expires_at = token_store.create(
         user_id=user_id,
         raw_text=body.raw_text,
-        source_url=source_url_str,
+        source_url=source_url_str or "",
         source_name=body.source_name,
         extracted_data=extracted,
     )

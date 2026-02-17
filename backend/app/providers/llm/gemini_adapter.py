@@ -108,8 +108,8 @@ def _convert_gemini_messages(
 def _convert_tool_result(msg: LLMMessage) -> types.Content:
     """Convert a tool result message to Gemini function_response format."""
     func_name = (
-        msg.tool_result.tool_call_id.split("_")[-1]
-        if "_" in msg.tool_result.tool_call_id
+        msg.tool_result.tool_call_id.split("_")[-1]  # type: ignore[union-attr]
+        if "_" in msg.tool_result.tool_call_id  # type: ignore[union-attr]
         else "function"
     )
     return types.Content(
@@ -118,7 +118,7 @@ def _convert_tool_result(msg: LLMMessage) -> types.Content:
             types.Part(
                 function_response=types.FunctionResponse(
                     name=func_name,
-                    response={"result": msg.tool_result.content},
+                    response={"result": msg.tool_result.content},  # type: ignore[union-attr]
                 )
             )
         ],
@@ -130,7 +130,7 @@ def _convert_tool_call_message(msg: LLMMessage) -> types.Content:
     parts: list[types.Part] = []
     if msg.content:
         parts.append(types.Part(text=msg.content))
-    for tc in msg.tool_calls:
+    for tc in msg.tool_calls:  # type: ignore[union-attr]
         parts.append(
             types.Part(
                 function_call=types.FunctionCall(
@@ -173,8 +173,8 @@ def _parse_gemini_response(
     content = None
     tool_calls: list[ToolCall] | None = None
 
-    if response.candidates:
-        candidate = response.candidates[0]
+    if response.candidates:  # type: ignore[attr-defined]
+        candidate = response.candidates[0]  # type: ignore[attr-defined]
         if candidate.content and candidate.content.parts:
             content, tool_calls = _extract_parts(candidate.content.parts)
         finish_reason = (
@@ -228,7 +228,7 @@ class GeminiAdapter(LLMProvider):
                 types.FunctionDeclaration(
                     name=tool.name,
                     description=tool.description,
-                    parameters=tool.to_json_schema(),
+                    parameters=tool.to_json_schema(),  # type: ignore[arg-type]
                 )
                 for tool in tools
             ]
@@ -239,7 +239,7 @@ class GeminiAdapter(LLMProvider):
             temperature=temperature or self.config.default_temperature,
             stop_sequences=stop_sequences or [],
             system_instruction=system_instruction,
-            tools=gemini_tools,
+            tools=gemini_tools,  # type: ignore[arg-type]
             response_mime_type="application/json" if json_mode else None,
         )
 
@@ -256,7 +256,7 @@ class GeminiAdapter(LLMProvider):
         try:
             response = await self.client.aio.models.generate_content(
                 model=model_name,
-                contents=contents,
+                contents=contents,  # type: ignore[arg-type]
                 config=gen_config,
             )
         except Exception as e:
@@ -297,14 +297,14 @@ class GeminiAdapter(LLMProvider):
         return LLMResponse(
             content=content,
             model=model_name,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
+            input_tokens=input_tokens or 0,
+            output_tokens=output_tokens or 0,
             finish_reason=finish_reason,
             latency_ms=latency_ms,
             tool_calls=tool_calls,
         )
 
-    async def stream(
+    async def stream(  # type: ignore[override]
         self,
         messages: list[LLMMessage],
         task: TaskType,
@@ -332,9 +332,9 @@ class GeminiAdapter(LLMProvider):
         start_time = time.monotonic()
 
         try:
-            async for chunk in self.client.aio.models.generate_content_stream(
+            async for chunk in self.client.aio.models.generate_content_stream(  # type: ignore[attr-defined]
                 model=model_name,
-                contents=contents,
+                contents=contents,  # type: ignore[arg-type]
                 config=gen_config,
             ):
                 if chunk.text:

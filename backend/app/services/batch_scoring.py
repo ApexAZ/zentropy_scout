@@ -16,7 +16,11 @@ from typing import Any, Protocol
 
 from app.services.experience_level import calculate_experience_score
 from app.services.fit_score import FitScoreResult, calculate_fit_score
-from app.services.hard_skills_match import calculate_hard_skills_score
+from app.services.hard_skills_match import (
+    JobSkillInput,
+    PersonaSkillInput,
+    calculate_hard_skills_score,
+)
 from app.services.job_embedding_generator import (
     build_culture_text,
     get_neutral_embedding,
@@ -142,27 +146,27 @@ class ScoredJob:
 # =============================================================================
 
 
-def _convert_persona_skills(skills: list[Any]) -> list[dict[str, Any]]:
+def _convert_persona_skills(skills: list[Any]) -> list[PersonaSkillInput]:
     """Convert persona skills to dict format for hard_skills_match."""
     return [
-        {
-            "skill_name": s.skill_name,
-            "skill_type": s.skill_type,
-            "proficiency": s.proficiency,
-        }
+        PersonaSkillInput(
+            skill_name=s.skill_name,
+            skill_type=s.skill_type,
+            proficiency=s.proficiency,
+        )
         for s in skills
     ]
 
 
-def _convert_job_skills(skills: list[Any]) -> list[dict[str, Any]]:
+def _convert_job_skills(skills: list[Any]) -> list[JobSkillInput]:
     """Convert job extracted skills to dict format for hard_skills_match."""
     return [
-        {
-            "skill_name": s.skill_name,
-            "skill_type": s.skill_type,
-            "is_required": s.is_required,
-            "years_requested": getattr(s, "years_requested", None),
-        }
+        JobSkillInput(
+            skill_name=s.skill_name,
+            skill_type=s.skill_type,
+            is_required=s.is_required,
+            years_requested=getattr(s, "years_requested", None),
+        )
         for s in skills
     ]
 

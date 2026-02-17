@@ -270,8 +270,8 @@ async def approve_materials(
             variant.snapshot_included_jobs = base_resume.included_jobs  # type: ignore[assignment]
             variant.snapshot_included_education = base_resume.included_education  # type: ignore[assignment]
             variant.snapshot_included_certifications = (
-                base_resume.included_certifications
-            )  # type: ignore[assignment]
+                base_resume.included_certifications  # type: ignore[assignment]
+            )
             variant.snapshot_skills_emphasis = base_resume.skills_emphasis  # type: ignore[assignment]
             variant.snapshot_job_bullet_selections = base_resume.job_bullet_selections
 

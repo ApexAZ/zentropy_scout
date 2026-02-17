@@ -154,7 +154,7 @@ CONFIDENCE_THRESHOLD = 0.7
 # =============================================================================
 
 
-def _extract_target_resource(match: object) -> str | None:
+def _extract_target_resource(match: re.Match[str]) -> str | None:
     """Extract and clean target resource from regex match."""
     if not match.groups():
         return None
@@ -525,7 +525,7 @@ def format_response(state: ChatAgentState) -> ChatAgentState:
         elif tool == "get_job_posting" and data:
             response = _format_job_details(data)
         elif tool == "update_job_posting" and data:
-            response = _format_job_update(data, intent_type)
+            response = _format_job_update(data, intent_type or "")
 
     if not response:
         response = "Done."
@@ -657,7 +657,7 @@ async def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:
             "messages": state.get("messages", []),
             "current_message": state.get("current_message"),
         }
-        await graph.ainvoke(onboarding_state)
+        await graph.ainvoke(onboarding_state)  # type: ignore[attr-defined]
 
         new_state["tool_results"] = [
             {
@@ -852,5 +852,5 @@ def get_chat_graph() -> StateGraph:
     """
     global _chat_graph
     if _chat_graph is None:
-        _chat_graph = create_chat_graph().compile()
-    return _chat_graph
+        _chat_graph = create_chat_graph().compile()  # type: ignore[assignment]
+    return _chat_graph  # type: ignore[return-value]
