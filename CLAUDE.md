@@ -322,7 +322,7 @@ Layered security scanning across local development and CI:
 
 **Semgrep Team** is free for ≤10 contributors and provides cross-function, cross-file taint tracking with FastAPI-native understanding. Requires `SEMGREP_APP_TOKEN` secret in GitHub repo settings.
 
-**OWASP ZAP** runs API scans against the FastAPI OpenAPI spec in CI. Alert suppressions in `.github/zap-rules.tsv`. Reports uploaded as workflow artifacts and posted to GitHub Issues.
+**OWASP ZAP** runs API scans against the FastAPI OpenAPI spec in CI. Alert suppressions in `.github/zap-rules.tsv`. Results uploaded to GitHub Security tab (SARIF) and as workflow artifacts (30-day retention).
 
 **Dependabot** scans pip (backend), npm (frontend), and GitHub Actions dependencies weekly. Configured in `.github/dependabot.yml`.
 
