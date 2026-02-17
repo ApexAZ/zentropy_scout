@@ -318,6 +318,7 @@ Layered security scanning across local development and CI:
 | **Dependencies** | pip-audit | Known CVEs in Python packages (OSV database) | CI (GitHub Actions) |
 | **Dependencies** | Dependabot | Automated vulnerability alerts + auto-PRs | GitHub (weekly) |
 | **Secrets** | gitleaks | Leaked API keys, passwords, tokens in commits | Pre-commit hook |
+| **Fuzz testing** | Hypothesis | Property-based testing for sanitization pipeline invariants | pytest (local + CI) |
 
 **Semgrep Team** is free for ≤10 contributors and provides cross-function, cross-file taint tracking with FastAPI-native understanding. Requires `SEMGREP_APP_TOKEN` secret in GitHub repo settings.
 
@@ -341,7 +342,7 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `zentropy-agents` | agent, LangGraph, graph, state, HITL | Graph structure, state schemas, checkpointing |
 | `zentropy-db` | database, migration, postgres, SQL | pgvector, BYTEA, Alembic patterns |
 | `zentropy-provider` | LLM, Claude, API, extract, generate | Provider abstraction, adapter pattern, task-based model routing |
-| `zentropy-test` | test, pytest, mock, fixture, coverage | Testing patterns, mock LLM |
+| `zentropy-test` | test, pytest, mock, fixture, coverage, hypothesis | Testing patterns, mock LLM, property-based fuzz testing |
 | `zentropy-tdd` | implement, create, build, add feature | Red-Green-Refactor cycle |
 | `zentropy-playwright` | playwright, e2e, end-to-end, UI testing | E2E tests, mocking, selectors |
 | `zentropy-lint` | lint, ruff, eslint, mypy, prettier | Linting stack, common errors |
