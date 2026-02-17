@@ -15,6 +15,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useReducer,
 	useRef,
 	type ReactNode,
@@ -391,33 +392,48 @@ export function OnboardingProvider({
 
 	const stepDef = getStepByNumber(state.currentStep);
 
+	const contextValue = useMemo(
+		() => ({
+			currentStep: state.currentStep,
+			totalSteps: TOTAL_STEPS,
+			stepName: stepDef?.name ?? "",
+			isStepSkippable: stepDef?.skippable ?? false,
+			personaId: state.personaId,
+			isLoadingCheckpoint: state.isLoadingCheckpoint,
+			isSavingCheckpoint: state.isSavingCheckpoint,
+			isCompleting: state.isCompleting,
+			resumePrompt: state.resumePrompt,
+			completeOnboarding,
+			next,
+			back,
+			skip,
+			goToStep,
+			restart,
+			dismissResumePrompt,
+			setPersonaId,
+		}),
+		[
+			state.currentStep,
+			state.personaId,
+			state.isLoadingCheckpoint,
+			state.isSavingCheckpoint,
+			state.isCompleting,
+			state.resumePrompt,
+			stepDef,
+			completeOnboarding,
+			next,
+			back,
+			skip,
+			goToStep,
+			restart,
+			dismissResumePrompt,
+			setPersonaId,
+		],
+	);
+
 	// -----------------------------------------------------------------------
 	// Render
 	// -----------------------------------------------------------------------
 
-	return (
-		<OnboardingContext
-			value={{
-				currentStep: state.currentStep,
-				totalSteps: TOTAL_STEPS,
-				stepName: stepDef?.name ?? "",
-				isStepSkippable: stepDef?.skippable ?? false,
-				personaId: state.personaId,
-				isLoadingCheckpoint: state.isLoadingCheckpoint,
-				isSavingCheckpoint: state.isSavingCheckpoint,
-				isCompleting: state.isCompleting,
-				resumePrompt: state.resumePrompt,
-				completeOnboarding,
-				next,
-				back,
-				skip,
-				goToStep,
-				restart,
-				dismissResumePrompt,
-				setPersonaId,
-			}}
-		>
-			{children}
-		</OnboardingContext>
-	);
+	return <OnboardingContext value={contextValue}>{children}</OnboardingContext>;
 }

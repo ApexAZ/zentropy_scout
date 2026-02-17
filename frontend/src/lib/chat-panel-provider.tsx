@@ -13,6 +13,7 @@ import {
 	createContext,
 	useCallback,
 	useContext,
+	useMemo,
 	useState,
 	type ReactNode,
 } from "react";
@@ -76,9 +77,10 @@ export function ChatPanelProvider({
 	const open = useCallback(() => setIsOpen(true), []);
 	const close = useCallback(() => setIsOpen(false), []);
 
-	return (
-		<ChatPanelContext value={{ isOpen, toggle, open, close }}>
-			{children}
-		</ChatPanelContext>
+	const contextValue = useMemo(
+		() => ({ isOpen, toggle, open, close }),
+		[isOpen, toggle, open, close],
 	);
+
+	return <ChatPanelContext value={contextValue}>{children}</ChatPanelContext>;
 }

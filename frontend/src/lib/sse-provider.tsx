@@ -23,6 +23,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 	type ReactNode,
@@ -166,7 +167,10 @@ export function SSEProvider({
 		};
 	}, [queryClient, url]);
 
-	return (
-		<SSEContext value={{ status, registerChatHandlers }}>{children}</SSEContext>
+	const contextValue = useMemo(
+		() => ({ status, registerChatHandlers }),
+		[status, registerChatHandlers],
 	);
+
+	return <SSEContext value={contextValue}>{children}</SSEContext>;
 }

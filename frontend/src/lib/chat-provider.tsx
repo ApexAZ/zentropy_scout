@@ -16,6 +16,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useReducer,
 	useRef,
 	type ReactNode,
@@ -553,19 +554,26 @@ export function ChatProvider({ children }: Readonly<ChatProviderProps>) {
 	// Render
 	// -----------------------------------------------------------------------
 
-	return (
-		<ChatContext
-			value={{
-				messages: state.messages,
-				isStreaming: state.isStreaming,
-				isLoadingHistory: state.isLoadingHistory,
-				sendMessage,
-				addSystemMessage,
-				clearMessages,
-				loadHistory,
-			}}
-		>
-			{children}
-		</ChatContext>
+	const contextValue = useMemo(
+		() => ({
+			messages: state.messages,
+			isStreaming: state.isStreaming,
+			isLoadingHistory: state.isLoadingHistory,
+			sendMessage,
+			addSystemMessage,
+			clearMessages,
+			loadHistory,
+		}),
+		[
+			state.messages,
+			state.isStreaming,
+			state.isLoadingHistory,
+			sendMessage,
+			addSystemMessage,
+			clearMessages,
+			loadHistory,
+		],
 	);
+
+	return <ChatContext value={contextValue}>{children}</ChatContext>;
 }
