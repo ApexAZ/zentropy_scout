@@ -45,7 +45,7 @@ export function DataTablePagination<TData>({
 	table,
 	pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
 	className,
-}: DataTablePaginationProps<TData>) {
+}: Readonly<DataTablePaginationProps<TData>>) {
 	const { pageIndex, pageSize } = table.getState().pagination;
 	const pageCount = table.getPageCount();
 

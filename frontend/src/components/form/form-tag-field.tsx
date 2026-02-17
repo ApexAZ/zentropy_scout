@@ -187,7 +187,7 @@ export function FormTagField<TValues extends FieldValues>({
 	disabled,
 	className,
 	maxItems,
-}: FormTagFieldProps<TValues>) {
+}: Readonly<FormTagFieldProps<TValues>>) {
 	return (
 		<FormField
 			control={control}

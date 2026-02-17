@@ -26,11 +26,13 @@ const EM_DASH = "\u2014";
 // Column renderers
 // ---------------------------------------------------------------------------
 
-function JobTitleHeader({ column }: HeaderContext<Application, unknown>) {
+function JobTitleHeader({
+	column,
+}: Readonly<HeaderContext<Application, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Job Title" />;
 }
 
-function JobTitleCell({ row }: CellContext<Application, unknown>) {
+function JobTitleCell({ row }: Readonly<CellContext<Application, unknown>>) {
 	return (
 		<div>
 			<div className="font-medium">{row.original.job_snapshot.title}</div>
@@ -41,19 +43,25 @@ function JobTitleCell({ row }: CellContext<Application, unknown>) {
 	);
 }
 
-function StatusHeader({ column }: HeaderContext<Application, unknown>) {
+function StatusHeader({
+	column,
+}: Readonly<HeaderContext<Application, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Status" />;
 }
 
-function StatusCell({ row }: CellContext<Application, unknown>) {
+function StatusCell({ row }: Readonly<CellContext<Application, unknown>>) {
 	return <StatusBadge status={row.original.status} />;
 }
 
-function InterviewStageHeader({ column }: HeaderContext<Application, unknown>) {
+function InterviewStageHeader({
+	column,
+}: Readonly<HeaderContext<Application, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Interview Stage" />;
 }
 
-function InterviewStageCell({ row }: CellContext<Application, unknown>) {
+function InterviewStageCell({
+	row,
+}: Readonly<CellContext<Application, unknown>>) {
 	const stage = row.original.current_interview_stage;
 	if (stage) {
 		return (
@@ -65,11 +73,15 @@ function InterviewStageCell({ row }: CellContext<Application, unknown>) {
 	return EM_DASH;
 }
 
-function AppliedAtHeader({ column }: HeaderContext<Application, unknown>) {
+function AppliedAtHeader({
+	column,
+}: Readonly<HeaderContext<Application, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Applied" />;
 }
 
-function LastUpdatedHeader({ column }: HeaderContext<Application, unknown>) {
+function LastUpdatedHeader({
+	column,
+}: Readonly<HeaderContext<Application, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Last Updated" />;
 }
 

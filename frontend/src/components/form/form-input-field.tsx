@@ -53,7 +53,7 @@ export function FormInputField<TValues extends FieldValues>({
 	min,
 	max,
 	step,
-}: FormInputFieldProps<TValues>) {
+}: Readonly<FormInputFieldProps<TValues>>) {
 	return (
 		<FormField
 			control={control}

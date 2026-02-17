@@ -47,7 +47,7 @@ export function FormTextareaField<TValues extends FieldValues>({
 	disabled,
 	className,
 	rows,
-}: FormTextareaFieldProps<TValues>) {
+}: Readonly<FormTextareaFieldProps<TValues>>) {
 	return (
 		<FormField
 			control={control}

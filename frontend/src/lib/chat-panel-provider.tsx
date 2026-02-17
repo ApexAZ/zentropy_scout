@@ -67,7 +67,9 @@ interface ChatPanelProviderProps {
  *
  * @param props.children - React children to render.
  */
-export function ChatPanelProvider({ children }: ChatPanelProviderProps) {
+export function ChatPanelProvider({
+	children,
+}: Readonly<ChatPanelProviderProps>) {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const toggle = useCallback(() => setIsOpen((prev) => !prev), []);

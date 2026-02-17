@@ -35,7 +35,7 @@ export function DataTableToolbar<TData>({
 	searchPlaceholder = "Search...",
 	className,
 	children,
-}: DataTableToolbarProps<TData>) {
+}: Readonly<DataTableToolbarProps<TData>>) {
 	const globalFilter = (table.getState().globalFilter as string) ?? "";
 	const isFiltered = table.getState().columnFilters.length > 0;
 

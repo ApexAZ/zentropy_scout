@@ -23,7 +23,10 @@ interface QueryProviderProps {
 	client?: QueryClient;
 }
 
-export function QueryProvider({ children, client }: QueryProviderProps) {
+export function QueryProvider({
+	children,
+	client,
+}: Readonly<QueryProviderProps>) {
 	// Create the QueryClient once per component lifecycle to avoid
 	// re-creating on every render in React strict mode.
 	const [queryClient] = useState(() => client ?? createQueryClient());

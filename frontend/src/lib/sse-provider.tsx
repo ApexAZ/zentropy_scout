@@ -112,7 +112,7 @@ interface SSEProviderProps {
 export function SSEProvider({
 	children,
 	url = DEFAULT_SSE_URL,
-}: SSEProviderProps) {
+}: Readonly<SSEProviderProps>) {
 	const queryClient = useQueryClient();
 	const [status, setStatus] = useState<ConnectionStatus>("disconnected");
 

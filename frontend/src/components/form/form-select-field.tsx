@@ -58,7 +58,7 @@ export function FormSelectField<TValues extends FieldValues>({
 	placeholder,
 	disabled,
 	className,
-}: FormSelectFieldProps<TValues>) {
+}: Readonly<FormSelectFieldProps<TValues>>) {
 	return (
 		<FormField
 			control={control}

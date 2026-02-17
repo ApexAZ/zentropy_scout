@@ -237,15 +237,19 @@ function FilteredJobInfo({ job }: Readonly<{ job: JobPosting }>) {
 // Column renderers (extracted to module scope per S6478)
 // ---------------------------------------------------------------------------
 
-function FavoriteHeader({ column }: HeaderContext<JobPosting, unknown>) {
+function FavoriteHeader({
+	column,
+}: Readonly<HeaderContext<JobPosting, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Favorite" />;
 }
 
-function JobTitleHeader({ column }: HeaderContext<JobPosting, unknown>) {
+function JobTitleHeader({
+	column,
+}: Readonly<HeaderContext<JobPosting, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Job Title" />;
 }
 
-function JobTitleCell({ row }: CellContext<JobPosting, unknown>) {
+function JobTitleCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
 	return (
 		<div>
 			<div className="font-medium">{row.original.job_title}</div>
@@ -257,37 +261,47 @@ function JobTitleCell({ row }: CellContext<JobPosting, unknown>) {
 	);
 }
 
-function LocationHeader({ column }: HeaderContext<JobPosting, unknown>) {
+function LocationHeader({
+	column,
+}: Readonly<HeaderContext<JobPosting, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Location" />;
 }
 
-function SalaryHeader({ column }: HeaderContext<JobPosting, unknown>) {
+function SalaryHeader({
+	column,
+}: Readonly<HeaderContext<JobPosting, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Salary" />;
 }
 
-function FitScoreHeader({ column }: HeaderContext<JobPosting, unknown>) {
+function FitScoreHeader({
+	column,
+}: Readonly<HeaderContext<JobPosting, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Fit" />;
 }
 
-function FitScoreCell({ row }: CellContext<JobPosting, unknown>) {
+function FitScoreCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
 	return <ScoreTierBadge score={row.original.fit_score} scoreType="fit" />;
 }
 
-function StretchScoreHeader({ column }: HeaderContext<JobPosting, unknown>) {
+function StretchScoreHeader({
+	column,
+}: Readonly<HeaderContext<JobPosting, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Stretch" />;
 }
 
-function StretchScoreCell({ row }: CellContext<JobPosting, unknown>) {
+function StretchScoreCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
 	return (
 		<ScoreTierBadge score={row.original.stretch_score} scoreType="stretch" />
 	);
 }
 
-function GhostScoreHeader({ column }: HeaderContext<JobPosting, unknown>) {
+function GhostScoreHeader({
+	column,
+}: Readonly<HeaderContext<JobPosting, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Ghost" />;
 }
 
-function GhostScoreCell({ row }: CellContext<JobPosting, unknown>) {
+function GhostScoreCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
 	const job = row.original;
 	const tier = getGhostTierConfig(job.ghost_score);
 	if (!tier) return null;
@@ -307,7 +321,9 @@ function GhostScoreCell({ row }: CellContext<JobPosting, unknown>) {
 	);
 }
 
-function DiscoveredHeader({ column }: HeaderContext<JobPosting, unknown>) {
+function DiscoveredHeader({
+	column,
+}: Readonly<HeaderContext<JobPosting, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Discovered" />;
 }
 

@@ -14,7 +14,7 @@ const ICON_CLASS = "size-5";
  * - Lucide icons matching the design system
  * - `aria-live="polite"` (built into Sonner)
  */
-function Toaster(props: ToasterProps) {
+function Toaster(props: Readonly<ToasterProps>) {
 	return (
 		<SonnerToaster
 			richColors
