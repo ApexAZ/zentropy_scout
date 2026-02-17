@@ -202,7 +202,7 @@ Run these checks at the start of every session (before any implementation work):
 ## DO / DON'T
 
 ### DO:
-- **Update `docs/plan/implementation_plan.md` after EVERY subtask** — see `plan-tracker` skill
+- **Update `docs/plan/implementation_plan.md` after EVERY subtask** — see `zentropy-planner` skill
 - **Commit after EVERY subtask** — do NOT batch commits
 - **Ask before pushing** — never auto-push to remote
 - Follow TDD (Red-Green-Refactor) — see `zentropy-tdd` skill
@@ -353,7 +353,7 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `zentropy-docs` | docstring, documentation, comments | Google-style docstrings |
 | `reflect` | remember this, add lesson, mistake, never again | Self-improvement, captures lessons |
 | `config-sync` | update documentation, sync config, changed .claude/ | Keeps CLAUDE_TOOLS.md in sync |
-| `plan-tracker` | plan, progress, status, resume, complete, phase | Updates implementation_plan.md after subtasks |
+| `zentropy-planner` | plan, progress, status, resume, complete, phase, create a plan | Plan creation (format, hints, sizing) + progress tracking |
 | `frontend-req-tracker` | frontend, REQ-012, frontend requirements, frontend plan | Updates frontend_requirements_plan.md after subtasks |
 
 ---
@@ -411,7 +411,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 **Frontend:** Phases 1–12 complete. Phase 13 in progress (13.1–13.1h ✅, 13.2–13.8 ⬜).
 **Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
 
-**IMPORTANT:** After completing ANY subtask, update the relevant plan file status (⬜ → ✅). See `plan-tracker` skill.
+**IMPORTANT:** After completing ANY subtask, update the relevant plan file status (⬜ → ✅). See `zentropy-planner` skill.
 - Backend: `docs/plan/implementation_plan.md`
 - Frontend: `docs/plan/frontend_implementation_plan.md`
 

@@ -120,7 +120,7 @@ The repo includes Claude Code project configuration:
 | `CLAUDE.md` | Project memory, conventions, learned lessons, session checklist |
 | `.claude/settings.json` | Hooks (requirement doc protection, ruff auto-format, commit reminder) and shared permissions |
 | `.claude/agents/` | 5 subagents: code-reviewer, security-reviewer, req-reader, test-runner, security-references |
-| `.claude/skills/` | 16 skills: plan-tracker, zentropy-tdd, zentropy-db, zentropy-api, etc. |
+| `.claude/skills/` | 16 skills: zentropy-planner, zentropy-tdd, zentropy-db, zentropy-api, etc. |
 
 ### Built automatically on first use
 
