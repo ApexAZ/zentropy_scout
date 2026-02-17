@@ -14,12 +14,11 @@ import { apiGet } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { CultureSignals } from "@/components/jobs/culture-signals";
 import { ExtractedSkillsTags } from "@/components/jobs/extracted-skills-tags";
-import { FitScoreBreakdown } from "@/components/jobs/fit-score-breakdown";
 import { JobDescription } from "@/components/jobs/job-description";
 import { JobDetailHeader } from "@/components/jobs/job-detail-header";
 import { MarkAsAppliedCard } from "@/components/jobs/mark-as-applied-card";
+import { ScoreBreakdown } from "@/components/jobs/score-breakdown";
 import { ScoreExplanation } from "@/components/jobs/score-explanation";
-import { StretchScoreBreakdown } from "@/components/jobs/stretch-score-breakdown";
 import { usePersonaStatus } from "@/hooks/use-persona-status";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type { ExtractedSkill, JobPosting } from "@/types/job";
@@ -59,8 +58,11 @@ export default function JobDetailPage() {
 						<MarkAsAppliedCard jobId={params.id} applyUrl={job.apply_url} />
 					</div>
 					<div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-						<FitScoreBreakdown fit={job.score_details?.fit} />
-						<StretchScoreBreakdown stretch={job.score_details?.stretch} />
+						<ScoreBreakdown score={job.score_details?.fit} scoreType="fit" />
+						<ScoreBreakdown
+							score={job.score_details?.stretch}
+							scoreType="stretch"
+						/>
 					</div>
 					<ScoreExplanation
 						explanation={job.score_details?.explanation}

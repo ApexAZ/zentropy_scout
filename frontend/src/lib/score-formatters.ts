@@ -2,7 +2,7 @@
  * Shared formatting utilities for fit and stretch score component display.
  *
  * Extracted from chat-score-card.tsx for reuse across score display
- * components (ChatScoreCard, FitScoreBreakdown, StretchScoreBreakdown).
+ * components (ChatScoreCard, ScoreBreakdown).
  *
  * REQ-008 §4.1: Fit score component keys and weight order.
  * REQ-008 §5.1: Stretch score component keys and weight order.

@@ -65,26 +65,20 @@ vi.mock("@/components/jobs/job-detail-header", () => ({
 	JobDetailHeader: MockJobDetailHeader,
 }));
 
-function MockFitScoreBreakdown({ fit }: { fit: FitScoreResult | undefined }) {
-	return <div data-testid={BREAKDOWN_TESTID}>{fit ? "scored" : "none"}</div>;
-}
-MockFitScoreBreakdown.displayName = "MockFitScoreBreakdown";
-
-vi.mock("@/components/jobs/fit-score-breakdown", () => ({
-	FitScoreBreakdown: MockFitScoreBreakdown,
-}));
-
-function MockStretchScoreBreakdown({
-	stretch,
+function MockScoreBreakdown({
+	score,
+	scoreType,
 }: {
-	stretch: StretchScoreResult | undefined;
+	score: FitScoreResult | StretchScoreResult | undefined;
+	scoreType: "fit" | "stretch";
 }) {
-	return <div data-testid={STRETCH_TESTID}>{stretch ? "scored" : "none"}</div>;
+	const testid = scoreType === "fit" ? BREAKDOWN_TESTID : STRETCH_TESTID;
+	return <div data-testid={testid}>{score ? "scored" : "none"}</div>;
 }
-MockStretchScoreBreakdown.displayName = "MockStretchScoreBreakdown";
+MockScoreBreakdown.displayName = "MockScoreBreakdown";
 
-vi.mock("@/components/jobs/stretch-score-breakdown", () => ({
-	StretchScoreBreakdown: MockStretchScoreBreakdown,
+vi.mock("@/components/jobs/score-breakdown", () => ({
+	ScoreBreakdown: MockScoreBreakdown,
 }));
 
 function MockScoreExplanation({
