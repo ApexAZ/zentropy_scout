@@ -476,6 +476,7 @@ Current security tooling covers SAST (Semgrep, Bandit, ESLint), SCA (pip-audit, 
 | 13.1e | SonarCloud zero-finding cleanup: mechanical fixes — Readonly<> props (33), style replacements (22) | `lint, plan` | ✅ |
 | 13.1f | SonarCloud zero-finding cleanup: context memoization (6 providers) + other MAJORs (13) | `lint, plan` | ✅ |
 | 13.1g | SonarCloud zero-finding cleanup: CRITICALs (2 deep nesting), BUGs (2), false positive triage (~7) | `lint, plan` | ✅ |
+| 13.1h | Fix ZAP DAST alert 90004: add CORP header + suppress informational alerts (GH #15) | `security, api, plan` | ✅ |
 | 13.2 | Hypothesis property-based fuzz testing for LLM sanitization pipeline | `security, test, plan` | ⬜ |
 | 13.3 | Custom Semgrep rules for LLM prompt injection and sanitization bypass patterns | `security, lint, plan` | ⬜ |
 | 13.4 | Container image scanning with Trivy in CI (PostgreSQL + pgvector) | `security, commands, plan` | ⬜ |

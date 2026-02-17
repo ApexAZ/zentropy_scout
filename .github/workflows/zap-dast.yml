@@ -76,6 +76,7 @@ jobs:
         with:
           target: 'http://localhost:8000/openapi.json'
           format: openapi
+          rules_file_name: '.github/zap-rules.tsv'
           fail_action: false
           allow_issue_writing: true
           issue_title: 'ZAP DAST Scan Report'

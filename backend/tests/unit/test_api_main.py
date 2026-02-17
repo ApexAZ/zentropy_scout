@@ -330,8 +330,15 @@ class TestSecurityHeadersMiddleware:
         assert response.headers.get("cross-origin-embedder-policy") == "require-corp"
 
     @pytest.mark.asyncio
+    async def test_cross_origin_resource_policy_header(self, client):
+        """Cross-Origin-Resource-Policy should restrict resource sharing (Spectre mitigation)."""
+        response = await client.get("/health")
+        assert response.headers.get("cross-origin-resource-policy") == "same-origin"
+
+    @pytest.mark.asyncio
     async def test_spectre_headers_on_api_endpoints(self, client):
         """Spectre mitigation headers should be present on API endpoints too."""
         response = await client.get("/api/v1/personas")
         assert response.headers.get("cross-origin-opener-policy") == "same-origin"
         assert response.headers.get("cross-origin-embedder-policy") == "require-corp"
+        assert response.headers.get("cross-origin-resource-policy") == "same-origin"
