@@ -85,6 +85,11 @@ function toggleSetItem(
 	});
 }
 
+/** Collect all bullet IDs from a list of work histories. */
+function collectBulletIds(workHistories: WorkHistory[]): Set<string> {
+	return new Set(workHistories.flatMap((wh) => wh.bullets.map((b) => b.id)));
+}
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -350,9 +355,7 @@ export function BaseResumeSetupStep() {
 
 				// Default all items to checked
 				setSelectedJobs(new Set(whRes.data.map((wh) => wh.id)));
-				setSelectedBullets(
-					new Set(whRes.data.flatMap((wh) => wh.bullets.map((b) => b.id))),
-				);
+				setSelectedBullets(collectBulletIds(whRes.data));
 				setSelectedEducation(new Set(eduRes.data.map((e) => e.id)));
 				setSelectedCertifications(new Set(certRes.data.map((c) => c.id)));
 				setSelectedSkills(new Set(skillRes.data.map((s) => s.id)));

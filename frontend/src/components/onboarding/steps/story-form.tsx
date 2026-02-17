@@ -92,6 +92,42 @@ export interface StoryFormProps {
 }
 
 // ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+/** Individual skill checkbox used inside the FormField render tree. */
+function SkillCheckboxItem({
+	skill,
+	value,
+	onChange,
+}: Readonly<{
+	skill: Skill;
+	value: string[];
+	onChange: (newValue: string[]) => void;
+}>) {
+	return (
+		<div className="flex items-center gap-2">
+			<FormControl>
+				<Checkbox
+					checked={value.includes(skill.id)}
+					onCheckedChange={(checked) => {
+						if (checked) {
+							onChange([...value, skill.id]);
+						} else {
+							onChange(value.filter((id) => id !== skill.id));
+						}
+					}}
+					id={`skill-${skill.id}`}
+				/>
+			</FormControl>
+			<label htmlFor={`skill-${skill.id}`} className="cursor-pointer text-sm">
+				{skill.skill_name}
+			</label>
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -170,31 +206,12 @@ export function StoryForm({
 									<FormLabel>Skills Demonstrated (optional)</FormLabel>
 									<div className="flex flex-wrap gap-3">
 										{skills.map((skill) => (
-											<div key={skill.id} className="flex items-center gap-2">
-												<FormControl>
-													<Checkbox
-														checked={field.value.includes(skill.id)}
-														onCheckedChange={(checked) => {
-															if (checked) {
-																field.onChange([...field.value, skill.id]);
-															} else {
-																field.onChange(
-																	field.value.filter(
-																		(id: string) => id !== skill.id,
-																	),
-																);
-															}
-														}}
-														id={`skill-${skill.id}`}
-													/>
-												</FormControl>
-												<label
-													htmlFor={`skill-${skill.id}`}
-													className="cursor-pointer text-sm"
-												>
-													{skill.skill_name}
-												</label>
-											</div>
+											<SkillCheckboxItem
+												key={skill.id}
+												skill={skill}
+												value={field.value}
+												onChange={field.onChange}
+											/>
 										))}
 									</div>
 								</FormItem>
