@@ -11,7 +11,7 @@
 
 import type { Page, Route } from "@playwright/test";
 
-import type { BaseResume } from "@/types/resume";
+import type { BaseResume, GuardrailResult, JobVariant } from "@/types/resume";
 
 import {
 	activeBaseResumesList,
@@ -21,7 +21,9 @@ import {
 	emptyBaseResumesList,
 	emptyChangeFlagsList,
 	emptyChatMessages,
+	jobPostingDetail,
 	jobPostingsForVariantsList,
+	jobVariantDetail,
 	jobVariantsList,
 	onboardedPersonaList,
 	postBaseResumeResponse,
@@ -30,9 +32,11 @@ import {
 	workHistoryList,
 } from "../fixtures/resume-mock-data";
 
-// Re-export IDs so spec files can import from a single source
+// Re-export IDs and guardrail helpers so spec files can import from a single source
 export {
 	BASE_RESUME_IDS,
+	GUARDRAIL_ERROR,
+	GUARDRAIL_WARNING,
 	JOB_VARIANT_IDS,
 	PERSONA_ID,
 } from "../fixtures/resume-mock-data";
@@ -52,6 +56,10 @@ interface ResumeMockState {
 	createdResume: BaseResume | null;
 	/** Accumulated PATCH overrides per resume ID. */
 	resumePatches: Map<string, Partial<BaseResume>>;
+	/** Per-variant property overrides (e.g., guardrail_result for testing). */
+	variantOverrides: Map<string, Partial<JobVariant>>;
+	/** Set of archived variant IDs. */
+	archivedVariantIds: Set<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +76,8 @@ export class ResumeMockController {
 			archivedResumeIds: new Set(),
 			createdResume: null,
 			resumePatches: new Map(),
+			variantOverrides: new Map(),
+			archivedVariantIds: new Set(),
 			...initialState,
 		};
 	}
@@ -121,12 +131,12 @@ export class ResumeMockController {
 
 		// ---- Job variants ----
 		if (path.includes("/job-variants")) {
-			return this.json(route, jobVariantsList());
+			return this.handleJobVariants(route, path, method);
 		}
 
-		// ---- Job postings (for VariantsList job lookup) ----
+		// ---- Job postings ----
 		if (path.includes("/job-postings")) {
-			return this.json(route, jobPostingsForVariantsList());
+			return this.handleJobPostings(route, path);
 		}
 
 		return route.continue();
@@ -285,11 +295,58 @@ export class ResumeMockController {
 		if (this.state.createdResume?.id === resumeId) {
 			return this.json(route, { data: this.state.createdResume });
 		}
-		return this.json(
-			route,
-			{ error: { code: "NOT_FOUND", message: "Resume not found" } },
-			404,
-		);
+		return this.notFound(route, "Resume");
+	}
+
+	// -----------------------------------------------------------------------
+	// Job variants handler
+	// -----------------------------------------------------------------------
+
+	private async handleJobVariants(
+		route: Route,
+		path: string,
+		method: string,
+	): Promise<void> {
+		// POST /job-variants/{id}/approve
+		if (path.endsWith("/approve") && method === "POST") {
+			return this.json(route, { data: null });
+		}
+
+		// DELETE/GET /job-variants/{id}
+		const detailMatch = path.match(/\/job-variants\/([^/]+)$/);
+
+		if (detailMatch && method === "DELETE") {
+			this.state.archivedVariantIds.add(detailMatch[1]);
+			return this.empty(route, 204);
+		}
+
+		if (detailMatch && method === "GET") {
+			const variantId = detailMatch[1];
+			const overrides = this.state.variantOverrides.get(variantId);
+			const detail = jobVariantDetail(variantId, overrides ?? undefined);
+			if (detail) return this.json(route, detail);
+			return this.notFound(route, "Variant");
+		}
+
+		// GET /job-variants — list
+		return this.json(route, jobVariantsList());
+	}
+
+	// -----------------------------------------------------------------------
+	// Job postings handler
+	// -----------------------------------------------------------------------
+
+	private async handleJobPostings(route: Route, path: string): Promise<void> {
+		// GET /job-postings/{id} — detail
+		const detailMatch = path.match(/\/job-postings\/([^/]+)$/);
+		if (detailMatch) {
+			const detail = jobPostingDetail(detailMatch[1]);
+			if (detail) return this.json(route, detail);
+			return this.notFound(route, "Job posting");
+		}
+
+		// GET /job-postings — list
+		return this.json(route, jobPostingsForVariantsList());
 	}
 
 	// -----------------------------------------------------------------------
@@ -302,6 +359,14 @@ export class ResumeMockController {
 			contentType: "application/json",
 			body: JSON.stringify(body),
 		});
+	}
+
+	private async notFound(route: Route, entity: string): Promise<void> {
+		await this.json(
+			route,
+			{ error: { code: "NOT_FOUND", message: `${entity} not found` } },
+			404,
+		);
 	}
 
 	private async empty(route: Route, status = 204): Promise<void> {
@@ -332,6 +397,26 @@ export async function setupEmptyResumeListMocks(
 	page: Page,
 ): Promise<ResumeMockController> {
 	const controller = new ResumeMockController({ startEmpty: true });
+	await controller.setupRoutes(page);
+	return controller;
+}
+
+/**
+ * Set up mocks for variant review page — optionally override guardrail result.
+ */
+export async function setupVariantReviewMocks(
+	page: Page,
+	options?: {
+		variantId: string;
+		guardrailResult?: GuardrailResult;
+	},
+): Promise<ResumeMockController> {
+	const controller = new ResumeMockController();
+	if (options?.guardrailResult) {
+		controller.state.variantOverrides.set(options.variantId, {
+			guardrail_result: options.guardrailResult,
+		});
+	}
 	await controller.setupRoutes(page);
 	return controller;
 }

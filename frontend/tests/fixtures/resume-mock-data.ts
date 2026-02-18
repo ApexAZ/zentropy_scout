@@ -281,7 +281,7 @@ const JOB_VARIANTS: JobVariant[] = [
 		job_posting_id: JOB_POSTING_IDS[0],
 		summary: "Tailored summary for Frontend position at AlphaTech",
 		job_bullet_order: {
-			[WORK_HISTORY_IDS[0]]: [BULLET_IDS[0], BULLET_IDS[1]],
+			[WORK_HISTORY_IDS[0]]: [BULLET_IDS[1], BULLET_IDS[0]],
 		},
 		modifications_description: "Reworded summary for frontend focus",
 		status: "Draft",
@@ -290,8 +290,9 @@ const JOB_VARIANTS: JobVariant[] = [
 		snapshot_included_education: null,
 		snapshot_included_certifications: null,
 		snapshot_skills_emphasis: null,
-		agent_reasoning: null,
-		guardrail_result: null,
+		agent_reasoning:
+			"Reordered bullets to highlight mentoring before migration for frontend culture fit.",
+		guardrail_result: { passed: true, violations: [] },
 		approved_at: null,
 		archived_at: null,
 		created_at: NOW,
@@ -329,7 +330,52 @@ export function jobVariantsList(): ApiListResponse<JobVariant> {
 	return { data: [...JOB_VARIANTS], meta: listMeta(2) };
 }
 
+/** Single variant detail response. */
+export function jobVariantDetail(
+	variantId: string,
+	overrides?: Partial<JobVariant>,
+): ApiResponse<JobVariant> | null {
+	const variant = JOB_VARIANTS.find((v) => v.id === variantId);
+	if (!variant) return null;
+	return { data: { ...variant, ...overrides } };
+}
+
+/** Single job posting detail response. */
+export function jobPostingDetail(
+	postingId: string,
+): ApiResponse<JobPosting> | null {
+	const posting = JOB_POSTINGS.find((p) => p.id === postingId);
+	if (!posting) return null;
+	return { data: posting };
+}
+
 /** Empty variants list. */
 export function emptyJobVariantsList(): ApiListResponse<JobVariant> {
 	return { data: [], meta: listMeta(0) };
 }
+
+// ---------------------------------------------------------------------------
+// Guardrail test helpers
+// ---------------------------------------------------------------------------
+
+export const GUARDRAIL_ERROR = {
+	passed: false,
+	violations: [
+		{
+			severity: "error" as const,
+			rule: "new_bullets_added",
+			message: "Resume contains fabricated accomplishments not in persona.",
+		},
+	],
+};
+
+export const GUARDRAIL_WARNING = {
+	passed: true,
+	violations: [
+		{
+			severity: "warning" as const,
+			rule: "skill_gap",
+			message: "Missing 2 of 5 required skills listed in the job posting.",
+		},
+	],
+};
