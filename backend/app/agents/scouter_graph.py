@@ -302,7 +302,7 @@ def check_new_jobs(state: ScouterState) -> str:
     return "has_new_jobs" if len(processed) > 0 else "no_new_jobs"
 
 
-async def extract_skills_node(state: ScouterState) -> ScouterState:
+def extract_skills_node(state: ScouterState) -> ScouterState:
     """Extract skills and culture from job descriptions.
 
     REQ-007 §6.4: LLM-based skill extraction.

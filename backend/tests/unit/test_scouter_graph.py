@@ -278,13 +278,12 @@ class TestExtractSkills:
         # Mock the LLM extraction
         with patch(
             "app.agents.scouter_graph.extract_skills_and_culture",
-            new_callable=AsyncMock,
             return_value={
                 "required_skills": [{"name": "Python", "level": "Required"}],
                 "culture_text": "Fast-paced environment",
             },
         ):
-            result = await extract_skills_node(state)
+            result = extract_skills_node(state)
 
         # Jobs should have extracted skills
         assert "required_skills" in result["processed_jobs"][0]
