@@ -87,7 +87,7 @@ test.describe("Persona Overview", () => {
 		// Non-Negotiables
 		await expect(
 			page.getByTestId("section-card-non-negotiables"),
-		).toContainText("0 custom filters");
+		).toContainText("2 custom filters");
 	});
 
 	test("discovery preferences block shows thresholds and polling", async ({

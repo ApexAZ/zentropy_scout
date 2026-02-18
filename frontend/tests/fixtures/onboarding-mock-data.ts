@@ -12,6 +12,7 @@ import type {
 	Certification,
 	CustomNonNegotiable,
 	Education,
+	FilterType,
 	Persona,
 	Skill,
 	VoiceProfile,
@@ -32,6 +33,7 @@ export const SKILL_IDS = ["skill-001", "skill-002", "skill-003"] as const;
 export const CERT_ID = "cert-001";
 export const STORY_IDS = ["story-001", "story-002", "story-003"] as const;
 export const VOICE_PROFILE_ID = "vp-001";
+export const CUSTOM_FILTER_IDS = ["cf-nn-001", "cf-nn-002"] as const;
 export const BASE_RESUME_ID = "br-001";
 export const RESUME_FILE_ID = "rf-001";
 
@@ -451,8 +453,42 @@ export function emptyVoiceProfileResponse(): ApiResponse<VoiceProfile> {
 // Custom Non-Negotiables factories
 // ---------------------------------------------------------------------------
 
+const CUSTOM_FILTERS: CustomNonNegotiable[] = [
+	{
+		id: CUSTOM_FILTER_IDS[0],
+		persona_id: PERSONA_ID,
+		filter_name: "No defense contractors",
+		filter_type: "Exclude",
+		filter_field: "company_name",
+		filter_value: "Raytheon",
+	},
+	{
+		id: CUSTOM_FILTER_IDS[1],
+		persona_id: PERSONA_ID,
+		filter_name: "Must have 401k",
+		filter_type: "Require",
+		filter_field: "description",
+		filter_value: "401k",
+	},
+];
+
 export function customNonNegotiablesList(): ApiListResponse<CustomNonNegotiable> {
-	return { data: [], meta: listMeta(0) };
+	return { data: [...CUSTOM_FILTERS], meta: listMeta(2) };
+}
+
+export function postCustomFilterResponse(
+	body: Record<string, unknown>,
+): ApiResponse<CustomNonNegotiable> {
+	return {
+		data: {
+			id: "cf-nn-new-001",
+			persona_id: PERSONA_ID,
+			filter_name: (body.filter_name as string) ?? "New Filter",
+			filter_type: (body.filter_type as FilterType) ?? "Exclude",
+			filter_field: (body.filter_field as string) ?? "company_name",
+			filter_value: (body.filter_value as string) ?? "",
+		},
+	};
 }
 
 // ---------------------------------------------------------------------------

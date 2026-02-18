@@ -21,11 +21,12 @@ import {
 	changeFlagsList,
 	customNonNegotiablesList,
 	educationList,
-	emptyChatMessages,
 	emptyChangeFlagsList,
+	emptyChatMessages,
 	onboardedPersonaList,
 	patchPersonaResponse,
 	postCertificationResponse,
+	postCustomFilterResponse,
 	postEducationResponse,
 	postSkillResponse,
 	postStoryResponse,
@@ -41,6 +42,7 @@ export {
 	BASE_RESUME_IDS,
 	CERT_ID,
 	CHANGE_FLAG_IDS,
+	CUSTOM_FILTER_IDS,
 	EDUCATION_ID,
 	PERSONA_ID,
 	SKILL_IDS,
@@ -253,7 +255,7 @@ export class PersonaUpdateMockController {
 		// Delete: DELETE /personas/{id}/{entity}/{itemId}
 		if (method === "DELETE") {
 			const deleteMatch = path.match(
-				/\/(work-history|education|certifications|skills|achievement-stories)\/([^/]+)$/,
+				/\/(work-history|education|certifications|skills|achievement-stories|custom-non-negotiables)\/([^/]+)$/,
 			);
 			if (deleteMatch) {
 				this.state.deletedItemIds.add(deleteMatch[2]);
@@ -329,8 +331,16 @@ export class PersonaUpdateMockController {
 				return this.json(route, voiceProfileResponse());
 			}
 
-			case "custom-non-negotiables":
-				return this.json(route, customNonNegotiablesList());
+			case "custom-non-negotiables": {
+				if (method === "POST") {
+					const body = route.request().postDataJSON() as Record<
+						string,
+						unknown
+					>;
+					return this.json(route, postCustomFilterResponse(body), 201);
+				}
+				return this.json(route, this.filterDeleted(customNonNegotiablesList()));
+			}
 
 			case "refresh":
 				return this.json(route, { data: null });
@@ -472,3 +482,16 @@ export const setupAchievementStoriesEditorMocks = setupPersonaOverviewMocks;
  * Identical to overview mocks; separated for semantic clarity.
  */
 export const setupVoiceProfileEditorMocks = setupPersonaOverviewMocks;
+
+/**
+ * Set up mocks for non-negotiables editor — form pre-fill + PATCH save +
+ * custom filters CRUD. Identical to overview mocks; separated for semantic
+ * clarity.
+ */
+export const setupNonNegotiablesEditorMocks = setupPersonaOverviewMocks;
+
+/**
+ * Set up mocks for discovery preferences editor — form pre-fill + PATCH save.
+ * Identical to overview mocks; separated for semantic clarity.
+ */
+export const setupDiscoveryPreferencesEditorMocks = setupPersonaOverviewMocks;

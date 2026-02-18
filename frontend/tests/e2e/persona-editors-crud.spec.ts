@@ -2,9 +2,9 @@
  * E2E tests for persona sub-entity CRUD editors.
  *
  * REQ-012 §7.2: Post-onboarding editors for work history, education,
- * certifications, achievement stories, and voice profile with add/delete
- * support. CRUD editors use the delete-with-references flow
- * (reference check → DELETE).
+ * certifications, achievement stories, voice profile, non-negotiables,
+ * and discovery preferences with add/delete support. CRUD editors use
+ * the delete-with-references flow (reference check → DELETE).
  * All API calls are mocked via Playwright's page.route() — no real backend.
  */
 
@@ -12,9 +12,12 @@ import { expect, test } from "@playwright/test";
 
 import {
 	CERT_ID,
+	CUSTOM_FILTER_IDS,
 	EDUCATION_ID,
 	PERSONA_ID,
 	setupAchievementStoriesEditorMocks,
+	setupDiscoveryPreferencesEditorMocks,
+	setupNonNegotiablesEditorMocks,
 	setupPersonaEditorCrudMocks,
 	setupVoiceProfileEditorMocks,
 	STORY_IDS,
@@ -388,6 +391,180 @@ test.describe("Voice Profile Editor", () => {
 		const patchPromise = page.waitForResponse(
 			(res) =>
 				res.url().includes(`/personas/${PERSONA_ID}/voice-profile`) &&
+				res.request().method() === "PATCH",
+		);
+
+		await page.getByRole("button", { name: "Save" }).click();
+
+		const response = await patchPromise;
+		expect(response.status()).toBe(200);
+
+		// Success message should appear
+		await expect(page.getByTestId("save-success")).toBeVisible();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// F. Non-Negotiables Editor (3 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("Non-Negotiables Editor", () => {
+	test("displays pre-filled non-negotiables form", async ({ page }) => {
+		await setupNonNegotiablesEditorMocks(page);
+		await page.goto("/persona/non-negotiables");
+
+		// Form should be visible
+		await expect(page.getByTestId("non-negotiables-editor-form")).toBeVisible();
+
+		// Verify pre-filled values from persona mock data
+		await expect(page.getByRole("radio", { name: "Hybrid OK" })).toBeChecked();
+		await expect(page.getByText("San Francisco")).toBeVisible();
+		await expect(page.getByText("Oakland")).toBeVisible();
+		await expect(page.getByLabel("Max Commute (minutes)")).toHaveValue("45");
+		await expect(page.getByLabel("Minimum Base Salary")).toHaveValue("180000");
+
+		// Custom filters should be visible
+		await expect(page.getByText("No defense contractors")).toBeVisible();
+		await expect(page.getByText("Must have 401k")).toBeVisible();
+	});
+
+	test("add a custom filter via form", async ({ page }) => {
+		await setupNonNegotiablesEditorMocks(page);
+		await page.goto("/persona/non-negotiables");
+
+		// Wait for custom filters to load
+		await expect(page.getByText("No defense contractors")).toBeVisible();
+
+		await page.getByRole("button", { name: "Add filter" }).click();
+		await expect(page.getByTestId("custom-filter-form")).toBeVisible();
+
+		// Fill the custom filter form
+		const filterForm = page.getByTestId("custom-filter-form");
+		await filterForm.getByLabel("Filter Name").fill("No gambling companies");
+		await filterForm.getByRole("radio", { name: "Exclude" }).check();
+		await filterForm.getByLabel("Field to Check").selectOption("company_name");
+		await filterForm.getByLabel("Value to Match").fill("DraftKings");
+
+		// Remove TanStack Query devtools — intercepts pointer events on Save
+		await removeDevToolsOverlay(page);
+
+		// Listen for POST
+		const postPromise = page.waitForResponse(
+			(res) =>
+				res.url().includes(`/personas/${PERSONA_ID}/custom-non-negotiables`) &&
+				!res.url().includes("/references") &&
+				res.request().method() === "POST",
+		);
+
+		await filterForm.getByRole("button", { name: "Save" }).click();
+
+		const response = await postPromise;
+		expect(response.status()).toBe(201);
+
+		// Form should disappear
+		await expect(page.getByTestId("custom-filter-form")).not.toBeVisible();
+	});
+
+	test("delete a custom filter", async ({ page }) => {
+		await setupNonNegotiablesEditorMocks(page);
+		await page.goto("/persona/non-negotiables");
+
+		// Verify filter exists
+		await expect(page.getByText("No defense contractors")).toBeVisible();
+
+		// Listen for DELETE (custom filters use a confirmation dialog instead
+		// of the reference-check flow, so no /references filter needed)
+		const deletePromise = page.waitForResponse(
+			(res) =>
+				res
+					.url()
+					.includes(
+						`/personas/${PERSONA_ID}/custom-non-negotiables/${CUSTOM_FILTER_IDS[0]}`,
+					) && res.request().method() === "DELETE",
+		);
+
+		// aria-label is "Delete {filter_name}"
+		await page
+			.getByRole("button", { name: "Delete No defense contractors" })
+			.click();
+
+		// Confirmation dialog should appear
+		await page.getByRole("button", { name: "Delete" }).click();
+
+		const response = await deletePromise;
+		expect(response.status()).toBe(204);
+
+		// Filter card should be gone
+		await expect(
+			page.getByRole("button", {
+				name: "Delete No defense contractors",
+			}),
+		).not.toBeAttached();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// G. Discovery Preferences Editor (3 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("Discovery Preferences Editor", () => {
+	test("displays pre-filled discovery preferences form", async ({ page }) => {
+		await setupDiscoveryPreferencesEditorMocks(page);
+		await page.goto("/persona/discovery");
+
+		// Form should be visible
+		await expect(
+			page.getByTestId("discovery-preferences-editor-form"),
+		).toBeVisible();
+
+		// Verify pre-filled slider values (persona has minimum_fit=60, auto_draft=80)
+		await expect(page.getByLabel("Minimum Fit Threshold")).toHaveValue("60");
+		await expect(page.getByLabel("Auto-Draft Threshold")).toHaveValue("80");
+
+		// Verify polling frequency
+		await expect(page.getByLabel("Polling Frequency")).toHaveValue("Daily");
+
+		// No threshold warning should be shown (auto_draft > minimum_fit)
+		await expect(page.getByTestId("threshold-warning")).not.toBeAttached();
+	});
+
+	test("shows cross-field warning when auto-draft < minimum fit", async ({
+		page,
+	}) => {
+		await setupDiscoveryPreferencesEditorMocks(page);
+		await page.goto("/persona/discovery");
+
+		// Wait for form to be populated
+		await expect(page.getByLabel("Minimum Fit Threshold")).toHaveValue("60");
+
+		// Set auto-draft below minimum fit to trigger warning
+		await page.getByLabel("Auto-Draft Threshold").fill("40");
+
+		await expect(page.getByTestId("threshold-warning")).toBeVisible();
+		await expect(page.getByTestId("threshold-warning")).toContainText(
+			"Auto-draft threshold is below your fit threshold",
+		);
+	});
+
+	test("saves discovery preferences changes", async ({ page }) => {
+		await setupDiscoveryPreferencesEditorMocks(page);
+		await page.goto("/persona/discovery");
+
+		// Wait for form to be populated
+		await expect(page.getByLabel("Minimum Fit Threshold")).toHaveValue("60");
+
+		// Change polling frequency
+		await page.getByLabel("Polling Frequency").selectOption("Weekly");
+
+		// Remove TanStack Query devtools overlay if needed
+		await removeDevToolsOverlay(page);
+
+		// Listen for PATCH
+		const patchPromise = page.waitForResponse(
+			(res) =>
+				res.url().includes(`/personas/${PERSONA_ID}`) &&
+				!res.url().includes("/custom-non-negotiables") &&
+				!res.url().includes("/voice-profile") &&
 				res.request().method() === "PATCH",
 		);
 
