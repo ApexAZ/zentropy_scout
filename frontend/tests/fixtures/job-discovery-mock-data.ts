@@ -7,6 +7,10 @@
 
 import type { ApiListResponse, ApiResponse, PaginationMeta } from "@/types/api";
 import type {
+	IngestConfirmResponse,
+	IngestJobPostingResponse,
+} from "@/types/ingest";
+import type {
 	Application,
 	CoverLetter,
 	JobSnapshot,
@@ -528,4 +532,79 @@ export function postApplicationResponse(
 /** Returns an onboarded persona list (onboarding_complete=true). */
 export function onboardedPersonaList(): ApiListResponse<Persona> {
 	return { data: [{ ...ONBOARDED_PERSONA }], meta: listMeta(1) };
+}
+
+// ---------------------------------------------------------------------------
+// Ingest fixtures
+// ---------------------------------------------------------------------------
+
+export const INGEST_CONFIRMATION_TOKEN = "tok-abc-123";
+export const INGEST_NEW_JOB_ID = "job-new-1";
+
+/** Base ingest data without expires_at — factories add a fresh timestamp. */
+const INGEST_PREVIEW_BASE: Omit<IngestJobPostingResponse, "expires_at"> = {
+	preview: {
+		job_title: "Frontend Engineer",
+		company_name: "WidgetCo",
+		location: "Austin, TX",
+		salary_min: 150000,
+		salary_max: 200000,
+		salary_currency: "USD",
+		employment_type: "Full-time",
+		extracted_skills: [
+			{
+				skill_name: "React",
+				skill_type: "Hard",
+				is_required: true,
+				years_requested: 3,
+			},
+			{
+				skill_name: "TypeScript",
+				skill_type: "Hard",
+				is_required: true,
+				years_requested: 2,
+			},
+			{
+				skill_name: "Communication",
+				skill_type: "Soft",
+				is_required: false,
+				years_requested: null,
+			},
+		],
+		culture_text: "Fast-paced startup environment with flat hierarchy.",
+		description_snippet: "We are looking for a Frontend Engineer...",
+	},
+	confirmation_token: INGEST_CONFIRMATION_TOKEN,
+};
+
+const INGEST_CONFIRM_DATA: IngestConfirmResponse = {
+	id: INGEST_NEW_JOB_ID,
+	job_title: "Frontend Engineer",
+	company_name: "WidgetCo",
+	status: "Discovered",
+};
+
+/** Returns a successful ingest preview response (5-minute expiry from now). */
+export function ingestPreviewResponse(): ApiResponse<IngestJobPostingResponse> {
+	return {
+		data: {
+			...INGEST_PREVIEW_BASE,
+			expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+		},
+	};
+}
+
+/** Returns an ingest preview with an already-expired token. */
+export function expiredIngestPreviewResponse(): ApiResponse<IngestJobPostingResponse> {
+	return {
+		data: {
+			...INGEST_PREVIEW_BASE,
+			expires_at: new Date(Date.now() - 1000).toISOString(),
+		},
+	};
+}
+
+/** Returns a successful ingest confirm response. */
+export function ingestConfirmResponse(): ApiResponse<IngestConfirmResponse> {
+	return { data: { ...INGEST_CONFIRM_DATA } };
 }

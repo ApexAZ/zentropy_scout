@@ -22,6 +22,8 @@ import {
 	emptyCoverLetterList,
 	emptyVariantList,
 	extractedSkillsList,
+	ingestConfirmResponse,
+	ingestPreviewResponse,
 	jobPostingDetail,
 	jobPostingsList,
 	emptyJobPostingsList,
@@ -30,8 +32,13 @@ import {
 	postApplicationResponse,
 } from "../fixtures/job-discovery-mock-data";
 
-// Re-export IDs so spec files can import from a single source
-export { APPLICATION_ID, JOB_IDS } from "../fixtures/job-discovery-mock-data";
+// Re-export IDs and factories so spec files import from a single source
+export {
+	APPLICATION_ID,
+	expiredIngestPreviewResponse,
+	INGEST_NEW_JOB_ID,
+	JOB_IDS,
+} from "../fixtures/job-discovery-mock-data";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -144,6 +151,16 @@ export class JobDiscoveryMockController {
 		path: string,
 		method: string,
 	): Promise<void> {
+		// Ingest confirm: POST /job-postings/ingest/confirm
+		if (path.endsWith("/ingest/confirm") && method === "POST") {
+			return this.json(route, ingestConfirmResponse());
+		}
+
+		// Ingest extract: POST /job-postings/ingest
+		if (path.endsWith("/ingest") && method === "POST") {
+			return this.json(route, ingestPreviewResponse());
+		}
+
 		// Bulk dismiss: POST /job-postings/bulk-dismiss
 		if (path.endsWith("/bulk-dismiss") && method === "POST") {
 			const body = route.request().postDataJSON() as {
@@ -393,3 +410,11 @@ export async function setupAlreadyAppliedMocks(
 	await controller.setupRoutes(page);
 	return controller;
 }
+
+/**
+ * Set up mocks for the Add Job modal two-step ingest flow.
+ * Good for: form submission, preview display, countdown, confirm & save.
+ * Currently identical to dashboard mocks; separated for semantic clarity
+ * and future divergence (e.g., different initial state).
+ */
+export const setupAddJobMocks = setupDashboardMocks;
