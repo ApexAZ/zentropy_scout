@@ -21,6 +21,7 @@ import {
 	emptyBaseResumesList,
 	emptyChangeFlagsList,
 	emptyChatMessages,
+	jobPostingsForVariantsList,
 	jobVariantsList,
 	onboardedPersonaList,
 	postBaseResumeResponse,
@@ -49,6 +50,8 @@ interface ResumeMockState {
 	archivedResumeIds: Set<string>;
 	/** Newly created resume from POST. */
 	createdResume: BaseResume | null;
+	/** Accumulated PATCH overrides per resume ID. */
+	resumePatches: Map<string, Partial<BaseResume>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -64,6 +67,7 @@ export class ResumeMockController {
 			startEmpty: false,
 			archivedResumeIds: new Set(),
 			createdResume: null,
+			resumePatches: new Map(),
 			...initialState,
 		};
 	}
@@ -75,7 +79,7 @@ export class ResumeMockController {
 
 		// Single regex intercepts all /api/v1/ endpoints we need to mock.
 		await page.route(
-			/\/api\/v1\/(chat|persona-change-flags|personas|base-resumes|job-variants)/,
+			/\/api\/v1\/(chat|persona-change-flags|personas|base-resumes|job-variants|job-postings)/,
 			async (route) => this.handleRoute(route),
 		);
 	}
@@ -120,6 +124,11 @@ export class ResumeMockController {
 			return this.json(route, jobVariantsList());
 		}
 
+		// ---- Job postings (for VariantsList job lookup) ----
+		if (path.includes("/job-postings")) {
+			return this.json(route, jobPostingsForVariantsList());
+		}
+
 		return route.continue();
 	}
 
@@ -155,11 +164,47 @@ export class ResumeMockController {
 		path: string,
 		method: string,
 	): Promise<void> {
-		// DELETE /base-resumes/{id} — archive
+		// POST /base-resumes/{id}/render — trigger PDF render
+		if (path.endsWith("/render") && method === "POST") {
+			const renderMatch = path.match(/\/base-resumes\/([^/]+)\/render$/);
+			if (renderMatch) {
+				const resumeId = renderMatch[1];
+				const existing = this.state.resumePatches.get(resumeId) ?? {};
+				this.state.resumePatches.set(resumeId, {
+					...existing,
+					rendered_at: "2026-02-15T14:00:00Z",
+				});
+				return this.json(route, { data: null });
+			}
+		}
+
+		// GET /base-resumes/{id}/download — binary PDF
+		if (path.endsWith("/download") && method === "GET") {
+			return route.fulfill({
+				status: 200,
+				contentType: "application/pdf",
+				body: Buffer.from("%PDF-1.4 mock content"),
+			});
+		}
+
+		// DELETE/PATCH/GET /base-resumes/{id}
 		const detailMatch = path.match(/\/base-resumes\/([^/]+)$/);
+
 		if (detailMatch && method === "DELETE") {
 			this.state.archivedResumeIds.add(detailMatch[1]);
 			return this.empty(route, 204);
+		}
+
+		if (detailMatch && method === "PATCH") {
+			const body = route.request().postDataJSON() as Partial<BaseResume>;
+			const resumeId = detailMatch[1];
+			const existing = this.state.resumePatches.get(resumeId) ?? {};
+			this.state.resumePatches.set(resumeId, {
+				...existing,
+				...body,
+				updated_at: "2026-02-15T13:00:00Z",
+			});
+			return this.handleResumeDetail(route, resumeId);
 		}
 
 		// POST /base-resumes — create
@@ -180,16 +225,7 @@ export class ResumeMockController {
 			return this.json(route, this.getResumeList(route));
 		}
 
-		// GET /base-resumes/{id}/download — binary PDF
-		if (path.endsWith("/download") && method === "GET") {
-			return route.fulfill({
-				status: 200,
-				contentType: "application/pdf",
-				body: Buffer.from("%PDF-1.4 mock content"),
-			});
-		}
-
-		// GET /base-resumes/{id} — detail (for future tasks)
+		// GET /base-resumes/{id} — detail
 		if (detailMatch && method === "GET") {
 			return this.handleResumeDetail(route, detailMatch[1]);
 		}
@@ -241,7 +277,9 @@ export class ResumeMockController {
 		const allResumes = allBaseResumesList().data;
 		const resume = allResumes.find((r) => r.id === resumeId);
 		if (resume) {
-			return this.json(route, { data: resume });
+			const patches = this.state.resumePatches.get(resumeId);
+			const merged = patches ? { ...resume, ...patches } : resume;
+			return this.json(route, { data: merged });
 		}
 		// Check if it's the newly created resume
 		if (this.state.createdResume?.id === resumeId) {

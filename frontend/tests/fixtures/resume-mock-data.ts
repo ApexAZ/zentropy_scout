@@ -7,6 +7,7 @@
  */
 
 import type { ApiListResponse, ApiResponse, PaginationMeta } from "@/types/api";
+import type { JobPosting } from "@/types/job";
 import type { Persona } from "@/types/persona";
 import type { BaseResume, JobVariant } from "@/types/resume";
 
@@ -204,6 +205,69 @@ export function postBaseResumeResponse(
 			...overrides,
 		},
 	};
+}
+
+// ---------------------------------------------------------------------------
+// JobPosting fixtures (minimal — only fields VariantsList uses)
+// ---------------------------------------------------------------------------
+
+const BASE_JOB_POSTING: JobPosting = {
+	id: JOB_POSTING_IDS[0],
+	persona_id: PERSONA_ID,
+	external_id: null,
+	source_id: "linkedin",
+	also_found_on: { sources: [] },
+	job_title: "Frontend Engineer",
+	company_name: "AlphaTech",
+	company_url: null,
+	source_url: null,
+	apply_url: null,
+	location: "Remote",
+	work_model: "Remote",
+	seniority_level: "Mid",
+	salary_min: null,
+	salary_max: null,
+	salary_currency: null,
+	description: "Frontend engineer position at AlphaTech.",
+	culture_text: null,
+	requirements: null,
+	years_experience_min: null,
+	years_experience_max: null,
+	posted_date: null,
+	application_deadline: null,
+	first_seen_date: "2026-02-10",
+	status: "Discovered",
+	is_favorite: false,
+	fit_score: null,
+	stretch_score: null,
+	score_details: null,
+	failed_non_negotiables: null,
+	ghost_score: 0,
+	ghost_signals: null,
+	description_hash: "hash-001",
+	repost_count: 0,
+	previous_posting_ids: null,
+	last_verified_at: null,
+	dismissed_at: null,
+	expired_at: null,
+	created_at: NOW,
+	updated_at: NOW,
+};
+
+const JOB_POSTINGS: JobPosting[] = [
+	BASE_JOB_POSTING,
+	{
+		...BASE_JOB_POSTING,
+		id: JOB_POSTING_IDS[1],
+		job_title: "Backend Engineer",
+		company_name: "BetaWorks",
+		description_hash: "hash-002",
+	},
+];
+
+/** 2 job postings matching variant job_posting_ids. */
+export function jobPostingsForVariantsList(): ApiListResponse<JobPosting> {
+	return { data: [...JOB_POSTINGS], meta: listMeta(2) };
 }
 
 // ---------------------------------------------------------------------------
