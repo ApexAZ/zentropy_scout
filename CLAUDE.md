@@ -8,7 +8,7 @@ Zentropy Scout is an AI-powered job application assistant that helps users:
 3. Generate tailored resumes and cover letters
 4. Track applications and provide strategic recommendations
 
-**Target:** Local-first MVP for personal use, with future hosted/multi-tenant option.
+**Target:** SaaS application intended for public deployment. Currently in active development with security hardening. Hosting planned for Railway (to be scoped when ready).
 
 ---
 
@@ -202,7 +202,7 @@ Run these checks at the start of every session (before any implementation work):
    - **SonarCloud**: WebFetch `https://sonarcloud.io/api/issues/search?componentKeys=ApexAZ_zentropy_scout&resolved=false` — check `total` field
    - **Dependabot**: `gh api repos/ApexAZ/zentropy_scout/dependabot/alerts?state=open --jq 'length'`
    - **Semgrep CI**: `gh run list --workflow=semgrep.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
-   - **Dependency audits**: `gh run list --workflow=pip-audit.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
+   - **Dependency audits** (pip-audit + npm audit): `gh run list --workflow=pip-audit.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
    - **Known/expected findings** (do NOT pause for these — only pause if count changes):
      - 6 Trivy CVEs in `gosu` binary (Go stdlib v1.24.6) inside pgvector Docker image — waiting on upstream rebuild. CVEs: CVE-2025-68121, CVE-2025-58183, CVE-2025-61726, CVE-2025-61728, CVE-2025-61729, CVE-2025-61730. If count drops below 6, upstream fix may have landed — notify user to update pinned SHA in `zap-dast.yml`.
      - 1 Semgrep supply chain finding: ajv ReDoS (GHSA-2g4f-4pwh-qvx6) — ESLint pins ajv@6.x, fix only in ajv@8.18.0+. ESLint team declined to upgrade. Dev-only, zero production risk. Also accepted in npm audit (`pip-audit.yml:85`). Waiting on ESLint upstream.
@@ -327,8 +327,10 @@ Layered security scanning across local development and CI:
 | **DAST** | OWASP ZAP | Runtime API vulnerabilities (injection, auth, headers) | CI (push to main) |
 | **Code quality** | SonarCloud | Code smells, duplication, security hotspots, complexity | CI (post-push) |
 | **Frontend lint** | ESLint + Prettier + TypeScript | React/TS lint, formatting, type safety | Pre-commit hook |
-| **Dependencies** | pip-audit | Known CVEs in Python packages (OSV database) | CI (GitHub Actions) |
-| **Dependencies** | Dependabot | Automated vulnerability alerts + auto-PRs | GitHub (weekly) |
+| **Dependencies (Python)** | pip-audit | Known CVEs in Python packages (OSV database) | CI (GitHub Actions) |
+| **Dependencies (npm)** | npm audit | Known CVEs in Node.js packages (GitHub Advisory DB) | CI (GitHub Actions) |
+| **Dependencies (all)** | Dependabot alerts | Vulnerability alerts for pip, npm, and GitHub Actions deps | GitHub (continuous) |
+| **Dependencies (all)** | Dependabot version updates | Automated weekly PRs to bump dependency versions | GitHub (weekly) |
 | **Secrets** | gitleaks | Leaked API keys, passwords, tokens in commits | Pre-commit hook |
 | **Fuzz testing** | Hypothesis | Property-based testing for sanitization pipeline invariants | pytest (local + CI) |
 
@@ -336,9 +338,9 @@ Layered security scanning across local development and CI:
 
 **OWASP ZAP** runs API scans against the FastAPI OpenAPI spec in CI. Alert suppressions in `.github/zap-rules.tsv`. Results uploaded to GitHub Security tab (SARIF) and as workflow artifacts (30-day retention).
 
-**Dependabot** scans pip (backend), npm (frontend), and GitHub Actions dependencies weekly. Configured in `.github/dependabot.yml`.
+**Dependabot** provides two services: (1) **vulnerability alerts** — continuous monitoring of the dependency graph for known CVEs, surfaced in the repo's Security tab (private, not visible in Issues); (2) **version updates** — weekly PRs to bump pip, npm, and GitHub Actions dependencies. Configured in `.github/dependabot.yml`.
 
-**pip-audit** uses Google's OSV database for broadest CVE coverage. Runs on every PR and push to main.
+**pip-audit + npm audit** both run in the "Dependency Audit" CI workflow (`.github/workflows/pip-audit.yml`). pip-audit uses Google's OSV database; npm audit uses the GitHub Advisory Database. Both run on every PR and push to main with retry logic and accepted-advisory filtering.
 
 For detailed security review patterns, see `.claude/agents/security-references.md` `[TOOLS]` section.
 
@@ -417,17 +419,17 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ## Current Status
 
-**Phase:** Frontend Phase 13 (Security Audit & Hardening) — tasks 13.2–13.8 remain.
+**Phase:** Frontend Phase 15 (Materials Review Integration) — 6 tasks.
 **Backend:** All phases complete (1.1–3.2). Chrome Extension (4.1) postponed.
-**Frontend:** Phases 1–12 complete. Phase 13 in progress (13.1–13.1h ✅, 13.2–13.8 ⬜).
+**Frontend:** Phases 1–14 complete. Phase 15 in progress (§1–§6 ⬜).
 **Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
 
 **IMPORTANT:** After completing ANY subtask, update the relevant plan file status (⬜ → ✅). See `zentropy-planner` skill.
 - Backend: `docs/plan/implementation_plan.md`
 - Frontend: `docs/plan/frontend_implementation_plan.md`
 
-**Feature backlog:** `docs/backlog/feature-backlog.md` — 6 items (OpenRouter, auth, multi-tenant, tiered fetch, content TTL, Railway deployment).
+**Feature backlog:** `docs/backlog/feature-backlog.md` — 7 items (OpenRouter, auth, multi-tenant, tiered fetch, content TTL, Railway deployment, Socket.dev).
 
 ---
 
-*Last updated: 2026-02-17*
+*Last updated: 2026-02-18*

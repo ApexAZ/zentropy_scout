@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-02-16
 
-**Items:** 6
+**Items:** 7
 
 ---
 
@@ -210,6 +210,32 @@ Configure `railway.toml` to deploy both the Next.js frontend and Python backend 
 - Redis needed for session storage / caching, or PostgreSQL-only?
 - Custom domain setup?
 - CI/CD — deploy on push to main, or manual promote?
+
+---
+
+### 7. Socket.dev Supply Chain Protection
+
+**Category:** Security / Dependencies
+**Added:** 2026-02-18
+
+Add Socket.dev GitHub App for npm supply chain attack detection. Dependabot and npm audit catch *known* CVEs in published packages, but Socket.dev catches a different threat class: malicious packages, typosquatting, compromised maintainer accounts, hidden install scripts, and unexpected network/filesystem access.
+
+**Motivation:** As Zentropy Scout moves to SaaS with public users, the threat surface expands beyond known CVEs to active supply chain attacks. Socket.dev is free for open-source repos and provides PR-level alerts when a dependency introduces suspicious behavior.
+
+**Key areas:**
+- Install Socket.dev GitHub App (no config files needed — it reads package.json/package-lock.json)
+- Review initial findings and configure alert thresholds
+- Add to session start checklist in CLAUDE.md if it provides an API
+
+**Existing overlap:**
+- **Dependabot alerts** — catches known CVEs but not malicious/suspicious packages
+- **npm audit** — same as Dependabot, known CVEs only
+- **gitleaks** — catches secrets in *your* commits, not in dependency code
+
+**Open questions:**
+- Free tier limits for open-source repos?
+- Does it provide a queryable API for session-start checks?
+- Alert noise level — how many false positives on a typical Next.js + FastAPI project?
 
 ---
 
