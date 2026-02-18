@@ -84,7 +84,7 @@ jobs:
         if: always()
         run: |
           if [ -f report_json.json ]; then
-            python .github/scripts/zap-to-sarif.py report_json.json zap-results.sarif
+            python .github/scripts/zap-to-sarif.py report_json.json zap-results.sarif .github/zap-rules.tsv
           else
             echo "::warning::ZAP JSON report not found, skipping SARIF conversion"
           fi
