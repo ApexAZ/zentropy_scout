@@ -231,5 +231,57 @@ Flag regex patterns that could cause catastrophic backtracking. Avoid `.*` in pa
 
 ---
 
+## Test File Review
+
+When reviewing test files (`.spec.ts`, `.test.ts`, `.test.tsx`, `test_*.py`), apply these additional checks.
+
+### Test Quality
+
+| Check | Severity | What to Look For |
+|-------|----------|-----------------|
+| Tests behavior, not implementation | Medium | Assertions on internal state, class names, or data structure shape instead of user-visible outcomes |
+| Meaningful test names | Low | `test_1`, `it("works")` — should describe the behavior being verified |
+| DRY test setup | Medium | Identical setup blocks (>5 lines) repeated across tests in the same `describe` — extract to `beforeEach` or helper |
+| Duplicated assertion blocks | Medium | Same assertion sequence (>3 lines) repeated — extract to helper function |
+| Unused variables | Low | Variables assigned from setup but never referenced in assertions |
+| Magic strings/numbers | Low | Repeated literal values — extract to constants at file/describe scope |
+| `waitForTimeout` without justification | Low | Flaky antipattern — should reference a spec requirement or explain why no better assertion exists |
+
+### Stale Test Detection
+
+When the reviewed file is a **source component** (not a test file), also check whether existing tests still match the component:
+
+1. **Renamed `data-testid` values**: If a testid was changed in the source, grep for the old testid in `frontend/tests/`. Flag any test still using it.
+2. **Changed ARIA roles or labels**: If role or accessible name changed, grep for old value in tests.
+3. **Removed user-visible text**: If button/heading text changed, grep for old text in test assertions.
+
+Include stale test findings in the standard issues table:
+
+```
+### ⚠️ Issues
+1. **[stale-test]** `resume.spec.ts:45` references `data-testid="resume-wizard"` which was renamed to `resume-create-wizard` in the reviewed file
+   - Suggestion: Update the test selector to match the new testid
+```
+
+### E2E Mock Consistency
+
+When reviewing Playwright test files (`frontend/tests/e2e/*.spec.ts`):
+
+- [ ] Mock controller returns data matching current API schema types
+- [ ] Fixture factory functions return all required fields (no missing properties that would cause runtime errors)
+- [ ] Route patterns match current backend URL structure
+- [ ] `route.fallback()` used correctly (not `route.continue()`) when override routes need to delegate to a mock controller
+
+### Vitest Convention Checks
+
+When reviewing Vitest unit test files (`frontend/src/**/*.test.ts`, `frontend/src/**/*.test.tsx`):
+
+- [ ] Uses `vi.hoisted()` for mock declarations (not bare `vi.fn()` at module scope)
+- [ ] `vi.mock()` paths match actual import paths
+- [ ] `beforeEach` resets mock state (e.g., `vi.clearAllMocks()`)
+- [ ] ID format and testid prefixes match sibling test files in the same directory
+
+---
+
 ## Reference
 Read `CLAUDE.md` for full project conventions.

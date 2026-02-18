@@ -572,7 +572,7 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 | 10 | Persona editors: non-negotiables + discovery preferences E2E — extend controller, ~6 tests (form, custom filters, sliders, cross-field warning) | `playwright, e2e, tdd, plan` | ✅ |
 | 11 | Settings page E2E — fixtures, mock controller, ~5 tests (job source toggles, grayed inactive, agent config table) | `playwright, e2e, tdd, plan` | ✅ |
 | 12 | Navigation + error states + toast E2E — ~8 tests (nav traversal, badge count, FailedState, toast after mutation) | `playwright, e2e, tdd, plan` | ✅ |
-| 13 | Bolster qa-reviewer + code-reviewer for test housecleaning — add stale test detection, orphan cleanup, and test-update recommendations to subagent instructions | `plan` | ⬜ |
+| 13 | Bolster qa-reviewer + code-reviewer for test housecleaning — add stale test detection, orphan cleanup, and test-update recommendations to subagent instructions | `plan` | ✅ |
 | 14 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ⬜ |
 
 ---

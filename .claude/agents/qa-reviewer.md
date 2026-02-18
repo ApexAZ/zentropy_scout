@@ -103,19 +103,104 @@ Covered by: `backend/tests/unit/test_llm_sanitization.py` (56 tests)
 
 Tests live at `frontend/tests/e2e/`. Always check these before recommending new tests:
 
-| File | Coverage Area |
-|------|---------------|
-| `smoke.spec.ts` | Basic app loading and navigation |
-| `chat.spec.ts` | Chat interface interactions |
-| `onboarding.spec.ts` | Onboarding wizard flow |
-| `persona-update.spec.ts` | Persona editing |
-| `job-discovery.spec.ts` | Job dashboard and scoring |
-| `app-tracking.spec.ts` | Application tracking |
-| `accessibility.spec.ts` | A11y compliance |
-| `responsive.spec.ts` | Mobile/responsive layout |
-| `security-headers.spec.ts` | Security header presence |
+| File | Coverage Area | Mock Controller |
+|------|---------------|-----------------|
+| `smoke.spec.ts` | Basic app loading and navigation | `job-discovery-api-mocks` |
+| `chat.spec.ts` | Chat interface interactions | `chat-api-mocks` |
+| `onboarding.spec.ts` | Onboarding wizard flow | `onboarding-api-mocks` |
+| `persona-update.spec.ts` | Persona editing (basic info, skills, summary) | `persona-update-api-mocks` |
+| `persona-editors-crud.spec.ts` | Work history, education, certifications, stories, voice, non-negotiables, discovery | `persona-update-api-mocks` |
+| `job-discovery.spec.ts` | Job dashboard, scoring, filters | `job-discovery-api-mocks` |
+| `app-tracking.spec.ts` | Application tracking, status transitions | `app-tracking-api-mocks` |
+| `applications-list.spec.ts` | Application list filters, search, bulk actions | `app-tracking-api-mocks` |
+| `add-job.spec.ts` | Add job modal, two-step ingest, preview | `job-discovery-api-mocks` |
+| `resume.spec.ts` | Resume list, cards, archive, wizard | `resume-api-mocks` |
+| `resume-detail.spec.ts` | Resume detail, PDF render, edit summary | `resume-api-mocks` |
+| `variant-review.spec.ts` | Side-by-side diff, move indicators, approve | `resume-api-mocks` |
+| `settings.spec.ts` | Job source toggles, agent config, about section | `settings-api-mocks` |
+| `navigation.spec.ts` | Nav links, active highlight, badges, error states, toast | `job-discovery-api-mocks`, `settings-api-mocks` |
+| `accessibility.spec.ts` | A11y compliance (axe-core) | `job-discovery-api-mocks` |
+| `responsive.spec.ts` | Mobile/responsive layout, viewport tests | `job-discovery-api-mocks` |
+| `security-headers.spec.ts` | Security header presence | Inline route mocks |
+
+### Mock Infrastructure
+
+| Layer | Files | Purpose |
+|-------|-------|---------|
+| **Fixtures** (`tests/fixtures/`) | `*-mock-data.ts` | Pure factory functions returning typed API response envelopes |
+| **Controllers** (`tests/utils/`) | `*-api-mocks.ts` | Stateful classes with mutable state, `page.route()` intercepts |
+| **Helpers** (`tests/utils/`) | `playwright-helpers.ts` | Shared utilities (e.g., `waitForHydration`) |
 
 Read the relevant test file(s) to understand what's already covered before recommending gaps.
+
+---
+
+## Step 5: Detect Stale Tests
+
+After assessing coverage gaps, check for **stale tests** — existing tests that may be broken or misleading due to code changes. Run these checks on every review:
+
+### 5a. Deleted or Renamed Selectors
+
+Search for `data-testid` values used in test files and verify they still exist in source components:
+
+```
+Grep: data-testid="<value>" in frontend/src/
+```
+
+Flag any test that references a `data-testid`, ARIA role name, or text content that no longer exists in the source component. These tests will pass with mocks but silently stop testing real behavior if the component was refactored.
+
+### 5b. Changed API Response Shapes
+
+If the modified files include backend schema changes (`backend/app/schemas/`) or API endpoint changes:
+- Check which fixture files (`frontend/tests/fixtures/*-mock-data.ts`) return data matching the old shape
+- Flag fixtures that no longer match the current API response schema
+
+### 5c. Renamed or Deleted Components
+
+If a component file was renamed or deleted:
+- Grep for the old component name in `frontend/tests/`
+- Flag any test that imports or references the old component
+
+### Stale Test Output Format
+
+Add this section to your output when stale tests are found:
+
+```
+### Stale Tests Detected
+
+| Test File | Issue | Recommendation |
+|-----------|-------|----------------|
+| `resume.spec.ts:45` | References `data-testid="resume-wizard"` — renamed to `resume-create-wizard` | Update selector |
+| `fixtures/resume-mock-data.ts` | Missing `word_count` field added in latest schema | Add field to mock response |
+```
+
+---
+
+## Step 6: Detect Orphaned Test Infrastructure
+
+Check for fixture files or mock controllers that are no longer imported by any spec file:
+
+```
+Grep: <fixture-filename> in frontend/tests/e2e/
+Grep: <controller-filename> in frontend/tests/e2e/
+```
+
+Flag any file in `frontend/tests/fixtures/` or `frontend/tests/utils/` that has zero imports from spec files. These are candidates for cleanup.
+
+### Orphan Output Format
+
+```
+### Orphaned Test Files
+
+| File | Last Imported By | Recommendation |
+|------|------------------|----------------|
+| `fixtures/old-feature-mock-data.ts` | None | Delete — no spec imports this file |
+| `utils/old-feature-api-mocks.ts` | None | Delete — no spec imports this file |
+```
+
+If no orphans are found, omit this section entirely.
+
+---
 
 ## Key Principles
 
@@ -123,3 +208,4 @@ Read the relevant test file(s) to understand what's already covered before recom
 2. **Recommend specific tests** — "Add E2E tests" is not actionable. "Test that clicking Save on the skill editor persists the new skill" is.
 3. **Check before recommending** — Always search existing tests first. Don't recommend what already exists.
 4. **Priority matters** — Core user flows > edge cases > cosmetic changes
+5. **Stale tests are worse than missing tests** — A test that passes but doesn't verify real behavior gives false confidence. Always check for staleness.
