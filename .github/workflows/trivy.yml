@@ -23,6 +23,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
 
+      # Known open findings (2026-02-17): 6 CVEs in gosu binary (Go stdlib v1.24.6)
+      # CVE-2025-68121, CVE-2025-58183, CVE-2025-61726, CVE-2025-61728,
+      # CVE-2025-61729, CVE-2025-61730
+      # Waiting on upstream pgvector image rebuild with patched Go stdlib.
+      # When these clear, also update the pinned SHA in zap-dast.yml.
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284  # 0.34.0
         with:

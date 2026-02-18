@@ -194,8 +194,17 @@ RATE_LIMIT_ENABLED=true
 Run these checks at the start of every session (before any implementation work):
 
 1. **Docker/PostgreSQL** — Run `docker compose ps` to verify the database container is running and healthy. If not running, start it with `docker compose up -d` and wait for the healthcheck to pass.
-2. **Implementation plan** — Read `docs/plan/frontend_implementation_plan.md` (or `implementation_plan.md` for backend) to find the current task (first 🟡 or ⬜).
-3. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker status.
+2. **Security scanners** — Check all persistent scanners for new findings. Run these queries in parallel, then report a summary table. If any **new or unexpected** findings exist, **pause and ask the user** whether to address them now or continue to the plan.
+   - **GitHub code scanning** (ZAP + Trivy): `gh api repos/ApexAZ/zentropy_scout/code-scanning/alerts?state=open --jq 'length'`
+   - **SonarCloud**: WebFetch `https://sonarcloud.io/api/issues/search?componentKeys=ApexAZ_zentropy_scout&resolved=false` — check `total` field
+   - **Dependabot**: `gh api repos/ApexAZ/zentropy_scout/dependabot/alerts?state=open --jq 'length'`
+   - **Semgrep CI**: `gh run list --workflow=semgrep.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
+   - **Dependency audits**: `gh run list --workflow=pip-audit.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
+   - **Known/expected findings** (do NOT pause for these — only pause if count changes):
+     - 6 Trivy CVEs in `gosu` binary (Go stdlib v1.24.6) inside pgvector Docker image — waiting on upstream rebuild. CVEs: CVE-2025-68121, CVE-2025-58183, CVE-2025-61726, CVE-2025-61728, CVE-2025-61729, CVE-2025-61730. If count drops below 6, upstream fix may have landed — notify user to update pinned SHA in `zap-dast.yml`.
+     - 1 Semgrep supply chain finding: ajv ReDoS (GHSA-2g4f-4pwh-qvx6) — ESLint pins ajv@6.x, fix only in ajv@8.18.0+. ESLint team declined to upgrade. Dev-only, zero production risk. Also accepted in npm audit (`pip-audit.yml:85`). Waiting on ESLint upstream.
+3. **Implementation plan** — Read `docs/plan/frontend_implementation_plan.md` (or `implementation_plan.md` for backend) to find the current task (first 🟡 or ⬜).
+4. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker + scanner status.
 
 ---
 
