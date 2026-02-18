@@ -1985,6 +1985,9 @@ No offline-first functionality in MVP. App requires active API connection.
 | 4 | Dark mode: ship in MVP or defer? | Design tokens, testing | Proposed: defer; support OS preference only |
 | 5 | Offer comparison view: dedicated page or inline? | Multi-offer users | Proposed: inline comparison on applications page |
 | 6 | PDF viewer: inline (react-pdf) or browser native (iframe)? | Bundle size, compatibility | Proposed: browser native iframe (simpler, 0 bundle cost) |
+| 7 | "Draft Materials" button behavior (§8.3): What happens when clicked? | Job detail UX, ghostwriter trigger | Proposed: Send chat message to trigger ghostwriter agent; show "Drafting..." indicator on job detail page. When complete, navigate to ghostwriter review or show inline notification. |
+| 8 | Ghostwriter review location (§10.7): Where does the unified review live? | Routing, information architecture | Proposed: New route `/jobs/[id]/review` displaying GhostwriterReview with tabbed resume variant + cover letter. Accessible after ghostwriter completes via notification or "Review Materials" link on job detail page. |
+| 9 | Cover letter section on job detail (§10.1): How is CoverLetterReview embedded? | Job detail page layout | Proposed: Add "Cover Letter" card below scores on `/jobs/[id]`. Shows status badge (None/Draft/Approved). When Draft, embeds CoverLetterReview inline. When Approved, shows download link. When None, shows "Draft materials" prompt. |
 
 ---
 
@@ -1993,6 +1996,7 @@ No offline-first functionality in MVP. App requires active API connection.
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-02-08 | 0.1 | Initial draft — all sections |
+| 2026-02-18 | 0.2 | Added §15.7–§15.9: Clarified gaps for "Draft Materials" button behavior, ghostwriter review location, and cover letter section on job detail page |
 
 ---
 

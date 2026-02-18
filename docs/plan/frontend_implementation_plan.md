@@ -563,9 +563,9 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 | 1 | Resume list + new resume wizard E2E — fixtures, mock controller, ~8 tests (cards, archive, empty state, wizard form, POST) | `playwright, e2e, tdd, plan` | ✅ |
 | 2 | Resume detail + PDF render E2E — extend controller, ~6 tests (edit summary, PATCH, render PDF, download link) | `playwright, e2e, tdd, plan` | ✅ |
 | 3 | Variant review E2E — extend controller, ~7 tests (side-by-side diff, move indicators, approve, guardrail blocking) | `playwright, e2e, tdd, plan` | ✅ |
-| 4 | Cover letter review E2E — fixtures, mock controller, ~8 tests (edit body, word count, validation, approve, PDF download) | `playwright, e2e, tdd, plan` | ⬜ |
-| 5 | Ghostwriter review E2E — fixtures, mock controller, ~6 tests (tabs, approve both, individual approve, error blocking) | `playwright, e2e, tdd, plan` | ⬜ |
-| 6 | Applications list page E2E — extend existing controller, ~7 tests (filter, sort, search, select mode, bulk archive) | `playwright, e2e, tdd, plan` | ⬜ |
+| 4 | ~~Cover letter review E2E~~ — **SKIPPED**: CoverLetterReview has no page route; component is built but not wired into any page. See Phase 15. | `plan` | ❌ |
+| 5 | ~~Ghostwriter review E2E~~ — **SKIPPED**: GhostwriterReview has no page route; component is built but not wired into any page. See Phase 15. | `plan` | ❌ |
+| 6 | Applications list page E2E — extend existing controller, ~7 tests (filter, sort, search, select mode, bulk archive) | `playwright, e2e, tdd, plan` | ✅ |
 | 7 | Add job modal E2E — fixtures, mock controller, ~6 tests (two-step ingest, preview, countdown, confirm, expiry) | `playwright, e2e, tdd, plan` | ⬜ |
 | 8 | Persona editors: work history + education + certifications E2E — extend controller, ~9 tests (3 per editor: list, add, delete) | `playwright, e2e, tdd, plan` | ⬜ |
 | 9 | Persona editors: achievement stories + voice profile E2E — extend controller, ~6 tests (stories CRUD + skill tags, voice form) | `playwright, e2e, tdd, plan` | ⬜ |
@@ -573,6 +573,36 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 | 11 | Settings page E2E — fixtures, mock controller, ~5 tests (job source toggles, grayed inactive, agent config table) | `playwright, e2e, tdd, plan` | ⬜ |
 | 12 | Navigation + error states + toast E2E — ~8 tests (nav traversal, badge count, FailedState, toast after mutation) | `playwright, e2e, tdd, plan` | ⬜ |
 | 13 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ⬜ |
+
+---
+
+## Phase 15: Materials Review Integration
+
+**Status:** ⬜ Incomplete
+
+*Wire CoverLetterReview and GhostwriterReview components into the app's page routing. These components were built in Phase 9 with full Vitest unit test coverage but never embedded into any navigable page. REQ-012 §10.1 says cover letters are "accessed from the job detail page" and §10.7 defines a unified ghostwriter review UI, but the spec doesn't assign routes or define navigation triggers (see REQ-012 §15.7–§15.9 for gap clarifications). This phase closes that gap.*
+
+**Depends on:** Phase 9 ✅ (components built), Phase 7 ✅ (job detail page built)
+
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read REQ-012 §8.3, §10.1, §10.7, §15.7–§15.9 for context and clarifications |
+| 🧪 **TDD** | Write E2E tests alongside integration — follow `zentropy-tdd` and `zentropy-playwright` |
+| 🗃️ **Patterns** | Follow existing page route patterns in `frontend/src/app/(main)/` |
+| ✅ **Verify** | `npx playwright test`, `npm run lint`, `npm run typecheck` |
+| 🔍 **Review** | Use `code-reviewer` + `security-reviewer` + `qa-reviewer` agents |
+| 📝 **Commit** | Follow `zentropy-git` |
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 1 | Add "Cover Letter" section to job detail page (`/jobs/[id]`) — show status badge (None/Draft/Approved), inline CoverLetterReview when draft exists (REQ-012 §10.1) | `tdd, structure, plan` | ⬜ |
+| 2 | Add "Draft Materials" button behavior on job detail page — sends chat message to trigger ghostwriter agent, shows pending state while generating (REQ-012 §8.3, §15.7) | `tdd, structure, agents, plan` | ⬜ |
+| 3 | Create ghostwriter review route or modal — wire GhostwriterReview into navigable surface after ghostwriter completes, tabbed resume variant + cover letter with unified approve actions (REQ-012 §10.7, §15.8) | `tdd, structure, plan` | ⬜ |
+| 4 | Cover letter review E2E — mock controller, ~8 tests (edit body, word count, validation, approve, PDF download, agent reasoning, voice check) | `playwright, e2e, tdd, plan` | ⬜ |
+| 5 | Ghostwriter review E2E — mock controller, ~6 tests (tabs, approve both, individual approve, error blocking, navigation) | `playwright, e2e, tdd, plan` | ⬜ |
+| 6 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ⬜ |
 
 ---
 
@@ -618,4 +648,4 @@ These require user confirmation during implementation:
 | ⬜ | Incomplete |
 | 🟡 | In Progress |
 | ✅ | Complete |
-| ❌ | Cancelled |
+| ❌ | Cancelled / Skipped (see replacement task) |

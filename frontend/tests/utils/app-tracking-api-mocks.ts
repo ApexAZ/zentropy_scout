@@ -313,6 +313,18 @@ export class AppTrackingMockController {
 // ---------------------------------------------------------------------------
 
 /**
+ * Set up mocks for dedicated /applications page.
+ * Good for: search, sort, select mode, bulk archive tests.
+ */
+export async function setupApplicationsListMocks(
+	page: Page,
+): Promise<AppTrackingMockController> {
+	const controller = new AppTrackingMockController();
+	await controller.setupRoutes(page);
+	return controller;
+}
+
+/**
  * Set up mocks for dashboard In Progress / History tabs.
  * Good for: tab tests, status filter, row navigation.
  */
