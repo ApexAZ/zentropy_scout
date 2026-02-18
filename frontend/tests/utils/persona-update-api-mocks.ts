@@ -11,6 +11,7 @@
 
 import type { Page, Route } from "@playwright/test";
 
+import type { ApiListResponse } from "@/types/api";
 import type { Persona, PersonaChangeFlag, Skill } from "@/types/persona";
 
 import {
@@ -24,7 +25,10 @@ import {
 	emptyChangeFlagsList,
 	onboardedPersonaList,
 	patchPersonaResponse,
+	postCertificationResponse,
+	postEducationResponse,
 	postSkillResponse,
+	postWorkHistoryResponse,
 	resolvedChangeFlagResponse,
 	skillsList,
 	voiceProfileResponse,
@@ -33,10 +37,13 @@ import {
 
 // Re-export IDs so spec files can import from a single source
 export {
-	PERSONA_ID,
+	CERT_ID,
 	CHANGE_FLAG_IDS,
 	BASE_RESUME_IDS,
+	EDUCATION_ID,
+	PERSONA_ID,
 	SKILL_IDS,
+	WORK_HISTORY_IDS,
 } from "../fixtures/persona-update-mock-data";
 
 // ---------------------------------------------------------------------------
@@ -54,6 +61,8 @@ interface PersonaUpdateMockState {
 	hasSkills: boolean;
 	/** Counter for new skill IDs. */
 	nextSkillId: number;
+	/** IDs of items deleted via the delete-with-references flow. */
+	deletedItemIds: Set<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +79,7 @@ export class PersonaUpdateMockController {
 			resolvedFlagIds: new Set(),
 			hasSkills: true,
 			nextSkillId: 100,
+			deletedItemIds: new Set(),
 			...initialState,
 		};
 	}
@@ -227,12 +237,41 @@ export class PersonaUpdateMockController {
 		method: string,
 		entity: string,
 	): Promise<void> {
+		// Reference check: GET /personas/{id}/{entity}/{itemId}/references
+		if (path.endsWith("/references") && method === "GET") {
+			return this.json(route, {
+				data: {
+					has_references: false,
+					has_immutable_references: false,
+					references: [],
+				},
+			});
+		}
+
+		// Delete: DELETE /personas/{id}/{entity}/{itemId}
+		if (method === "DELETE") {
+			const deleteMatch = path.match(
+				/\/(work-history|education|certifications|skills|achievement-stories)\/([^/]+)$/,
+			);
+			if (deleteMatch) {
+				this.state.deletedItemIds.add(deleteMatch[2]);
+				await route.fulfill({ status: 204 });
+				return;
+			}
+		}
+
 		switch (entity) {
 			case "work-history":
-				return this.json(route, workHistoryList());
+				if (method === "POST") {
+					const body = route.request().postDataJSON() as Record<
+						string,
+						unknown
+					>;
+					return this.json(route, postWorkHistoryResponse(body), 201);
+				}
+				return this.json(route, this.filterDeleted(workHistoryList()));
 
 			case "skills": {
-				// POST /personas/{id}/skills
 				if (method === "POST") {
 					const body = route.request().postDataJSON() as Partial<Skill>;
 					const newId = `skill-new-${this.state.nextSkillId++}`;
@@ -242,18 +281,31 @@ export class PersonaUpdateMockController {
 						201,
 					);
 				}
-				// GET /personas/{id}/skills
-				return this.json(route, skillsList());
+				return this.json(route, this.filterDeleted(skillsList()));
 			}
 
 			case "education":
-				return this.json(route, educationList());
+				if (method === "POST") {
+					const body = route.request().postDataJSON() as Record<
+						string,
+						unknown
+					>;
+					return this.json(route, postEducationResponse(body), 201);
+				}
+				return this.json(route, this.filterDeleted(educationList()));
 
 			case "certifications":
-				return this.json(route, certificationsList());
+				if (method === "POST") {
+					const body = route.request().postDataJSON() as Record<
+						string,
+						unknown
+					>;
+					return this.json(route, postCertificationResponse(body), 201);
+				}
+				return this.json(route, this.filterDeleted(certificationsList()));
 
 			case "achievement-stories":
-				return this.json(route, achievementStoriesList());
+				return this.json(route, this.filterDeleted(achievementStoriesList()));
 
 			case "voice-profile":
 				return this.json(route, voiceProfileResponse());
@@ -267,6 +319,23 @@ export class PersonaUpdateMockController {
 			default:
 				return route.continue();
 		}
+	}
+
+	// -----------------------------------------------------------------------
+	// List filtering
+	// -----------------------------------------------------------------------
+
+	/** Remove deleted items from a list response. */
+	private filterDeleted<T extends { id: string }>(
+		response: ApiListResponse<T>,
+	): ApiListResponse<T> {
+		const filtered = response.data.filter(
+			(item) => !this.state.deletedItemIds.has(item.id),
+		);
+		return {
+			data: filtered,
+			meta: { ...response.meta, total: filtered.length },
+		};
 	}
 
 	// -----------------------------------------------------------------------
@@ -364,3 +433,10 @@ export async function setupChangeFlagsResolverMocks(
 	await controller.setupRoutes(page);
 	return controller;
 }
+
+/**
+ * Set up mocks for persona sub-entity CRUD editors (work history, education,
+ * certifications). Supports POST (add), DELETE (remove), and reference check.
+ * Identical to overview mocks; separated for semantic clarity.
+ */
+export const setupPersonaEditorCrudMocks = setupPersonaOverviewMocks;

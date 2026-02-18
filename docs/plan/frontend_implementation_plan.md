@@ -567,7 +567,7 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 | 5 | ~~Ghostwriter review E2E~~ — **SKIPPED**: GhostwriterReview has no page route; component is built but not wired into any page. See Phase 15. | `plan` | ❌ |
 | 6 | Applications list page E2E — extend existing controller, ~7 tests (filter, sort, search, select mode, bulk archive) | `playwright, e2e, tdd, plan` | ✅ |
 | 7 | Add job modal E2E — fixtures, mock controller, ~6 tests (two-step ingest, preview, countdown, confirm, expiry) | `playwright, e2e, tdd, plan` | ✅ |
-| 8 | Persona editors: work history + education + certifications E2E — extend controller, ~9 tests (3 per editor: list, add, delete) | `playwright, e2e, tdd, plan` | ⬜ |
+| 8 | Persona editors: work history + education + certifications E2E — extend controller, ~9 tests (3 per editor: list, add, delete) | `playwright, e2e, tdd, plan` | ✅ |
 | 9 | Persona editors: achievement stories + voice profile E2E — extend controller, ~6 tests (stories CRUD + skill tags, voice form) | `playwright, e2e, tdd, plan` | ⬜ |
 | 10 | Persona editors: non-negotiables + discovery preferences E2E — extend controller, ~6 tests (form, custom filters, sliders, cross-field warning) | `playwright, e2e, tdd, plan` | ⬜ |
 | 11 | Settings page E2E — fixtures, mock controller, ~5 tests (job source toggles, grayed inactive, agent config table) | `playwright, e2e, tdd, plan` | ⬜ |

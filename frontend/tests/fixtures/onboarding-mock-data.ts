@@ -327,6 +327,30 @@ export function emptyCertificationsList(): ApiListResponse<Certification> {
 	return { data: [], meta: listMeta(0) };
 }
 
+export function postEducationResponse(
+	overrides?: Partial<Education>,
+): ApiResponse<Education> {
+	return {
+		data: {
+			...EDUCATION,
+			id: `edu-new-${Date.now()}`,
+			...overrides,
+		},
+	};
+}
+
+export function postCertificationResponse(
+	overrides?: Partial<Certification>,
+): ApiResponse<Certification> {
+	return {
+		data: {
+			...CERTIFICATION,
+			id: `cert-new-${Date.now()}`,
+			...overrides,
+		},
+	};
+}
+
 // ---------------------------------------------------------------------------
 // Achievement Stories factories
 // ---------------------------------------------------------------------------
