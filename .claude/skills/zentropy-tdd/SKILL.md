@@ -1,150 +1,87 @@
 ---
 name: zentropy-tdd
 description: |
-  Test-Driven Development enforcement for Zentropy Scout. Load this skill when:
+  Test-Driven Development and testing patterns for Zentropy Scout. Load this skill when:
   - Creating new components, services, repositories, or features
+  - Writing unit tests, integration tests, or test fixtures
+  - Setting up pytest, conftest.py, or test databases
+  - Mocking LLM providers or external services
+  - Running tests or checking coverage
+  - Debugging test failures or flaky tests
   - Someone says "implement", "create", "build", or "add feature"
-  - Writing tests or discussing test strategy
-  - Someone asks about "TDD", "red-green-refactor", or "test first"
+  - Someone asks about "test", "pytest", "mock", "fixture", "coverage", "hypothesis", or "TDD"
 ---
 
-# TDD Enforcement Protocol
+# TDD & Testing Patterns
 
-## Core Principle
+## Core Philosophy: Behavior Over Implementation
 
-**Never write implementation code without a failing test first.**
-
-This skill enforces the "Red-Green-Refactor" cycle for every logical component.
-
----
-
-## Behavior Over Implementation
-
-**Test WHAT code does, not HOW it does it.** Tests should verify observable behavior from the perspective of the code's users (callers, API consumers), not internal implementation details.
+**Test WHAT code does, not HOW it does it.** Tests should verify observable behavior from the perspective of callers, not internal implementation details.
 
 ### Good vs Bad Tests
 
 ```python
 # GOOD: Tests behavior - what the caller cares about
 def test_extraction_tasks_use_cheaper_model():
-    """Extraction should route to a cost-effective model."""
     adapter = ClaudeAdapter(config)
     model = adapter.get_model_for_task(TaskType.EXTRACTION)
-    assert "haiku" in model.lower()  # Behavior: cheaper model selected
+    assert "haiku" in model.lower()
 
-# BAD: Tests implementation - brittle, will break on refactor
+# BAD: Tests implementation - brittle, breaks on refactor
 def test_routing_dict_has_nine_entries():
-    """Don't test internal data structure sizes."""
-    assert len(DEFAULT_ROUTING) == 9  # Ties test to implementation detail
+    assert len(DEFAULT_ROUTING) == 9
 ```
 
 ### When Implementation Details Matter
 
-Sometimes implementation IS the behavior. Test implementation when:
-
-- **Performance guarantees** - "Must use O(1) lookup" → test that a dict/set is used
-- **Security requirements** - "Must use constant-time comparison" → test the algorithm
-- **Contractual obligations** - "Must call audit log before delete" → test call order
-- **Resource constraints** - "Must stream, not buffer" → test memory usage
-
-If in doubt, ask: "Would a user/caller care if I changed this?" If no, don't test it.
+Test implementation when:
+- **Performance guarantees** — "Must use O(1) lookup"
+- **Security requirements** — "Must use constant-time comparison"
+- **Contractual obligations** — "Must call audit log before delete"
+- **Resource constraints** — "Must stream, not buffer"
 
 ### When Tests Should Change
 
-- ✅ **Change tests when**: Behavior requirements change
-- ❌ **Don't change tests when**: Refactoring internals (tests should still pass)
+- **Change tests when:** Behavior requirements change
+- **Don't change tests when:** Refactoring internals
 
-If refactoring breaks tests, the tests were likely testing implementation, not behavior.
+If refactoring breaks tests, they were testing implementation, not behavior.
 
 ---
 
-## TDD Protocol
+## TDD Protocol: Red-Green-Refactor
 
-You must strictly follow the "Red-Green-Refactor" cycle for every logical component:
+**Never write implementation code without a failing test first.**
 
 ### 1. RED (The Specification)
 
-* Create the test file `tests/unit/test_[component].py` BEFORE creating the component implementation.
-* The test must define the *Public Interface* and *Expected Behavior*.
-* **Rule:** Do not test internal implementation details (e.g., private methods). Test inputs and outputs/side-effects.
-* Run the test using `pytest`. It MUST fail (ImportError or AssertionError).
+Create test file BEFORE the implementation. Define public interface and expected behavior.
 
 ```python
 # tests/unit/test_persona_service.py
-import pytest
 from app.services.persona import PersonaService  # Does not exist yet!
 
 @pytest.mark.asyncio
 async def test_create_persona_extracts_skills():
-    """PersonaService should extract skills from raw text."""
     service = PersonaService(mock_llm, mock_repo)
-
     result = await service.create_from_text("I am a Python developer with 5 years experience")
-
     assert result.id is not None
     assert "Python" in [s["name"] for s in result.skills]
 ```
 
+Run the test — it MUST fail (ImportError or AssertionError).
+
 ### 2. GREEN (The Implementation)
 
-* Write the minimum code in `src/...` (or `app/...`) to satisfy the test.
-* Run the test. It MUST pass.
-* **Do not over-engineer.** Only write what the test requires.
-
-```python
-# app/services/persona.py
-class PersonaService:
-    def __init__(self, llm, repo):
-        self.llm = llm
-        self.repo = repo
-
-    async def create_from_text(self, text: str) -> Persona:
-        # Minimum implementation to pass the test
-        skills = await self.llm.extract_skills(text)
-        persona = await self.repo.create(PersonaCreate(skills=skills))
-        return persona
-```
+Write **minimum code** to satisfy the test. Do not over-engineer.
 
 ### 3. REFACTOR (The Cleanup)
 
-* Now apply linting and optimization.
-* Run `ruff check . && ruff format .`
-* Verify tests still pass: `pytest -v`
-* Add docstrings if missing.
+Apply linting, add docstrings, run `ruff check . && ruff format .`, verify tests still pass.
 
----
+### TDD Checklist
 
-## Decision Matrix: Unit vs. Integration vs. Functional
-
-| Question | Test Type | Tools |
-|----------|-----------|-------|
-| Is it pure logic? (parsing, validation, transformation) | **Unit Test** | Pytest + mocks |
-| Does it talk to the database? | **Integration Test** | Pytest + Docker DB |
-| Does it call external APIs? (LLM, embeddings) | **Integration Test** | Pytest + mock provider |
-| Does it involve user flow/UI? | **Functional Test** | Playwright |
-| Is it an API endpoint? | **Integration Test** | Pytest + httpx AsyncClient |
-
----
-
-## Test File Organization
-
-```
-backend/tests/
-├── unit/                    # Pure logic, fully mocked
-│   ├── test_extraction.py
-│   └── test_scoring.py
-├── integration/             # Real DB, mocked externals
-│   ├── test_persona_repository.py
-│   └── test_api_personas.py
-└── conftest.py              # Shared fixtures
-```
-
----
-
-## TDD Checklist (Before Implementation)
-
-Before writing ANY implementation code, verify:
-
+Before writing ANY implementation code:
 - [ ] Test file exists at correct path
 - [ ] Test imports the module that will be created
 - [ ] Test defines expected inputs and outputs
@@ -153,61 +90,239 @@ Before writing ANY implementation code, verify:
 
 ---
 
-## Anti-Patterns to Avoid
+## Decision Matrix
 
-| Anti-Pattern | Why It's Bad | Correct Approach |
-|--------------|--------------|------------------|
-| Writing implementation first | No specification, untested code | Write test first |
-| Testing private methods | Brittle tests, implementation coupling | Test public interface only |
-| Testing framework internals | Not your code | Test your code's behavior |
-| 100% coverage as goal | Coverage ≠ quality | Cover critical paths and edge cases |
-| Mocking everything | Tests pass but code is broken | Use real DB for integration tests |
+| Question | Test Type | Tools |
+|----------|-----------|-------|
+| Pure logic? (parsing, validation) | **Unit Test** | Pytest + mocks |
+| Invariant for ALL inputs? (sanitization) | **Property Test** | Pytest + Hypothesis |
+| Database interaction? | **Integration Test** | Pytest + Docker DB |
+| External APIs? (LLM, embeddings) | **Integration Test** | Pytest + mock provider |
+| User flow/UI? | **Functional Test** | Playwright |
+| API endpoint? | **Integration Test** | Pytest + httpx AsyncClient |
+
+---
+
+## Test Quality
+
+### Checklist
+
+Before marking a test complete:
+1. **Behavior focus** — Would a caller/user care about this assertion?
+2. **Meaningful** — Does it catch real bugs, not just raise coverage?
+3. **Readable** — Can someone understand intent without reading implementation?
+4. **Independent** — Passes/fails regardless of test execution order?
+5. **Clear name** — Uses `test_<behavior>_when_<condition>` format?
+
+### Red Flags
+
+- Testing exact string matches when substring would suffice
+- Asserting dict/list lengths instead of contents
+- Testing private methods or attributes (`_prefixed`)
+- Mocking so much you're testing the mocks
+- Tests that pass even if you comment out the implementation
+
+### Anti-Patterns
+
+| Anti-Pattern | Correct Approach |
+|--------------|------------------|
+| Writing implementation first | Write test first |
+| Testing private methods | Test public interface only |
+| Testing framework internals | Test your code's behavior |
+| 100% coverage as goal | Cover critical paths and edge cases |
+| Mocking everything | Use real DB for integration tests |
 
 ---
 
-## Handling Stub Implementations
+## Test Setup
 
-When creating stubs during TDD (e.g., abstract interface with adapter stubs pending implementation):
+### File Organization
 
-### Unused Parameters in Stubs
+```
+backend/tests/
+├── conftest.py              # Shared fixtures
+├── unit/                    # Pure logic, fully mocked
+│   ├── test_extraction.py
+│   └── test_scoring.py
+├── integration/             # Real DB, mocked externals
+│   ├── test_persona_repository.py
+│   └── test_api_personas.py
+└── fixtures/
+```
 
-Stubs often have parameters they don't use yet. Handle lint errors properly:
+### conftest.py
 
-1. **Prefer underscore prefix** over `noqa` comments:
-   ```python
-   # ✅ Good - Pythonic convention for intentionally unused
-   async def complete(self, _messages, _task, _max_tokens=None):
-       raise NotImplementedError("Implementation in §4.2")
+```python
+import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from app.models.base import Base
 
-   # ❌ Avoid - noqa hides the issue
-   async def complete(self, messages, task, max_tokens=None):  # noqa: ARG002
-       raise NotImplementedError("Implementation in §4.2")
-   ```
+TEST_DATABASE_URL = "postgresql+asyncpg://zentropy_user:zentropy_dev_password@localhost:5432/zentropy_scout_test"
 
-2. **If you must use noqa**, track it in `implementation_plan.md`:
-   ```markdown
-   | 4.2 | Implement Adapter | `provider, tdd` ⚠️ Remove noqa from adapter.py (added in §4.1) | ⬜ |
-   ```
+@pytest.fixture(scope="session")
+def event_loop():
+    import asyncio
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
-3. **Never leave untracked bypasses** - they become permanent technical debt
+@pytest_asyncio.fixture(scope="function")
+async def db_engine():
+    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield engine
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
 
-### Why This Matters
+@pytest_asyncio.fixture(scope="function")
+async def db_session(db_engine):
+    async_session = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        yield session
+        await session.rollback()
+```
 
-- Underscore prefix is self-documenting and lint-compliant
-- Tracked bypasses get cleaned up when the dependent task runs
-- Untracked bypasses accumulate and become "mystery code"
+### Mock LLM Provider
+
+```python
+class MockLLMProvider:
+    def __init__(self, responses: dict = None):
+        self.responses = responses or {}
+        self.calls = []
+
+    async def complete(self, messages, task, output_schema=None, **kwargs):
+        self.calls.append({"messages": messages, "task": task, "output_schema": output_schema})
+        if task in self.responses:
+            response = self.responses[task]
+            if output_schema and isinstance(response, dict):
+                return output_schema.model_validate(response)
+            return response
+        raise ValueError(f"No mock response for task: {task}")
+
+@pytest.fixture
+def mock_llm():
+    def _create(responses=None):
+        return MockLLMProvider(responses=responses)
+    return _create
+```
 
 ---
+
+## Testing Patterns
+
+### Async Code
+
+```python
+@pytest.mark.asyncio
+async def test_create_persona(db_session, mock_llm):
+    llm = mock_llm(responses={"extraction": {"skills": [{"name": "Python", "level": "expert"}]}})
+    repo = PersonaRepository(db_session)
+    service = PersonaService(repo, llm)
+    persona = await service.create_from_text("I am a Python developer")
+    assert persona.id is not None
+    assert len(llm.calls) == 1
+```
+
+### API Endpoints
+
+```python
+@pytest_asyncio.fixture
+async def client(db_session):
+    app.dependency_overrides[get_db] = lambda: db_session
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        yield client
+    app.dependency_overrides.clear()
+
+@pytest.mark.asyncio
+async def test_create_persona_endpoint(client):
+    response = await client.post("/api/v1/personas", json={"name": "Test User"})
+    assert response.status_code == 201
+    assert "id" in response.json()
+```
+
+---
+
+## Property-Based Testing with Hypothesis
+
+Use Hypothesis for testing invariants that must hold for ANY input. Especially valuable for security-sensitive code.
+
+```python
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+unicode_text = st.text(
+    alphabet=st.characters(blacklist_categories=("Cs",)),
+    min_size=0, max_size=500,
+)
+
+@given(unicode_text)
+@settings(max_examples=500)
+def test_sanitize_idempotent(text: str) -> None:
+    once = sanitize_llm_input(text)
+    twice = sanitize_llm_input(once)
+    assert once == twice
+```
+
+### When to Use Hypothesis vs Example-Based
+
+| Scenario | Approach |
+|----------|----------|
+| Specific known inputs -> expected outputs | Example-based (pytest) |
+| Invariants across all possible inputs | Property-based (Hypothesis) |
+| Security: no forbidden patterns in output | Property-based (Hypothesis) |
+| Regression: specific bug reproduction | Example-based (pytest) |
+
+### Key Patterns
+
+- Use `assume()` (not `return`) to discard invalid inputs
+- Pre-compile regex at module level, not inside `@given`
+- Use `st.sampled_from()` for injection-adjacent characters
+- Extract shared assertion helpers for reused invariants
+- Existing fuzz tests: `backend/tests/unit/test_llm_sanitization_fuzz.py`
+
+---
+
+## Handling Stubs During TDD
+
+Prefer underscore prefix over `noqa` for unused stub parameters:
+
+```python
+# Good
+async def complete(self, _messages, _task, _max_tokens=None):
+    raise NotImplementedError("Implementation in next task")
+
+# Avoid
+async def complete(self, messages, task, max_tokens=None):  # noqa: ARG002
+    raise NotImplementedError("Implementation in next task")
+```
+
+If you must use noqa, track it in `implementation_plan.md` for cleanup.
+
+---
+
+## Running Tests
+
+```bash
+pytest -v                                    # All tests
+pytest --cov=app --cov-report=html           # With coverage
+pytest tests/unit/test_file.py -v            # Specific file
+pytest -k "persona" -v                       # Pattern match
+pytest --lf                                  # Failed tests only
+```
 
 ## Workflow Summary
 
 ```
-1. THINK   → What should this component do? (Inputs → Outputs)
-2. TEST    → Write test defining that behavior
-3. RUN     → pytest (must FAIL)
-4. CODE    → Minimum implementation
-5. RUN     → pytest (must PASS)
-6. CLEAN   → ruff format, docstrings
-7. RUN     → pytest (still PASS)
-8. COMMIT  → "feat(component): add X with tests"
+1. THINK   -> What should this component do?
+2. TEST    -> Write test defining that behavior
+3. RUN     -> pytest (must FAIL)
+4. CODE    -> Minimum implementation
+5. RUN     -> pytest (must PASS)
+6. CLEAN   -> ruff format, docstrings
+7. RUN     -> pytest (still PASS)
+8. COMMIT  -> "feat(component): add X with tests"
 ```

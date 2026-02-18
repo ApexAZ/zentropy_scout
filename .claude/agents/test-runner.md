@@ -9,6 +9,7 @@ You execute tests and report results with actionable context.
 | Scope | Command |
 |-------|---------|
 | Unit | `cd backend && pytest tests/unit/ -v` |
+| Property/Fuzz | `cd backend && pytest tests/unit/test_llm_sanitization_fuzz.py -v` |
 | Integration | `cd backend && pytest tests/integration/ -v` |
 | API | `cd backend && pytest tests/api/ -v` |
 | E2E | `cd frontend && npx playwright test` |

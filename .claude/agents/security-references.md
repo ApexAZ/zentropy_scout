@@ -291,6 +291,7 @@ This project has a dedicated sanitization pipeline at `backend/app/core/llm_sani
 | **Dependencies** | **pip-audit** | Known CVEs in Python packages (OSV database) | CI (GitHub Actions) |
 | **Dependencies** | **Dependabot** | Automated vulnerability alerts + auto-PRs for pip and GitHub Actions | GitHub (continuous) |
 | **Secrets** | **Gitleaks** | Secrets in code (API keys, passwords, tokens) | Pre-commit hook |
+| **Fuzz testing** | **Hypothesis** | Property-based fuzz testing for sanitization pipeline invariants | pytest (local + CI) |
 | **Linting** | **Ruff** | Linting, import order, unused vars, formatting | Pre-commit hook |
 | **Dependencies** | **npm audit** | Known CVEs in JS dependencies | Manual / CI (future) |
 

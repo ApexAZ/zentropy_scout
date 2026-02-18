@@ -94,55 +94,9 @@ git push -u origin feature/phase-1.1-database
 
 ## Pre-Commit Quality Gate
 
-**REQUIRED:** Before committing ANY code changes (new files, refactors, or multi-file edits), you MUST follow this quality workflow:
+The full review-before-commit workflow (reviewers, resolution, verification) is defined in the `zentropy-planner` skill (steps 4–7). That is the single source of truth — follow it for all implementation work.
 
-### Step 1: Code Review + Security Review (MANDATORY, run in parallel)
-1. After making changes but BEFORE committing
-2. Launch BOTH `code-reviewer` AND `security-reviewer` agents simultaneously
-3. Both are read-only (Read, Grep, Glob only) — parallel execution is safe
-4. Wait for both reviews to complete
-
-### Step 2: Fix ALL Issues (MANDATORY)
-5. **ALL findings must be addressed** - regardless of severity (Critical, Major, Minor, Low)
-6. Security issues take priority but ALL must be fixed
-7. Do NOT commit until every finding is resolved
-8. **If fixes change behavior:** Write/update tests FIRST (TDD)
-9. **If fixes are implementation-only:** Existing tests should still pass
-
-### Step 3: Re-Review If Fixes Were Made
-10. If you made fixes, re-run BOTH reviewers in parallel
-11. Repeat until both return clean reports
-
-### Step 4: Verify Tests
-12. Run affected tests: `pytest tests/unit/test_<module>.py -v`
-13. If behavior changed, ensure new tests cover the change
-14. All tests must pass before proceeding
-
-### Step 5: Commit
-15. Once ALL review findings are fixed and tests are green, proceed with commit
-
-### Quick Reference
-```
-┌─────────────────┐     ┌──────────────────┐
-│  code-reviewer  │     │ security-reviewer│
-│   (parallel)    │     │    (parallel)    │
-└────────┬────────┘     └────────┬─────────┘
-         └───────────┬───────────┘
-                     ▼
-         Combine all findings
-                     ↓
-         Fix ALL issues (every severity)
-                     ↓
-         Fixes made? → Re-run BOTH reviewers
-                     ↓
-         Behavior changed? → Write/update tests (TDD)
-                     ↓
-         Run tests (must pass)
-                     ↓
-         Commit
-```
-
-**Why fix ALL findings?** Low-severity issues accumulate into technical debt and inconsistent code. Security issues, even minor ones, can become exploit vectors. Fixing them immediately is faster than tracking them for later.
+This skill covers git conventions only (branches, commit messages, workflow).
 
 ## Commit Message Tips
 

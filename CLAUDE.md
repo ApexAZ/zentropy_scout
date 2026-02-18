@@ -100,6 +100,9 @@ zentropy_scout/
 3. **Repository pattern** — `backend/repositories/` for DB access
 4. **Service layer** — `backend/services/` for business logic
 5. **Type hints required** — No `Any` without justification
+6. **One class per file** — Exceptions: small related classes
+7. **Files under 300 lines** — Split if larger
+8. **No `utils.py` dumping ground** — Be specific (`text_utils.py`, `date_utils.py`)
 
 ### File Storage (CRITICAL)
 **All files stored as BYTEA in PostgreSQL.** No S3, no filesystem paths.
@@ -351,12 +354,10 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `zentropy-agents` | agent, LangGraph, graph, state, HITL | Graph structure, state schemas, checkpointing |
 | `zentropy-db` | database, migration, postgres, SQL | pgvector, BYTEA, Alembic patterns |
 | `zentropy-provider` | LLM, Claude, API, extract, generate | Provider abstraction, adapter pattern, task-based model routing |
-| `zentropy-test` | test, pytest, mock, fixture, coverage, hypothesis | Testing patterns, mock LLM, property-based fuzz testing |
-| `zentropy-tdd` | implement, create, build, add feature | Red-Green-Refactor cycle |
+| `zentropy-tdd` | test, pytest, mock, fixture, coverage, hypothesis, TDD, implement, create, build | TDD enforcement, testing patterns, mocks, Hypothesis fuzz testing |
 | `zentropy-playwright` | playwright, e2e, end-to-end, UI testing | E2E tests, mocking, selectors |
 | `zentropy-lint` | lint, ruff, eslint, mypy, prettier | Linting stack, common errors |
 | `zentropy-imports` | imports, import order | Python/TypeScript ordering |
-| `zentropy-structure` | where should I put, project structure | Module organization |
 | `zentropy-git` | commit, branch, git | Conventional commits, workflow |
 | `zentropy-commands` | how do I start, run migrations | Docker, alembic, npm commands |
 | `zentropy-docs` | docstring, documentation, comments | Google-style docstrings |
@@ -374,6 +375,7 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `req-reader` | Look up requirement specs |
 | `code-reviewer` | Review code against conventions |
 | `security-reviewer` | Review code for security vulnerabilities (OWASP Top 10, injection, auth) |
+| `qa-reviewer` | Assess whether changes need new Playwright E2E tests |
 | `test-runner` | Run and analyze test results |
 
 ### Proactive Subagent Usage
@@ -383,8 +385,8 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 - **`Explore`**: If unfamiliar with the code area, explore the codebase first
 
 **AFTER completing code (run in parallel):**
-- **`code-reviewer`** + **`security-reviewer`**: Launch BOTH simultaneously before commit
-- Both are read-only — parallel execution is safe and faster
+- **`code-reviewer`** + **`security-reviewer`** + **`qa-reviewer`**: Launch ALL THREE simultaneously before commit
+- All are read-only — parallel execution is safe and faster
 
 **For open-ended questions:**
 - **`Explore`**: Use for "Where is X?", "How does Y work?", "Find all Z" queries instead of manual Glob/Grep

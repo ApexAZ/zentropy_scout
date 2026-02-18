@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [[ \"$CLAUDE_TOOL_INPUT\" == *\"git commit\"* ]]; then echo \"⚠️ WORKFLOW REMINDER: Did you run code-reviewer AND security-reviewer subagents before this commit?\" >&2; fi'"
+            "command": "bash -c 'if [[ \"$CLAUDE_TOOL_INPUT\" == *\"git commit\"* ]]; then echo \"⚠️ WORKFLOW REMINDER: Did you run code-reviewer, security-reviewer, AND qa-reviewer subagents before this commit?\" >&2; fi'"
           }
         ]
       }
