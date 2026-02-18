@@ -193,6 +193,14 @@ describe("StatusBadge", () => {
 			expect(root).toHaveClass(BG_DESTRUCTIVE);
 			expect(screen.getByText("Filtered")).toBeInTheDocument();
 		});
+
+		it("renders None with muted color", () => {
+			const { container } = renderBadge({ status: "None" });
+			const root = container.querySelector(ROOT_SELECTOR);
+
+			expect(root).toHaveClass(BG_MUTED);
+			expect(screen.getByText("None")).toBeInTheDocument();
+		});
 	});
 
 	// ---------------------------------------------------------------------------

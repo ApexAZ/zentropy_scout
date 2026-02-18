@@ -1,10 +1,11 @@
 /**
- * Tests for the JobDetailPage route component (§7.7–§7.10, §10.4).
+ * Tests for the JobDetailPage route component (§7.7–§7.10, §10.4, §15.9).
  *
  * Verifies guard clause, prop passthrough to JobDetailHeader,
  * FitScoreBreakdown, StretchScoreBreakdown, ScoreExplanation,
- * ExtractedSkillsTags, JobDescription, CultureSignals, and
- * MarkAsAppliedCard rendering when job data is available.
+ * CoverLetterSection, ExtractedSkillsTags, JobDescription,
+ * CultureSignals, and MarkAsAppliedCard rendering when job data
+ * is available.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -31,6 +32,7 @@ const EXPLANATION_TESTID = "explanation-stub";
 const SKILLS_TESTID = "extracted-skills-stub";
 const DESCRIPTION_TESTID = "job-description-stub";
 const CULTURE_TESTID = "culture-signals-stub";
+const COVER_LETTER_SECTION_TESTID = "cover-letter-section-stub";
 const MARK_AS_APPLIED_TESTID = "mark-as-applied-stub";
 const ONBOARDED_STATUS = { status: "onboarded", persona: { id: "p-1" } };
 
@@ -147,6 +149,15 @@ function MockMarkAsAppliedCard({
 	);
 }
 MockMarkAsAppliedCard.displayName = "MockMarkAsAppliedCard";
+
+function MockCoverLetterSection({ jobId }: { jobId: string }) {
+	return <div data-testid={COVER_LETTER_SECTION_TESTID}>{jobId}</div>;
+}
+MockCoverLetterSection.displayName = "MockCoverLetterSection";
+
+vi.mock("@/components/jobs/cover-letter-section", () => ({
+	CoverLetterSection: MockCoverLetterSection,
+}));
 
 vi.mock("@/components/jobs/mark-as-applied-card", () => ({
 	MarkAsAppliedCard: MockMarkAsAppliedCard,
@@ -367,6 +378,34 @@ describe("JobDetailPage", () => {
 
 		expect(screen.getByTestId(EXPLANATION_TESTID)).toBeInTheDocument();
 		expect(screen.getByTestId(EXPLANATION_TESTID)).toHaveTextContent("none");
+	});
+
+	// -----------------------------------------------------------------------
+	// CoverLetterSection
+	// -----------------------------------------------------------------------
+
+	it("does not render CoverLetterSection when data is loading", () => {
+		render(<JobDetailPage />);
+
+		expect(
+			screen.queryByTestId(COVER_LETTER_SECTION_TESTID),
+		).not.toBeInTheDocument();
+	});
+
+	it("renders CoverLetterSection when job data is available", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(COVER_LETTER_SECTION_TESTID)).toBeInTheDocument();
+	});
+
+	it("passes jobId to CoverLetterSection", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(COVER_LETTER_SECTION_TESTID)).toHaveTextContent(
+			MOCK_JOB_ID,
+		);
 	});
 
 	// -----------------------------------------------------------------------

@@ -27,7 +27,8 @@ type StatusBadgeStatus =
 	| CoverLetterStatus
 	| JobVariantStatus
 	| BaseResumeStatus
-	| "Filtered";
+	| "Filtered"
+	| "None";
 
 interface StatusBadgeProps {
 	status: StatusBadgeStatus;
@@ -63,6 +64,7 @@ const STATUS_STYLES: Record<StatusBadgeStatus, string> = {
 
 	// Special
 	Filtered: "bg-destructive text-destructive-foreground",
+	None: "bg-muted text-muted-foreground",
 };
 
 // ---------------------------------------------------------------------------
