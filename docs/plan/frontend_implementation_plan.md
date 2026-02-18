@@ -541,6 +541,41 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 
 ---
 
+## Phase 14: E2E Test Coverage Expansion
+
+**Status:** ⬜ Incomplete
+
+*Fill E2E coverage gaps from audit. Route coverage 45% (10/22) → target 90%+. Priority: resume/cover letter/ghostwriter pipeline, then applications, add job, persona editors, settings, navigation.*
+
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read REQ-012 for feature specs, read existing E2E tests for patterns |
+| 🧪 **TDD** | Write E2E tests following existing mock controller pattern |
+| 🗃️ **Patterns** | Follow `zentropy-playwright` for selectors and mocking |
+| ✅ **Verify** | `npx playwright test`, lint, typecheck |
+| 🔍 **Review** | Use `code-reviewer` + `security-reviewer` agents |
+| 📝 **Commit** | Follow `zentropy-git` |
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 1 | Resume list + new resume wizard E2E — fixtures, mock controller, ~8 tests (cards, archive, empty state, wizard form, POST) | `playwright, e2e, tdd, plan` | ✅ |
+| 2 | Resume detail + PDF render E2E — extend controller, ~6 tests (edit summary, PATCH, render PDF, download link) | `playwright, e2e, tdd, plan` | ⬜ |
+| 3 | Variant review E2E — extend controller, ~7 tests (side-by-side diff, move indicators, approve, guardrail blocking) | `playwright, e2e, tdd, plan` | ⬜ |
+| 4 | Cover letter review E2E — fixtures, mock controller, ~8 tests (edit body, word count, validation, approve, PDF download) | `playwright, e2e, tdd, plan` | ⬜ |
+| 5 | Ghostwriter review E2E — fixtures, mock controller, ~6 tests (tabs, approve both, individual approve, error blocking) | `playwright, e2e, tdd, plan` | ⬜ |
+| 6 | Applications list page E2E — extend existing controller, ~7 tests (filter, sort, search, select mode, bulk archive) | `playwright, e2e, tdd, plan` | ⬜ |
+| 7 | Add job modal E2E — fixtures, mock controller, ~6 tests (two-step ingest, preview, countdown, confirm, expiry) | `playwright, e2e, tdd, plan` | ⬜ |
+| 8 | Persona editors: work history + education + certifications E2E — extend controller, ~9 tests (3 per editor: list, add, delete) | `playwright, e2e, tdd, plan` | ⬜ |
+| 9 | Persona editors: achievement stories + voice profile E2E — extend controller, ~6 tests (stories CRUD + skill tags, voice form) | `playwright, e2e, tdd, plan` | ⬜ |
+| 10 | Persona editors: non-negotiables + discovery preferences E2E — extend controller, ~6 tests (form, custom filters, sliders, cross-field warning) | `playwright, e2e, tdd, plan` | ⬜ |
+| 11 | Settings page E2E — fixtures, mock controller, ~5 tests (job source toggles, grayed inactive, agent config table) | `playwright, e2e, tdd, plan` | ⬜ |
+| 12 | Navigation + error states + toast E2E — ~8 tests (nav traversal, badge count, FailedState, toast after mutation) | `playwright, e2e, tdd, plan` | ⬜ |
+| 13 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ⬜ |
+
+---
+
 ## Open Questions (from REQ-012 §15)
 
 These will be resolved during implementation as encountered:
