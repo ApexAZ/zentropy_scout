@@ -601,7 +601,7 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 | 1 | Add "Cover Letter" section to job detail page (`/jobs/[id]`) — show status badge (None/Draft/Approved), inline CoverLetterReview when draft exists (REQ-012 §10.1) | `tdd, structure, plan` | ✅ |
 | 2 | Add "Draft Materials" button behavior on job detail page — sends chat message to trigger ghostwriter agent, shows pending state while generating (REQ-012 §8.3, §15.7) | `tdd, structure, agents, plan` | ✅ |
 | 3 | Create ghostwriter review route or modal — wire GhostwriterReview into navigable surface after ghostwriter completes, tabbed resume variant + cover letter with unified approve actions (REQ-012 §10.7, §15.8) | `tdd, structure, plan` | ✅ |
-| 4 | Cover letter review E2E — mock controller, ~8 tests (edit body, word count, validation, approve, PDF download, agent reasoning, voice check) | `playwright, e2e, tdd, plan` | ⬜ |
+| 4 | Cover letter review E2E — mock controller, ~8 tests (edit body, word count, validation, approve, PDF download, agent reasoning, voice check) | `playwright, e2e, tdd, plan` | ✅ |
 | 5 | Ghostwriter review E2E — mock controller, ~6 tests (tabs, approve both, individual approve, error blocking, navigation) | `playwright, e2e, tdd, plan` | ⬜ |
 | 6 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ⬜ |
 
