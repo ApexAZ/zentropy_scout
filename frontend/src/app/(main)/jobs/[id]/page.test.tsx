@@ -1,11 +1,11 @@
 /**
- * Tests for the JobDetailPage route component (§7.7–§7.10, §10.4, §15.9).
+ * Tests for the JobDetailPage route component (§7.7–§7.10, §10.4, §15.7, §15.9).
  *
  * Verifies guard clause, prop passthrough to JobDetailHeader,
  * FitScoreBreakdown, StretchScoreBreakdown, ScoreExplanation,
- * CoverLetterSection, ExtractedSkillsTags, JobDescription,
- * CultureSignals, and MarkAsAppliedCard rendering when job data
- * is available.
+ * CoverLetterSection, DraftMaterialsCard, ExtractedSkillsTags,
+ * JobDescription, CultureSignals, and MarkAsAppliedCard rendering
+ * when job data is available.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -33,6 +33,7 @@ const SKILLS_TESTID = "extracted-skills-stub";
 const DESCRIPTION_TESTID = "job-description-stub";
 const CULTURE_TESTID = "culture-signals-stub";
 const COVER_LETTER_SECTION_TESTID = "cover-letter-section-stub";
+const DRAFT_MATERIALS_TESTID = "draft-materials-stub";
 const MARK_AS_APPLIED_TESTID = "mark-as-applied-stub";
 const ONBOARDED_STATUS = { status: "onboarded", persona: { id: "p-1" } };
 
@@ -155,8 +156,17 @@ function MockCoverLetterSection({ jobId }: { jobId: string }) {
 }
 MockCoverLetterSection.displayName = "MockCoverLetterSection";
 
+function MockDraftMaterialsCard({ jobId }: { jobId: string }) {
+	return <div data-testid={DRAFT_MATERIALS_TESTID}>{jobId}</div>;
+}
+MockDraftMaterialsCard.displayName = "MockDraftMaterialsCard";
+
 vi.mock("@/components/jobs/cover-letter-section", () => ({
 	CoverLetterSection: MockCoverLetterSection,
+}));
+
+vi.mock("@/components/jobs/draft-materials-card", () => ({
+	DraftMaterialsCard: MockDraftMaterialsCard,
 }));
 
 vi.mock("@/components/jobs/mark-as-applied-card", () => ({
@@ -404,6 +414,34 @@ describe("JobDetailPage", () => {
 		render(<JobDetailPage />);
 
 		expect(screen.getByTestId(COVER_LETTER_SECTION_TESTID)).toHaveTextContent(
+			MOCK_JOB_ID,
+		);
+	});
+
+	// -----------------------------------------------------------------------
+	// DraftMaterialsCard
+	// -----------------------------------------------------------------------
+
+	it("does not render DraftMaterialsCard when data is loading", () => {
+		render(<JobDetailPage />);
+
+		expect(
+			screen.queryByTestId(DRAFT_MATERIALS_TESTID),
+		).not.toBeInTheDocument();
+	});
+
+	it("renders DraftMaterialsCard when job data is available", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(DRAFT_MATERIALS_TESTID)).toBeInTheDocument();
+	});
+
+	it("passes jobId to DraftMaterialsCard", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(DRAFT_MATERIALS_TESTID)).toHaveTextContent(
 			MOCK_JOB_ID,
 		);
 	});

@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { CoverLetterSection } from "@/components/jobs/cover-letter-section";
+import { DraftMaterialsCard } from "@/components/jobs/draft-materials-card";
 import { CultureSignals } from "@/components/jobs/culture-signals";
 import { ExtractedSkillsTags } from "@/components/jobs/extracted-skills-tags";
 import { JobDescription } from "@/components/jobs/job-description";
@@ -71,6 +72,9 @@ export default function JobDetailPage() {
 					/>
 					<div className="mt-6">
 						<CoverLetterSection jobId={params.id} />
+					</div>
+					<div className="mt-6">
+						<DraftMaterialsCard jobId={params.id} />
 					</div>
 					<ExtractedSkillsTags skills={skillsData?.data} className="mt-4" />
 					<JobDescription description={job.description} className="mt-4" />
