@@ -28,6 +28,7 @@ import {
 	postCertificationResponse,
 	postEducationResponse,
 	postSkillResponse,
+	postStoryResponse,
 	postWorkHistoryResponse,
 	resolvedChangeFlagResponse,
 	skillsList,
@@ -37,12 +38,13 @@ import {
 
 // Re-export IDs so spec files can import from a single source
 export {
+	BASE_RESUME_IDS,
 	CERT_ID,
 	CHANGE_FLAG_IDS,
-	BASE_RESUME_IDS,
 	EDUCATION_ID,
 	PERSONA_ID,
 	SKILL_IDS,
+	STORY_IDS,
 	WORK_HISTORY_IDS,
 } from "../fixtures/persona-update-mock-data";
 
@@ -304,11 +306,28 @@ export class PersonaUpdateMockController {
 				}
 				return this.json(route, this.filterDeleted(certificationsList()));
 
-			case "achievement-stories":
+			case "achievement-stories": {
+				if (method === "POST") {
+					const body = route.request().postDataJSON() as Record<
+						string,
+						unknown
+					>;
+					return this.json(route, postStoryResponse(body), 201);
+				}
 				return this.json(route, this.filterDeleted(achievementStoriesList()));
+			}
 
-			case "voice-profile":
+			case "voice-profile": {
+				if (method === "PATCH") {
+					const body = route.request().postDataJSON() as Record<
+						string,
+						unknown
+					>;
+					const current = voiceProfileResponse().data;
+					return this.json(route, { data: { ...current, ...body } });
+				}
 				return this.json(route, voiceProfileResponse());
+			}
 
 			case "custom-non-negotiables":
 				return this.json(route, customNonNegotiablesList());
@@ -436,7 +455,20 @@ export async function setupChangeFlagsResolverMocks(
 
 /**
  * Set up mocks for persona sub-entity CRUD editors (work history, education,
- * certifications). Supports POST (add), DELETE (remove), and reference check.
- * Identical to overview mocks; separated for semantic clarity.
+ * certifications, achievement stories). Supports POST (add), DELETE (remove),
+ * and reference check. Identical to overview mocks; separated for semantic
+ * clarity.
  */
 export const setupPersonaEditorCrudMocks = setupPersonaOverviewMocks;
+
+/**
+ * Set up mocks for achievement stories editor — stories CRUD + skill tags.
+ * Identical to overview mocks; separated for semantic clarity.
+ */
+export const setupAchievementStoriesEditorMocks = setupPersonaOverviewMocks;
+
+/**
+ * Set up mocks for voice profile editor — form pre-fill + PATCH save.
+ * Identical to overview mocks; separated for semantic clarity.
+ */
+export const setupVoiceProfileEditorMocks = setupPersonaOverviewMocks;

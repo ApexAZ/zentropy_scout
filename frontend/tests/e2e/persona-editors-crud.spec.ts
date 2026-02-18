@@ -1,9 +1,10 @@
 /**
  * E2E tests for persona sub-entity CRUD editors.
  *
- * REQ-012 §7.2: Post-onboarding editors for work history, education, and
- * certifications with add/delete support. Each editor uses the
- * delete-with-references flow (reference check → DELETE).
+ * REQ-012 §7.2: Post-onboarding editors for work history, education,
+ * certifications, achievement stories, and voice profile with add/delete
+ * support. CRUD editors use the delete-with-references flow
+ * (reference check → DELETE).
  * All API calls are mocked via Playwright's page.route() — no real backend.
  */
 
@@ -13,9 +14,13 @@ import {
 	CERT_ID,
 	EDUCATION_ID,
 	PERSONA_ID,
+	setupAchievementStoriesEditorMocks,
 	setupPersonaEditorCrudMocks,
+	setupVoiceProfileEditorMocks,
+	STORY_IDS,
 	WORK_HISTORY_IDS,
 } from "../utils/persona-update-api-mocks";
+import { removeDevToolsOverlay } from "../utils/playwright-helpers";
 
 // ---------------------------------------------------------------------------
 // A. Work History Editor (3 tests)
@@ -246,5 +251,152 @@ test.describe("Certification Editor", () => {
 		await expect(
 			page.getByRole("button", { name: "Delete AWS Solutions Architect" }),
 		).not.toBeAttached();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// D. Achievement Stories Editor (3 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("Achievement Stories Editor", () => {
+	test("displays achievement stories with skill tags", async ({ page }) => {
+		await setupAchievementStoriesEditorMocks(page);
+		await page.goto("/persona/achievement-stories");
+
+		// Mock data: 3 stories — verify titles visible (use heading role to
+		// avoid strict mode violations from action text containing the title)
+		await expect(
+			page.getByRole("heading", { name: "Microservices Migration" }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: "Mentoring Program" }),
+		).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: "Real-time Pipeline" }),
+		).toBeVisible();
+
+		// Skill tags should be resolved and displayed on story cards
+		await expect(page.getByText("TypeScript")).toBeVisible();
+		await expect(page.getByText("Leadership")).toBeVisible();
+	});
+
+	test("add a new story via form", async ({ page }) => {
+		await setupAchievementStoriesEditorMocks(page);
+		await page.goto("/persona/achievement-stories");
+
+		await page.getByRole("button", { name: "Add story" }).click();
+		await expect(page.getByTestId("story-form")).toBeVisible();
+
+		// Fill required fields
+		await page.getByLabel("Story Title").fill("API Redesign");
+		await page
+			.getByLabel("Context")
+			.fill("Legacy REST API was hard to maintain");
+		await page.getByLabel("What did you do?").fill("Led full API redesign");
+		await page.getByLabel("Outcome").fill("50% fewer support tickets");
+
+		// Listen for POST
+		const postPromise = page.waitForResponse(
+			(res) =>
+				res.url().includes(`/personas/${PERSONA_ID}/achievement-stories`) &&
+				!res.url().includes("/references") &&
+				res.request().method() === "POST",
+		);
+
+		await page.getByRole("button", { name: "Save" }).click();
+
+		const response = await postPromise;
+		expect(response.status()).toBe(201);
+
+		// Form should disappear
+		await expect(page.getByTestId("story-form")).not.toBeVisible();
+	});
+
+	test("delete a story", async ({ page }) => {
+		await setupAchievementStoriesEditorMocks(page);
+		await page.goto("/persona/achievement-stories");
+
+		// Verify entry exists
+		await expect(page.getByText("Microservices Migration")).toBeVisible();
+
+		// Listen for DELETE
+		const deletePromise = page.waitForResponse(
+			(res) =>
+				res
+					.url()
+					.includes(
+						`/personas/${PERSONA_ID}/achievement-stories/${STORY_IDS[0]}`,
+					) &&
+				!res.url().includes("/references") &&
+				res.request().method() === "DELETE",
+		);
+
+		// aria-label is "Delete ${entry.title}"
+		await page
+			.getByRole("button", { name: "Delete Microservices Migration" })
+			.click();
+
+		const response = await deletePromise;
+		expect(response.status()).toBe(204);
+
+		// Card's delete button should be gone
+		await expect(
+			page.getByRole("button", { name: "Delete Microservices Migration" }),
+		).not.toBeAttached();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// E. Voice Profile Editor (2 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("Voice Profile Editor", () => {
+	test("displays pre-filled voice profile form", async ({ page }) => {
+		await setupVoiceProfileEditorMocks(page);
+		await page.goto("/persona/voice-profile");
+
+		// Form should be visible with pre-filled values from mock data
+		await expect(page.getByTestId("voice-profile-editor-form")).toBeVisible();
+		await expect(page.getByLabel("Tone")).toHaveValue(
+			"Direct, confident, avoids buzzwords",
+		);
+		await expect(page.getByLabel("Style")).toHaveValue(
+			"Short sentences, active voice",
+		);
+		await expect(page.getByLabel("Vocabulary")).toHaveValue(
+			"Technical when relevant, plain otherwise",
+		);
+	});
+
+	test("saves voice profile changes", async ({ page }) => {
+		await setupVoiceProfileEditorMocks(page);
+		await page.goto("/persona/voice-profile");
+
+		// Wait for form to be populated
+		await expect(page.getByLabel("Tone")).toHaveValue(
+			"Direct, confident, avoids buzzwords",
+		);
+
+		// Modify tone field
+		await page.getByLabel("Tone").fill("Casual and approachable");
+
+		// Remove TanStack Query devtools — its floating toggle SVG at the page
+		// bottom intercepts pointer events on the Save button
+		await removeDevToolsOverlay(page);
+
+		// Listen for PATCH
+		const patchPromise = page.waitForResponse(
+			(res) =>
+				res.url().includes(`/personas/${PERSONA_ID}/voice-profile`) &&
+				res.request().method() === "PATCH",
+		);
+
+		await page.getByRole("button", { name: "Save" }).click();
+
+		const response = await patchPromise;
+		expect(response.status()).toBe(200);
+
+		// Success message should appear
+		await expect(page.getByTestId("save-success")).toBeVisible();
 	});
 });

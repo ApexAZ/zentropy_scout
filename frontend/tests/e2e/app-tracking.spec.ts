@@ -7,7 +7,6 @@
  */
 
 import { expect, test } from "@playwright/test";
-import type { Page } from "@playwright/test";
 
 import {
 	APP_IDS,
@@ -17,17 +16,7 @@ import {
 	setupRejectedAppMocks,
 	setupTimelineAppMocks,
 } from "../utils/app-tracking-api-mocks";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Remove React Query DevTools overlay (fixed-positioned, blocks clicks on lower elements). */
-async function removeDevToolsOverlay(page: Page): Promise<void> {
-	await page.evaluate(() => {
-		document.querySelector(".tsqd-parent-container")?.remove();
-	});
-}
+import { removeDevToolsOverlay } from "../utils/playwright-helpers";
 
 // ---------------------------------------------------------------------------
 // Shared constants
