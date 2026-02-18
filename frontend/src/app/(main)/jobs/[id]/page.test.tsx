@@ -3,7 +3,7 @@
  *
  * Verifies guard clause, prop passthrough to JobDetailHeader,
  * FitScoreBreakdown, StretchScoreBreakdown, ScoreExplanation,
- * CoverLetterSection, DraftMaterialsCard, ExtractedSkillsTags,
+ * CoverLetterSection, DraftMaterialsCard, ReviewMaterialsLink, ExtractedSkillsTags,
  * JobDescription, CultureSignals, and MarkAsAppliedCard rendering
  * when job data is available.
  */
@@ -34,6 +34,7 @@ const DESCRIPTION_TESTID = "job-description-stub";
 const CULTURE_TESTID = "culture-signals-stub";
 const COVER_LETTER_SECTION_TESTID = "cover-letter-section-stub";
 const DRAFT_MATERIALS_TESTID = "draft-materials-stub";
+const REVIEW_MATERIALS_TESTID = "review-materials-stub";
 const MARK_AS_APPLIED_TESTID = "mark-as-applied-stub";
 const ONBOARDED_STATUS = { status: "onboarded", persona: { id: "p-1" } };
 
@@ -161,12 +162,21 @@ function MockDraftMaterialsCard({ jobId }: { jobId: string }) {
 }
 MockDraftMaterialsCard.displayName = "MockDraftMaterialsCard";
 
+function MockReviewMaterialsLink({ jobId }: { jobId: string }) {
+	return <div data-testid={REVIEW_MATERIALS_TESTID}>{jobId}</div>;
+}
+MockReviewMaterialsLink.displayName = "MockReviewMaterialsLink";
+
 vi.mock("@/components/jobs/cover-letter-section", () => ({
 	CoverLetterSection: MockCoverLetterSection,
 }));
 
 vi.mock("@/components/jobs/draft-materials-card", () => ({
 	DraftMaterialsCard: MockDraftMaterialsCard,
+}));
+
+vi.mock("@/components/jobs/review-materials-link", () => ({
+	ReviewMaterialsLink: MockReviewMaterialsLink,
 }));
 
 vi.mock("@/components/jobs/mark-as-applied-card", () => ({
@@ -442,6 +452,34 @@ describe("JobDetailPage", () => {
 		render(<JobDetailPage />);
 
 		expect(screen.getByTestId(DRAFT_MATERIALS_TESTID)).toHaveTextContent(
+			MOCK_JOB_ID,
+		);
+	});
+
+	// -----------------------------------------------------------------------
+	// ReviewMaterialsLink
+	// -----------------------------------------------------------------------
+
+	it("does not render ReviewMaterialsLink when data is loading", () => {
+		render(<JobDetailPage />);
+
+		expect(
+			screen.queryByTestId(REVIEW_MATERIALS_TESTID),
+		).not.toBeInTheDocument();
+	});
+
+	it("renders ReviewMaterialsLink when job data is available", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(REVIEW_MATERIALS_TESTID)).toBeInTheDocument();
+	});
+
+	it("passes jobId to ReviewMaterialsLink", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(REVIEW_MATERIALS_TESTID)).toHaveTextContent(
 			MOCK_JOB_ID,
 		);
 	});
