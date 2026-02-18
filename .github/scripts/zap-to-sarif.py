@@ -76,12 +76,17 @@ def parse_rules_tsv(tsv_path: str) -> set[str]:
     return ignored
 
 
-def convert(zap_json: dict, ignored_rules: set[str] | None = None) -> dict:
+def convert(
+    zap_json: dict, ignored_rules: set[str] | None = None
+) -> tuple[dict, int]:
     """Convert ZAP JSON report to SARIF 2.1.0 format.
 
     Args:
         zap_json: Parsed ZAP Traditional JSON report.
         ignored_rules: Rule IDs to exclude from SARIF output.
+
+    Returns:
+        Tuple of (SARIF dict, number of skipped alert instances).
     """
     if ignored_rules is None:
         ignored_rules = set()
@@ -160,8 +165,7 @@ def convert(zap_json: dict, ignored_rules: set[str] | None = None) -> dict:
             }
         ],
     }
-    sarif["_skipped"] = skipped
-    return sarif
+    return sarif, skipped
 
 
 def main() -> None:
@@ -188,14 +192,13 @@ def main() -> None:
         print(f"Error: Invalid JSON in {input_path}: {exc}")
         sys.exit(1)
 
-    sarif = convert(zap_data, ignored_rules=ignored_rules)
+    sarif, skipped_count = convert(zap_data, ignored_rules=ignored_rules)
 
     with open(output_path, "w") as f:
         json.dump(sarif, f, indent=2)
 
     alert_count = len(sarif["runs"][0]["results"])
     rule_count = len(sarif["runs"][0]["tool"]["driver"]["rules"])
-    skipped_count = sarif.get("_skipped", 0)
     msg = f"Converted {alert_count} findings ({rule_count} rules) to {output_path}"
     if skipped_count:
         msg += f" (filtered {skipped_count} ignored)"
