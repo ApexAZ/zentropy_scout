@@ -543,7 +543,7 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 
 ## Phase 14: E2E Test Coverage Expansion
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Fill E2E coverage gaps from audit. Route coverage 45% (10/22) → target 90%+. Priority: resume/cover letter/ghostwriter pipeline, then applications, add job, persona editors, settings, navigation.*
 
@@ -573,7 +573,7 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 | 11 | Settings page E2E — fixtures, mock controller, ~5 tests (job source toggles, grayed inactive, agent config table) | `playwright, e2e, tdd, plan` | ✅ |
 | 12 | Navigation + error states + toast E2E — ~8 tests (nav traversal, badge count, FailedState, toast after mutation) | `playwright, e2e, tdd, plan` | ✅ |
 | 13 | Bolster qa-reviewer + code-reviewer for test housecleaning — add stale test detection, orphan cleanup, and test-update recommendations to subagent instructions | `plan` | ✅ |
-| 14 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ⬜ |
+| 14 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ✅ |
 
 ---
 
