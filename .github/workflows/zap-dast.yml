@@ -4,11 +4,19 @@ name: OWASP ZAP DAST
 # a full server + database + ZAP Docker container, taking 5-10+ minutes.
 # SAST (Semgrep, Bandit) and SCA (pip-audit, npm audit) catch PR-level
 # issues; DAST validates the running application post-merge.
+#
+# Path filter: only runs when backend API code or ZAP config changes.
+# Frontend-only, docs-only, and plan-only pushes skip this workflow.
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/zap-dast.yml'
+      - '.github/zap-rules.tsv'
+      - '.github/scripts/zap-to-sarif.py'
 
 jobs:
   zap-api-scan:
