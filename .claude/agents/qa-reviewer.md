@@ -117,6 +117,8 @@ Tests live at `frontend/tests/e2e/`. Always check these before recommending new 
 | `resume.spec.ts` | Resume list, cards, archive, wizard | `resume-api-mocks` |
 | `resume-detail.spec.ts` | Resume detail, PDF render, edit summary | `resume-api-mocks` |
 | `variant-review.spec.ts` | Side-by-side diff, move indicators, approve | `resume-api-mocks` |
+| `cover-letter-review.spec.ts` | Cover letter review, edit body, word count, validation, approve, PDF download | `cover-letter-api-mocks` |
+| `ghostwriter-review.spec.ts` | Unified review tabs, approve both/individual, error blocking, empty state | `ghostwriter-api-mocks` |
 | `settings.spec.ts` | Job source toggles, agent config, about section | `settings-api-mocks` |
 | `navigation.spec.ts` | Nav links, active highlight, badges, error states, toast | `job-discovery-api-mocks`, `settings-api-mocks` |
 | `accessibility.spec.ts` | A11y compliance (axe-core) | `job-discovery-api-mocks` |

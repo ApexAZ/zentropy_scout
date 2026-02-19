@@ -48,8 +48,6 @@ zentropy_scout/
 └── frontend/                    # Next.js app
 ```
 
-**For detailed module organization, the `zentropy-structure` skill will auto-load.**
-
 ---
 
 ## Implementation Phases
@@ -64,7 +62,7 @@ zentropy_scout/
 | **2.x** | Agent Framework | REQ-007 (8 sub-phases) |
 | **3.x** | Document Generation | REQ-002, REQ-002b, REQ-010 |
 
-### Frontend (Phases 1–12 ✅ complete, Phase 13 in progress)
+### Frontend (all ✅ complete)
 
 | Phase | Focus | Key REQs |
 |-------|-------|----------|
@@ -367,7 +365,6 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `reflect` | remember this, add lesson, mistake, never again | Self-improvement, captures lessons |
 | `config-sync` | update documentation, sync config, changed .claude/ | Keeps CLAUDE_TOOLS.md in sync |
 | `zentropy-planner` | plan, progress, status, resume, complete, phase, create a plan | Plan creation (format, hints, sizing) + progress tracking |
-| `frontend-req-tracker` | frontend, REQ-012, frontend requirements, frontend plan | Updates frontend_requirements_plan.md after subtasks |
 
 ---
 
@@ -420,7 +417,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ## Current Status
 
-**Phase:** Frontend Phase 15 complete. No active phase.
+**Phase:** All phases complete. No active phase.
 **Backend:** All phases complete (1.1–3.2). Chrome Extension (4.1) postponed.
 **Frontend:** Phases 1–15 complete.
 **Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
