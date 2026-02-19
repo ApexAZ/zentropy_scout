@@ -154,10 +154,10 @@ The net effect is **less code, fewer dependencies, and simpler debugging** compa
 
 ## Decision
 
-**Pending user approval.** Recommend proceeding with Option C (custom implementation).
+**Approved (2026-02-19).** Proceeding with Option C (custom implementation).
 
-If approved, the auth implementation plan will be updated to reflect:
-1. No `next-auth` or `@auth/pg-adapter` dependencies
-2. OAuth endpoints added to FastAPI (Phase 1)
-3. Phase 2 simplified to custom SessionProvider + forms + middleware
+Changes applied:
+1. REQ-013 rewritten (v0.5) — all Auth.js references removed, custom FastAPI auth throughout
+2. OAuth + magic link endpoints added to Phase 1 (§7, §8)
+3. Phase 2 rewritten for custom SessionProvider + forms + middleware (no `next-auth` dependency)
 4. All auth logic centralized in FastAPI
