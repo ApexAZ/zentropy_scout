@@ -202,9 +202,9 @@ Run these checks at the start of every session (before any implementation work):
    - **Semgrep CI**: `gh run list --workflow=semgrep.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
    - **Dependency audits** (pip-audit + npm audit): `gh run list --workflow=pip-audit.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
    - **Known/expected findings** (do NOT pause for these — only pause if count changes):
-     - 6 Trivy CVEs in `gosu` binary (Go stdlib v1.24.6) inside pgvector Docker image — waiting on upstream rebuild. CVEs: CVE-2025-68121, CVE-2025-58183, CVE-2025-61726, CVE-2025-61728, CVE-2025-61729, CVE-2025-61730. If count drops below 6, upstream fix may have landed — notify user to update pinned SHA in `zap-dast.yml`.
-     - 1 Semgrep supply chain finding: ajv ReDoS (GHSA-2g4f-4pwh-qvx6) — ESLint pins ajv@6.x, fix only in ajv@8.18.0+. ESLint team declined to upgrade. Dev-only, zero production risk. Also accepted in npm audit (`pip-audit.yml:90`). Waiting on ESLint upstream.
-     - 1 npm audit finding: minimatch ReDoS (GHSA-3ppc-4f35-3m26) — ESLint ecosystem pins minimatch<10.2.1. Dev-only, zero production risk. Accepted in npm audit (`pip-audit.yml:90`). Waiting on ESLint upstream.
+     - 4 Semgrep supply chain findings (all dev-only transitive deps, zero production risk):
+       - ajv@6.12.6 ReDoS (CVE-2025-69873, GHSA-2g4f-4pwh-qvx6) — via ESLint. ESLint doesn't use the `$data` option that triggers the CVE. Issue [#20508](https://github.com/eslint/eslint/issues/20508) open/triaging, no fix planned. ESLint stance: "security issues like this don't usually affect ESLint" ([#14863](https://github.com/eslint/eslint/issues/14863)). Also accepted in npm audit (`pip-audit.yml:90`).
+       - minimatch@3.1.2, @9.0.5, @10.1.2 ReDoS (CVE-2026-26996, GHSA-3ppc-4f35-3m26) — 3 findings via ESLint + shadcn CLI. Fixed in ESLint v10 (PR merged), but blocked for v9 — waiting on minimatch v3 backport. Issue [#20518](https://github.com/eslint/eslint/issues/20518) marked "Blocked." Also accepted in npm audit (`pip-audit.yml:90`).
 3. **Implementation plan** — Read `docs/plan/frontend_implementation_plan.md` (or `implementation_plan.md` for backend) to find the current task (first 🟡 or ⬜).
 4. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker + scanner status.
 
