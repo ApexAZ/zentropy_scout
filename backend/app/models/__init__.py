@@ -5,6 +5,9 @@ All models are exported from this module for convenient imports:
 
 Models are organized by domain:
 - user.py: User (Tier 0)
+- account.py: Account (Tier 1 - auth)
+- session.py: Session (Tier 1 - auth)
+- verification_token.py: VerificationToken (Tier 0 - auth, composite PK)
 - job_source.py: JobSource, UserSourcePreference, PollingConfiguration
 - persona.py: Persona (Tier 1)
 - persona_content.py: WorkHistory, Bullet, Skill, Education, Certification, AchievementStory
@@ -15,6 +18,7 @@ Models are organized by domain:
 - application.py: Application, TimelineEvent
 """
 
+from app.models.account import Account
 from app.models.application import Application, TimelineEvent
 from app.models.base import Base, EmbeddingColumnsMixin, SoftDeleteMixin, TimestampMixin
 from app.models.cover_letter import CoverLetter, SubmittedCoverLetterPDF
@@ -36,7 +40,9 @@ from app.models.persona_settings import (
     VoiceProfile,
 )
 from app.models.resume import BaseResume, JobVariant, ResumeFile, SubmittedResumePDF
+from app.models.session import Session
 from app.models.user import User
+from app.models.verification_token import VerificationToken
 
 __all__ = [
     # Base classes
@@ -46,7 +52,11 @@ __all__ = [
     "EmbeddingColumnsMixin",
     # Tier 0
     "User",
+    "VerificationToken",
     "JobSource",
+    # Tier 1 - Auth
+    "Account",
+    "Session",
     # Tier 1
     "Persona",
     # Tier 2 - Persona content

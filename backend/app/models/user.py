@@ -1,22 +1,41 @@
 """User model - authentication foundation.
 
 REQ-005 §4.0 - Tier 0, no FK dependencies.
+REQ-013 §6.1 - Expanded with auth columns.
 """
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String, func, text
+from sqlalchemy import String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.account import Account
+    from app.models.persona import Persona
+    from app.models.session import Session
+
+_DEFAULT_UUID = text("gen_random_uuid()")
+_CASCADE_ALL_DELETE_ORPHAN = "all, delete-orphan"
 
 
-class User(Base):
+class User(Base, TimestampMixin):
     """User account for authentication.
 
-    Minimal for MVP - just email. Future: password hash, OAuth, etc.
+    Attributes:
+        id: UUID primary key.
+        email: Unique email address.
+        name: Display name (populated from OAuth or registration).
+        email_verified: Timestamp when email was verified. NULL = unverified.
+        image: Profile picture URL from OAuth provider.
+        created_at: Account creation timestamp (from TimestampMixin).
+        updated_at: Last modification timestamp (from TimestampMixin).
+        password_hash: bcrypt hash. NULL for OAuth-only users.
+        token_invalidated_before: JWTs issued before this are rejected.
     """
 
     __tablename__ = "users"
@@ -24,26 +43,45 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     email: Mapped[str] = mapped_column(
         String(255),
         unique=True,
         nullable=False,
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
+    name: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    email_verified: Mapped[datetime | None] = mapped_column(
+        nullable=True,
+    )
+    image: Mapped[str | None] = mapped_column(
+        Text(),
+        nullable=True,
+    )
+    password_hash: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    token_invalidated_before: Mapped[datetime | None] = mapped_column(
+        nullable=True,
     )
 
     # Relationships
     personas: Mapped[list["Persona"]] = relationship(
         "Persona",
         back_populates="user",
-        cascade="all, delete-orphan",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )
-
-
-# Avoid circular import - Persona imported at runtime
-from app.models.persona import Persona  # noqa: E402, F401
+    accounts: Mapped[list["Account"]] = relationship(
+        "Account",
+        back_populates="user",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
+    )
+    sessions: Mapped[list["Session"]] = relationship(
+        "Session",
+        back_populates="user",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
+    )
