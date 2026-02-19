@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     applications,
+    auth,
     base_resumes,
     chat,
     cover_letters,
@@ -23,6 +24,12 @@ from app.api.v1 import (
 )
 
 router = APIRouter()
+
+# =============================================================================
+# Authentication (REQ-013)
+# =============================================================================
+
+router.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 # =============================================================================
 # Core Resource Routers
