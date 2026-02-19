@@ -19,7 +19,9 @@ import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.conftest import TEST_USER_ID
+from tests.conftest import TEST_USER_ID, create_test_jwt
+
+_OTHER_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000099")
 
 # =============================================================================
 # Fixtures for File Tests
@@ -429,19 +431,13 @@ class TestSubmittedResumePDFDownload:
         submitted_resume_pdf,
     ):
         """Another user cannot download someone else's submitted resume PDF."""
-        from app.core.config import settings
+        other_jwt = create_test_jwt(_OTHER_USER_ID)
 
-        other_user_id = uuid.UUID("00000000-0000-0000-0000-000000000099")
-        original_user_id = settings.default_user_id
-        settings.default_user_id = other_user_id
-
-        try:
-            response = await client.get(
-                f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf.id}/download"
-            )
-            assert response.status_code == 404
-        finally:
-            settings.default_user_id = original_user_id
+        response = await client.get(
+            f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf.id}/download",
+            cookies={"zentropy.session-token": other_jwt},
+        )
+        assert response.status_code == 404
 
     @pytest.mark.asyncio
     async def test_download_variant_other_users_pdf_returns_404(
@@ -450,19 +446,13 @@ class TestSubmittedResumePDFDownload:
         submitted_resume_pdf_variant,
     ):
         """Another user cannot download someone else's variant-sourced PDF."""
-        from app.core.config import settings
+        other_jwt = create_test_jwt(_OTHER_USER_ID)
 
-        other_user_id = uuid.UUID("00000000-0000-0000-0000-000000000099")
-        original_user_id = settings.default_user_id
-        settings.default_user_id = other_user_id
-
-        try:
-            response = await client.get(
-                f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf_variant.id}/download"
-            )
-            assert response.status_code == 404
-        finally:
-            settings.default_user_id = original_user_id
+        response = await client.get(
+            f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf_variant.id}/download",
+            cookies={"zentropy.session-token": other_jwt},
+        )
+        assert response.status_code == 404
 
     @pytest.mark.asyncio
     async def test_download_not_found(

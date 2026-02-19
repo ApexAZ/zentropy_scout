@@ -2,10 +2,13 @@ import asyncio
 import socket
 import uuid
 from collections.abc import AsyncGenerator, Iterator
+from datetime import UTC, datetime, timedelta
 
+import jwt
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -26,6 +29,39 @@ TEST_DATABASE_URL = settings.database_url.replace(
 
 # Test user ID (consistent across tests for predictable auth)
 TEST_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+
+# Test auth configuration (REQ-013 §7.1)
+# Security: This is a test-only secret. Production uses a real secret from env.
+TEST_AUTH_SECRET = "test-secret-key-that-is-at-least-32-characters-long"  # nosec B105  # gitleaks:allow
+
+
+def create_test_jwt(
+    user_id: uuid.UUID = TEST_USER_ID,
+    *,
+    secret: str = TEST_AUTH_SECRET,
+    expires_delta: timedelta | None = None,
+    iat: datetime | None = None,
+) -> str:
+    """Create a signed JWT for test authentication.
+
+    Args:
+        user_id: User UUID to encode in the sub claim.
+        secret: Signing secret (must match settings.auth_secret in tests).
+        expires_delta: Time until expiration. Defaults to 1 hour.
+        iat: Issued-at time. Defaults to now.
+
+    Returns:
+        Encoded JWT string.
+    """
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(user_id),
+        "aud": "zentropy-scout",
+        "iss": "zentropy-scout",
+        "exp": now + (expires_delta or timedelta(hours=1)),
+        "iat": iat or now,
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")
 
 
 def _is_postgres_available() -> bool:
@@ -154,7 +190,7 @@ def mock_embedding() -> Iterator[MockEmbeddingProvider]:
 
 
 # =============================================================================
-# API Test Fixtures (REQ-006)
+# API Test Fixtures (REQ-006, REQ-013)
 # =============================================================================
 
 
@@ -253,12 +289,13 @@ async def client(
 ) -> AsyncGenerator[AsyncClient, None]:
     """Async HTTP client for authenticated API tests.
 
-    REQ-006 §6.1: Sets up test database and DEFAULT_USER_ID for auth.
+    REQ-013 §7.1: Uses JWT cookie for authentication (hosted mode).
+    Enables auth_enabled=True and injects a valid JWT for TEST_USER_ID.
 
     Sets up:
     - Test database connection via dependency override
-    - DEFAULT_USER_ID for local-first auth
-    - httpx.AsyncClient with ASGI transport
+    - JWT auth with test secret
+    - httpx.AsyncClient with ASGI transport + auth cookie
 
     Args:
         db_engine: Test database engine from db_engine fixture.
@@ -267,7 +304,7 @@ async def client(
         test_job_source: Test job source (ensures source exists).
 
     Yields:
-        Configured AsyncClient for making API requests.
+        Configured AsyncClient for making authenticated API requests.
     """
     from app.core.database import get_db
     from app.main import app
@@ -286,41 +323,74 @@ async def client(
 
     app.dependency_overrides[get_db] = override_get_db
 
-    # Set test user ID in settings for auth
-    original_user_id = settings.default_user_id
-    settings.default_user_id = TEST_USER_ID
+    # Enable JWT auth with test secret
+    original_auth_enabled = settings.auth_enabled
+    original_auth_secret = settings.auth_secret
+    settings.auth_enabled = True
+    settings.auth_secret = SecretStr(TEST_AUTH_SECRET)
 
-    # Create async client
+    # Generate valid JWT for test user
+    test_jwt = create_test_jwt(TEST_USER_ID)
+
+    # Create async client with auth cookie
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        cookies={settings.auth_cookie_name: test_jwt},
+    ) as ac:
         yield ac
 
     # Cleanup
-    settings.default_user_id = original_user_id
+    settings.auth_enabled = original_auth_enabled
+    settings.auth_secret = original_auth_secret
     app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture
-async def unauthenticated_client() -> AsyncGenerator[AsyncClient, None]:
+async def unauthenticated_client(db_engine) -> AsyncGenerator[AsyncClient, None]:
     """Async HTTP client without authentication.
 
-    REQ-006 §6.1: For testing 401 responses when auth is required.
+    REQ-013 §7.1: For testing 401 responses when auth is required.
+    Auth is enabled but no JWT cookie is provided.
+
+    Args:
+        db_engine: Test database engine (needed for DB override).
 
     Yields:
-        AsyncClient with no DEFAULT_USER_ID configured.
+        AsyncClient with no auth cookie.
     """
+    from app.core.database import get_db
     from app.main import app
 
-    # Ensure no default user (unauthenticated)
-    original_user_id = settings.default_user_id
-    settings.default_user_id = None
+    # Create session factory for this test
+    test_session_factory = async_sessionmaker(
+        db_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    # Override get_db to use test database
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
+        async with test_session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    # Enable auth so missing cookie triggers 401
+    original_auth_enabled = settings.auth_enabled
+    original_auth_secret = settings.auth_secret
+    settings.auth_enabled = True
+    settings.auth_secret = SecretStr(TEST_AUTH_SECRET)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
-    # Restore original setting
-    settings.default_user_id = original_user_id
+    # Restore original settings
+    settings.auth_enabled = original_auth_enabled
+    settings.auth_secret = original_auth_secret
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(autouse=True)

@@ -44,6 +44,7 @@ dependencies = [
     # Security
     "python-magic>=0.4.27",  # File content validation via magic bytes
     "slowapi>=0.1.9",  # Rate limiting for API endpoints
+    "PyJWT>=2.8.0",  # JWT encode/decode for authentication (REQ-013 §7.1)
 
     # Logging
     "structlog>=24.1.0",

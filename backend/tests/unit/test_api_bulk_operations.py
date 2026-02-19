@@ -2,6 +2,10 @@
 
 REQ-006 §2.6: Bulk operations for efficiency.
 Tests the /bulk-dismiss, /bulk-favorite, and /bulk-archive endpoints.
+
+These tests use dependency overrides for auth (not JWT cookies) because they
+test request/response shapes without database setup. JWT auth integration
+is tested via the conftest.py client fixture in other test files.
 """
 
 import uuid
@@ -10,12 +14,12 @@ from collections.abc import AsyncGenerator
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
 
+from app.api.deps import get_current_user_id
 from app.core.config import settings
 from app.main import create_app
-
-# Test user ID for authenticated requests
-TEST_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+from tests.conftest import TEST_AUTH_SECRET, TEST_USER_ID
 
 
 @pytest.fixture
@@ -28,30 +32,41 @@ def app() -> FastAPI:
 async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Create authenticated async HTTP client for testing.
 
-    Sets DEFAULT_USER_ID to simulate authenticated user without
-    requiring database setup.
+    Overrides get_current_user_id to return TEST_USER_ID directly,
+    bypassing JWT validation. This avoids needing database setup
+    for tests that only verify request/response shapes.
     """
-    original_user_id = settings.default_user_id
-    settings.default_user_id = TEST_USER_ID
+
+    async def override_get_current_user_id() -> uuid.UUID:
+        return TEST_USER_ID
+
+    app.dependency_overrides[get_current_user_id] = override_get_current_user_id
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
-    settings.default_user_id = original_user_id
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
 async def unauthenticated_client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
-    """Create unauthenticated async HTTP client for testing."""
-    original_user_id = settings.default_user_id
-    settings.default_user_id = None
+    """Create unauthenticated async HTTP client for testing.
+
+    Auth is enabled but no JWT cookie provided — triggers 401 before
+    any DB query (cookie check is first in the validation chain).
+    """
+    original_auth_enabled = settings.auth_enabled
+    original_auth_secret = settings.auth_secret
+    settings.auth_enabled = True
+    settings.auth_secret = SecretStr(TEST_AUTH_SECRET)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
-    settings.default_user_id = original_user_id
+    settings.auth_enabled = original_auth_enabled
+    settings.auth_secret = original_auth_secret
 
 
 class TestBulkDismissJobPostings:
