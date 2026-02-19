@@ -1,17 +1,21 @@
 """Application configuration loaded from environment variables.
 
-REQ-006 §6.1: Settings for database, API, LLM providers, and authentication.
-Uses pydantic-settings for validation and .env file support.
+REQ-006 §6.1, REQ-013 §7.2, §11: Settings for database, API, LLM providers,
+and authentication. Uses pydantic-settings for validation and .env file support.
 """
 
 import uuid
+from typing import Literal
 
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Known insecure default password that must not be used in production
 # Security: Runtime check in check_production_security() prevents use in production
 _INSECURE_DEFAULT_PASSWORD = "zentropy_dev_password"  # nosec B105
+
+# Minimum length for AUTH_SECRET in production (256 bits = 32 bytes)
+_MIN_AUTH_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -28,7 +32,7 @@ class Settings(BaseSettings):
     database_port: int = 5432
     database_name: str = "zentropy_scout"
     database_user: str = "zentropy_user"
-    database_password: str = "zentropy_dev_password"
+    database_password: str = _INSECURE_DEFAULT_PASSWORD
 
     # API
     # 0.0.0.0 binds to all network interfaces (required for Docker containers)
@@ -40,6 +44,7 @@ class Settings(BaseSettings):
     # CORS (Security)
     # Default allows localhost:3000 for Next.js development
     # Production: Set ALLOWED_ORIGINS to specific domain(s)
+    # CRITICAL: Never set to ["*"] when allow_credentials=True (REQ-013 §7.6)
     allowed_origins: list[str] = ["http://localhost:3000"]
 
     # LLM Providers
@@ -51,11 +56,30 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
 
-    # Authentication (REQ-006 §6.1)
-    # Local-first mode: DEFAULT_USER_ID provides user context without token
-    # Future hosted mode: auth_enabled=True, JWT/session token required
+    # Authentication (REQ-013 §7.2)
+    # Local-first mode: DEFAULT_USER_ID provides user context without JWT
+    # Hosted mode: auth_enabled=True, JWT cookie required on every request
     default_user_id: uuid.UUID | None = None
     auth_enabled: bool = False
+    auth_secret: SecretStr = SecretStr("")
+    auth_issuer: str = "zentropy-scout"
+    auth_cookie_name: str = "zentropy.session-token"
+    auth_cookie_secure: bool = True
+    auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    auth_cookie_domain: str = ""
+
+    # OAuth Providers (REQ-013 §4.1–§4.2)
+    google_client_id: str = ""
+    google_client_secret: SecretStr = SecretStr("")
+    linkedin_client_id: str = ""
+    linkedin_client_secret: SecretStr = SecretStr("")
+
+    # Email (REQ-013 §4.4)
+    email_from: str = "noreply@zentropyscout.com"
+    resend_api_key: SecretStr = SecretStr("")
+
+    # Frontend URL (for OAuth redirect back to frontend)
+    frontend_url: str = "http://localhost:3000"
 
     # Rate Limiting (Security)
     # Limits LLM-calling endpoints to prevent abuse and cost explosion
@@ -85,16 +109,53 @@ class Settings(BaseSettings):
         """Validate production security requirements.
 
         Security: Prevents deployment with known insecure defaults.
+        Checks:
+        - Database password must not be the default in production
+        - AUTH_SECRET must be set and >= 32 chars when auth is enabled in production
+        - CORS must not use wildcard origin (incompatible with credentials)
+        - SameSite=None requires Secure flag (browser requirement)
         """
-        if (
-            self.environment == "production"
-            and self.database_password == _INSECURE_DEFAULT_PASSWORD
-        ):
+        # Cookie security invariant: SameSite=None requires Secure (all environments)
+        if self.auth_cookie_samesite == "none" and not self.auth_cookie_secure:
             msg = (
-                "Cannot use default database password in production. "
-                "Set DATABASE_PASSWORD environment variable to a secure value."
+                "AUTH_COOKIE_SECURE must be true when AUTH_COOKIE_SAMESITE=none. "
+                "Browsers reject SameSite=None cookies without the Secure flag."
             )
             raise ValueError(msg)
+
+        # CORS wildcard with credentials is invalid (all environments)
+        if "*" in self.allowed_origins:
+            msg = (
+                "ALLOWED_ORIGINS must not contain '*' (wildcard). "
+                "This application uses credentials (cookies) which are "
+                "incompatible with wildcard CORS origins."
+            )
+            raise ValueError(msg)
+
+        if self.environment == "production":
+            if self.database_password == _INSECURE_DEFAULT_PASSWORD:
+                msg = (
+                    "Cannot use default database password in production. "
+                    "Set DATABASE_PASSWORD environment variable to a secure value."
+                )
+                raise ValueError(msg)
+
+            if self.auth_enabled:
+                secret_value = self.auth_secret.get_secret_value()
+                if not secret_value:
+                    msg = (
+                        "AUTH_SECRET must be set when AUTH_ENABLED=true in production. "
+                        'Generate with: python -c "import secrets; '
+                        'print(secrets.token_hex(32))"'
+                    )
+                    raise ValueError(msg)
+                if len(secret_value) < _MIN_AUTH_SECRET_LENGTH:
+                    msg = (
+                        f"AUTH_SECRET must be at least {_MIN_AUTH_SECRET_LENGTH} "
+                        "characters for adequate security."
+                    )
+                    raise ValueError(msg)
+
         return self
 
 
