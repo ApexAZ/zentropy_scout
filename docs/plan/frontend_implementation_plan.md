@@ -579,7 +579,7 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 
 ## Phase 15: Materials Review Integration
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Wire CoverLetterReview and GhostwriterReview components into the app's page routing. These components were built in Phase 9 with full Vitest unit test coverage but never embedded into any navigable page. REQ-012 §10.1 says cover letters are "accessed from the job detail page" and §10.7 defines a unified ghostwriter review UI, but the spec doesn't assign routes or define navigation triggers (see REQ-012 §15.7–§15.9 for gap clarifications). This phase closes that gap.*
 
@@ -603,7 +603,7 @@ Phase 1 (Scaffold) ──► Phase 2 (Foundation)
 | 3 | Create ghostwriter review route or modal — wire GhostwriterReview into navigable surface after ghostwriter completes, tabbed resume variant + cover letter with unified approve actions (REQ-012 §10.7, §15.8) | `tdd, structure, plan` | ✅ |
 | 4 | Cover letter review E2E — mock controller, ~8 tests (edit body, word count, validation, approve, PDF download, agent reasoning, voice check) | `playwright, e2e, tdd, plan` | ✅ |
 | 5 | Ghostwriter review E2E — mock controller, ~6 tests (tabs, approve both, individual approve, error blocking, navigation) | `playwright, e2e, tdd, plan` | ✅ |
-| 6 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ⬜ |
+| 6 | Run full test suite (backend + frontend + E2E) — phase gate | `plan` | ✅ |
 
 ---
 

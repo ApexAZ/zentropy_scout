@@ -205,7 +205,8 @@ Run these checks at the start of every session (before any implementation work):
    - **Dependency audits** (pip-audit + npm audit): `gh run list --workflow=pip-audit.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
    - **Known/expected findings** (do NOT pause for these — only pause if count changes):
      - 6 Trivy CVEs in `gosu` binary (Go stdlib v1.24.6) inside pgvector Docker image — waiting on upstream rebuild. CVEs: CVE-2025-68121, CVE-2025-58183, CVE-2025-61726, CVE-2025-61728, CVE-2025-61729, CVE-2025-61730. If count drops below 6, upstream fix may have landed — notify user to update pinned SHA in `zap-dast.yml`.
-     - 1 Semgrep supply chain finding: ajv ReDoS (GHSA-2g4f-4pwh-qvx6) — ESLint pins ajv@6.x, fix only in ajv@8.18.0+. ESLint team declined to upgrade. Dev-only, zero production risk. Also accepted in npm audit (`pip-audit.yml:85`). Waiting on ESLint upstream.
+     - 1 Semgrep supply chain finding: ajv ReDoS (GHSA-2g4f-4pwh-qvx6) — ESLint pins ajv@6.x, fix only in ajv@8.18.0+. ESLint team declined to upgrade. Dev-only, zero production risk. Also accepted in npm audit (`pip-audit.yml:90`). Waiting on ESLint upstream.
+     - 1 npm audit finding: minimatch ReDoS (GHSA-3ppc-4f35-3m26) — ESLint ecosystem pins minimatch<10.2.1. Dev-only, zero production risk. Accepted in npm audit (`pip-audit.yml:90`). Waiting on ESLint upstream.
 3. **Implementation plan** — Read `docs/plan/frontend_implementation_plan.md` (or `implementation_plan.md` for backend) to find the current task (first 🟡 or ⬜).
 4. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker + scanner status.
 
@@ -419,9 +420,9 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ## Current Status
 
-**Phase:** Frontend Phase 15 (Materials Review Integration) — 6 tasks.
+**Phase:** Frontend Phase 15 complete. No active phase.
 **Backend:** All phases complete (1.1–3.2). Chrome Extension (4.1) postponed.
-**Frontend:** Phases 1–14 complete. Phase 15 in progress (§1–§6 ⬜).
+**Frontend:** Phases 1–15 complete.
 **Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
 
 **IMPORTANT:** After completing ANY subtask, update the relevant plan file status (⬜ → ✅). See `zentropy-planner` skill.
