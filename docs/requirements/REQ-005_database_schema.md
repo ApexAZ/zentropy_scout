@@ -19,7 +19,7 @@ This document consolidates all entity definitions from REQ-001 through REQ-004 i
 | REQ-001 Persona Schema | Persona, WorkHistory, Bullet, Skill, Education, Certification, AchievementStory, VoiceProfile, CustomNonNegotiable, PersonaEmbedding | 0.7 |
 | REQ-002 Resume Schema | ResumeFile, BaseResume, JobVariant, SubmittedResumePDF, PersonaChangeFlag | 0.7 |
 | REQ-002b Cover Letter Schema | CoverLetter, SubmittedCoverLetterPDF | 0.5 |
-| REQ-003 Job Posting Schema | JobSource, UserSourcePreference, JobPosting, ExtractedSkill, PollingConfiguration | 0.3 |
+| REQ-003 Job Posting Schema | JobSource, UserSourcePreference, JobPosting, ExtractedSkill, JobEmbedding, PollingConfiguration | 0.3 |
 | REQ-004 Application Schema | Application, TimelineEvent | 0.5 |
 
 ---
@@ -99,6 +99,7 @@ erDiagram
     Persona ||--o{ JobPosting : "discovered_for"
 
     JobPosting ||--o{ ExtractedSkill : "has"
+    JobPosting ||--o{ JobEmbedding : "has"
     JobPosting }o--o{ JobPosting : "previous_posting"
 
     %% ============================================
@@ -694,6 +695,30 @@ Skills extracted from job posting for matching.
 
 ---
 
+#### JobEmbedding
+
+Vector embeddings for job matching. Stores requirements and culture embeddings for cosine similarity searches against persona embeddings. Follows the same `EmbeddingColumnsMixin` pattern as `PersonaEmbedding`.
+
+| Column | Type | Nullable | Default | Constraints |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | gen_random_uuid() | PK |
+| job_posting_id | UUID | NO | | FK → JobPosting ON DELETE CASCADE |
+| embedding_type | VARCHAR(20) | NO | | CHECK (requirements, culture) |
+| vector | VECTOR(1536) | NO | | The embedding vector |
+| model_name | VARCHAR(100) | NO | | e.g., "text-embedding-3-small" |
+| model_version | VARCHAR(50) | NO | | e.g., "2024-01" |
+| source_hash | VARCHAR(64) | NO | | Hash of source data (to detect staleness) |
+| created_at | TIMESTAMPTZ | NO | now() | |
+
+**Indexes:**
+- `idx_jobembedding_jobposting` on (job_posting_id)
+- `idx_jobembedding_type` on (job_posting_id, embedding_type)
+- `idx_jobembedding_vector` using ivfflat on (vector) — for similarity search
+
+**Note:** Requires pgvector extension. Shares column structure with PersonaEmbedding (§4.1) via code-level mixin (`EmbeddingColumnsMixin`). `embedding_type` values differ: persona uses (hard_skills, soft_skills, logistics), job uses (requirements, culture).
+
+---
+
 ### 4.5 Application Domain (REQ-004)
 
 #### Application
@@ -950,6 +975,7 @@ Due to foreign key dependencies, tables must be created in this order:
    - Bullet (WorkHistory)
    - JobVariant (BaseResume, JobPosting)
    - ExtractedSkill (JobPosting)
+   - JobEmbedding (JobPosting)
    - CoverLetter (Persona, JobPosting)
 
 5. **Tier 4 (Application dependencies):**
@@ -995,3 +1021,4 @@ Application ↔ SubmittedResumePDF has bidirectional FKs:
 | 2025-01-25 | 0.8 | Updated source document version references in §1.1 and §2.1 to match current versions after coherence audit completion. |
 | 2026-01-25 | 0.9 | Added `rendered_document` (BYTEA) and `rendered_at` (TIMESTAMPTZ) to BaseResume table. BaseResume now stores actual PDF as anchor document to prevent formatting/style drift. Updated REQ-002 version reference to 0.7. |
 | 2026-01-25 | 0.10 | Added §4.0 User table (auth foundation). Added `job_snapshot` (JSONB) to Application table. Added job_snapshot schema to §5.4. Updated REQ-004 version reference to 0.5. |
+| 2026-02-18 | 0.11 | Added JobEmbedding table to §4.4 (was implemented in code but missing from spec). Added to ERD, source document list, and migration tier 3. |

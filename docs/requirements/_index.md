@@ -33,6 +33,9 @@ PRD Section (Why) → Requirement (What) → Implementation (GitHub Issues)
 | §4.4 Ghostwriter | [REQ-010](./REQ-010_content_generation.md) Content Generation v0.1 | 🟢 Complete |
 | §4.2 Scouter (Manual) | [REQ-011](./REQ-011_chrome_extension.md) Chrome Extension v0.1 | 🟢 Complete |
 | §7 Frontend Application | [REQ-012](./REQ-012_frontend_application.md) Frontend Application v0.1 | 🟢 Complete |
+| §5 Architecture | [REQ-013](./REQ-013_authentication.md) Authentication & Account Management v0.1 | 🔴 Not Started |
+| §5 Architecture, §6 Data Strategy | [REQ-014](./REQ-014_multi_tenant.md) Multi-Tenant Data Isolation v0.1 | 🔴 Not Started |
+| §4.2 Scouter, §6 Data Strategy | [REQ-015](./REQ-015_shared_job_pool.md) Shared Job Pool v0.1 | 🔴 Not Started |
 
 ---
 
@@ -69,6 +72,17 @@ REQ-011 Chrome Extension
 
 REQ-012 Frontend Application
     └── depends on: REQ-001 through REQ-010 (all backend specs)
+
+REQ-013 Authentication & Account Management
+    └── depends on: REQ-005 (users table), REQ-006 (API auth pattern §6.2)
+
+REQ-014 Multi-Tenant Data Isolation
+    └── depends on: REQ-005 (entity relationships), REQ-006 (endpoint inventory),
+                     REQ-007 (agent state), REQ-013 (authenticated user_id)
+
+REQ-015 Shared Job Pool
+    └── depends on: REQ-003 (job posting schema), REQ-005 (entity relationships),
+                     REQ-007 (Scouter agent), REQ-008 (scoring), REQ-014 (tier classification)
 ```
 
 ---
@@ -116,13 +130,18 @@ REQ-012 Frontend Application
 
 **Requirements Phase: ✅ COMPLETE**
 
-All 13 requirement documents drafted and reviewed (REQ-001 through REQ-012).
+All 16 requirement documents drafted and reviewed (REQ-001 through REQ-015).
 
 **Backend Implementation Phase: ✅ COMPLETE**
 
 Phases 1.1–3.2 implemented. Phase 4.1 (Chrome Extension) postponed.
 
-**Frontend Implementation Phase: 🔴 NOT STARTED**
+**Frontend Implementation Phase: ✅ COMPLETE**
 
-1. **Create frontend implementation plan** — Break REQ-012 into implementation tasks
-2. **Begin implementation** — Start with Next.js scaffold and shared components
+Phases 1–15 implemented. See `docs/plan/frontend_implementation_plan.md`.
+
+**Authentication & Multi-Tenant Phase: 🔴 NOT STARTED**
+
+1. **REQ-013** → Authentication (Auth.js v5, Google/LinkedIn OAuth, Magic Link)
+2. **REQ-014** → Multi-tenant data isolation (ownership enforcement, cross-tenant tests)
+3. **REQ-015** → Shared job pool (schema split, global dedup, cross-user surfacing)

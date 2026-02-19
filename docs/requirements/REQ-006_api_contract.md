@@ -384,7 +384,7 @@ This ensures consistency — every download returns the exact same document that
 | `personas/{id}/custom-non-negotiables` | CRUD | Custom filters (e.g., "No Amazon subsidiaries") |
 | `base-resumes` | CRUD | Filtered by current user's persona |
 | `job-variants` | CRUD | |
-| `job-postings` | CRUD | Standard job posting operations |
+| `job-postings` | CRUD | Shared pool + per-user link. See REQ-015 §9.1 for response shape. |
 | `job-postings/ingest` | POST | Chrome extension submits raw job text for parsing (see §5.6) |
 | `job-postings/{id}/extracted-skills` | Read | Extracted by Scouter, read-only for clients |
 | `applications` | CRUD | |
@@ -595,12 +595,15 @@ Chrome Extension                    API                          Scouter Service
 - `DEFAULT_USER_ID` env var provides user context
 - All requests implicitly authenticated as that user
 
-**Future (Hosted Mode):**
-- Bearer token in `Authorization` header
-- Token contains `user_id` claim
-- Options: JWT (stateless), session cookie (stateful), OAuth provider
+**Hosted Mode (REQ-013):**
+- JWT stored in httpOnly cookie (`authjs.session-token`), set by Auth.js v5
+- Cookie automatically sent with all requests including EventSource (SSE)
+- JWT contains `sub` (user_id), `aud`, `iss`, `iat`, `exp` claims
+- FastAPI validates JWT signature using shared `AUTH_SECRET`
 
-**Extension point:** Auth is injected via middleware. Swap implementations without changing endpoint code.
+**Why cookies, not Bearer tokens:** The frontend SSE client uses the browser's native `EventSource` API, which cannot send custom HTTP headers. Cookies are the only automatic credential mechanism that works with SSE. See REQ-013 §3.2 for full rationale.
+
+**Extension point:** Auth is injected via middleware (`get_current_user_id()`). Swap implementations without changing endpoint code.
 
 ### 6.2 Authorization (What can you do?)
 
@@ -644,6 +647,28 @@ Accept: application/json
     "total": 42,
     "page": 1,
     "per_page": 20
+  }
+}
+```
+
+**Success (nested resources):** Some endpoints return composite data from multiple tables. The `"data"` field contains the primary resource with nested sub-objects. Example: `GET /job-postings/{id}` returns per-user relationship data with nested shared job data (see REQ-015 §8.3):
+
+```json
+{
+  "data": {
+    "id": "persona-job-uuid",
+    "status": "Discovered",
+    "fit_score": 85,
+    "stretch_score": 40,
+    "is_favorite": false,
+    "discovery_method": "pool",
+    "discovered_at": "2026-02-18T10:00:00Z",
+    "job": {
+      "id": "shared-job-uuid",
+      "job_title": "Senior Scrum Master",
+      "company_name": "Acme Corp",
+      "is_active": true
+    }
   }
 }
 ```
@@ -722,3 +747,4 @@ Query params for collections:
 | 2026-01-25 | 0.6 | Peer review fixes (cont.): Added `custom-non-negotiables` CRUD endpoints to resource mapping. Added Base Resume Download clarification (serves stored blob, not on-demand generation). |
 | 2026-01-25 | 0.7 | Added embedding regeneration and job rescore endpoints to support REQ-007 agent flows: `POST /personas/{id}/embeddings/regenerate`, `POST /job-postings/rescore`. |
 | 2026-01-31 | 0.8 | Security review: Rate limiting implemented with slowapi (in-memory). Endpoints: `/ingest` (10/min), `/chat/messages` (10/min), `/embeddings/regenerate` (5/min). Note: Convert to Redis before multi-instance deployment. |
+| 2026-02-18 | 0.9 | Auth update: §6.1 now specifies JWT-in-httpOnly-cookie (per REQ-013). Bearer token approach replaced. Added nested response envelope example to §7.2 for REQ-015 persona_jobs pattern. Updated job-postings resource mapping note. |
