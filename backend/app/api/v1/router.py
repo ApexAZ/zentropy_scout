@@ -31,9 +31,11 @@ router = APIRouter()
 # Authentication (REQ-013)
 # =============================================================================
 
-router.include_router(auth.router, prefix="/auth", tags=["auth"])
-router.include_router(auth_magic_link.router, prefix="/auth", tags=["auth"])
-router.include_router(auth_oauth.router, prefix="/auth", tags=["auth"])
+_AUTH_PREFIX = "/auth"
+
+router.include_router(auth.router, prefix=_AUTH_PREFIX, tags=["auth"])
+router.include_router(auth_magic_link.router, prefix=_AUTH_PREFIX, tags=["auth"])
+router.include_router(auth_oauth.router, prefix=_AUTH_PREFIX, tags=["auth"])
 
 # =============================================================================
 # Core Resource Routers

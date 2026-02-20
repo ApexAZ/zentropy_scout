@@ -24,7 +24,7 @@
 
 ## Phase 1: Auth Foundation — Database & Backend (REQ-013)
 
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
 *Auth database schema, UserRepository, JWT validation, password endpoints, CORS. Must complete before any other phase. Depends on: REQ-005 (users table), REQ-006 (auth pattern §6.2).*
 
@@ -51,7 +51,7 @@
 | 7 | **OAuth endpoints** — two new endpoint pairs per REQ-013 §4.1–§4.2 and §7.5: (a) `GET /auth/providers/{provider}` — generates PKCE code verifier + challenge, state parameter (stored server-side via encrypted cookie or in-memory store), redirects to Google/LinkedIn authorization URL. (b) `GET /auth/callback/{provider}` — validates state, exchanges authorization code for tokens (PKCE), fetches user info from provider, creates/links user account (§5 account linking logic with pre-hijack defense), issues JWT cookie, redirects to frontend (`/` or `/onboarding`). Support Google (OAuth 2.0 + PKCE) and LinkedIn (OIDC). Consider `httpx-oauth` library to reduce boilerplate. TDD: test state generation, PKCE flow, account creation, account linking (verified email), pre-hijack defense (unverified email), JWT cookie issuance, redirect logic. | `api, tdd, security, plan` | ✅ |
 | 8 | **Magic link + session endpoints** — four new endpoints per REQ-013 §4.4 and §7.5: (a) `POST /auth/magic-link` — generates 32-byte random token, stores hash in `verification_tokens`, sends email via Resend API, always returns success (prevents email enumeration), rate limit 5/hour per email. (b) `GET /auth/verify-magic-link` — validates token hash, checks expiry, deletes token (single-use), sets `email_verified = now()` if not already set, issues JWT cookie, redirects to frontend. (c) `POST /auth/logout` — clears auth cookie. (d) `GET /auth/me` — returns current user info (id, email, name, image) from JWT, used by frontend SessionProvider. TDD: test token generation + hashing, expiry, single-use, email verification, logout cookie clearing, /me response + 401 when unauthenticated. | `api, tdd, security, plan` | ✅ |
 | 9 | **CORS + rate limiting transition** — CORS: add `ALLOWED_ORIGINS` configuration, never `*` with `allow_credentials=True` (REQ-013 §7.6). Rate limiting: change `_rate_limit_key_func` in `rate_limiting.py` from `get_remote_address(request)` to `user:{sub}` for authenticated requests, `unauth:{ip}` for unauthenticated (REQ-013 §7.4). TDD: test CORS headers, rate limit key selection for both auth modes. | `api, tdd, security, plan` | ✅ |
-| 10 | **Phase 1 gate** — run full backend test suite: `pytest -v`, `ruff check .`, `bandit -r backend/app/`. All tests must pass, 0 skips. | `plan, commands` | ⬜ |
+| 10 | **Phase 1 gate** — run full backend test suite: `pytest -v`, `ruff check .`, `bandit -r backend/app/`. All tests must pass, 0 skips. | `plan, commands` | ✅ |
 
 ---
 

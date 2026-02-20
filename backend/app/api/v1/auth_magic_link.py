@@ -14,6 +14,7 @@ import hashlib
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Query, Request
 from fastapi.responses import RedirectResponse
@@ -133,8 +134,8 @@ async def request_magic_link(
 @limiter.limit("10/minute")
 async def verify_magic_link(
     request: Request,  # noqa: ARG001 - required by @limiter.limit()
-    token: str = Query(..., min_length=1, max_length=256),
-    identifier: str = Query(..., min_length=3, max_length=255),
+    token: Annotated[str, Query(min_length=1, max_length=256)],
+    identifier: Annotated[str, Query(min_length=3, max_length=255)],
     *,
     db: DbSession,
 ) -> RedirectResponse:
