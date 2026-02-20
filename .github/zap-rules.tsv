@@ -1,3 +1,4 @@
 100000	IGNORE	(A Client Error response code was returned by the server)
 10049	IGNORE	(Non-Storable Content)
 10106	IGNORE	(HTTP Only Site - CI runs on localhost without TLS; production uses HTTPS via Railway)
+10112	IGNORE	(Session Management Response Identified - informational; auth endpoints are expected to manage sessions)
