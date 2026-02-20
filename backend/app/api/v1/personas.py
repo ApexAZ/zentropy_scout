@@ -26,7 +26,7 @@ Endpoints:
 
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 from fastapi import APIRouter, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
@@ -62,85 +62,14 @@ router = APIRouter()
 # =============================================================================
 
 
-class CreatePersonaRequest(BaseModel):
-    """Request body for creating a persona.
+class _PersonaOptionalFields(BaseModel):
+    """Shared optional fields for persona create/update schemas.
 
-    REQ-006 §5.2: Required contact fields for persona creation.
+    Centralizes field definitions to eliminate duplication between
+    CreatePersonaRequest and UpdatePersonaRequest.
     """
 
     model_config = ConfigDict(extra="forbid")
-
-    # Required contact info
-    email: str = Field(..., min_length=1, max_length=255)
-    full_name: str = Field(..., min_length=1, max_length=255)
-    phone: str = Field(..., min_length=1, max_length=50)
-    home_city: str = Field(..., min_length=1, max_length=100)
-    home_state: str = Field(..., min_length=1, max_length=100)
-    home_country: str = Field(..., min_length=1, max_length=100)
-
-    # Optional online presence
-    linkedin_url: str | None = Field(default=None, max_length=500)
-    portfolio_url: str | None = Field(default=None, max_length=500)
-
-    # Optional professional info
-    professional_summary: str | None = Field(
-        default=None, max_length=_MAX_SUMMARY_LENGTH
-    )
-    years_experience: int | None = Field(default=None, ge=0, le=100)
-    current_role: str | None = Field(default=None, max_length=255)
-    current_company: str | None = Field(default=None, max_length=255)
-
-    # Optional career goals (JSONB arrays)
-    target_roles: list[BoundedStr] | None = Field(
-        default=None, max_length=_MAX_JSONB_LIST_LENGTH
-    )
-    target_skills: list[BoundedStr] | None = Field(
-        default=None, max_length=_MAX_JSONB_LIST_LENGTH
-    )
-
-    # Optional location preferences
-    commutable_cities: list[BoundedStr] | None = Field(
-        default=None, max_length=_MAX_JSONB_LIST_LENGTH
-    )
-    relocation_cities: list[BoundedStr] | None = Field(
-        default=None, max_length=_MAX_JSONB_LIST_LENGTH
-    )
-    industry_exclusions: list[BoundedStr] | None = Field(
-        default=None, max_length=_MAX_JSONB_LIST_LENGTH
-    )
-
-    # Optional preferences
-    stretch_appetite: str | None = Field(default=None, max_length=20)
-    minimum_base_salary: int | None = Field(default=None, ge=0, le=10_000_000)
-    salary_currency: str | None = Field(default=None, max_length=10)
-    max_commute_minutes: int | None = Field(default=None, ge=0, le=1440)
-    remote_preference: str | None = Field(default=None, max_length=30)
-    relocation_open: bool | None = None
-    visa_sponsorship_required: bool | None = None
-    company_size_preference: str | None = Field(default=None, max_length=30)
-    max_travel_percent: str | None = Field(default=None, max_length=20)
-
-    # Optional thresholds
-    minimum_fit_threshold: int | None = Field(default=None, ge=0, le=100)
-    auto_draft_threshold: int | None = Field(default=None, ge=0, le=100)
-    polling_frequency: str | None = Field(default=None, max_length=20)
-
-
-class UpdatePersonaRequest(BaseModel):
-    """Request body for partially updating a persona.
-
-    All fields optional — only provided fields are updated.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    # Contact info
-    email: str | None = Field(default=None, min_length=1, max_length=255)
-    full_name: str | None = Field(default=None, min_length=1, max_length=255)
-    phone: str | None = Field(default=None, min_length=1, max_length=50)
-    home_city: str | None = Field(default=None, min_length=1, max_length=100)
-    home_state: str | None = Field(default=None, min_length=1, max_length=100)
-    home_country: str | None = Field(default=None, min_length=1, max_length=100)
 
     # Online presence
     linkedin_url: str | None = Field(default=None, max_length=500)
@@ -189,6 +118,36 @@ class UpdatePersonaRequest(BaseModel):
     auto_draft_threshold: int | None = Field(default=None, ge=0, le=100)
     polling_frequency: str | None = Field(default=None, max_length=20)
 
+
+class CreatePersonaRequest(_PersonaOptionalFields):
+    """Request body for creating a persona.
+
+    REQ-006 §5.2: Required contact fields for persona creation.
+    """
+
+    # Required contact info
+    email: str = Field(..., min_length=1, max_length=255)
+    full_name: str = Field(..., min_length=1, max_length=255)
+    phone: str = Field(..., min_length=1, max_length=50)
+    home_city: str = Field(..., min_length=1, max_length=100)
+    home_state: str = Field(..., min_length=1, max_length=100)
+    home_country: str = Field(..., min_length=1, max_length=100)
+
+
+class UpdatePersonaRequest(_PersonaOptionalFields):
+    """Request body for partially updating a persona.
+
+    All fields optional — only provided fields are updated.
+    """
+
+    # Contact info (all optional for partial updates)
+    email: str | None = Field(default=None, min_length=1, max_length=255)
+    full_name: str | None = Field(default=None, min_length=1, max_length=255)
+    phone: str | None = Field(default=None, min_length=1, max_length=50)
+    home_city: str | None = Field(default=None, min_length=1, max_length=100)
+    home_state: str | None = Field(default=None, min_length=1, max_length=100)
+    home_country: str | None = Field(default=None, min_length=1, max_length=100)
+
     # Onboarding state
     onboarding_complete: bool | None = None
     onboarding_step: str | None = Field(default=None, max_length=50)
@@ -197,6 +156,29 @@ class UpdatePersonaRequest(BaseModel):
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
+
+async def _handle_integrity_error(db: DbSession, exc: IntegrityError) -> NoReturn:
+    """Roll back and raise a user-friendly ConflictError.
+
+    Args:
+        db: Database session to roll back.
+        exc: The IntegrityError from SQLAlchemy.
+
+    Raises:
+        ConflictError: Always — with DUPLICATE_EMAIL or generic CONFLICT code.
+    """
+    await db.rollback()
+    error_msg = str(exc.orig) if exc.orig else str(exc)
+    if "email" in error_msg.lower():
+        raise ConflictError(
+            code="DUPLICATE_EMAIL",
+            message="A persona with this email already exists.",
+        ) from None
+    raise ConflictError(
+        code="CONFLICT",
+        message="A database constraint was violated.",
+    ) from None
 
 
 def _persona_to_dict(persona: Persona) -> dict:
@@ -342,17 +324,7 @@ async def create_persona(
     try:
         await db.commit()
     except IntegrityError as exc:
-        await db.rollback()
-        error_msg = str(exc.orig) if exc.orig else str(exc)
-        if "email" in error_msg.lower():
-            raise ConflictError(
-                code="DUPLICATE_EMAIL",
-                message="A persona with this email already exists.",
-            ) from None
-        raise ConflictError(
-            code="CONFLICT",
-            message="A database constraint was violated.",
-        ) from None
+        await _handle_integrity_error(db, exc)
 
     await db.refresh(persona)
     return DataResponse(data=_persona_to_dict(persona))
@@ -419,17 +391,7 @@ async def update_persona(
     try:
         await db.commit()
     except IntegrityError as exc:
-        await db.rollback()
-        error_msg = str(exc.orig) if exc.orig else str(exc)
-        if "email" in error_msg.lower():
-            raise ConflictError(
-                code="DUPLICATE_EMAIL",
-                message="A persona with this email already exists.",
-            ) from None
-        raise ConflictError(
-            code="CONFLICT",
-            message="A database constraint was violated.",
-        ) from None
+        await _handle_integrity_error(db, exc)
 
     await db.refresh(persona)
 
