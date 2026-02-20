@@ -27,6 +27,27 @@ function VerifiedBadge({ verified }: Readonly<{ verified: boolean }>) {
 }
 
 // ---------------------------------------------------------------------------
+// Standalone handlers (no component state dependency)
+// ---------------------------------------------------------------------------
+
+async function handleSignOut() {
+	try {
+		await apiPost("/auth/logout");
+	} finally {
+		globalThis.location.href = "/login";
+	}
+}
+
+async function handleSignOutAllDevices() {
+	try {
+		await apiPost("/auth/invalidate-sessions");
+		await apiPost("/auth/logout");
+	} finally {
+		globalThis.location.href = "/login";
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -117,23 +138,6 @@ export function AccountSection() {
 			}
 		} finally {
 			setPasswordSubmitting(false);
-		}
-	}
-
-	async function handleSignOut() {
-		try {
-			await apiPost("/auth/logout");
-		} finally {
-			globalThis.location.href = "/login";
-		}
-	}
-
-	async function handleSignOutAllDevices() {
-		try {
-			await apiPost("/auth/invalidate-sessions");
-			await apiPost("/auth/logout");
-		} finally {
-			globalThis.location.href = "/login";
 		}
 	}
 

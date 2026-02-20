@@ -110,7 +110,7 @@ function handleUnauthorized(status: number): void {
 	if (qc) qc.clear();
 
 	if (
-		typeof globalThis.window !== "undefined" &&
+		globalThis.window !== undefined &&
 		!globalThis.location.pathname.startsWith("/login") &&
 		!globalThis.location.pathname.startsWith("/register")
 	) {
