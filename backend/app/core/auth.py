@@ -32,7 +32,7 @@ _HIBP_TIMEOUT = 5.0
 # Pre-computed bcrypt hash for timing-safe comparison on user-not-found.
 # Security: prevents user enumeration via response time differences.
 # Pre-generated to avoid ~300ms bcrypt computation on every app startup.
-DUMMY_HASH = b"$2b$12$ZP2PVB8yI35X.mkRqcUPUuSzJA1CNRt4dZ7X3cyrfJu.2S3w.Qen2"
+DUMMY_HASH = b"$2b$12$ZP2PVB8yI35X.mkRqcUPUuSzJA1CNRt4dZ7X3cyrfJu.2S3w.Qen2"  # NOSONAR — intentional dummy for timing-safe enumeration defense
 
 
 def create_jwt(

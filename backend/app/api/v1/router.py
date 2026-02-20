@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     applications,
     auth,
+    auth_magic_link,
     auth_oauth,
     base_resumes,
     chat,
@@ -31,6 +32,7 @@ router = APIRouter()
 # =============================================================================
 
 router.include_router(auth.router, prefix="/auth", tags=["auth"])
+router.include_router(auth_magic_link.router, prefix="/auth", tags=["auth"])
 router.include_router(auth_oauth.router, prefix="/auth", tags=["auth"])
 
 # =============================================================================
