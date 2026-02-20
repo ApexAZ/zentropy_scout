@@ -12,6 +12,7 @@
 
 import {
 	createContext,
+	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
@@ -19,7 +20,8 @@ import {
 	type ReactNode,
 } from "react";
 
-import { apiGet } from "@/lib/api-client";
+import { apiGet, apiPost } from "@/lib/api-client";
+import { getActiveQueryClient } from "@/lib/query-client";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,6 +51,10 @@ interface MeResponse {
 interface SessionContext {
 	session: User | null;
 	status: AuthStatus;
+	/** Sign out the current device (REQ-013 §8.9). */
+	logout: () => Promise<void>;
+	/** Invalidate all sessions then sign out (REQ-013 §8.9). */
+	logoutAllDevices: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +134,51 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
 		};
 	}, []);
 
-	const contextValue = useMemo(() => ({ session, status }), [session, status]);
+	/**
+	 * Sign out the current device (REQ-013 §8.9).
+	 *
+	 * 1. POST /auth/logout (clears httpOnly cookie server-side)
+	 * 2. Clear TanStack Query cache
+	 * 3. Clear AuthProvider context
+	 * 4. Redirect to /login
+	 *
+	 * Always redirects even if the API call fails — the cookie may
+	 * already be invalid, so staying on an authenticated page is wrong.
+	 */
+	const logout = useCallback(async () => {
+		try {
+			await apiPost("/auth/logout");
+		} catch {
+			// Swallow — cookie may already be invalid or network down.
+			// Proceed with local cleanup regardless.
+		}
+		const qc = getActiveQueryClient();
+		if (qc) qc.clear();
+		setSession(null);
+		setStatus("unauthenticated");
+		globalThis.location.href = "/login";
+	}, []);
+
+	/**
+	 * Invalidate all sessions then sign out (REQ-013 §8.9).
+	 *
+	 * Sets token_invalidated_before = now() on the server, making all
+	 * other devices' JWTs invalid on their next API call. Then executes
+	 * the normal logout flow for this device.
+	 */
+	const logoutAllDevices = useCallback(async () => {
+		try {
+			await apiPost("/auth/invalidate-sessions");
+		} catch {
+			// Swallow — proceed with local logout regardless.
+		}
+		await logout();
+	}, [logout]);
+
+	const contextValue = useMemo(
+		() => ({ session, status, logout, logoutAllDevices }),
+		[session, status, logout, logoutAllDevices],
+	);
 
 	return <AuthContext value={contextValue}>{children}</AuthContext>;
 }

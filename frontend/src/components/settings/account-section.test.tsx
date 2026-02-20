@@ -39,7 +39,8 @@ const mocks = vi.hoisted(() => {
 			success: vi.fn(),
 			error: vi.fn(),
 		},
-		mockLocationHref: vi.fn(),
+		mockLogout: vi.fn(),
+		mockLogoutAllDevices: vi.fn(),
 	};
 });
 
@@ -63,41 +64,28 @@ import { AccountSection } from "./account-section";
 // Helpers
 // ---------------------------------------------------------------------------
 
-const VERIFIED_SESSION = {
-	session: {
-		id: "u-1",
-		email: TEST_EMAIL,
-		name: "Jane Smith",
-		image: null,
-		emailVerified: true,
-		hasPassword: true,
-	},
-	status: "authenticated" as const,
-};
+function makeSession(overrides?: {
+	hasPassword?: boolean;
+	emailVerified?: boolean;
+}) {
+	return {
+		session: {
+			id: "u-1",
+			email: TEST_EMAIL,
+			name: "Jane Smith",
+			image: null,
+			emailVerified: overrides?.emailVerified ?? true,
+			hasPassword: overrides?.hasPassword ?? true,
+		},
+		status: "authenticated" as const,
+		logout: mocks.mockLogout,
+		logoutAllDevices: mocks.mockLogoutAllDevices,
+	};
+}
 
-const OAUTH_ONLY_SESSION = {
-	session: {
-		id: "u-1",
-		email: TEST_EMAIL,
-		name: "Jane Smith",
-		image: null,
-		emailVerified: true,
-		hasPassword: false,
-	},
-	status: "authenticated" as const,
-};
-
-const UNVERIFIED_SESSION = {
-	session: {
-		id: "u-1",
-		email: TEST_EMAIL,
-		name: "Jane Smith",
-		image: null,
-		emailVerified: false,
-		hasPassword: true,
-	},
-	status: "authenticated" as const,
-};
+const VERIFIED_SESSION = makeSession();
+const OAUTH_ONLY_SESSION = makeSession({ hasPassword: false });
+const UNVERIFIED_SESSION = makeSession({ emailVerified: false });
 
 function renderAccount() {
 	const user = userEvent.setup();
@@ -110,30 +98,16 @@ function renderAccount() {
 // ---------------------------------------------------------------------------
 
 describe("AccountSection", () => {
-	const originalLocation = globalThis.location;
-
 	beforeEach(() => {
 		mocks.mockApiPost.mockReset();
 		mocks.mockApiPatch.mockReset();
 		mocks.mockUseSession.mockReset();
 		mocks.mockShowToast.success.mockReset();
 		mocks.mockShowToast.error.mockReset();
-		mocks.mockLocationHref.mockReset();
-
-		// Mock location.href setter to capture redirects
-		Object.defineProperty(globalThis, "location", {
-			value: {
-				...originalLocation,
-				get href() {
-					return originalLocation.href;
-				},
-				set href(url: string) {
-					mocks.mockLocationHref(url);
-				},
-			},
-			writable: true,
-			configurable: true,
-		});
+		mocks.mockLogout.mockReset();
+		mocks.mockLogoutAllDevices.mockReset();
+		mocks.mockLogout.mockResolvedValue(undefined);
+		mocks.mockLogoutAllDevices.mockResolvedValue(undefined);
 
 		// Default: verified user with password
 		mocks.mockUseSession.mockReturnValue(VERIFIED_SESSION);
@@ -142,12 +116,6 @@ describe("AccountSection", () => {
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
-		// Restore original location
-		Object.defineProperty(globalThis, "location", {
-			value: originalLocation,
-			writable: true,
-			configurable: true,
-		});
 	});
 
 	// -----------------------------------------------------------------------
@@ -539,39 +507,23 @@ describe("AccountSection", () => {
 	});
 
 	// -----------------------------------------------------------------------
-	// Sign out
+	// Sign out (REQ-013 §8.9)
 	// -----------------------------------------------------------------------
 
 	describe("sign out", () => {
-		it("calls logout API when Sign out is clicked", async () => {
-			mocks.mockApiPost.mockResolvedValueOnce({
-				data: { message: "Signed out" },
-			});
+		it("calls logout from session context when Sign out is clicked", async () => {
 			const user = renderAccount();
 
 			await user.click(screen.getByRole("button", { name: /^sign out$/i }));
 
 			await waitFor(() => {
-				expect(mocks.mockApiPost).toHaveBeenCalledWith("/auth/logout");
-			});
-		});
-
-		it("redirects to /login after sign out", async () => {
-			mocks.mockApiPost.mockResolvedValueOnce({
-				data: { message: "Signed out" },
-			});
-			const user = renderAccount();
-
-			await user.click(screen.getByRole("button", { name: /^sign out$/i }));
-
-			await waitFor(() => {
-				expect(mocks.mockLocationHref).toHaveBeenCalledWith("/login");
+				expect(mocks.mockLogout).toHaveBeenCalledOnce();
 			});
 		});
 	});
 
 	// -----------------------------------------------------------------------
-	// Sign out all devices
+	// Sign out all devices (REQ-013 §8.9)
 	// -----------------------------------------------------------------------
 
 	describe("sign out all devices", () => {
@@ -587,15 +539,7 @@ describe("AccountSection", () => {
 			).toBeInTheDocument();
 		});
 
-		it("calls invalidate-sessions API on confirm", async () => {
-			// First call: invalidate-sessions; second: logout
-			mocks.mockApiPost
-				.mockResolvedValueOnce({
-					data: { message: "All sessions invalidated" },
-				})
-				.mockResolvedValueOnce({
-					data: { message: "Signed out" },
-				});
+		it("calls logoutAllDevices from session context on confirm", async () => {
 			const user = renderAccount();
 
 			await user.click(
@@ -604,13 +548,11 @@ describe("AccountSection", () => {
 			await user.click(screen.getByRole("button", { name: /confirm/i }));
 
 			await waitFor(() => {
-				expect(mocks.mockApiPost).toHaveBeenCalledWith(
-					"/auth/invalidate-sessions",
-				);
+				expect(mocks.mockLogoutAllDevices).toHaveBeenCalledOnce();
 			});
 		});
 
-		it("does not call API when cancelled", async () => {
+		it("does not call logoutAllDevices when cancelled", async () => {
 			const user = renderAccount();
 
 			await user.click(
@@ -618,7 +560,7 @@ describe("AccountSection", () => {
 			);
 			await user.click(screen.getByRole("button", { name: /cancel/i }));
 
-			expect(mocks.mockApiPost).not.toHaveBeenCalled();
+			expect(mocks.mockLogoutAllDevices).not.toHaveBeenCalled();
 		});
 	});
 });

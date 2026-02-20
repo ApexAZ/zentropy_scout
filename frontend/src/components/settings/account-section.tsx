@@ -27,32 +27,11 @@ function VerifiedBadge({ verified }: Readonly<{ verified: boolean }>) {
 }
 
 // ---------------------------------------------------------------------------
-// Standalone handlers (no component state dependency)
-// ---------------------------------------------------------------------------
-
-async function handleSignOut() {
-	try {
-		await apiPost("/auth/logout");
-	} finally {
-		globalThis.location.href = "/login";
-	}
-}
-
-async function handleSignOutAllDevices() {
-	try {
-		await apiPost("/auth/invalidate-sessions");
-		await apiPost("/auth/logout");
-	} finally {
-		globalThis.location.href = "/login";
-	}
-}
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function AccountSection() {
-	const { session } = useSession();
+	const { session, logout, logoutAllDevices } = useSession();
 
 	// Name editing state
 	const [editingName, setEditingName] = useState(false);
@@ -278,11 +257,7 @@ export function AccountSection() {
 						devices. Are you sure?
 					</p>
 					<div className="flex gap-2">
-						<Button
-							size="sm"
-							variant="destructive"
-							onClick={handleSignOutAllDevices}
-						>
+						<Button size="sm" variant="destructive" onClick={logoutAllDevices}>
 							Confirm
 						</Button>
 						<Button
@@ -296,7 +271,7 @@ export function AccountSection() {
 				</div>
 			) : (
 				<div className="flex gap-2">
-					<Button size="sm" variant="outline" onClick={handleSignOut}>
+					<Button size="sm" variant="outline" onClick={logout}>
 						Sign out
 					</Button>
 					<Button
