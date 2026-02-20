@@ -5,7 +5,7 @@
  * password change/set, sign out, sign out all devices.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,14 @@ export function AccountSection() {
 	const [editingName, setEditingName] = useState(false);
 	const [nameValue, setNameValue] = useState(session?.name ?? "");
 	const [displayName, setDisplayName] = useState(session?.name ?? "");
+
+	// Sync name state when session loads (hooks run before null guard)
+	useEffect(() => {
+		if (session?.name != null) {
+			setDisplayName(session.name);
+			setNameValue(session.name);
+		}
+	}, [session?.name]);
 
 	// Password form state
 	const [showPasswordForm, setShowPasswordForm] = useState(false);

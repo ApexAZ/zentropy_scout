@@ -154,6 +154,28 @@ describe("AccountSection", () => {
 			expect(screen.getByText("Jane Smith")).toBeInTheDocument();
 		});
 
+		it("displays name when session loads asynchronously", () => {
+			// Simulate AuthProvider loading state (session null initially)
+			mocks.mockUseSession.mockReturnValue({
+				session: null,
+				status: "loading" as const,
+				logout: mocks.mockLogout,
+				logoutAllDevices: mocks.mockLogoutAllDevices,
+			});
+
+			const { rerender } = render(<AccountSection />);
+
+			// Component returns null while session is loading
+			expect(screen.queryByTestId("account-section")).not.toBeInTheDocument();
+
+			// Session loads — simulate AuthProvider state update
+			mocks.mockUseSession.mockReturnValue(VERIFIED_SESSION);
+			rerender(<AccountSection />);
+
+			// Name should be displayed (not empty string)
+			expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+		});
+
 		it("shows Change password button when user has password", () => {
 			renderAccount();
 
