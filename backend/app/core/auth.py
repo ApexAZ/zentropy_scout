@@ -148,6 +148,7 @@ async def check_password_breached(password: str) -> bool:
     Returns:
         True if password found in breach database, False otherwise.
     """
+    # nosemgrep: python.lang.security.insecure-hash-algorithm-sha1
     sha1 = hashlib.sha1(password.encode()).hexdigest().upper()  # nosec B324
     prefix = sha1[:5]
     suffix = sha1[5:]

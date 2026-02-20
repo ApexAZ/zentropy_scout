@@ -26,6 +26,7 @@ const LOGIN_URL = `${BASE_URL}/login`;
 function createRequest(path: string, cookie?: string): NextRequest {
 	const req = new NextRequest(new URL(path, BASE_URL));
 	if (cookie) {
+		// nosemgrep: cookies-default-koa — test-only: sets cookie on mock NextRequest, not a browser response
 		req.cookies.set(AUTH_COOKIE_NAME, cookie);
 	}
 	return req;
