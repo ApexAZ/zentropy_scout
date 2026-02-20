@@ -32,6 +32,6 @@ export const config = {
 		 * - /_next (Next.js internals)
 		 * - /favicon.ico, /robots.txt (static files)
 		 */
-		"/((?!login(?:/|$)|register(?:/|$)|api(?:/|$)|_next(?:/|$)|favicon\\.ico$|robots\\.txt$).*)",
+		String.raw`/((?!login(?:/|$)|register(?:/|$)|api(?:/|$)|_next(?:/|$)|favicon\.ico$|robots\.txt$).*)`,
 	],
 };

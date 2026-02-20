@@ -70,7 +70,7 @@ interface AuthProviderProps {
 	children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
 	const [session, setSession] = useState<User | null>(null);
 	const [status, setStatus] = useState<AuthStatus>("loading");
 
