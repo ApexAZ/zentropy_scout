@@ -1,5 +1,5 @@
 /**
- * Tests for Next.js middleware (auth route protection).
+ * Tests for Next.js proxy (auth route protection).
  *
  * REQ-013 §8.6: Server-side route protection — redirects unauthenticated
  * users to /login before any page renders.
@@ -8,7 +8,7 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { config, middleware } from "./middleware";
+import { config, proxy } from "./proxy";
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -36,14 +36,14 @@ function createRequest(path: string, cookie?: string): NextRequest {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("middleware", () => {
+describe("proxy", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
 	it("redirects to /login when auth cookie is missing", () => {
 		const request = createRequest("/dashboard");
-		const response = middleware(request);
+		const response = proxy(request);
 
 		expect(response.status).toBe(307);
 		expect(response.headers.get("location")).toBe(LOGIN_URL);
@@ -51,14 +51,14 @@ describe("middleware", () => {
 
 	it("passes through when auth cookie is present", () => {
 		const request = createRequest("/dashboard", "valid-jwt-token");
-		const response = middleware(request);
+		const response = proxy(request);
 
 		// NextResponse.next() returns a response that continues the request
 		expect(response.headers.get("location")).toBeNull();
 	});
 
 	it("does not redirect /login page (excluded by matcher)", () => {
-		// The middleware matcher excludes /login, so middleware won't run.
+		// The proxy matcher excludes /login, so proxy won't run.
 		// We verify the config matcher pattern excludes /login.
 		const matcherPattern = config.matcher[0];
 		const loginRegex = new RegExp(matcherPattern);
@@ -73,7 +73,7 @@ describe("middleware", () => {
 
 	it("protects the root path when cookie is missing", () => {
 		const request = createRequest("/");
-		const response = middleware(request);
+		const response = proxy(request);
 
 		expect(response.status).toBe(307);
 		expect(response.headers.get("location")).toBe(LOGIN_URL);
@@ -81,7 +81,7 @@ describe("middleware", () => {
 
 	it("protects nested paths when cookie is missing", () => {
 		const request = createRequest("/settings/account");
-		const response = middleware(request);
+		const response = proxy(request);
 
 		expect(response.status).toBe(307);
 		expect(response.headers.get("location")).toBe(LOGIN_URL);

@@ -1,5 +1,5 @@
 /**
- * Next.js middleware for auth route protection.
+ * Next.js proxy for auth route protection.
  *
  * REQ-013 §8.6: Server-side route protection — redirects unauthenticated
  * users to /login before any page renders.
@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const AUTH_COOKIE_NAME = "zentropy.session-token";
 
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
 	const token = request.cookies.get(AUTH_COOKIE_NAME);
 
 	if (!token) {
@@ -32,6 +32,6 @@ export const config = {
 		 * - /_next (Next.js internals)
 		 * - /favicon.ico, /robots.txt (static files)
 		 */
-		String.raw`/((?!login(?:/|$)|register(?:/|$)|api(?:/|$)|_next(?:/|$)|favicon\.ico$|robots\.txt$).*)`,
+		"/((?!login(?:/|$)|register(?:/|$)|api(?:/|$)|_next(?:/|$)|favicon\\.ico$|robots\\.txt$).*)",
 	],
 };
