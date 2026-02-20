@@ -335,7 +335,7 @@ Layered security scanning across local development and CI:
 
 **Semgrep Team** is free for ≤10 contributors and provides cross-function, cross-file taint tracking with FastAPI-native understanding. Requires `SEMGREP_APP_TOKEN` secret in GitHub repo settings.
 
-**OWASP ZAP** runs API scans against the FastAPI OpenAPI spec in CI. Alert suppressions in `.github/zap-rules.tsv`. Results uploaded to GitHub Security tab (SARIF) and as workflow artifacts (30-day retention).
+**OWASP ZAP** runs API scans against the FastAPI OpenAPI spec in CI. All alerts flow unfiltered to Security tab. False positives dismissed individually via `gh api` — see `zentropy-security-alerts` skill. Results uploaded to GitHub Security tab (SARIF) and as workflow artifacts (30-day retention).
 
 **Dependabot** provides two services: (1) **vulnerability alerts** — continuous monitoring of the dependency graph for known CVEs, surfaced in the repo's Security tab (private, not visible in Issues); (2) **version updates** — weekly PRs to bump pip, npm, and GitHub Actions dependencies. Configured in `.github/dependabot.yml`.
 
@@ -358,6 +358,7 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `zentropy-tdd` | test, pytest, mock, fixture, coverage, hypothesis, TDD, implement, create, build | TDD enforcement, testing patterns, mocks, Hypothesis fuzz testing |
 | `zentropy-playwright` | playwright, e2e, end-to-end, UI testing | E2E tests, mocking, selectors |
 | `zentropy-lint` | lint, ruff, eslint, mypy, prettier | Linting stack, common errors |
+| `zentropy-security-alerts` | security alert, ZAP, dismiss, false positive, triage | Alert triage protocol, dismissal commands |
 | `zentropy-imports` | imports, import order | Python/TypeScript ordering |
 | `zentropy-git` | commit, branch, git | Conventional commits, workflow |
 | `zentropy-commands` | how do I start, run migrations | Docker, alembic, npm commands |
@@ -432,4 +433,4 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ---
 
-*Last updated: 2026-02-18*
+*Last updated: 2026-02-19*

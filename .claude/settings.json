@@ -11,6 +11,15 @@
         ]
       },
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=\"$1\"; if [[ \"$FILE\" == *zap-rules.tsv* ]]; then echo \"BLOCKED: zap-rules.tsv must remain empty. IGNORE rules suppress alerts before SARIF upload, preventing human review. Dismiss false positives individually via gh api — see zentropy-security-alerts skill.\" >&2; exit 1; fi' -- "
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
