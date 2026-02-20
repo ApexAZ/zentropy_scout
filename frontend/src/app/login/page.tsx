@@ -51,7 +51,7 @@ const emailField = z
 	.string()
 	.min(1, "Email is required")
 	.max(254, "Email too long")
-	.email("Invalid email format");
+	.pipe(z.email("Invalid email format"));
 
 const loginSchema = z.object({
 	email: emailField,
