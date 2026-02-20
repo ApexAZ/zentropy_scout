@@ -50,6 +50,24 @@ export class SettingsMockController {
 		await page.route("**/api/v1/events/**", (route) => route.abort());
 		await page.route("**/api/v1/events", (route) => route.abort());
 
+		// Mock /auth/me for AccountSection (requires session data)
+		await page.route("**/api/v1/auth/me", async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					data: {
+						id: "00000000-0000-4000-a000-000000000001",
+						email: "test@example.com",
+						name: "Test User",
+						image: null,
+						email_verified: true,
+						has_password: true,
+					},
+				}),
+			});
+		});
+
 		// Single regex intercepts all /api/v1/ endpoints we need to mock.
 		await page.route(
 			/\/api\/v1\/(personas|job-sources|user-source-preferences)/,

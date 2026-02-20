@@ -19,14 +19,15 @@ import {
 // ---------------------------------------------------------------------------
 
 test.describe("Settings Page Layout", () => {
-	test("displays all three settings sections", async ({ page }) => {
+	test("displays all four settings sections", async ({ page }) => {
 		await setupSettingsMocks(page);
 		await page.goto("/settings");
 
 		await expect(page.getByTestId("settings-page")).toBeVisible();
 		await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
-		// Three section cards
+		// Four section cards
+		await expect(page.getByTestId("settings-account")).toBeVisible();
 		await expect(page.getByTestId("settings-job-sources")).toBeVisible();
 		await expect(
 			page.getByTestId("settings-agent-configuration"),
@@ -35,7 +36,9 @@ test.describe("Settings Page Layout", () => {
 
 		// About section static content
 		await expect(page.getByText("Zentropy Scout v0.1.0")).toBeVisible();
-		await expect(page.getByText("Single-user mode")).toBeVisible();
+		await expect(
+			page.getByText("AI-Powered Job Application Assistant"),
+		).toBeVisible();
 	});
 });
 

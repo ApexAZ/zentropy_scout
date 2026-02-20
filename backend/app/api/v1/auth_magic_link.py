@@ -1,13 +1,15 @@
 """Magic link + session endpoints.
 
-REQ-013 §4.4, §7.5: Passwordless sign-in via email magic links,
-logout, and current user info.
+REQ-013 §4.4, §7.5, §8.3a: Passwordless sign-in via email magic links,
+logout, current user info, profile update, and session invalidation.
 
 Endpoints:
 - POST /auth/magic-link — request magic link email
 - GET /auth/verify-magic-link — verify token, issue JWT, redirect
 - POST /auth/logout — clear auth cookie
 - GET /auth/me — return current user info
+- PATCH /auth/profile — update user profile (name)
+- POST /auth/invalidate-sessions — sign out all devices
 """
 
 import hashlib
@@ -18,7 +20,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Query, Request
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.responses import Response
 
 from app.api.deps import CurrentUserId, DbSession
@@ -28,6 +30,7 @@ from app.core.email import send_magic_link_email
 from app.core.errors import UnauthorizedError, ValidationError
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse
+from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.repositories.verification_token_repository import VerificationTokenRepository
 
@@ -239,18 +242,99 @@ async def get_me(
 ) -> DataResponse[dict]:
     """Return current user info from JWT.
 
-    REQ-013 §7.5: Used by frontend SessionProvider / AuthProvider.
+    REQ-013 §7.5, §8.3a: Used by frontend SessionProvider / AuthProvider
+    and Account Settings section.
+
     Returns 401 if no valid JWT.
+
+    Response includes:
+    - email_verified: bool (true if email has been verified)
+    - has_password: bool (true if user has set a password; false for OAuth-only)
     """
     user = await UserRepository.get_by_id(db, user_id)
     if user is None:
         raise UnauthorizedError()
 
-    return DataResponse(
-        data={
-            "id": str(user.id),
-            "email": user.email,
-            "name": user.name,
-            "image": user.image,
-        }
+    return DataResponse(data=_user_to_response(user))
+
+
+# ===================================================================
+# PATCH /auth/profile
+# ===================================================================
+
+
+def _user_to_response(user: User) -> dict:
+    """Build standard user response payload for /me and /profile."""
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "name": user.name,
+        "image": user.image,
+        "email_verified": user.email_verified is not None,
+        "has_password": user.password_hash is not None,
+    }
+
+
+class UpdateProfileRequest(BaseModel):
+    """Request body for PATCH /auth/profile."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(max_length=255)
+
+
+@router.patch("/profile")
+async def update_profile(
+    body: UpdateProfileRequest,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> DataResponse[dict]:
+    """Update user profile fields.
+
+    REQ-013 §8.3a: Account settings name edit.
+    Currently supports updating the display name only.
+    """
+    trimmed_name = body.name.strip()
+    if not trimmed_name:
+        raise ValidationError("Name must not be empty")
+
+    await UserRepository.update(db, user_id, name=trimmed_name)
+    await db.commit()
+
+    user = await UserRepository.get_by_id(db, user_id)
+    if user is None:
+        raise UnauthorizedError()
+
+    return DataResponse(data=_user_to_response(user))
+
+
+# ===================================================================
+# POST /auth/invalidate-sessions
+# ===================================================================
+
+
+@router.post("/invalidate-sessions")
+async def invalidate_sessions(
+    response: Response,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> DataResponse[dict]:
+    """Invalidate all sessions (sign out all devices).
+
+    REQ-013 §8.3a, §8.9: Sets token_invalidated_before to now(),
+    causing all existing JWTs to be rejected. Re-issues a new JWT
+    for the current session so the caller stays authenticated.
+    """
+    invalidation_time = datetime.now(UTC).replace(microsecond=0)
+
+    await UserRepository.update(db, user_id, token_invalidated_before=invalidation_time)
+    await db.commit()
+
+    # Re-issue JWT so current session survives
+    jwt_token = create_jwt(
+        user_id=str(user_id),
+        secret=settings.auth_secret.get_secret_value(),
     )
+    set_auth_cookie(response, jwt_token)
+
+    return DataResponse(data={"message": "All sessions invalidated"})

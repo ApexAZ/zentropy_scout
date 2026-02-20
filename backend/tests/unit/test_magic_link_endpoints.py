@@ -27,6 +27,8 @@ _MAGIC_LINK_URL = "/api/v1/auth/magic-link"
 _VERIFY_URL = "/api/v1/auth/verify-magic-link"
 _LOGOUT_URL = "/api/v1/auth/logout"
 _ME_URL = "/api/v1/auth/me"
+_PROFILE_URL = "/api/v1/auth/profile"
+_INVALIDATE_SESSIONS_URL = "/api/v1/auth/invalidate-sessions"
 _PATCH_SEND_EMAIL = "app.api.v1.auth_magic_link.send_magic_link_email"
 
 _TEST_EMAIL = "magicuser@example.com"
@@ -82,10 +84,27 @@ async def unverified_user(db_session: AsyncSession) -> User:
 
 
 @pytest_asyncio.fixture
-async def magic_link_client(
-    db_engine,
-) -> AsyncGenerator[AsyncClient, None]:
-    """Unauthenticated client for magic link endpoints."""
+async def password_user(db_session: AsyncSession) -> User:
+    """Create a verified user with a password hash set."""
+    import bcrypt
+
+    password_hash = bcrypt.hashpw(b"OldP@ss1!", bcrypt.gensalt(rounds=4)).decode()
+    user = User(
+        id=TEST_USER_ID,
+        email=_TEST_EMAIL,
+        email_verified=datetime.now(UTC),
+        name="Password User",
+        password_hash=password_hash,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest_asyncio.fixture
+async def _auth_app(db_engine):
+    """Shared setup: DB override + auth settings for all client fixtures."""
     from app.core.database import get_db
     from app.main import app
 
@@ -104,83 +123,47 @@ async def magic_link_client(
     settings.auth_enabled = True
     settings.auth_secret = SecretStr(TEST_AUTH_SECRET)
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        follow_redirects=False,
-    ) as ac:
-        yield ac
+    yield app
 
     settings.auth_enabled = original_auth_enabled
     settings.auth_secret = original_auth_secret
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def magic_link_client(_auth_app) -> AsyncGenerator[AsyncClient, None]:
+    """Unauthenticated client for magic link endpoints."""
+    transport = ASGITransport(app=_auth_app)
+    async with AsyncClient(
+        transport=transport, base_url="http://test", follow_redirects=False
+    ) as ac:
+        yield ac
 
 
 @pytest_asyncio.fixture
 async def auth_client(
-    db_engine,
+    _auth_app,
     verified_user,  # noqa: ARG001 - ensures user exists in DB
 ) -> AsyncGenerator[AsyncClient, None]:
     """Authenticated client with JWT cookie for /me and logout tests."""
-    from app.core.database import get_db
-    from app.main import app
-
-    test_session_factory = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
-    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
-
-    original_auth_enabled = settings.auth_enabled
-    original_auth_secret = settings.auth_secret
-    settings.auth_enabled = True
-    settings.auth_secret = SecretStr(TEST_AUTH_SECRET)
-
     token = create_test_jwt()
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=_auth_app)
     async with AsyncClient(
         transport=transport,
         base_url="http://test",
         cookies={settings.auth_cookie_name: token},
     ) as ac:
         yield ac
-
-    settings.auth_enabled = original_auth_enabled
-    settings.auth_secret = original_auth_secret
-    app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture
 async def minimal_auth_client(
-    db_engine,
+    _auth_app,
     minimal_user,  # noqa: ARG001 - ensures user exists in DB
 ) -> AsyncGenerator[AsyncClient, None]:
     """Authenticated client for user without name/image."""
-    from app.core.database import get_db
-    from app.main import app
-
-    test_session_factory = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
-    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
-
-    original_auth_enabled = settings.auth_enabled
-    original_auth_secret = settings.auth_secret
-    settings.auth_enabled = True
-    settings.auth_secret = SecretStr(TEST_AUTH_SECRET)
-
     token = create_test_jwt()
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=_auth_app)
     async with AsyncClient(
         transport=transport,
         base_url="http://test",
@@ -188,9 +171,37 @@ async def minimal_auth_client(
     ) as ac:
         yield ac
 
-    settings.auth_enabled = original_auth_enabled
-    settings.auth_secret = original_auth_secret
-    app.dependency_overrides.clear()
+
+@pytest_asyncio.fixture
+async def unverified_auth_client(
+    _auth_app,
+    unverified_user,  # noqa: ARG001 - ensures user exists in DB
+) -> AsyncGenerator[AsyncClient, None]:
+    """Authenticated client for unverified user (email_verified=NULL)."""
+    token = create_test_jwt()
+    transport = ASGITransport(app=_auth_app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        cookies={settings.auth_cookie_name: token},
+    ) as ac:
+        yield ac
+
+
+@pytest_asyncio.fixture
+async def password_auth_client(
+    _auth_app,
+    password_user,  # noqa: ARG001 - ensures user exists in DB
+) -> AsyncGenerator[AsyncClient, None]:
+    """Authenticated client for user with password hash set."""
+    token = create_test_jwt()
+    transport = ASGITransport(app=_auth_app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        cookies={settings.auth_cookie_name: token},
+    ) as ac:
+        yield ac
 
 
 def _create_token_and_hash() -> tuple[str, str]:
@@ -590,3 +601,136 @@ class TestGetMe:
         data = response.json()["data"]
         assert data["name"] is None
         assert data["image"] is None
+
+    async def test_returns_email_verified_true_when_verified(self, auth_client):
+        """Returns email_verified=true for user with email_verified timestamp."""
+        response = await auth_client.get(_ME_URL)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["email_verified"] is True
+
+    async def test_returns_email_verified_false_when_unverified(
+        self, unverified_auth_client
+    ):
+        """Returns email_verified=false for user without email_verified."""
+        response = await unverified_auth_client.get(_ME_URL)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["email_verified"] is False
+
+    async def test_returns_has_password_false_when_no_password(self, auth_client):
+        """Returns has_password=false for OAuth-only user (no password_hash)."""
+        response = await auth_client.get(_ME_URL)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["has_password"] is False
+
+    async def test_returns_has_password_true_when_password_set(
+        self, password_auth_client
+    ):
+        """Returns has_password=true for user with password_hash set."""
+        response = await password_auth_client.get(_ME_URL)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["has_password"] is True
+
+
+# ===================================================================
+# PATCH /auth/profile
+# ===================================================================
+
+
+class TestUpdateProfile:
+    """Tests for PATCH /auth/profile."""
+
+    async def test_updates_name_and_returns_user(self, auth_client):
+        """Updates name and returns updated user data."""
+        response = await auth_client.patch(_PROFILE_URL, json={"name": "Updated Name"})
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["name"] == "Updated Name"
+        assert data["id"] == str(TEST_USER_ID)
+        assert data["email"] == _TEST_EMAIL
+
+    async def test_name_persists_in_subsequent_get_me(self, auth_client):
+        """Updated name is returned by subsequent GET /auth/me."""
+        await auth_client.patch(_PROFILE_URL, json={"name": "Persisted Name"})
+
+        response = await auth_client.get(_ME_URL)
+        assert response.json()["data"]["name"] == "Persisted Name"
+
+    async def test_returns_401_when_unauthenticated(self, magic_link_client):
+        """Returns 401 when no valid JWT cookie is present."""
+        response = await magic_link_client.patch(_PROFILE_URL, json={"name": "No Auth"})
+        assert response.status_code == 401
+
+    async def test_rejects_empty_name(self, auth_client):
+        """Returns 400 for empty name string."""
+        response = await auth_client.patch(_PROFILE_URL, json={"name": ""})
+        assert response.status_code == 400
+
+    async def test_rejects_whitespace_only_name(self, auth_client):
+        """Returns 400 for whitespace-only name."""
+        response = await auth_client.patch(_PROFILE_URL, json={"name": "   "})
+        assert response.status_code == 400
+
+    async def test_trims_whitespace_from_name(self, auth_client):
+        """Trims leading/trailing whitespace from name."""
+        response = await auth_client.patch(_PROFILE_URL, json={"name": "  Trimmed  "})
+
+        assert response.status_code == 200
+        assert response.json()["data"]["name"] == "Trimmed"
+
+    async def test_rejects_name_exceeding_255_characters(self, auth_client):
+        """Returns 400 for name longer than 255 characters."""
+        long_name = "A" * 256
+        response = await auth_client.patch(_PROFILE_URL, json={"name": long_name})
+        assert response.status_code == 400
+
+
+# ===================================================================
+# POST /auth/invalidate-sessions
+# ===================================================================
+
+
+class TestInvalidateSessions:
+    """Tests for POST /auth/invalidate-sessions."""
+
+    async def test_sets_token_invalidated_before(self, auth_client, db_session):
+        """Sets token_invalidated_before to current time."""
+        before = datetime.now(UTC).replace(microsecond=0)
+        response = await auth_client.post(_INVALIDATE_SESSIONS_URL)
+        after = datetime.now(UTC).replace(microsecond=0) + timedelta(seconds=1)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert "invalidated" in data["message"].lower()
+
+        # Expire cached identity map so we read fresh from DB
+        db_session.expire_all()
+        result = await db_session.execute(select(User).where(User.id == TEST_USER_ID))
+        user = result.scalar_one()
+        assert user.token_invalidated_before is not None
+        assert before <= user.token_invalidated_before <= after
+
+    async def test_returns_new_jwt_cookie(self, auth_client):
+        """Re-issues JWT cookie so current session stays valid."""
+        response = await auth_client.post(_INVALIDATE_SESSIONS_URL)
+
+        assert response.status_code == 200
+        set_cookies = response.headers.get_list("set-cookie")
+        has_new_cookie = any(
+            settings.auth_cookie_name in c and "max-age=0" not in c.lower()
+            for c in set_cookies
+        )
+        assert has_new_cookie
+
+    async def test_returns_401_when_unauthenticated(self, magic_link_client):
+        """Returns 401 when no valid JWT cookie is present."""
+        response = await magic_link_client.post(_INVALIDATE_SESSIONS_URL)
+        assert response.status_code == 401

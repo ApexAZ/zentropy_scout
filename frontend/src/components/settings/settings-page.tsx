@@ -8,6 +8,7 @@
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AccountSection } from "./account-section";
 import { AgentConfigurationSection } from "./agent-configuration-section";
 import { JobSourcesSection } from "./job-sources-section";
 
@@ -28,6 +29,16 @@ export function SettingsPage({ personaId }: Readonly<SettingsPageProps>) {
 	return (
 		<div data-testid="settings-page" className="space-y-6">
 			<h1 className="text-2xl font-bold">Settings</h1>
+
+			{/* Account (REQ-013 §8.3a) */}
+			<Card data-testid="settings-account">
+				<CardHeader>
+					<CardTitle>Account</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<AccountSection />
+				</CardContent>
+			</Card>
 
 			{/* Job Sources */}
 			<Card data-testid="settings-job-sources">
@@ -59,7 +70,7 @@ export function SettingsPage({ personaId }: Readonly<SettingsPageProps>) {
 				<CardContent className="space-y-2">
 					<p className="text-sm">Zentropy Scout v0.1.0 &middot; AGPL-3.0</p>
 					<p className="text-muted-foreground text-sm">
-						Single-user mode &mdash; no configuration needed.
+						AI-Powered Job Application Assistant
 					</p>
 				</CardContent>
 			</Card>

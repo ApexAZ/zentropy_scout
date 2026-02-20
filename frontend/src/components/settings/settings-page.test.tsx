@@ -12,6 +12,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // Mocks
 // ---------------------------------------------------------------------------
 
+vi.mock("./account-section", () => ({
+	AccountSection: () => <div data-testid="mock-account-section" />,
+}));
+
 vi.mock("./agent-configuration-section", () => ({
 	AgentConfigurationSection: () => (
 		<div data-testid="mock-agent-configuration-section" />
@@ -31,6 +35,7 @@ import { SettingsPage } from "./settings-page";
 // ---------------------------------------------------------------------------
 
 const PAGE_TESTID = "settings-page";
+const ACCOUNT_TESTID = "settings-account";
 const JOB_SOURCES_TESTID = "settings-job-sources";
 const AGENT_CONFIG_TESTID = "settings-agent-configuration";
 const ABOUT_TESTID = "settings-about";
@@ -98,11 +103,21 @@ describe("SettingsPage", () => {
 		expect(section).toHaveTextContent("AGPL-3.0");
 	});
 
-	it("shows auth placeholder in About section", () => {
+	it("shows description in About section", () => {
 		render(<SettingsPage personaId={PERSONA_ID} />);
 		const section = screen.getByTestId(ABOUT_TESTID);
-		expect(section).toHaveTextContent(
-			"Single-user mode \u2014 no configuration needed.",
-		);
+		expect(section).toHaveTextContent("AI-Powered Job Application Assistant");
+	});
+
+	it("renders Account section with title", () => {
+		render(<SettingsPage personaId={PERSONA_ID} />);
+		const section = screen.getByTestId(ACCOUNT_TESTID);
+		expect(section).toBeInTheDocument();
+		expect(section).toHaveTextContent("Account");
+	});
+
+	it("renders AccountSection in the Account card", () => {
+		render(<SettingsPage personaId={PERSONA_ID} />);
+		expect(screen.getByTestId("mock-account-section")).toBeInTheDocument();
 	});
 });

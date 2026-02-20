@@ -516,6 +516,8 @@ describe("RegisterPage", () => {
 					email: TEST_EMAIL,
 					name: null,
 					image: null,
+					emailVerified: true,
+					hasPassword: true,
 				},
 				status: "authenticated",
 			});

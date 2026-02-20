@@ -11,8 +11,6 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AuthProvider, useSession } from "./auth-provider";
-
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -25,15 +23,30 @@ vi.mock("@/lib/api-client", () => ({
 	apiGet: mocks.mockApiGet,
 }));
 
+import { AuthProvider, useSession } from "./auth-provider";
+
 // ---------------------------------------------------------------------------
 // Test constants
 // ---------------------------------------------------------------------------
 
-const TEST_USER = {
+/** Raw backend response shape (snake_case). */
+const TEST_USER_RESPONSE = {
 	id: "00000000-0000-4000-a000-000000000001",
 	email: "test@example.com",
 	name: "Test User",
 	image: null,
+	email_verified: true,
+	has_password: false,
+};
+
+/** Expected mapped session shape (camelCase). */
+const TEST_USER_SESSION = {
+	id: "00000000-0000-4000-a000-000000000001",
+	email: "test@example.com",
+	name: "Test User",
+	image: null,
+	emailVerified: true,
+	hasPassword: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -58,7 +71,7 @@ describe("AuthProvider", () => {
 	});
 
 	it("renders children", () => {
-		mocks.mockApiGet.mockResolvedValue({ data: TEST_USER });
+		mocks.mockApiGet.mockResolvedValue({ data: TEST_USER_RESPONSE });
 
 		render(
 			<AuthProvider>
@@ -80,7 +93,7 @@ describe("AuthProvider", () => {
 	});
 
 	it("transitions to authenticated on successful /auth/me", async () => {
-		mocks.mockApiGet.mockResolvedValue({ data: TEST_USER });
+		mocks.mockApiGet.mockResolvedValue({ data: TEST_USER_RESPONSE });
 
 		const { result } = renderHook(() => useSession(), { wrapper });
 
@@ -88,7 +101,7 @@ describe("AuthProvider", () => {
 			expect(result.current.status).toBe("authenticated");
 		});
 
-		expect(result.current.session).toEqual(TEST_USER);
+		expect(result.current.session).toEqual(TEST_USER_SESSION);
 	});
 
 	it("transitions to unauthenticated on 401 from /auth/me", async () => {
@@ -120,7 +133,7 @@ describe("AuthProvider", () => {
 	});
 
 	it("calls /auth/me endpoint on mount", async () => {
-		mocks.mockApiGet.mockResolvedValue({ data: TEST_USER });
+		mocks.mockApiGet.mockResolvedValue({ data: TEST_USER_RESPONSE });
 
 		renderHook(() => useSession(), { wrapper });
 
@@ -130,7 +143,7 @@ describe("AuthProvider", () => {
 	});
 
 	it("revalidates session on visibility change", async () => {
-		mocks.mockApiGet.mockResolvedValue({ data: TEST_USER });
+		mocks.mockApiGet.mockResolvedValue({ data: TEST_USER_RESPONSE });
 
 		const { result } = renderHook(() => useSession(), { wrapper });
 

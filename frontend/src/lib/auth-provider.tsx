@@ -25,14 +25,26 @@ import { apiGet } from "@/lib/api-client";
 // Types
 // ---------------------------------------------------------------------------
 
-interface User {
+export interface User {
 	id: string;
 	email: string;
 	name: string | null;
 	image: string | null;
+	emailVerified: boolean;
+	hasPassword: boolean;
 }
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+
+/** Raw shape from GET /auth/me (snake_case from backend). */
+interface MeResponse {
+	id: string;
+	email: string;
+	name: string | null;
+	image: string | null;
+	email_verified: boolean;
+	has_password: boolean;
+}
 
 interface SessionContext {
 	session: User | null;
@@ -79,9 +91,17 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
 
 		async function checkSession() {
 			try {
-				const response = await apiGet<{ data: User }>("/auth/me");
+				const response = await apiGet<{ data: MeResponse }>("/auth/me");
 				if (!cancelled) {
-					setSession(response.data);
+					const me = response.data;
+					setSession({
+						id: me.id,
+						email: me.email,
+						name: me.name,
+						image: me.image,
+						emailVerified: me.email_verified,
+						hasPassword: me.has_password,
+					});
 					setStatus("authenticated");
 				}
 			} catch {
