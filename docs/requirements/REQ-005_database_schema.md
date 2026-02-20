@@ -133,7 +133,7 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | created_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_user_email` on (email) — UNIQUE
+- `idx_users_email` on (email) — UNIQUE
 
 **Notes:**
 - MVP (local mode): Pre-populated with single default user. `DEFAULT_USER_ID` env var references this.
@@ -186,8 +186,8 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_persona_user` on (user_id)
-- `idx_persona_email` on (email)
+- `idx_personas_user_id` on (user_id)
+- `idx_personas_email` on (email)
 
 ---
 
@@ -211,8 +211,8 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_workhistory_persona` on (persona_id)
-- `idx_workhistory_order` on (persona_id, display_order)
+- `idx_work_histories_persona_id` on (persona_id)
+- `idx_work_histories_persona_id_display_order` on (persona_id, display_order)
 
 ---
 
@@ -230,8 +230,8 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_bullet_workhistory` on (work_history_id)
-- `idx_bullet_order` on (work_history_id, display_order)
+- `idx_bullets_work_history_id` on (work_history_id)
+- `idx_bullets_work_history_id_display_order` on (work_history_id, display_order)
 
 ---
 
@@ -252,8 +252,8 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_skill_persona` on (persona_id)
-- `idx_skill_name` on (persona_id, skill_name) UNIQUE
+- `idx_skills_persona_id` on (persona_id)
+- `idx_skills_persona_id_skill_name` on (persona_id, skill_name) UNIQUE
 
 ---
 
@@ -274,7 +274,7 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_education_persona` on (persona_id)
+- `idx_educations_persona_id` on (persona_id)
 
 ---
 
@@ -295,7 +295,7 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_certification_persona` on (persona_id)
+- `idx_certifications_persona_id` on (persona_id)
 
 ---
 
@@ -316,7 +316,7 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_achievementstory_persona` on (persona_id)
+- `idx_achievement_stories_persona_id` on (persona_id)
 
 ---
 
@@ -337,7 +337,7 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_voiceprofile_persona` on (persona_id) UNIQUE
+- `idx_voice_profiles_persona_id` on (persona_id) UNIQUE
 
 ---
 
@@ -355,7 +355,7 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_customnonneg_persona` on (persona_id)
+- `idx_custom_non_negotiables_persona_id` on (persona_id)
 
 ---
 
@@ -373,9 +373,9 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | created_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_personaembedding_persona` on (persona_id)
-- `idx_personaembedding_type` on (persona_id, embedding_type)
-- `idx_personaembedding_vector` using ivfflat on (vector) — for similarity search
+- `idx_persona_embeddings_persona_id` on (persona_id)
+- `idx_persona_embeddings_persona_id_embedding_type` on (persona_id, embedding_type)
+- `idx_persona_embeddings_vector` using ivfflat on (vector) — for similarity search
 
 **Note:** Requires pgvector extension.
 
@@ -397,8 +397,8 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | is_active | BOOLEAN | NO | true | Only one active per Persona |
 
 **Indexes:**
-- `idx_resumefile_persona` on (persona_id)
-- `idx_resumefile_active` on (persona_id, is_active) WHERE is_active = true
+- `idx_resume_files_persona_id` on (persona_id)
+- `idx_resume_files_persona_id_is_active` on (persona_id, is_active) WHERE is_active = true
 
 ---
 
@@ -427,8 +427,8 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | archived_at | TIMESTAMPTZ | YES | | |
 
 **Indexes:**
-- `idx_baseresume_persona` on (persona_id)
-- `idx_baseresume_primary` on (persona_id) WHERE is_primary = true
+- `idx_base_resumes_persona_id` on (persona_id)
+- `idx_base_resumes_persona_id_is_primary` on (persona_id) WHERE is_primary = true
 - UNIQUE constraint: one name per persona
 
 **Note:** `rendered_document` stores the actual PDF file of the BaseResume. This serves as an anchor to ensure JobVariants don't drift in formatting, style, or tone. See REQ-002 §11.3 for rationale.
@@ -457,9 +457,9 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | archived_at | TIMESTAMPTZ | YES | | |
 
 **Indexes:**
-- `idx_jobvariant_baseresume` on (base_resume_id)
-- `idx_jobvariant_jobposting` on (job_posting_id)
-- `idx_jobvariant_status` on (status)
+- `idx_job_variants_base_resume_id` on (base_resume_id)
+- `idx_job_variants_job_posting_id` on (job_posting_id)
+- `idx_job_variants_status` on (status)
 
 ---
 
@@ -476,7 +476,7 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | generated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_submittedresumepdf_application` on (application_id)
+- `idx_submitted_resume_pdfs_application_id` on (application_id)
 
 **Note:** `application_id` is NULL until user marks "Applied". Orphan cleanup purges records with NULL `application_id` older than 7 days.
 
@@ -497,8 +497,8 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | resolved_at | TIMESTAMPTZ | YES | | |
 
 **Indexes:**
-- `idx_personachangeflag_persona` on (persona_id)
-- `idx_personachangeflag_status` on (persona_id, status) WHERE status = 'Pending'
+- `idx_persona_change_flags_persona_id` on (persona_id)
+- `idx_persona_change_flags_persona_id_status` on (persona_id, status) WHERE status = 'Pending'
 
 **Note:** Resolved flags older than 30 days are purged by cleanup job.
 
@@ -525,9 +525,9 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | archived_at | TIMESTAMPTZ | YES | | |
 
 **Indexes:**
-- `idx_coverletter_persona` on (persona_id)
-- `idx_coverletter_application` on (application_id)
-- `idx_coverletter_jobposting` on (job_posting_id)
+- `idx_cover_letters_persona_id` on (persona_id)
+- `idx_cover_letters_application_id` on (application_id)
+- `idx_cover_letters_job_posting_id` on (job_posting_id)
 
 ---
 
@@ -543,8 +543,8 @@ Minimal user table for authentication. Required for `user_id` FK in Persona.
 | generated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_submittedcoverletterpdf_application` on (application_id)
-- `idx_submittedcoverletterpdf_coverletter` on (cover_letter_id)
+- `idx_submitted_cover_letter_pdfs_application_id` on (application_id)
+- `idx_submitted_cover_letter_pdfs_cover_letter_id` on (cover_letter_id)
 
 **Note:** `application_id` is NULL until user marks "Applied". Orphan cleanup purges records with NULL `application_id` older than 7 days.
 
@@ -569,7 +569,7 @@ Global registry of job sources. System-managed.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_jobsource_name` on (source_name) UNIQUE
+- `idx_job_sources_source_name` on (source_name) UNIQUE
 
 **Seed Data:**
 - Adzuna (API)
@@ -596,7 +596,7 @@ Per-user source settings.
 | updated_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_usersourcepref_persona` on (persona_id)
+- `idx_user_source_preferences_persona_id` on (persona_id)
 - UNIQUE constraint on (persona_id, source_id)
 
 ---
@@ -615,8 +615,8 @@ Per-user source settings.
 **Note:** Polling frequency preference is on Persona table. This table only stores operational state.
 
 **Indexes:**
-- `idx_pollingconfig_persona` on (persona_id) UNIQUE
-- `idx_pollingconfig_nextpoll` on (next_poll_at) WHERE next_poll_at IS NOT NULL
+- `idx_polling_configurations_persona_id` on (persona_id) UNIQUE
+- `idx_polling_configurations_next_poll_at` on (next_poll_at) WHERE next_poll_at IS NOT NULL
 
 ---
 
@@ -666,13 +666,13 @@ Per-user source settings.
 | expired_at | TIMESTAMPTZ | YES | | |
 
 **Indexes:**
-- `idx_jobposting_persona` on (persona_id)
-- `idx_jobposting_status` on (persona_id, status)
-- `idx_jobposting_source` on (source_id)
-- `idx_jobposting_external` on (source_id, external_id)
-- `idx_jobposting_hash` on (description_hash)
-- `idx_jobposting_company` on (company_name)
-- `idx_jobposting_fitscore` on (persona_id, fit_score DESC) WHERE status = 'Discovered'
+- `idx_job_postings_persona_id` on (persona_id)
+- `idx_job_postings_persona_id_status` on (persona_id, status)
+- `idx_job_postings_source_id` on (source_id)
+- `idx_job_postings_source_id_external_id` on (source_id, external_id)
+- `idx_job_postings_description_hash` on (description_hash)
+- `idx_job_postings_company_name` on (company_name)
+- `idx_job_postings_persona_id_fit_score` on (persona_id, fit_score DESC) WHERE status = 'Discovered'
 
 ---
 
@@ -691,7 +691,7 @@ Skills extracted from job posting for matching.
 | created_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_extractedskill_jobposting` on (job_posting_id)
+- `idx_extracted_skills_job_posting_id` on (job_posting_id)
 
 ---
 
@@ -746,9 +746,9 @@ Vector embeddings for job matching. Stores requirements and culture embeddings f
 **Note:** `job_snapshot` stores title, company, description, requirements, salary, URL at application time. See REQ-004 §4.1a for schema.
 
 **Indexes:**
-- `idx_application_persona` on (persona_id)
-- `idx_application_jobposting` on (job_posting_id)
-- `idx_application_status` on (persona_id, status)
+- `idx_applications_persona_id` on (persona_id)
+- `idx_applications_job_posting_id` on (job_posting_id)
+- `idx_applications_persona_id_status` on (persona_id, status)
 - UNIQUE constraint on (persona_id, job_posting_id) — one application per job per user
 
 ---
@@ -766,8 +766,8 @@ Vector embeddings for job matching. Stores requirements and culture embeddings f
 | created_at | TIMESTAMPTZ | NO | now() | |
 
 **Indexes:**
-- `idx_timelineevent_application` on (application_id)
-- `idx_timelineevent_date` on (application_id, event_date DESC)
+- `idx_timeline_events_application_id` on (application_id)
+- `idx_timeline_events_application_id_event_date` on (application_id, event_date DESC)
 
 ---
 
@@ -1022,3 +1022,4 @@ Application ↔ SubmittedResumePDF has bidirectional FKs:
 | 2026-01-25 | 0.9 | Added `rendered_document` (BYTEA) and `rendered_at` (TIMESTAMPTZ) to BaseResume table. BaseResume now stores actual PDF as anchor document to prevent formatting/style drift. Updated REQ-002 version reference to 0.7. |
 | 2026-01-25 | 0.10 | Added §4.0 User table (auth foundation). Added `job_snapshot` (JSONB) to Application table. Added job_snapshot schema to §5.4. Updated REQ-004 version reference to 0.5. |
 | 2026-02-18 | 0.11 | Added JobEmbedding table to §4.4 (was implemented in code but missing from spec). Added to ERD, source document list, and migration tier 3. |
+| 2026-02-20 | 0.12 | Renamed all 49 index names from abbreviated convention (e.g., `idx_persona_user`) to explicit `idx_{table}_{column}` convention (e.g., `idx_personas_user_id`) for AI-searchability. See migration 011_rename_indexes. |

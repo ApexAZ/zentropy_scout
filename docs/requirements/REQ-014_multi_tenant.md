@@ -301,24 +301,28 @@ async def get_persona_preferences(state: ScouterState, db: AsyncSession):
 
 ## 8. Database Changes
 
-### 8.1 New Indexes
+### 8.1 Indexes for Tenant-Scoped Queries
 
-Add indexes to optimize tenant-scoped queries. These support the JOIN-through-persona pattern:
+All indexes required for tenant-scoped queries already exist from the initial schema migrations (002–005). Migration 011 renamed all 49 pre-existing indexes to the explicit `idx_{table}_{column}` convention for AI-searchability. The 4 auth indexes from migration 010 already followed this convention.
+
+**Convention:** `idx_{exact_table_name}_{exact_column_names}` — enables grep/search by table name or column name.
+
+Key tenant-scoped indexes (all created in migrations 002–005, renamed in 011):
 
 ```sql
 -- Tier 1: Persona lookup by user
-CREATE INDEX IF NOT EXISTS idx_personas_user_id ON personas(user_id);
+-- idx_personas_user_id ON personas(user_id)
 
 -- Tier 2: Common filtered lookups
-CREATE INDEX IF NOT EXISTS idx_job_postings_persona_id ON job_postings(persona_id);
-CREATE INDEX IF NOT EXISTS idx_cover_letters_persona_id ON cover_letters(persona_id);
-CREATE INDEX IF NOT EXISTS idx_applications_persona_id ON applications(persona_id);
-CREATE INDEX IF NOT EXISTS idx_base_resumes_persona_id ON base_resumes(persona_id);
-CREATE INDEX IF NOT EXISTS idx_work_histories_persona_id ON work_histories(persona_id);
-CREATE INDEX IF NOT EXISTS idx_skills_persona_id ON skills(persona_id);
+-- idx_job_postings_persona_id ON job_postings(persona_id)
+-- idx_cover_letters_persona_id ON cover_letters(persona_id)
+-- idx_applications_persona_id ON applications(persona_id)
+-- idx_base_resumes_persona_id ON base_resumes(persona_id)
+-- idx_work_histories_persona_id ON work_histories(persona_id)
+-- idx_skills_persona_id ON skills(persona_id)
 ```
 
-**Note:** Check existing indexes before creating — some may already exist from the initial schema migration. Use `IF NOT EXISTS` to make migrations idempotent.
+For the complete list of all 53 indexes and their naming, see migration 011 (`011_rename_indexes.py`).
 
 ### 8.2 No Schema Changes
 
@@ -328,7 +332,7 @@ The existing schema already supports multi-tenancy:
 - All Tier 2+ tables have `persona_id` FK
 
 No new columns or tables are needed for tenant isolation. The changes are:
-1. Add missing indexes (§8.1)
+1. Standardize index naming convention (§8.1, migration 011)
 2. Fix endpoints that don't enforce ownership (§6.2)
 3. Add integration tests (§9)
 

@@ -112,17 +112,17 @@ The existing `job_postings` table becomes the shared canonical record. Changes:
 
 ```sql
 -- Remove persona-scoped indexes
-DROP INDEX IF EXISTS idx_jobposting_persona;
-DROP INDEX IF EXISTS idx_jobposting_status;
-DROP INDEX IF EXISTS idx_jobposting_fitscore;
+DROP INDEX IF EXISTS idx_job_postings_persona_id;
+DROP INDEX IF EXISTS idx_job_postings_persona_id_status;
+DROP INDEX IF EXISTS idx_job_postings_persona_id_fit_score;
 
 -- Add global indexes
-CREATE INDEX IF NOT EXISTS idx_jobposting_active ON job_postings(is_active) WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_jobposting_title_company ON job_postings(company_name, job_title);
-CREATE INDEX IF NOT EXISTS idx_jobposting_first_seen ON job_postings(first_seen_date DESC);
+CREATE INDEX IF NOT EXISTS idx_job_postings_is_active ON job_postings(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_job_postings_company_name_job_title ON job_postings(company_name, job_title);
+CREATE INDEX IF NOT EXISTS idx_job_postings_first_seen_date ON job_postings(first_seen_date DESC);
 ```
 
-Existing global indexes remain: `idx_jobposting_hash`, `idx_jobposting_company`, `idx_jobposting_source`, `idx_jobposting_external`.
+Existing global indexes remain: `idx_job_postings_description_hash`, `idx_job_postings_company_name`, `idx_job_postings_source_id`, `idx_job_postings_source_id_external_id`.
 
 ### 4.2 New: `persona_jobs` — Per-User Relationship (Tier 2)
 
