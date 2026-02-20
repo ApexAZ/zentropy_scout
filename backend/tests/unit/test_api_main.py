@@ -245,6 +245,18 @@ class TestCORSMiddleware:
             == "http://localhost:3000"
         )
 
+    @pytest.mark.asyncio
+    async def test_cors_includes_credentials_header(self, client):
+        """REQ-013 §7.6: CORS must include credentials for cookie-based auth."""
+        response = await client.options(
+            "/health",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert response.headers.get("access-control-allow-credentials") == "true"
+
 
 class TestSecurityHeadersMiddleware:
     """Tests for security headers middleware."""
