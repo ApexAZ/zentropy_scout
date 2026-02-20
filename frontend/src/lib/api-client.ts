@@ -13,6 +13,7 @@
  */
 
 import type { ErrorResponse } from "../types/api";
+import { getActiveQueryClient } from "./query-client";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -95,6 +96,28 @@ function calculateBackoff(
 	return INITIAL_BACKOFF_MS * 2 ** (attempt - 1);
 }
 
+/**
+ * Handle 401 Unauthorized responses (REQ-013 §8.8).
+ *
+ * Clears the TanStack Query cache and redirects to /login. Skips redirect
+ * when already on an auth page (/login, /register) to prevent infinite loops
+ * — the AuthProvider handles session state on those pages.
+ */
+function handleUnauthorized(status: number): void {
+	if (status !== 401) return;
+
+	const qc = getActiveQueryClient();
+	if (qc) qc.clear();
+
+	if (
+		typeof window !== "undefined" &&
+		!window.location.pathname.startsWith("/login") &&
+		!window.location.pathname.startsWith("/register")
+	) {
+		window.location.href = "/login";
+	}
+}
+
 async function parseErrorResponse(response: Response): Promise<ApiError> {
 	try {
 		const body = (await response.json()) as ErrorResponse;
@@ -153,6 +176,7 @@ function buildFetchInit(options?: RequestOptions): RequestInit {
 	return {
 		method: options?.method ?? "GET",
 		headers,
+		credentials: "include",
 		signal: options?.signal,
 		...(options?.body !== undefined && {
 			body: JSON.stringify(options.body),
@@ -199,6 +223,7 @@ export async function apiFetch<T>(
 		}
 
 		if (!response.ok) {
+			handleUnauthorized(response.status);
 			throw await parseErrorResponse(response);
 		}
 
@@ -274,6 +299,7 @@ export async function apiUploadFile<T>(
 		response = await fetch(url, {
 			method: "POST",
 			body: formData,
+			credentials: "include",
 			signal: options?.signal,
 		});
 	} catch {
@@ -281,6 +307,7 @@ export async function apiUploadFile<T>(
 	}
 
 	if (!response.ok) {
+		handleUnauthorized(response.status);
 		throw await parseErrorResponse(response);
 	}
 

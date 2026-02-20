@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { createQueryClient } from "./query-client";
+import {
+	createQueryClient,
+	getActiveQueryClient,
+	setActiveQueryClient,
+} from "./query-client";
 
 // ---------------------------------------------------------------------------
 // createQueryClient — configuration
@@ -41,5 +45,37 @@ describe("createQueryClient", () => {
 		const client1 = createQueryClient();
 		const client2 = createQueryClient();
 		expect(client1).not.toBe(client2);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Active query client singleton
+// ---------------------------------------------------------------------------
+
+describe("active query client singleton", () => {
+	afterEach(() => {
+		// Reset singleton state between tests
+		setActiveQueryClient(null);
+	});
+
+	it("returns null before any client is set", () => {
+		expect(getActiveQueryClient()).toBeNull();
+	});
+
+	it("returns the client after setActiveQueryClient is called", () => {
+		const client = createQueryClient();
+		setActiveQueryClient(client);
+
+		expect(getActiveQueryClient()).toBe(client);
+	});
+
+	it("replaces the previous client when set again", () => {
+		const client1 = createQueryClient();
+		const client2 = createQueryClient();
+
+		setActiveQueryClient(client1);
+		setActiveQueryClient(client2);
+
+		expect(getActiveQueryClient()).toBe(client2);
 	});
 });

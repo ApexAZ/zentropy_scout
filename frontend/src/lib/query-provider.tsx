@@ -13,9 +13,9 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { createQueryClient } from "./query-client";
+import { createQueryClient, setActiveQueryClient } from "./query-client";
 
 interface QueryProviderProps {
 	children: ReactNode;
@@ -30,6 +30,12 @@ export function QueryProvider({
 	// Create the QueryClient once per component lifecycle to avoid
 	// re-creating on every render in React strict mode.
 	const [queryClient] = useState(() => client ?? createQueryClient());
+
+	// Expose the active client for non-React code (e.g., api-client 401 interceptor).
+	useEffect(() => {
+		setActiveQueryClient(queryClient);
+		return () => setActiveQueryClient(null);
+	}, [queryClient]);
 
 	return (
 		<QueryClientProvider client={queryClient}>

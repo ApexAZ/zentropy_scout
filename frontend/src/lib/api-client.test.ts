@@ -3,6 +3,7 @@
  *
  * REQ-012 §4.3: API client with typed fetch wrapper, error handling,
  * response envelope parsing, and 429 retry with exponential backoff.
+ * REQ-013 §8.8: credentials: 'include' on all fetch calls, 401 interceptor.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,6 +21,7 @@ import {
 	apiUploadFile,
 	buildUrl,
 } from "./api-client";
+import { createQueryClient, setActiveQueryClient } from "./query-client";
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -678,6 +680,158 @@ describe("API Client", () => {
 				expect.any(String),
 				expect.objectContaining({ signal: controller.signal }),
 			);
+		});
+
+		it("includes credentials: 'include' in fetch options", async () => {
+			fetchMock.mockResolvedValueOnce(
+				mockJsonResponse({ data: {} }, { status: 201 }),
+			);
+
+			await apiUploadFile(RESUME_FILES_PATH, makePdfFile());
+
+			expect(fetchMock).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({ credentials: "include" }),
+			);
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Credentials mode (REQ-013 §8.8)
+	// -----------------------------------------------------------------------
+
+	describe("credentials mode", () => {
+		it("includes credentials: 'include' in apiFetch requests", async () => {
+			fetchMock.mockResolvedValueOnce(mockJsonResponse({ data: {} }));
+
+			await apiFetch(TEST_PATH);
+
+			expect(fetchMock).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({ credentials: "include" }),
+			);
+		});
+
+		it("includes credentials: 'include' in POST requests with body", async () => {
+			fetchMock.mockResolvedValueOnce(
+				mockJsonResponse({ data: {} }, { status: 201 }),
+			);
+
+			await apiPost(PERSONAS_PATH, { name: "Test" });
+
+			expect(fetchMock).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({ credentials: "include" }),
+			);
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// 401 interceptor (REQ-013 §8.8)
+	// -----------------------------------------------------------------------
+
+	describe("401 interceptor", () => {
+		const TEST_ORIGIN = "http://localhost:3000";
+		let originalLocation: Location;
+
+		function mock401Response(): Response {
+			return mockErrorResponse("UNAUTHORIZED", "Not authenticated", 401);
+		}
+
+		function mockWindowLocation(pathname: string): void {
+			Object.defineProperty(window, "location", {
+				value: {
+					...originalLocation,
+					href: `${TEST_ORIGIN}${pathname}`,
+					pathname,
+				},
+				writable: true,
+				configurable: true,
+			});
+		}
+
+		beforeEach(() => {
+			originalLocation = window.location;
+			mockWindowLocation("/jobs");
+		});
+
+		afterEach(() => {
+			Object.defineProperty(window, "location", {
+				value: originalLocation,
+				writable: true,
+				configurable: true,
+			});
+			setActiveQueryClient(null);
+		});
+
+		it("redirects to /login on 401 response", async () => {
+			fetchMock.mockResolvedValueOnce(mock401Response());
+
+			await expect(apiFetch(PERSONAS_PATH)).rejects.toThrow(ApiError);
+
+			expect(window.location.href).toBe("/login");
+		});
+
+		it("clears query cache on 401 response", async () => {
+			const queryClient = createQueryClient();
+			setActiveQueryClient(queryClient);
+			const clearSpy = vi.spyOn(queryClient, "clear");
+
+			fetchMock.mockResolvedValueOnce(mock401Response());
+
+			await expect(apiFetch(PERSONAS_PATH)).rejects.toThrow(ApiError);
+
+			expect(clearSpy).toHaveBeenCalled();
+		});
+
+		it("still throws ApiError with correct code after 401 redirect", async () => {
+			fetchMock.mockResolvedValueOnce(mock401Response());
+
+			const error = await apiFetch(PERSONAS_PATH).catch((e: unknown) => e);
+
+			expect(error).toBeInstanceOf(ApiError);
+			expect((error as ApiError).code).toBe("UNAUTHORIZED");
+			expect((error as ApiError).status).toBe(401);
+		});
+
+		it("does not redirect when already on /login", async () => {
+			mockWindowLocation("/login");
+			fetchMock.mockResolvedValueOnce(mock401Response());
+
+			await expect(apiFetch(PERSONAS_PATH)).rejects.toThrow(ApiError);
+
+			expect(window.location.href).toBe(`${TEST_ORIGIN}/login`);
+		});
+
+		it("does not redirect when already on /register", async () => {
+			mockWindowLocation("/register");
+			fetchMock.mockResolvedValueOnce(mock401Response());
+
+			await expect(apiFetch(PERSONAS_PATH)).rejects.toThrow(ApiError);
+
+			expect(window.location.href).toBe(`${TEST_ORIGIN}/register`);
+		});
+
+		it("does not redirect on auth subpaths like /login-callback", async () => {
+			mockWindowLocation("/login-callback");
+			fetchMock.mockResolvedValueOnce(mock401Response());
+
+			await expect(apiFetch(PERSONAS_PATH)).rejects.toThrow(ApiError);
+
+			expect(window.location.href).toBe(`${TEST_ORIGIN}/login-callback`);
+		});
+
+		it("handles 401 in apiUploadFile", async () => {
+			fetchMock.mockResolvedValueOnce(mock401Response());
+
+			await expect(
+				apiUploadFile(
+					"/resume-files",
+					new File(["x"], "test.pdf", { type: "application/pdf" }),
+				),
+			).rejects.toThrow(ApiError);
+
+			expect(window.location.href).toBe("/login");
 		});
 	});
 });

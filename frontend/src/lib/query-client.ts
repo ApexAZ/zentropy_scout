@@ -17,6 +17,10 @@
 
 import { QueryClient } from "@tanstack/react-query";
 
+// ---------------------------------------------------------------------------
+// Factory
+// ---------------------------------------------------------------------------
+
 export function createQueryClient(): QueryClient {
 	return new QueryClient({
 		defaultOptions: {
@@ -30,4 +34,22 @@ export function createQueryClient(): QueryClient {
 			},
 		},
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Active client singleton (REQ-013 §8.8)
+//
+// Holds a reference to the QueryClient instance used by the app. This allows
+// non-React code (api-client.ts 401 interceptor) to clear the cache on
+// session expiry without requiring React context access.
+// ---------------------------------------------------------------------------
+
+let _activeClient: QueryClient | null = null;
+
+export function getActiveQueryClient(): QueryClient | null {
+	return _activeClient;
+}
+
+export function setActiveQueryClient(client: QueryClient | null): void {
+	_activeClient = client;
 }
