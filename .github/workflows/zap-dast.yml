@@ -59,6 +59,20 @@ jobs:
         env:
           DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
+      - name: Seed DAST test user
+        run: |
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql \
+            -h localhost -U zentropy_user -d zentropy_scout -c "
+            INSERT INTO users (id, email, name, email_verified)
+            VALUES (
+              '00000000-0000-4000-a000-000000000099',
+              'zap-dast@test.internal',
+              'ZAP DAST Test User',
+              NOW()
+            )
+            ON CONFLICT (id) DO NOTHING;
+          "
+
       - name: Start FastAPI server
         run: |
           cd backend
@@ -78,6 +92,7 @@ jobs:
         env:
           DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }}
           RATE_LIMIT_ENABLED: "false"
+          DEFAULT_USER_ID: "00000000-0000-4000-a000-000000000099"
 
       - name: ZAP API Scan
         uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d  # v0.10.0

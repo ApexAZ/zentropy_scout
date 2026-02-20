@@ -411,6 +411,8 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 - `[testing]` Always verify Docker/PostgreSQL is running at session start (`docker compose ps`) and before investigating test failures because the container may not be started; skipped tests violate the "100% pass rate, no skips" Definition of Done.
 - `[workflow]` After completing a subtask, always follow this exact order: (1) push to remote, (2) use AskUserQuestion tool (not prose) to offer "Continue"/"Compact first"/"Stop", (3) if "Compact first" is selected, immediately provide a detailed summary for compaction. The checklist exists to prevent shortcuts at the finish line when you feel "done."
 
+- `[security]` Never filter or suppress security scanner alerts from reporting output (SARIF, Security tab) because DAST/SAST findings are meant for manual human review — the protocol is: review each alert, determine if genuine or false positive, then dismiss via `gh api` with reason and comment if false positive.
+
 <!-- Add new lessons above this line -->
 
 ---
