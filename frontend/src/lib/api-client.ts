@@ -110,11 +110,11 @@ function handleUnauthorized(status: number): void {
 	if (qc) qc.clear();
 
 	if (
-		typeof window !== "undefined" &&
-		!window.location.pathname.startsWith("/login") &&
-		!window.location.pathname.startsWith("/register")
+		typeof globalThis.window !== "undefined" &&
+		!globalThis.location.pathname.startsWith("/login") &&
+		!globalThis.location.pathname.startsWith("/register")
 	) {
-		window.location.href = "/login";
+		globalThis.location.href = "/login";
 	}
 }
 
