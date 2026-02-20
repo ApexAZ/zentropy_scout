@@ -57,7 +57,7 @@
 
 ## Phase 2: Auth Frontend (REQ-013)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Custom auth frontend — login/register pages, middleware, session context, account settings, logout. No `next-auth` or `@auth/pg-adapter` dependencies. All auth calls go to FastAPI backend endpoints (Phase 1). Depends on: Phase 1 (JWT issuance, validation, password + OAuth + magic link endpoints operational).*
 
@@ -82,7 +82,7 @@
 | 5 | **Account settings** — add new section to existing `/settings` page: email display + verified status badge, name edit field, password change form (current + new + confirm, calls `POST /api/v1/auth/change-password`), "Set password" button for OAuth-only users who have no `password_hash`, connected providers list with link/unlink buttons, "Sign out" button (calls `POST /api/v1/auth/logout`), "Sign out all devices" button (calls dedicated endpoint to set `token_invalidated_before = now()`, then local logout) (REQ-013 §8.3a). TDD: test password change form, provider list rendering, sign-out-all confirmation dialog. | `tdd, security, plan` | ✅ |
 | 6 | **Logout flow** — "Sign out" calls `POST /api/v1/auth/logout` → FastAPI clears httpOnly cookie → clear TanStack Query cache → clear AuthProvider context → redirect to `/login`. "Sign out all devices" calls dedicated backend endpoint to set `token_invalidated_before = now()`, then executes normal logout flow (REQ-013 §8.9). TDD: test cache clearing, redirect, context reset, API call sequence. | `tdd, plan` | ✅ |
 | 7 | **E2E auth tests** — Playwright tests for full auth flows: login with email/password (mock FastAPI verify-password), register new account (mock FastAPI register + email verification), forgot password (mock magic link send + verify), OAuth redirect (mock provider initiation), protected route redirect to `/login` when no cookie, logout + cache cleared, session persistence across page reload, 401 API response triggers redirect. Account settings E2E: name inline edit flow, password change flow (with current password), set password flow (OAuth-only user), password mismatch validation, sign out all devices confirmation dialog. Mock all FastAPI auth endpoints. ~16 tests. | `playwright, e2e, tdd, plan` | ✅ |
-| 8 | **Phase 2 gate** — run full test suite: `pytest tests/ -v` (backend), `npm test` (Vitest), `npx playwright test` (E2E), `npm run lint`, `npm run typecheck`. All green. | `plan, commands` | ⬜ |
+| 8 | **Phase 2 gate** — run full test suite: `pytest tests/ -v` (backend), `npm test` (Vitest), `npx playwright test` (E2E), `npm run lint`, `npm run typecheck`. All green. | `plan, commands` | ✅ |
 
 ---
 
