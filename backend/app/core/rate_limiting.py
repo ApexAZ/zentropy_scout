@@ -65,7 +65,8 @@ def _rate_limit_key_func(request: Request) -> str:
             sub = payload["sub"]
             # Defense-in-depth: validate sub looks like a UUID (36 chars)
             if len(sub) <= 36:
-                return f"user:{sub}"
+                # Rate limiter key, not HTTP response
+                return f"user:{sub}"  # nosemgrep: python.flask.security.audit.directly-returned-format-string.directly-returned-format-string
         except (jwt.InvalidTokenError, KeyError):
             pass
 

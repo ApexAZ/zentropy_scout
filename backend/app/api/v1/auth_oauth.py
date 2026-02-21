@@ -127,7 +127,10 @@ async def oauth_initiate(
     auth_url = f"{config.authorization_url}?{urlencode(params)}"
 
     # Set state cookie and redirect
-    redirect = RedirectResponse(url=auth_url, status_code=307)
+    # FP: auth_url built from hardcoded _PROVIDERS allowlist, not user input
+    redirect = RedirectResponse(  # nosemgrep: python.fastapi.web.tainted-redirect-fastapi.tainted-redirect-fastapi
+        url=auth_url, status_code=307
+    )
     redirect.set_cookie(
         key=_OAUTH_STATE_COOKIE,
         value=state_cookie,

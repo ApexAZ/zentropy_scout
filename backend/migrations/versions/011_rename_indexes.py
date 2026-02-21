@@ -113,9 +113,13 @@ _RENAMES: list[tuple[str, str]] = [
 
 def upgrade() -> None:
     for old_name, new_name in _RENAMES:
-        op.execute(f"ALTER INDEX {old_name} RENAME TO {new_name}")
+        op.execute(  # nosemgrep: python.lang.security.audit.formatted-sql-query.formatted-sql-query
+            f"ALTER INDEX {old_name} RENAME TO {new_name}"  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
+        )
 
 
 def downgrade() -> None:
     for old_name, new_name in reversed(_RENAMES):
-        op.execute(f"ALTER INDEX {new_name} RENAME TO {old_name}")
+        op.execute(  # nosemgrep: python.lang.security.audit.formatted-sql-query.formatted-sql-query
+            f"ALTER INDEX {new_name} RENAME TO {old_name}"  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
+        )

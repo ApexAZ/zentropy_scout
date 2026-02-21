@@ -32,6 +32,7 @@ _HIBP_TIMEOUT = 5.0
 # Pre-computed bcrypt hash for timing-safe comparison on user-not-found.
 # Security: prevents user enumeration via response time differences.
 # Pre-generated to avoid ~300ms bcrypt computation on every app startup.
+# nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash
 DUMMY_HASH = b"$2b$12$ZP2PVB8yI35X.mkRqcUPUuSzJA1CNRt4dZ7X3cyrfJu.2S3w.Qen2"  # NOSONAR — intentional dummy for timing-safe enumeration defense
 
 
@@ -148,8 +149,15 @@ async def check_password_breached(password: str) -> bool:
     Returns:
         True if password found in breach database, False otherwise.
     """
-    # nosemgrep: python.lang.security.insecure-hash-algorithm-sha1
-    sha1 = hashlib.sha1(password.encode()).hexdigest().upper()  # nosec B324
+    # HIBP k-anonymity API requires SHA-1; not used for crypto
+    # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1
+    sha1 = (
+        hashlib.sha1(  # nosec B324
+            password.encode(), usedforsecurity=False
+        )
+        .hexdigest()
+        .upper()
+    )
     prefix = sha1[:5]
     suffix = sha1[5:]
 
