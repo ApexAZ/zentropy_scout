@@ -162,10 +162,14 @@ async def ingest_job_posting(
     Raises:
         ConflictError: If job from this URL already exists (409).
     """
-    # Check for duplicate URL (only when source_url is provided)
+    # Check for duplicate URL scoped to current user (REQ-014 §5.2)
     source_url_str = str(body.source_url) if body.source_url is not None else None
     if source_url_str is not None:
-        stmt = select(JobPosting).where(JobPosting.source_url == source_url_str)
+        stmt = (
+            select(JobPosting)
+            .join(Persona, JobPosting.persona_id == Persona.id)
+            .where(JobPosting.source_url == source_url_str, Persona.user_id == user_id)
+        )
         result = await db.execute(stmt)
         existing = result.scalar_one_or_none()
         if existing:

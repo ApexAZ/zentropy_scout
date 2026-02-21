@@ -393,6 +393,103 @@ async def unauthenticated_client(db_engine) -> AsyncGenerator[AsyncClient, None]
     app.dependency_overrides.clear()
 
 
+# =============================================================================
+# Cross-Tenant Test Fixtures (REQ-014 §10.2)
+# =============================================================================
+
+# User B constants (cross-tenant testing counterpart to TEST_USER_ID)
+USER_B_ID = uuid.UUID("00000000-0000-0000-0000-000000000099")
+PERSONA_B_ID = uuid.UUID("00000000-0000-0000-0000-000000000098")
+
+
+@pytest_asyncio.fixture
+async def user_b(db_session: AsyncSession):
+    """Create User B for cross-tenant isolation tests.
+
+    REQ-014 §10.2: Second user for verifying data isolation.
+
+    Args:
+        db_session: Database session from db_session fixture.
+
+    Yields:
+        User model instance for User B.
+    """
+    from app.models import User
+
+    user = User(id=USER_B_ID, email="userb@example.com")
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    yield user
+
+
+@pytest_asyncio.fixture
+async def persona_user_b(db_session: AsyncSession, user_b):
+    """Create Persona for User B.
+
+    REQ-014 §10.2: Persona owned by User B for cross-tenant tests.
+
+    Args:
+        db_session: Database session.
+        user_b: User B (owner of persona).
+
+    Yields:
+        Persona model instance for User B.
+    """
+    from app.models.persona import Persona
+
+    persona = Persona(
+        id=PERSONA_B_ID,
+        user_id=user_b.id,
+        full_name="User B",
+        email="persona_b@example.com",
+        phone="555-9999",
+        home_city="Other City",
+        home_state="Other State",
+        home_country="USA",
+    )
+    db_session.add(persona)
+    await db_session.commit()
+    await db_session.refresh(persona)
+    yield persona
+
+
+@pytest_asyncio.fixture
+async def client_user_b(
+    client,  # noqa: ARG001 - ensures DB override, auth config, user_a data
+    user_b,  # noqa: ARG001 - ensures user_b exists in DB
+    persona_user_b,  # noqa: ARG001 - ensures user_b has a persona
+) -> AsyncGenerator[AsyncClient, None]:
+    """HTTP client authenticated as User B for cross-tenant tests.
+
+    REQ-014 §10.2: Depends on ``client`` to ensure DB override
+    and auth settings are already configured.
+
+    Args:
+        client: User A's client (ensures DB and auth setup).
+        user_b: User B (ensures user exists in DB).
+        persona_user_b: User B's persona (ensures persona exists).
+
+    Yields:
+        AsyncClient authenticated as User B.
+    """
+    from app.main import app
+
+    test_jwt = create_test_jwt(USER_B_ID)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        cookies={settings.auth_cookie_name: test_jwt},
+    ) as ac:
+        yield ac
+
+
+# =============================================================================
+# Autouse Fixtures
+# =============================================================================
+
+
 @pytest.fixture(autouse=True)
 def reset_ingest_token_store() -> Iterator[None]:
     """Reset ingest token store before each test.

@@ -19,9 +19,7 @@ import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.conftest import TEST_USER_ID, create_test_jwt
-
-_OTHER_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000099")
+from tests.conftest import TEST_USER_ID, USER_B_ID, create_test_jwt
 
 # =============================================================================
 # Fixtures for File Tests
@@ -431,7 +429,7 @@ class TestSubmittedResumePDFDownload:
         submitted_resume_pdf,
     ):
         """Another user cannot download someone else's submitted resume PDF."""
-        other_jwt = create_test_jwt(_OTHER_USER_ID)
+        other_jwt = create_test_jwt(USER_B_ID)
 
         response = await client.get(
             f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf.id}/download",
@@ -446,7 +444,7 @@ class TestSubmittedResumePDFDownload:
         submitted_resume_pdf_variant,
     ):
         """Another user cannot download someone else's variant-sourced PDF."""
-        other_jwt = create_test_jwt(_OTHER_USER_ID)
+        other_jwt = create_test_jwt(USER_B_ID)
 
         response = await client.get(
             f"/api/v1/submitted-resume-pdfs/{submitted_resume_pdf_variant.id}/download",

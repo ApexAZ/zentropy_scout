@@ -16,6 +16,7 @@ from app.core.errors import NotFoundError
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import Persona
 from app.models.cover_letter import CoverLetter
+from app.models.job_posting import JobPosting
 
 _MAX_TEXT_LENGTH = 50000
 """Safety bound on text field lengths (defense-in-depth)."""
@@ -199,6 +200,15 @@ async def create_cover_letter(
     )
     if not persona_result.scalar_one_or_none():
         raise NotFoundError("Persona", str(request.persona_id))
+
+    # Verify job posting ownership (REQ-014 §5.2)
+    posting_result = await db.execute(
+        select(JobPosting)
+        .join(Persona, JobPosting.persona_id == Persona.id)
+        .where(JobPosting.id == request.job_posting_id, Persona.user_id == user_id)
+    )
+    if not posting_result.scalar_one_or_none():
+        raise NotFoundError("JobPosting", str(request.job_posting_id))
 
     cl = CoverLetter(
         persona_id=request.persona_id,
