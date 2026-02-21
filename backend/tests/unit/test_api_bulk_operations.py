@@ -1,7 +1,10 @@
-"""Tests for bulk operation endpoints.
+"""Tests for bulk operation endpoints (stub-only routes).
 
 REQ-006 §2.6: Bulk operations for efficiency.
-Tests the /bulk-dismiss, /bulk-favorite, and /bulk-archive endpoints.
+Tests the /bulk-dismiss and /bulk-favorite endpoints (still stubs).
+
+NOTE: /bulk-archive tests live in test_api_applications.py because that
+endpoint uses real DB queries with ownership verification.
 
 These tests use dependency overrides for auth (not JWT cookies) because they
 test request/response shapes without database setup. JWT auth integration
@@ -174,42 +177,11 @@ class TestBulkFavoriteJobPostings:
         assert response.status_code == 200
 
 
-class TestBulkArchiveApplications:
-    """Tests for POST /api/v1/applications/bulk-archive."""
-
-    @pytest.mark.asyncio
-    async def test_bulk_archive_requires_ids(self, client):
-        """Request must include ids array."""
-        response = await client.post("/api/v1/applications/bulk-archive", json={})
-        # REQ-006 §8.1: 400 for validation errors
-        assert response.status_code == 400
-
-    @pytest.mark.asyncio
-    async def test_bulk_archive_empty_ids_is_valid(self, client):
-        """Empty ids array returns empty succeeded array."""
-        response = await client.post(
-            "/api/v1/applications/bulk-archive", json={"ids": []}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["data"]["succeeded"] == []
-        assert data["data"]["failed"] == []
-
-    @pytest.mark.asyncio
-    async def test_bulk_archive_returns_partial_success_format(self, client):
-        """Response includes succeeded and failed arrays."""
-        fake_ids = [str(uuid.uuid4())]
-        response = await client.post(
-            "/api/v1/applications/bulk-archive", json={"ids": fake_ids}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "succeeded" in data["data"]
-        assert "failed" in data["data"]
-
-
 class TestBulkOperationAuth:
-    """Tests that bulk operations require authentication."""
+    """Tests that stub bulk operations require authentication.
+
+    NOTE: bulk-archive auth is tested in test_api_applications.py.
+    """
 
     @pytest.mark.asyncio
     async def test_bulk_dismiss_requires_auth(self, unauthenticated_client):
@@ -226,14 +198,5 @@ class TestBulkOperationAuth:
         response = await unauthenticated_client.post(
             "/api/v1/job-postings/bulk-favorite",
             json={"ids": [], "is_favorite": True},
-        )
-        assert response.status_code == 401
-
-    @pytest.mark.asyncio
-    async def test_bulk_archive_requires_auth(self, unauthenticated_client):
-        """Unauthenticated request returns 401."""
-        response = await unauthenticated_client.post(
-            "/api/v1/applications/bulk-archive",
-            json={"ids": []},
         )
         assert response.status_code == 401
