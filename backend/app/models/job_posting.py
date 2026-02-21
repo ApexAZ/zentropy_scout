@@ -1,6 +1,7 @@
 """Job posting models - discovered jobs and extracted skills.
 
 REQ-005 §4.4 - JobPosting (Tier 2), ExtractedSkill (Tier 3).
+REQ-015 §4.1 - is_active flag for shared job pool.
 """
 
 import uuid
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from app.models.cover_letter import CoverLetter
     from app.models.job_source import JobSource
     from app.models.persona import Persona
+    from app.models.persona_job import PersonaJob
     from app.models.resume import JobVariant
 
 
@@ -231,6 +233,13 @@ class JobPosting(Base, TimestampMixin):
         nullable=True,
     )
 
+    # Shared pool flag (REQ-015 §4.1)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        server_default=text("true"),
+        nullable=False,
+    )
+
     __table_args__ = (
         CheckConstraint(
             "work_model IN ('Remote', 'Hybrid', 'Onsite') OR work_model IS NULL",
@@ -288,6 +297,10 @@ class JobPosting(Base, TimestampMixin):
         "JobEmbedding",
         back_populates="job_posting",
         cascade="all, delete-orphan",
+    )
+    persona_jobs: Mapped[list["PersonaJob"]] = relationship(
+        "PersonaJob",
+        back_populates="job_posting",
     )
 
 

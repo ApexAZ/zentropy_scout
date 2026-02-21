@@ -34,6 +34,7 @@ if TYPE_CHECKING:
         Skill,
         WorkHistory,
     )
+    from app.models.persona_job import PersonaJob
     from app.models.persona_settings import (
         CustomNonNegotiable,
         PersonaChangeFlag,
@@ -365,6 +366,11 @@ class Persona(Base, TimestampMixin):
     # Relationships to job/application domain
     job_postings: Mapped[list["JobPosting"]] = relationship(
         "JobPosting",
+        back_populates="persona",
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
+    )
+    persona_jobs: Mapped[list["PersonaJob"]] = relationship(
+        "PersonaJob",
         back_populates="persona",
         cascade=_CASCADE_ALL_DELETE_ORPHAN,
     )

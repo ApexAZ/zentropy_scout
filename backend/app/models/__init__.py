@@ -12,6 +12,7 @@ Models are organized by domain:
 - persona.py: Persona (Tier 1)
 - persona_content.py: WorkHistory, Bullet, Skill, Education, Certification, AchievementStory
 - persona_settings.py: VoiceProfile, CustomNonNegotiable, PersonaEmbedding, PersonaChangeFlag
+- persona_job.py: PersonaJob (Tier 2 - per-user job relationship)
 - resume.py: ResumeFile, BaseResume, JobVariant, SubmittedResumePDF
 - job_posting.py: JobPosting, ExtractedSkill
 - cover_letter.py: CoverLetter, SubmittedCoverLetterPDF
@@ -33,6 +34,7 @@ from app.models.persona_content import (
     Skill,
     WorkHistory,
 )
+from app.models.persona_job import PersonaJob
 from app.models.persona_settings import (
     CustomNonNegotiable,
     PersonaChangeFlag,
@@ -78,6 +80,8 @@ __all__ = [
     "PollingConfiguration",
     # Tier 2 - Job posting
     "JobPosting",
+    # Tier 2 - Per-user job relationship
+    "PersonaJob",
     # Tier 3
     "Bullet",
     "JobVariant",
