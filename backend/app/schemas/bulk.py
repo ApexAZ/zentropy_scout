@@ -20,7 +20,9 @@ class BulkDismissRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    ids: list[UUID] = Field(..., description="Job posting IDs to dismiss")
+    ids: list[UUID] = Field(
+        ..., description="Job posting IDs to dismiss", max_length=100
+    )
 
 
 class BulkFavoriteRequest(BaseModel):
@@ -33,7 +35,9 @@ class BulkFavoriteRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    ids: list[UUID] = Field(..., description="Job posting IDs to update")
+    ids: list[UUID] = Field(
+        ..., description="Job posting IDs to update", max_length=100
+    )
     is_favorite: bool = Field(..., description="True to favorite, False to unfavorite")
 
 
@@ -46,7 +50,9 @@ class BulkArchiveRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    ids: list[UUID] = Field(..., description="Application IDs to archive")
+    ids: list[UUID] = Field(
+        ..., description="Application IDs to archive", max_length=100
+    )
 
 
 class BulkFailedItem(BaseModel):
