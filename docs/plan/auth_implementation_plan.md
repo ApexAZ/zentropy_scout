@@ -198,6 +198,33 @@
 
 ---
 
+## Phase 7: Provider Configuration & Live Auth Testing
+
+**Status:** ⬜ Incomplete
+
+*Collaborative phase — configure OAuth provider credentials, email delivery, and manually verify all auth flows end-to-end with real providers. No production code changes; this is operational setup and validation. Depends on: Phase 6 (all code complete and tested with mocks).*
+
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Review REQ-013 §4 (OAuth providers), §4.4 (magic link), §11 (environment) |
+| 🔧 **Setup** | Guided walkthrough for each provider — Claude assists, user executes in browser |
+| 🧪 **Test** | Manual end-to-end testing of each auth flow against real providers |
+| ✅ **Verify** | Each flow works: redirect → consent → callback → JWT → authenticated session |
+| 📝 **Commit** | `.env` changes are local-only (gitignored) — commit any code fixes discovered during testing |
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 1 | **Generate AUTH_SECRET** — run `python -c "import secrets; print(secrets.token_hex(32))"` and add to `.env`. Set `AUTH_ENABLED=true`. Verify backend starts with auth enabled and `/auth/me` returns 401 without cookie. | `commands, plan` | ⬜ |
+| 2 | **Google OAuth setup** — guided walkthrough: create project in Google Cloud Console, enable Google Identity API, create OAuth 2.0 Web Application credentials, add redirect URI `http://localhost:8000/api/v1/auth/callback/google`, configure consent screen (test mode). Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `.env`. Test: click Google button on login page → Google consent → callback → JWT issued → redirected to app. | `plan` | ⬜ |
+| 3 | **LinkedIn OAuth setup** — guided walkthrough: create app in LinkedIn Developer Portal, request "Sign In with LinkedIn using OpenID Connect" product, add redirect URI `http://localhost:8000/api/v1/auth/callback/linkedin`, copy Client ID and Secret. Add `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` to `.env`. Test: click LinkedIn button on login page → LinkedIn consent → callback → JWT issued → redirected to app. | `plan` | ⬜ |
+| 4 | **Email delivery setup** — two options: (a) **Resend sandbox** for real email delivery — sign up at resend.com, generate API key, add `RESEND_API_KEY` to `.env`, verify a test email address in Resend dashboard (sandbox only sends to verified addresses). (b) **Local mail capture** with Mailpit — add Mailpit container to `docker-compose.yml`, configure backend to use SMTP instead of Resend API for local dev. User chooses approach. Test: trigger magic link from login page → email arrives → click link → authenticated. | `commands, plan` | ⬜ |
+| 5 | **Full auth flow validation** — manually test every auth path end-to-end: (a) register with email/password → verification email arrives → click link → logged in, (b) login with email/password, (c) login with Google OAuth, (d) login with LinkedIn OAuth, (e) forgot password → magic link email → click → logged in, (f) change password from settings, (g) sign out, (h) sign out all devices. Document any issues found and fix immediately. | `plan` | ⬜ |
+| 6 | **Phase 7 gate** — all auth flows verified working with real providers. Backend test suite still passes (`pytest tests/ -v`). No regressions from any code fixes made during testing. | `plan, commands` | ⬜ |
+
+---
+
 ## Status Legend
 
 | Icon | Meaning |
@@ -227,7 +254,10 @@ Phase 5: Shared Job Pool Backend (REQ-015)
     │   Repositories, API endpoints, surfacing worker, Scouter
     ↓
 Phase 6: Shared Job Pool Frontend + Integration (REQ-015)
-        Frontend updates, E2E tests, final gate
+    │   Frontend updates, E2E tests, final gate
+    ↓
+Phase 7: Provider Configuration & Live Auth Testing
+        OAuth credentials, email delivery, manual E2E validation
 ```
 
 ---
@@ -274,7 +304,8 @@ Phase 6: Shared Job Pool Frontend + Integration (REQ-015)
 | Phase 4 | 5 | Shared pool schema — migrations, backfill, dedup |
 | Phase 5 | 7 | Shared pool backend — APIs, dedup, surfacing, Scouter |
 | Phase 6 | 4 | Shared pool frontend + final integration |
-| **Total** | **41** | |
+| Phase 7 | 6 | Provider config, email setup, live auth testing |
+| **Total** | **47** | |
 
 ---
 
