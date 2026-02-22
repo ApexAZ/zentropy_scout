@@ -6,7 +6,11 @@ This module creates and configures the FastAPI application, including:
 - Exception handlers for API errors
 - API v1 router mounting
 - Health check endpoint
+- Pool surfacing background worker (REQ-015 §7)
 """
+
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI, Request, Response
@@ -18,9 +22,11 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from app.api.v1.router import router as v1_router
 from app.core.config import settings
+from app.core.database import async_session_factory
 from app.core.errors import APIError
 from app.core.rate_limiting import limiter, rate_limit_exceeded_handler
 from app.core.responses import ErrorDetail, ErrorResponse
+from app.services.pool_surfacing_worker import PoolSurfacingWorker
 
 logger = structlog.get_logger()
 
@@ -169,6 +175,22 @@ def internal_error_handler(request: Request, exc: Exception) -> JSONResponse:
     )
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan: start/stop background services.
+
+    REQ-015 §7.1: Starts the pool surfacing worker on startup,
+    stops it gracefully on shutdown.
+    """
+    worker = PoolSurfacingWorker(async_session_factory)
+    app.state.surfacing_worker = worker
+    await worker.start()
+    try:
+        yield
+    finally:
+        await worker.stop()
+
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -186,6 +208,7 @@ def create_app() -> FastAPI:
         title="Zentropy Scout API",
         version="1.0.0",
         description="AI-powered job application assistant",
+        lifespan=_lifespan,
     )
 
     # Middleware order: Starlette uses LIFO, so the LAST added runs FIRST.
