@@ -49,7 +49,7 @@ The test antipattern audit identified **~306 antipattern tests** across **~53 ba
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1 | **Delete 4 structural-only files (agent/provider)** — delete `test_agent_state.py` (~20 tests, 255 lines), `test_agent_checkpoint.py` (~4 tests, 248 lines), `test_provider_fixtures.py` (~6 tests, 140 lines), `test_mock_provider.py` (~7 tests, 270 lines). All tests are STRUCTURAL or TAUTOLOGICAL per audit Section B. Run full test suite to confirm no imports or fixtures depend on these files. | `tdd, commands, plan` | ⬜ |
+| 1 | **Delete 4 structural-only files (agent/provider)** — delete `test_agent_state.py` (~20 tests, 255 lines), `test_agent_checkpoint.py` (~4 tests, 248 lines), `test_provider_fixtures.py` (~6 tests, 140 lines), `test_mock_provider.py` (~7 tests, 270 lines). All tests are STRUCTURAL or TAUTOLOGICAL per audit Section B. Run full test suite to confirm no imports or fixtures depend on these files. | `tdd, commands, plan` | ✅ |
 | 2 | **Delete 4 structural-only files (interface/prompts/voice)** — delete `test_voice_profile_fields.py` (~18 tests, 247 lines), `test_llm_interface.py` (~3 tests, 556 lines), `test_embedding_interface.py` (~5 tests, 227 lines), `test_strategist_prompts.py` (~9 tests, 447 lines). All tests are STRUCTURAL per audit Sections B and D. Run full test suite. | `tdd, commands, plan` | ⬜ |
 
 ---
