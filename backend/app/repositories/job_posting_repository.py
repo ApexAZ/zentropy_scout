@@ -7,7 +7,7 @@ Job postings are Tier 0 — no per-user scoping at this level.
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job_posting import JobPosting
@@ -15,7 +15,7 @@ from app.models.job_posting import JobPosting
 # Optional fields accepted by JobPostingRepository.create().
 # Required fields (source_id, job_title, company_name, description,
 # description_hash, first_seen_date) are explicit parameters.
-_CREATABLE_OPTIONAL_FIELDS: frozenset[str] = frozenset(
+CREATABLE_OPTIONAL_FIELDS: frozenset[str] = frozenset(
     {
         "external_id",
         "company_url",
@@ -151,6 +151,37 @@ class JobPostingRepository:
         return result.scalar_one_or_none()
 
     @staticmethod
+    async def get_by_company_for_similarity(
+        db: AsyncSession,
+        company_name: str,
+        *,
+        limit: int = 100,
+    ) -> list[JobPosting]:
+        """Fetch active jobs by company for similarity matching.
+
+        REQ-015 §6 dedup step 3: Returns candidates for title + description
+        similarity comparison. Case-insensitive company name match.
+
+        Args:
+            db: Async database session.
+            company_name: Company name to match (case-insensitive).
+            limit: Maximum number of candidates to return.
+
+        Returns:
+            List of active JobPosting records for the company.
+        """
+        stmt = (
+            select(JobPosting)
+            .where(
+                func.lower(JobPosting.company_name) == company_name.lower().strip(),
+                JobPosting.is_active.is_(True),
+            )
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
+
+    @staticmethod
     async def create(
         db: AsyncSession,
         *,
@@ -166,7 +197,7 @@ class JobPostingRepository:
 
         Required fields are explicit parameters. Optional fields
         (e.g., location, salary_min) are passed as kwargs and validated
-        against ``_CREATABLE_OPTIONAL_FIELDS``.
+        against ``CREATABLE_OPTIONAL_FIELDS``.
 
         Args:
             db: Async database session.
@@ -176,7 +207,7 @@ class JobPostingRepository:
             description: Full job description.
             description_hash: SHA-256 hash for dedup.
             first_seen_date: Date the job was first discovered.
-            **optional: Optional fields (see ``_CREATABLE_OPTIONAL_FIELDS``).
+            **optional: Optional fields (see ``CREATABLE_OPTIONAL_FIELDS``).
 
         Returns:
             Created JobPosting with database-generated fields populated.
@@ -184,7 +215,7 @@ class JobPostingRepository:
         Raises:
             ValueError: If an unknown field name is passed.
         """
-        unknown = set(optional) - _CREATABLE_OPTIONAL_FIELDS
+        unknown = set(optional) - CREATABLE_OPTIONAL_FIELDS
         if unknown:
             msg = f"Unknown fields: {', '.join(sorted(unknown))}"
             raise ValueError(msg)

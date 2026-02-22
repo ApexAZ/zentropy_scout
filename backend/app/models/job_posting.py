@@ -14,6 +14,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -212,6 +213,13 @@ class JobPosting(Base, TimestampMixin):
         CheckConstraint(
             "ghost_score >= 0 AND ghost_score <= 100",
             name="ck_jobposting_ghost_score",
+        ),
+        Index(
+            "idx_job_postings_source_external_unique",
+            "source_id",
+            "external_id",
+            unique=True,
+            postgresql_where=text("external_id IS NOT NULL"),
         ),
     )
 
