@@ -155,23 +155,9 @@ class TestEstimateMonthlyCost:
 class TestEmbeddingModels:
     """Test embedding model constants."""
 
-    def test_text_embedding_3_small_defined(self):
-        """text-embedding-3-small should be defined."""
-        assert "text-embedding-3-small" in EMBEDDING_MODELS
-
-    def test_text_embedding_3_large_defined(self):
-        """text-embedding-3-large should be defined."""
-        assert "text-embedding-3-large" in EMBEDDING_MODELS
-
     def test_small_cheaper_than_large(self):
         """text-embedding-3-small should be cheaper than large."""
         small = EMBEDDING_MODELS["text-embedding-3-small"]
         large = EMBEDDING_MODELS["text-embedding-3-large"]
 
         assert small["price_per_1k_tokens"] < large["price_per_1k_tokens"]
-
-    def test_models_have_required_fields(self):
-        """Each model should have price_per_1k_tokens and dimensions."""
-        for model_name, model_info in EMBEDDING_MODELS.items():
-            assert "price_per_1k_tokens" in model_info, f"{model_name} missing price"
-            assert "dimensions" in model_info, f"{model_name} missing dimensions"

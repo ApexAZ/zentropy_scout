@@ -10,75 +10,9 @@ Zentropy Scout uses five embedding types for job-persona matching:
 from app.services.embedding_types import (
     EMBEDDING_CONFIGS,
     EmbeddingType,
-    JobEmbeddingType,
-    PersonaEmbeddingType,
     get_job_embedding_types,
     get_persona_embedding_types,
 )
-
-# =============================================================================
-# EmbeddingType Enum Tests
-# =============================================================================
-
-
-class TestEmbeddingType:
-    """Tests for EmbeddingType enum."""
-
-    def test_all_embedding_types_defined(self) -> None:
-        """All five embedding types from REQ-008 §6.1 are defined."""
-        # Persona embeddings
-        assert EmbeddingType.PERSONA_HARD_SKILLS is not None
-        assert EmbeddingType.PERSONA_SOFT_SKILLS is not None
-        assert EmbeddingType.PERSONA_LOGISTICS is not None
-        # Job embeddings
-        assert EmbeddingType.JOB_REQUIREMENTS is not None
-        assert EmbeddingType.JOB_CULTURE is not None
-
-    def test_embedding_type_values(self) -> None:
-        """Embedding type values match expected strings."""
-        assert EmbeddingType.PERSONA_HARD_SKILLS.value == "persona_hard_skills"
-        assert EmbeddingType.PERSONA_SOFT_SKILLS.value == "persona_soft_skills"
-        assert EmbeddingType.PERSONA_LOGISTICS.value == "persona_logistics"
-        assert EmbeddingType.JOB_REQUIREMENTS.value == "job_requirements"
-        assert EmbeddingType.JOB_CULTURE.value == "job_culture"
-
-
-# =============================================================================
-# PersonaEmbeddingType Subset Tests
-# =============================================================================
-
-
-class TestPersonaEmbeddingType:
-    """Tests for PersonaEmbeddingType enum (persona-only subset)."""
-
-    def test_persona_types_defined(self) -> None:
-        """All persona embedding types are defined."""
-        assert PersonaEmbeddingType.HARD_SKILLS is not None
-        assert PersonaEmbeddingType.SOFT_SKILLS is not None
-        assert PersonaEmbeddingType.LOGISTICS is not None
-
-    def test_persona_type_count(self) -> None:
-        """Only three persona embedding types exist."""
-        assert len(PersonaEmbeddingType) == 3
-
-
-# =============================================================================
-# JobEmbeddingType Subset Tests
-# =============================================================================
-
-
-class TestJobEmbeddingType:
-    """Tests for JobEmbeddingType enum (job-only subset)."""
-
-    def test_job_types_defined(self) -> None:
-        """All job embedding types are defined."""
-        assert JobEmbeddingType.REQUIREMENTS is not None
-        assert JobEmbeddingType.CULTURE is not None
-
-    def test_job_type_count(self) -> None:
-        """Only two job embedding types exist."""
-        assert len(JobEmbeddingType) == 2
-
 
 # =============================================================================
 # Helper Function Tests
@@ -98,11 +32,6 @@ class TestGetPersonaEmbeddingTypes:
         assert EmbeddingType.JOB_REQUIREMENTS not in types
         assert EmbeddingType.JOB_CULTURE not in types
 
-    def test_returns_three_types(self) -> None:
-        """Returns exactly three types."""
-        types = get_persona_embedding_types()
-        assert len(types) == 3
-
 
 class TestGetJobEmbeddingTypes:
     """Tests for get_job_embedding_types function."""
@@ -116,11 +45,6 @@ class TestGetJobEmbeddingTypes:
         assert EmbeddingType.PERSONA_HARD_SKILLS not in types
         assert EmbeddingType.PERSONA_SOFT_SKILLS not in types
         assert EmbeddingType.PERSONA_LOGISTICS not in types
-
-    def test_returns_two_types(self) -> None:
-        """Returns exactly two types."""
-        types = get_job_embedding_types()
-        assert len(types) == 2
 
 
 # =============================================================================

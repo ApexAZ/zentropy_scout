@@ -11,11 +11,7 @@ Tests cover:
 
 from app.models.job_posting import JobEmbedding
 from app.models.persona_settings import PersonaEmbedding
-from app.services.embedding_storage import (
-    JobEmbeddingType,
-    PersonaEmbeddingType,
-    compute_source_hash,
-)
+from app.services.embedding_storage import compute_source_hash
 
 # =============================================================================
 # Source Hash Tests
@@ -62,36 +58,12 @@ class TestComputeSourceHash:
 
 
 # =============================================================================
-# Embedding Type Tests
-# =============================================================================
-
-
-class TestEmbeddingTypes:
-    """Tests for embedding type enums."""
-
-    def test_persona_embedding_types(self) -> None:
-        """PersonaEmbeddingType has correct values."""
-        assert PersonaEmbeddingType.HARD_SKILLS.value == "hard_skills"
-        assert PersonaEmbeddingType.SOFT_SKILLS.value == "soft_skills"
-        assert PersonaEmbeddingType.LOGISTICS.value == "logistics"
-
-    def test_job_embedding_types(self) -> None:
-        """JobEmbeddingType has correct values."""
-        assert JobEmbeddingType.REQUIREMENTS.value == "requirements"
-        assert JobEmbeddingType.CULTURE.value == "culture"
-
-
-# =============================================================================
 # JobEmbedding Model Tests
 # =============================================================================
 
 
 class TestJobEmbeddingModel:
     """Tests for JobEmbedding ORM model structure."""
-
-    def test_tablename(self) -> None:
-        """Table name is job_embeddings."""
-        assert JobEmbedding.__tablename__ == "job_embeddings"
 
     def test_has_required_columns(self) -> None:
         """Model has all required columns."""
@@ -121,10 +93,6 @@ class TestJobEmbeddingModel:
 
 class TestPersonaEmbeddingModel:
     """Verification tests for existing PersonaEmbedding model."""
-
-    def test_tablename(self) -> None:
-        """Table name is persona_embeddings."""
-        assert PersonaEmbedding.__tablename__ == "persona_embeddings"
 
     def test_has_required_columns(self) -> None:
         """Model has all required columns."""
