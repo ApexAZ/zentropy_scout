@@ -213,6 +213,22 @@ class TestCreate:
         assert jp.created_at is not None
         assert jp.updated_at is not None
 
+    async def test_rejects_unknown_optional_fields(
+        self, db_session: AsyncSession, job_source: JobSource
+    ):
+        """Unknown optional field names raise ValueError."""
+        with pytest.raises(ValueError, match="not_a_field"):
+            await JobPostingRepository.create(
+                db_session,
+                source_id=job_source.id,
+                job_title="Bad",
+                company_name="BadCo",
+                description="Bad desc",
+                description_hash="f" * 64,
+                first_seen_date=_TODAY,
+                not_a_field="bad",
+            )
+
 
 class TestUpdate:
     """Test JobPostingRepository.update()."""

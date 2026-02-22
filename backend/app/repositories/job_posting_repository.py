@@ -12,6 +12,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job_posting import JobPosting
 
+# Optional fields accepted by JobPostingRepository.create().
+# Required fields (source_id, job_title, company_name, description,
+# description_hash, first_seen_date) are explicit parameters.
+_CREATABLE_OPTIONAL_FIELDS: frozenset[str] = frozenset(
+    {
+        "external_id",
+        "company_url",
+        "source_url",
+        "apply_url",
+        "location",
+        "work_model",
+        "seniority_level",
+        "salary_min",
+        "salary_max",
+        "salary_currency",
+        "culture_text",
+        "requirements",
+        "raw_text",
+        "years_experience_min",
+        "years_experience_max",
+    }
+)
+
 # Fields that may be updated via JobPostingRepository.update().
 # Security: Never allow updating id, source_id, or created_at.
 # - id: primary key, immutable
@@ -137,23 +160,13 @@ class JobPostingRepository:
         description: str,
         description_hash: str,
         first_seen_date: date,
-        external_id: str | None = None,
-        company_url: str | None = None,
-        source_url: str | None = None,
-        apply_url: str | None = None,
-        location: str | None = None,
-        work_model: str | None = None,
-        seniority_level: str | None = None,
-        salary_min: int | None = None,
-        salary_max: int | None = None,
-        salary_currency: str | None = None,
-        culture_text: str | None = None,
-        requirements: str | None = None,
-        raw_text: str | None = None,
-        years_experience_min: int | None = None,
-        years_experience_max: int | None = None,
+        **optional: str | int | None,
     ) -> JobPosting:
         """Create a new job posting in the shared pool.
+
+        Required fields are explicit parameters. Optional fields
+        (e.g., location, salary_min) are passed as kwargs and validated
+        against ``_CREATABLE_OPTIONAL_FIELDS``.
 
         Args:
             db: Async database session.
@@ -163,47 +176,27 @@ class JobPostingRepository:
             description: Full job description.
             description_hash: SHA-256 hash for dedup.
             first_seen_date: Date the job was first discovered.
-            external_id: External ID from source platform.
-            company_url: Company website URL.
-            source_url: URL where the job was found.
-            apply_url: Direct application URL.
-            location: Job location.
-            work_model: Remote/Hybrid/Onsite.
-            seniority_level: Entry/Mid/Senior/Lead/Executive.
-            salary_min: Minimum salary.
-            salary_max: Maximum salary.
-            salary_currency: Currency code (e.g., USD).
-            culture_text: Culture/values text.
-            requirements: Requirements text.
-            raw_text: Original raw text.
-            years_experience_min: Minimum years experience.
-            years_experience_max: Maximum years experience.
+            **optional: Optional fields (see ``_CREATABLE_OPTIONAL_FIELDS``).
 
         Returns:
             Created JobPosting with database-generated fields populated.
+
+        Raises:
+            ValueError: If an unknown field name is passed.
         """
+        unknown = set(optional) - _CREATABLE_OPTIONAL_FIELDS
+        if unknown:
+            msg = f"Unknown fields: {', '.join(sorted(unknown))}"
+            raise ValueError(msg)
+
         job_posting = JobPosting(
             source_id=source_id,
-            external_id=external_id,
             job_title=job_title,
             company_name=company_name,
             description=description,
             description_hash=description_hash,
             first_seen_date=first_seen_date,
-            company_url=company_url,
-            source_url=source_url,
-            apply_url=apply_url,
-            location=location,
-            work_model=work_model,
-            seniority_level=seniority_level,
-            salary_min=salary_min,
-            salary_max=salary_max,
-            salary_currency=salary_currency,
-            culture_text=culture_text,
-            requirements=requirements,
-            raw_text=raw_text,
-            years_experience_min=years_experience_min,
-            years_experience_max=years_experience_max,
+            **optional,
         )
         db.add(job_posting)
         await db.flush()
