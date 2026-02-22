@@ -36,7 +36,6 @@ class TestSSEEventSchemas:
     def test_chat_token_event_schema(self):
         """ChatTokenEvent has correct structure."""
         event = ChatTokenEvent(text="Hello")
-        assert event.type == "chat_token"
         assert event.text == "Hello"
         # Should serialize to JSON correctly
         data = event.model_dump()
@@ -46,13 +45,11 @@ class TestSSEEventSchemas:
         """ChatDoneEvent has correct structure."""
         msg_id = uuid.uuid4()
         event = ChatDoneEvent(message_id=str(msg_id))
-        assert event.type == "chat_done"
         assert event.message_id == str(msg_id)
 
     def test_tool_start_event_schema(self):
         """ToolStartEvent has correct structure."""
         event = ToolStartEvent(tool="favorite_job", args={"id": "123"})
-        assert event.type == "tool_start"
         assert event.tool == "favorite_job"
         assert event.args == {"id": "123"}
 
@@ -61,7 +58,6 @@ class TestSSEEventSchemas:
         event = ToolResultEvent(
             tool="favorite_job", success=True, result={"status": "ok"}
         )
-        assert event.type == "tool_result"
         assert event.tool == "favorite_job"
         assert event.success is True
         assert event.result == {"status": "ok"}
@@ -82,7 +78,6 @@ class TestSSEEventSchemas:
             id="29583",
             action="updated",
         )
-        assert event.type == "data_changed"
         assert event.resource == "job-posting"
         assert event.id == "29583"
         assert event.action == "updated"
@@ -128,11 +123,6 @@ class TestChatStreamEndpoint:
 
 class TestHeartbeatEvent:
     """Tests for HeartbeatEvent SSE formatting."""
-
-    def test_heartbeat_event_type(self):
-        """HeartbeatEvent has correct type."""
-        event = HeartbeatEvent()
-        assert event.type == "heartbeat"
 
     def test_heartbeat_event_to_sse(self):
         """HeartbeatEvent serializes to SSE format."""

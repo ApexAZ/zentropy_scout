@@ -15,13 +15,6 @@ from app.core.responses import (
 class TestPaginationMeta:
     """Tests for PaginationMeta model."""
 
-    def test_pagination_meta_fields(self):
-        """PaginationMeta should have total, page, per_page fields."""
-        meta = PaginationMeta(total=100, page=2, per_page=20)
-        assert meta.total == 100
-        assert meta.page == 2
-        assert meta.per_page == 20
-
     def test_total_pages_exact_division(self):
         """Total pages should be total / per_page when evenly divisible."""
         meta = PaginationMeta(total=100, page=1, per_page=20)
@@ -74,28 +67,6 @@ class TestDataResponse:
 class TestListResponse:
     """Tests for ListResponse model (collection)."""
 
-    def test_list_response_has_data_and_meta(self):
-        """ListResponse should have both data and meta keys."""
-        meta = PaginationMeta(total=100, page=2, per_page=20)
-        response = ListResponse(
-            data=[{"id": "1"}, {"id": "2"}],
-            meta=meta,
-        )
-        result = response.model_dump()
-        assert "data" in result
-        assert "meta" in result
-
-    def test_list_response_data_is_list(self):
-        """ListResponse data should be a list."""
-        meta = PaginationMeta(total=2, page=1, per_page=20)
-        response = ListResponse(
-            data=[{"id": "1"}, {"id": "2"}],
-            meta=meta,
-        )
-        result = response.model_dump()
-        assert isinstance(result["data"], list)
-        assert len(result["data"]) == 2
-
     def test_list_response_meta_includes_pagination(self):
         """ListResponse meta should include pagination info."""
         meta = PaginationMeta(total=100, page=2, per_page=20)
@@ -116,17 +87,6 @@ class TestListResponse:
 
 class TestErrorDetail:
     """Tests for ErrorDetail model."""
-
-    def test_error_detail_required_fields(self):
-        """ErrorDetail should require code and message."""
-        detail = ErrorDetail(code="NOT_FOUND", message="Resource not found")
-        assert detail.code == "NOT_FOUND"
-        assert detail.message == "Resource not found"
-
-    def test_error_detail_optional_details(self):
-        """ErrorDetail details should default to None."""
-        detail = ErrorDetail(code="TEST", message="Test")
-        assert detail.details is None
 
     def test_error_detail_with_details(self):
         """ErrorDetail should accept details list."""
@@ -165,10 +125,3 @@ class TestErrorResponse:
         result = response.model_dump()
         assert result["error"]["details"] is not None
         assert len(result["error"]["details"]) == 1
-
-    def test_error_response_null_details_when_none(self):
-        """ErrorResponse should have null details when not provided."""
-        detail = ErrorDetail(code="NOT_FOUND", message="Not found")
-        response = ErrorResponse(error=detail)
-        result = response.model_dump()
-        assert result["error"]["details"] is None

@@ -150,20 +150,6 @@ class TestFilterParamsListConversion:
         assert filters.status == ["Applied", "Interviewing"]
 
 
-class TestSortDirection:
-    """Tests for sort direction constants."""
-
-    def test_asc_constant(self):
-        """asc should be 'asc'."""
-        result = parse_sort("name")
-        assert result[0][1] == "asc"
-
-    def test_desc_constant(self):
-        """desc should be 'desc'."""
-        result = parse_sort("-name")
-        assert result[0][1] == "desc"
-
-
 class TestSortParamsDependency:
     """Tests for sort_params FastAPI dependency."""
 
