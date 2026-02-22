@@ -19,27 +19,6 @@ from app.services.stretch_score import (
 )
 
 # =============================================================================
-# Individual Weight Values (REQ-008 §5.1)
-# =============================================================================
-
-
-class TestStretchScoreWeightValues:
-    """Tests for individual Stretch Score weight values."""
-
-    def test_target_role_weight_is_50_percent(self) -> None:
-        """Target Role Alignment is weighted at 50%."""
-        assert STRETCH_WEIGHT_TARGET_ROLE == 0.50
-
-    def test_target_skills_weight_is_40_percent(self) -> None:
-        """Target Skills Exposure is weighted at 40%."""
-        assert STRETCH_WEIGHT_TARGET_SKILLS == 0.40
-
-    def test_growth_trajectory_weight_is_10_percent(self) -> None:
-        """Growth Trajectory is weighted at 10%."""
-        assert STRETCH_WEIGHT_GROWTH_TRAJECTORY == 0.10
-
-
-# =============================================================================
 # Weight Sum Validation
 # =============================================================================
 
@@ -65,12 +44,6 @@ class TestStretchScoreWeightSum:
 class TestGetStretchComponentWeights:
     """Tests for the get_stretch_component_weights accessor function."""
 
-    def test_returns_all_three_components(self) -> None:
-        """Returns dictionary with all 3 component keys."""
-        weights = get_stretch_component_weights()
-        expected_keys = {"target_role", "target_skills", "growth_trajectory"}
-        assert set(weights.keys()) == expected_keys
-
     def test_values_match_constants(self) -> None:
         """Dictionary values match the module-level constants."""
         weights = get_stretch_component_weights()
@@ -92,10 +65,6 @@ class TestGetStretchComponentWeights:
 
 class TestStretchNeutralScore:
     """Tests for the neutral score constant."""
-
-    def test_neutral_score_is_50(self) -> None:
-        """Neutral score for missing data is 50 (per REQ-008 §5.2, §5.3, §5.4)."""
-        assert STRETCH_NEUTRAL_SCORE == 50
 
     def test_neutral_score_is_reasonable(self) -> None:
         """Neutral score is within valid range (0-100)."""

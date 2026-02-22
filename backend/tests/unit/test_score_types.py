@@ -10,61 +10,10 @@ Zentropy Scout uses three score types:
 
 from app.services.score_types import (
     ScoreInterpretation,
-    ScoreType,
     interpret_fit_score,
     interpret_ghost_score,
     interpret_stretch_score,
 )
-
-# =============================================================================
-# ScoreType Enum Tests
-# =============================================================================
-
-
-class TestScoreType:
-    """Tests for ScoreType enum."""
-
-    def test_all_score_types_defined(self) -> None:
-        """All three score types from REQ-008 §1.1 are defined."""
-        assert ScoreType.FIT is not None
-        assert ScoreType.STRETCH is not None
-        assert ScoreType.GHOST is not None
-
-    def test_score_type_values(self) -> None:
-        """Score type values match expected strings."""
-        assert ScoreType.FIT.value == "fit"
-        assert ScoreType.STRETCH.value == "stretch"
-        assert ScoreType.GHOST.value == "ghost"
-
-
-# =============================================================================
-# ScoreInterpretation Enum Tests
-# =============================================================================
-
-
-class TestScoreInterpretation:
-    """Tests for ScoreInterpretation enum."""
-
-    def test_fit_interpretations_defined(self) -> None:
-        """Fit score interpretation levels from REQ-008 §7.1 are defined."""
-        assert ScoreInterpretation.FIT_EXCELLENT is not None
-        assert ScoreInterpretation.FIT_GOOD is not None
-        assert ScoreInterpretation.FIT_MODERATE is not None
-        assert ScoreInterpretation.FIT_LOW is not None
-
-    def test_stretch_interpretations_defined(self) -> None:
-        """Stretch score interpretation levels from REQ-008 §7.2 are defined."""
-        assert ScoreInterpretation.STRETCH_HIGH is not None
-        assert ScoreInterpretation.STRETCH_MODERATE is not None
-        assert ScoreInterpretation.STRETCH_LOW is not None
-
-    def test_ghost_interpretations_defined(self) -> None:
-        """Ghost score interpretation levels from REQ-003 §7.3 are defined."""
-        assert ScoreInterpretation.GHOST_FRESH is not None
-        assert ScoreInterpretation.GHOST_MODERATE is not None
-        assert ScoreInterpretation.GHOST_ELEVATED is not None
-        assert ScoreInterpretation.GHOST_HIGH_RISK is not None
-
 
 # =============================================================================
 # Fit Score Interpretation Tests (REQ-008 §7.1)

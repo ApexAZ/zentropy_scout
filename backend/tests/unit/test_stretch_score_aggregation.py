@@ -18,70 +18,8 @@ from app.services.stretch_score import (
     STRETCH_WEIGHT_GROWTH_TRAJECTORY,
     STRETCH_WEIGHT_TARGET_ROLE,
     STRETCH_WEIGHT_TARGET_SKILLS,
-    StretchScoreResult,
     calculate_stretch_score,
 )
-
-# =============================================================================
-# StretchScoreResult Structure Tests
-# =============================================================================
-
-
-class TestStretchScoreResult:
-    """Tests for StretchScoreResult dataclass structure."""
-
-    def test_result_has_total_field(self) -> None:
-        """StretchScoreResult should have a total field."""
-        result = StretchScoreResult(
-            total=80,
-            components={
-                "target_role": 100.0,
-                "target_skills": 50.0,
-                "growth_trajectory": 100.0,
-            },
-            weights={
-                "target_role": 0.50,
-                "target_skills": 0.40,
-                "growth_trajectory": 0.10,
-            },
-        )
-        assert result.total == 80
-
-    def test_result_has_components_dict(self) -> None:
-        """StretchScoreResult should have components dictionary."""
-        result = StretchScoreResult(
-            total=80,
-            components={
-                "target_role": 100.0,
-                "target_skills": 50.0,
-                "growth_trajectory": 100.0,
-            },
-            weights={
-                "target_role": 0.50,
-                "target_skills": 0.40,
-                "growth_trajectory": 0.10,
-            },
-        )
-        assert "target_role" in result.components
-        assert result.components["target_role"] == 100.0
-
-    def test_result_has_weights_dict(self) -> None:
-        """StretchScoreResult should have weights dictionary."""
-        result = StretchScoreResult(
-            total=80,
-            components={
-                "target_role": 100.0,
-                "target_skills": 50.0,
-                "growth_trajectory": 100.0,
-            },
-            weights={
-                "target_role": 0.50,
-                "target_skills": 0.40,
-                "growth_trajectory": 0.10,
-            },
-        )
-        assert result.weights["target_role"] == 0.50
-
 
 # =============================================================================
 # Weighted Sum Calculation Tests

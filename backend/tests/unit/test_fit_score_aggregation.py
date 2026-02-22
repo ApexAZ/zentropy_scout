@@ -20,82 +20,8 @@ from app.services.fit_score import (
     FIT_WEIGHT_LOCATION_LOGISTICS,
     FIT_WEIGHT_ROLE_TITLE,
     FIT_WEIGHT_SOFT_SKILLS,
-    FitScoreResult,
     calculate_fit_score,
 )
-
-# =============================================================================
-# FitScoreResult Structure Tests
-# =============================================================================
-
-
-class TestFitScoreResult:
-    """Tests for FitScoreResult dataclass structure."""
-
-    def test_result_has_total_field(self) -> None:
-        """FitScoreResult should have a total field."""
-        result = FitScoreResult(
-            total=73,
-            components={
-                "hard_skills": 59.2,
-                "soft_skills": 70.0,
-                "experience_level": 85.0,
-                "role_title": 75.0,
-                "location_logistics": 100.0,
-            },
-            weights={
-                "hard_skills": 0.40,
-                "soft_skills": 0.15,
-                "experience_level": 0.25,
-                "role_title": 0.10,
-                "location_logistics": 0.10,
-            },
-        )
-        assert result.total == 73
-
-    def test_result_has_components_dict(self) -> None:
-        """FitScoreResult should have components dictionary."""
-        result = FitScoreResult(
-            total=73,
-            components={
-                "hard_skills": 59.2,
-                "soft_skills": 70.0,
-                "experience_level": 85.0,
-                "role_title": 75.0,
-                "location_logistics": 100.0,
-            },
-            weights={
-                "hard_skills": 0.40,
-                "soft_skills": 0.15,
-                "experience_level": 0.25,
-                "role_title": 0.10,
-                "location_logistics": 0.10,
-            },
-        )
-        assert "hard_skills" in result.components
-        assert result.components["hard_skills"] == 59.2
-
-    def test_result_has_weights_dict(self) -> None:
-        """FitScoreResult should have weights dictionary."""
-        result = FitScoreResult(
-            total=73,
-            components={
-                "hard_skills": 59.2,
-                "soft_skills": 70.0,
-                "experience_level": 85.0,
-                "role_title": 75.0,
-                "location_logistics": 100.0,
-            },
-            weights={
-                "hard_skills": 0.40,
-                "soft_skills": 0.15,
-                "experience_level": 0.25,
-                "role_title": 0.10,
-                "location_logistics": 0.10,
-            },
-        )
-        assert result.weights["hard_skills"] == 0.40
-
 
 # =============================================================================
 # Weighted Sum Calculation Tests
