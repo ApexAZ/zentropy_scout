@@ -26,6 +26,7 @@ from app.repositories.job_posting_repository import (
     JobPostingRepository,
 )
 from app.repositories.persona_job_repository import PersonaJobRepository
+from app.services.content_security import lift_quarantine
 from app.services.job_deduplication import (
     DESCRIPTION_SIMILARITY_THRESHOLD_HIGH,
     DESCRIPTION_SIMILARITY_THRESHOLD_MEDIUM,
@@ -136,6 +137,8 @@ async def deduplicate_and_save(
             await JobPostingRepository.update(db, existing.id, **update_fields)
             await db.refresh(existing)
 
+            await _maybe_lift_quarantine(db, existing, discovery_method)
+
             persona_job = await _create_or_get_link(
                 db, persona_id, existing.id, user_id, discovery_method
             )
@@ -156,6 +159,8 @@ async def deduplicate_and_save(
             db, existing.id, also_found_on=new_also_found_on
         )
         await db.refresh(existing)
+
+        await _maybe_lift_quarantine(db, existing, discovery_method)
 
         persona_job = await _create_or_get_link(
             db, persona_id, existing.id, user_id, discovery_method
@@ -207,6 +212,21 @@ async def deduplicate_and_save(
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+async def _maybe_lift_quarantine(
+    db: AsyncSession,
+    job: JobPosting,
+    discovery_method: Literal["scouter", "manual", "pool"],
+) -> None:
+    """Lift quarantine if a Scouter independently confirms the job.
+
+    REQ-015 §8.4: Independent confirmation from another user's Scouter
+    lifts quarantine on manual submissions.
+    """
+    if discovery_method == "scouter" and job.is_quarantined:
+        await lift_quarantine(db, job.id)
+        await db.refresh(job)
 
 
 def _extract_source_update_fields(job_data: dict[str, Any]) -> dict[str, Any]:

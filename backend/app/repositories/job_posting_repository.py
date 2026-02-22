@@ -32,6 +32,9 @@ CREATABLE_OPTIONAL_FIELDS: frozenset[str] = frozenset(
         "raw_text",
         "years_experience_min",
         "years_experience_max",
+        "is_quarantined",
+        "quarantined_at",
+        "quarantine_expires_at",
     }
 )
 
@@ -72,6 +75,9 @@ _UPDATABLE_FIELDS: frozenset[str] = frozenset(
         "previous_posting_ids",
         "also_found_on",
         "is_active",
+        "is_quarantined",
+        "quarantined_at",
+        "quarantine_expires_at",
     }
 )
 

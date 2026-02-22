@@ -28,6 +28,7 @@ from sqlalchemy.orm import selectinload
 from app.models.job_posting import JobPosting
 from app.models.persona import Persona
 from app.models.persona_job import PersonaJob
+from app.services.content_security import release_expired_quarantines
 from app.services.pool_scoring import calculate_lightweight_fit, keyword_pre_screen
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,10 @@ async def get_unsurfaced_jobs(
     since: datetime,
     limit: int = _MAX_JOBS_PER_PASS,
 ) -> list[JobPosting]:
-    """Query new active job postings since a given timestamp.
+    """Query new active, non-quarantined job postings since a given timestamp.
+
+    REQ-015 §8.4: Surfacing worker skips quarantined jobs to prevent
+    pool poisoning from affecting other users.
 
     Args:
         db: Async database session.
@@ -80,12 +84,13 @@ async def get_unsurfaced_jobs(
         limit: Maximum number of jobs to return.
 
     Returns:
-        List of active JobPosting records, newest first.
+        List of active, non-quarantined JobPosting records, newest first.
     """
     stmt = (
         select(JobPosting)
         .where(
             JobPosting.is_active.is_(True),
+            JobPosting.is_quarantined.is_(False),
             JobPosting.created_at >= since,
         )
         .order_by(JobPosting.created_at.desc())
@@ -225,6 +230,9 @@ async def run_surfacing_pass(
         SurfacingPassResult with statistics.
     """
     started_at = datetime.now(UTC)
+
+    # REQ-015 §8.4: Release expired quarantines before surfacing
+    await release_expired_quarantines(db)
 
     jobs = await get_unsurfaced_jobs(db, since=since)
     if not jobs:

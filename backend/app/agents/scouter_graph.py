@@ -43,6 +43,7 @@ from app.agents.scouter import (
 )
 from app.agents.state import ScouterState
 from app.core.database import async_session_factory
+from app.core.llm_sanitization import sanitize_llm_input
 from app.models.job_source import JobSource
 from app.repositories.job_posting_repository import JobPostingRepository
 from app.services.ghost_detection import calculate_ghost_score
@@ -117,6 +118,10 @@ def extract_skills_and_culture(
     """
     # WHY: Truncate to 15k chars per REQ-007 §6.4 note
     truncated = description[:_MAX_DESCRIPTION_LENGTH]
+
+    # REQ-015 §8.4: Sanitize on read — all pool content through
+    # sanitize_llm_input() before any LLM prompt
+    truncated = sanitize_llm_input(truncated)
 
     # PLACEHOLDER: Actual LLM extraction will be implemented in a future task.
     # This allows the graph to function without LLM dependency for testing.

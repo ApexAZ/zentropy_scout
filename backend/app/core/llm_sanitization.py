@@ -154,6 +154,44 @@ _COMBINING_MARK_CATEGORIES = frozenset(("Mn", "Me"))
 _CONTROL_CHAR_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
+def _normalize_for_detection(text: str) -> str:
+    """Apply the Unicode normalization pipeline for injection detection.
+
+    Shared by sanitize_llm_input() and detect_injection_patterns() to
+    ensure the normalization logic never diverges between the two paths.
+
+    Pipeline: NFKC → zero-width strip → NFD → combining mark strip
+    → confusable map → control char strip.
+
+    Args:
+        text: Raw text to normalize.
+
+    Returns:
+        Normalized text ready for injection pattern matching.
+    """
+    # NFKC: converts fullwidth/styled variants (e.g., Ａ → A, 𝐒 → S)
+    result = unicodedata.normalize("NFKC", text)
+
+    # Strip zero-width chars that could bypass regex filters
+    result = _ZERO_WIDTH_PATTERN.sub("", result)
+
+    # NFD: decompose so ALL combining marks become separate codepoints
+    result = unicodedata.normalize("NFD", result)
+
+    # Strip combining marks (Mn/Me categories) across all Unicode blocks
+    result = "".join(
+        ch
+        for ch in result
+        if unicodedata.category(ch) not in _COMBINING_MARK_CATEGORIES
+    )
+
+    # Map Cyrillic/Greek confusables to Latin equivalents
+    result = result.translate(_CONFUSABLE_TRANS)
+
+    # Remove control characters (keep \t, \n, \r)
+    return _CONTROL_CHAR_PATTERN.sub("", result)
+
+
 def sanitize_llm_input(text: str) -> str:
     """Sanitize user-provided text before embedding in LLM prompts.
 
@@ -174,38 +212,7 @@ def sanitize_llm_input(text: str) -> str:
     if not text:
         return text
 
-    result = text
-
-    # Normalize Unicode to prevent compatibility-form bypass attacks
-    # NFKC converts fullwidth/styled variants (e.g., Ａ → A, 𝐒 → S)
-    result = unicodedata.normalize("NFKC", result)
-
-    # Strip zero-width Unicode characters that could bypass regex filters.
-    # Must happen before pattern matching so "S\u200bY\u200bS..." becomes "SYS..."
-    result = _ZERO_WIDTH_PATTERN.sub("", result)
-
-    # Decompose to NFD so ALL combining marks become separate codepoints.
-    # NFKC precomposes some letter+mark pairs (Y+grave → Ỳ), which would
-    # survive a combining mark strip. NFD reverses this: Ỳ → Y+\u0300.
-    result = unicodedata.normalize("NFD", result)
-
-    # Strip ALL combining marks (Unicode categories Mn/Me). After NFD, all
-    # accents are separate combining characters. Category-based detection covers
-    # all Unicode blocks (Diacritical Marks, Supplement, Extended, Symbols, etc.).
-    # This catches malicious insertions (S\u0300Y\u0300S... to bypass "SYSTEM")
-    # and normalizes accented text to base forms (é → e).
-    result = "".join(
-        ch
-        for ch in result
-        if unicodedata.category(ch) not in _COMBINING_MARK_CATEGORIES
-    )
-
-    # Map Cyrillic/Greek confusable characters to their Latin equivalents.
-    # NFKC does NOT handle cross-script homoglyphs (Cyrillic а ≠ Latin a).
-    result = result.translate(_CONFUSABLE_TRANS)
-
-    # Remove control characters (keep \t, \n, \r which are common in text)
-    result = _CONTROL_CHAR_PATTERN.sub("", result)
+    result = _normalize_for_detection(text)
 
     # Apply injection pattern filters
     for pattern, replacement, flags in _INJECTION_PATTERNS:
@@ -215,6 +222,35 @@ def sanitize_llm_input(text: str) -> str:
     result = unicodedata.normalize("NFC", result)
 
     return result
+
+
+def detect_injection_patterns(text: str) -> bool:
+    """Check if text contains prompt injection patterns.
+
+    REQ-015 §8.4: Write-time validation for shared pool content.
+    Runs the same normalization pipeline as sanitize_llm_input()
+    then checks if any injection pattern matches.
+
+    Unlike sanitize_llm_input(), this does NOT modify the text —
+    it only detects. Used as a pre-check to reject suspicious
+    content before storing in the shared pool.
+
+    Args:
+        text: Raw text to check for injection patterns.
+
+    Returns:
+        True if injection patterns are detected, False if clean.
+    """
+    if not text:
+        return False
+
+    normalized = _normalize_for_detection(text)
+
+    for pattern, _replacement, flags in _INJECTION_PATTERNS:
+        if re.search(pattern, normalized, flags):
+            return True
+
+    return False
 
 
 # =============================================================================

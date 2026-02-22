@@ -201,6 +201,21 @@ class JobPosting(Base, TimestampMixin):
         nullable=False,
     )
 
+    # Quarantine (REQ-015 §8.4 mitigation 3)
+    is_quarantined: Mapped[bool] = mapped_column(
+        Boolean,
+        server_default=text("false"),
+        nullable=False,
+    )
+    quarantined_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    quarantine_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     __table_args__ = (
         CheckConstraint(
             "work_model IN ('Remote', 'Hybrid', 'Onsite') OR work_model IS NULL",

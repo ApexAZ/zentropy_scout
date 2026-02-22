@@ -105,6 +105,26 @@ class NotFoundError(APIError):
         )
 
 
+class ContentSecurityError(APIError):
+    """Content security violation (400).
+
+    REQ-015 §8.4: Rejected due to detected prompt injection patterns
+    or other content security policy violations in shared pool content.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        details: list[dict] | None = None,
+    ) -> None:
+        super().__init__(
+            code="CONTENT_SECURITY_VIOLATION",
+            message=message,
+            status_code=400,
+            details=details,
+        )
+
+
 class ConflictError(APIError):
     """Duplicate or conflicting resource (409).
 

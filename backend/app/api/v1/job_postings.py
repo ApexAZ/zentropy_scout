@@ -19,6 +19,7 @@ Endpoints:
 """
 
 import hashlib
+import logging
 import uuid
 from datetime import UTC, date, datetime
 from typing import Any
@@ -28,7 +29,12 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUserId, DbSession
 from app.core.config import settings
-from app.core.errors import ConflictError, NotFoundError, ValidationError
+from app.core.errors import (
+    ConflictError,
+    ContentSecurityError,
+    NotFoundError,
+    ValidationError,
+)
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models.job_posting import JobPosting
@@ -55,12 +61,21 @@ from app.schemas.job_posting import (
     PersonaJobResponse,
     UpdatePersonaJobRequest,
 )
+from app.services.content_security import (
+    build_quarantine_fields,
+    check_manual_submission_rate,
+    validate_job_content,
+)
 from app.services.ingest_token_store import get_token_store
 from app.services.job_extraction import extract_job_data
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 _DISCOVERY_MANUAL = "manual"
+_RATE_LIMIT_MSG = "Manual submission rate limit exceeded (max 20/day)"
+_CONTENT_SECURITY_MSG = "Content rejected by security policy"
 
 # Security: Allowed modification fields for ingest confirm
 # Prevents mass assignment of sensitive fields (e.g., id, persona_id, source_id)
@@ -239,12 +254,33 @@ async def create_job_posting(
     """Create a new job posting manually.
 
     REQ-015 §9.1: Creates in shared pool + persona_jobs link.
+    REQ-015 §8.4: Content security — injection validation, quarantine,
+    rate limit for manual submissions.
     Dedup check first — if job with same description_hash exists,
     just creates the persona_jobs link.
 
     Raises:
         ConflictError: If user already has a link to this job (409).
+        ContentSecurityError: If injection patterns detected (400).
     """
+    # REQ-015 §8.4 mitigation 2: Validate on write
+    content_check = validate_job_content(
+        description=request.description,
+        culture_text=request.culture_text,
+    )
+    if not content_check.is_valid:
+        logger.warning(
+            "Content security rejection: %s (field=%s)",
+            content_check.reason,
+            content_check.field,
+        )
+        raise ContentSecurityError(message=_CONTENT_SECURITY_MSG)
+
+    # REQ-015 §8.4 mitigation 4: Rate limit manual submissions (20/day)
+    rate_ok = await check_manual_submission_rate(db, user_id)
+    if not rate_ok:
+        raise ContentSecurityError(message=_RATE_LIMIT_MSG)
+
     persona = await _get_user_persona(db, user_id)
     description_hash = _compute_description_hash(request.description)
 
@@ -277,6 +313,9 @@ async def create_job_posting(
             user_id=user_id,
         )
     else:
+        # REQ-015 §8.4 mitigation 3: Quarantine manual submissions
+        quarantine = build_quarantine_fields(discovery_method=_DISCOVERY_MANUAL)
+
         # Create new job in shared pool
         source = await _get_or_create_source(db, "Manual")
         job_posting = await JobPostingRepository.create(
@@ -296,6 +335,9 @@ async def create_job_posting(
             salary_currency=request.salary_currency,
             culture_text=request.culture_text,
             requirements=request.requirements,
+            is_quarantined=quarantine["is_quarantined"],
+            quarantined_at=quarantine["quarantined_at"],
+            quarantine_expires_at=quarantine["quarantine_expires_at"],
         )
 
         # Create persona_jobs link
@@ -496,6 +538,8 @@ async def confirm_ingest_job_posting(
     """Confirm ingest preview to create job posting.
 
     REQ-015 §9.1: Creates in shared pool + persona_jobs link.
+    REQ-015 §8.4: Content security — injection validation, quarantine,
+    rate limit for manual submissions.
 
     Args:
         request: Confirmation token and optional modifications.
@@ -507,6 +551,7 @@ async def confirm_ingest_job_posting(
 
     Raises:
         NotFoundError: If token is invalid or expired (404).
+        ContentSecurityError: If injection patterns detected (400).
     """
     # Get and consume the preview token
     token_store = get_token_store()
@@ -528,6 +573,29 @@ async def confirm_ingest_job_posting(
     description = extracted.get("description_snippet") or preview_data.raw_text[:1000]
     description_hash = _compute_description_hash(description)
 
+    # REQ-015 §8.4 mitigation 2: Validate on write — reject injection patterns
+    content_check = validate_job_content(
+        description=description,
+        culture_text=extracted.get("culture_text"),
+        modifications=request.modifications,
+        raw_text=preview_data.raw_text,
+    )
+    if not content_check.is_valid:
+        logger.warning(
+            "Content security rejection: %s (field=%s)",
+            content_check.reason,
+            content_check.field,
+        )
+        raise ContentSecurityError(message=_CONTENT_SECURITY_MSG)
+
+    # REQ-015 §8.4 mitigation 4: Rate limit manual submissions (20/day)
+    rate_ok = await check_manual_submission_rate(db, user_id)
+    if not rate_ok:
+        raise ContentSecurityError(message=_RATE_LIMIT_MSG)
+
+    # REQ-015 §8.4 mitigation 3: Quarantine manual submissions
+    quarantine = build_quarantine_fields(discovery_method=_DISCOVERY_MANUAL)
+
     # Create the shared job posting (Tier 0 — no per-user fields)
     job_posting = JobPosting(
         source_id=source.id,
@@ -543,6 +611,9 @@ async def confirm_ingest_job_posting(
         description=description,
         description_hash=description_hash,
         first_seen_date=date.today(),
+        is_quarantined=quarantine["is_quarantined"],
+        quarantined_at=quarantine["quarantined_at"],
+        quarantine_expires_at=quarantine["quarantine_expires_at"],
     )
 
     db.add(job_posting)
