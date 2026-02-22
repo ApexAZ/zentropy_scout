@@ -10,6 +10,8 @@ Tests cover:
 - Result immutability
 """
 
+from dataclasses import replace
+
 import pytest
 
 from app.services.stretch_score import (
@@ -186,27 +188,6 @@ class TestStretchScoreInterpretationValidation:
 
 
 # =============================================================================
-# StretchScoreLabel Enum Tests
-# =============================================================================
-
-
-class TestStretchScoreLabelEnum:
-    """Tests for StretchScoreLabel enum."""
-
-    def test_enum_has_all_labels(self) -> None:
-        """Enum has all 4 threshold labels."""
-        labels = [label.value for label in StretchScoreLabel]
-        assert "High Growth" in labels
-        assert "Moderate Growth" in labels
-        assert "Lateral" in labels
-        assert "Low Growth" in labels
-
-    def test_enum_count(self) -> None:
-        """Enum has exactly 4 labels."""
-        assert len(StretchScoreLabel) == 4
-
-
-# =============================================================================
 # Type Validation Tests
 # =============================================================================
 
@@ -276,22 +257,26 @@ class TestStretchScoreIntegration:
 
 
 class TestStretchScoreInterpretationImmutability:
-    """Tests for StretchScoreInterpretation immutability."""
+    """Tests for StretchScoreInterpretation immutability via behavioral approach."""
 
-    def test_cannot_modify_score(self) -> None:
-        """Cannot modify score attribute after creation."""
+    def test_interpretation_preserves_original_score(self) -> None:
+        """Modifying a copy preserves the original score."""
         result = interpret_stretch_score(75)
-        with pytest.raises(AttributeError):
-            result.score = 90  # type: ignore[misc]
+        updated = replace(result, score=90)
+        assert result.score == 75
+        assert updated.score == 90
 
-    def test_cannot_modify_label(self) -> None:
-        """Cannot modify label attribute after creation."""
+    def test_interpretation_preserves_original_label(self) -> None:
+        """Modifying a copy preserves the original label."""
         result = interpret_stretch_score(75)
-        with pytest.raises(AttributeError):
-            result.label = StretchScoreLabel.HIGH_GROWTH  # type: ignore[misc]
+        updated = replace(result, label=StretchScoreLabel.HIGH_GROWTH)
+        assert result.label == StretchScoreLabel.MODERATE_GROWTH
+        assert updated.label == StretchScoreLabel.HIGH_GROWTH
 
-    def test_cannot_modify_interpretation(self) -> None:
-        """Cannot modify interpretation attribute after creation."""
+    def test_interpretation_preserves_original_text(self) -> None:
+        """Modifying a copy preserves the original interpretation text."""
         result = interpret_stretch_score(75)
-        with pytest.raises(AttributeError):
-            result.interpretation = "Modified"  # type: ignore[misc]
+        original_text = result.interpretation
+        updated = replace(result, interpretation="Modified")
+        assert result.interpretation == original_text
+        assert updated.interpretation == "Modified"

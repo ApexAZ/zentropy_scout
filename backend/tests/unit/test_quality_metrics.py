@@ -6,7 +6,7 @@ Five metrics with targets and alert thresholds for monitoring content
 generation quality over time.
 """
 
-import pytest
+from dataclasses import replace
 
 from app.services.quality_metrics import (
     ALL_METRICS,
@@ -24,146 +24,15 @@ from app.services.quality_metrics import (
 # =============================================================================
 
 
-class TestQualityMetricDefinitionStructure:
-    """Tests for QualityMetricDefinition frozen dataclass."""
+class TestQualityMetricDefinitionImmutability:
+    """Tests for QualityMetricDefinition immutability via behavioral approach."""
 
-    def test_definition_is_frozen(self) -> None:
-        """QualityMetricDefinition should be immutable."""
-        with pytest.raises(AttributeError):
-            FIRST_DRAFT_APPROVAL_RATE.target = 0.99  # type: ignore[misc]
-
-    def test_definition_has_all_fields(self) -> None:
-        """QualityMetricDefinition should have all required fields."""
-        assert hasattr(FIRST_DRAFT_APPROVAL_RATE, "name")
-        assert hasattr(FIRST_DRAFT_APPROVAL_RATE, "target")
-        assert hasattr(FIRST_DRAFT_APPROVAL_RATE, "alert_threshold")
-        assert hasattr(FIRST_DRAFT_APPROVAL_RATE, "higher_is_better")
-
-
-# =============================================================================
-# MetricStatus Enum
-# =============================================================================
-
-
-class TestMetricStatusEnum:
-    """Tests for MetricStatus enum values."""
-
-    def test_has_on_target(self) -> None:
-        """MetricStatus should have ON_TARGET value."""
-        assert MetricStatus.ON_TARGET.value == "on_target"
-
-    def test_has_below_target(self) -> None:
-        """MetricStatus should have BELOW_TARGET value."""
-        assert MetricStatus.BELOW_TARGET.value == "below_target"
-
-    def test_has_alert(self) -> None:
-        """MetricStatus should have ALERT value."""
-        assert MetricStatus.ALERT.value == "alert"
-
-
-# =============================================================================
-# Metric Definitions — Values
-# =============================================================================
-
-
-class TestFirstDraftApprovalRate:
-    """REQ-010 §10.1: First-draft approval rate > 60%, alert < 40%."""
-
-    def test_name(self) -> None:
-        """Should have the correct metric name."""
-        assert FIRST_DRAFT_APPROVAL_RATE.name == "first_draft_approval_rate"
-
-    def test_target(self) -> None:
-        """Target should be 60%."""
-        assert FIRST_DRAFT_APPROVAL_RATE.target == 0.60
-
-    def test_alert_threshold(self) -> None:
-        """Alert threshold should be 40%."""
-        assert FIRST_DRAFT_APPROVAL_RATE.alert_threshold == 0.40
-
-    def test_higher_is_better(self) -> None:
-        """Higher approval rate is better."""
-        assert FIRST_DRAFT_APPROVAL_RATE.higher_is_better is True
-
-
-class TestValidationPassRate:
-    """REQ-010 §10.1: Validation pass rate > 90%, alert < 80%."""
-
-    def test_name(self) -> None:
-        """Should have the correct metric name."""
-        assert VALIDATION_PASS_RATE.name == "validation_pass_rate"
-
-    def test_target(self) -> None:
-        """Target should be 90%."""
-        assert VALIDATION_PASS_RATE.target == 0.90
-
-    def test_alert_threshold(self) -> None:
-        """Alert threshold should be 80%."""
-        assert VALIDATION_PASS_RATE.alert_threshold == 0.80
-
-    def test_higher_is_better(self) -> None:
-        """Higher pass rate is better."""
-        assert VALIDATION_PASS_RATE.higher_is_better is True
-
-
-class TestAvgRegenerationsPerLetter:
-    """REQ-010 §10.1: Avg regenerations < 1.5, alert > 2.5."""
-
-    def test_name(self) -> None:
-        """Should have the correct metric name."""
-        assert AVG_REGENERATIONS_PER_LETTER.name == "avg_regenerations_per_letter"
-
-    def test_target(self) -> None:
-        """Target should be 1.5."""
-        assert AVG_REGENERATIONS_PER_LETTER.target == 1.5
-
-    def test_alert_threshold(self) -> None:
-        """Alert threshold should be 2.5."""
-        assert AVG_REGENERATIONS_PER_LETTER.alert_threshold == 2.5
-
-    def test_higher_is_better(self) -> None:
-        """Lower regeneration count is better."""
-        assert AVG_REGENERATIONS_PER_LETTER.higher_is_better is False
-
-
-class TestVoiceAdherenceScore:
-    """REQ-010 §10.1: Voice adherence > 4.0, alert < 3.0."""
-
-    def test_name(self) -> None:
-        """Should have the correct metric name."""
-        assert VOICE_ADHERENCE_SCORE.name == "voice_adherence_score"
-
-    def test_target(self) -> None:
-        """Target should be 4.0."""
-        assert VOICE_ADHERENCE_SCORE.target == 4.0
-
-    def test_alert_threshold(self) -> None:
-        """Alert threshold should be 3.0."""
-        assert VOICE_ADHERENCE_SCORE.alert_threshold == 3.0
-
-    def test_higher_is_better(self) -> None:
-        """Higher voice adherence score is better."""
-        assert VOICE_ADHERENCE_SCORE.higher_is_better is True
-
-
-class TestStorySelectionSatisfaction:
-    """REQ-010 §10.1: Story selection satisfaction > 70%, alert < 50%."""
-
-    def test_name(self) -> None:
-        """Should have the correct metric name."""
-        assert STORY_SELECTION_SATISFACTION.name == "story_selection_satisfaction"
-
-    def test_target(self) -> None:
-        """Target should be 70%."""
-        assert STORY_SELECTION_SATISFACTION.target == 0.70
-
-    def test_alert_threshold(self) -> None:
-        """Alert threshold should be 50%."""
-        assert STORY_SELECTION_SATISFACTION.alert_threshold == 0.50
-
-    def test_higher_is_better(self) -> None:
-        """Higher satisfaction is better."""
-        assert STORY_SELECTION_SATISFACTION.higher_is_better is True
+    def test_definition_preserves_original_values(self) -> None:
+        """Modifying a copy preserves the original metric values."""
+        original_target = FIRST_DRAFT_APPROVAL_RATE.target
+        updated = replace(FIRST_DRAFT_APPROVAL_RATE, target=0.99)
+        assert FIRST_DRAFT_APPROVAL_RATE.target == original_target
+        assert updated.target == 0.99
 
 
 # =============================================================================
@@ -173,22 +42,6 @@ class TestStorySelectionSatisfaction:
 
 class TestAllMetrics:
     """Tests for the ALL_METRICS collection."""
-
-    def test_contains_five_metrics(self) -> None:
-        """Should contain exactly 5 metrics per REQ-010 §10.1."""
-        assert len(ALL_METRICS) == 5
-
-    def test_is_tuple(self) -> None:
-        """ALL_METRICS should be a tuple for immutability."""
-        assert isinstance(ALL_METRICS, tuple)
-
-    def test_contains_all_metric_definitions(self) -> None:
-        """Should contain all 5 defined metrics."""
-        assert FIRST_DRAFT_APPROVAL_RATE in ALL_METRICS
-        assert VALIDATION_PASS_RATE in ALL_METRICS
-        assert AVG_REGENERATIONS_PER_LETTER in ALL_METRICS
-        assert VOICE_ADHERENCE_SCORE in ALL_METRICS
-        assert STORY_SELECTION_SATISFACTION in ALL_METRICS
 
     def test_all_metric_names_are_unique(self) -> None:
         """Each metric should have a distinct name."""

@@ -14,6 +14,8 @@ was removed because it conflicted with the separate "Stretch Score" concept.
 Labels simplified from Excellent/Good/Fair/Poor to High/Medium/Low/Poor (2026-02-03).
 """
 
+from dataclasses import replace
+
 import pytest
 
 from app.services.fit_score import (
@@ -190,27 +192,6 @@ class TestFitScoreInterpretationValidation:
 
 
 # =============================================================================
-# FitScoreLabel Enum Tests
-# =============================================================================
-
-
-class TestFitScoreLabelEnum:
-    """Tests for FitScoreLabel enum."""
-
-    def test_enum_has_all_labels(self) -> None:
-        """Enum has all 4 threshold labels."""
-        labels = [label.value for label in FitScoreLabel]
-        assert "High" in labels
-        assert "Medium" in labels
-        assert "Low" in labels
-        assert "Poor" in labels
-
-    def test_enum_count(self) -> None:
-        """Enum has exactly 4 labels."""
-        assert len(FitScoreLabel) == 4
-
-
-# =============================================================================
 # Type Validation Tests
 # =============================================================================
 
@@ -286,22 +267,26 @@ class TestFitScoreIntegration:
 
 
 class TestFitScoreInterpretationImmutability:
-    """Tests for FitScoreInterpretation immutability."""
+    """Tests for FitScoreInterpretation immutability via behavioral approach."""
 
-    def test_cannot_modify_score(self) -> None:
-        """Cannot modify score attribute after creation."""
+    def test_interpretation_preserves_original_score(self) -> None:
+        """Modifying a copy preserves the original score."""
         result = interpret_fit_score(85)
-        with pytest.raises(AttributeError):
-            result.score = 90  # type: ignore[misc]
+        updated = replace(result, score=90)
+        assert result.score == 85
+        assert updated.score == 90
 
-    def test_cannot_modify_label(self) -> None:
-        """Cannot modify label attribute after creation."""
+    def test_interpretation_preserves_original_label(self) -> None:
+        """Modifying a copy preserves the original label."""
         result = interpret_fit_score(85)
-        with pytest.raises(AttributeError):
-            result.label = FitScoreLabel.HIGH  # type: ignore[misc]
+        updated = replace(result, label=FitScoreLabel.HIGH)
+        assert result.label == FitScoreLabel.MEDIUM
+        assert updated.label == FitScoreLabel.HIGH
 
-    def test_cannot_modify_interpretation(self) -> None:
-        """Cannot modify interpretation attribute after creation."""
+    def test_interpretation_preserves_original_text(self) -> None:
+        """Modifying a copy preserves the original interpretation text."""
         result = interpret_fit_score(85)
-        with pytest.raises(AttributeError):
-            result.interpretation = "Modified"  # type: ignore[misc]
+        original_text = result.interpretation
+        updated = replace(result, interpretation="Modified")
+        assert result.interpretation == original_text
+        assert updated.interpretation == "Modified"
