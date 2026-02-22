@@ -74,10 +74,5 @@ export interface IngestJobPostingResponse {
 	expires_at: string;
 }
 
-/** Response for POST /job-postings/ingest/confirm. */
-export interface IngestConfirmResponse {
-	id: string;
-	job_title: string | null;
-	company_name: string | null;
-	status: string;
-}
+// IngestConfirmResponse removed — backend now returns PersonaJobResponse
+// (see types/job.ts). Import PersonaJobResponse instead.

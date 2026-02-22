@@ -80,46 +80,58 @@ function makeCoverLetter(overrides?: Record<string, unknown>) {
 	};
 }
 
-function makeJobPosting(overrides?: Record<string, unknown>) {
+function makePersonaJob(overrides?: Record<string, unknown>) {
 	return {
-		id: JOB_POSTING_ID,
-		persona_id: PERSONA_ID,
-		external_id: null,
-		source_id: "src-1",
-		also_found_on: [],
-		job_title: "Senior Scrum Master",
-		company_name: "Acme Corp",
-		company_url: null,
-		source_url: null,
-		apply_url: null,
-		location: null,
-		work_model: null,
-		seniority_level: null,
-		salary_min: null,
-		salary_max: null,
-		salary_currency: null,
-		description: "Job description",
-		culture_text: null,
-		extracted_skills: [],
-		first_seen_at: MOCK_TIMESTAMP,
-		last_seen_at: MOCK_TIMESTAMP,
+		id: "pj-1",
+		job: {
+			id: JOB_POSTING_ID,
+			external_id: null,
+			source_id: "src-1",
+			job_title: "Senior Scrum Master",
+			company_name: "Acme Corp",
+			company_url: null,
+			source_url: null,
+			apply_url: null,
+			location: null,
+			work_model: null,
+			seniority_level: null,
+			salary_min: null,
+			salary_max: null,
+			salary_currency: null,
+			description: "Job description",
+			culture_text: null,
+			requirements: null,
+			years_experience_min: null,
+			years_experience_max: null,
+			posted_date: null,
+			application_deadline: null,
+			first_seen_date: MOCK_TIMESTAMP,
+			last_verified_at: null,
+			expired_at: null,
+			ghost_signals: null,
+			ghost_score: 0,
+			description_hash: "hash-1",
+			repost_count: 0,
+			previous_posting_ids: null,
+			is_active: true,
+		},
+		status: "Discovered",
+		is_favorite: false,
+		discovery_method: "manual",
+		discovered_at: MOCK_TIMESTAMP,
 		fit_score: null,
 		stretch_score: null,
 		score_details: null,
-		ghost_score: null,
-		ghost_signals: null,
-		status: "Discovered",
-		dismissed_reason: null,
-		repost_history: [],
-		created_at: MOCK_TIMESTAMP,
-		updated_at: MOCK_TIMESTAMP,
+		failed_non_negotiables: null,
+		scored_at: null,
+		dismissed_at: null,
 		...overrides,
 	};
 }
 
 const MOCK_VARIANT_RESPONSE = { data: makeVariant() };
 const MOCK_COVER_LETTER_RESPONSE = { data: makeCoverLetter() };
-const MOCK_JOB_POSTING_RESPONSE = { data: makeJobPosting() };
+const MOCK_JOB_POSTING_RESPONSE = { data: makePersonaJob() };
 
 // ---------------------------------------------------------------------------
 // Mocks

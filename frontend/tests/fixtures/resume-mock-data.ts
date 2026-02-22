@@ -7,7 +7,7 @@
  */
 
 import type { ApiListResponse, ApiResponse, PaginationMeta } from "@/types/api";
-import type { JobPosting } from "@/types/job";
+import type { JobPostingResponse, PersonaJobResponse } from "@/types/job";
 import type { Persona } from "@/types/persona";
 import type { BaseResume, JobVariant } from "@/types/resume";
 
@@ -211,12 +211,10 @@ export function postBaseResumeResponse(
 // JobPosting fixtures (minimal — only fields VariantsList uses)
 // ---------------------------------------------------------------------------
 
-const BASE_JOB_POSTING: JobPosting = {
+const BASE_JOB_POSTING_DATA: JobPostingResponse = {
 	id: JOB_POSTING_IDS[0],
-	persona_id: PERSONA_ID,
 	external_id: null,
 	source_id: "linkedin",
-	also_found_on: { sources: [] },
 	job_title: "Frontend Engineer",
 	company_name: "AlphaTech",
 	company_url: null,
@@ -236,38 +234,56 @@ const BASE_JOB_POSTING: JobPosting = {
 	posted_date: null,
 	application_deadline: null,
 	first_seen_date: "2026-02-10",
-	status: "Discovered",
-	is_favorite: false,
-	fit_score: null,
-	stretch_score: null,
-	score_details: null,
-	failed_non_negotiables: null,
-	ghost_score: 0,
+	last_verified_at: null,
+	expired_at: null,
 	ghost_signals: null,
+	ghost_score: 0,
 	description_hash: "hash-001",
 	repost_count: 0,
 	previous_posting_ids: null,
-	last_verified_at: null,
-	dismissed_at: null,
-	expired_at: null,
-	created_at: NOW,
-	updated_at: NOW,
+	is_active: true,
 };
 
-const JOB_POSTINGS: JobPosting[] = [
-	BASE_JOB_POSTING,
+const PERSONA_JOBS: PersonaJobResponse[] = [
 	{
-		...BASE_JOB_POSTING,
-		id: JOB_POSTING_IDS[1],
-		job_title: "Backend Engineer",
-		company_name: "BetaWorks",
-		description_hash: "hash-002",
+		id: "pj-res-e2e-001",
+		job: BASE_JOB_POSTING_DATA,
+		status: "Discovered",
+		is_favorite: false,
+		discovery_method: "manual",
+		discovered_at: NOW,
+		fit_score: null,
+		stretch_score: null,
+		score_details: null,
+		failed_non_negotiables: null,
+		scored_at: null,
+		dismissed_at: null,
+	},
+	{
+		id: "pj-res-e2e-002",
+		job: {
+			...BASE_JOB_POSTING_DATA,
+			id: JOB_POSTING_IDS[1],
+			job_title: "Backend Engineer",
+			company_name: "BetaWorks",
+			description_hash: "hash-002",
+		},
+		status: "Discovered",
+		is_favorite: false,
+		discovery_method: "manual",
+		discovered_at: NOW,
+		fit_score: null,
+		stretch_score: null,
+		score_details: null,
+		failed_non_negotiables: null,
+		scored_at: null,
+		dismissed_at: null,
 	},
 ];
 
-/** 2 job postings matching variant job_posting_ids. */
-export function jobPostingsForVariantsList(): ApiListResponse<JobPosting> {
-	return { data: [...JOB_POSTINGS], meta: listMeta(2) };
+/** 2 persona jobs matching variant job_posting_ids. */
+export function jobPostingsForVariantsList(): ApiListResponse<PersonaJobResponse> {
+	return { data: [...PERSONA_JOBS], meta: listMeta(2) };
 }
 
 // ---------------------------------------------------------------------------
@@ -340,13 +356,13 @@ export function jobVariantDetail(
 	return { data: { ...variant, ...overrides } };
 }
 
-/** Single job posting detail response. */
+/** Single job posting detail response (returns PersonaJobResponse). */
 export function jobPostingDetail(
 	postingId: string,
-): ApiResponse<JobPosting> | null {
-	const posting = JOB_POSTINGS.find((p) => p.id === postingId);
-	if (!posting) return null;
-	return { data: posting };
+): ApiResponse<PersonaJobResponse> | null {
+	const personaJob = PERSONA_JOBS.find((pj) => pj.job.id === postingId);
+	if (!personaJob) return null;
+	return { data: personaJob };
 }
 
 /** Empty variants list. */

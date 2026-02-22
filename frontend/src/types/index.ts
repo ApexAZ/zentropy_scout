@@ -66,8 +66,7 @@ export {
 } from "./persona";
 
 export type {
-	AlsoFoundOn,
-	CrossSourceEntry,
+	DiscoveryMethod,
 	ExtractedSkill,
 	FailedNonNegotiable,
 	FitScoreComponentKey,
@@ -75,8 +74,9 @@ export type {
 	FitScoreTier,
 	GhostScoreTier,
 	GhostSignals,
-	JobPosting,
+	JobPostingResponse,
 	JobPostingStatus,
+	PersonaJobResponse,
 	ScoreDetails,
 	ScoreExplanation,
 	SeniorityLevel,
@@ -145,7 +145,6 @@ export {
 export type {
 	ExtractedSkillPreview,
 	IngestConfirmRequest,
-	IngestConfirmResponse,
 	IngestJobPostingRequest,
 	IngestJobPostingResponse,
 	IngestPreview,

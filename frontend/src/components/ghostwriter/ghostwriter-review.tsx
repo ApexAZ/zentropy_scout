@@ -22,7 +22,7 @@ import { CoverLetterReview } from "@/components/cover-letter/cover-letter-review
 import { VariantReview } from "@/components/resume/variant-review";
 import type { ApiResponse } from "@/types/api";
 import type { CoverLetter } from "@/types/application";
-import type { JobPosting } from "@/types/job";
+import type { PersonaJobResponse } from "@/types/job";
 import type { JobVariant } from "@/types/resume";
 
 // ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ export function GhostwriterReview({
 	const { data: jobPostingData } = useQuery({
 		queryKey: queryKeys.job(variant?.job_posting_id ?? ""),
 		queryFn: () =>
-			apiGet<ApiResponse<JobPosting>>(
+			apiGet<ApiResponse<PersonaJobResponse>>(
 				`/job-postings/${variant?.job_posting_id}`,
 			),
 		enabled: !!variant?.job_posting_id,
@@ -88,7 +88,7 @@ export function GhostwriterReview({
 	// Derived state
 	// -----------------------------------------------------------------------
 
-	const jobPosting = jobPostingData?.data;
+	const jobPosting = jobPostingData?.data?.job;
 
 	const headerTitle = jobPosting
 		? `Materials for: ${jobPosting.job_title} at ${jobPosting.company_name}`

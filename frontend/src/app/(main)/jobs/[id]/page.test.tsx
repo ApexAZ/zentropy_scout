@@ -237,9 +237,11 @@ function makeJobData(
 			data: {
 				id: MOCK_JOB_ID,
 				score_details: scoreDetails ?? null,
-				description: "We are hiring a senior engineer.",
-				culture_text: "Fast-paced and collaborative.",
-				apply_url: "https://example.com/apply",
+				job: {
+					description: "We are hiring a senior engineer.",
+					culture_text: "Fast-paced and collaborative.",
+					apply_url: "https://example.com/apply",
+				},
 			},
 		},
 	};

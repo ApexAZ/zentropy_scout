@@ -5,6 +5,7 @@
  *
  * REQ-012 §8.3: Displays job metadata, scores, description,
  * ghost detection, and actions for a single job posting.
+ * REQ-015 §8: Uses PersonaJobResponse (nested shared + per-user).
  */
 
 import { useParams } from "next/navigation";
@@ -24,7 +25,7 @@ import { ScoreBreakdown } from "@/components/jobs/score-breakdown";
 import { ScoreExplanation } from "@/components/jobs/score-explanation";
 import { usePersonaStatus } from "@/hooks/use-persona-status";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { ExtractedSkill, JobPosting } from "@/types/job";
+import type { ExtractedSkill, PersonaJobResponse } from "@/types/job";
 
 /** Job detail page displaying metadata, scores, and posting details. */
 export default function JobDetailPage() {
@@ -35,7 +36,7 @@ export default function JobDetailPage() {
 	const { data } = useQuery({
 		queryKey: queryKeys.job(params.id),
 		queryFn: () =>
-			apiGet<ApiResponse<JobPosting>>(`/job-postings/${params.id}`),
+			apiGet<ApiResponse<PersonaJobResponse>>(`/job-postings/${params.id}`),
 		enabled: isOnboarded,
 	});
 
@@ -50,25 +51,31 @@ export default function JobDetailPage() {
 
 	if (!isOnboarded) return null;
 
-	const job = data?.data;
+	const personaJob = data?.data;
 
 	return (
 		<div className="mx-auto max-w-4xl px-4 py-6">
 			<JobDetailHeader jobId={params.id} />
-			{job && (
+			{personaJob && (
 				<>
 					<div className="mt-6">
-						<MarkAsAppliedCard jobId={params.id} applyUrl={job.apply_url} />
+						<MarkAsAppliedCard
+							jobId={params.id}
+							applyUrl={personaJob.job.apply_url}
+						/>
 					</div>
 					<div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-						<ScoreBreakdown score={job.score_details?.fit} scoreType="fit" />
 						<ScoreBreakdown
-							score={job.score_details?.stretch}
+							score={personaJob.score_details?.fit}
+							scoreType="fit"
+						/>
+						<ScoreBreakdown
+							score={personaJob.score_details?.stretch}
 							scoreType="stretch"
 						/>
 					</div>
 					<ScoreExplanation
-						explanation={job.score_details?.explanation}
+						explanation={personaJob.score_details?.explanation}
 						className="mt-4"
 					/>
 					<div className="mt-6">
@@ -81,8 +88,14 @@ export default function JobDetailPage() {
 						<ReviewMaterialsLink jobId={params.id} />
 					</div>
 					<ExtractedSkillsTags skills={skillsData?.data} className="mt-4" />
-					<JobDescription description={job.description} className="mt-4" />
-					<CultureSignals cultureText={job.culture_text} className="mt-4" />
+					<JobDescription
+						description={personaJob.job.description}
+						className="mt-4"
+					/>
+					<CultureSignals
+						cultureText={personaJob.job.culture_text}
+						className="mt-4"
+					/>
 				</>
 			)}
 		</div>

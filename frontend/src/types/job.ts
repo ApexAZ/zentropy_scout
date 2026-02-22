@@ -1,12 +1,13 @@
 /**
- * Job domain types matching backend/app/models/job_posting.py and
- * backend/app/services/ scoring dataclasses.
+ * Job domain types matching backend/app/schemas/job_posting.py
+ * and backend/app/services/ scoring dataclasses.
  *
  * REQ-001: Job posting analysis.
  * REQ-003 §7: Ghost detection signals.
  * REQ-005 §4.2: Database schema (JobPosting, ExtractedSkill).
  * REQ-008 §4–8: Scoring components (Fit, Stretch, Explanation).
  * REQ-012 §8: Job dashboard & scoring display.
+ * REQ-015 §8: Shared job pool — PersonaJobResponse wraps JobPostingResponse.
  */
 
 import type { SkillType, WorkModel } from "./persona";
@@ -18,12 +19,15 @@ import type { SkillType, WorkModel } from "./persona";
 /** Backend: JobPosting.seniority_level CHECK constraint. */
 export type SeniorityLevel = "Entry" | "Mid" | "Senior" | "Lead" | "Executive";
 
-/** Backend: JobPosting.status CHECK constraint. */
+/** Backend: PersonaJob.status CHECK constraint. */
 export type JobPostingStatus =
 	| "Discovered"
 	| "Dismissed"
 	| "Applied"
 	| "Expired";
+
+/** Backend: PersonaJob.discovery_method CHECK constraint. */
+export type DiscoveryMethod = "scouter" | "manual" | "pool";
 
 /** REQ-012 §8.4: Fit score tier labels (descending quality). */
 export type FitScoreTier = "High" | "Medium" | "Low" | "Poor";
@@ -108,31 +112,9 @@ export const STRETCH_SCORE_COMPONENT_KEYS: readonly StretchScoreComponentKey[] =
 // ---------------------------------------------------------------------------
 
 /**
- * Cross-source job listing reference within AlsoFoundOn.
- *
- * Backend: Stored inside also_found_on JSONB → sources array.
- */
-export interface CrossSourceEntry {
-	source_id: string;
-	external_id: string;
-	source_url: string;
-	/** ISO 8601 datetime. */
-	found_at: string;
-}
-
-/**
- * Wrapper for cross-source deduplication data.
- *
- * Backend: JobPosting.also_found_on JSONB column. Default: { sources: [] }.
- */
-export interface AlsoFoundOn {
-	sources: CrossSourceEntry[];
-}
-
-/**
  * A non-negotiable filter that a job posting failed.
  *
- * Backend: Stored in JobPosting.failed_non_negotiables JSONB array.
+ * Backend: Stored in PersonaJob.failed_non_negotiables JSONB array.
  */
 export interface FailedNonNegotiable {
 	filter: string;
@@ -209,7 +191,7 @@ export interface ScoreExplanation {
 }
 
 /**
- * Composite JSONB stored in JobPosting.score_details.
+ * Composite JSONB stored in PersonaJob.score_details.
  *
  * Backend: Assembled by save_scores_node in strategist_graph.py.
  * REQ-012 Appendix A.3. Null when non-negotiables fail.
@@ -245,24 +227,20 @@ export interface GhostSignals {
 }
 
 // ---------------------------------------------------------------------------
-// Main JobPosting interface — Tier 1 model
+// JobPostingResponse — shared pool data (Tier 0)
 // ---------------------------------------------------------------------------
 
 /**
- * Job posting discovered and analyzed by the Scouter agent.
+ * Shared job posting data returned by the API.
  *
- * Backend: JobPosting model (job_posting.py). Tier 1 — references Persona.
- * REQ-005 §4.2: Database schema.
- * REQ-012 §8: Job dashboard display.
+ * Backend: JobPostingResponse schema (schemas/job_posting.py).
+ * REQ-015 §8.3: Excludes also_found_on and raw_text (privacy).
+ * Never returned directly to users — always nested in PersonaJobResponse.
  */
-export interface JobPosting {
+export interface JobPostingResponse {
 	id: string;
-	persona_id: string;
-
-	// Source identification
+	source_id: string | null;
 	external_id: string | null;
-	source_id: string;
-	also_found_on: AlsoFoundOn;
 
 	// Job details
 	job_title: string;
@@ -296,11 +274,54 @@ export interface JobPosting {
 	/** ISO date string (YYYY-MM-DD). */
 	first_seen_date: string;
 
-	// Status & favorites
+	// Verification timestamps
+	/** ISO 8601 datetime. */
+	last_verified_at: string | null;
+	/** ISO 8601 datetime. Set when job expires. */
+	expired_at: string | null;
+
+	// Ghost detection
+	ghost_signals: GhostSignals | null;
+	/** 0–100 integer. Default 0. */
+	ghost_score: number;
+
+	// Deduplication & repost tracking
+	/** SHA-256 hash of description for deduplication. */
+	description_hash: string;
+	repost_count: number;
+	previous_posting_ids: string[] | null;
+
+	// Active status
+	/** False when job has expired or been removed. */
+	is_active: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// PersonaJobResponse — per-user job relationship (Tier 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-user job relationship wrapping shared pool data.
+ *
+ * Backend: PersonaJobResponse schema (schemas/job_posting.py).
+ * REQ-015 §8: All API job endpoints return this shape.
+ * Per-user fields (status, scores, favorites) at top level.
+ * Shared data nested under `job`.
+ */
+export interface PersonaJobResponse {
+	id: string;
+	/** Nested shared job posting data. */
+	job: JobPostingResponse;
+
+	// Per-user state
 	status: JobPostingStatus;
 	is_favorite: boolean;
+	/** How this job was discovered for this user. */
+	discovery_method: DiscoveryMethod;
+	/** ISO 8601 datetime — when this user first saw this job. */
+	discovered_at: string;
 
-	// Scoring
+	// Scoring (per-user)
 	/** 0–100 integer. Null when not yet scored or non-negotiables fail. */
 	fit_score: number | null;
 	/** 0–100 integer. Null when not yet scored or non-negotiables fail. */
@@ -310,26 +331,9 @@ export interface JobPosting {
 	/** Filters that this posting failed. Null when all pass. */
 	failed_non_negotiables: FailedNonNegotiable[] | null;
 
-	// Ghost detection
-	/** 0–100 integer. Default 0. */
-	ghost_score: number;
-	ghost_signals: GhostSignals | null;
-
-	// Deduplication & repost tracking
-	/** SHA-256 hash of description for deduplication. */
-	description_hash: string;
-	repost_count: number;
-	previous_posting_ids: string[] | null;
-
-	// Verification timestamps
-	/** ISO 8601 datetime. */
-	last_verified_at: string | null;
+	// Timestamps
+	/** ISO 8601 datetime. Null when not yet scored. */
+	scored_at: string | null;
 	/** ISO 8601 datetime. Set when status transitions to Dismissed. */
 	dismissed_at: string | null;
-	/** ISO 8601 datetime. Set when status transitions to Expired. */
-	expired_at: string | null;
-
-	// Timestamps (TimestampMixin)
-	created_at: string;
-	updated_at: string;
 }

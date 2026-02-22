@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { FailedState } from "@/components/ui/error-states";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type { JobPosting } from "@/types/job";
+import type { PersonaJobResponse } from "@/types/job";
 import type { WorkHistory } from "@/types/persona";
 import type {
 	BaseResume,
@@ -192,7 +192,7 @@ export function VariantReview({
 	} = useQuery({
 		queryKey: queryKeys.job(variant?.job_posting_id ?? ""),
 		queryFn: () =>
-			apiGet<ApiResponse<JobPosting>>(
+			apiGet<ApiResponse<PersonaJobResponse>>(
 				`/job-postings/${variant?.job_posting_id}`,
 			),
 		enabled: !!variant?.job_posting_id,
@@ -206,7 +206,7 @@ export function VariantReview({
 		() => workHistoryData?.data ?? [],
 		[workHistoryData?.data],
 	);
-	const jobPosting = jobPostingData?.data;
+	const jobPosting = jobPostingData?.data?.job;
 
 	const includedJobs = useMemo(() => {
 		if (!resume || jobs.length === 0) return [];

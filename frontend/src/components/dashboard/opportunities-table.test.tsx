@@ -56,56 +56,71 @@ function daysAgoDate(days: number): string {
 	return `${y}-${m}-${dd}`;
 }
 
-function makeJob(id: string, overrides?: Record<string, unknown>) {
+/** Returns an ISO 8601 datetime string for N days before now (UTC). */
+function daysAgoIso(days: number): string {
+	const d = new Date();
+	d.setUTCDate(d.getUTCDate() - days);
+	return d.toISOString();
+}
+
+function makePersonaJob(
+	id: string,
+	jobOverrides?: Record<string, unknown>,
+	personaOverrides?: Record<string, unknown>,
+) {
 	return {
 		id,
-		persona_id: "p-1",
-		external_id: null,
-		source_id: "src-1",
-		also_found_on: { sources: [] },
-		job_title: `Software Engineer ${id}`,
-		company_name: `Company ${id}`,
-		company_url: null,
-		source_url: null,
-		apply_url: null,
-		location: "Austin, TX",
-		work_model: "Remote",
-		seniority_level: "Mid",
-		salary_min: 120000,
-		salary_max: 150000,
-		salary_currency: "USD",
-		description: "Job description",
-		culture_text: null,
-		requirements: null,
-		years_experience_min: null,
-		years_experience_max: null,
-		posted_date: null,
-		application_deadline: null,
-		first_seen_date: daysAgoDate(3),
+		job: {
+			id: `jp-${id}`,
+			external_id: null,
+			source_id: "src-1",
+			job_title: `Software Engineer ${id}`,
+			company_name: `Company ${id}`,
+			company_url: null,
+			source_url: null,
+			apply_url: null,
+			location: "Austin, TX",
+			work_model: "Remote",
+			seniority_level: "Mid",
+			salary_min: 120000,
+			salary_max: 150000,
+			salary_currency: "USD",
+			description: "Job description",
+			culture_text: null,
+			requirements: null,
+			years_experience_min: null,
+			years_experience_max: null,
+			posted_date: null,
+			application_deadline: null,
+			first_seen_date: daysAgoDate(3),
+			last_verified_at: null,
+			expired_at: null,
+			ghost_signals: null,
+			ghost_score: 10,
+			description_hash: "abc123",
+			repost_count: 0,
+			previous_posting_ids: null,
+			is_active: true,
+			...jobOverrides,
+		},
 		status: "Discovered",
 		is_favorite: false,
+		discovery_method: "manual" as const,
+		discovered_at: daysAgoIso(3),
 		fit_score: 85,
 		stretch_score: 65,
 		score_details: null,
 		failed_non_negotiables: null,
-		ghost_score: 10,
-		ghost_signals: null,
-		description_hash: "abc123",
-		repost_count: 0,
-		previous_posting_ids: null,
-		last_verified_at: null,
+		scored_at: null,
 		dismissed_at: null,
-		expired_at: null,
-		created_at: "2026-02-10T12:00:00Z",
-		updated_at: "2026-02-10T12:00:00Z",
-		...overrides,
+		...personaOverrides,
 	};
 }
 
 const MOCK_LIST_META = { total: 2, page: 1, per_page: 20, total_pages: 1 };
 
 const MOCK_JOBS_RESPONSE = {
-	data: [makeJob("job-1"), makeJob("job-2")],
+	data: [makePersonaJob("job-1"), makePersonaJob("job-2")],
 	meta: MOCK_LIST_META,
 };
 
@@ -114,9 +129,12 @@ const MOCK_EMPTY_RESPONSE = {
 	meta: { ...MOCK_LIST_META, total: 0 },
 };
 
-function makeSingleJobResponse(overrides?: Record<string, unknown>) {
+function makeSingleJobResponse(
+	jobOverrides?: Record<string, unknown>,
+	personaOverrides?: Record<string, unknown>,
+) {
 	return {
-		data: [makeJob("job-1", overrides)],
+		data: [makePersonaJob("job-1", jobOverrides, personaOverrides)],
 		meta: { ...MOCK_LIST_META, total: 1 },
 	};
 }
@@ -324,7 +342,7 @@ describe("OpportunitiesTable", () => {
 
 		it("renders 'Not scored' for null fit score", async () => {
 			mocks.mockApiGet.mockResolvedValue(
-				makeSingleJobResponse({ fit_score: null }),
+				makeSingleJobResponse(undefined, { fit_score: null }),
 			);
 
 			renderTable();
@@ -350,9 +368,9 @@ describe("OpportunitiesTable", () => {
 			expect(screen.queryByTestId(GHOST_WARNING_JOB1)).not.toBeInTheDocument();
 		});
 
-		it("renders relative date from first_seen_date", async () => {
+		it("renders relative date from discovered_at", async () => {
 			mocks.mockApiGet.mockResolvedValue(
-				makeSingleJobResponse({ first_seen_date: daysAgoDate(0) }),
+				makeSingleJobResponse(undefined, { discovered_at: daysAgoIso(0) }),
 			);
 
 			renderTable();
@@ -412,7 +430,7 @@ describe("OpportunitiesTable", () => {
 			const user = userEvent.setup();
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
 			mocks.mockApiPatch.mockResolvedValue({
-				data: makeJob("job-1", { is_favorite: true }),
+				data: makePersonaJob("job-1", undefined, { is_favorite: true }),
 			});
 
 			renderTable();
@@ -432,7 +450,7 @@ describe("OpportunitiesTable", () => {
 			const user = userEvent.setup();
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
 			mocks.mockApiPatch.mockResolvedValue({
-				data: makeJob("job-1", { is_favorite: true }),
+				data: makePersonaJob("job-1", undefined, { is_favorite: true }),
 			});
 
 			renderTable();
@@ -1033,8 +1051,8 @@ describe("OpportunitiesTable", () => {
 		function makeMixedResponse() {
 			return {
 				data: [
-					makeJob("job-1"),
-					makeJob("job-filtered", {
+					makePersonaJob("job-1"),
+					makePersonaJob("job-filtered", undefined, {
 						failed_non_negotiables: [
 							{ filter: "salary_min", job_value: 90000, persona_value: 120000 },
 						],
@@ -1186,8 +1204,8 @@ describe("OpportunitiesTable", () => {
 			const user = userEvent.setup();
 			mocks.mockApiGet.mockResolvedValue({
 				data: [
-					makeJob("job-1"),
-					makeJob("job-undisclosed", {
+					makePersonaJob("job-1"),
+					makePersonaJob("job-undisclosed", undefined, {
 						failed_non_negotiables: [
 							{
 								filter: "salary_min",
@@ -1219,7 +1237,9 @@ describe("OpportunitiesTable", () => {
 
 		it("treats empty failed_non_negotiables array as non-filtered", async () => {
 			mocks.mockApiGet.mockResolvedValue({
-				data: [makeJob("job-1", { failed_non_negotiables: [] })],
+				data: [
+					makePersonaJob("job-1", undefined, { failed_non_negotiables: [] }),
+				],
 				meta: { ...MOCK_LIST_META, total: 1 },
 			});
 
@@ -1234,8 +1254,8 @@ describe("OpportunitiesTable", () => {
 			const user = userEvent.setup();
 			mocks.mockApiGet.mockResolvedValue({
 				data: [
-					makeJob("job-1"),
-					makeJob("job-wm", {
+					makePersonaJob("job-1"),
+					makePersonaJob("job-wm", undefined, {
 						failed_non_negotiables: [
 							{
 								filter: "work_model",

@@ -27,7 +27,7 @@ import type {
 import { ChevronDown, Heart, Loader2, Plus, TriangleAlert } from "lucide-react";
 
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
-import { formatDaysAgo, formatSalary } from "@/lib/job-formatters";
+import { formatDateTimeAgo, formatSalary } from "@/lib/job-formatters";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -55,8 +55,9 @@ import type {
 } from "@/types/api";
 import type {
 	FailedNonNegotiable,
-	JobPosting,
+	JobPostingResponse,
 	JobPostingStatus,
+	PersonaJobResponse,
 } from "@/types/job";
 import { JOB_POSTING_STATUSES } from "@/types/job";
 
@@ -130,10 +131,10 @@ const SORT_OPTIONS = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatLocation(job: JobPosting): string {
+function formatLocation(posting: JobPostingResponse): string {
 	const parts: string[] = [];
-	if (job.location) parts.push(job.location);
-	if (job.work_model) parts.push(job.work_model);
+	if (posting.location) parts.push(posting.location);
+	if (posting.work_model) parts.push(posting.work_model);
 	return parts.join(LOCATION_SEPARATOR) || "\u2014";
 }
 
@@ -176,7 +177,7 @@ function formatFailureReason(f: FailedNonNegotiable): {
 	};
 }
 
-function isFilteredJob(job: JobPosting): boolean {
+function isFilteredJob(job: PersonaJobResponse): boolean {
 	return (
 		job.failed_non_negotiables !== null && job.failed_non_negotiables.length > 0
 	);
@@ -186,7 +187,7 @@ function isFilteredJob(job: JobPosting): boolean {
 // Sub-component: Filtered job info (badge + expandable reasons)
 // ---------------------------------------------------------------------------
 
-function FilteredJobInfo({ job }: Readonly<{ job: JobPosting }>) {
+function FilteredJobInfo({ job }: Readonly<{ job: PersonaJobResponse }>) {
 	const [expanded, setExpanded] = useState(false);
 
 	if (!job.failed_non_negotiables?.length) return null;
@@ -238,23 +239,24 @@ function FilteredJobInfo({ job }: Readonly<{ job: JobPosting }>) {
 
 function FavoriteHeader({
 	column,
-}: Readonly<HeaderContext<JobPosting, unknown>>) {
+}: Readonly<HeaderContext<PersonaJobResponse, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Favorite" />;
 }
 
 function JobTitleHeader({
 	column,
-}: Readonly<HeaderContext<JobPosting, unknown>>) {
+}: Readonly<HeaderContext<PersonaJobResponse, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Job Title" />;
 }
 
-function JobTitleCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
+function JobTitleCell({
+	row,
+}: Readonly<CellContext<PersonaJobResponse, unknown>>) {
+	const { job } = row.original;
 	return (
 		<div>
-			<div className="font-medium">{row.original.job_title}</div>
-			<div className="text-muted-foreground text-sm">
-				{row.original.company_name}
-			</div>
+			<div className="font-medium">{job.job_title}</div>
+			<div className="text-muted-foreground text-sm">{job.company_name}</div>
 			<FilteredJobInfo job={row.original} />
 		</div>
 	);
@@ -262,33 +264,37 @@ function JobTitleCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
 
 function LocationHeader({
 	column,
-}: Readonly<HeaderContext<JobPosting, unknown>>) {
+}: Readonly<HeaderContext<PersonaJobResponse, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Location" />;
 }
 
 function SalaryHeader({
 	column,
-}: Readonly<HeaderContext<JobPosting, unknown>>) {
+}: Readonly<HeaderContext<PersonaJobResponse, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Salary" />;
 }
 
 function FitScoreHeader({
 	column,
-}: Readonly<HeaderContext<JobPosting, unknown>>) {
+}: Readonly<HeaderContext<PersonaJobResponse, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Fit" />;
 }
 
-function FitScoreCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
+function FitScoreCell({
+	row,
+}: Readonly<CellContext<PersonaJobResponse, unknown>>) {
 	return <ScoreTierBadge score={row.original.fit_score} scoreType="fit" />;
 }
 
 function StretchScoreHeader({
 	column,
-}: Readonly<HeaderContext<JobPosting, unknown>>) {
+}: Readonly<HeaderContext<PersonaJobResponse, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Stretch" />;
 }
 
-function StretchScoreCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
+function StretchScoreCell({
+	row,
+}: Readonly<CellContext<PersonaJobResponse, unknown>>) {
 	return (
 		<ScoreTierBadge score={row.original.stretch_score} scoreType="stretch" />
 	);
@@ -296,20 +302,22 @@ function StretchScoreCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
 
 function GhostScoreHeader({
 	column,
-}: Readonly<HeaderContext<JobPosting, unknown>>) {
+}: Readonly<HeaderContext<PersonaJobResponse, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Ghost" />;
 }
 
-function GhostScoreCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
-	const job = row.original;
-	const tier = getGhostTierConfig(job.ghost_score);
+function GhostScoreCell({
+	row,
+}: Readonly<CellContext<PersonaJobResponse, unknown>>) {
+	const personaJob = row.original;
+	const tier = getGhostTierConfig(personaJob.job.ghost_score);
 	if (!tier) return null;
 	return (
 		<TooltipProvider>
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<TriangleAlert
-						data-testid={`ghost-warning-${job.id}`}
+						data-testid={`ghost-warning-${personaJob.id}`}
 						className={cn("h-4 w-4", tier.colorClass)}
 						aria-label={tier.ariaLabel}
 					/>
@@ -322,38 +330,38 @@ function GhostScoreCell({ row }: Readonly<CellContext<JobPosting, unknown>>) {
 
 function DiscoveredHeader({
 	column,
-}: Readonly<HeaderContext<JobPosting, unknown>>) {
+}: Readonly<HeaderContext<PersonaJobResponse, unknown>>) {
 	return <DataTableColumnHeader column={column} title="Discovered" />;
 }
 
 interface OpportunitiesTableMeta {
 	togglingFavoriteId: string | null;
-	handleFavoriteToggle: (job: JobPosting) => void;
+	handleFavoriteToggle: (job: PersonaJobResponse) => void;
 }
 
 function FavoriteCell({
 	row,
 	table,
-}: Readonly<CellContext<JobPosting, unknown>>) {
+}: Readonly<CellContext<PersonaJobResponse, unknown>>) {
 	const { togglingFavoriteId, handleFavoriteToggle } = table.options
 		.meta as OpportunitiesTableMeta;
-	const job = row.original;
+	const personaJob = row.original;
 	return (
 		<Button
 			variant="ghost"
 			size="icon"
-			data-testid={`favorite-toggle-${job.id}`}
-			disabled={togglingFavoriteId === job.id}
-			aria-label={job.is_favorite ? "Unfavorite" : "Favorite"}
+			data-testid={`favorite-toggle-${personaJob.id}`}
+			disabled={togglingFavoriteId === personaJob.id}
+			aria-label={personaJob.is_favorite ? "Unfavorite" : "Favorite"}
 			onClick={(e) => {
 				e.stopPropagation();
-				handleFavoriteToggle(job);
+				handleFavoriteToggle(personaJob);
 			}}
 		>
 			<Heart
 				className={cn(
 					"h-4 w-4",
-					job.is_favorite && "fill-current text-red-500",
+					personaJob.is_favorite && "fill-current text-red-500",
 				)}
 			/>
 		</Button>
@@ -415,7 +423,7 @@ function OpportunitiesSelectionBar({
 }
 
 interface OpportunitiesToolbarProps {
-	table: ReactTable<JobPosting>;
+	table: ReactTable<PersonaJobResponse>;
 	statusFilter: JobPostingStatus;
 	onStatusFilterChange: (value: JobPostingStatus) => void;
 	minFit: number;
@@ -528,11 +536,11 @@ export function OpportunitiesTable() {
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: [...queryKeys.jobs, queryParams],
 		queryFn: () =>
-			apiGet<ApiListResponse<JobPosting>>("/job-postings", queryParams),
+			apiGet<ApiListResponse<PersonaJobResponse>>("/job-postings", queryParams),
 	});
 
 	const handleFavoriteToggle = useCallback(
-		async (job: JobPosting) => {
+		async (job: PersonaJobResponse) => {
 			setTogglingFavoriteId(job.id);
 			try {
 				await apiPatch(`/job-postings/${job.id}`, {
@@ -549,7 +557,7 @@ export function OpportunitiesTable() {
 	);
 
 	const handleRowClick = useCallback(
-		(job: JobPosting) => {
+		(job: PersonaJobResponse) => {
 			router.push(`/jobs/${job.id}`);
 		},
 		[router],
@@ -627,7 +635,7 @@ export function OpportunitiesTable() {
 	}, [selectedIds, queryClient, exitSelectMode]);
 
 	const renderToolbar = useCallback(
-		(table: ReactTable<JobPosting>) =>
+		(table: ReactTable<PersonaJobResponse>) =>
 			selectMode ? (
 				<OpportunitiesSelectionBar
 					selectedCount={selectedCount}
@@ -666,31 +674,32 @@ export function OpportunitiesTable() {
 		],
 	);
 
-	const columns = useMemo<ColumnDef<JobPosting, unknown>[]>(
+	const columns = useMemo<ColumnDef<PersonaJobResponse, unknown>[]>(
 		() => [
-			...(selectMode ? [getSelectColumn<JobPosting>()] : []),
+			...(selectMode ? [getSelectColumn<PersonaJobResponse>()] : []),
 			{
 				accessorKey: "is_favorite",
 				header: FavoriteHeader,
 				cell: FavoriteCell,
 			},
 			{
-				accessorKey: "job_title",
+				id: "job_title",
+				accessorFn: (row) => row.job.job_title,
 				header: JobTitleHeader,
 				cell: JobTitleCell,
 			},
 			{
 				id: "location",
-				accessorFn: (row) => row.location,
+				accessorFn: (row) => row.job.location,
 				header: LocationHeader,
-				cell: ({ row }) => formatLocation(row.original),
+				cell: ({ row }) => formatLocation(row.original.job),
 				enableSorting: false,
 			},
 			{
 				id: "salary",
-				accessorFn: (row) => row.salary_min,
+				accessorFn: (row) => row.job.salary_min,
 				header: SalaryHeader,
-				cell: ({ row }) => formatSalary(row.original),
+				cell: ({ row }) => formatSalary(row.original.job),
 			},
 			{
 				accessorKey: "fit_score",
@@ -703,15 +712,17 @@ export function OpportunitiesTable() {
 				cell: StretchScoreCell,
 			},
 			{
-				accessorKey: "ghost_score",
+				id: "ghost_score",
+				accessorFn: (row) => row.job.ghost_score,
 				header: GhostScoreHeader,
 				cell: GhostScoreCell,
 				enableSorting: false,
 			},
 			{
-				accessorKey: "first_seen_date",
+				id: "discovered_at",
+				accessorFn: (row) => row.discovered_at,
 				header: DiscoveredHeader,
-				cell: ({ row }) => formatDaysAgo(row.original.first_seen_date),
+				cell: ({ row }) => formatDateTimeAgo(row.original.discovered_at),
 			},
 		],
 		[selectMode],
@@ -723,7 +734,8 @@ export function OpportunitiesTable() {
 	);
 
 	const getRowClassName = useCallback(
-		(job: JobPosting) => (isFilteredJob(job) ? "opacity-50" : undefined),
+		(job: PersonaJobResponse) =>
+			isFilteredJob(job) ? "opacity-50" : undefined,
 		[],
 	);
 

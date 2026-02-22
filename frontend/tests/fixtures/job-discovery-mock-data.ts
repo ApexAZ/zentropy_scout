@@ -6,10 +6,7 @@
  */
 
 import type { ApiListResponse, ApiResponse, PaginationMeta } from "@/types/api";
-import type {
-	IngestConfirmResponse,
-	IngestJobPostingResponse,
-} from "@/types/ingest";
+import type { IngestJobPostingResponse } from "@/types/ingest";
 import type {
 	Application,
 	CoverLetter,
@@ -19,7 +16,8 @@ import type {
 	ExtractedSkill,
 	FailedNonNegotiable,
 	GhostSignals,
-	JobPosting,
+	JobPostingResponse,
+	PersonaJobResponse,
 	ScoreDetails,
 } from "@/types/job";
 import type { Persona } from "@/types/persona";
@@ -127,15 +125,13 @@ const JOB_003_GHOST_SIGNALS: GhostSignals = {
 };
 
 // ---------------------------------------------------------------------------
-// Job posting fixtures
+// Job posting fixtures (shared pool data + per-user wrapper)
 // ---------------------------------------------------------------------------
 
-const BASE_JOB: JobPosting = {
+const BASE_JOB_DATA: JobPostingResponse = {
 	id: JOB_IDS[0],
-	persona_id: PERSONA_ID,
 	external_id: "ext-001",
 	source_id: "linkedin",
-	also_found_on: { sources: [] },
 	job_title: "Senior Software Engineer",
 	company_name: "TechCorp",
 	company_url: "https://techcorp.example.com",
@@ -157,89 +153,122 @@ const BASE_JOB: JobPosting = {
 	posted_date: "2026-02-01",
 	application_deadline: null,
 	first_seen_date: "2026-02-10",
-	status: "Discovered",
-	is_favorite: false,
-	fit_score: 85,
-	stretch_score: 60,
-	score_details: JOB_001_SCORE_DETAILS,
-	failed_non_negotiables: null,
-	ghost_score: 10,
+	last_verified_at: NOW,
+	expired_at: null,
 	ghost_signals: null,
+	ghost_score: 10,
 	description_hash: "abc123",
 	repost_count: 0,
 	previous_posting_ids: null,
-	last_verified_at: NOW,
-	dismissed_at: null,
-	expired_at: null,
-	created_at: NOW,
-	updated_at: NOW,
+	is_active: true,
 };
 
-const MOCK_JOBS: JobPosting[] = [
+const MOCK_JOBS: PersonaJobResponse[] = [
 	// job-001: Standard scored job (navigable, full score details)
-	BASE_JOB,
+	{
+		id: "pj-001",
+		job: BASE_JOB_DATA,
+		status: "Discovered",
+		is_favorite: false,
+		discovery_method: "scouter",
+		discovered_at: NOW,
+		fit_score: 85,
+		stretch_score: 60,
+		score_details: JOB_001_SCORE_DETAILS,
+		failed_non_negotiables: null,
+		scored_at: NOW,
+		dismissed_at: null,
+	},
 
 	// job-002: Favorited job (pinned to top)
 	{
-		...BASE_JOB,
-		id: JOB_IDS[1],
-		external_id: "ext-002",
-		job_title: "Full Stack Developer",
-		company_name: "StartupXYZ",
-		company_url: "https://startupxyz.example.com",
-		source_url: "https://indeed.example.com/jobs/67890",
-		apply_url: "https://startupxyz.example.com/apply",
-		location: "Remote",
-		work_model: "Remote",
-		salary_min: 140000,
-		salary_max: 180000,
+		id: "pj-002",
+		job: {
+			...BASE_JOB_DATA,
+			id: JOB_IDS[1],
+			external_id: "ext-002",
+			job_title: "Full Stack Developer",
+			company_name: "StartupXYZ",
+			company_url: "https://startupxyz.example.com",
+			source_url: "https://indeed.example.com/jobs/67890",
+			apply_url: "https://startupxyz.example.com/apply",
+			location: "Remote",
+			work_model: "Remote",
+			salary_min: 140000,
+			salary_max: 180000,
+			ghost_score: 0,
+			first_seen_date: "2026-02-08",
+		},
+		status: "Discovered",
+		is_favorite: true,
+		discovery_method: "scouter",
+		discovered_at: NOW,
 		fit_score: 72,
 		stretch_score: 45,
 		score_details: null,
-		is_favorite: true,
-		ghost_score: 0,
-		first_seen_date: "2026-02-08",
+		failed_non_negotiables: null,
+		scored_at: NOW,
+		dismissed_at: null,
 	},
 
 	// job-003: High ghost risk
 	{
-		...BASE_JOB,
-		id: JOB_IDS[2],
-		external_id: "ext-003",
-		job_title: "Platform Engineer",
-		company_name: "MegaCorp",
-		company_url: "https://megacorp.example.com",
-		source_url: "https://glassdoor.example.com/jobs/11111",
-		apply_url: null,
-		location: "New York, NY",
-		work_model: "Onsite",
-		salary_min: null,
-		salary_max: null,
-		salary_currency: null,
+		id: "pj-003",
+		job: {
+			...BASE_JOB_DATA,
+			id: JOB_IDS[2],
+			external_id: "ext-003",
+			job_title: "Platform Engineer",
+			company_name: "MegaCorp",
+			company_url: "https://megacorp.example.com",
+			source_url: "https://glassdoor.example.com/jobs/11111",
+			apply_url: null,
+			location: "New York, NY",
+			work_model: "Onsite",
+			salary_min: null,
+			salary_max: null,
+			salary_currency: null,
+			ghost_score: 82,
+			ghost_signals: JOB_003_GHOST_SIGNALS,
+			repost_count: 3,
+			previous_posting_ids: ["prev-1", "prev-2", "prev-3"],
+			first_seen_date: "2026-01-15",
+		},
+		status: "Discovered",
+		is_favorite: false,
+		discovery_method: "scouter",
+		discovered_at: NOW,
 		fit_score: 65,
 		stretch_score: 50,
 		score_details: null,
-		ghost_score: 82,
-		ghost_signals: JOB_003_GHOST_SIGNALS,
-		repost_count: 3,
-		previous_posting_ids: ["prev-1", "prev-2", "prev-3"],
-		first_seen_date: "2026-01-15",
+		failed_non_negotiables: null,
+		scored_at: NOW,
+		dismissed_at: null,
 	},
 
 	// job-004: Filtered (failed non-negotiables)
 	{
-		...BASE_JOB,
-		id: JOB_IDS[3],
-		external_id: "ext-004",
-		job_title: "Backend Developer",
-		company_name: "LowPay Inc",
-		company_url: null,
-		source_url: "https://linkedin.example.com/jobs/99999",
-		apply_url: null,
-		location: "Austin, TX",
-		work_model: "Onsite",
-		salary_min: 90000,
-		salary_max: 110000,
+		id: "pj-004",
+		job: {
+			...BASE_JOB_DATA,
+			id: JOB_IDS[3],
+			external_id: "ext-004",
+			job_title: "Backend Developer",
+			company_name: "LowPay Inc",
+			company_url: null,
+			source_url: "https://linkedin.example.com/jobs/99999",
+			apply_url: null,
+			location: "Austin, TX",
+			work_model: "Onsite",
+			salary_min: 90000,
+			salary_max: 110000,
+			ghost_score: 15,
+			first_seen_date: "2026-02-12",
+		},
+		status: "Discovered",
+		is_favorite: false,
+		discovery_method: "scouter",
+		discovered_at: NOW,
 		fit_score: null,
 		stretch_score: null,
 		score_details: null,
@@ -250,29 +279,39 @@ const MOCK_JOBS: JobPosting[] = [
 				persona_value: 180000,
 			} satisfies FailedNonNegotiable,
 		],
-		ghost_score: 15,
-		first_seen_date: "2026-02-12",
+		scored_at: null,
+		dismissed_at: null,
 	},
 
 	// job-005: Lower fit (for sort testing)
 	{
-		...BASE_JOB,
-		id: JOB_IDS[4],
-		external_id: "ext-005",
-		job_title: "Junior Developer",
-		company_name: "SmallCo",
-		company_url: "https://smallco.example.com",
-		source_url: "https://indeed.example.com/jobs/55555",
-		apply_url: "https://smallco.example.com/apply",
-		location: "Portland, OR",
-		work_model: "Remote",
-		salary_min: 80000,
-		salary_max: 100000,
+		id: "pj-005",
+		job: {
+			...BASE_JOB_DATA,
+			id: JOB_IDS[4],
+			external_id: "ext-005",
+			job_title: "Junior Developer",
+			company_name: "SmallCo",
+			company_url: "https://smallco.example.com",
+			source_url: "https://indeed.example.com/jobs/55555",
+			apply_url: "https://smallco.example.com/apply",
+			location: "Portland, OR",
+			work_model: "Remote",
+			salary_min: 80000,
+			salary_max: 100000,
+			ghost_score: 0,
+			first_seen_date: "2026-02-14",
+		},
+		status: "Discovered",
+		is_favorite: false,
+		discovery_method: "scouter",
+		discovered_at: NOW,
 		fit_score: 45,
 		stretch_score: 30,
 		score_details: null,
-		ghost_score: 0,
-		first_seen_date: "2026-02-14",
+		failed_non_negotiables: null,
+		scored_at: NOW,
+		dismissed_at: null,
 	},
 ];
 
@@ -450,21 +489,21 @@ const ONBOARDED_PERSONA: Persona = {
 // Factory functions
 // ---------------------------------------------------------------------------
 
-/** Returns 5 mock jobs for the opportunities table. */
-export function jobPostingsList(): ApiListResponse<JobPosting> {
+/** Returns 5 mock persona jobs for the opportunities table. */
+export function jobPostingsList(): ApiListResponse<PersonaJobResponse> {
 	return { data: [...MOCK_JOBS], meta: listMeta(5) };
 }
 
 /** Returns an empty job list. */
-export function emptyJobPostingsList(): ApiListResponse<JobPosting> {
+export function emptyJobPostingsList(): ApiListResponse<PersonaJobResponse> {
 	return { data: [], meta: listMeta(0) };
 }
 
-/** Returns a single job posting with full score details (job-001 by default). */
-export function jobPostingDetail(id?: string): ApiResponse<JobPosting> {
+/** Returns a single persona job with full score details (job-001 by default). */
+export function jobPostingDetail(id?: string): ApiResponse<PersonaJobResponse> {
 	const jobId = id ?? JOB_IDS[0];
-	const job = MOCK_JOBS.find((j) => j.id === jobId);
-	return { data: job ?? BASE_JOB };
+	const personaJob = MOCK_JOBS.find((pj) => pj.job.id === jobId);
+	return { data: personaJob ?? MOCK_JOBS[0] };
 }
 
 /** Returns 4 extracted skills (2 required, 2 preferred). */
@@ -577,11 +616,50 @@ const INGEST_PREVIEW_BASE: Omit<IngestJobPostingResponse, "expires_at"> = {
 	confirmation_token: INGEST_CONFIRMATION_TOKEN,
 };
 
-const INGEST_CONFIRM_DATA: IngestConfirmResponse = {
-	id: INGEST_NEW_JOB_ID,
-	job_title: "Frontend Engineer",
-	company_name: "WidgetCo",
+const INGEST_CONFIRM_DATA: PersonaJobResponse = {
+	id: "pj-new-001",
+	job: {
+		id: INGEST_NEW_JOB_ID,
+		external_id: null,
+		source_id: null,
+		job_title: "Frontend Engineer",
+		company_name: "WidgetCo",
+		company_url: null,
+		source_url: null,
+		apply_url: null,
+		location: "Austin, TX",
+		work_model: null,
+		seniority_level: null,
+		salary_min: 150000,
+		salary_max: 200000,
+		salary_currency: "USD",
+		description: "We are looking for a Frontend Engineer...",
+		culture_text: "Fast-paced startup environment with flat hierarchy.",
+		requirements: null,
+		years_experience_min: null,
+		years_experience_max: null,
+		posted_date: null,
+		application_deadline: null,
+		first_seen_date: new Date().toISOString().split("T")[0],
+		last_verified_at: null,
+		expired_at: null,
+		ghost_signals: null,
+		ghost_score: 0,
+		description_hash: "hash-new-001",
+		repost_count: 0,
+		previous_posting_ids: null,
+		is_active: true,
+	},
 	status: "Discovered",
+	is_favorite: false,
+	discovery_method: "manual",
+	discovered_at: NOW,
+	fit_score: null,
+	stretch_score: null,
+	score_details: null,
+	failed_non_negotiables: null,
+	scored_at: null,
+	dismissed_at: null,
 };
 
 /** Returns a successful ingest preview response (5-minute expiry from now). */
@@ -604,7 +682,9 @@ export function expiredIngestPreviewResponse(): ApiResponse<IngestJobPostingResp
 	};
 }
 
-/** Returns a successful ingest confirm response. */
-export function ingestConfirmResponse(): ApiResponse<IngestConfirmResponse> {
-	return { data: { ...INGEST_CONFIRM_DATA } };
+/** Returns a successful ingest confirm response (PersonaJobResponse). */
+export function ingestConfirmResponse(): ApiResponse<PersonaJobResponse> {
+	return {
+		data: { ...INGEST_CONFIRM_DATA, job: { ...INGEST_CONFIRM_DATA.job } },
+	};
 }

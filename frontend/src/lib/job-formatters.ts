@@ -5,14 +5,14 @@
  * cross-file duplication of formatting logic.
  */
 
-import type { JobPosting } from "@/types/job";
+import type { JobPostingResponse } from "@/types/job";
 
 // ---------------------------------------------------------------------------
 // Salary formatting
 // ---------------------------------------------------------------------------
 
-/** Format a job's salary range as a human-readable string. */
-export function formatSalary(job: JobPosting): string {
+/** Format a shared job posting's salary range as a human-readable string. */
+export function formatSalary(job: JobPostingResponse): string {
 	return formatSnapshotSalary(
 		job.salary_min,
 		job.salary_max,

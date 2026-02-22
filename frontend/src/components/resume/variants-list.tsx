@@ -23,7 +23,7 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { FailedState } from "@/components/ui/error-states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { ApiListResponse } from "@/types/api";
-import type { JobPosting } from "@/types/job";
+import type { PersonaJobResponse } from "@/types/job";
 import type { JobVariant } from "@/types/resume";
 
 // ---------------------------------------------------------------------------
@@ -60,16 +60,16 @@ export function VariantsList({ baseResumeId }: Readonly<VariantsListProps>) {
 		error: jobsError,
 	} = useQuery({
 		queryKey: queryKeys.jobs,
-		queryFn: () => apiGet<ApiListResponse<JobPosting>>("/job-postings"),
+		queryFn: () => apiGet<ApiListResponse<PersonaJobResponse>>("/job-postings"),
 	});
 
 	const jobLookup = useMemo(() => {
 		const map = new Map<string, { job_title: string; company_name: string }>();
 		if (jobsData?.data) {
-			for (const job of jobsData.data) {
-				map.set(job.id, {
-					job_title: job.job_title,
-					company_name: job.company_name,
+			for (const pj of jobsData.data) {
+				map.set(pj.job.id, {
+					job_title: pj.job.job_title,
+					company_name: pj.job.company_name,
 				});
 			}
 		}

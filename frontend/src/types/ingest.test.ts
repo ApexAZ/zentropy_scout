@@ -9,7 +9,6 @@ import { describe, expect, it } from "vitest";
 import type {
 	ExtractedSkillPreview,
 	IngestConfirmRequest,
-	IngestConfirmResponse,
 	IngestJobPostingRequest,
 	IngestJobPostingResponse,
 	IngestPreview,
@@ -82,19 +81,6 @@ describe("IngestJobPostingResponse", () => {
 		};
 		expect(res.preview.job_title).toBe("Engineer");
 		expect(res.confirmation_token).toBe("abc-123");
-	});
-});
-
-describe("IngestConfirmResponse", () => {
-	it("has id, job_title, company_name, and status", () => {
-		const res: IngestConfirmResponse = {
-			id: "job-1",
-			job_title: "Engineer",
-			company_name: "Acme",
-			status: "Discovered",
-		};
-		expect(res.id).toBe("job-1");
-		expect(res.status).toBe("Discovered");
 	});
 });
 

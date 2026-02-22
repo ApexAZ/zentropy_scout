@@ -8,7 +8,7 @@
 
 import type { ApiListResponse, ApiResponse, PaginationMeta } from "@/types/api";
 import type { CoverLetter, CoverLetterValidation } from "@/types/application";
-import type { JobPosting } from "@/types/job";
+import type { JobPostingResponse, PersonaJobResponse } from "@/types/job";
 import type { Persona } from "@/types/persona";
 import type { BaseResume, GuardrailResult, JobVariant } from "@/types/resume";
 
@@ -85,12 +85,10 @@ export function onboardedPersonaList(): ApiListResponse<Persona> {
 // Job Posting fixture
 // ---------------------------------------------------------------------------
 
-const JOB_POSTING: JobPosting = {
+const JOB_POSTING_DATA: JobPostingResponse = {
 	id: JOB_POSTING_ID,
-	persona_id: PERSONA_ID,
 	external_id: null,
 	source_id: "linkedin",
-	also_found_on: { sources: [] },
 	job_title: "Frontend Engineer",
 	company_name: "AlphaTech",
 	company_url: null,
@@ -111,27 +109,34 @@ const JOB_POSTING: JobPosting = {
 	posted_date: null,
 	application_deadline: null,
 	first_seen_date: "2026-02-10",
+	last_verified_at: null,
+	expired_at: null,
+	ghost_signals: null,
+	ghost_score: 0,
+	description_hash: "hash-gw-001",
+	repost_count: 0,
+	previous_posting_ids: null,
+	is_active: true,
+};
+
+const PERSONA_JOB: PersonaJobResponse = {
+	id: "pj-gw-e2e-001",
+	job: JOB_POSTING_DATA,
 	status: "Discovered",
 	is_favorite: false,
+	discovery_method: "manual",
+	discovered_at: NOW,
 	fit_score: null,
 	stretch_score: null,
 	score_details: null,
 	failed_non_negotiables: null,
-	ghost_score: 0,
-	ghost_signals: null,
-	description_hash: "hash-gw-001",
-	repost_count: 0,
-	previous_posting_ids: null,
-	last_verified_at: null,
+	scored_at: null,
 	dismissed_at: null,
-	expired_at: null,
-	created_at: NOW,
-	updated_at: NOW,
 };
 
-/** Job posting detail. */
-export function jobPostingDetail(): ApiResponse<JobPosting> {
-	return { data: JOB_POSTING };
+/** Job posting detail (returns PersonaJobResponse wrapping shared data). */
+export function jobPostingDetail(): ApiResponse<PersonaJobResponse> {
+	return { data: PERSONA_JOB };
 }
 
 // ---------------------------------------------------------------------------

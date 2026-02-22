@@ -23,7 +23,7 @@ import { FailedState } from "@/components/ui/error-states";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type { CoverLetter, ValidationIssue } from "@/types/application";
-import type { JobPosting } from "@/types/job";
+import type { PersonaJobResponse } from "@/types/job";
 import type { AchievementStory, Skill, VoiceProfile } from "@/types/persona";
 
 // ---------------------------------------------------------------------------
@@ -193,7 +193,7 @@ export function CoverLetterReview({
 	const { data: jobPostingData, error: jobPostingError } = useQuery({
 		queryKey: queryKeys.job(coverLetter?.job_posting_id ?? ""),
 		queryFn: () =>
-			apiGet<ApiResponse<JobPosting>>(
+			apiGet<ApiResponse<PersonaJobResponse>>(
 				`/job-postings/${coverLetter?.job_posting_id}`,
 			),
 		enabled: !!coverLetter?.job_posting_id,
@@ -230,7 +230,7 @@ export function CoverLetterReview({
 	// Derived state
 	// -----------------------------------------------------------------------
 
-	const jobPosting = jobPostingData?.data;
+	const jobPosting = jobPostingData?.data?.job;
 	const allStories = useMemo(
 		() => storiesData?.data ?? [],
 		[storiesData?.data],

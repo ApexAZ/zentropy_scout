@@ -1,9 +1,10 @@
 /**
  * Tests for the JobDetailHeader component (§7.7).
  *
- * REQ-012 §8.3: Job detail page header — metadata, cross-source links,
+ * REQ-012 §8.3: Job detail page header — metadata,
  * repost history, ghost detection breakdown, favorite toggle,
  * and external links (View Original / Apply).
+ * REQ-015 §8.2: Privacy — also_found_on excluded from UI.
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -25,7 +26,6 @@ const FAVORITE_TOGGLE_TESTID = "favorite-toggle";
 const METADATA_LINE_TESTID = "job-metadata";
 const SALARY_TESTID = "job-salary";
 const DATES_TESTID = "job-dates";
-const CROSS_SOURCE_TESTID = "cross-source-links";
 const VIEW_ORIGINAL_TESTID = "view-original-link";
 const APPLY_LINK_TESTID = "apply-link";
 const GHOST_SECTION_TESTID = "ghost-risk-section";
@@ -50,61 +50,75 @@ function daysAgoDate(days: number): string {
 	return `${y}-${m}-${dd}`;
 }
 
-function makeJob(overrides?: Record<string, unknown>) {
+/** Returns an ISO 8601 datetime string for N days before now (UTC). */
+function daysAgoIso(days: number): string {
+	const d = new Date();
+	d.setUTCDate(d.getUTCDate() - days);
+	return d.toISOString();
+}
+
+function makePersonaJob(
+	jobOverrides?: Record<string, unknown>,
+	personaOverrides?: Record<string, unknown>,
+) {
 	return {
 		id: MOCK_JOB_ID,
-		persona_id: "p-1",
-		external_id: null,
-		source_id: "src-1",
-		also_found_on: { sources: [] },
-		job_title: "Senior Software Engineer",
-		company_name: "Acme Corp",
-		company_url: null,
-		source_url: "https://example.com/job/123",
-		apply_url: "https://example.com/apply/123",
-		location: "Austin, TX",
-		work_model: "Remote",
-		seniority_level: "Senior",
-		salary_min: 140000,
-		salary_max: 160000,
-		salary_currency: "USD",
-		description: "Job description text",
-		culture_text: null,
-		requirements: null,
-		years_experience_min: null,
-		years_experience_max: null,
-		posted_date: daysAgoDate(3),
-		application_deadline: null,
-		first_seen_date: daysAgoDate(2),
+		job: {
+			id: "jp-1",
+			external_id: null,
+			source_id: "src-1",
+			job_title: "Senior Software Engineer",
+			company_name: "Acme Corp",
+			company_url: null,
+			source_url: "https://example.com/job/123",
+			apply_url: "https://example.com/apply/123",
+			location: "Austin, TX",
+			work_model: "Remote",
+			seniority_level: "Senior",
+			salary_min: 140000,
+			salary_max: 160000,
+			salary_currency: "USD",
+			description: "Job description text",
+			culture_text: null,
+			requirements: null,
+			years_experience_min: null,
+			years_experience_max: null,
+			posted_date: daysAgoDate(3),
+			application_deadline: null,
+			first_seen_date: daysAgoDate(2),
+			last_verified_at: null,
+			expired_at: null,
+			ghost_signals: {
+				days_open: 45,
+				days_open_score: 40,
+				repost_count: 1,
+				repost_score: 20,
+				vagueness_score: 30,
+				missing_fields: ["salary", "deadline"],
+				missing_fields_score: 15,
+				requirement_mismatch: false,
+				requirement_mismatch_score: 0,
+				calculated_at: "2026-02-10T12:00:00Z",
+				ghost_score: 35,
+			},
+			ghost_score: 35,
+			description_hash: "abc123",
+			repost_count: 1,
+			previous_posting_ids: ["prev-job-1"],
+			is_active: true,
+			...jobOverrides,
+		},
 		status: "Discovered",
 		is_favorite: false,
+		discovery_method: "manual" as const,
+		discovered_at: daysAgoIso(2),
 		fit_score: 85,
 		stretch_score: 65,
 		score_details: null,
 		failed_non_negotiables: null,
-		ghost_score: 35,
-		ghost_signals: {
-			days_open: 45,
-			days_open_score: 40,
-			repost_count: 1,
-			repost_score: 20,
-			vagueness_score: 30,
-			missing_fields: ["salary", "deadline"],
-			missing_fields_score: 15,
-			requirement_mismatch: false,
-			requirement_mismatch_score: 0,
-			calculated_at: "2026-02-10T12:00:00Z",
-			ghost_score: 35,
-		},
-		description_hash: "abc123",
-		repost_count: 1,
-		previous_posting_ids: ["prev-job-1"],
-		last_verified_at: null,
+		scored_at: null,
 		dismissed_at: null,
-		expired_at: null,
-		created_at: "2026-02-10T12:00:00Z",
-		updated_at: "2026-02-10T12:00:00Z",
-		...overrides,
+		...personaOverrides,
 	};
 }
 
@@ -180,10 +194,10 @@ vi.mock("next/link", () => ({
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const MOCK_JOB_RESPONSE = { data: makeJob() };
+const MOCK_JOB_RESPONSE = { data: makePersonaJob() };
 
 const MOCK_JOB_NO_SALARY = {
-	data: makeJob({
+	data: makePersonaJob({
 		salary_min: null,
 		salary_max: null,
 		salary_currency: null,
@@ -191,46 +205,25 @@ const MOCK_JOB_NO_SALARY = {
 };
 
 const MOCK_JOB_FAVORITED = {
-	data: makeJob({ is_favorite: true }),
-};
-
-const MOCK_JOB_WITH_CROSS_SOURCE = {
-	data: makeJob({
-		also_found_on: {
-			sources: [
-				{
-					source_id: "src-2",
-					external_id: "linkedin-123",
-					source_url: "https://linkedin.com/jobs/123",
-					found_at: "2026-02-08T12:00:00Z",
-				},
-				{
-					source_id: "src-3",
-					external_id: "indeed-456",
-					source_url: "https://indeed.com/jobs/456",
-					found_at: "2026-02-09T12:00:00Z",
-				},
-			],
-		},
-	}),
+	data: makePersonaJob(undefined, { is_favorite: true }),
 };
 
 const MOCK_JOB_NO_GHOST = {
-	data: makeJob({
+	data: makePersonaJob({
 		ghost_score: 0,
 		ghost_signals: null,
 	}),
 };
 
 const MOCK_JOB_NO_LINKS = {
-	data: makeJob({
+	data: makePersonaJob({
 		source_url: null,
 		apply_url: null,
 	}),
 };
 
 const MOCK_JOB_NO_REPOST = {
-	data: makeJob({
+	data: makePersonaJob({
 		repost_count: 0,
 		previous_posting_ids: null,
 		ghost_signals: {
@@ -251,7 +244,7 @@ const MOCK_JOB_NO_REPOST = {
 };
 
 const MOCK_JOB_NO_METADATA = {
-	data: makeJob({
+	data: makePersonaJob({
 		location: null,
 		work_model: null,
 		seniority_level: null,
@@ -278,7 +271,7 @@ function createWrapper() {
 
 beforeEach(() => {
 	mocks.mockApiGet.mockResolvedValue(MOCK_JOB_RESPONSE);
-	mocks.mockApiPatch.mockResolvedValue({ data: makeJob() });
+	mocks.mockApiPatch.mockResolvedValue({ data: makePersonaJob() });
 });
 
 afterEach(() => {
@@ -442,38 +435,6 @@ describe("JobDetailHeader", () => {
 	});
 
 	// -----------------------------------------------------------------------
-	// Cross-source links
-	// -----------------------------------------------------------------------
-
-	describe("cross-source links", () => {
-		it("renders 'Also found on' with source links when sources exist", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOB_WITH_CROSS_SOURCE);
-			render(<JobDetailHeader jobId={MOCK_JOB_ID} />, {
-				wrapper: createWrapper(),
-			});
-			await waitFor(() => {
-				expect(screen.getByTestId(CROSS_SOURCE_TESTID)).toBeInTheDocument();
-			});
-			const section = screen.getByTestId(CROSS_SOURCE_TESTID);
-			expect(section).toHaveTextContent("Also found on");
-			const links = section.querySelectorAll("a");
-			expect(links).toHaveLength(2);
-			expect(links[0]).toHaveAttribute("href", "https://linkedin.com/jobs/123");
-			expect(links[1]).toHaveAttribute("href", "https://indeed.com/jobs/456");
-		});
-
-		it("hides cross-source section when no sources", async () => {
-			render(<JobDetailHeader jobId={MOCK_JOB_ID} />, {
-				wrapper: createWrapper(),
-			});
-			await waitFor(() => {
-				expect(screen.getByTestId(HEADER_TESTID)).toBeInTheDocument();
-			});
-			expect(screen.queryByTestId(CROSS_SOURCE_TESTID)).not.toBeInTheDocument();
-		});
-	});
-
-	// -----------------------------------------------------------------------
 	// External links
 	// -----------------------------------------------------------------------
 
@@ -549,7 +510,7 @@ describe("JobDetailHeader", () => {
 
 		it("calls apiPatch to toggle favorite", async () => {
 			const user = userEvent.setup();
-			mocks.mockApiPatch.mockResolvedValue({ data: makeJob() });
+			mocks.mockApiPatch.mockResolvedValue({ data: makePersonaJob() });
 			render(<JobDetailHeader jobId={MOCK_JOB_ID} />, {
 				wrapper: createWrapper(),
 			});
@@ -670,7 +631,7 @@ describe("JobDetailHeader", () => {
 	describe("URL scheme security", () => {
 		it("suppresses source_url link with javascript: scheme", async () => {
 			mocks.mockApiGet.mockResolvedValue({
-				data: makeJob({ source_url: "javascript:alert(1)" }),
+				data: makePersonaJob({ source_url: "javascript:alert(1)" }),
 			});
 			render(<JobDetailHeader jobId={MOCK_JOB_ID} />, {
 				wrapper: createWrapper(),
@@ -685,7 +646,7 @@ describe("JobDetailHeader", () => {
 
 		it("suppresses apply_url link with data: scheme", async () => {
 			mocks.mockApiGet.mockResolvedValue({
-				data: makeJob({
+				data: makePersonaJob({
 					apply_url: "data:text/html,<script>alert(1)</script>",
 				}),
 			});
@@ -697,30 +658,6 @@ describe("JobDetailHeader", () => {
 			});
 			expect(screen.queryByTestId(APPLY_LINK_TESTID)).not.toBeInTheDocument();
 		});
-
-		it("suppresses cross-source link with javascript: scheme", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: makeJob({
-					also_found_on: {
-						sources: [
-							{
-								source_id: "src-evil",
-								external_id: "evil-1",
-								source_url: "javascript:alert(1)",
-								found_at: "2026-02-08T12:00:00Z",
-							},
-						],
-					},
-				}),
-			});
-			render(<JobDetailHeader jobId={MOCK_JOB_ID} />, {
-				wrapper: createWrapper(),
-			});
-			await waitFor(() => {
-				expect(screen.getByTestId(HEADER_TESTID)).toBeInTheDocument();
-			});
-			expect(screen.queryByTestId(CROSS_SOURCE_TESTID)).not.toBeInTheDocument();
-		});
 	});
 
 	// -----------------------------------------------------------------------
@@ -730,7 +667,7 @@ describe("JobDetailHeader", () => {
 	describe("salary edge cases", () => {
 		it("renders salary_min only as open-ended range", async () => {
 			mocks.mockApiGet.mockResolvedValue({
-				data: makeJob({ salary_max: null }),
+				data: makePersonaJob({ salary_max: null }),
 			});
 			render(<JobDetailHeader jobId={MOCK_JOB_ID} />, {
 				wrapper: createWrapper(),
@@ -743,7 +680,7 @@ describe("JobDetailHeader", () => {
 
 		it("renders salary_max only as upper bound", async () => {
 			mocks.mockApiGet.mockResolvedValue({
-				data: makeJob({ salary_min: null }),
+				data: makePersonaJob({ salary_min: null }),
 			});
 			render(<JobDetailHeader jobId={MOCK_JOB_ID} />, {
 				wrapper: createWrapper(),

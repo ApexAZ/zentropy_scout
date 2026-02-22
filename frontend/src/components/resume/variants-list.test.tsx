@@ -73,40 +73,52 @@ function makeVariant(
 	};
 }
 
-function makeJobPosting(id: string, overrides?: Record<string, unknown>) {
+function makePersonaJob(jobId: string, jobOverrides?: Record<string, unknown>) {
 	return {
-		id,
-		persona_id: "p-1",
-		external_id: null,
-		source_id: "src-1",
-		also_found_on: [],
-		job_title: `Job ${id}`,
-		company_name: `Company ${id}`,
-		company_url: null,
-		source_url: null,
-		apply_url: null,
-		location: null,
-		work_model: null,
-		seniority_level: null,
-		salary_min: null,
-		salary_max: null,
-		salary_currency: null,
-		description: "Job description",
-		culture_text: null,
-		extracted_skills: [],
-		first_seen_at: "2026-02-10T12:00:00Z",
-		last_seen_at: "2026-02-10T12:00:00Z",
+		id: `pj-${jobId}`,
+		job: {
+			id: jobId,
+			external_id: null,
+			source_id: "src-1",
+			job_title: `Job ${jobId}`,
+			company_name: `Company ${jobId}`,
+			company_url: null,
+			source_url: null,
+			apply_url: null,
+			location: null,
+			work_model: null,
+			seniority_level: null,
+			salary_min: null,
+			salary_max: null,
+			salary_currency: null,
+			description: "Job description",
+			culture_text: null,
+			requirements: null,
+			years_experience_min: null,
+			years_experience_max: null,
+			posted_date: null,
+			application_deadline: null,
+			first_seen_date: "2026-02-10",
+			last_verified_at: null,
+			expired_at: null,
+			ghost_signals: null,
+			ghost_score: 0,
+			description_hash: `hash-${jobId}`,
+			repost_count: 0,
+			previous_posting_ids: null,
+			is_active: true,
+			...jobOverrides,
+		},
+		status: "Discovered",
+		is_favorite: false,
+		discovery_method: "manual" as const,
+		discovered_at: "2026-02-10T12:00:00Z",
 		fit_score: null,
 		stretch_score: null,
 		score_details: null,
-		ghost_score: null,
-		ghost_signals: null,
-		status: "Discovered",
-		dismissed_reason: null,
-		repost_history: [],
-		created_at: "2026-02-10T12:00:00Z",
-		updated_at: "2026-02-10T12:00:00Z",
-		...overrides,
+		failed_non_negotiables: null,
+		scored_at: null,
+		dismissed_at: null,
 	};
 }
 
@@ -146,11 +158,11 @@ const MOCK_VARIANTS_RESPONSE = {
 
 const MOCK_JOBS_RESPONSE = {
 	data: [
-		makeJobPosting(JOB_POSTING_ID_1, {
+		makePersonaJob(JOB_POSTING_ID_1, {
 			job_title: JOB_TITLE_1,
 			company_name: COMPANY_1,
 		}),
-		makeJobPosting(JOB_POSTING_ID_2, {
+		makePersonaJob(JOB_POSTING_ID_2, {
 			job_title: JOB_TITLE_2,
 			company_name: COMPANY_2,
 		}),

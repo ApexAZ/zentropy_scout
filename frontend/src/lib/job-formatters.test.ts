@@ -14,19 +14,19 @@ import {
 	formatSalary,
 	formatSnapshotSalary,
 } from "./job-formatters";
-import type { JobPosting } from "@/types/job";
+import type { JobPostingResponse } from "@/types/job";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeJob(overrides?: Partial<JobPosting>): JobPosting {
+function makeJobPosting(
+	overrides?: Partial<JobPostingResponse>,
+): JobPostingResponse {
 	return {
 		id: "job-1",
-		persona_id: "p-1",
-		external_id: null,
 		source_id: "src-1",
-		also_found_on: { sources: [] },
+		external_id: null,
 		job_title: "Software Engineer",
 		company_name: "Acme",
 		company_url: null,
@@ -46,24 +46,16 @@ function makeJob(overrides?: Partial<JobPosting>): JobPosting {
 		posted_date: null,
 		application_deadline: null,
 		first_seen_date: "2026-02-10",
-		status: "Discovered",
-		is_favorite: false,
-		fit_score: 85,
-		stretch_score: 65,
-		score_details: null,
-		failed_non_negotiables: null,
-		ghost_score: 10,
+		last_verified_at: null,
+		expired_at: null,
 		ghost_signals: null,
+		ghost_score: 10,
 		description_hash: "abc123",
 		repost_count: 0,
 		previous_posting_ids: null,
-		last_verified_at: null,
-		dismissed_at: null,
-		expired_at: null,
-		created_at: "2026-02-10T12:00:00Z",
-		updated_at: "2026-02-10T12:00:00Z",
+		is_active: true,
 		...overrides,
-	} as JobPosting;
+	};
 }
 
 // ---------------------------------------------------------------------------
@@ -72,7 +64,7 @@ function makeJob(overrides?: Partial<JobPosting>): JobPosting {
 
 describe("formatSalary", () => {
 	it("formats min-max salary range", () => {
-		const job = makeJob({
+		const job = makeJobPosting({
 			salary_min: 120000,
 			salary_max: 150000,
 			salary_currency: "USD",
@@ -81,12 +73,12 @@ describe("formatSalary", () => {
 	});
 
 	it("returns 'Not disclosed' when both min and max are null", () => {
-		const job = makeJob({ salary_min: null, salary_max: null });
+		const job = makeJobPosting({ salary_min: null, salary_max: null });
 		expect(formatSalary(job)).toBe("Not disclosed");
 	});
 
 	it("formats min-only salary with plus sign", () => {
-		const job = makeJob({
+		const job = makeJobPosting({
 			salary_min: 100000,
 			salary_max: null,
 			salary_currency: "USD",
@@ -95,7 +87,7 @@ describe("formatSalary", () => {
 	});
 
 	it("formats max-only salary with 'Up to'", () => {
-		const job = makeJob({
+		const job = makeJobPosting({
 			salary_min: null,
 			salary_max: 200000,
 			salary_currency: "USD",

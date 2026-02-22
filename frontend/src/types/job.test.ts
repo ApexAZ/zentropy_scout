@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type {
-	AlsoFoundOn,
-	CrossSourceEntry,
+	DiscoveryMethod,
 	ExtractedSkill,
 	FailedNonNegotiable,
 	FitScoreComponentKey,
@@ -10,8 +9,9 @@ import type {
 	FitScoreTier,
 	GhostScoreTier,
 	GhostSignals,
-	JobPosting,
+	JobPostingResponse,
 	JobPostingStatus,
+	PersonaJobResponse,
 	ScoreDetails,
 	ScoreExplanation,
 	SeniorityLevel,
@@ -34,10 +34,9 @@ import {
 // ---------------------------------------------------------------------------
 
 const IDS = {
-	jobPosting: "aa0e8400-e29b-41d4-a716-446655440000",
-	persona: "bb0e8400-e29b-41d4-a716-446655440000",
+	personaJob: "aa0e8400-e29b-41d4-a716-446655440000",
+	jobPosting: "bb0e8400-e29b-41d4-a716-446655440000",
 	source: "cc0e8400-e29b-41d4-a716-446655440000",
-	crossSource: "dd0e8400-e29b-41d4-a716-446655440000",
 	extractedSkill: "ee0e8400-e29b-41d4-a716-446655440000",
 	extractedSkill2: "ee0e8400-e29b-41d4-a716-446655440001",
 	previousPosting1: "ff0e8400-e29b-41d4-a716-446655440001",
@@ -45,8 +44,6 @@ const IDS = {
 } as const;
 
 const TIMESTAMPS = {
-	created: "2025-01-15T10:00:00Z",
-	updated: "2025-02-01T14:30:00Z",
 	firstSeen: "2025-01-10",
 	posted: "2025-01-08",
 	deadline: "2025-03-01",
@@ -54,7 +51,8 @@ const TIMESTAMPS = {
 	dismissed: "2025-02-03T16:00:00Z",
 	expired: "2025-02-06T00:00:00Z",
 	ghostCalculated: "2025-02-01T12:00:00Z",
-	crossSourceFound: "2025-01-20T09:00:00Z",
+	discovered: "2025-01-15T10:00:00Z",
+	scored: "2025-01-16T14:30:00Z",
 } as const;
 
 const HASHES = {
@@ -116,14 +114,14 @@ const SAMPLE_EXPLANATION: ScoreExplanation = {
 	warnings: [],
 };
 
-/** Factory for JobPosting with sensible defaults. Override only what differs. */
-function makeJobPosting(overrides: Partial<JobPosting> = {}): JobPosting {
+/** Factory for shared JobPostingResponse with sensible defaults. */
+function makeJobPostingResponse(
+	overrides: Partial<JobPostingResponse> = {},
+): JobPostingResponse {
 	return {
 		id: IDS.jobPosting,
-		persona_id: IDS.persona,
-		external_id: null,
 		source_id: IDS.source,
-		also_found_on: { sources: [] },
+		external_id: null,
 		job_title: "Senior Python Developer",
 		company_name: "Acme Corp",
 		company_url: null,
@@ -143,22 +141,36 @@ function makeJobPosting(overrides: Partial<JobPosting> = {}): JobPosting {
 		posted_date: null,
 		application_deadline: null,
 		first_seen_date: TIMESTAMPS.firstSeen,
+		last_verified_at: null,
+		expired_at: null,
+		ghost_signals: null,
+		ghost_score: 0,
+		description_hash: HASHES.description,
+		repost_count: 0,
+		previous_posting_ids: null,
+		is_active: true,
+		...overrides,
+	};
+}
+
+/** Factory for PersonaJobResponse with sensible defaults. */
+function makePersonaJobResponse(
+	overrides: Partial<PersonaJobResponse> = {},
+	jobOverrides: Partial<JobPostingResponse> = {},
+): PersonaJobResponse {
+	return {
+		id: IDS.personaJob,
+		job: makeJobPostingResponse(jobOverrides),
 		status: "Discovered",
 		is_favorite: false,
+		discovery_method: "scouter",
+		discovered_at: TIMESTAMPS.discovered,
 		fit_score: null,
 		stretch_score: null,
 		score_details: null,
 		failed_non_negotiables: null,
-		ghost_score: 0,
-		ghost_signals: null,
-		description_hash: HASHES.description,
-		repost_count: 0,
-		previous_posting_ids: null,
-		last_verified_at: null,
+		scored_at: null,
 		dismissed_at: null,
-		expired_at: null,
-		created_at: TIMESTAMPS.created,
-		updated_at: TIMESTAMPS.updated,
 		...overrides,
 	};
 }
@@ -282,45 +294,6 @@ describe("Job Enum Value Arrays", () => {
 // ---------------------------------------------------------------------------
 
 describe("Job Sub-Entity Types", () => {
-	describe("CrossSourceEntry", () => {
-		it("represents a cross-source job listing reference", () => {
-			const entry: CrossSourceEntry = {
-				source_id: IDS.crossSource,
-				external_id: "linkedin-job-12345",
-				source_url: "https://linkedin.com/jobs/12345",
-				found_at: TIMESTAMPS.crossSourceFound,
-			};
-
-			expect(entry.source_id).toBe(IDS.crossSource);
-			expect(entry.external_id).toBe("linkedin-job-12345");
-			expect(entry.source_url).toBe("https://linkedin.com/jobs/12345");
-			expect(entry.found_at).toBe(TIMESTAMPS.crossSourceFound);
-		});
-	});
-
-	describe("AlsoFoundOn", () => {
-		it("wraps an array of cross-source entries", () => {
-			const alsoFoundOn: AlsoFoundOn = {
-				sources: [
-					{
-						source_id: IDS.crossSource,
-						external_id: "indeed-456",
-						source_url: "https://indeed.com/jobs/456",
-						found_at: TIMESTAMPS.crossSourceFound,
-					},
-				],
-			};
-
-			expect(alsoFoundOn.sources).toHaveLength(1);
-			expect(alsoFoundOn.sources[0].source_id).toBe(IDS.crossSource);
-		});
-
-		it("defaults to empty sources array", () => {
-			const alsoFoundOn: AlsoFoundOn = { sources: [] };
-			expect(alsoFoundOn.sources).toHaveLength(0);
-		});
-	});
-
 	describe("FailedNonNegotiable", () => {
 		it("represents a string-valued filter failure", () => {
 			const failure: FailedNonNegotiable = {
@@ -515,34 +488,24 @@ describe("Scoring Types", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Main JobPosting interface
+// JobPostingResponse — shared pool data
 // ---------------------------------------------------------------------------
 
-describe("JobPosting", () => {
-	it("represents a minimal job posting with required fields only", () => {
-		const job = makeJobPosting();
+describe("JobPostingResponse", () => {
+	it("represents a minimal shared job posting", () => {
+		const posting = makeJobPostingResponse();
 
-		expect(job.id).toBe(IDS.jobPosting);
-		expect(job.status).toBe("Discovered");
-		expect(job.is_favorite).toBe(false);
-		expect(job.ghost_score).toBe(0);
-		expect(job.score_details).toBeNull();
-		expect(job.description_hash).toBe(HASHES.description);
+		expect(posting.id).toBe(IDS.jobPosting);
+		expect(posting.job_title).toBe("Senior Python Developer");
+		expect(posting.company_name).toBe("Acme Corp");
+		expect(posting.ghost_score).toBe(0);
+		expect(posting.is_active).toBe(true);
+		expect(posting.description_hash).toBe(HASHES.description);
 	});
 
-	it("represents a fully populated job posting", () => {
-		const job = makeJobPosting({
+	it("represents a fully populated shared job posting", () => {
+		const posting = makeJobPostingResponse({
 			external_id: "linkedin-98765",
-			also_found_on: {
-				sources: [
-					{
-						source_id: IDS.crossSource,
-						external_id: "indeed-456",
-						source_url: "https://indeed.com/jobs/456",
-						found_at: TIMESTAMPS.crossSourceFound,
-					},
-				],
-			},
 			company_url: "https://acme.com",
 			source_url: "https://linkedin.com/jobs/98765",
 			apply_url: "https://acme.com/careers/apply/98765",
@@ -558,15 +521,6 @@ describe("JobPosting", () => {
 			years_experience_max: 10,
 			posted_date: TIMESTAMPS.posted,
 			application_deadline: TIMESTAMPS.deadline,
-			status: "Applied",
-			is_favorite: true,
-			fit_score: 85,
-			stretch_score: 72,
-			score_details: {
-				fit: SAMPLE_FIT,
-				stretch: SAMPLE_STRETCH,
-				explanation: SAMPLE_EXPLANATION,
-			},
 			ghost_score: 42,
 			ghost_signals: {
 				days_open: 45,
@@ -586,47 +540,111 @@ describe("JobPosting", () => {
 			last_verified_at: TIMESTAMPS.lastVerified,
 		});
 
-		expect(job.external_id).toBe("linkedin-98765");
-		expect(job.work_model).toBe("Remote");
-		expect(job.seniority_level).toBe("Senior");
-		expect(job.salary_min).toBe(150000);
-		expect(job.fit_score).toBe(85);
-		expect(job.stretch_score).toBe(72);
-		expect(job.score_details?.fit.total).toBe(85);
-		expect(job.ghost_score).toBe(42);
-		expect(job.also_found_on.sources).toHaveLength(1);
-		expect(job.previous_posting_ids).toHaveLength(2);
+		expect(posting.external_id).toBe("linkedin-98765");
+		expect(posting.work_model).toBe("Remote");
+		expect(posting.seniority_level).toBe("Senior");
+		expect(posting.salary_min).toBe(150000);
+		expect(posting.ghost_score).toBe(42);
+		expect(posting.previous_posting_ids).toHaveLength(2);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// PersonaJobResponse — per-user wrapper
+// ---------------------------------------------------------------------------
+
+describe("PersonaJobResponse", () => {
+	it("wraps shared data with per-user fields", () => {
+		const pj = makePersonaJobResponse();
+
+		expect(pj.id).toBe(IDS.personaJob);
+		expect(pj.job.id).toBe(IDS.jobPosting);
+		expect(pj.status).toBe("Discovered");
+		expect(pj.is_favorite).toBe(false);
+		expect(pj.discovery_method).toBe("scouter");
+		expect(pj.discovered_at).toBe(TIMESTAMPS.discovered);
+		expect(pj.fit_score).toBeNull();
+		expect(pj.score_details).toBeNull();
+	});
+
+	it("represents a scored job with full details", () => {
+		const pj = makePersonaJobResponse(
+			{
+				status: "Applied",
+				is_favorite: true,
+				fit_score: 85,
+				stretch_score: 72,
+				score_details: {
+					fit: SAMPLE_FIT,
+					stretch: SAMPLE_STRETCH,
+					explanation: SAMPLE_EXPLANATION,
+				},
+				scored_at: TIMESTAMPS.scored,
+			},
+			{
+				location: "San Francisco, CA",
+				work_model: "Remote",
+				salary_min: 150000,
+				salary_max: 200000,
+			},
+		);
+
+		expect(pj.status).toBe("Applied");
+		expect(pj.is_favorite).toBe(true);
+		expect(pj.fit_score).toBe(85);
+		expect(pj.stretch_score).toBe(72);
+		expect(pj.score_details?.fit.total).toBe(85);
+		expect(pj.job.location).toBe("San Francisco, CA");
+		expect(pj.job.salary_min).toBe(150000);
 	});
 
 	it("represents a dismissed job with failed non-negotiables", () => {
-		const job = makeJobPosting({
-			job_title: "Junior Developer",
-			company_name: "Startup Inc",
-			seniority_level: "Entry",
-			description: "Entry level position...",
-			status: "Dismissed",
-			failed_non_negotiables: [
-				{
-					filter: FILTER_NAMES.minimumBaseSalary,
-					job_value: null,
-					persona_value: 80000,
-				},
-			],
-			description_hash: HASHES.description2,
-			dismissed_at: TIMESTAMPS.dismissed,
-		});
+		const pj = makePersonaJobResponse(
+			{
+				status: "Dismissed",
+				failed_non_negotiables: [
+					{
+						filter: FILTER_NAMES.minimumBaseSalary,
+						job_value: null,
+						persona_value: 80000,
+					},
+				],
+				dismissed_at: TIMESTAMPS.dismissed,
+			},
+			{
+				job_title: "Junior Developer",
+				company_name: "Startup Inc",
+				seniority_level: "Entry",
+				description: "Entry level position...",
+				description_hash: HASHES.description2,
+			},
+		);
 
-		expect(job.status).toBe("Dismissed");
-		expect(job.dismissed_at).toBe(TIMESTAMPS.dismissed);
-		expect(job.failed_non_negotiables).toHaveLength(1);
-		expect(job.failed_non_negotiables?.[0].filter).toBe(
+		expect(pj.status).toBe("Dismissed");
+		expect(pj.dismissed_at).toBe(TIMESTAMPS.dismissed);
+		expect(pj.failed_non_negotiables).toHaveLength(1);
+		expect(pj.failed_non_negotiables?.[0].filter).toBe(
 			FILTER_NAMES.minimumBaseSalary,
 		);
+		expect(pj.job.job_title).toBe("Junior Developer");
 	});
 
-	it("uses WorkModel from persona types for work_model field", () => {
-		const job = makeJobPosting({ work_model: "Hybrid" });
+	it("supports all discovery methods", () => {
+		const methods: DiscoveryMethod[] = ["scouter", "manual", "pool"];
 
-		expect(job.work_model).toBe("Hybrid");
+		for (const method of methods) {
+			const pj = makePersonaJobResponse({ discovery_method: method });
+			expect(pj.discovery_method).toBe(method);
+		}
+	});
+
+	it("accesses shared fields via nested job object", () => {
+		const pj = makePersonaJobResponse(
+			{},
+			{ work_model: "Hybrid", location: "Austin, TX" },
+		);
+
+		expect(pj.job.work_model).toBe("Hybrid");
+		expect(pj.job.location).toBe("Austin, TX");
 	});
 });

@@ -36,11 +36,8 @@ import { FormSelectField } from "@/components/form/form-select-field";
 import { FormTextareaField } from "@/components/form/form-textarea-field";
 import { SubmitButton } from "@/components/form/submit-button";
 import type { ApiResponse } from "@/types/api";
-import type {
-	IngestConfirmResponse,
-	IngestJobPostingResponse,
-	IngestPreview,
-} from "@/types/ingest";
+import type { PersonaJobResponse } from "@/types/job";
+import type { IngestJobPostingResponse, IngestPreview } from "@/types/ingest";
 import { INGEST_SOURCE_NAMES } from "@/types/ingest";
 
 // ---------------------------------------------------------------------------
@@ -260,7 +257,7 @@ export function AddJobModal({
 
 		setIsConfirming(true);
 		try {
-			const res = await apiPost<ApiResponse<IngestConfirmResponse>>(
+			const res = await apiPost<ApiResponse<PersonaJobResponse>>(
 				"/job-postings/ingest/confirm",
 				{ confirmation_token: ingestResponse.confirmation_token },
 			);
