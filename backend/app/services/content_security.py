@@ -134,16 +134,35 @@ def _check_modifications_for_injection(
                 field=key,
             )
         if isinstance(value, list):
-            for i, item in enumerate(value):
-                if not isinstance(item, dict):
-                    continue
-                for sub_key, sub_val in item.items():
-                    if isinstance(sub_val, str) and detect_injection_patterns(sub_val):
-                        return ContentValidationResult(
-                            is_valid=False,
-                            reason=f"{_INJECTION_REASON} {key}[{i}].{sub_key}",
-                            field=key,
-                        )
+            result = _check_list_items_for_injection(key, value)
+            if result is not None:
+                return result
+    return None
+
+
+def _check_list_items_for_injection(
+    key: str,
+    items: list[Any],
+) -> ContentValidationResult | None:
+    """Check nested list items (e.g., extracted_skills) for injection patterns.
+
+    Args:
+        key: Parent field name for error reporting.
+        items: List of items, expecting dicts with string values.
+
+    Returns:
+        ContentValidationResult if injection found, None if clean.
+    """
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        for sub_key, sub_val in item.items():
+            if isinstance(sub_val, str) and detect_injection_patterns(sub_val):
+                return ContentValidationResult(
+                    is_valid=False,
+                    reason=f"{_INJECTION_REASON} {key}[{i}].{sub_key}",
+                    field=key,
+                )
     return None
 
 
