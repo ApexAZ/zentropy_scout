@@ -57,10 +57,11 @@ class PoolSurfacingWorker:
         """Timestamp of the most recent completed pass."""
         return self._last_run_at
 
-    async def start(self) -> None:
+    def start(self) -> None:
         """Start the background surfacing loop.
 
         Creates an asyncio task. No-op if already running.
+        Must be called from an async context (running event loop).
         """
         if self.is_running:
             logger.warning("Pool surfacing worker already running")
@@ -115,6 +116,7 @@ class PoolSurfacingWorker:
                 await asyncio.sleep(self._interval_seconds)
         except asyncio.CancelledError:
             logger.debug("Surfacing loop cancelled")
+            raise
 
     def _get_since(self) -> datetime:
         """Determine the 'since' timestamp for the next pass."""

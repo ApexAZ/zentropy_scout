@@ -17,19 +17,24 @@ from app.services.fit_score import (
     calculate_fit_score,
 )
 
+# Persona work-model preference values (from remote_preference field).
+_PREF_REMOTE_ONLY = "Remote Only"
+_PREF_HYBRID_OK = "Hybrid OK"
+_PREF_ONSITE_OK = "Onsite OK"
+
 # Work model alignment matrix.
 # Maps (persona_preference, job_work_model) to a score 0-100.
 # 'No Preference' always scores 100.
 _WORK_MODEL_SCORES: dict[tuple[str, str], float] = {
-    ("Remote Only", "Remote"): 100.0,
-    ("Remote Only", "Hybrid"): 30.0,
-    ("Remote Only", "Onsite"): 0.0,
-    ("Hybrid OK", "Remote"): 90.0,
-    ("Hybrid OK", "Hybrid"): 100.0,
-    ("Hybrid OK", "Onsite"): 40.0,
-    ("Onsite OK", "Remote"): 80.0,
-    ("Onsite OK", "Hybrid"): 90.0,
-    ("Onsite OK", "Onsite"): 100.0,
+    (_PREF_REMOTE_ONLY, "Remote"): 100.0,
+    (_PREF_REMOTE_ONLY, "Hybrid"): 30.0,
+    (_PREF_REMOTE_ONLY, "Onsite"): 0.0,
+    (_PREF_HYBRID_OK, "Remote"): 90.0,
+    (_PREF_HYBRID_OK, "Hybrid"): 100.0,
+    (_PREF_HYBRID_OK, "Onsite"): 40.0,
+    (_PREF_ONSITE_OK, "Remote"): 80.0,
+    (_PREF_ONSITE_OK, "Hybrid"): 90.0,
+    (_PREF_ONSITE_OK, "Onsite"): 100.0,
 }
 
 # Seniority ordering for distance calculation.

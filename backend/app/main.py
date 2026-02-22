@@ -184,7 +184,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     worker = PoolSurfacingWorker(async_session_factory)
     app.state.surfacing_worker = worker
-    await worker.start()
+    worker.start()
     try:
         yield
     finally:

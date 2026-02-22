@@ -50,7 +50,7 @@ class TestWorkerLifecycle:
         worker = PoolSurfacingWorker(mock_factory, interval_seconds=60)
 
         with patch.object(worker, "_run_loop", new_callable=AsyncMock):
-            await worker.start()
+            worker.start()
             assert worker.is_running is True
             await worker.stop()
 
@@ -59,7 +59,7 @@ class TestWorkerLifecycle:
         worker = PoolSurfacingWorker(mock_factory, interval_seconds=60)
 
         with patch.object(worker, "_run_loop", new_callable=AsyncMock):
-            await worker.start()
+            worker.start()
             await worker.stop()
             assert worker.is_running is False
 
@@ -68,8 +68,8 @@ class TestWorkerLifecycle:
         worker = PoolSurfacingWorker(mock_factory, interval_seconds=60)
 
         with patch.object(worker, "_run_loop", new_callable=AsyncMock):
-            await worker.start()
-            await worker.start()  # Second call should be no-op
+            worker.start()
+            worker.start()  # Second call should be no-op
             assert worker.is_running is True
             await worker.stop()
 
