@@ -1,10 +1,11 @@
-"""Tests for bulk operation endpoints (stub-only routes).
+"""Tests for bulk operation endpoints (validation + auth).
 
 REQ-006 §2.6: Bulk operations for efficiency.
-Tests the /bulk-dismiss and /bulk-favorite endpoints (still stubs).
+Tests request validation and auth for /bulk-dismiss and /bulk-favorite.
 
-NOTE: /bulk-archive tests live in test_api_applications.py because that
-endpoint uses real DB queries with ownership verification.
+NOTE: DB-backed partial-success tests (owned/unowned IDs) live in
+test_api_job_postings_crud.py. This file tests only validation and auth
+without database setup.
 
 These tests use dependency overrides for auth (not JWT cookies) because they
 test request/response shapes without database setup. JWT auth integration
@@ -76,7 +77,7 @@ class TestBulkDismissJobPostings:
     """Tests for POST /api/v1/job-postings/bulk-dismiss."""
 
     @pytest.mark.asyncio
-    async def test_bulk_dismiss_requires_ids(self, client):
+    async def test_bulk_dismiss_requires_ids(self, client: AsyncClient) -> None:
         """Request must include ids array."""
         response = await client.post("/api/v1/job-postings/bulk-dismiss", json={})
         # REQ-006 §8.1: 400 for validation errors
@@ -84,7 +85,7 @@ class TestBulkDismissJobPostings:
         assert "ids" in response.text.lower()
 
     @pytest.mark.asyncio
-    async def test_bulk_dismiss_empty_ids_is_valid(self, client):
+    async def test_bulk_dismiss_empty_ids_is_valid(self, client: AsyncClient) -> None:
         """Empty ids array returns empty succeeded array."""
         response = await client.post(
             "/api/v1/job-postings/bulk-dismiss", json={"ids": []}
@@ -95,22 +96,7 @@ class TestBulkDismissJobPostings:
         assert data["data"]["failed"] == []
 
     @pytest.mark.asyncio
-    async def test_bulk_dismiss_returns_partial_success_format(self, client):
-        """Response includes succeeded and failed arrays."""
-        # Use UUIDs that won't exist (will report as NOT_FOUND in failed)
-        fake_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
-        response = await client.post(
-            "/api/v1/job-postings/bulk-dismiss", json={"ids": fake_ids}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "succeeded" in data["data"]
-        assert "failed" in data["data"]
-        assert isinstance(data["data"]["succeeded"], list)
-        assert isinstance(data["data"]["failed"], list)
-
-    @pytest.mark.asyncio
-    async def test_bulk_dismiss_invalid_uuid_format(self, client):
+    async def test_bulk_dismiss_invalid_uuid_format(self, client: AsyncClient) -> None:
         """Invalid UUID format returns 400."""
         response = await client.post(
             "/api/v1/job-postings/bulk-dismiss", json={"ids": ["not-a-uuid"]}
@@ -123,7 +109,7 @@ class TestBulkFavoriteJobPostings:
     """Tests for POST /api/v1/job-postings/bulk-favorite."""
 
     @pytest.mark.asyncio
-    async def test_bulk_favorite_requires_ids(self, client):
+    async def test_bulk_favorite_requires_ids(self, client: AsyncClient) -> None:
         """Request must include ids array."""
         response = await client.post(
             "/api/v1/job-postings/bulk-favorite", json={"is_favorite": True}
@@ -132,7 +118,9 @@ class TestBulkFavoriteJobPostings:
         assert response.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_bulk_favorite_requires_is_favorite(self, client):
+    async def test_bulk_favorite_requires_is_favorite(
+        self, client: AsyncClient
+    ) -> None:
         """Request must include is_favorite boolean."""
         response = await client.post(
             "/api/v1/job-postings/bulk-favorite",
@@ -143,7 +131,7 @@ class TestBulkFavoriteJobPostings:
         assert "is_favorite" in response.text.lower()
 
     @pytest.mark.asyncio
-    async def test_bulk_favorite_empty_ids_is_valid(self, client):
+    async def test_bulk_favorite_empty_ids_is_valid(self, client: AsyncClient) -> None:
         """Empty ids array returns empty succeeded array."""
         response = await client.post(
             "/api/v1/job-postings/bulk-favorite",
@@ -155,20 +143,7 @@ class TestBulkFavoriteJobPostings:
         assert data["data"]["failed"] == []
 
     @pytest.mark.asyncio
-    async def test_bulk_favorite_returns_partial_success_format(self, client):
-        """Response includes succeeded and failed arrays."""
-        fake_ids = [str(uuid.uuid4())]
-        response = await client.post(
-            "/api/v1/job-postings/bulk-favorite",
-            json={"ids": fake_ids, "is_favorite": True},
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "succeeded" in data["data"]
-        assert "failed" in data["data"]
-
-    @pytest.mark.asyncio
-    async def test_bulk_unfavorite_also_works(self, client):
+    async def test_bulk_unfavorite_also_works(self, client: AsyncClient) -> None:
         """is_favorite=False should also work."""
         response = await client.post(
             "/api/v1/job-postings/bulk-favorite",
@@ -184,7 +159,9 @@ class TestBulkOperationAuth:
     """
 
     @pytest.mark.asyncio
-    async def test_bulk_dismiss_requires_auth(self, unauthenticated_client):
+    async def test_bulk_dismiss_requires_auth(
+        self, unauthenticated_client: AsyncClient
+    ) -> None:
         """Unauthenticated request returns 401."""
         response = await unauthenticated_client.post(
             "/api/v1/job-postings/bulk-dismiss",
@@ -193,7 +170,9 @@ class TestBulkOperationAuth:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_bulk_favorite_requires_auth(self, unauthenticated_client):
+    async def test_bulk_favorite_requires_auth(
+        self, unauthenticated_client: AsyncClient
+    ) -> None:
         """Unauthenticated request returns 401."""
         response = await unauthenticated_client.post(
             "/api/v1/job-postings/bulk-favorite",

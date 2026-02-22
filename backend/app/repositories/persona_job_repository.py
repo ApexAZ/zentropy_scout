@@ -9,6 +9,7 @@ from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.persona import Persona
 from app.models.persona_job import PersonaJob
@@ -65,9 +66,36 @@ class PersonaJobRepository:
             select(PersonaJob)
             .join(Persona, PersonaJob.persona_id == Persona.id)
             .where(PersonaJob.id == persona_job_id, Persona.user_id == user_id)
+            .options(selectinload(PersonaJob.job_posting))
         )
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_all_for_user(
+        db: AsyncSession,
+        *,
+        user_id: uuid.UUID,
+    ) -> list[PersonaJob]:
+        """Fetch all PersonaJob records for a user across all personas.
+
+        Args:
+            db: Async database session.
+            user_id: Authenticated user's UUID.
+
+        Returns:
+            List of PersonaJob records with job_posting eagerly loaded.
+            Ordered by discovered_at descending.
+        """
+        stmt = (
+            select(PersonaJob)
+            .join(Persona, PersonaJob.persona_id == Persona.id)
+            .where(Persona.user_id == user_id)
+            .options(selectinload(PersonaJob.job_posting))
+            .order_by(PersonaJob.discovered_at.desc())
+        )
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
 
     @staticmethod
     async def get_for_persona(
@@ -233,6 +261,7 @@ class PersonaJobRepository:
             select(PersonaJob)
             .join(Persona, PersonaJob.persona_id == Persona.id)
             .where(PersonaJob.id == persona_job_id, Persona.user_id == user_id)
+            .options(selectinload(PersonaJob.job_posting))
         )
         result = await db.execute(stmt)
         persona_job = result.scalar_one_or_none()
@@ -253,6 +282,7 @@ class PersonaJobRepository:
         persona_job_ids: list[uuid.UUID],
         user_id: uuid.UUID,
         status: str,
+        dismissed_at: datetime | None = None,
     ) -> int:
         """Bulk update status for multiple PersonaJob records.
 
@@ -263,6 +293,8 @@ class PersonaJobRepository:
             persona_job_ids: List of PersonaJob UUIDs to update.
             user_id: Authenticated user's UUID (ownership filter).
             status: New status value.
+            dismissed_at: Timestamp for dismissal (auto-set by caller
+                when status is Dismissed).
 
         Returns:
             Number of records updated.
@@ -273,13 +305,17 @@ class PersonaJobRepository:
         # Subquery: persona IDs owned by this user
         owned_persona_ids = select(Persona.id).where(Persona.user_id == user_id)
 
+        values: dict[str, str | datetime] = {"status": status}
+        if dismissed_at is not None:
+            values["dismissed_at"] = dismissed_at
+
         stmt = (
             update(PersonaJob)
             .where(
                 PersonaJob.id.in_(persona_job_ids),
                 PersonaJob.persona_id.in_(owned_persona_ids),
             )
-            .values(status=status)
+            .values(**values)
         )
         result = await db.execute(stmt)
         row_count: int = result.rowcount  # type: ignore[attr-defined]

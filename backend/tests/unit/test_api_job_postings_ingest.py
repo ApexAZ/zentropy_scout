@@ -352,8 +352,9 @@ class TestIngestConfirm:
 
         data = confirm_response.json()["data"]
         assert "id" in data
-        assert "job_title" in data
-        assert "company_name" in data
+        assert "job" in data
+        assert "job_title" in data["job"]
+        assert "company_name" in data["job"]
         assert "status" in data
 
     @pytest.mark.asyncio
@@ -384,7 +385,7 @@ class TestIngestConfirm:
 
         assert confirm_response.status_code == 201
         data = confirm_response.json()["data"]
-        assert data["job_title"] == "Sr. Software Engineer"
+        assert data["job"]["job_title"] == "Sr. Software Engineer"
 
 
 # =============================================================================
@@ -560,9 +561,9 @@ class TestIngestModificationSecurity:
 
         assert confirm_response.status_code == 201
         data = confirm_response.json()["data"]
-        assert data["job_title"] == "Senior Engineer"
-        assert data["company_name"] == "Great Corp"
-        assert data["location"] == "Remote"
-        assert data["salary_min"] == 100000
-        assert data["salary_max"] == 150000
-        assert data["salary_currency"] == "USD"
+        assert data["job"]["job_title"] == "Senior Engineer"
+        assert data["job"]["company_name"] == "Great Corp"
+        assert data["job"]["location"] == "Remote"
+        assert data["job"]["salary_min"] == 100000
+        assert data["job"]["salary_max"] == 150000
+        assert data["job"]["salary_currency"] == "USD"

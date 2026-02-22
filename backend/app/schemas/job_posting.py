@@ -1,14 +1,18 @@
-"""Job posting response schemas for the shared pool.
+"""Job posting schemas for the shared pool.
 
 REQ-015 §8.3: Response models enforce privacy boundaries.
 - JobPostingResponse: factual data only, excludes also_found_on
 - PersonaJobResponse: nested shared data + per-user fields
+REQ-015 §9: Request models for API endpoint updates.
+- UpdatePersonaJobRequest: per-user fields only (shared data immutable)
+- CreateJobPostingRequest: manual job creation with dedup
 """
 
 import uuid
 from datetime import date, datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class JobPostingResponse(BaseModel):
@@ -73,17 +77,19 @@ class PersonaJobResponse(BaseModel):
 
     Attributes:
         id: PersonaJob UUID.
-        job: Nested shared job data.
+        job: Nested shared job data (reads from ORM ``job_posting`` relationship).
         status: User's relationship status (Discovered/Dismissed/Applied).
         is_favorite: Whether the user favorited this job.
         discovery_method: How the job was discovered (scouter/manual/pool).
         discovered_at: When the user first saw this job.
     """
 
-    model_config = ConfigDict(extra="forbid", from_attributes=True)
+    model_config = ConfigDict(
+        extra="forbid", from_attributes=True, populate_by_name=True
+    )
 
     id: uuid.UUID
-    job: JobPostingResponse
+    job: JobPostingResponse = Field(validation_alias="job_posting")
     status: str
     is_favorite: bool
     discovery_method: str
@@ -94,3 +100,49 @@ class PersonaJobResponse(BaseModel):
     score_details: dict | None = None
     scored_at: datetime | None = None
     dismissed_at: datetime | None = None
+
+
+class UpdatePersonaJobRequest(BaseModel):
+    """Request body for PATCH /job-postings/{id}.
+
+    REQ-015 §9.1: Only per-user persona_jobs fields can be updated.
+    Shared job posting data is immutable from user API.
+
+    Attributes:
+        status: New status (Discovered/Dismissed/Applied).
+        is_favorite: Toggle favorite flag.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["Discovered", "Dismissed", "Applied"] | None = None
+    is_favorite: bool | None = None
+
+
+class CreateJobPostingRequest(BaseModel):
+    """Request body for POST /job-postings.
+
+    REQ-015 §9.1: Creates in shared pool + creates persona_jobs link.
+    Dedup check first — if job with same description_hash exists,
+    just creates the persona_jobs link.
+
+    Attributes:
+        job_title: Job title (required).
+        company_name: Company name (required).
+        description: Full job description (required, used for dedup hash).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    job_title: str = Field(..., min_length=1, max_length=500)
+    company_name: str = Field(..., min_length=1, max_length=500)
+    description: str = Field(..., min_length=1, max_length=50000)
+    source_url: str | None = Field(default=None, max_length=2000)
+    location: str | None = Field(default=None, max_length=500)
+    work_model: str | None = Field(default=None, max_length=50)
+    seniority_level: str | None = Field(default=None, max_length=50)
+    salary_min: int | None = Field(default=None, ge=0)
+    salary_max: int | None = Field(default=None, ge=0)
+    salary_currency: str | None = Field(default=None, max_length=10)
+    culture_text: str | None = Field(default=None, max_length=50000)
+    requirements: str | None = Field(default=None, max_length=50000)
