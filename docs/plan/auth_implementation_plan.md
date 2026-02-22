@@ -145,7 +145,7 @@
 
 ## Phase 5: Shared Job Pool — Backend Logic (REQ-015)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Repository refactor, API endpoint updates, global dedup, surfacing worker, Scouter changes, content security. Depends on: Phase 4 (schema in place, models updated).*
 
@@ -169,7 +169,7 @@
 | 4 | **Pool surfacing worker** — asyncio background task via FastAPI `lifespan` event (NOT Celery/ARQ — no Redis/queue infrastructure exists). Every ~15 min: query new pool jobs since last run, score against active personas that haven't seen them. Match criteria: (a) keyword overlap with persona skills, (b) embedding cosine similarity above threshold, (c) seniority/work model alignment. Threshold: `fit_score >= persona.minimum_fit_threshold` (default 50). Rate limit: max 50 jobs per pass, max 100 personas per new job. Creates persona_jobs with `discovery_method='pool'`. UNIQUE constraint prevents re-surfacing. Use lightweight keyword pre-screen before full LLM scoring (REQ-015 §7). TDD: test matching logic, threshold filtering, rate limiting, UNIQUE dedup, worker lifecycle (start/stop). | `provider, tdd, security, plan` | ✅ |
 | 5 | **Scouter agent changes** — replace `deduplicate_jobs` node → `check_shared_pool` (global dedup). Replace `save_jobs` node → `save_to_pool` (shared pool + persona_jobs link). Add `notify_surfacing_worker` node (triggers background task for cross-user matching). Update state schema. Race condition: UNIQUE constraint on `(source_id, external_id)` + `ON CONFLICT` → losing Scouter creates its own persona_jobs link. Node mapping: deduplicate_jobs → check_shared_pool, save_jobs → save_to_pool (REQ-015 §10). TDD: test updated graph flow, pool save, surfacing notification, race condition recovery. | `agents, tdd, plan` | ✅ |
 | 6 | **Content security** — pool poisoning defenses per REQ-015 §8.4: (a) Validate on write: reject descriptions containing detected injection patterns in ingest endpoint. (b) Quarantine manual submissions: `discovery_method='manual'` jobs visible only to submitter until independently confirmed OR 7-day auto-release (no rejection signal) OR admin approval; extend quarantine indefinitely if reported. (c) Rate limit manual submissions: max 20/user/day. (d) Timing side-channel: return "processing" immediately for ingest (consistent response time regardless of dedup hit/miss). (e) Sanitize on read: all pool content passes `sanitize_llm_input()` before any LLM prompt. TDD: test injection rejection, quarantine logic, auto-release timer, rate limit, consistent response timing. | `api, tdd, security, plan` | ✅ |
-| 7 | **Phase 5 gate** — run full backend test suite: `pytest tests/ -v`, `ruff check .`, `bandit`. Verify all services, agents, endpoints, and surfacing worker pass. | `plan, commands` | ⬜ |
+| 7 | **Phase 5 gate** — run full backend test suite: `pytest tests/ -v`, `ruff check .`, `bandit`. Verify all services, agents, endpoints, and surfacing worker pass. | `plan, commands` | ✅ |
 
 ---
 
