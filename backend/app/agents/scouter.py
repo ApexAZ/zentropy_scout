@@ -11,11 +11,13 @@ them for scoring by the Strategist. It:
 - Deduplicates and stores new jobs
 - Invokes Strategist for scoring
 
-Architecture:
+Architecture (REQ-015 §10):
     [Trigger] → get_enabled_sources → fetch_sources (parallel) →
-        → merge_results → deduplicate_jobs → extract_skills →
-        → calculate_ghost_score → save_jobs → invoke_strategist →
-        → update_poll_state → [END]
+        → merge_results → check_shared_pool → [conditional] →
+            ├─ has_new_jobs → extract_skills → calculate_ghost_score →
+            │     → save_to_pool → notify_surfacing_worker →
+            │       invoke_strategist → update_poll_state → [END]
+            └─ no_new_jobs → update_poll_state → [END]
 
 Trigger Conditions (§6.1):
     - Scheduled poll: Based on Persona.polling_frequency
@@ -205,6 +207,7 @@ def create_scouter_state(
         "enabled_sources": enabled_sources,
         "discovered_jobs": [],
         "processed_jobs": [],
+        "existing_pool_jobs": [],
         "error_sources": [],
     }
 

@@ -1,44 +1,52 @@
 """Scouter Agent LangGraph graph implementation.
 
-REQ-007 §15.3: Graph Spec — Scouter Agent
+REQ-007 §15.3 + REQ-015 §10: Graph Spec — Scouter Agent
 
-LangGraph graph that orchestrates job discovery:
+LangGraph graph that orchestrates job discovery into the shared pool:
     [Trigger] → get_enabled_sources → fetch_sources →
-        → merge_results → deduplicate_jobs → [conditional] →
+        → merge_results → check_shared_pool → [conditional] →
             ├─ has_new_jobs → extract_skills → calculate_ghost_score →
-            │     → save_jobs → invoke_strategist → update_poll_state → END
+            │     → save_to_pool → notify_surfacing_worker →
+            │       invoke_strategist → update_poll_state → END
             └─ no_new_jobs → update_poll_state → END
 
 Node Functions:
     - get_enabled_sources: Load user's enabled job sources
     - fetch_sources: Fetch jobs from each source (parallel via asyncio)
     - merge_results: Combine jobs from all sources
-    - deduplicate_jobs: Remove duplicates using deduplication service
+    - check_shared_pool: Check pool + create links for existing jobs
     - extract_skills: Extract skills/culture via LLM (Haiku)
     - calculate_ghost_score: Calculate ghost score for each job
-    - save_jobs: Persist jobs via API
+    - save_to_pool: Save new jobs to shared pool + create persona links
+    - notify_surfacing_worker: Signal that new jobs are available
     - invoke_strategist: Trigger Strategist for scoring
     - update_poll_state: Update polling timestamps
 """
 
+import hashlib
 import logging
-from datetime import UTC, datetime
+import uuid
+from datetime import UTC, date, datetime
 from typing import Any
 
 from langgraph.graph import END, StateGraph
+from sqlalchemy import select
 
 from app.adapters.sources.adzuna import AdzunaAdapter
 from app.adapters.sources.base import JobSourceAdapter, SearchParams
 from app.adapters.sources.remoteok import RemoteOKAdapter
 from app.adapters.sources.themuse import TheMuseAdapter
 from app.adapters.sources.usajobs import USAJobsAdapter
-from app.agents.base import get_agent_client
 from app.agents.scouter import (
     calculate_next_poll_time,
     merge_results,
 )
 from app.agents.state import ScouterState
+from app.core.database import async_session_factory
+from app.models.job_source import JobSource
+from app.repositories.job_posting_repository import JobPostingRepository
 from app.services.ghost_detection import calculate_ghost_score
+from app.services.global_dedup_service import deduplicate_and_save
 from app.services.scouter_errors import SourceError, is_retryable_error
 
 logger = logging.getLogger(__name__)
@@ -48,10 +56,14 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # WHY: Default polling frequency when not specified by user
-DEFAULT_POLLING_FREQUENCY = "daily"
+_DEFAULT_POLLING_FREQUENCY = "daily"
 
 # WHY: Max characters to send to LLM for skill extraction per REQ-007 §6.4
-MAX_DESCRIPTION_LENGTH = 15000
+_MAX_DESCRIPTION_LENGTH = 15000
+
+# WHY: Only auto-create JobSource rows for known adapters — prevents
+# untrusted source names from polluting the job_sources table.
+_KNOWN_SOURCE_NAMES = frozenset({"Adzuna", "RemoteOK", "TheMuse", "USAJobs"})
 
 
 # =============================================================================
@@ -104,7 +116,7 @@ def extract_skills_and_culture(
         For now, returns empty extraction to allow graph testing.
     """
     # WHY: Truncate to 15k chars per REQ-007 §6.4 note
-    truncated = description[:MAX_DESCRIPTION_LENGTH]
+    truncated = description[:_MAX_DESCRIPTION_LENGTH]
 
     # PLACEHOLDER: Actual LLM extraction will be implemented in a future task.
     # This allows the graph to function without LLM dependency for testing.
@@ -117,6 +129,50 @@ def extract_skills_and_culture(
         "required_skills": [],
         "preferred_skills": [],
         "culture_text": None,
+    }
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+def _compute_description_hash(text: str) -> str:
+    """Compute SHA-256 hash of description text for dedup lookup."""
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _build_dedup_job_data(
+    job: dict[str, Any],
+    source_id: uuid.UUID,
+) -> dict[str, Any]:
+    """Transform a Scouter job dict into global dedup service input format.
+
+    Args:
+        job: Raw job dict from Scouter state.
+        source_id: Resolved UUID of the job source.
+
+    Returns:
+        Dict compatible with deduplicate_and_save() job_data parameter.
+    """
+    description = job.get("description", "")
+    return {
+        "source_id": source_id,
+        "job_title": job.get("title", ""),
+        "company_name": job.get("company", ""),
+        "description": description,
+        "description_hash": _compute_description_hash(description),
+        "first_seen_date": date.today(),
+        "external_id": job.get("external_id"),
+        "source_url": job.get("source_url"),
+        "location": job.get("location"),
+        "salary_min": job.get("salary_min"),
+        "salary_max": job.get("salary_max"),
+        "posted_date": job.get("posted_date"),
+        "culture_text": job.get("culture_text"),
+        "ghost_score": job.get("ghost_score"),
+        "ghost_signals": job.get("ghost_signals"),
+        "raw_text": job.get("description"),
     }
 
 
@@ -139,11 +195,6 @@ def get_enabled_sources_node(state: ScouterState) -> ScouterState:
     Returns:
         State unchanged (sources already in state from trigger).
     """
-    # WHY: In production, this would fetch from API:
-    #   client = get_agent_client()
-    #   prefs = await client.list_user_source_preferences(state["user_id"])
-    #   return {**state, "enabled_sources": [p["source_name"] for p in prefs["data"]]}
-    # For now, sources are passed in via state initialization.
     return state
 
 
@@ -162,18 +213,14 @@ async def fetch_sources_node(state: ScouterState) -> ScouterState:
     enabled_sources = state.get("enabled_sources", [])
     error_sources = list(state.get("error_sources", []))
 
-    # WHY: Use dict to track jobs by source for merge step
     discovered_jobs_by_source: dict[str, list[dict[str, Any]]] = {}
 
-    # WHY: Search params would be derived from persona preferences via API.
-    # Using placeholder values until persona integration is complete.
     params = SearchParams(
         keywords=["software", "engineer"],
         remote_only=False,
         results_per_page=25,
     )
 
-    # Fetch from each source
     for source_name in enabled_sources:
         adapter = get_source_adapter(source_name)
         if not adapter:
@@ -183,7 +230,6 @@ async def fetch_sources_node(state: ScouterState) -> ScouterState:
         try:
             raw_jobs = await adapter.fetch_jobs(params)
 
-            # Convert RawJob objects to dicts for state storage
             discovered_jobs_by_source[source_name] = [
                 {
                     "external_id": job.external_id,
@@ -207,7 +253,6 @@ async def fetch_sources_node(state: ScouterState) -> ScouterState:
             )
 
         except SourceError as e:
-            # WHY: Fail-forward per REQ-007 §6.7 - record error, continue
             logger.warning(
                 "Source %s failed: %s (retryable: %s)",
                 source_name,
@@ -216,13 +261,10 @@ async def fetch_sources_node(state: ScouterState) -> ScouterState:
             )
             error_sources.append(source_name)
 
-        except Exception as e:
-            # WHY: Catch unexpected errors (network issues, parsing failures, etc.)
-            # to prevent full batch failure. Fail-forward per REQ-007 §6.7.
+        except Exception as e:  # noqa: BLE001
             logger.exception("Unexpected error fetching from %s: %s", source_name, e)
             error_sources.append(source_name)
 
-    # Return updated state
     return {
         **state,
         "discovered_jobs": discovered_jobs_by_source,  # type: ignore[typeddict-item]
@@ -243,7 +285,6 @@ def merge_results_node(state: ScouterState) -> ScouterState:
     """
     discovered: Any = state.get("discovered_jobs", {})
 
-    # Handle both dict (from fetch) and list (already merged) formats
     merged = merge_results(discovered) if isinstance(discovered, dict) else discovered
 
     return {
@@ -252,45 +293,168 @@ def merge_results_node(state: ScouterState) -> ScouterState:
     }
 
 
-def deduplicate_jobs_node(state: ScouterState) -> ScouterState:
-    """Remove duplicate jobs using deduplication service.
+async def _check_single_job_in_pool(
+    db: Any,  # AsyncSession
+    job: dict[str, Any],
+    source_id: uuid.UUID,
+) -> tuple[bool, dict[str, Any]]:
+    """Check if a single job exists in the shared pool.
 
-    REQ-007 §6.6: Deduplication logic.
+    Two-tier lookup: source_id + external_id first, then description_hash.
+
+    Args:
+        db: Async database session.
+        job: Job dict with external_id and description.
+        source_id: Resolved source UUID.
+
+    Returns:
+        (is_existing, enriched_job) where enriched_job has source_id
+        and optionally pool_job_posting_id if found in pool.
+    """
+    external_id = job.get("external_id", "")
+
+    # Tier 1: source_id + external_id
+    existing = None
+    if external_id:
+        existing = await JobPostingRepository.get_by_source_and_external_id(
+            db, source_id=source_id, external_id=external_id
+        )
+
+    # Tier 2: description_hash
+    if existing is None:
+        description = job.get("description", "")
+        if description:
+            desc_hash = _compute_description_hash(description)
+            existing = await JobPostingRepository.get_by_description_hash(db, desc_hash)
+
+    if existing is not None:
+        logger.debug(
+            "Job %s from %s already in pool (id=%s)",
+            external_id,
+            job.get("source_name", ""),
+            existing.id,
+        )
+        return True, {
+            **job,
+            "pool_job_posting_id": str(existing.id),
+            "source_id": str(source_id),
+        }
+
+    return False, {**job, "source_id": str(source_id)}
+
+
+async def check_shared_pool_node(state: ScouterState) -> ScouterState:
+    """Check which fetched jobs already exist in the shared pool.
+
+    REQ-015 §10.1 + §10.3: Replaces deduplicate_jobs.
+
+    For each discovered job:
+    - In-batch dedup first (same source_name + external_id)
+    - Check pool by source_id + external_id, then by description_hash
+    - If found → add to existing_pool_jobs (skip extraction)
+    - If not found → add to processed_jobs (needs extraction)
+
+    Existing pool jobs get persona_jobs links created in save_to_pool.
 
     Args:
         state: State with discovered_jobs list.
 
     Returns:
-        State with processed_jobs (unique jobs only).
+        State with processed_jobs (new) and existing_pool_jobs (found).
     """
     discovered = state.get("discovered_jobs", [])
+
     processed: list[dict[str, Any]] = []
+    existing_pool: list[dict[str, Any]] = []
     seen_keys: set[tuple[str, str]] = set()
+    source_id_cache: dict[str, uuid.UUID] = {}
 
-    for job in discovered:
-        # Create unique key (source + external_id)
-        key = (job.get("source_name", ""), job.get("external_id", ""))
+    async with async_session_factory() as db:
+        for job in discovered:
+            source_name = job.get("source_name", "")
+            external_id = job.get("external_id", "")
 
-        if key in seen_keys:
-            continue
+            # In-batch dedup: skip duplicates within the same fetch
+            key = (source_name, external_id)
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
 
-        # WHY: Check against existing jobs in DB would happen here
-        # For now, just dedupe within the batch
-        # Full implementation would call: is_duplicate(job, existing_jobs)
+            # Resolve source_name → source_id (cached per source)
+            if source_name not in source_id_cache:
+                resolved = await _resolve_source_id(db, source_name)
+                if resolved is None:
+                    processed.append(job)
+                    continue
+                source_id_cache[source_name] = resolved
 
-        seen_keys.add(key)
-        processed.append(job)
+            source_id = source_id_cache[source_name]
+            is_existing, enriched_job = await _check_single_job_in_pool(
+                db, job, source_id
+            )
+
+            if is_existing:
+                existing_pool.append(enriched_job)
+            else:
+                processed.append(enriched_job)
+
+    logger.info(
+        "Pool check: %d existing, %d new (from %d discovered)",
+        len(existing_pool),
+        len(processed),
+        len(discovered),
+    )
 
     return {
         **state,
         "processed_jobs": processed,
+        "existing_pool_jobs": existing_pool,
     }
+
+
+async def _resolve_source_id(
+    db: Any,  # AsyncSession
+    source_name: str,
+) -> uuid.UUID | None:
+    """Look up or create a JobSource by name.
+
+    Only auto-creates sources for names in _KNOWN_SOURCE_NAMES to prevent
+    untrusted input from creating arbitrary source rows.
+
+    Args:
+        db: Async database session.
+        source_name: Source name (e.g., "Adzuna").
+
+    Returns:
+        UUID of the source, or None if unknown and not in allowlist.
+    """
+    result = await db.execute(
+        select(JobSource).where(JobSource.source_name == source_name)
+    )
+    source = result.scalar_one_or_none()
+    if source is not None:
+        return source.id  # type: ignore[no-any-return]
+
+    # Only auto-create for known adapter sources
+    if source_name not in _KNOWN_SOURCE_NAMES:
+        logger.warning("Unknown source name, cannot auto-create: %s", source_name)
+        return None
+
+    source = JobSource(
+        source_name=source_name,
+        source_type="API",
+        description=f"Jobs from {source_name}",
+    )
+    db.add(source)
+    await db.flush()
+    await db.refresh(source)
+    return source.id
 
 
 def check_new_jobs(state: ScouterState) -> str:
     """Route based on whether new jobs were found.
 
-    REQ-007 §15.3: Conditional edge after deduplication.
+    REQ-007 §15.3: Conditional edge after pool check.
 
     Args:
         state: State with processed_jobs list.
@@ -331,8 +495,7 @@ def extract_skills_node(state: ScouterState) -> ScouterState:
                 }
             )
 
-        except Exception as e:
-            # WHY: Fail-forward - store job without skills, flag for retry
+        except Exception as e:  # noqa: BLE001
             logger.warning(
                 "Skill extraction failed for job %s: %s",
                 job.get("external_id"),
@@ -370,9 +533,8 @@ async def calculate_ghost_score_node(state: ScouterState) -> ScouterState:
 
     for job in processed:
         try:
-            # Call ghost detection service
             signals = await calculate_ghost_score(
-                posted_date=None,  # Would parse from job["posted_date"]
+                posted_date=None,
                 first_seen_date=None,
                 repost_count=0,
                 salary_min=job.get("salary_min"),
@@ -392,8 +554,7 @@ async def calculate_ghost_score_node(state: ScouterState) -> ScouterState:
                 }
             )
 
-        except Exception as e:
-            # WHY: Fail-forward - continue without ghost score
+        except Exception as e:  # noqa: BLE001
             logger.warning(
                 "Ghost score calculation failed for job %s: %s",
                 job.get("external_id"),
@@ -413,60 +574,178 @@ async def calculate_ghost_score_node(state: ScouterState) -> ScouterState:
     }
 
 
-async def save_jobs_node(state: ScouterState) -> ScouterState:
-    """Save processed jobs via API.
-
-    REQ-007 §6.2: Step 5 - POST /job-postings.
+async def _save_single_job(
+    db: Any,  # AsyncSession
+    job: dict[str, Any],
+    persona_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> str | None:
+    """Save a single new job to the shared pool.
 
     Args:
-        state: State with processed_jobs list.
+        db: Async database session.
+        job: Job dict with source_id and dedup-ready fields.
+        persona_id: Persona UUID for the persona_jobs link.
+        user_id: User UUID for ownership.
+
+    Returns:
+        Job posting ID string, or None on failure.
+    """
+    try:
+        source_id = uuid.UUID(job["source_id"])
+        job_data = _build_dedup_job_data(job, source_id)
+        outcome = await deduplicate_and_save(
+            db,
+            job_data=job_data,
+            persona_id=persona_id,
+            user_id=user_id,
+            discovery_method="scouter",
+        )
+        logger.debug(
+            "Saved job %s: action=%s, id=%s",
+            job.get("external_id"),
+            outcome.action,
+            outcome.job_posting.id,
+        )
+        return str(outcome.job_posting.id)
+    except (ValueError, KeyError) as e:
+        logger.warning("Invalid job data for %s: %s", job.get("external_id"), e)
+        return None
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Failed to save job %s: %s", job.get("external_id"), e)
+        return None
+
+
+async def _link_existing_job(
+    db: Any,  # AsyncSession
+    job: dict[str, Any],
+    persona_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> str | None:
+    """Create persona_jobs link for an existing pool job.
+
+    Args:
+        db: Async database session.
+        job: Job dict with pool_job_posting_id and source_id.
+        persona_id: Persona UUID for the persona_jobs link.
+        user_id: User UUID for ownership.
+
+    Returns:
+        Pool job posting ID string, or None on failure.
+    """
+    try:
+        source_id = uuid.UUID(job["source_id"])
+        job_data = _build_dedup_job_data(job, source_id)
+        await deduplicate_and_save(
+            db,
+            job_data=job_data,
+            persona_id=persona_id,
+            user_id=user_id,
+            discovery_method="scouter",
+        )
+        return job.get("pool_job_posting_id")
+    except (ValueError, KeyError) as e:
+        logger.warning(
+            "Invalid data for pool job %s: %s",
+            job.get("pool_job_posting_id"),
+            e,
+        )
+        return None
+    except Exception as e:  # noqa: BLE001
+        logger.warning(
+            "Failed to link pool job %s: %s",
+            job.get("pool_job_posting_id"),
+            e,
+        )
+        return None
+
+
+async def save_to_pool_node(state: ScouterState) -> ScouterState:
+    """Save new jobs to shared pool and create persona_jobs links.
+
+    REQ-015 §10.1: Replaces save_jobs. Saves to shared job_postings
+    table, then creates persona_jobs link for the discovering user.
+    Also creates links for existing pool jobs found in check_shared_pool.
+
+    Uses deduplicate_and_save() for race condition handling (UNIQUE
+    constraint + savepoint recovery per REQ-015 §10.3).
+
+    Args:
+        state: State with processed_jobs and existing_pool_jobs.
 
     Returns:
         State with saved_job_ids list.
     """
-    user_id = state.get("user_id", "")
+    user_id_str = state.get("user_id", "")
+    persona_id_str = state.get("persona_id", "")
     processed = state.get("processed_jobs", [])
+    existing_pool = state.get("existing_pool_jobs", [])
+
+    if not user_id_str or not persona_id_str:
+        logger.warning("Missing user_id or persona_id in state")
+        return {**state, "saved_job_ids": []}
+
+    try:
+        user_id = uuid.UUID(str(user_id_str))
+        persona_id = uuid.UUID(str(persona_id_str))
+    except ValueError:
+        logger.warning("Invalid user_id or persona_id UUID format")
+        return {**state, "saved_job_ids": []}
+
     saved_ids: list[str] = []
 
-    client = get_agent_client()
-
-    for job in processed:
-        try:
-            # Build job posting data
-            job_data = {
-                "url": job.get("source_url"),
-                "raw_text": job.get("description"),
-                "job_title": job.get("title"),
-                "company_name": job.get("company"),
-                "location": job.get("location"),
-                "salary_min": job.get("salary_min"),
-                "salary_max": job.get("salary_max"),
-                "source_name": job.get("source_name"),
-                "external_id": job.get("external_id"),
-                "required_skills": job.get("required_skills", []),
-                "preferred_skills": job.get("preferred_skills", []),
-                "culture_text": job.get("culture_text"),
-                "ghost_score": job.get("ghost_score"),
-                "ghost_signals": job.get("ghost_signals"),
-            }
-
-            result = await client.create_job_posting(user_id, job_data)
-            job_id = result.get("data", {}).get("id")
+    async with async_session_factory() as db:
+        for job in processed:
+            job_id = await _save_single_job(db, job, persona_id, user_id)
             if job_id:
                 saved_ids.append(job_id)
 
-        except Exception as e:
-            # WHY: Log and continue - don't fail entire batch
-            logger.warning(
-                "Failed to save job %s: %s",
-                job.get("external_id"),
-                e,
-            )
+        for job in existing_pool:
+            job_id = await _link_existing_job(db, job, persona_id, user_id)
+            if job_id:
+                saved_ids.append(job_id)
+
+        try:
+            await db.commit()
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to commit pool save transaction")
+            return {**state, "saved_job_ids": []}
+
+    logger.info(
+        "Pool save: %d new + %d existing = %d total",
+        len(processed),
+        len(existing_pool),
+        len(saved_ids),
+    )
 
     return {
         **state,
         "saved_job_ids": saved_ids,
     }
+
+
+def notify_surfacing_worker_node(state: ScouterState) -> ScouterState:
+    """Signal the pool surfacing worker that new jobs are available.
+
+    REQ-015 §10.1: Triggers background surfacing for cross-user matching.
+
+    The surfacing worker runs on a 15-minute interval and will pick up
+    new jobs automatically. This node logs the event for observability.
+
+    Args:
+        state: State with saved_job_ids list.
+
+    Returns:
+        State unchanged.
+    """
+    saved_ids = state.get("saved_job_ids", [])
+    if saved_ids:
+        logger.info(
+            "Surfacing notification: %d jobs available for cross-user matching",
+            len(saved_ids),
+        )
+
+    return state
 
 
 def invoke_strategist_node(state: ScouterState) -> ScouterState:
@@ -483,8 +762,6 @@ def invoke_strategist_node(state: ScouterState) -> ScouterState:
     Returns:
         State unchanged (placeholder).
     """
-    # WHY: Placeholder for sub-graph invocation.
-    # Will invoke Strategist graph with jobs_to_score = saved_job_ids
     saved_ids = state.get("saved_job_ids", [])
     if saved_ids:
         logger.info(
@@ -506,12 +783,9 @@ def update_poll_state_node(state: ScouterState) -> ScouterState:
     Returns:
         State with last_polled_at and next_poll_at updated.
     """
-    frequency = state.get("polling_frequency", DEFAULT_POLLING_FREQUENCY)
+    frequency = state.get("polling_frequency", _DEFAULT_POLLING_FREQUENCY)
     now = datetime.now(UTC)
-    next_poll = calculate_next_poll_time(now, frequency)  # type: ignore[arg-type]
-
-    # WHY: In production, would call API to persist:
-    #   await client.update_polling_configuration(...)
+    next_poll = calculate_next_poll_time(now, frequency)
 
     return {
         **state,
@@ -521,20 +795,21 @@ def update_poll_state_node(state: ScouterState) -> ScouterState:
 
 
 # =============================================================================
-# Graph Construction (§15.3)
+# Graph Construction (REQ-007 §15.3 + REQ-015 §10)
 # =============================================================================
 
 
 def create_scouter_graph() -> StateGraph:
     """Create the Scouter Agent LangGraph graph.
 
-    REQ-007 §15.3: Graph Spec — Scouter Agent
+    REQ-007 §15.3 + REQ-015 §10.1: Updated graph spec.
 
     Graph structure:
         get_enabled_sources → fetch_sources → merge_results →
-        deduplicate_jobs → [conditional] →
+        check_shared_pool → [conditional] →
             ├─ has_new_jobs → extract_skills → calculate_ghost_score →
-            │     → save_jobs → invoke_strategist → update_poll_state → END
+            │     → save_to_pool → notify_surfacing_worker →
+            │       invoke_strategist → update_poll_state → END
             └─ no_new_jobs → update_poll_state → END
 
     Returns:
@@ -546,24 +821,25 @@ def create_scouter_graph() -> StateGraph:
     graph.add_node("get_enabled_sources", get_enabled_sources_node)
     graph.add_node("fetch_sources", fetch_sources_node)
     graph.add_node("merge_results", merge_results_node)
-    graph.add_node("deduplicate_jobs", deduplicate_jobs_node)
+    graph.add_node("check_shared_pool", check_shared_pool_node)
     graph.add_node("extract_skills", extract_skills_node)
     graph.add_node("calculate_ghost_score", calculate_ghost_score_node)
-    graph.add_node("save_jobs", save_jobs_node)
+    graph.add_node("save_to_pool", save_to_pool_node)
+    graph.add_node("notify_surfacing_worker", notify_surfacing_worker_node)
     graph.add_node("invoke_strategist", invoke_strategist_node)
     graph.add_node("update_poll_state", update_poll_state_node)
 
     # Set entry point
     graph.set_entry_point("get_enabled_sources")
 
-    # Linear flow: sources → fetch → merge → dedupe
+    # Linear flow: sources → fetch → merge → pool check
     graph.add_edge("get_enabled_sources", "fetch_sources")
     graph.add_edge("fetch_sources", "merge_results")
-    graph.add_edge("merge_results", "deduplicate_jobs")
+    graph.add_edge("merge_results", "check_shared_pool")
 
-    # Conditional: check for new jobs
+    # Conditional: check for new-to-pool jobs
     graph.add_conditional_edges(
-        "deduplicate_jobs",
+        "check_shared_pool",
         check_new_jobs,
         {
             "has_new_jobs": "extract_skills",
@@ -573,8 +849,9 @@ def create_scouter_graph() -> StateGraph:
 
     # Processing pipeline (only if new jobs)
     graph.add_edge("extract_skills", "calculate_ghost_score")
-    graph.add_edge("calculate_ghost_score", "save_jobs")
-    graph.add_edge("save_jobs", "invoke_strategist")
+    graph.add_edge("calculate_ghost_score", "save_to_pool")
+    graph.add_edge("save_to_pool", "notify_surfacing_worker")
+    graph.add_edge("notify_surfacing_worker", "invoke_strategist")
     graph.add_edge("invoke_strategist", "update_poll_state")
 
     # End
