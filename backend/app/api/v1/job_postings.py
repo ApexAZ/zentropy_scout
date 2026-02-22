@@ -153,6 +153,38 @@ def _compute_description_hash(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def _validate_modification_value(key: str, value: Any) -> None:
+    """Validate a single modification field's type and length.
+
+    Args:
+        key: Field name (already verified as allowed).
+        value: User-supplied value.
+
+    Raises:
+        ValidationError: If value type or length is wrong.
+    """
+    if key == "extracted_skills":
+        if not isinstance(value, list):
+            raise ValidationError(
+                message=f"'{key}' must be a list",
+                details=[{"field": key, "error": "INVALID_TYPE"}],
+            )
+        return
+    if key in _MODIFICATION_INT_FIELDS:
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValidationError(
+                message=f"'{key}' must be an integer",
+                details=[{"field": key, "error": "INVALID_TYPE"}],
+            )
+        return
+    max_len = _MODIFICATION_STR_LIMITS.get(key)
+    if max_len and isinstance(value, str) and len(value) > max_len:
+        raise ValidationError(
+            message=f"'{key}' exceeds maximum length ({max_len})",
+            details=[{"field": key, "error": "VALUE_TOO_LONG"}],
+        )
+
+
 def _validate_ingest_modifications(modifications: dict[str, Any]) -> None:
     """Validate modification keys, types, and lengths for ingest confirm.
 
@@ -172,26 +204,7 @@ def _validate_ingest_modifications(modifications: dict[str, Any]) -> None:
         )
 
     for key, value in modifications.items():
-        if key == "extracted_skills":
-            if not isinstance(value, list):
-                raise ValidationError(
-                    message=f"'{key}' must be a list",
-                    details=[{"field": key, "error": "INVALID_TYPE"}],
-                )
-            continue
-        if key in _MODIFICATION_INT_FIELDS:
-            if not isinstance(value, int) or isinstance(value, bool):
-                raise ValidationError(
-                    message=f"'{key}' must be an integer",
-                    details=[{"field": key, "error": "INVALID_TYPE"}],
-                )
-            continue
-        max_len = _MODIFICATION_STR_LIMITS.get(key)
-        if max_len and isinstance(value, str) and len(value) > max_len:
-            raise ValidationError(
-                message=f"'{key}' exceeds maximum length ({max_len})",
-                details=[{"field": key, "error": "VALUE_TOO_LONG"}],
-            )
+        _validate_modification_value(key, value)
 
 
 # =============================================================================
