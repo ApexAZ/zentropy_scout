@@ -212,7 +212,6 @@ async def application_scenario(
     # JobPosting
     job_posting = JobPosting(
         id=_JOB_POSTING_ID,
-        persona_id=_PERSONA_ID,
         source_id=_JOB_SOURCE_ID,
         job_title="Senior Software Engineer",
         company_name="TechCorp",
@@ -227,7 +226,6 @@ async def application_scenario(
         source_url="https://jobs.example.com/123",
         first_seen_date=date(2026, 1, 15),
         description_hash="abc123hash",
-        status="Discovered",
     )
     db_session.add(job_posting)
     await db_session.commit()

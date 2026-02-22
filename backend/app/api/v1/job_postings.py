@@ -28,6 +28,7 @@ from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models.job_posting import JobPosting
 from app.models.job_source import JobSource
 from app.models.persona import Persona
+from app.models.persona_job import PersonaJob
 from app.schemas.bulk import (
     BulkDismissRequest,
     BulkFailedItem,
@@ -167,7 +168,8 @@ async def ingest_job_posting(
     if source_url_str is not None:
         stmt = (
             select(JobPosting)
-            .join(Persona, JobPosting.persona_id == Persona.id)
+            .join(PersonaJob, PersonaJob.job_posting_id == JobPosting.id)
+            .join(Persona, PersonaJob.persona_id == Persona.id)
             .where(JobPosting.source_url == source_url_str, Persona.user_id == user_id)
         )
         result = await db.execute(stmt)
@@ -292,9 +294,8 @@ async def confirm_ingest_job_posting(
     description = extracted.get("description_snippet") or preview_data.raw_text[:1000]
     description_hash = hashlib.sha256(description.encode()).hexdigest()[:32]
 
-    # Create the job posting with all required fields
+    # Create the shared job posting (Tier 0 — no per-user fields)
     job_posting = JobPosting(
-        persona_id=persona.id,
         source_id=job_source.id,
         source_url=preview_data.source_url,
         raw_text=preview_data.raw_text,
@@ -308,10 +309,20 @@ async def confirm_ingest_job_posting(
         description=description,
         description_hash=description_hash,
         first_seen_date=date.today(),
-        status="Discovered",
     )
 
     db.add(job_posting)
+    await db.flush()
+
+    # Create per-user link (PersonaJob) for this persona
+    persona_job = PersonaJob(
+        persona_id=persona.id,
+        job_posting_id=job_posting.id,
+        status="Discovered",
+        discovery_method="manual",
+    )
+    db.add(persona_job)
+
     await db.commit()
     await db.refresh(job_posting)
 
@@ -324,7 +335,7 @@ async def confirm_ingest_job_posting(
             "salary_min": job_posting.salary_min,
             "salary_max": job_posting.salary_max,
             "salary_currency": job_posting.salary_currency,
-            "status": job_posting.status,
+            "status": persona_job.status,
             "source_url": job_posting.source_url,
             "created_at": job_posting.created_at.isoformat()
             if job_posting.created_at

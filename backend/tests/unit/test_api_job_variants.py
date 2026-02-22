@@ -56,14 +56,14 @@ async def base_resume_in_db(db_session: AsyncSession):
 
 @pytest_asyncio.fixture
 async def job_posting_in_db(db_session: AsyncSession):
-    """Create a job posting for job variant tests."""
+    """Create a job posting linked to the test persona via PersonaJob."""
     from datetime import date
 
     from app.models.job_posting import JobPosting
+    from app.models.persona_job import PersonaJob
 
     posting = JobPosting(
         id=uuid.uuid4(),
-        persona_id=TEST_PERSONA_ID,
         source_id=TEST_JOB_SOURCE_ID,
         job_title="Senior Python Developer",
         company_name="Acme Corp",
@@ -72,6 +72,15 @@ async def job_posting_in_db(db_session: AsyncSession):
         description_hash="abc123hash",
     )
     db_session.add(posting)
+    await db_session.flush()
+
+    pj = PersonaJob(
+        persona_id=TEST_PERSONA_ID,
+        job_posting_id=posting.id,
+        status="Discovered",
+        discovery_method="manual",
+    )
+    db_session.add(pj)
     await db_session.commit()
     await db_session.refresh(posting)
     return posting
@@ -106,7 +115,6 @@ async def approved_variant_in_db(db_session: AsyncSession, base_resume_in_db):
 
     posting2 = JobPosting(
         id=uuid.uuid4(),
-        persona_id=TEST_PERSONA_ID,
         source_id=TEST_JOB_SOURCE_ID,
         job_title="Backend Engineer",
         company_name="Beta Inc",
@@ -615,7 +623,6 @@ class TestRestoreJobVariant:
 
         other_posting = JobPosting(
             id=uuid.uuid4(),
-            persona_id=other_persona.id,
             source_id=TEST_JOB_SOURCE_ID,
             job_title="Other Job",
             company_name="Other Corp",

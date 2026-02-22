@@ -16,6 +16,7 @@ from app.core.errors import InvalidStateError, NotFoundError
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
 from app.models.job_posting import JobPosting
+from app.models.persona_job import PersonaJob
 from app.models.resume import JobVariant
 
 _MAX_SUMMARY_LENGTH = 5000
@@ -246,10 +247,11 @@ async def create_job_variant(
     if not resume_result.scalar_one_or_none():
         raise NotFoundError("base resume", str(request.base_resume_id))
 
-    # Verify job posting ownership
+    # Verify job posting ownership via persona_jobs link
     posting_result = await db.execute(
         select(JobPosting)
-        .join(Persona, JobPosting.persona_id == Persona.id)
+        .join(PersonaJob, PersonaJob.job_posting_id == JobPosting.id)
+        .join(Persona, PersonaJob.persona_id == Persona.id)
         .where(JobPosting.id == request.job_posting_id, Persona.user_id == user_id)
     )
     if not posting_result.scalar_one_or_none():

@@ -58,7 +58,6 @@ async def cl_scenario(db_session: AsyncSession):
     await db_session.flush()
 
     job_posting = JobPosting(
-        persona_id=persona.id,
         source_id=source.id,
         external_id="test-cl-001",
         job_title="Senior Engineer",
@@ -66,7 +65,6 @@ async def cl_scenario(db_session: AsyncSession):
         description="Build things",
         description_hash="cl_hash_001",
         first_seen_date=date(2026, 1, 20),
-        status="Discovered",
     )
     db_session.add(job_posting)
     await db_session.flush()

@@ -40,12 +40,12 @@ _BASE_URL = "/api/v1/applications"
 
 @pytest_asyncio.fixture
 async def job_posting_for_app(db_session: AsyncSession):
-    """Create a job posting owned by the test user."""
+    """Create a job posting linked to the test persona via PersonaJob."""
     from app.models.job_posting import JobPosting
+    from app.models.persona_job import PersonaJob
 
     posting = JobPosting(
         id=uuid.uuid4(),
-        persona_id=TEST_PERSONA_ID,
         source_id=TEST_JOB_SOURCE_ID,
         job_title="Backend Engineer",
         company_name="App Corp",
@@ -54,6 +54,15 @@ async def job_posting_for_app(db_session: AsyncSession):
         first_seen_date=date(2026, 1, 20),
     )
     db_session.add(posting)
+    await db_session.flush()
+
+    pj = PersonaJob(
+        persona_id=TEST_PERSONA_ID,
+        job_posting_id=posting.id,
+        status="Discovered",
+        discovery_method="manual",
+    )
+    db_session.add(pj)
     await db_session.commit()
     await db_session.refresh(posting)
     return posting
@@ -162,7 +171,6 @@ async def other_user_application(db_session: AsyncSession):
 
     other_posting = JobPosting(
         id=uuid.uuid4(),
-        persona_id=other_persona.id,
         source_id=TEST_JOB_SOURCE_ID,
         job_title="Other Job",
         company_name="Other Corp",

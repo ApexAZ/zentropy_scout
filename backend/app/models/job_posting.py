@@ -1,7 +1,7 @@
 """Job posting models - discovered jobs and extracted skills.
 
-REQ-005 §4.4 - JobPosting (Tier 2), ExtractedSkill (Tier 3).
-REQ-015 §4.1 - is_active flag for shared job pool.
+REQ-005 §4.4 - JobPosting (Tier 0 shared pool), ExtractedSkill (Tier 3).
+REQ-015 §4.1 - Shared job pool: per-user fields moved to PersonaJob.
 """
 
 import uuid
@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     from app.models.application import Application
     from app.models.cover_letter import CoverLetter
     from app.models.job_source import JobSource
-    from app.models.persona import Persona
     from app.models.persona_job import PersonaJob
     from app.models.resume import JobVariant
 
@@ -37,9 +36,9 @@ _DEFAULT_UUID = text("gen_random_uuid()")
 
 
 class JobPosting(Base, TimestampMixin):
-    """Job posting discovered from various sources.
+    """Shared job posting discovered from various sources.
 
-    Tier 2 - references Persona, JobSource.
+    Tier 0 - shared pool entity. Per-user fields live in PersonaJob.
     """
 
     __tablename__ = "job_postings"
@@ -48,11 +47,6 @@ class JobPosting(Base, TimestampMixin):
         UUID(as_uuid=True),
         primary_key=True,
         server_default=_DEFAULT_UUID,
-    )
-    persona_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("personas.id", ondelete="CASCADE"),
-        nullable=False,
     )
     external_id: Mapped[str | None] = mapped_column(
         String(255),
@@ -163,36 +157,6 @@ class JobPosting(Base, TimestampMixin):
         nullable=False,
     )
 
-    # Status and tracking
-    status: Mapped[str] = mapped_column(
-        String(20),
-        server_default=text("'Discovered'"),
-        nullable=False,
-    )
-    is_favorite: Mapped[bool] = mapped_column(
-        Boolean,
-        server_default=text("false"),
-        nullable=False,
-    )
-
-    # Scoring
-    fit_score: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-    )
-    stretch_score: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-    )
-    score_details: Mapped[dict | None] = mapped_column(
-        JSONB,
-        nullable=True,
-    )
-    failed_non_negotiables: Mapped[list | None] = mapped_column(
-        JSONB,
-        nullable=True,
-    )
-
     # Ghost detection
     ghost_signals: Mapped[dict | None] = mapped_column(
         JSONB,
@@ -224,10 +188,6 @@ class JobPosting(Base, TimestampMixin):
         DateTime(timezone=True),
         nullable=True,
     )
-    dismissed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-    )
     expired_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
@@ -250,28 +210,12 @@ class JobPosting(Base, TimestampMixin):
             name="ck_jobposting_seniority",
         ),
         CheckConstraint(
-            "status IN ('Discovered', 'Dismissed', 'Applied', 'Expired')",
-            name="ck_jobposting_status",
-        ),
-        CheckConstraint(
-            "fit_score >= 0 AND fit_score <= 100 OR fit_score IS NULL",
-            name="ck_jobposting_fit_score",
-        ),
-        CheckConstraint(
-            "stretch_score >= 0 AND stretch_score <= 100 OR stretch_score IS NULL",
-            name="ck_jobposting_stretch_score",
-        ),
-        CheckConstraint(
             "ghost_score >= 0 AND ghost_score <= 100",
             name="ck_jobposting_ghost_score",
         ),
     )
 
     # Relationships
-    persona: Mapped["Persona"] = relationship(
-        "Persona",
-        back_populates="job_postings",
-    )
     source: Mapped["JobSource"] = relationship(
         "JobSource",
         back_populates="job_postings",

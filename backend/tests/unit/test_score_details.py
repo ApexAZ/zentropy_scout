@@ -1,12 +1,15 @@
-"""Tests for score_details JSONB column on job_postings.
+"""Tests for score_details JSONB column on persona_jobs.
 
 REQ-012 Appendix A.3: FitScoreResult, StretchScoreResult, and
 ScoreExplanation are computed by the service layer but only aggregate
 scores are persisted. The score_details JSONB column stores component
 breakdowns and explanation data for the frontend score drill-down UI.
 
+REQ-015 §4.2: Per-user scoring fields (score_details, fit_score,
+stretch_score) moved from job_postings to persona_jobs.
+
 Tests verify:
-- JobPosting model stores and retrieves score_details JSONB
+- PersonaJob model stores and retrieves score_details JSONB
 - save_scores_node assembles score_details from pipeline state
 - build_scored_result includes score_details parameter
 - build_filtered_score_result sets score_details to None
@@ -25,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.state import StrategistState
 from app.agents.strategist_graph import save_scores_node
 from app.models.job_posting import JobPosting
+from app.models.persona_job import PersonaJob
 from app.services.scoring_flow import build_filtered_score_result, build_scored_result
 from tests.conftest import TEST_PERSONA_ID
 
@@ -97,7 +101,6 @@ async def score_details_scenario(
 
     job = JobPosting(
         id=_JOB_POSTING_ID,
-        persona_id=TEST_PERSONA_ID,
         source_id=_JOB_SOURCE_ID,
         external_id="ext-123",
         job_title="Software Engineer",
@@ -109,7 +112,16 @@ async def score_details_scenario(
     db_session.add(job)
     await db_session.flush()
 
-    return SimpleNamespace(job=job, source=source)
+    persona_job = PersonaJob(
+        persona_id=TEST_PERSONA_ID,
+        job_posting_id=_JOB_POSTING_ID,
+        status="Discovered",
+        discovery_method="manual",
+    )
+    db_session.add(persona_job)
+    await db_session.flush()
+
+    return SimpleNamespace(job=job, source=source, persona_job=persona_job)
 
 
 # =============================================================================
@@ -118,20 +130,25 @@ async def score_details_scenario(
 
 
 class TestScoreDetailsColumn:
-    """Tests for score_details JSONB column on JobPosting model."""
+    """Tests for score_details JSONB column on PersonaJob model.
+
+    REQ-015 §4.2: Per-user scoring fields moved to persona_jobs.
+    """
 
     @pytest.mark.asyncio
     async def test_defaults_to_none(
         self,
-        score_details_scenario: SimpleNamespace,  # noqa: ARG002
+        score_details_scenario: SimpleNamespace,
         db_session: AsyncSession,
     ) -> None:
-        """New job postings should have score_details=None by default."""
+        """New persona_jobs should have score_details=None by default."""
         result = await db_session.execute(
-            select(JobPosting).where(JobPosting.id == _JOB_POSTING_ID)
+            select(PersonaJob).where(
+                PersonaJob.id == score_details_scenario.persona_job.id
+            )
         )
-        job = result.scalar_one()
-        assert job.score_details is None
+        pj = result.scalar_one()
+        assert pj.score_details is None
 
     @pytest.mark.asyncio
     async def test_stores_jsonb(
@@ -149,12 +166,12 @@ class TestScoreDetailsColumn:
                 "warnings": [],
             },
         }
-        job = score_details_scenario.job
-        job.score_details = details
+        pj = score_details_scenario.persona_job
+        pj.score_details = details
         await db_session.flush()
 
         result = await db_session.execute(
-            select(JobPosting).where(JobPosting.id == _JOB_POSTING_ID)
+            select(PersonaJob).where(PersonaJob.id == pj.id)
         )
         refreshed = result.scalar_one()
         assert refreshed.score_details is not None
@@ -170,14 +187,14 @@ class TestScoreDetailsColumn:
         self, score_details_scenario: SimpleNamespace, db_session: AsyncSession
     ) -> None:
         """score_details coexists with fit_score/stretch_score integer columns."""
-        job = score_details_scenario.job
-        job.fit_score = 85
-        job.stretch_score = 72
-        job.score_details = {"fit": _SAMPLE_FIT, "stretch": _SAMPLE_STRETCH}
+        pj = score_details_scenario.persona_job
+        pj.fit_score = 85
+        pj.stretch_score = 72
+        pj.score_details = {"fit": _SAMPLE_FIT, "stretch": _SAMPLE_STRETCH}
         await db_session.flush()
 
         result = await db_session.execute(
-            select(JobPosting).where(JobPosting.id == _JOB_POSTING_ID)
+            select(PersonaJob).where(PersonaJob.id == pj.id)
         )
         refreshed = result.scalar_one()
         assert refreshed.fit_score == 85

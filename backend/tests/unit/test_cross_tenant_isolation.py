@@ -48,12 +48,12 @@ _SUBMITTED_COVER_LETTER_PDFS = "/api/v1/submitted-cover-letter-pdfs"
 
 @pytest_asyncio.fixture
 async def job_posting_b(db_session: AsyncSession, persona_user_b):
-    """Job posting owned by User B's persona."""
+    """Job posting linked to User B's persona via PersonaJob."""
     from app.models.job_posting import JobPosting
+    from app.models.persona_job import PersonaJob
 
     posting = JobPosting(
         id=uuid.uuid4(),
-        persona_id=persona_user_b.id,
         source_id=TEST_JOB_SOURCE_ID,
         job_title="User B Job",
         company_name="User B Corp",
@@ -62,6 +62,15 @@ async def job_posting_b(db_session: AsyncSession, persona_user_b):
         first_seen_date=date(2026, 1, 15),
     )
     db_session.add(posting)
+    await db_session.flush()
+
+    pj = PersonaJob(
+        persona_id=persona_user_b.id,
+        job_posting_id=posting.id,
+        status="Discovered",
+        discovery_method="manual",
+    )
+    db_session.add(pj)
     await db_session.commit()
     await db_session.refresh(posting)
     return posting
@@ -269,12 +278,12 @@ async def base_resume_a(db_session: AsyncSession, test_persona):
 
 @pytest_asyncio.fixture
 async def job_posting_a(db_session: AsyncSession, test_persona):
-    """Job posting owned by User A's persona (for variant create tests)."""
+    """Job posting linked to User A's persona via PersonaJob."""
     from app.models.job_posting import JobPosting
+    from app.models.persona_job import PersonaJob
 
     posting = JobPosting(
         id=uuid.uuid4(),
-        persona_id=test_persona.id,
         source_id=TEST_JOB_SOURCE_ID,
         job_title="User A Job",
         company_name="User A Corp",
@@ -283,6 +292,15 @@ async def job_posting_a(db_session: AsyncSession, test_persona):
         first_seen_date=date(2026, 1, 15),
     )
     db_session.add(posting)
+    await db_session.flush()
+
+    pj = PersonaJob(
+        persona_id=test_persona.id,
+        job_posting_id=posting.id,
+        status="Discovered",
+        discovery_method="manual",
+    )
+    db_session.add(pj)
     await db_session.commit()
     await db_session.refresh(posting)
     return posting

@@ -257,7 +257,6 @@ async def job_variant_draft(
     await db_session.flush()
 
     job_posting = JobPosting(
-        persona_id=base_resume.persona_id,
         source_id=source.id,
         job_title="Staff Engineer at BigTech",
         company_name="BigTech Corp",
@@ -304,7 +303,6 @@ async def job_variant_approved(
     await db_session.flush()
 
     job_posting = JobPosting(
-        persona_id=base_resume.persona_id,
         source_id=source.id,
         job_title="Principal Engineer at MegaCorp",
         company_name="MegaCorp",

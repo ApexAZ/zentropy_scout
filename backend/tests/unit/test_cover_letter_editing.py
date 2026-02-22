@@ -52,7 +52,6 @@ async def editing_scenario(db_session: AsyncSession):
     await db_session.flush()
 
     job_posting = JobPosting(
-        persona_id=persona.id,
         source_id=source.id,
         external_id="test-edit-001",
         job_title="Product Manager",
@@ -60,7 +59,6 @@ async def editing_scenario(db_session: AsyncSession):
         description="Manage products",
         description_hash="edit_hash_001",
         first_seen_date=date(2026, 1, 25),
-        status="Discovered",
     )
     db_session.add(job_posting)
     await db_session.flush()

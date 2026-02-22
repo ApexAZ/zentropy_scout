@@ -29,6 +29,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.application import Application
     from app.models.job_posting import JobPosting
     from app.models.persona import Persona
 
@@ -142,4 +143,8 @@ class PersonaJob(Base, TimestampMixin):
     job_posting: Mapped["JobPosting"] = relationship(
         "JobPosting",
         back_populates="persona_jobs",
+    )
+    applications: Mapped[list["Application"]] = relationship(
+        "Application",
+        back_populates="persona_job",
     )

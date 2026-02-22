@@ -28,6 +28,7 @@ from app.core.responses import (
 )
 from app.models import Persona
 from app.models.application import Application, TimelineEvent
+from app.models.persona_job import PersonaJob
 from app.schemas.bulk import BulkArchiveRequest, BulkFailedItem, BulkOperationResult
 
 _MAX_TEXT_LENGTH = 50000
@@ -287,6 +288,16 @@ async def create_application(
     )
     if not persona_result.scalar_one_or_none():
         raise NotFoundError("Persona", str(request.persona_id))
+
+    # Verify job posting ownership via PersonaJob link (shared pool model)
+    pj_result = await db.execute(
+        select(PersonaJob).where(
+            PersonaJob.persona_id == request.persona_id,
+            PersonaJob.job_posting_id == request.job_posting_id,
+        )
+    )
+    if not pj_result.scalar_one_or_none():
+        raise NotFoundError("JobPosting", str(request.job_posting_id))
 
     app = Application(
         persona_id=request.persona_id,

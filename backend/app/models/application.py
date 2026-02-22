@@ -23,12 +23,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, SoftDeleteMixin, TimestampMixin
 
+_DEFAULT_UUID = text("gen_random_uuid()")
 _ON_DELETE_SET_NULL = "SET NULL"
 
 if TYPE_CHECKING:
     from app.models.cover_letter import CoverLetter, SubmittedCoverLetterPDF
     from app.models.job_posting import JobPosting
     from app.models.persona import Persona
+    from app.models.persona_job import PersonaJob
     from app.models.resume import JobVariant, SubmittedResumePDF
 
 
@@ -43,7 +45,7 @@ class Application(Base, TimestampMixin, SoftDeleteMixin):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     persona_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -63,6 +65,13 @@ class Application(Base, TimestampMixin, SoftDeleteMixin):
     cover_letter_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("cover_letters.id", ondelete=_ON_DELETE_SET_NULL),
+        nullable=True,
+    )
+
+    # PersonaJob link (REQ-015 §11 step 7)
+    persona_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("persona_jobs.id", ondelete=_ON_DELETE_SET_NULL),
         nullable=True,
     )
 
@@ -166,6 +175,10 @@ class Application(Base, TimestampMixin, SoftDeleteMixin):
         "JobVariant",
         back_populates="applications",
     )
+    persona_job: Mapped["PersonaJob | None"] = relationship(
+        "PersonaJob",
+        back_populates="applications",
+    )
     # Note: CoverLetter.application is viewonly due to bidirectional FK pattern
     cover_letter: Mapped["CoverLetter | None"] = relationship(
         "CoverLetter",
@@ -199,7 +212,7 @@ class TimelineEvent(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
+        server_default=_DEFAULT_UUID,
     )
     application_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

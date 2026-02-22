@@ -25,7 +25,6 @@ _CASCADE_ALL_DELETE_ORPHAN = "all, delete-orphan"
 if TYPE_CHECKING:
     from app.models.application import Application
     from app.models.cover_letter import CoverLetter
-    from app.models.job_posting import JobPosting
     from app.models.job_source import PollingConfiguration, UserSourcePreference
     from app.models.persona_content import (
         AchievementStory,
@@ -364,11 +363,6 @@ class Persona(Base, TimestampMixin):
     )
 
     # Relationships to job/application domain
-    job_postings: Mapped[list["JobPosting"]] = relationship(
-        "JobPosting",
-        back_populates="persona",
-        cascade=_CASCADE_ALL_DELETE_ORPHAN,
-    )
     persona_jobs: Mapped[list["PersonaJob"]] = relationship(
         "PersonaJob",
         back_populates="persona",

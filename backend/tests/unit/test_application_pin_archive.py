@@ -74,14 +74,12 @@ async def pin_archive_scenario(
 
     job_posting = JobPosting(
         id=_JOB_POSTING_ID,
-        persona_id=TEST_PERSONA_ID,
         source_id=_JOB_SOURCE_ID,
         job_title="Engineer",
         company_name="TestCorp",
         description="Description",
         first_seen_date=date(2026, 1, 1),
         description_hash="hash123",
-        status="Discovered",
     )
     db_session.add(job_posting)
     await db_session.flush()

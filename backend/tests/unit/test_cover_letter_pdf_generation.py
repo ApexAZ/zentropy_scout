@@ -56,7 +56,6 @@ async def pdf_gen_scenario(db_session: AsyncSession):
     await db_session.flush()
 
     job_posting = JobPosting(
-        persona_id=persona.id,
         source_id=source.id,
         external_id="test-pdfgen-001",
         job_title="Data Scientist",
@@ -64,7 +63,6 @@ async def pdf_gen_scenario(db_session: AsyncSession):
         description="Analyze data",
         description_hash="pdfgen_hash_001",
         first_seen_date=date(2026, 1, 28),
-        status="Discovered",
     )
     db_session.add(job_posting)
     await db_session.flush()

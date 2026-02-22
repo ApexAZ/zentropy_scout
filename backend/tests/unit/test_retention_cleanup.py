@@ -18,6 +18,7 @@ from app.models import BaseResume, Persona
 from app.models.cover_letter import CoverLetter, SubmittedCoverLetterPDF
 from app.models.job_posting import JobPosting
 from app.models.job_source import JobSource
+from app.models.persona_job import PersonaJob
 from app.models.persona_settings import PersonaChangeFlag
 from app.models.resume import JobVariant, SubmittedResumePDF
 from app.services.retention_cleanup import (
@@ -107,13 +108,29 @@ _CLEANUP_FUNCTIONS = [
     AS $$
     DECLARE deleted_count BIGINT;
     BEGIN
+        -- Identify jobs eligible for cleanup
+        CREATE TEMP TABLE _expired_job_ids ON COMMIT DROP AS
+        SELECT id FROM job_postings
+        WHERE is_active = false
+          AND updated_at < now() - interval '180 days'
+          AND NOT EXISTS (
+              SELECT 1 FROM persona_jobs
+              WHERE persona_jobs.job_posting_id = job_postings.id
+                AND persona_jobs.is_favorite = true
+          )
+        FOR UPDATE;
+
+        -- Delete persona_jobs referencing these job postings (FK RESTRICT)
+        DELETE FROM persona_jobs
+        WHERE job_posting_id IN (SELECT id FROM _expired_job_ids);
+
+        -- Delete the job postings
         WITH deleted AS (
             DELETE FROM job_postings
-            WHERE status IN ('Expired', 'Dismissed')
-              AND updated_at < now() - interval '180 days'
-              AND is_favorite = false
+            WHERE id IN (SELECT id FROM _expired_job_ids)
             RETURNING id
         ) SELECT COUNT(*) INTO deleted_count FROM deleted;
+
         RETURN deleted_count;
     END; $$
     """,
@@ -215,12 +232,13 @@ async def retention_job_source(db_session: AsyncSession):
 
 @pytest_asyncio.fixture
 async def retention_job_posting(
-    db_session: AsyncSession, retention_persona, retention_job_source
+    db_session: AsyncSession,
+    retention_persona,  # noqa: ARG001
+    retention_job_source,
 ):
     """Create test job posting for retention tests."""
     posting = JobPosting(
         id=_RETENTION_JOB_POSTING_ID,
-        persona_id=retention_persona.id,
         source_id=retention_job_source.id,
         job_title="Retention Engineer",
         company_name="Retention Corp",
@@ -616,18 +634,27 @@ class TestCleanupExpiredJobs:
 
         old_job = JobPosting(
             id=uuid.uuid4(),
-            persona_id=retention_persona.id,
             source_id=retention_job_source.id,
             job_title="Old Expired Job",
             company_name="Gone Corp",
             description="This job expired long ago.",
             first_seen_date=date.today() - timedelta(days=365),
             description_hash="expired_hash_001",
-            status="Expired",
-            is_favorite=False,
+            is_active=False,
             updated_at=datetime.now(UTC) - timedelta(days=181),
         )
         db_session.add(old_job)
+        await db_session.flush()
+
+        # PersonaJob link with is_favorite=False (not protected)
+        pj = PersonaJob(
+            persona_id=retention_persona.id,
+            job_posting_id=old_job.id,
+            status="Dismissed",
+            discovery_method="scouter",
+            is_favorite=False,
+        )
+        db_session.add(pj)
         await db_session.commit()
 
         deleted_count = await cleanup_expired_jobs(db_session)
@@ -650,18 +677,26 @@ class TestCleanupExpiredJobs:
 
         dismissed_job = JobPosting(
             id=uuid.uuid4(),
-            persona_id=retention_persona.id,
             source_id=retention_job_source.id,
             job_title="Old Dismissed Job",
             company_name="Dismissed Corp",
             description="This job was dismissed long ago.",
             first_seen_date=date.today() - timedelta(days=365),
             description_hash="dismissed_hash_001",
-            status="Dismissed",
-            is_favorite=False,
+            is_active=False,
             updated_at=datetime.now(UTC) - timedelta(days=181),
         )
         db_session.add(dismissed_job)
+        await db_session.flush()
+
+        pj = PersonaJob(
+            persona_id=retention_persona.id,
+            job_posting_id=dismissed_job.id,
+            status="Dismissed",
+            discovery_method="scouter",
+            is_favorite=False,
+        )
+        db_session.add(pj)
         await db_session.commit()
 
         deleted_count = await cleanup_expired_jobs(db_session)
@@ -677,22 +712,20 @@ class TestCleanupExpiredJobs:
     async def test_retains_recently_expired_job(
         self,
         db_session: AsyncSession,
-        retention_persona,
+        retention_persona,  # noqa: ARG002
         retention_job_source,
     ):
         """Expired job younger than 180 days is retained."""
 
         recent_job = JobPosting(
             id=uuid.uuid4(),
-            persona_id=retention_persona.id,
             source_id=retention_job_source.id,
             job_title="Recent Expired Job",
             company_name="Recent Corp",
             description="This job expired recently.",
             first_seen_date=date.today() - timedelta(days=90),
             description_hash="recent_expired_hash",
-            status="Expired",
-            is_favorite=False,
+            is_active=False,
             updated_at=datetime.now(UTC) - timedelta(days=179),
         )
         db_session.add(recent_job)
@@ -716,18 +749,26 @@ class TestCleanupExpiredJobs:
 
         fav_job = JobPosting(
             id=uuid.uuid4(),
-            persona_id=retention_persona.id,
             source_id=retention_job_source.id,
             job_title="Favorited Expired Job",
             company_name="Fav Corp",
             description="This job is favorited so protected.",
             first_seen_date=date.today() - timedelta(days=365),
             description_hash="fav_expired_hash",
-            status="Expired",
-            is_favorite=True,
+            is_active=False,
             updated_at=datetime.now(UTC) - timedelta(days=181),
         )
         db_session.add(fav_job)
+        await db_session.flush()
+
+        fav_pj = PersonaJob(
+            persona_id=retention_persona.id,
+            job_posting_id=fav_job.id,
+            status="Discovered",
+            discovery_method="manual",
+            is_favorite=True,
+        )
+        db_session.add(fav_pj)
         await db_session.commit()
 
         await cleanup_expired_jobs(db_session)
@@ -741,22 +782,19 @@ class TestCleanupExpiredJobs:
     async def test_retains_active_job(
         self,
         db_session: AsyncSession,
-        retention_persona,
+        retention_persona,  # noqa: ARG002
         retention_job_source,
     ):
         """Active (Discovered) job is never deleted by cleanup."""
 
         active_job = JobPosting(
             id=uuid.uuid4(),
-            persona_id=retention_persona.id,
             source_id=retention_job_source.id,
             job_title="Active Job",
             company_name="Active Corp",
             description="This job is still active.",
             first_seen_date=date.today(),
             description_hash="active_hash",
-            status="Discovered",
-            is_favorite=False,
         )
         db_session.add(active_job)
         await db_session.commit()
@@ -855,18 +893,26 @@ class TestRunAllCleanups:
         # 4. Old expired job
         old_job = JobPosting(
             id=uuid.uuid4(),
-            persona_id=retention_persona.id,
             source_id=retention_job_source.id,
             job_title="All Cleanup Expired",
             company_name="Cleanup Corp",
             description="Expired for all cleanup test.",
             first_seen_date=date.today() - timedelta(days=365),
             description_hash="all_cleanup_hash",
-            status="Expired",
-            is_favorite=False,
+            is_active=False,
             updated_at=datetime.now(UTC) - timedelta(days=181),
         )
         db_session.add(old_job)
+        await db_session.flush()
+
+        old_pj = PersonaJob(
+            persona_id=retention_persona.id,
+            job_posting_id=old_job.id,
+            status="Discovered",
+            discovery_method="manual",
+            is_favorite=False,
+        )
+        db_session.add(old_pj)
 
         await db_session.commit()
 

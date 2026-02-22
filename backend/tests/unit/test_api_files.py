@@ -108,7 +108,9 @@ async def submitted_resume_pdf(db_session: AsyncSession, base_resume_with_pdf):
 
 @pytest_asyncio.fixture
 async def submitted_resume_pdf_variant(
-    db_session: AsyncSession, persona_for_files, base_resume_with_pdf
+    db_session: AsyncSession,
+    persona_for_files,  # noqa: ARG001
+    base_resume_with_pdf,
 ):
     """Create a submitted resume PDF with Variant source type.
 
@@ -133,7 +135,6 @@ async def submitted_resume_pdf_variant(
 
     job_posting = JobPosting(
         id=uuid.uuid4(),
-        persona_id=persona_for_files.id,
         source_id=job_source.id,
         job_title="Senior Developer",
         company_name="Variant Corp",
@@ -190,7 +191,6 @@ async def submitted_cover_letter_pdf(db_session: AsyncSession, persona_for_files
 
     job_posting = JobPosting(
         id=uuid.uuid4(),
-        persona_id=persona_for_files.id,
         source_id=job_source.id,
         job_title="Software Engineer",
         company_name="Test Company",
