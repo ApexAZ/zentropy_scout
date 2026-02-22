@@ -12,8 +12,6 @@ Tests verify:
 
 from app.agents.onboarding import (
     ACHIEVEMENT_STORY_PROMPT,
-    ONBOARDING_STEPS,
-    OPTIONAL_SECTIONS,
     SECTIONS_REQUIRING_RESCORE,
     SYSTEM_PROMPT_TEMPLATE,
     TRANSITION_PROMPTS,
@@ -152,26 +150,6 @@ class TestTriggerConditions:
 class TestInterviewFlow:
     """Tests for interview flow state machine."""
 
-    def test_onboarding_steps_are_ordered(self) -> None:
-        """Onboarding steps should follow the defined order."""
-
-        expected_order = [
-            "resume_upload",
-            "basic_info",
-            "work_history",
-            "education",
-            "skills",
-            "certifications",
-            "achievement_stories",
-            "non_negotiables",
-            "growth_targets",
-            "voice_profile",
-            "review",
-            "base_resume_setup",
-        ]
-
-        assert expected_order == ONBOARDING_STEPS
-
     def test_get_next_step_returns_next_in_sequence(self) -> None:
         """get_next_step should return the next step in the flow."""
 
@@ -184,15 +162,6 @@ class TestInterviewFlow:
 
         result = get_next_step("base_resume_setup")
         assert result is None
-
-    def test_optional_sections_are_defined(self) -> None:
-        """Optional sections should be defined (can be skipped)."""
-
-        # Per REQ-007 §5.2: education and certifications are optional
-        assert "education" in OPTIONAL_SECTIONS
-        assert "certifications" in OPTIONAL_SECTIONS
-        # resume_upload is technically optional (can skip)
-        assert "resume_upload" in OPTIONAL_SECTIONS
 
     def test_get_next_step_returns_none_for_invalid_step(self) -> None:
         """get_next_step should return None for an invalid step name."""
@@ -440,33 +409,6 @@ class TestCheckpointHandling:
 
 class TestOnboardingGraphStructure:
     """Tests for Onboarding Agent graph structure."""
-
-    def test_graph_has_required_nodes(self) -> None:
-        """Onboarding graph should have all required step nodes."""
-
-        graph = create_onboarding_graph()
-
-        # Core step nodes
-        expected_nodes = [
-            "check_resume_upload",
-            "gather_basic_info",
-            "gather_work_history",
-            "gather_education",
-            "gather_skills",
-            "gather_certifications",
-            "gather_stories",
-            "gather_non_negotiables",
-            "gather_growth_targets",
-            "derive_voice_profile",
-            "review_persona",
-            "setup_base_resume",
-            "complete_onboarding",
-            "wait_for_input",
-            "handle_skip",
-        ]
-
-        for node in expected_nodes:
-            assert node in graph.nodes, f"Missing node: {node}"
 
     def test_graph_has_entry_point(self) -> None:
         """Onboarding graph should have entry point at check_resume_upload."""

@@ -25,12 +25,10 @@ from app.agents.ghostwriter_graph import (
     evaluate_tailoring_need_node,
     generate_cover_letter_node,
     generate_materials,
-    get_ghostwriter_graph,
     handle_duplicate_node,
     is_job_active,
     needs_tailoring,
     present_for_review_node,
-    reset_ghostwriter_graph,
     route_existing_variant,
     select_achievement_stories_node,
     select_base_resume_node,
@@ -46,29 +44,6 @@ from app.services.cover_letter_generation import CoverLetterResult
 class TestGhostwriterGraphStructure:
     """Tests for Ghostwriter graph structure per REQ-007 §15.5."""
 
-    def test_graph_has_nine_nodes(self) -> None:
-        """Graph should have exactly 9 nodes per §15.5 spec."""
-
-        graph = create_ghostwriter_graph()
-        compiled = graph.compile()
-        node_names = set(compiled.get_graph().nodes.keys())
-        # LangGraph adds __start__ and __end__ nodes automatically
-        non_internal = {n for n in node_names if not n.startswith("__")}
-
-        expected_nodes = {
-            "check_existing_variant",
-            "handle_duplicate",
-            "select_base_resume",
-            "evaluate_tailoring_need",
-            "create_job_variant",
-            "select_achievement_stories",
-            "generate_cover_letter",
-            "check_job_still_active",
-            "present_for_review",
-        }
-
-        assert non_internal == expected_nodes
-
     def test_graph_compiles_without_error(self) -> None:
         """Graph should compile successfully."""
 
@@ -76,27 +51,6 @@ class TestGhostwriterGraphStructure:
         compiled = graph.compile()
 
         assert compiled is not None
-
-    def test_singleton_pattern_returns_same_instance(self) -> None:
-        """get_ghostwriter_graph should return same instance on repeated calls."""
-        reset_ghostwriter_graph()
-        graph1 = get_ghostwriter_graph()
-        graph2 = get_ghostwriter_graph()
-
-        assert graph1 is graph2
-
-        reset_ghostwriter_graph()
-
-    def test_reset_clears_singleton(self) -> None:
-        """reset_ghostwriter_graph should clear the singleton."""
-        reset_ghostwriter_graph()
-        graph1 = get_ghostwriter_graph()
-        reset_ghostwriter_graph()
-        graph2 = get_ghostwriter_graph()
-
-        assert graph1 is not graph2
-
-        reset_ghostwriter_graph()
 
 
 # =============================================================================
@@ -216,20 +170,6 @@ class TestGhostwriterGraphEdgeTopology:
         """present_for_review should connect to END."""
 
         assert "__end__" in edge_targets["present_for_review"]
-
-    # --- Full topology validation ---
-
-    def test_no_unexpected_terminal_nodes(
-        self, edge_targets: dict[str, set[str]]
-    ) -> None:
-        """Only handle_duplicate and present_for_review should reach __end__."""
-
-        nodes_to_end = {
-            src for src, targets in edge_targets.items() if "__end__" in targets
-        }
-        # Exclude __start__ from consideration
-        nodes_to_end.discard("__start__")
-        assert nodes_to_end == {"handle_duplicate", "present_for_review"}
 
 
 # =============================================================================

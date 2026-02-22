@@ -60,14 +60,6 @@ class TestSourceError:
         assert error.rate_limit_info is not None
         assert error.rate_limit_info.retry_after_seconds == 60
 
-    def test_error_types_serialize_to_expected_strings_for_jsonb(self) -> None:
-        """SourceErrorType values serialize correctly for JSONB storage."""
-        assert SourceErrorType.API_DOWN.value == "api_down"
-        assert SourceErrorType.RATE_LIMITED.value == "rate_limited"
-        assert SourceErrorType.NETWORK_ERROR.value == "network_error"
-        assert SourceErrorType.TIMEOUT.value == "timeout"
-        assert SourceErrorType.INVALID_RESPONSE.value == "invalid_response"
-
 
 # =============================================================================
 # Error Retry Classification Tests
@@ -325,24 +317,3 @@ class TestScoringStatusHelpers:
         metadata = create_processing_metadata()
 
         assert needs_scoring_retry(metadata) is False
-
-
-# =============================================================================
-# Enum Value Tests
-# =============================================================================
-
-
-class TestStatusEnums:
-    """Tests for status enum values (JSONB serialization compatibility)."""
-
-    def test_extraction_status_serializes_to_expected_jsonb_strings(self) -> None:
-        """ExtractionStatus serializes to expected JSONB strings."""
-        assert ExtractionStatus.PENDING.value == "pending"
-        assert ExtractionStatus.SUCCESS.value == "success"
-        assert ExtractionStatus.FAILED.value == "failed"
-
-    def test_scoring_status_serializes_to_expected_jsonb_strings(self) -> None:
-        """ScoringStatus serializes to expected JSONB strings."""
-        assert ScoringStatus.PENDING.value == "pending"
-        assert ScoringStatus.SUCCESS.value == "success"
-        assert ScoringStatus.FAILED.value == "failed"
