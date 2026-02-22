@@ -153,6 +153,47 @@ def _compute_description_hash(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def _validate_ingest_modifications(modifications: dict[str, Any]) -> None:
+    """Validate modification keys, types, and lengths for ingest confirm.
+
+    Args:
+        modifications: User-supplied field overrides.
+
+    Raises:
+        ValidationError: If any key is disallowed, or value type/length is wrong.
+    """
+    invalid_keys = set(modifications.keys()) - ALLOWED_INGEST_MODIFICATIONS
+    if invalid_keys:
+        raise ValidationError(
+            message=f"Invalid modification keys: {', '.join(sorted(invalid_keys))}",
+            details=[
+                {"field": key, "error": "FIELD_NOT_ALLOWED"} for key in invalid_keys
+            ],
+        )
+
+    for key, value in modifications.items():
+        if key == "extracted_skills":
+            if not isinstance(value, list):
+                raise ValidationError(
+                    message=f"'{key}' must be a list",
+                    details=[{"field": key, "error": "INVALID_TYPE"}],
+                )
+            continue
+        if key in _MODIFICATION_INT_FIELDS:
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise ValidationError(
+                    message=f"'{key}' must be an integer",
+                    details=[{"field": key, "error": "INVALID_TYPE"}],
+                )
+            continue
+        max_len = _MODIFICATION_STR_LIMITS.get(key)
+        if max_len and isinstance(value, str) and len(value) > max_len:
+            raise ValidationError(
+                message=f"'{key}' exceeds maximum length ({max_len})",
+                details=[{"field": key, "error": "VALUE_TOO_LONG"}],
+            )
+
+
 # =============================================================================
 # Job Postings CRUD
 # =============================================================================
@@ -467,39 +508,7 @@ async def confirm_ingest_job_posting(
     # Merge extracted data with any modifications
     extracted: dict[str, Any] = dict(preview_data.extracted_data)
     if request.modifications:
-        # Security: Validate modification keys against whitelist
-        invalid_keys = set(request.modifications.keys()) - ALLOWED_INGEST_MODIFICATIONS
-        if invalid_keys:
-            raise ValidationError(
-                message=f"Invalid modification keys: {', '.join(sorted(invalid_keys))}",
-                details=[
-                    {"field": key, "error": "FIELD_NOT_ALLOWED"} for key in invalid_keys
-                ],
-            )
-
-        # Security: Validate modification value types and lengths
-        for key, value in request.modifications.items():
-            if key == "extracted_skills":
-                if not isinstance(value, list):
-                    raise ValidationError(
-                        message=f"'{key}' must be a list",
-                        details=[{"field": key, "error": "INVALID_TYPE"}],
-                    )
-                continue
-            if key in _MODIFICATION_INT_FIELDS:
-                if not isinstance(value, int) or isinstance(value, bool):
-                    raise ValidationError(
-                        message=f"'{key}' must be an integer",
-                        details=[{"field": key, "error": "INVALID_TYPE"}],
-                    )
-                continue
-            max_len = _MODIFICATION_STR_LIMITS.get(key)
-            if max_len and isinstance(value, str) and len(value) > max_len:
-                raise ValidationError(
-                    message=f"'{key}' exceeds maximum length ({max_len})",
-                    details=[{"field": key, "error": "VALUE_TOO_LONG"}],
-                )
-
+        _validate_ingest_modifications(request.modifications)
         extracted.update(request.modifications)
 
     # Compute description hash for dedup
