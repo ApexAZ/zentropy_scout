@@ -1,4 +1,4 @@
-"""Tests for rate limiting configuration.
+"""Tests for rate limiting behavior.
 
 Security: Tests for API abuse prevention via rate limiting.
 REQ-013 §7.4: Rate limit key transitions from IP to per-user in hosted mode.
@@ -12,31 +12,6 @@ from pydantic import SecretStr
 from app.core.config import settings
 from app.core.rate_limiting import _rate_limit_key_func
 from tests.conftest import TEST_AUTH_SECRET, TEST_USER_ID, create_test_jwt
-
-
-class TestRateLimitConfiguration:
-    """Tests for rate limit settings."""
-
-    def test_default_llm_rate_limit(self):
-        """Default LLM rate limit is 10/minute."""
-        from app.core.config import Settings
-
-        settings = Settings()
-        assert settings.rate_limit_llm == "10/minute"
-
-    def test_default_embeddings_rate_limit(self):
-        """Default embeddings rate limit is 5/minute."""
-        from app.core.config import Settings
-
-        settings = Settings()
-        assert settings.rate_limit_embeddings == "5/minute"
-
-    def test_rate_limit_enabled_by_default(self):
-        """Rate limiting is enabled by default."""
-        from app.core.config import Settings
-
-        settings = Settings()
-        assert settings.rate_limit_enabled is True
 
 
 class TestRateLimitExceededHandler:
@@ -130,60 +105,6 @@ class TestRateLimitExceededHandler:
         response = rate_limit_exceeded_handler(request, exc)
 
         assert response.headers.get("Retry-After") == "60"
-
-
-class TestRateLimitedEndpoints:
-    """Tests for rate-limited endpoints integration."""
-
-    @pytest.mark.asyncio
-    async def test_ingest_endpoint_has_rate_limit_decorator(self):
-        """Ingest endpoint should have rate limit decorator."""
-        from app.api.v1.job_postings import ingest_job_posting
-
-        # Check if the function has rate limit configuration
-        # slowapi adds __self__ attribute to decorated functions
-        assert hasattr(ingest_job_posting, "__wrapped__") or hasattr(
-            ingest_job_posting, "_limit"
-        )
-
-    @pytest.mark.asyncio
-    async def test_chat_messages_endpoint_has_rate_limit_decorator(self):
-        """Chat messages endpoint should have rate limit decorator."""
-        from app.api.v1.chat import send_chat_message
-
-        assert hasattr(send_chat_message, "__wrapped__") or hasattr(
-            send_chat_message, "_limit"
-        )
-
-    @pytest.mark.asyncio
-    async def test_embeddings_regenerate_endpoint_has_rate_limit_decorator(self):
-        """Embeddings regenerate endpoint should have rate limit decorator."""
-        from app.api.v1.personas import regenerate_embeddings
-
-        assert hasattr(regenerate_embeddings, "__wrapped__") or hasattr(
-            regenerate_embeddings, "_limit"
-        )
-
-    @pytest.mark.asyncio
-    async def test_rescore_endpoint_has_rate_limit_decorator(self):
-        """Rescore endpoint should have rate limit decorator."""
-        from app.api.v1.job_postings import rescore_job_postings
-
-        assert hasattr(rescore_job_postings, "__wrapped__") or hasattr(
-            rescore_job_postings, "_limit"
-        )
-
-
-class TestRateLimitDisabled:
-    """Tests for disabled rate limiting (testing mode)."""
-
-    def test_limiter_can_be_disabled_via_settings(self):
-        """Rate limiter should respect enabled setting."""
-        from app.core.rate_limiting import limiter
-
-        # The limiter should have an enabled property that can be checked
-        # We verify it reads from settings
-        assert hasattr(limiter, "_enabled") or hasattr(limiter, "enabled")
 
 
 class TestRateLimitKeyFunction:

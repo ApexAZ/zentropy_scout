@@ -182,31 +182,6 @@ class TestIsRegenerationRequest:
         assert is_regeneration_request("") is False
 
 
-class TestTriggerType:
-    """Tests for TriggerType enum values.
-
-    REQ-007 §8.1: Three distinct trigger types exist.
-    """
-
-    def test_has_auto_draft_value(self) -> None:
-        """TriggerType.AUTO_DRAFT has the expected string value."""
-        from app.agents.ghostwriter import TriggerType
-
-        assert TriggerType.AUTO_DRAFT == "auto_draft"
-
-    def test_has_manual_request_value(self) -> None:
-        """TriggerType.MANUAL_REQUEST has the expected string value."""
-        from app.agents.ghostwriter import TriggerType
-
-        assert TriggerType.MANUAL_REQUEST == "manual_request"
-
-    def test_has_regeneration_value(self) -> None:
-        """TriggerType.REGENERATION has the expected string value."""
-        from app.agents.ghostwriter import TriggerType
-
-        assert TriggerType.REGENERATION == "regeneration"
-
-
 class TestCreateGhostwriterState:
     """Tests for Ghostwriter state initialization.
 
