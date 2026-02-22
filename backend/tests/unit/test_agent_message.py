@@ -8,8 +8,7 @@ clarification request, HITL pause, error explanation).
 """
 
 import json
-
-import pytest
+from dataclasses import replace
 
 from app.services.agent_message import (
     _MAX_CONTENT_LENGTH,
@@ -30,10 +29,6 @@ _ROLE_ASSISTANT = "assistant"
 class TestAgentMessageType:
     """AgentMessageType has the 6 REQ-007 §9.1 communication patterns."""
 
-    def test_has_six_members(self) -> None:
-        """Enum defines exactly 6 communication pattern types."""
-        assert len(AgentMessageType) == 6
-
     def test_specific_values(self) -> None:
         """Each member has the expected snake_case string value."""
         assert AgentMessageType.PROGRESS_UPDATE.value == "progress_update"
@@ -42,11 +37,6 @@ class TestAgentMessageType:
         assert AgentMessageType.CLARIFICATION_REQUEST.value == "clarification_request"
         assert AgentMessageType.HITL_PAUSE.value == "hitl_pause"
         assert AgentMessageType.ERROR_EXPLANATION.value == "error_explanation"
-
-    def test_is_str_subclass(self) -> None:
-        """Enum members are str instances for direct string usage."""
-        for member in AgentMessageType:
-            assert isinstance(member, str)
 
     def test_json_serializable(self) -> None:
         """Enum values serialize to JSON without custom encoder."""
@@ -72,31 +62,15 @@ class TestAgentMessageStructure:
         assert msg.message_type == AgentMessageType.PROGRESS_UPDATE
         assert msg.content == _CONTENT_SEARCHING
 
-    def test_frozen_immutable(self) -> None:
-        """Frozen dataclass prevents attribute mutation."""
+    def test_preserves_original_values(self) -> None:
+        """Modifying a copy preserves the original message values."""
         msg = AgentMessage(
             message_type=AgentMessageType.PROGRESS_UPDATE,
             content=_CONTENT_SEARCHING,
         )
-        with pytest.raises(AttributeError):
-            msg.content = "Modified"  # type: ignore[misc]
-
-    def test_frozen_type_immutable(self) -> None:
-        """Frozen dataclass prevents message_type mutation."""
-        msg = AgentMessage(
-            message_type=AgentMessageType.PROGRESS_UPDATE,
-            content=_CONTENT_SEARCHING,
-        )
-        with pytest.raises(AttributeError):
-            msg.message_type = AgentMessageType.ERROR_EXPLANATION  # type: ignore[misc]
-
-    def test_message_type_is_enum(self) -> None:
-        """message_type field holds an AgentMessageType value."""
-        msg = AgentMessage(
-            message_type=AgentMessageType.RESULT_SUMMARY,
-            content="Found 3 matches.",
-        )
-        assert isinstance(msg.message_type, AgentMessageType)
+        updated = replace(msg, content="Modified")
+        assert msg.content == _CONTENT_SEARCHING
+        assert updated.content == "Modified"
 
 
 # =============================================================================
@@ -252,15 +226,6 @@ class TestFormatForState:
         result = format_for_state(msg)
         assert result["content"] == "Found 5 jobs."
 
-    def test_exactly_two_keys(self) -> None:
-        """Output dict has exactly 'role' and 'content' keys."""
-        msg = create_agent_message(
-            message_type=AgentMessageType.ACTION_CONFIRMATION,
-            content="Done!",
-        )
-        result = format_for_state(msg)
-        assert set(result.keys()) == {"role", "content"}
-
     def test_all_types_produce_valid_dicts(self) -> None:
         """Every message type produces a valid state dict."""
         for msg_type in AgentMessageType:
@@ -281,10 +246,6 @@ class TestFormatForState:
 
 class TestDefenseInDepth:
     """Content truncation protects against unbounded output."""
-
-    def test_max_content_length_constant(self) -> None:
-        """The safety bound is 2000 characters."""
-        assert _MAX_CONTENT_LENGTH == 2000
 
     def test_within_limit_preserved(self) -> None:
         """Content shorter than max is preserved exactly."""

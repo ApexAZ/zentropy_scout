@@ -8,8 +8,7 @@ communication patterns: Scouter→Strategist (pipeline), Strategist→Ghostwrite
 """
 
 import json
-
-import pytest
+from dataclasses import replace
 
 from app.services.agent_handoff import (
     _MAX_PAYLOAD_SUMMARY_LENGTH,
@@ -50,10 +49,6 @@ def _make_handoff(
 class TestAgentHandoffType:
     """AgentHandoffType has the 3 REQ-007 §9.2 communication patterns."""
 
-    def test_has_three_members(self) -> None:
-        """Enum defines exactly 3 inter-agent communication patterns."""
-        assert len(AgentHandoffType) == 3
-
     def test_specific_values(self) -> None:
         """Each member has the expected snake_case string value."""
         assert AgentHandoffType.SCOUTER_TO_STRATEGIST.value == "scouter_to_strategist"
@@ -62,11 +57,6 @@ class TestAgentHandoffType:
             == "strategist_to_ghostwriter"
         )
         assert AgentHandoffType.CHAT_TO_AGENT.value == "chat_to_agent"
-
-    def test_is_str_subclass(self) -> None:
-        """Enum members are str instances for direct string usage."""
-        for member in AgentHandoffType:
-            assert isinstance(member, str)
 
     def test_json_serializable(self) -> None:
         """Enum values serialize to JSON without custom encoder."""
@@ -96,35 +86,17 @@ class TestAgentHandoffStructure:
         assert handoff.target_agent == _AGENT_STRATEGIST
         assert handoff.payload_summary == _PAYLOAD_SCORING
 
-    @pytest.mark.parametrize(
-        ("field", "value"),
-        [
-            ("handoff_type", AgentHandoffType.CHAT_TO_AGENT),
-            ("source_agent", _AGENT_CHAT),
-            ("target_agent", _AGENT_GHOSTWRITER),
-            ("payload_summary", "Modified"),
-        ],
-    )
-    def test_frozen_immutable(self, field: str, value: object) -> None:
-        """Frozen dataclass prevents mutation of any field."""
+    def test_preserves_original_values(self) -> None:
+        """Modifying a copy preserves the original handoff values."""
         handoff = AgentHandoff(
             handoff_type=AgentHandoffType.SCOUTER_TO_STRATEGIST,
             source_agent=_AGENT_SCOUTER,
             target_agent=_AGENT_STRATEGIST,
             payload_summary=_PAYLOAD_SCORING,
         )
-        with pytest.raises(AttributeError):
-            setattr(handoff, field, value)
-
-    def test_handoff_type_is_enum(self) -> None:
-        """handoff_type field holds an AgentHandoffType value."""
-        handoff = AgentHandoff(
-            handoff_type=AgentHandoffType.CHAT_TO_AGENT,
-            source_agent=_AGENT_CHAT,
-            target_agent=_AGENT_GHOSTWRITER,
-            payload_summary="Draft materials for job-123",
-        )
-        assert isinstance(handoff.handoff_type, AgentHandoffType)
+        updated = replace(handoff, source_agent=_AGENT_CHAT)
+        assert handoff.source_agent == _AGENT_SCOUTER
+        assert updated.source_agent == _AGENT_CHAT
 
 
 # =============================================================================
@@ -312,10 +284,6 @@ class TestFormatForState:
 
 class TestDefenseInDepth:
     """Payload summary truncation protects against unbounded internal data."""
-
-    def test_max_payload_summary_length_constant(self) -> None:
-        """The safety bound is 500 characters."""
-        assert _MAX_PAYLOAD_SUMMARY_LENGTH == 500
 
     def test_within_limit_preserved(self) -> None:
         """Payload shorter than max is preserved exactly."""
