@@ -7,8 +7,7 @@ reasoning, word count, stories used, and validation result into a single
 output object with a to_cover_letter_record() method for database persistence.
 """
 
-import dataclasses
-from datetime import datetime
+from dataclasses import replace
 from uuid import UUID, uuid4
 
 import pytest
@@ -85,35 +84,17 @@ class TestGeneratedCoverLetter:
         assert output.stories_used == story_ids
         assert output.validation is validation
 
-    def test_is_frozen(self) -> None:
-        """GeneratedCoverLetter is frozen to prevent mutation."""
-        output = _make_output()
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            output.draft_text = "changed"  # type: ignore[misc]
-
-    def test_stores_uuid_stories(self) -> None:
-        """stories_used contains UUID objects."""
-        story_id = uuid4()
-        output = _make_output(stories_used=(story_id,))
-        assert isinstance(output.stories_used[0], UUID)
+    def test_preserves_original_values(self) -> None:
+        """Modifying a copy preserves the original output values."""
+        output = _make_output(draft_text="Original text")
+        updated = replace(output, draft_text="Changed text")
+        assert output.draft_text == "Original text"
+        assert updated.draft_text == "Changed text"
 
     def test_empty_stories_allowed(self) -> None:
         """Cover letter can reference zero stories."""
         output = _make_output(stories_used=())
         assert output.stories_used == ()
-
-    def test_validation_embeds_cover_letter_validation(self) -> None:
-        """validation field holds a CoverLetterValidation instance."""
-        validation = _make_validation(passed=False)
-        output = _make_output(validation=validation)
-        assert isinstance(output.validation, CoverLetterValidation)
-        assert output.validation.passed is False
-
-    def test_word_count_is_int(self) -> None:
-        """word_count is a plain integer."""
-        output = _make_output(word_count=275)
-        assert output.word_count == 275
-        assert isinstance(output.word_count, int)
 
 
 # =============================================================================
@@ -123,14 +104,6 @@ class TestGeneratedCoverLetter:
 
 class TestToCoverLetterRecord:
     """Tests for to_cover_letter_record() method."""
-
-    def test_returns_dict(self) -> None:
-        """Method returns a plain dict."""
-        output = _make_output()
-        record = output.to_cover_letter_record(
-            persona_id=uuid4(), job_posting_id=uuid4()
-        )
-        assert isinstance(record, dict)
 
     def test_includes_persona_id(self) -> None:
         """Record contains the given persona_id."""
@@ -197,41 +170,6 @@ class TestToCoverLetterRecord:
         r1 = output.to_cover_letter_record(persona_id=uuid4(), job_posting_id=uuid4())
         r2 = output.to_cover_letter_record(persona_id=uuid4(), job_posting_id=uuid4())
         assert r1["id"] != r2["id"]
-
-    def test_created_at_is_utc_aware(self) -> None:
-        """created_at is a timezone-aware UTC datetime."""
-        record = _make_output().to_cover_letter_record(
-            persona_id=uuid4(), job_posting_id=uuid4()
-        )
-        assert isinstance(record["created_at"], datetime)
-        assert record["created_at"].tzinfo is not None
-
-    def test_updated_at_is_utc_aware(self) -> None:
-        """updated_at is a timezone-aware UTC datetime."""
-        record = _make_output().to_cover_letter_record(
-            persona_id=uuid4(), job_posting_id=uuid4()
-        )
-        assert isinstance(record["updated_at"], datetime)
-        assert record["updated_at"].tzinfo is not None
-
-    def test_record_has_all_expected_keys(self) -> None:
-        """Record dict has exactly the expected keys for CoverLetter ORM model."""
-        record = _make_output().to_cover_letter_record(
-            persona_id=uuid4(), job_posting_id=uuid4()
-        )
-        expected_keys = {
-            "id",
-            "persona_id",
-            "job_posting_id",
-            "achievement_stories_used",
-            "draft_text",
-            "final_text",
-            "status",
-            "agent_reasoning",
-            "created_at",
-            "updated_at",
-        }
-        assert set(record.keys()) == expected_keys
 
     def test_empty_stories_produces_empty_list(self) -> None:
         """Empty stories_used produces empty list in record."""

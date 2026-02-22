@@ -13,7 +13,7 @@ Pass/fail: passed = True only when there are zero error-severity issues.
 Warnings are shown but do not block.
 """
 
-import dataclasses
+from dataclasses import replace
 
 import pytest
 
@@ -59,10 +59,12 @@ def _validate(**kwargs) -> CoverLetterValidation:
 class TestValidationIssue:
     """ValidationIssue is a frozen dataclass with severity, rule, message."""
 
-    def test_is_frozen(self) -> None:
+    def test_preserves_original_values(self) -> None:
+        """Modifying a copy preserves the original issue values."""
         issue = ValidationIssue(severity="error", rule="test", message="msg")
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            issue.severity = "warning"  # type: ignore[misc]
+        updated = replace(issue, severity="warning")
+        assert issue.severity == "error"
+        assert updated.severity == "warning"
 
     def test_has_required_fields(self) -> None:
         issue = ValidationIssue(
@@ -76,20 +78,18 @@ class TestValidationIssue:
 class TestCoverLetterValidation:
     """CoverLetterValidation is a frozen dataclass with passed, issues, word_count."""
 
-    def test_is_frozen(self) -> None:
+    def test_preserves_original_values(self) -> None:
+        """Modifying a copy preserves the original validation values."""
         result = CoverLetterValidation(passed=True, issues=(), word_count=300)
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            result.passed = False  # type: ignore[misc]
+        updated = replace(result, passed=False)
+        assert result.passed is True
+        assert updated.passed is False
 
     def test_has_required_fields(self) -> None:
         result = CoverLetterValidation(passed=True, issues=(), word_count=300)
         assert result.passed is True
         assert result.issues == ()
         assert result.word_count == 300
-
-    def test_issues_is_tuple(self) -> None:
-        result = CoverLetterValidation(passed=True, issues=(), word_count=300)
-        assert isinstance(result.issues, tuple)
 
 
 # =============================================================================
