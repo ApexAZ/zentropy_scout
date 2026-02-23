@@ -12,7 +12,7 @@ import type { Page } from "@playwright/test";
 
 import {
 	expiredIngestPreviewResponse,
-	INGEST_NEW_JOB_ID,
+	INGEST_NEW_PERSONA_JOB_ID,
 	setupAddJobMocks,
 } from "../utils/job-discovery-api-mocks";
 
@@ -170,7 +170,7 @@ test.describe("Add Job Modal — Confirm & Errors", () => {
 		expect(response.status()).toBe(200);
 
 		// Should navigate to job detail page
-		await page.waitForURL(`**/jobs/${INGEST_NEW_JOB_ID}`);
+		await page.waitForURL(`**/jobs/${INGEST_NEW_PERSONA_JOB_ID}`);
 	});
 
 	test("expired preview disables confirm button and shows message", async ({

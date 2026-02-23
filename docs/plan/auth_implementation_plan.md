@@ -175,7 +175,7 @@
 
 ## Phase 6: Shared Job Pool — Frontend & Final Integration (REQ-015)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Update frontend components for new persona_jobs response shape. E2E tests for full shared pool workflow. Final integration gate. Depends on: Phase 5 (all backend APIs operational with new schema).*
 
@@ -194,7 +194,7 @@
 | 1 | **Job dashboard update** — update TypeScript types: `PersonaJobResponse` (nested shared + per-user fields). Update `useJobPostings` and related hooks for new API contract. Update job list component: status/favorite from `persona_jobs`, factual data from nested `job_posting`. Update job cards: display `discovery_method` identically (scouter/manual/pool shown the same per REQ-015 §8 privacy rules — users cannot tell if job came from pool). Remove any references to old `job_postings.status`, `job_postings.fit_score` etc. TDD: test type compatibility, component rendering with new shape, hook data transformation. | `tdd, plan` | ✅ |
 | 2 | **Job detail view + rescore** — update detail view for nested `PersonaJobResponse`. Add rescore button wired to `POST /job-postings/rescore`. Update dismiss/favorite actions to PATCH persona_jobs fields. Ensure shared data fields (title, company, description, salary) are read-only in UI — no edit controls. TDD: test detail rendering with nested data, rescore trigger + loading state, dismiss/favorite mutations, shared field immutability. | `tdd, plan` | ✅ |
 | 3 | **E2E shared pool tests** — Playwright tests: job list displays persona_jobs data correctly, job detail shows nested shared data, dismiss updates persona_jobs status, favorite toggle works, rescore triggers and shows updated scores. Mock surfacing worker results (jobs with `discovery_method='pool'` appear identically to scouter-discovered). Verify shared data not editable. ~8 tests. | `playwright, e2e, tdd, plan` | ✅ |
-| 4 | **Final integration gate** — run EVERYTHING: `pytest tests/ -v` (backend), `npm test` (Vitest), `npx playwright test` (E2E), `npm run lint`, `npm run typecheck`, `ruff check .`, `bandit`. ALL green = auth/multi-tenant/shared-job-pool phase COMPLETE. | `plan, commands` | ⬜ |
+| 4 | **Final integration gate** — run EVERYTHING: `pytest tests/ -v` (backend), `npm test` (Vitest), `npx playwright test` (E2E), `npm run lint`, `npm run typecheck`, `ruff check .`, `bandit`. ALL green = auth/multi-tenant/shared-job-pool phase COMPLETE. | `plan, commands` | ✅ |
 
 ---
 

@@ -591,6 +591,7 @@ export function onboardedPersonaList(): ApiListResponse<Persona> {
 
 export const INGEST_CONFIRMATION_TOKEN = "tok-abc-123";
 export const INGEST_NEW_JOB_ID = "job-new-1";
+export const INGEST_NEW_PERSONA_JOB_ID = "pj-new-001";
 
 /** Base ingest data without expires_at — factories add a fresh timestamp. */
 const INGEST_PREVIEW_BASE: Omit<IngestJobPostingResponse, "expires_at"> = {

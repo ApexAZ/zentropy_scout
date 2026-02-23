@@ -37,6 +37,7 @@ export {
 	APPLICATION_ID,
 	expiredIngestPreviewResponse,
 	INGEST_NEW_JOB_ID,
+	INGEST_NEW_PERSONA_JOB_ID,
 	JOB_IDS,
 	PERSONA_JOB_IDS,
 } from "../fixtures/job-discovery-mock-data";
