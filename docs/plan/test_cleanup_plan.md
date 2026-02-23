@@ -114,7 +114,7 @@ The test antipattern audit identified **~306 antipattern tests** across **~53 ba
 
 ## Phase 4: Regression Prevention
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add guardrails to prevent antipattern tests from being reintroduced. Depends on: Phase 3 (coverage gaps addressed, suite green).*
 
@@ -130,7 +130,7 @@ The test antipattern audit identified **~306 antipattern tests** across **~53 ba
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Add test quality rules to CLAUDE.md** — add "Test Antipatterns to Avoid" section under Testing Philosophy with banned patterns: no `isinstance()` assertions in tests, no `get_type_hints()` / `dataclasses.fields()` in tests, no `hasattr()` assertions, no `__abstractmethods__` assertions, no `enum.value == "literal"` assertions. Include the "implementation rewrite" lens question as the decision criterion. Add the behavioral frozen-test pattern as the approved alternative. | `plan` | ✅ |
-| 2 | **Evaluate automated enforcement (optional)** — investigate whether `ruff` custom rules or a lightweight pytest plugin can flag banned patterns automatically. If straightforward (<30 min), implement. If complex, document as a future backlog item. This is a nice-to-have, not a blocker. | `lint, plan` | ⬜ |
+| 2 | **Evaluate automated enforcement (optional)** — investigate whether `ruff` custom rules or a lightweight pytest plugin can flag banned patterns automatically. If straightforward (<30 min), implement. If complex, document as a future backlog item. This is a nice-to-have, not a blocker. **Result: Ruff doesn't support custom rules. Implemented warning-only pytest hook in conftest.py using AST analysis. Detects isinstance/issubclass/hasattr/dataclasses.fields/__abstractmethods__ in test functions. Reports at end of test session without failing the build.** | `lint, plan` | ✅ |
 
 ---
 

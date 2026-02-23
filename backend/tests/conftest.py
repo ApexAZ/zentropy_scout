@@ -1,5 +1,8 @@
+import ast
 import asyncio
+import inspect
 import socket
+import textwrap
 import uuid
 from collections.abc import AsyncGenerator, Iterator
 from datetime import UTC, datetime, timedelta
@@ -526,3 +529,74 @@ def disable_rate_limiting() -> Iterator[None]:
 
     # Restore original state
     limiter.enabled = original_enabled
+
+
+# =============================================================================
+# Test Antipattern Detection (warning-only)
+# =============================================================================
+
+_BANNED_FUNCTIONS = frozenset({"isinstance", "issubclass", "hasattr"})
+_BANNED_ATTRS = frozenset({"__abstractmethods__"})
+
+
+def _find_antipatterns_in_source(source: str) -> list[str]:
+    """Scan test function source for banned structural assertion patterns."""
+    try:
+        tree = ast.parse(textwrap.dedent(source))
+    except SyntaxError:
+        return []
+
+    findings: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        # isinstance(), issubclass(), hasattr() calls
+        if isinstance(node.func, ast.Name) and node.func.id in _BANNED_FUNCTIONS:
+            findings.append(node.func.id)
+        # dataclasses.fields() calls
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "fields"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id in ("dataclasses", "fields")
+        ):
+            findings.append("dataclasses.fields")
+        # __abstractmethods__ access
+        if isinstance(node.func, ast.Attribute) and node.func.attr in _BANNED_ATTRS:
+            findings.append(node.func.attr)
+    return findings
+
+
+_antipattern_warnings: list[str] = []
+
+
+def pytest_runtest_teardown(item: pytest.Item) -> None:
+    """Check each test for antipattern usage after it runs."""
+    if not hasattr(item, "obj") or not callable(item.obj):
+        return
+    try:
+        source = inspect.getsource(item.obj)
+    except (OSError, TypeError):
+        return
+
+    patterns = _find_antipatterns_in_source(source)
+    if patterns:
+        _antipattern_warnings.append(f"  {item.nodeid}: {', '.join(patterns)}")
+
+
+def pytest_terminal_summary(
+    terminalreporter: pytest.TerminalReporter,
+) -> None:
+    """Report test antipatterns at the end of the test session (warning only)."""
+    if _antipattern_warnings:
+        terminalreporter.section("test antipattern warnings")
+        terminalreporter.line(
+            "The following tests use banned structural assertion patterns."
+        )
+        terminalreporter.line(
+            "See CLAUDE.md 'Test Antipatterns to Avoid' for approved alternatives."
+        )
+        terminalreporter.line("")
+        for w in _antipattern_warnings:
+            terminalreporter.line(w)
+        _antipattern_warnings.clear()
