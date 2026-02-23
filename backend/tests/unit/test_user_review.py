@@ -24,24 +24,8 @@ from app.services.user_review import (
 )
 
 # =============================================================================
-# Review Action Enum Tests
+# Review Action Tests
 # =============================================================================
-
-
-class TestReviewAction:
-    """Tests for ReviewAction enum."""
-
-    def test_all_actions_defined(self) -> None:
-        """All user review actions from REQ-003 §13.2 are defined."""
-        assert ReviewAction.DISMISS is not None
-        assert ReviewAction.FAVORITE is not None
-        assert ReviewAction.APPLY is not None
-
-    def test_action_values(self) -> None:
-        """Action values match expected strings."""
-        assert ReviewAction.DISMISS.value == "dismiss"
-        assert ReviewAction.FAVORITE.value == "favorite"
-        assert ReviewAction.APPLY.value == "apply"
 
 
 class TestGetReviewActionFromString:

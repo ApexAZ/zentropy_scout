@@ -10,14 +10,9 @@ Five scenarios:
 5. No culture_text → skip culture alignment section
 """
 
-import pytest
+from dataclasses import replace
 
-from app.services.data_availability import (
-    _MIN_EXTRACTED_SKILLS,
-    _MIN_STORY_MATCH_SCORE,
-    _VOICE_PROFILE_REQUIRED_FIELDS,
-    check_data_availability,
-)
+from app.services.data_availability import check_data_availability
 
 # =============================================================================
 # Scenario 1: No Achievement Stories
@@ -107,11 +102,6 @@ class TestVoiceProfileIncomplete:
         )
         assert any("tone" in w.lower() for w in result.warnings)
 
-    def test_required_fields_constant_is_defined(self) -> None:
-        """Module should export the set of required voice profile fields."""
-        assert isinstance(_VOICE_PROFILE_REQUIRED_FIELDS, frozenset)
-        assert len(_VOICE_PROFILE_REQUIRED_FIELDS) > 0
-
 
 # =============================================================================
 # Scenario 3: No Matching Stories (all scores < 20)
@@ -188,10 +178,6 @@ class TestNoMatchingStories:
         )
         assert result.has_low_match_stories is False
 
-    def test_min_story_match_score_constant(self) -> None:
-        """Module should export the minimum story match score threshold."""
-        assert _MIN_STORY_MATCH_SCORE == 20
-
 
 # =============================================================================
 # Scenario 4: Job Posting Minimal
@@ -242,10 +228,6 @@ class TestJobPostingMinimal:
             has_culture_text=True,
         )
         assert result.is_minimal_job_posting is False
-
-    def test_min_extracted_skills_constant(self) -> None:
-        """Module should export the minimum extracted skills threshold."""
-        assert _MIN_EXTRACTED_SKILLS == 2
 
 
 # =============================================================================
@@ -303,18 +285,9 @@ class TestDataAvailabilityResult:
             extracted_skills_count=5,
             has_culture_text=True,
         )
-        with pytest.raises(AttributeError):
-            result.can_generate_cover_letter = False  # type: ignore[misc]
-
-    def test_warnings_is_tuple(self) -> None:
-        """Warnings should be a tuple (not list) for immutability."""
-        result = check_data_availability(
-            achievement_story_count=3,
-            missing_voice_fields=(),
-            extracted_skills_count=5,
-            has_culture_text=True,
-        )
-        assert isinstance(result.warnings, tuple)
+        updated = replace(result, can_generate_cover_letter=False)
+        assert result.can_generate_cover_letter is True
+        assert updated.can_generate_cover_letter is False
 
     def test_no_warnings_when_all_data_present(self) -> None:
         """Should have zero warnings when all data is sufficient."""

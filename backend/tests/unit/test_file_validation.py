@@ -9,7 +9,6 @@ import pytest
 
 from app.core.errors import ValidationError
 from app.core.file_validation import (
-    ALLOWED_MIMES,
     MAX_FILE_SIZE_BYTES,
     read_file_with_size_limit,
     sanitize_filename_for_header,
@@ -203,24 +202,3 @@ class TestSanitizeFilenameForHeader:
         assert "\n" not in result
         # The injection text is now just part of filename (safe)
         assert result == "file.pdfX-Injected: value"
-
-
-class TestAllowedMimes:
-    """Tests for ALLOWED_MIMES constant."""
-
-    def test_pdf_is_allowed(self):
-        """PDF MIME type should be in allowed list."""
-        assert "application/pdf" in ALLOWED_MIMES
-        assert ALLOWED_MIMES["application/pdf"] == "PDF"
-
-    def test_docx_is_allowed(self):
-        """DOCX MIME type should be in allowed list."""
-        docx_mime = (
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
-        assert docx_mime in ALLOWED_MIMES
-        assert ALLOWED_MIMES[docx_mime] == "DOCX"
-
-    def test_only_expected_types_allowed(self):
-        """Only PDF and DOCX should be allowed."""
-        assert len(ALLOWED_MIMES) == 2

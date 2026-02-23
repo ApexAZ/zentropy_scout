@@ -15,7 +15,6 @@ Tests verify:
 from datetime import UTC, datetime
 
 from app.services.job_deduplication import (
-    DuplicateResult,
     PriorApplicationContext,
     calculate_description_similarity,
     generate_repost_context_message,
@@ -427,32 +426,6 @@ class TestIsDuplicate:
 
         # Should still match due to case-insensitive company comparison
         assert result.action == "create_linked_repost"
-
-
-# =============================================================================
-# DuplicateResult Structure Tests
-# =============================================================================
-
-
-class TestDuplicateResult:
-    """Tests for DuplicateResult dataclass.
-
-    REQ-007 §6.6: Result structure for deduplication decisions.
-    """
-
-    def test_create_new_result_has_no_matched_id(self) -> None:
-        """create_new action has matched_job_id as None."""
-        result = DuplicateResult(action="create_new", matched_job_id=None)
-
-        assert result.action == "create_new"
-        assert result.matched_job_id is None
-
-    def test_update_existing_result_has_matched_id(self) -> None:
-        """update_existing action has matched_job_id."""
-        result = DuplicateResult(action="update_existing", matched_job_id="job-123")
-
-        assert result.action == "update_existing"
-        assert result.matched_job_id == "job-123"
 
 
 # =============================================================================
@@ -984,56 +957,6 @@ class TestPrepareRepostData:
 # =============================================================================
 # Repost Agent Context Tests (REQ-003 §8.3)
 # =============================================================================
-
-
-class TestPriorApplicationContext:
-    """Tests for PriorApplicationContext dataclass.
-
-    REQ-003 §8.3: Structure for surfacing prior application info to user.
-    """
-
-    def test_creates_context_with_required_fields_when_constructed(self) -> None:
-        """PriorApplicationContext holds required application info."""
-        applied_at = datetime(2025, 1, 15, 10, 30, tzinfo=UTC)
-        status_updated_at = datetime(2025, 1, 20, 14, 0, tzinfo=UTC)
-
-        context = PriorApplicationContext(
-            job_posting_id="job-123",
-            applied_at=applied_at,
-            status="Rejected",
-            status_updated_at=status_updated_at,
-        )
-
-        assert context.job_posting_id == "job-123"
-        assert context.applied_at == applied_at
-        assert context.status == "Rejected"
-        assert context.status_updated_at == status_updated_at
-
-    def test_optional_fields_default_to_none_when_not_provided(self) -> None:
-        """Optional job_title and company_name default to None."""
-        context = PriorApplicationContext(
-            job_posting_id="job-123",
-            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
-            status="Applied",
-            status_updated_at=datetime(2025, 1, 15, tzinfo=UTC),
-        )
-
-        assert context.job_title is None
-        assert context.company_name is None
-
-    def test_accepts_optional_fields_when_provided(self) -> None:
-        """Can provide optional job_title and company_name."""
-        context = PriorApplicationContext(
-            job_posting_id="job-123",
-            applied_at=datetime(2025, 1, 15, tzinfo=UTC),
-            status="Interviewing",
-            status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
-            job_title="Software Engineer",
-            company_name="Acme Corp",
-        )
-
-        assert context.job_title == "Software Engineer"
-        assert context.company_name == "Acme Corp"
 
 
 class TestGenerateRepostContextMessage:

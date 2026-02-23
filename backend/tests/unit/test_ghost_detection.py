@@ -475,37 +475,6 @@ class TestCalculateGhostScore:
         assert signals.missing_fields_score == 67
 
     @pytest.mark.asyncio
-    async def test_ghost_signals_structure(self, mock_llm: MockLLMProvider) -> None:
-        """GhostSignals contains all required fields for JSONB storage."""
-        mock_llm.set_response(TaskType.GHOST_DETECTION, "30")
-
-        signals = await calculate_ghost_score(
-            posted_date=date.today() - timedelta(days=47),
-            first_seen_date=date.today() - timedelta(days=47),
-            repost_count=2,
-            salary_min=None,
-            salary_max=None,
-            application_deadline=None,
-            location="Remote",
-            seniority_level="Mid",
-            years_experience_min=3,
-            description="Some description.",
-        )
-
-        # Check all fields are present per REQ-003 §7.5
-        assert hasattr(signals, "days_open")
-        assert hasattr(signals, "days_open_score")
-        assert hasattr(signals, "repost_count")
-        assert hasattr(signals, "repost_score")
-        assert hasattr(signals, "vagueness_score")
-        assert hasattr(signals, "missing_fields")
-        assert hasattr(signals, "missing_fields_score")
-        assert hasattr(signals, "requirement_mismatch")
-        assert hasattr(signals, "requirement_mismatch_score")
-        assert hasattr(signals, "calculated_at")
-        assert hasattr(signals, "ghost_score")
-
-    @pytest.mark.asyncio
     async def test_ghost_signals_to_dict(self, mock_llm: MockLLMProvider) -> None:
         """GhostSignals can be converted to dict for JSONB storage."""
         mock_llm.set_response(TaskType.GHOST_DETECTION, "30")

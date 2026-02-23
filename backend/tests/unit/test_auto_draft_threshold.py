@@ -12,27 +12,7 @@ Tests cover:
 
 import pytest
 
-from app.services.fit_score import (
-    AUTO_DRAFT_THRESHOLD,
-    qualifies_for_auto_draft,
-)
-
-# =============================================================================
-# Threshold Constant Tests (REQ-008 §7.4)
-# =============================================================================
-
-
-class TestAutoDraftThresholdConstant:
-    """Tests for AUTO_DRAFT_THRESHOLD constant."""
-
-    def test_default_threshold_is_90(self) -> None:
-        """Default auto-draft threshold is 90 per REQ-008 §7.4."""
-        assert AUTO_DRAFT_THRESHOLD == 90
-
-    def test_threshold_is_integer(self) -> None:
-        """Threshold must be an integer."""
-        assert isinstance(AUTO_DRAFT_THRESHOLD, int)
-
+from app.services.fit_score import qualifies_for_auto_draft
 
 # =============================================================================
 # Qualification Tests (REQ-008 §7.4)

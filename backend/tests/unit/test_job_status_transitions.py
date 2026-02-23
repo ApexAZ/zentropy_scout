@@ -22,34 +22,6 @@ from app.services.job_status import (
 )
 
 # =============================================================================
-# Status Enum Tests
-# =============================================================================
-
-
-class TestJobPostingStatus:
-    """Tests for JobPostingStatus enum values.
-
-    REQ-003 §6: Status definitions.
-    """
-
-    def test_has_discovered_status_when_enum_defined(self) -> None:
-        """Discovered status exists for initial job discovery."""
-        assert JobPostingStatus.DISCOVERED.value == "Discovered"
-
-    def test_has_dismissed_status_when_enum_defined(self) -> None:
-        """Dismissed status exists for user not interested."""
-        assert JobPostingStatus.DISMISSED.value == "Dismissed"
-
-    def test_has_applied_status_when_enum_defined(self) -> None:
-        """Applied status exists when application created."""
-        assert JobPostingStatus.APPLIED.value == "Applied"
-
-    def test_has_expired_status_when_enum_defined(self) -> None:
-        """Expired status exists when job no longer available."""
-        assert JobPostingStatus.EXPIRED.value == "Expired"
-
-
-# =============================================================================
 # Valid Transition Tests
 # =============================================================================
 

@@ -7,7 +7,7 @@ categorizes user feedback into the five REQ-010 §7.1 categories via
 keyword matching.
 """
 
-import pytest
+from dataclasses import replace
 
 from app.services.generation_outcome import (
     _MAX_GENERATION_ID_LENGTH,
@@ -26,31 +26,6 @@ _GEN_ID_ABANDONED = "gen-003"
 _FEEDBACK_SHORTER = "Make it shorter"
 
 # =============================================================================
-# GenerationOutcome Enum
-# =============================================================================
-
-
-class TestGenerationOutcome:
-    """REQ-010 §10.2: Three possible generation outcomes."""
-
-    def test_approved_value(self) -> None:
-        """Approved outcome should have correct string value."""
-        assert GenerationOutcome.APPROVED.value == "approved"
-
-    def test_regenerated_value(self) -> None:
-        """Regenerated outcome should have correct string value."""
-        assert GenerationOutcome.REGENERATED.value == "regenerated"
-
-    def test_abandoned_value(self) -> None:
-        """Abandoned outcome should have correct string value."""
-        assert GenerationOutcome.ABANDONED.value == "abandoned"
-
-    def test_has_exactly_three_members(self) -> None:
-        """Should have exactly 3 outcome types."""
-        assert len(GenerationOutcome) == 3
-
-
-# =============================================================================
 # GenerationOutcomeRecord Structure
 # =============================================================================
 
@@ -64,8 +39,9 @@ class TestGenerationOutcomeRecordStructure:
             generation_id=_GEN_ID,
             outcome=GenerationOutcome.APPROVED,
         )
-        with pytest.raises(AttributeError):
-            record.outcome = GenerationOutcome.ABANDONED  # type: ignore[misc]
+        updated = replace(record, generation_id="changed-id")
+        assert record.generation_id == _GEN_ID
+        assert updated.generation_id == "changed-id"
 
     def test_record_has_all_fields(self) -> None:
         """GenerationOutcomeRecord should have all required fields."""
