@@ -162,6 +162,7 @@ Code review found that unit tests mock SQLAlchemy sessions and repository calls,
 **Category:** Backend / Architecture
 **Added:** 2026-02-23
 **Depends on:** None (can be done independently)
+**Requirement:** [REQ-016: Scouter Service Layer Redesign](../requirements/REQ-016_scouter_service_layer.md)
 
 **Background:**
 The Scouter is implemented as a 5-node LangGraph `StateGraph` in `backend/app/agents/scouter_graph.py` and `backend/app/agents/scouter.py`. Code review (2026-02-23) found that every conditional edge in the graph is a deterministic if/elif — no LLM is making routing decisions. The graph exists solely to sequence function calls that could be called directly.
@@ -198,6 +199,7 @@ The Scouter is implemented as a 5-node LangGraph `StateGraph` in `backend/app/ag
 **Category:** Backend / Architecture
 **Added:** 2026-02-23
 **Depends on:** Item 7 (Scouter redesign — shared pool must exist)
+**Requirement:** [REQ-017: Strategist Service Layer Redesign](../requirements/REQ-017_strategist_service_layer.md)
 
 **Background:**
 The Strategist is implemented as a 10-node LangGraph `StateGraph` in `backend/app/agents/strategist_graph.py`. Code review (2026-02-23) found that 9 of 10 nodes are placeholders returning empty state. The only genuinely implemented node is `save_scores_node`. All conditional edges are deterministic checks (embedding staleness, non-negotiables pass/fail, score threshold).
@@ -233,6 +235,7 @@ The Strategist is implemented as a 10-node LangGraph `StateGraph` in `backend/ap
 **Category:** Backend / Architecture
 **Added:** 2026-02-23
 **Depends on:** Item 8 (scores must exist before drafting is triggered)
+**Requirement:** [REQ-018: Ghostwriter Service Layer Redesign](../requirements/REQ-018_ghostwriter_service_layer.md)
 
 **Background:**
 The Ghostwriter is implemented as a 9-node LangGraph `StateGraph` in `backend/app/agents/ghostwriter_graph.py`. Code review (2026-02-23) found it has more real implementation than Scouter or Strategist, but the HITL checkpoint is never actually implemented — it's just a flag set before END, not a true pause/resume. The "feedback loop" is two sequential API calls (re-invocation), not resume-from-checkpoint.
@@ -277,6 +280,7 @@ True multi-turn revision workflow — user reviews draft, provides feedback, age
 **Category:** Backend / Frontend / Architecture
 **Added:** 2026-02-23
 **Depends on:** None (can be done independently)
+**Requirement:** [REQ-019: Onboarding Service Layer Redesign](../requirements/REQ-019_onboarding_service_layer.md)
 
 **Background:**
 The Onboarding Agent is implemented as a 13-node LangGraph `StateGraph` in `backend/app/agents/onboarding.py` (2490 lines). Code review (2026-02-23) found it is the most complete agent in the codebase — but that's exactly what reveals the problem. Every step function uses fragile keyword matching on `pending_question` to determine which field the user's response belongs to. This is a form wizard implemented as a chatbot.
