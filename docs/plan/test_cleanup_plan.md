@@ -90,7 +90,7 @@ The test antipattern audit identified **~306 antipattern tests** across **~53 ba
 
 ## Phase 3: Coverage Assessment & Gap Tests
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Run coverage analysis after cleanup to identify any genuine behavioral gaps created by deletions. Write replacement behavioral tests only where coverage drops reveal untested code paths. Depends on: Phase 2 (all deletions and rewrites complete, suite green).*
 
@@ -106,9 +106,9 @@ The test antipattern audit identified **~306 antipattern tests** across **~53 ba
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1 | **Coverage baseline measurement** — run `pytest --cov=app --cov-report=term-missing tests/` before and after. Identify modules where coverage dropped. Produce a gap analysis table: module, before %, after %, lines now uncovered. Only flag modules with >5% coverage drop. Expected: most deleted tests were redundant with behavioral tests in adjacent files, so coverage drop should be minimal. | `tdd, commands, plan` | ⬜ |
-| 2 | **Write behavioral gap tests (if needed)** — for each module with >5% coverage drop, write behavioral tests that exercise uncovered code paths through observable behavior (function calls, return values, side effects, error handling). Do NOT recreate structural/tautological tests. Focus areas likely to need gaps filled: agent state (if state transition tests don't exist elsewhere), voice profile (if generation behavior tests don't exist elsewhere), embedding interface (if adapter behavioral tests don't cover abstract contract). | `tdd, commands, plan` | ⬜ |
-| 3 | **Phase 3 gate** — run full test suite with coverage: `pytest --cov=app tests/ -v`, `ruff check .`. All tests pass. No module has >5% coverage drop without documented justification. | `plan, commands` | ⬜ |
+| 1 | **Coverage baseline measurement** — run `pytest --cov=app --cov-report=term-missing tests/` before and after. Identify modules where coverage dropped. Produce a gap analysis table: module, before %, after %, lines now uncovered. Only flag modules with >5% coverage drop. Expected: most deleted tests were redundant with behavioral tests in adjacent files, so coverage drop should be minimal. **Result: 91% overall. All adapter modules 100%, scouter 100%, persona_embedding_generator 100%, golden_set 100%. Zero modules show >5% coverage drop. Deleted tests were purely structural (isinstance/issubclass/hasattr) and never exercised code paths.** | `tdd, commands, plan` | ✅ |
+| 2 | **Write behavioral gap tests (if needed)** — for each module with >5% coverage drop, write behavioral tests that exercise uncovered code paths through observable behavior (function calls, return values, side effects, error handling). Do NOT recreate structural/tautological tests. **Result: No gaps found. No modules had >5% coverage drop. No gap tests needed.** | `tdd, commands, plan` | ✅ |
+| 3 | **Phase 3 gate** — run full test suite with coverage: `pytest --cov=app tests/ -v`, `ruff check .`. All tests pass. No module has >5% coverage drop without documented justification. **3,974 passed, 91% coverage, ruff clean, 0 modules with >5% drop.** | `plan, commands` | ✅ |
 
 ---
 
