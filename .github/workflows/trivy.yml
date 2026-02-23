@@ -29,7 +29,7 @@ jobs:
       # Waiting on upstream pgvector image rebuild with patched Go stdlib.
       # When these clear, also update the pinned SHA in zap-dast.yml.
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284  # 0.34.0
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518  # 0.34.1
         with:
           image-ref: 'pgvector/pgvector:pg16'
           format: 'sarif'
