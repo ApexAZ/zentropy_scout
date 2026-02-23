@@ -56,7 +56,7 @@ The test antipattern audit identified **~306 antipattern tests** across **~53 ba
 
 ## Phase 2: Delete Subsets & Rewrite Frozen Tests (~234 antipatterns, ~53 files)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Remove flagged DELETE tests from mixed files (files that also contain good behavioral tests). Co-locate REWRITE work for frozen tests in the same subtask so no file is revisited twice. Organized by domain. Depends on: Phase 1 (full file deletions complete, baseline green).*
 
@@ -84,7 +84,7 @@ The test antipattern audit identified **~306 antipattern tests** across **~53 ba
 | 9 | **Domain 7a: Data structure (heavy rewrite files)** — delete and rewrite flagged tests from `test_job_expiry.py` (6 DEL + 1 RW), `test_duplicate_story.py` (6 DEL + 1 RW), `test_regeneration.py` (6 DEL + 2 RW), `test_persona_change.py` (3 DEL + 1 RW), `test_score_explanation.py` (0 DEL + 5 RW). Read source files for 10 frozen rewrites. 5 files, 21 DEL + 10 REWRITE. | `tdd, commands, plan` | ✅ |
 | 10 | **Domain 7b: Data structure (delete-only) + first-pass workflow files** — delete flagged tests from `test_ghost_detection.py` (1 DEL), `test_job_deduplication.py` (5 DEL), `test_user_review.py` (3 DEL), `test_file_validation.py` (3 DEL), `test_auto_draft_threshold.py` (2 DEL), `test_generation_outcome.py` (4 DEL + 1 RW), `test_data_availability.py` (4 DEL + 1 RW), `test_job_status_transitions.py` (4 DEL). 8 files, 26 DEL + 2 REWRITE. | `tdd, commands, plan` | ✅ |
 | 11 | **Domain 8 + remaining first-pass scattered files** — delete single-antipattern tests from ~16 files: `test_golden_set_fixture.py` (1), `test_golden_set.py` (2), `test_scouter_agent.py` (1), `test_story_selection.py` (1), `test_discovery_workflow.py` (1), `test_bullet_reordering.py` (1), `test_reasoning_explanation.py` (1), `test_migration_011_rename_indexes.py` (3), `test_modification_limits.py` (1), `test_persona_embedding_generation.py` (1), `test_pool_surfacing_worker.py` (1), `test_auth_helpers.py` (1), `test_oauth_helpers.py` (2), `test_content_utils.py` (5), `test_voice_validation.py` (1), `test_voice_prompt_block.py` (1), `test_source_adapters.py` (25 — largest single-file cleanup). Pure DELETE. ~17 files, ~50 deletions. | `tdd, commands, plan` | ✅ |
-| 12 | **Phase 2 gate** — run full backend test suite: `pytest tests/ -v`, `ruff check .`. All tests must pass, 0 skips. Compare test count before vs after (expect ~4,389 → ~4,110). | `plan, commands` | ⬜ |
+| 12 | **Phase 2 gate** — run full backend test suite: `pytest tests/ -v`, `ruff check .`. All tests must pass, 0 skips. Compare test count before vs after (expect ~4,389 → ~4,110). **Actual: 4,389 → 3,974 (415 net removed). All 3,974 pass, 0 skips. ruff clean.** | `plan, commands` | ✅ |
 
 ---
 
