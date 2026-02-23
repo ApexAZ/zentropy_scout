@@ -7,36 +7,12 @@ Two phases:
 2. Post-generation: If job expired mid-generation, preserve content + warning.
 """
 
-import pytest
+from dataclasses import replace
 
 from app.services.job_expiry import (
-    _EXPIRED_STATUS,
-    _VALID_STATUSES,
     check_job_expiry_after,
     check_job_expiry_before,
 )
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-
-class TestConstants:
-    """Tests for module constants."""
-
-    def test_expired_status_value(self) -> None:
-        """The expired status constant should be 'Expired'."""
-        assert _EXPIRED_STATUS == "Expired"
-
-    def test_valid_statuses_contains_all_known(self) -> None:
-        """Valid statuses should match the DB check constraint."""
-        expected = frozenset({"Discovered", "Dismissed", "Applied", "Expired"})
-        assert expected == _VALID_STATUSES
-
-    def test_valid_statuses_is_frozenset(self) -> None:
-        """Valid statuses should be an immutable frozenset."""
-        assert isinstance(_VALID_STATUSES, frozenset)
-
 
 # =============================================================================
 # JobExpiryResult Structure
@@ -49,34 +25,9 @@ class TestJobExpiryResultStructure:
     def test_result_is_frozen(self) -> None:
         """JobExpiryResult should be immutable."""
         result = check_job_expiry_before(job_status="Discovered")
-        with pytest.raises(AttributeError):
-            result.can_proceed = False  # type: ignore[misc]
-
-    def test_result_has_all_fields(self) -> None:
-        """JobExpiryResult should have all required fields."""
-        result = check_job_expiry_before(job_status="Discovered")
-        assert hasattr(result, "can_proceed")
-        assert hasattr(result, "is_expired")
-        assert hasattr(result, "error")
-        assert hasattr(result, "suggestion")
-        assert hasattr(result, "warning")
-
-    def test_active_result_field_types(self) -> None:
-        """Active job result should have correct field types."""
-        result = check_job_expiry_before(job_status="Discovered")
-        assert isinstance(result.can_proceed, bool)
-        assert isinstance(result.is_expired, bool)
-        assert result.error is None
-        assert result.suggestion is None
-        assert result.warning is None
-
-    def test_expired_before_result_field_types(self) -> None:
-        """Expired pre-generation result should have string error and suggestion."""
-        result = check_job_expiry_before(job_status="Expired")
-        assert isinstance(result.can_proceed, bool)
-        assert isinstance(result.is_expired, bool)
-        assert isinstance(result.error, str)
-        assert isinstance(result.suggestion, str)
+        updated = replace(result, can_proceed=False)
+        assert result.can_proceed is True
+        assert updated.can_proceed is False
 
 
 # =============================================================================

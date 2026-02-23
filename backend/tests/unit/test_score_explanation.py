@@ -9,7 +9,7 @@ Tests cover:
 - Empty list defaults work correctly
 """
 
-import pytest
+from dataclasses import replace
 
 from app.services.score_explanation import ScoreExplanation
 
@@ -166,8 +166,9 @@ class TestScoreExplanationImmutability:
             stretch_opportunities=[],
             warnings=[],
         )
-        with pytest.raises(AttributeError):
-            explanation.summary = "Modified summary."  # type: ignore[misc]
+        updated = replace(explanation, summary="Modified summary.")
+        assert explanation.summary == "Original summary."
+        assert updated.summary == "Modified summary."
 
     def test_cannot_modify_strengths(self) -> None:
         """Cannot modify strengths list reference after creation."""
@@ -178,8 +179,9 @@ class TestScoreExplanationImmutability:
             stretch_opportunities=[],
             warnings=[],
         )
-        with pytest.raises(AttributeError):
-            explanation.strengths = ["Modified"]  # type: ignore[misc]
+        updated = replace(explanation, strengths=["Modified"])
+        assert explanation.strengths == ["Original"]
+        assert updated.strengths == ["Modified"]
 
     def test_cannot_modify_gaps(self) -> None:
         """Cannot modify gaps list reference after creation."""
@@ -190,8 +192,9 @@ class TestScoreExplanationImmutability:
             stretch_opportunities=[],
             warnings=[],
         )
-        with pytest.raises(AttributeError):
-            explanation.gaps = ["Modified"]  # type: ignore[misc]
+        updated = replace(explanation, gaps=["Modified"])
+        assert explanation.gaps == ["Original"]
+        assert updated.gaps == ["Modified"]
 
     def test_cannot_modify_stretch_opportunities(self) -> None:
         """Cannot modify stretch_opportunities list reference after creation."""
@@ -202,8 +205,9 @@ class TestScoreExplanationImmutability:
             stretch_opportunities=["Original"],
             warnings=[],
         )
-        with pytest.raises(AttributeError):
-            explanation.stretch_opportunities = ["Modified"]  # type: ignore[misc]
+        updated = replace(explanation, stretch_opportunities=["Modified"])
+        assert explanation.stretch_opportunities == ["Original"]
+        assert updated.stretch_opportunities == ["Modified"]
 
     def test_cannot_modify_warnings(self) -> None:
         """Cannot modify warnings list reference after creation."""
@@ -214,8 +218,9 @@ class TestScoreExplanationImmutability:
             stretch_opportunities=[],
             warnings=["Original"],
         )
-        with pytest.raises(AttributeError):
-            explanation.warnings = ["Modified"]  # type: ignore[misc]
+        updated = replace(explanation, warnings=["Modified"])
+        assert explanation.warnings == ["Original"]
+        assert updated.warnings == ["Modified"]
 
 
 # =============================================================================

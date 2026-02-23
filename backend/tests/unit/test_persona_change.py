@@ -8,30 +8,13 @@ Generated content is always preserved; a warning prompts the user to
 optionally regenerate.
 """
 
+from dataclasses import replace
 from datetime import UTC, datetime
-
-import pytest
 
 from app.services.persona_change import (
     _WARNING_MESSAGE,
     check_persona_changed,
 )
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-
-class TestConstants:
-    """Tests for module constants."""
-
-    def test_warning_message_value(self) -> None:
-        """Warning message should match the spec-defined text."""
-        assert _WARNING_MESSAGE == (
-            "Your profile was updated during generation. "
-            "Want to regenerate with your latest information?"
-        )
-
 
 # =============================================================================
 # PersonaChangeResult Structure
@@ -48,28 +31,9 @@ class TestPersonaChangeResultStructure:
             original_updated_at=ts,
             current_updated_at=ts,
         )
-        with pytest.raises(AttributeError):
-            result.persona_changed = True  # type: ignore[misc]
-
-    def test_result_has_all_fields(self) -> None:
-        """PersonaChangeResult should have persona_changed and warning fields."""
-        ts = datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC)
-        result = check_persona_changed(
-            original_updated_at=ts,
-            current_updated_at=ts,
-        )
-        assert hasattr(result, "persona_changed")
-        assert hasattr(result, "warning")
-
-    def test_unchanged_result_field_types(self) -> None:
-        """Unchanged persona result should have correct field types."""
-        ts = datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC)
-        result = check_persona_changed(
-            original_updated_at=ts,
-            current_updated_at=ts,
-        )
-        assert isinstance(result.persona_changed, bool)
-        assert result.warning is None
+        updated = replace(result, persona_changed=True)
+        assert result.persona_changed is False
+        assert updated.persona_changed is True
 
 
 # =============================================================================

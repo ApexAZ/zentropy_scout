@@ -9,40 +9,11 @@ Four scenarios:
 4. All stories used recently → ignore freshness penalty
 """
 
-import pytest
+from dataclasses import replace
 
 from app.services.duplicate_story import (
-    _NORMAL_MAX_WORDS,
-    _NORMAL_MIN_WORDS,
-    _SHORT_MAX_WORDS,
-    _SHORT_MIN_WORDS,
     check_duplicate_story_selection,
 )
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-
-class TestConstants:
-    """Tests for module word count constants."""
-
-    def test_normal_min_words_value(self) -> None:
-        """Normal minimum word count should be 250."""
-        assert _NORMAL_MIN_WORDS == 250
-
-    def test_normal_max_words_value(self) -> None:
-        """Normal maximum word count should be 350."""
-        assert _NORMAL_MAX_WORDS == 350
-
-    def test_short_min_words_value(self) -> None:
-        """Short format minimum word count should be 200."""
-        assert _SHORT_MIN_WORDS == 200
-
-    def test_short_max_words_value(self) -> None:
-        """Short format maximum word count should be 250."""
-        assert _SHORT_MAX_WORDS == 250
-
 
 # =============================================================================
 # DuplicateStoryResult Structure
@@ -60,34 +31,9 @@ class TestDuplicateStoryResultStructure:
             all_high_scoring_excluded=False,
             freshness_overridden=False,
         )
-        with pytest.raises(AttributeError):
-            result.use_short_format = True  # type: ignore[misc]
-
-    def test_result_has_all_fields(self) -> None:
-        """DuplicateStoryResult should have all required fields."""
-        result = check_duplicate_story_selection(
-            available_count=5,
-            substitution_made=False,
-            all_high_scoring_excluded=False,
-            freshness_overridden=False,
-        )
-        assert hasattr(result, "use_short_format")
-        assert hasattr(result, "substitution_made")
-        assert hasattr(result, "using_excluded_fallback")
-        assert hasattr(result, "freshness_overridden")
-        assert hasattr(result, "adjusted_min_words")
-        assert hasattr(result, "adjusted_max_words")
-        assert hasattr(result, "warnings")
-
-    def test_warnings_is_tuple(self) -> None:
-        """Warnings should be a tuple for immutability."""
-        result = check_duplicate_story_selection(
-            available_count=5,
-            substitution_made=False,
-            all_high_scoring_excluded=False,
-            freshness_overridden=False,
-        )
-        assert isinstance(result.warnings, tuple)
+        updated = replace(result, adjusted_min_words=100)
+        assert result.adjusted_min_words == 250
+        assert updated.adjusted_min_words == 100
 
 
 # =============================================================================

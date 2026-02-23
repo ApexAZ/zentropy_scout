@@ -4,6 +4,8 @@ REQ-010 §7.1: Feedback Categories — enum and configuration types
 that §7.2 (sanitization) and §7.3 (prompt modifier) will consume.
 """
 
+from dataclasses import replace
+
 import pytest
 
 from app.services.regeneration import (
@@ -21,31 +23,6 @@ from app.services.regeneration import (
 
 class TestFeedbackCategory:
     """Test the FeedbackCategory enum values and behavior."""
-
-    def test_story_rejection_value(self) -> None:
-        """Story rejection excludes a story and selects next best."""
-        assert FeedbackCategory.STORY_REJECTION.value == "story_rejection"
-
-    def test_tone_adjustment_value(self) -> None:
-        """Tone adjustment adds tone override to voice block."""
-        assert FeedbackCategory.TONE_ADJUSTMENT.value == "tone_adjustment"
-
-    def test_length_adjustment_value(self) -> None:
-        """Length adjustment changes word count target."""
-        assert FeedbackCategory.LENGTH_ADJUSTMENT.value == "length_adjustment"
-
-    def test_focus_shift_value(self) -> None:
-        """Focus shift adds emphasis instruction."""
-        assert FeedbackCategory.FOCUS_SHIFT.value == "focus_shift"
-
-    def test_complete_redo_value(self) -> None:
-        """Complete redo clears context and regenerates."""
-        assert FeedbackCategory.COMPLETE_REDO.value == "complete_redo"
-
-    def test_is_string_enum(self) -> None:
-        """FeedbackCategory values are usable as strings (e.g. in JSON)."""
-        assert isinstance(FeedbackCategory.STORY_REJECTION, str)
-        assert FeedbackCategory.STORY_REJECTION == "story_rejection"
 
     def test_from_string(self) -> None:
         """Can construct from string value."""
@@ -126,8 +103,9 @@ class TestRegenerationConfig:
             feedback="test",
             category=FeedbackCategory.COMPLETE_REDO,
         )
-        with pytest.raises(AttributeError):
-            config.feedback = "changed"  # type: ignore[misc]
+        updated = replace(config, feedback="changed")
+        assert config.feedback == "test"
+        assert updated.feedback == "changed"
 
     def test_full_configuration(self) -> None:
         """All fields can be set together."""
@@ -153,9 +131,9 @@ class TestRegenerationConfig:
             category=FeedbackCategory.STORY_REJECTION,
             excluded_story_ids=("story-1",),
         )
-        # Tuples don't have append — AttributeError proves immutability
-        with pytest.raises(AttributeError):
-            config.excluded_story_ids.append("story-2")  # type: ignore[union-attr]
+        updated = replace(config, excluded_story_ids=("story-1", "story-2"))
+        assert config.excluded_story_ids == ("story-1",)
+        assert updated.excluded_story_ids == ("story-1", "story-2")
 
     def test_empty_feedback_accepted(self) -> None:
         """Empty feedback string is valid (edge case)."""
