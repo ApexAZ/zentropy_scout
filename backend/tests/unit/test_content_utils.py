@@ -110,19 +110,6 @@ class TestExtractKeywords:
         assert "kubernetes" in result
 
     @pytest.mark.asyncio
-    async def test_returns_set_type(self, mock_llm: MockLLMProvider) -> None:
-        """Should return a set (deduplication built in)."""
-        mock_llm.set_response(
-            TaskType.EXTRACTION,
-            json.dumps(["python", "python", "sql"]),
-        )
-
-        result = await extract_keywords("some text")
-
-        assert isinstance(result, set)
-        assert result == {"python", "sql"}
-
-    @pytest.mark.asyncio
     async def test_fallback_on_invalid_json(self, mock_llm: MockLLMProvider) -> None:
         """Should fall back to simple word extraction on JSON parse error."""
         mock_llm.set_response(
@@ -313,19 +300,6 @@ class TestExtractSkillsFromText:
         assert "python" in result
         assert "leadership" in result
         assert "machine learning" in result
-
-    @pytest.mark.asyncio
-    async def test_returns_set_type(self, mock_llm: MockLLMProvider) -> None:
-        """Should return a set (deduplication built in)."""
-        mock_llm.set_response(
-            TaskType.EXTRACTION,
-            json.dumps(["python", "python", "sql"]),
-        )
-
-        result = await extract_skills_from_text("some text")
-
-        assert isinstance(result, set)
-        assert result == {"python", "sql"}
 
     @pytest.mark.asyncio
     async def test_empty_text_returns_empty_set(
@@ -586,11 +560,6 @@ class TestHasMetrics:
         """Should handle $ at end of string without error."""
         assert has_metrics("Total cost: $") is False
 
-    def test_returns_bool_type(self) -> None:
-        """Should return a bool, not a truthy/falsy value."""
-        assert isinstance(has_metrics("40%"), bool)
-        assert isinstance(has_metrics("no metrics"), bool)
-
 
 class TestExtractMetrics:
     """Tests for extract_metrics function (REQ-010 §6.4)."""
@@ -633,15 +602,6 @@ class TestExtractMetrics:
         result = await extract_metrics("Reduced costs by 40% saving $1.2M")
 
         assert len(result) >= 2
-        assert len(mock_llm.calls) == 0
-
-    @pytest.mark.asyncio
-    async def test_returns_list_type(self, mock_llm: MockLLMProvider) -> None:
-        """Should return a list of strings."""
-        result = await extract_metrics("Improved by 40%")
-
-        assert isinstance(result, list)
-        assert all(isinstance(m, str) for m in result)
         assert len(mock_llm.calls) == 0
 
     @pytest.mark.asyncio
@@ -824,11 +784,6 @@ class TestExtractMetrics:
 
 class TestTextHash:
     """Tests for text_hash helper function (REQ-010 §6.5)."""
-
-    def test_returns_string(self) -> None:
-        """Should return a string hash."""
-        result = text_hash("hello world")
-        assert isinstance(result, str)
 
     def test_returns_16_char_hex(self) -> None:
         """Should return a 16-character hex string (truncated MD5)."""

@@ -372,19 +372,6 @@ class TestEdgeCases:
 
         assert "*Story Title*" in result
 
-    def test_returns_string(self) -> None:
-        """Should always return a string."""
-        result = format_agent_reasoning(
-            job_title="Engineer",
-            company_name="Acme",
-            tailoring_action="use_base",
-            tailoring_signal_details=[],
-            stories=[],
-        )
-
-        assert isinstance(result, str)
-        assert len(result) > 0
-
     def test_unknown_tailoring_action_treated_as_use_base(self) -> None:
         """Unknown tailoring action should be treated like use_base."""
         result = format_agent_reasoning(

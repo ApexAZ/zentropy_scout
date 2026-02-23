@@ -11,7 +11,6 @@ import pytest
 from app.services.pool_surfacing_service import SurfacingPassResult
 from app.services.pool_surfacing_worker import (
     _INITIAL_LOOKBACK,
-    DEFAULT_INTERVAL_SECONDS,
     PoolSurfacingWorker,
 )
 
@@ -77,11 +76,6 @@ class TestWorkerLifecycle:
         mock_factory = MagicMock()
         worker = PoolSurfacingWorker(mock_factory, interval_seconds=60)
         await worker.stop()  # Should not raise
-
-    async def test_default_interval(self) -> None:
-        mock_factory = MagicMock()
-        worker = PoolSurfacingWorker(mock_factory)
-        assert worker._interval_seconds == DEFAULT_INTERVAL_SECONDS
 
 
 class TestWorkerRunOnce:

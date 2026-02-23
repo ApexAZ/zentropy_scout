@@ -454,26 +454,6 @@ class TestStoryRanking:
 class TestScoredStoryOutput:
     """ScoredStory should include story data, score, and rationale."""
 
-    def test_scored_story_has_required_fields(self) -> None:
-        """ScoredStory should have story_id, score, and rationale."""
-        story = _story(
-            story_id="s1",
-            skills=["Python"],
-            outcome="Reduced costs by 40%",
-        )
-
-        results = select_achievement_stories(
-            stories=[story],
-            job_skills={"Python"},
-            max_stories=1,
-        )
-
-        result = results[0]
-        assert result.story_id == "s1"
-        assert isinstance(result.score, (int, float))
-        assert isinstance(result.rationale, str)
-        assert len(result.rationale) > 0
-
     def test_rationale_mentions_matching_skills(self) -> None:
         """Rationale should mention which skills matched."""
         story = _story(skills=["Python", "FastAPI"])

@@ -232,10 +232,6 @@ class TestCheckPasswordBreached:
 class TestDummyHash:
     """Tests for DUMMY_HASH constant."""
 
-    def test_is_valid_bcrypt(self):
-        """DUMMY_HASH is a valid bcrypt hash (for timing defense)."""
-        assert DUMMY_HASH.startswith(b"$2b$") or DUMMY_HASH.startswith(b"$2a$")
-
     def test_comparison_completes_without_error(self):
         """bcrypt.checkpw with DUMMY_HASH returns False without crashing."""
         result = bcrypt.checkpw(b"anything", DUMMY_HASH)

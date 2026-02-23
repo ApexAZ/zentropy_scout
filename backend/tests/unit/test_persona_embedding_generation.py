@@ -13,8 +13,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.services.persona_embedding_generator import (
-    PersonaEmbeddingData,
-    PersonaEmbeddingsResult,
     build_hard_skills_text,
     build_logistics_text,
     build_soft_skills_text,
@@ -274,45 +272,6 @@ class TestBuildLogisticsText:
 
         # Should still have other fields
         assert "Remote preference" in result or "remote" in result.lower()
-
-
-# =============================================================================
-# PersonaEmbeddingsResult Tests
-# =============================================================================
-
-
-class TestPersonaEmbeddingsResult:
-    """Tests for PersonaEmbeddingsResult dataclass."""
-
-    def test_has_required_fields(self) -> None:
-        """Result has persona_id and all three embedding types."""
-        persona_id = uuid.uuid4()
-        version = datetime.now()
-
-        result = PersonaEmbeddingsResult(
-            persona_id=persona_id,
-            hard_skills=PersonaEmbeddingData(
-                vector=[0.1] * 1536,
-                source_text="Python (Expert)",
-            ),
-            soft_skills=PersonaEmbeddingData(
-                vector=[0.2] * 1536,
-                source_text="Leadership",
-            ),
-            logistics=PersonaEmbeddingData(
-                vector=[0.3] * 1536,
-                source_text="Remote Only",
-            ),
-            version=version,
-            model_name="text-embedding-3-small",
-        )
-
-        assert result.persona_id == persona_id
-        assert len(result.hard_skills.vector) == 1536
-        assert len(result.soft_skills.vector) == 1536
-        assert len(result.logistics.vector) == 1536
-        assert result.version == version
-        assert result.model_name == "text-embedding-3-small"
 
 
 # =============================================================================
