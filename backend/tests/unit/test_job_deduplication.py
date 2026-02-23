@@ -25,6 +25,29 @@ from app.services.job_deduplication import (
     prepare_same_source_update,
 )
 
+# Test data constants (SonarCloud S1192)
+_TITLE_SE = "Software Engineer"
+_TITLE_SM = "Scrum Master"
+_COMPANY_ACME = "Acme Corp"
+_JOB_ID = "job-123"
+_JOB_456 = "job-456"
+_EXT_ID = "ext-456"
+_SOURCE_123 = "source-123"
+_SOURCE_1 = "source-1"
+_SOURCE_ADZUNA = "source-adzuna"
+_SOURCE_LINKEDIN = "source-linkedin"
+_SOURCE_INDEED = "source-indeed"
+_EXT_ADZUNA = "adzuna-456"
+_EXT_LINKEDIN = "linkedin-789"
+_EXT_INDEED = "indeed-111"
+_EXISTING_ID = "existing-id"
+_MATCHED_JOB_ID = "matched-job-id"
+_DESC_OLD = "Old description"
+_DESC_UPDATED = "Updated description"
+_DESC_ORIGINAL = "Original description"
+_DESC_JOB = "Job description..."
+_DESC_TEXT = "Description text..."
+
 # =============================================================================
 # Similar Title Tests (REQ-003 §8.1)
 # =============================================================================
@@ -41,23 +64,23 @@ class TestIsSimilarTitle:
 
     def test_exact_match_returns_true(self) -> None:
         """Exact title match returns True."""
-        assert is_similar_title("Scrum Master", "Scrum Master") is True
+        assert is_similar_title(_TITLE_SM, _TITLE_SM) is True
 
     def test_case_insensitive_match_returns_true(self) -> None:
         """Title matching is case-insensitive."""
-        assert is_similar_title("Scrum Master", "scrum master") is True
-        assert is_similar_title("SCRUM MASTER", "Scrum Master") is True
+        assert is_similar_title(_TITLE_SM, "scrum master") is True
+        assert is_similar_title("SCRUM MASTER", _TITLE_SM) is True
 
     def test_contains_returns_true(self) -> None:
         """One title containing the other returns True."""
-        assert is_similar_title("Senior Scrum Master", "Scrum Master") is True
-        assert is_similar_title("Scrum Master", "Senior Scrum Master") is True
-        assert is_similar_title("Lead Scrum Master II", "Scrum Master") is True
+        assert is_similar_title("Senior Scrum Master", _TITLE_SM) is True
+        assert is_similar_title(_TITLE_SM, "Senior Scrum Master") is True
+        assert is_similar_title("Lead Scrum Master II", _TITLE_SM) is True
 
     def test_levenshtein_distance_3_or_less_returns_true(self) -> None:
         """Levenshtein distance <= 3 returns True."""
         # 1 character difference
-        assert is_similar_title("Scrum Master", "Scrum Masters") is True
+        assert is_similar_title(_TITLE_SM, "Scrum Masters") is True
         # 2 character difference (numeral swap)
         assert is_similar_title("Scrum Master II", "Scrum Master 2") is True
         # 3 character difference
@@ -75,8 +98,8 @@ class TestIsSimilarTitle:
 
     def test_different_titles_returns_false(self) -> None:
         """Different titles return False."""
-        assert is_similar_title("Scrum Master", "Product Owner") is False
-        assert is_similar_title("Software Engineer", "Data Scientist") is False
+        assert is_similar_title(_TITLE_SM, "Product Owner") is False
+        assert is_similar_title(_TITLE_SE, "Data Scientist") is False
         assert is_similar_title("QA Engineer", "DevOps Engineer") is False
 
     def test_similar_but_different_role_returns_false(self) -> None:
@@ -86,13 +109,13 @@ class TestIsSimilarTitle:
 
     def test_empty_titles_returns_false(self) -> None:
         """Empty titles return False."""
-        assert is_similar_title("", "Scrum Master") is False
-        assert is_similar_title("Scrum Master", "") is False
+        assert is_similar_title("", _TITLE_SM) is False
+        assert is_similar_title(_TITLE_SM, "") is False
         assert is_similar_title("", "") is False
 
     def test_whitespace_normalized(self) -> None:
         """Extra whitespace is normalized before comparison."""
-        assert is_similar_title("  Scrum  Master  ", "Scrum Master") is True
+        assert is_similar_title("  Scrum  Master  ", _TITLE_SM) is True
 
 
 # =============================================================================
@@ -182,20 +205,20 @@ class TestIsDuplicate:
     def test_same_source_same_external_id_returns_update_existing(self) -> None:
         """Same source and external_id returns update_existing."""
         new_job = {
-            "source_id": "source-123",
-            "external_id": "job-456",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
+            "source_id": _SOURCE_123,
+            "external_id": _JOB_456,
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
             "description": "New description text...",
             "description_hash": "abc123",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
-                "source_id": "source-123",
-                "external_id": "job-456",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "id": _EXISTING_ID,
+                "source_id": _SOURCE_123,
+                "external_id": _JOB_456,
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": "Old description text...",
                 "description_hash": "xyz789",
             }
@@ -204,7 +227,7 @@ class TestIsDuplicate:
         result = is_duplicate(new_job, existing_jobs)
 
         assert result.action == "update_existing"
-        assert result.matched_job_id == "existing-id"
+        assert result.matched_job_id == _EXISTING_ID
 
     def test_same_description_hash_different_source_returns_also_found_on(
         self,
@@ -213,18 +236,18 @@ class TestIsDuplicate:
         new_job = {
             "source_id": "linkedin-source",
             "external_id": "linkedin-job-789",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
             "description": "We are looking for a talented engineer...",
             "description_hash": "same-hash-abc",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
+                "id": _EXISTING_ID,
                 "source_id": "adzuna-source",
                 "external_id": "adzuna-job-123",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": "We are looking for a talented engineer...",
                 "description_hash": "same-hash-abc",
             }
@@ -233,7 +256,7 @@ class TestIsDuplicate:
         result = is_duplicate(new_job, existing_jobs)
 
         assert result.action == "add_to_also_found_on"
-        assert result.matched_job_id == "existing-id"
+        assert result.matched_job_id == _EXISTING_ID
 
     def test_same_company_similar_title_high_similarity_returns_linked_repost(
         self,
@@ -252,20 +275,20 @@ class TestIsDuplicate:
         )
 
         new_job = {
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
             "external_id": "new-job-999",
-            "company_name": "Acme Corp",
+            "company_name": _COMPANY_ACME,
             "job_title": "Senior Software Engineer",
             "description": repost_desc,
             "description_hash": "new-hash-xyz",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
-                "source_id": "source-123",
+                "id": _EXISTING_ID,
+                "source_id": _SOURCE_123,
                 "external_id": "old-job-111",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": base_desc,
                 "description_hash": "old-hash-abc",
             }
@@ -274,12 +297,12 @@ class TestIsDuplicate:
         result = is_duplicate(new_job, existing_jobs)
 
         assert result.action == "create_linked_repost"
-        assert result.matched_job_id == "existing-id"
+        assert result.matched_job_id == _EXISTING_ID
 
     def test_different_everything_returns_create_new(self) -> None:
         """No match found returns create_new."""
         new_job = {
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
             "external_id": "new-job-999",
             "company_name": "NewCo Inc",
             "job_title": "Data Scientist",
@@ -288,11 +311,11 @@ class TestIsDuplicate:
         }
         existing_jobs = [
             {
-                "id": "existing-id",
+                "id": _EXISTING_ID,
                 "source_id": "source-456",
                 "external_id": "other-job-222",
                 "company_name": "OtherCorp",
-                "job_title": "Software Engineer",
+                "job_title": _TITLE_SE,
                 "description": "Looking for a backend developer...",
                 "description_hash": "different-hash-222",
             }
@@ -306,10 +329,10 @@ class TestIsDuplicate:
     def test_empty_existing_jobs_returns_create_new(self) -> None:
         """No existing jobs returns create_new."""
         new_job = {
-            "source_id": "source-123",
-            "external_id": "job-456",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
+            "source_id": _SOURCE_123,
+            "external_id": _JOB_456,
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
             "description": "Description...",
             "description_hash": "hash-abc",
         }
@@ -322,20 +345,20 @@ class TestIsDuplicate:
     def test_priority_same_source_over_description_hash(self) -> None:
         """Same source + external_id takes priority over description_hash match."""
         new_job = {
-            "source_id": "source-123",
-            "external_id": "job-456",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
-            "description": "Description text...",
+            "source_id": _SOURCE_123,
+            "external_id": _JOB_456,
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
+            "description": _DESC_TEXT,
             "description_hash": "hash-abc",
         }
         existing_jobs = [
             {
                 "id": "same-source-id",
-                "source_id": "source-123",
-                "external_id": "job-456",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "source_id": _SOURCE_123,
+                "external_id": _JOB_456,
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": "Old description...",
                 "description_hash": "different-hash",
             },
@@ -343,9 +366,9 @@ class TestIsDuplicate:
                 "id": "same-hash-id",
                 "source_id": "other-source",
                 "external_id": "other-job",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
-                "description": "Description text...",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
+                "description": _DESC_TEXT,
                 "description_hash": "hash-abc",
             },
         ]
@@ -361,10 +384,10 @@ class TestIsDuplicate:
         base_desc = "Looking for a software engineer with 5 years experience."
 
         new_job = {
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
             "external_id": "new-job-999",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
             "description": base_desc,
             "description_hash": "hash-abc",
         }
@@ -380,10 +403,10 @@ class TestIsDuplicate:
             },
             {
                 "id": "similarity-match-id",
-                "source_id": "source-123",
+                "source_id": _SOURCE_123,
                 "external_id": "old-job-111",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": base_desc + " Updated.",
                 "description_hash": "different-hash",
             },
@@ -403,20 +426,20 @@ class TestIsDuplicate:
             "Remote work available."
         )
         new_job = {
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
             "external_id": "new-job-999",
             "company_name": "ACME CORP",
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
             "description": base_desc + " Updated.",
             "description_hash": "new-hash",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
-                "source_id": "source-123",
+                "id": _EXISTING_ID,
+                "source_id": _SOURCE_123,
                 "external_id": "old-job-111",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": base_desc,
                 "description_hash": "old-hash",
             }
@@ -444,12 +467,12 @@ class TestMergeJobData:
         existing = {
             "salary_min": None,
             "salary_max": None,
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
         new = {
             "salary_min": 100000,
             "salary_max": 150000,
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
 
         merged = merge_job_data(existing, new)
@@ -462,12 +485,12 @@ class TestMergeJobData:
         existing = {
             "salary_min": 100000,
             "salary_max": 150000,
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
         new = {
             "salary_min": None,
             "salary_max": None,
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
 
         merged = merge_job_data(existing, new)
@@ -479,11 +502,11 @@ class TestMergeJobData:
         """Prefer company ATS URL over aggregator redirect URL."""
         existing = {
             "apply_url": "https://adzuna.com/redirect?job=123",
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
         new = {
             "apply_url": "https://acmecorp.greenhouse.io/jobs/123",
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
 
         merged = merge_job_data(existing, new)
@@ -495,11 +518,11 @@ class TestMergeJobData:
         """Keep existing ATS URL if new source has aggregator URL."""
         existing = {
             "apply_url": "https://acmecorp.lever.co/jobs/123",
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
         new = {
             "apply_url": "https://remoteok.com/jobs/123",
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
 
         merged = merge_job_data(existing, new)
@@ -509,8 +532,8 @@ class TestMergeJobData:
 
     def test_prefer_earliest_posted_date(self) -> None:
         """Prefer earliest posted_date found."""
-        existing = {"posted_date": "2025-01-20", "job_title": "Software Engineer"}
-        new = {"posted_date": "2025-01-15", "job_title": "Software Engineer"}
+        existing = {"posted_date": "2025-01-20", "job_title": _TITLE_SE}
+        new = {"posted_date": "2025-01-15", "job_title": _TITLE_SE}
 
         merged = merge_job_data(existing, new)
 
@@ -518,8 +541,8 @@ class TestMergeJobData:
 
     def test_keep_earlier_date_if_new_is_later(self) -> None:
         """Keep existing posted_date if new is later."""
-        existing = {"posted_date": "2025-01-10", "job_title": "Software Engineer"}
-        new = {"posted_date": "2025-01-25", "job_title": "Software Engineer"}
+        existing = {"posted_date": "2025-01-10", "job_title": _TITLE_SE}
+        new = {"posted_date": "2025-01-25", "job_title": _TITLE_SE}
 
         merged = merge_job_data(existing, new)
 
@@ -529,12 +552,12 @@ class TestMergeJobData:
         """Prefer longer/more complete description."""
         existing = {
             "description": "Short description.",
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
         new = {
             "description": "This is a much longer and more detailed description "
             "with requirements and benefits listed.",
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
 
         merged = merge_job_data(existing, new)
@@ -546,9 +569,9 @@ class TestMergeJobData:
         existing = {
             "description": "This is a detailed description with many requirements "
             "and qualifications listed for the position.",
-            "job_title": "Software Engineer",
+            "job_title": _TITLE_SE,
         }
-        new = {"description": "Brief desc.", "job_title": "Software Engineer"}
+        new = {"description": "Brief desc.", "job_title": _TITLE_SE}
 
         merged = merge_job_data(existing, new)
 
@@ -557,14 +580,14 @@ class TestMergeJobData:
     def test_merge_preserves_non_priority_fields(self) -> None:
         """Fields not in priority rules are preserved from existing."""
         existing = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
             "location": "Remote",
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
         }
         new = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
             "location": "New York",
             "source_id": "source-456",
         }
@@ -572,7 +595,7 @@ class TestMergeJobData:
         merged = merge_job_data(existing, new)
 
         # Non-priority fields preserved from existing
-        assert merged["source_id"] == "source-123"
+        assert merged["source_id"] == _SOURCE_123
         assert merged["location"] == "Remote"
 
 
@@ -593,20 +616,20 @@ class TestRepostConfidenceLevels:
     def test_confidence_is_high_when_exact_source_match(self) -> None:
         """Same source + same external_id returns High confidence."""
         new_job = {
-            "source_id": "source-123",
-            "external_id": "job-456",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
-            "description": "Description text...",
+            "source_id": _SOURCE_123,
+            "external_id": _JOB_456,
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
+            "description": _DESC_TEXT,
             "description_hash": "hash-abc",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
-                "source_id": "source-123",
-                "external_id": "job-456",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "id": _EXISTING_ID,
+                "source_id": _SOURCE_123,
+                "external_id": _JOB_456,
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": "Old description...",
                 "description_hash": "different-hash",
             }
@@ -627,20 +650,20 @@ class TestRepostConfidenceLevels:
         repost_desc = base_desc + " Apply today!"
 
         new_job = {
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
             "external_id": "new-job-999",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
             "description": repost_desc,
             "description_hash": "new-hash",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
-                "source_id": "source-123",
+                "id": _EXISTING_ID,
+                "source_id": _SOURCE_123,
                 "external_id": "old-job-111",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": base_desc,
                 "description_hash": "old-hash",
             }
@@ -667,20 +690,20 @@ class TestRepostConfidenceLevels:
         )
 
         new_job = {
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
             "external_id": "new-job-999",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
             "description": modified_desc,
             "description_hash": "new-hash",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
-                "source_id": "source-123",
+                "id": _EXISTING_ID,
+                "source_id": _SOURCE_123,
                 "external_id": "old-job-111",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": base_desc,
                 "description_hash": "old-hash",
             }
@@ -694,20 +717,20 @@ class TestRepostConfidenceLevels:
     def test_confidence_is_none_when_similarity_below_70(self) -> None:
         """Similarity below 70% returns None confidence and create_new action."""
         new_job = {
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
             "external_id": "new-job-999",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
             "description": "Looking for a backend developer with Java Spring Boot.",
             "description_hash": "new-hash",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
-                "source_id": "source-123",
+                "id": _EXISTING_ID,
+                "source_id": _SOURCE_123,
                 "external_id": "old-job-111",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": "We need a frontend engineer skilled in React and TypeScript.",
                 "description_hash": "old-hash",
             }
@@ -723,18 +746,18 @@ class TestRepostConfidenceLevels:
         new_job = {
             "source_id": "linkedin-source",
             "external_id": "linkedin-job-789",
-            "company_name": "Acme Corp",
-            "job_title": "Software Engineer",
+            "company_name": _COMPANY_ACME,
+            "job_title": _TITLE_SE,
             "description": "Same description text...",
             "description_hash": "same-hash-abc",
         }
         existing_jobs = [
             {
-                "id": "existing-id",
+                "id": _EXISTING_ID,
                 "source_id": "adzuna-source",
                 "external_id": "adzuna-job-123",
-                "company_name": "Acme Corp",
-                "job_title": "Software Engineer",
+                "company_name": _COMPANY_ACME,
+                "job_title": _TITLE_SE,
                 "description": "Same description text...",
                 "description_hash": "same-hash-abc",
             }
@@ -748,7 +771,7 @@ class TestRepostConfidenceLevels:
     def test_confidence_is_none_when_create_new(self) -> None:
         """No match returns None confidence."""
         new_job = {
-            "source_id": "source-123",
+            "source_id": _SOURCE_123,
             "external_id": "new-job-999",
             "company_name": "NewCo Inc",
             "job_title": "Data Scientist",
@@ -780,12 +803,12 @@ class TestPrepareRepostData:
     def test_status_is_discovered_when_repost_prepared(self) -> None:
         """New repost record has status = Discovered."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
-            "description": "Job description...",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
+            "description": _DESC_JOB,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": 0,
             "previous_posting_ids": None,
         }
@@ -799,31 +822,31 @@ class TestPrepareRepostData:
     ) -> None:
         """New repost links to matched job via previous_posting_ids."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
-            "description": "Job description...",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
+            "description": _DESC_JOB,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": 0,
             "previous_posting_ids": None,
         }
 
         result = prepare_repost_data(new_job, matched_job)
 
-        assert "matched-job-id" in result["previous_posting_ids"]
+        assert _MATCHED_JOB_ID in result["previous_posting_ids"]
 
     def test_previous_posting_ids_includes_prior_chain_when_matched_has_history(
         self,
     ) -> None:
         """New repost includes the matched job's prior posting chain."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
-            "description": "Job description...",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
+            "description": _DESC_JOB,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": 2,
             "previous_posting_ids": ["older-job-1", "older-job-2"],
         }
@@ -832,7 +855,7 @@ class TestPrepareRepostData:
 
         # Should include matched job + its prior chain in order
         assert result["previous_posting_ids"] == [
-            "matched-job-id",
+            _MATCHED_JOB_ID,
             "older-job-1",
             "older-job-2",
         ]
@@ -840,12 +863,12 @@ class TestPrepareRepostData:
     def test_repost_count_increments_when_matched_has_existing_count(self) -> None:
         """repost_count is matched job's count + 1."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
-            "description": "Job description...",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
+            "description": _DESC_JOB,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": 2,
             "previous_posting_ids": ["older-1", "older-2"],
         }
@@ -857,12 +880,12 @@ class TestPrepareRepostData:
     def test_repost_count_is_one_when_first_repost(self) -> None:
         """First repost of a job has repost_count = 1."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
-            "description": "Job description...",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
+            "description": _DESC_JOB,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": 0,
             "previous_posting_ids": None,
         }
@@ -874,12 +897,12 @@ class TestPrepareRepostData:
     def test_repost_count_defaults_to_one_when_matched_count_is_none(self) -> None:
         """repost_count defaults to 1 when matched job has None repost_count."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
-            "description": "Job description...",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
+            "description": _DESC_JOB,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": None,
             "previous_posting_ids": None,
         }
@@ -891,55 +914,55 @@ class TestPrepareRepostData:
     def test_new_job_fields_preserved_when_repost_prepared(self) -> None:
         """New job data fields are preserved in result."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
             "description": "New job description...",
-            "source_id": "source-123",
-            "external_id": "ext-456",
+            "source_id": _SOURCE_123,
+            "external_id": _EXT_ID,
             "salary_min": 100000,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": 0,
             "previous_posting_ids": None,
         }
 
         result = prepare_repost_data(new_job, matched_job)
 
-        assert result["job_title"] == "Software Engineer"
-        assert result["company_name"] == "Acme Corp"
+        assert result["job_title"] == _TITLE_SE
+        assert result["company_name"] == _COMPANY_ACME
         assert result["description"] == "New job description..."
-        assert result["source_id"] == "source-123"
-        assert result["external_id"] == "ext-456"
+        assert result["source_id"] == _SOURCE_123
+        assert result["external_id"] == _EXT_ID
         assert result["salary_min"] == 100000
 
     def test_previous_posting_ids_correct_when_matched_has_empty_list(self) -> None:
         """Handles matched job with empty list for previous_posting_ids."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
-            "description": "Job description...",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
+            "description": _DESC_JOB,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": 0,
             "previous_posting_ids": [],
         }
 
         result = prepare_repost_data(new_job, matched_job)
 
-        assert result["previous_posting_ids"] == ["matched-job-id"]
+        assert result["previous_posting_ids"] == [_MATCHED_JOB_ID]
         assert result["repost_count"] == 1
 
     def test_input_dict_not_mutated_when_repost_prepared(self) -> None:
         """prepare_repost_data does not mutate the input new_job dict."""
         new_job = {
-            "job_title": "Software Engineer",
-            "company_name": "Acme Corp",
-            "description": "Job description...",
+            "job_title": _TITLE_SE,
+            "company_name": _COMPANY_ACME,
+            "description": _DESC_JOB,
         }
         matched_job = {
-            "id": "matched-job-id",
+            "id": _MATCHED_JOB_ID,
             "repost_count": 0,
             "previous_posting_ids": None,
         }
@@ -975,7 +998,7 @@ class TestGenerateRepostContextMessage:
     def test_includes_applied_date_when_prior_application_exists(self) -> None:
         """Message includes the date user applied."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, 10, 30, tzinfo=UTC),
             status="Rejected",
             status_updated_at=datetime(2025, 1, 20, 14, 0, tzinfo=UTC),
@@ -989,7 +1012,7 @@ class TestGenerateRepostContextMessage:
     def test_includes_outcome_when_rejected(self) -> None:
         """Message includes 'rejected' outcome."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Rejected",
             status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
@@ -1003,7 +1026,7 @@ class TestGenerateRepostContextMessage:
     def test_includes_outcome_date_when_rejected(self) -> None:
         """Message includes the date of the outcome."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Rejected",
             status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
@@ -1017,7 +1040,7 @@ class TestGenerateRepostContextMessage:
     def test_offers_fresh_evaluation_when_repost_detected(self) -> None:
         """Message offers to evaluate the repost fresh."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Rejected",
             status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
@@ -1031,7 +1054,7 @@ class TestGenerateRepostContextMessage:
     def test_indicates_repost_when_generating_message(self) -> None:
         """Message indicates the job is a repost."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Rejected",
             status_updated_at=datetime(2025, 1, 20, tzinfo=UTC),
@@ -1045,7 +1068,7 @@ class TestGenerateRepostContextMessage:
     def test_handles_withdrawn_status_when_user_withdrew(self) -> None:
         """Message handles Withdrawn status correctly."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Withdrawn",
             status_updated_at=datetime(2025, 1, 18, tzinfo=UTC),
@@ -1059,7 +1082,7 @@ class TestGenerateRepostContextMessage:
     def test_handles_offer_status_when_user_received_offer(self) -> None:
         """Message handles Offer status correctly."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Offer",
             status_updated_at=datetime(2025, 2, 1, tzinfo=UTC),
@@ -1073,7 +1096,7 @@ class TestGenerateRepostContextMessage:
     def test_handles_accepted_status_when_user_accepted_offer(self) -> None:
         """Message handles Accepted status correctly."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Accepted",
             status_updated_at=datetime(2025, 2, 15, tzinfo=UTC),
@@ -1087,7 +1110,7 @@ class TestGenerateRepostContextMessage:
     def test_handles_still_pending_when_status_is_applied(self) -> None:
         """Message handles Applied status (still pending)."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Applied",
             status_updated_at=datetime(2025, 1, 15, tzinfo=UTC),
@@ -1102,7 +1125,7 @@ class TestGenerateRepostContextMessage:
     def test_handles_interviewing_status_when_in_progress(self) -> None:
         """Message handles Interviewing status (in progress)."""
         prior = PriorApplicationContext(
-            job_posting_id="job-123",
+            job_posting_id=_JOB_ID,
             applied_at=datetime(2025, 1, 15, tzinfo=UTC),
             status="Interviewing",
             status_updated_at=datetime(2025, 1, 25, tzinfo=UTC),
@@ -1152,18 +1175,18 @@ class TestPrepareSameSourceUpdate:
     def test_updates_source_provided_fields_when_new_data_available(self) -> None:
         """Source-provided fields are updated with new values."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "salary_min": None,
             "salary_max": None,
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "salary_min": 100000,
             "salary_max": 150000,
             "description": "Updated description with more details",
@@ -1178,18 +1201,18 @@ class TestPrepareSameSourceUpdate:
     def test_preserves_user_modified_status_when_not_discovered(self) -> None:
         """User-modified status (not Discovered) is preserved."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "status": "Dismissed",
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1200,18 +1223,18 @@ class TestPrepareSameSourceUpdate:
     def test_preserves_is_favorite_when_user_favorited(self) -> None:
         """is_favorite flag is preserved when user has favorited."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "is_favorite": True,
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1222,18 +1245,18 @@ class TestPrepareSameSourceUpdate:
         """dismissed_at timestamp is preserved when user dismissed."""
         dismissed_time = datetime(2025, 1, 15, 10, 0, tzinfo=UTC)
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "dismissed_at": dismissed_time,
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1243,18 +1266,18 @@ class TestPrepareSameSourceUpdate:
     def test_includes_last_verified_at_when_update_prepared(self) -> None:
         """last_verified_at is set to current time when update prepared."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "last_verified_at": None,
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1266,41 +1289,41 @@ class TestPrepareSameSourceUpdate:
     def test_preserves_id_when_update_prepared(self) -> None:
         """Existing job ID is preserved in update."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Old description",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
 
-        assert result["id"] == "job-123"
+        assert result["id"] == _JOB_ID
 
     def test_preserves_first_seen_date_when_update_prepared(self) -> None:
         """first_seen_date is preserved (historical data)."""
         from datetime import date
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "first_seen_date": date(2025, 1, 1),
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "first_seen_date": date(2025, 1, 20),  # Newer date from re-scrape
-            "description": "Updated description",
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1313,19 +1336,19 @@ class TestPrepareSameSourceUpdate:
         from datetime import date
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "posted_date": date(2025, 1, 1),
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "posted_date": date(2025, 1, 15),
-            "description": "Updated description",
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1336,19 +1359,19 @@ class TestPrepareSameSourceUpdate:
     def test_preserves_scoring_fields_when_user_has_scores(self) -> None:
         """User-computed scores (fit_score, stretch_score) are preserved."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "fit_score": 85,
             "stretch_score": 20,
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1360,19 +1383,19 @@ class TestPrepareSameSourceUpdate:
     def test_preserves_ghost_score_when_existing_has_score(self) -> None:
         """ghost_score (computed by agent) is preserved."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "ghost_score": 45,
             "ghost_signals": {"days_open": 30, "repost_count": 1},
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1384,19 +1407,19 @@ class TestPrepareSameSourceUpdate:
         """expired_at timestamp is preserved for expired jobs."""
         expired_time = datetime(2025, 1, 10, 12, 0, tzinfo=UTC)
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "expired_at": expired_time,
             "status": "Expired",
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1407,19 +1430,19 @@ class TestPrepareSameSourceUpdate:
     def test_preserves_persona_id_when_existing_has_persona(self) -> None:
         """persona_id is preserved (job belongs to specific persona)."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "persona_id": "persona-999",
-            "description": "Old description",
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
             "persona_id": "different-persona",  # Source wouldn't change this
-            "description": "Updated description",
+            "description": _DESC_UPDATED,
         }
 
         result = prepare_same_source_update(existing, new_job)
@@ -1430,17 +1453,17 @@ class TestPrepareSameSourceUpdate:
     def test_does_not_mutate_input_dicts_when_update_prepared(self) -> None:
         """Input dicts are not mutated by prepare_same_source_update."""
         existing = {
-            "id": "job-123",
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Old description",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_OLD,
         }
         new_job = {
-            "source_id": "source-1",
-            "external_id": "ext-456",
-            "job_title": "Software Engineer",
-            "description": "Updated description",
+            "source_id": _SOURCE_1,
+            "external_id": _EXT_ID,
+            "job_title": _TITLE_SE,
+            "description": _DESC_UPDATED,
         }
         existing_keys = set(existing.keys())
         new_keys = set(new_job.keys())
@@ -1470,26 +1493,26 @@ class TestPrepareCrossSourceUpdate:
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {"sources": []},
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
         }
 
         result = prepare_cross_source_update(existing, new_source_info)
 
         assert len(result["also_found_on"]["sources"]) == 1
-        assert result["also_found_on"]["sources"][0]["source_id"] == "source-linkedin"
-        assert result["also_found_on"]["sources"][0]["external_id"] == "linkedin-789"
+        assert result["also_found_on"]["sources"][0]["source_id"] == _SOURCE_LINKEDIN
+        assert result["also_found_on"]["sources"][0]["external_id"] == _EXT_LINKEDIN
         assert result["also_found_on"]["sources"][0]["source_url"] == (
             "https://linkedin.com/jobs/view/789"
         )
@@ -1499,27 +1522,27 @@ class TestPrepareCrossSourceUpdate:
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {
                 "sources": [
                     {
-                        "source_id": "source-linkedin",
-                        "external_id": "linkedin-789",
+                        "source_id": _SOURCE_LINKEDIN,
+                        "external_id": _EXT_LINKEDIN,
                         "source_url": "https://linkedin.com/jobs/view/789",
                         "found_at": "2025-01-20T10:00:00Z",
                     }
                 ]
             },
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         new_source_info = {
-            "source_id": "source-indeed",
+            "source_id": _SOURCE_INDEED,
             "source_name": "Indeed",
-            "external_id": "indeed-111",
+            "external_id": _EXT_INDEED,
             "source_url": "https://indeed.com/jobs?id=111",
         }
 
@@ -1528,28 +1551,28 @@ class TestPrepareCrossSourceUpdate:
         # Should have 2 sources now
         assert len(result["also_found_on"]["sources"]) == 2
         # Original source preserved
-        assert result["also_found_on"]["sources"][0]["source_id"] == "source-linkedin"
+        assert result["also_found_on"]["sources"][0]["source_id"] == _SOURCE_LINKEDIN
         # New source added
-        assert result["also_found_on"]["sources"][1]["source_id"] == "source-indeed"
-        assert result["also_found_on"]["sources"][1]["external_id"] == "indeed-111"
+        assert result["also_found_on"]["sources"][1]["source_id"] == _SOURCE_INDEED
+        assert result["also_found_on"]["sources"][1]["external_id"] == _EXT_INDEED
 
     def test_includes_found_at_timestamp(self) -> None:
         """New source entry includes found_at timestamp."""
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {"sources": []},
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
         }
 
@@ -1566,20 +1589,20 @@ class TestPrepareCrossSourceUpdate:
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {"sources": []},
             "salary_min": None,
             "salary_max": None,
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
             "salary_min": 120000,
             "salary_max": 150000,
@@ -1595,19 +1618,19 @@ class TestPrepareCrossSourceUpdate:
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {"sources": []},
             "apply_url": "https://adzuna.com/redirect/12345",
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
             "apply_url": "https://acme.greenhouse.io/apply/scrum-master",
         }
@@ -1622,52 +1645,52 @@ class TestPrepareCrossSourceUpdate:
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {"sources": []},
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
         }
 
         result = prepare_cross_source_update(existing, new_source_info)
 
-        assert result["id"] == "job-123"
+        assert result["id"] == _JOB_ID
 
     def test_does_not_duplicate_same_source(self) -> None:
         """Same source is not added twice to also_found_on."""
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {
                 "sources": [
                     {
-                        "source_id": "source-linkedin",
-                        "external_id": "linkedin-789",
+                        "source_id": _SOURCE_LINKEDIN,
+                        "external_id": _EXT_LINKEDIN,
                         "source_url": "https://linkedin.com/jobs/view/789",
                         "found_at": "2025-01-20T10:00:00Z",
                     }
                 ]
             },
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         # Same source_id as already in also_found_on
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
         }
 
@@ -1681,18 +1704,18 @@ class TestPrepareCrossSourceUpdate:
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {"sources": []},
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
         }
         original_also_found_on = existing["also_found_on"]["sources"].copy()
@@ -1707,19 +1730,19 @@ class TestPrepareCrossSourceUpdate:
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {"sources": []},
             "posted_date": "2025-01-20",
-            "description": "Original description",
+            "description": _DESC_ORIGINAL,
         }
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
             "posted_date": "2025-01-15",  # Earlier date
         }
@@ -1733,18 +1756,18 @@ class TestPrepareCrossSourceUpdate:
         from app.services.job_deduplication import prepare_cross_source_update
 
         existing = {
-            "id": "job-123",
-            "source_id": "source-adzuna",
-            "external_id": "adzuna-456",
-            "job_title": "Scrum Master",
-            "company_name": "Acme Corp",
+            "id": _JOB_ID,
+            "source_id": _SOURCE_ADZUNA,
+            "external_id": _EXT_ADZUNA,
+            "job_title": _TITLE_SM,
+            "company_name": _COMPANY_ACME,
             "also_found_on": {"sources": []},
             "description": "Short description",
         }
         new_source_info = {
-            "source_id": "source-linkedin",
+            "source_id": _SOURCE_LINKEDIN,
             "source_name": "LinkedIn",
-            "external_id": "linkedin-789",
+            "external_id": _EXT_LINKEDIN,
             "source_url": "https://linkedin.com/jobs/view/789",
             "description": "Much longer and more detailed description with requirements",
         }
@@ -1775,9 +1798,9 @@ class TestGenerateCrossSourceMessage:
         also_found_on = {
             "sources": [
                 {
-                    "source_id": "source-linkedin",
+                    "source_id": _SOURCE_LINKEDIN,
                     "source_name": "LinkedIn",
-                    "external_id": "linkedin-789",
+                    "external_id": _EXT_LINKEDIN,
                     "source_url": "https://linkedin.com/jobs/view/789",
                     "found_at": "2025-01-20T10:00:00Z",
                 }
@@ -1785,14 +1808,14 @@ class TestGenerateCrossSourceMessage:
         }
 
         result = generate_cross_source_message(
-            job_title="Scrum Master",
-            company_name="Acme Corp",
+            job_title=_TITLE_SM,
+            company_name=_COMPANY_ACME,
             also_found_on=also_found_on,
         )
 
         assert result is not None
-        assert "Scrum Master" in result
-        assert "Acme Corp" in result
+        assert _TITLE_SM in result
+        assert _COMPANY_ACME in result
         assert "LinkedIn" in result
 
     def test_generates_message_with_multiple_sources(self) -> None:
@@ -1802,16 +1825,16 @@ class TestGenerateCrossSourceMessage:
         also_found_on = {
             "sources": [
                 {
-                    "source_id": "source-linkedin",
+                    "source_id": _SOURCE_LINKEDIN,
                     "source_name": "LinkedIn",
-                    "external_id": "linkedin-789",
+                    "external_id": _EXT_LINKEDIN,
                     "source_url": "https://linkedin.com/jobs/view/789",
                     "found_at": "2025-01-20T10:00:00Z",
                 },
                 {
-                    "source_id": "source-indeed",
+                    "source_id": _SOURCE_INDEED,
                     "source_name": "Indeed",
-                    "external_id": "indeed-111",
+                    "external_id": _EXT_INDEED,
                     "source_url": "https://indeed.com/jobs?id=111",
                     "found_at": "2025-01-21T14:00:00Z",
                 },
@@ -1819,8 +1842,8 @@ class TestGenerateCrossSourceMessage:
         }
 
         result = generate_cross_source_message(
-            job_title="Scrum Master",
-            company_name="Acme Corp",
+            job_title=_TITLE_SM,
+            company_name=_COMPANY_ACME,
             also_found_on=also_found_on,
         )
 
@@ -1837,8 +1860,8 @@ class TestGenerateCrossSourceMessage:
         also_found_on: dict = {"sources": []}
 
         result = generate_cross_source_message(
-            job_title="Scrum Master",
-            company_name="Acme Corp",
+            job_title=_TITLE_SM,
+            company_name=_COMPANY_ACME,
             also_found_on=also_found_on,
         )
 
@@ -1851,8 +1874,8 @@ class TestGenerateCrossSourceMessage:
         also_found_on: dict = {}
 
         result = generate_cross_source_message(
-            job_title="Scrum Master",
-            company_name="Acme Corp",
+            job_title=_TITLE_SM,
+            company_name=_COMPANY_ACME,
             also_found_on=also_found_on,
         )
 
@@ -1865,7 +1888,7 @@ class TestGenerateCrossSourceMessage:
         also_found_on = {
             "sources": [
                 {
-                    "source_id": "source-123",
+                    "source_id": _SOURCE_123,
                     "source_name": "RemoteOK",
                     "external_id": "remote-456",
                     "source_url": "https://remoteok.com/jobs/456",
