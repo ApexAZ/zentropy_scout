@@ -38,6 +38,15 @@ export const JOB_IDS = [
 	"job-004",
 	"job-005",
 ] as const;
+
+/** Persona-job wrapper IDs (PersonaJobResponse.id). */
+export const PERSONA_JOB_IDS = [
+	"pj-001",
+	"pj-002",
+	"pj-003",
+	"pj-004",
+	"pj-005",
+] as const;
 export const VARIANT_ID = "var-001";
 export const COVER_LETTER_ID = "cl-001";
 export const APPLICATION_ID = "app-001";
@@ -304,7 +313,7 @@ const MOCK_JOBS: PersonaJobResponse[] = [
 		},
 		status: "Discovered",
 		is_favorite: false,
-		discovery_method: "scouter",
+		discovery_method: "pool",
 		discovered_at: NOW,
 		fit_score: 45,
 		stretch_score: 30,
@@ -499,10 +508,13 @@ export function emptyJobPostingsList(): ApiListResponse<PersonaJobResponse> {
 	return { data: [], meta: listMeta(0) };
 }
 
-/** Returns a single persona job with full score details (job-001 by default). */
+/** Returns a single persona job with full score details.
+ *  Looks up by persona job ID (pj.id) OR shared job ID (pj.job.id). */
 export function jobPostingDetail(id?: string): ApiResponse<PersonaJobResponse> {
-	const jobId = id ?? JOB_IDS[0];
-	const personaJob = MOCK_JOBS.find((pj) => pj.job.id === jobId);
+	const targetId = id ?? JOB_IDS[0];
+	const personaJob = MOCK_JOBS.find(
+		(pj) => pj.id === targetId || pj.job.id === targetId,
+	);
 	return { data: personaJob ?? MOCK_JOBS[0] };
 }
 
