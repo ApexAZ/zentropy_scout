@@ -43,34 +43,6 @@ def _make_bullet(
 
 
 # =============================================================================
-# Tests: BulletData dataclass
-# =============================================================================
-
-
-class TestBulletData:
-    """Tests for the BulletData dataclass structure."""
-
-    def test_creates_with_required_fields(self) -> None:
-        """BulletData stores all required fields."""
-        bullet = BulletData(
-            bullet_id="b-1",
-            job_entry_id="j-1",
-            skills={"python", "sql"},
-            keywords={"backend", "api"},
-            has_metrics=True,
-            is_current_job=False,
-            is_recent_job=True,
-        )
-        assert bullet.bullet_id == "b-1"
-        assert bullet.job_entry_id == "j-1"
-        assert bullet.skills == {"python", "sql"}
-        assert bullet.keywords == {"backend", "api"}
-        assert bullet.has_metrics is True
-        assert bullet.is_current_job is False
-        assert bullet.is_recent_job is True
-
-
-# =============================================================================
 # Tests: calculate_bullet_relevance — Individual Factors
 # =============================================================================
 

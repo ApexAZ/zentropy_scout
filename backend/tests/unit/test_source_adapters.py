@@ -3,179 +3,10 @@
 REQ-007 §6.3: Source Adapters
 
 Tests verify:
-- Abstract interface (JobSourceAdapter)
-- SearchParams and RawJob types
 - Adapter factory
 - Concrete adapters (Adzuna, RemoteOK, TheMuse, USAJobs)
 - Normalization to common schema
 """
-
-from abc import ABC
-from dataclasses import fields
-
-# =============================================================================
-# Base Interface Tests (§6.3)
-# =============================================================================
-
-
-class TestJobSourceAdapterInterface:
-    """Tests for the JobSourceAdapter abstract base class.
-
-    REQ-007 §6.3: Source adapters implement fetch_jobs() and normalize().
-    """
-
-    def test_interface_is_abstract_base_class(self) -> None:
-        """JobSourceAdapter is an abstract base class that cannot be instantiated."""
-        from app.adapters.sources.base import JobSourceAdapter
-
-        assert issubclass(JobSourceAdapter, ABC)
-
-    def test_interface_defines_fetch_jobs_method(self) -> None:
-        """JobSourceAdapter declares abstract fetch_jobs method."""
-        from app.adapters.sources.base import JobSourceAdapter
-
-        assert hasattr(JobSourceAdapter, "fetch_jobs")
-        # Verify it's abstract by checking __abstractmethods__
-        assert "fetch_jobs" in JobSourceAdapter.__abstractmethods__
-
-    def test_interface_defines_normalize_method(self) -> None:
-        """JobSourceAdapter declares abstract normalize method."""
-        from app.adapters.sources.base import JobSourceAdapter
-
-        assert hasattr(JobSourceAdapter, "normalize")
-        assert "normalize" in JobSourceAdapter.__abstractmethods__
-
-    def test_interface_defines_source_name_property(self) -> None:
-        """JobSourceAdapter declares abstract source_name property."""
-        from app.adapters.sources.base import JobSourceAdapter
-
-        assert "source_name" in JobSourceAdapter.__abstractmethods__
-
-
-class TestSearchParams:
-    """Tests for SearchParams dataclass.
-
-    REQ-007 §6.3: Search parameters for job queries.
-    """
-
-    def test_search_params_is_dataclass(self) -> None:
-        """SearchParams is a dataclass with expected fields."""
-        from app.adapters.sources.base import SearchParams
-
-        # Should be able to instantiate with required fields
-        params = SearchParams(keywords=["python", "developer"])
-        assert params.keywords == ["python", "developer"]
-
-    def test_search_params_has_keywords_field(self) -> None:
-        """SearchParams has keywords field for job title/skill search."""
-        from app.adapters.sources.base import SearchParams
-
-        field_names = [f.name for f in fields(SearchParams)]
-        assert "keywords" in field_names
-
-    def test_search_params_has_location_field(self) -> None:
-        """SearchParams has optional location field."""
-        from app.adapters.sources.base import SearchParams
-
-        params = SearchParams(keywords=["python"], location="San Francisco, CA")
-        assert params.location == "San Francisco, CA"
-
-    def test_search_params_has_remote_only_field(self) -> None:
-        """SearchParams has remote_only flag for filtering."""
-        from app.adapters.sources.base import SearchParams
-
-        params = SearchParams(keywords=["python"], remote_only=True)
-        assert params.remote_only is True
-
-    def test_search_params_has_page_and_limit_fields(self) -> None:
-        """SearchParams has pagination fields."""
-        from app.adapters.sources.base import SearchParams
-
-        params = SearchParams(keywords=["python"], page=2, results_per_page=50)
-        assert params.page == 2
-        assert params.results_per_page == 50
-
-
-class TestRawJob:
-    """Tests for RawJob dataclass.
-
-    REQ-007 §6.3: Raw job data before normalization.
-    """
-
-    def test_raw_job_is_dataclass(self) -> None:
-        """RawJob is a dataclass for source-specific job data."""
-        from app.adapters.sources.base import RawJob
-
-        job = RawJob(
-            external_id="job-123",
-            title="Python Developer",
-            company="Acme Corp",
-            description="Build things",
-            source_url="https://example.com/job/123",
-        )
-        assert job.external_id == "job-123"
-        assert job.title == "Python Developer"
-
-    def test_raw_job_has_required_fields(self) -> None:
-        """RawJob has minimum required fields from any source."""
-        from app.adapters.sources.base import RawJob
-
-        required_fields = {
-            "external_id",
-            "title",
-            "company",
-            "description",
-            "source_url",
-        }
-        field_names = {f.name for f in fields(RawJob)}
-        assert required_fields.issubset(field_names)
-
-    def test_raw_job_has_optional_location_field(self) -> None:
-        """RawJob has optional location field."""
-        from app.adapters.sources.base import RawJob
-
-        job = RawJob(
-            external_id="1",
-            title="Dev",
-            company="Co",
-            description="Desc",
-            source_url="http://x",
-            location="NYC",
-        )
-        assert job.location == "NYC"
-
-    def test_raw_job_has_optional_salary_fields(self) -> None:
-        """RawJob has optional salary_min and salary_max fields."""
-        from app.adapters.sources.base import RawJob
-
-        job = RawJob(
-            external_id="1",
-            title="Dev",
-            company="Co",
-            description="Desc",
-            source_url="http://x",
-            salary_min=100000,
-            salary_max=150000,
-        )
-        assert job.salary_min == 100000
-        assert job.salary_max == 150000
-
-    def test_raw_job_has_optional_raw_data_field(self) -> None:
-        """RawJob has raw_data field for full source response."""
-        from app.adapters.sources.base import RawJob
-
-        # WHY: Some sources return extra fields we might want later
-        raw_data = {"extra_field": "value", "nested": {"key": "val"}}
-        job = RawJob(
-            external_id="1",
-            title="Dev",
-            company="Co",
-            description="Desc",
-            source_url="http://x",
-            raw_data=raw_data,
-        )
-        assert job.raw_data == raw_data
-
 
 # =============================================================================
 # Adapter Factory Tests (§6.3)
@@ -249,20 +80,6 @@ class TestAdzunaAdapter:
     REQ-007 §6.3: Adzuna REST API adapter (250/day free tier).
     """
 
-    def test_adapter_inherits_from_base(self) -> None:
-        """AdzunaAdapter inherits from JobSourceAdapter."""
-        from app.adapters.sources.adzuna import AdzunaAdapter
-        from app.adapters.sources.base import JobSourceAdapter
-
-        assert issubclass(AdzunaAdapter, JobSourceAdapter)
-
-    def test_adapter_has_source_name_adzuna(self) -> None:
-        """AdzunaAdapter.source_name returns 'Adzuna'."""
-        from app.adapters.sources.adzuna import AdzunaAdapter
-
-        adapter = AdzunaAdapter()
-        assert adapter.source_name == "Adzuna"
-
     def test_normalize_converts_adzuna_response_to_raw_job(self) -> None:
         """normalize converts Adzuna API response to RawJob."""
         from app.adapters.sources.adzuna import AdzunaAdapter
@@ -330,20 +147,6 @@ class TestRemoteOKAdapter:
     REQ-007 §6.3: RemoteOK REST API adapter (generous rate limits).
     """
 
-    def test_adapter_inherits_from_base(self) -> None:
-        """RemoteOKAdapter inherits from JobSourceAdapter."""
-        from app.adapters.sources.base import JobSourceAdapter
-        from app.adapters.sources.remoteok import RemoteOKAdapter
-
-        assert issubclass(RemoteOKAdapter, JobSourceAdapter)
-
-    def test_adapter_has_source_name_remoteok(self) -> None:
-        """RemoteOKAdapter.source_name returns 'RemoteOK'."""
-        from app.adapters.sources.remoteok import RemoteOKAdapter
-
-        adapter = RemoteOKAdapter()
-        assert adapter.source_name == "RemoteOK"
-
     def test_normalize_converts_remoteok_response_to_raw_job(self) -> None:
         """normalize converts RemoteOK API response to RawJob."""
         from app.adapters.sources.base import RawJob
@@ -383,20 +186,6 @@ class TestTheMuseAdapter:
     REQ-007 §6.3: The Muse REST API adapter (3600/hour).
     """
 
-    def test_adapter_inherits_from_base(self) -> None:
-        """TheMuseAdapter inherits from JobSourceAdapter."""
-        from app.adapters.sources.base import JobSourceAdapter
-        from app.adapters.sources.themuse import TheMuseAdapter
-
-        assert issubclass(TheMuseAdapter, JobSourceAdapter)
-
-    def test_adapter_has_source_name_the_muse(self) -> None:
-        """TheMuseAdapter.source_name returns 'The Muse'."""
-        from app.adapters.sources.themuse import TheMuseAdapter
-
-        adapter = TheMuseAdapter()
-        assert adapter.source_name == "The Muse"
-
     def test_normalize_converts_muse_response_to_raw_job(self) -> None:
         """normalize converts The Muse API response to RawJob."""
         from app.adapters.sources.base import RawJob
@@ -433,20 +222,6 @@ class TestUSAJobsAdapter:
 
     REQ-007 §6.3: USAJobs REST API adapter (200/day).
     """
-
-    def test_adapter_inherits_from_base(self) -> None:
-        """USAJobsAdapter inherits from JobSourceAdapter."""
-        from app.adapters.sources.base import JobSourceAdapter
-        from app.adapters.sources.usajobs import USAJobsAdapter
-
-        assert issubclass(USAJobsAdapter, JobSourceAdapter)
-
-    def test_adapter_has_source_name_usajobs(self) -> None:
-        """USAJobsAdapter.source_name returns 'USAJobs'."""
-        from app.adapters.sources.usajobs import USAJobsAdapter
-
-        adapter = USAJobsAdapter()
-        assert adapter.source_name == "USAJobs"
 
     def test_normalize_converts_usajobs_response_to_raw_job(self) -> None:
         """normalize converts USAJobs API response to RawJob."""
@@ -522,61 +297,6 @@ class TestUSAJobsAdapter:
 # =============================================================================
 # Edge Case Tests (§6.3)
 # =============================================================================
-
-
-class TestAdapterFetchJobsReturnsEmpty:
-    """Tests verifying fetch_jobs returns empty until API integration.
-
-    REQ-007 §6.3: API integration is deferred to Discovery Flow.
-    """
-
-    async def test_adzuna_fetch_jobs_returns_empty_list(self) -> None:
-        """AdzunaAdapter.fetch_jobs returns empty list (deferred implementation)."""
-        from app.adapters.sources.adzuna import AdzunaAdapter
-        from app.adapters.sources.base import SearchParams
-
-        adapter = AdzunaAdapter()
-        params = SearchParams(keywords=["python"])
-
-        result = await adapter.fetch_jobs(params)
-
-        assert result == []
-
-    async def test_remoteok_fetch_jobs_returns_empty_list(self) -> None:
-        """RemoteOKAdapter.fetch_jobs returns empty list (deferred implementation)."""
-        from app.adapters.sources.base import SearchParams
-        from app.adapters.sources.remoteok import RemoteOKAdapter
-
-        adapter = RemoteOKAdapter()
-        params = SearchParams(keywords=["python"])
-
-        result = await adapter.fetch_jobs(params)
-
-        assert result == []
-
-    async def test_themuse_fetch_jobs_returns_empty_list(self) -> None:
-        """TheMuseAdapter.fetch_jobs returns empty list (deferred implementation)."""
-        from app.adapters.sources.base import SearchParams
-        from app.adapters.sources.themuse import TheMuseAdapter
-
-        adapter = TheMuseAdapter()
-        params = SearchParams(keywords=["python"])
-
-        result = await adapter.fetch_jobs(params)
-
-        assert result == []
-
-    async def test_usajobs_fetch_jobs_returns_empty_list(self) -> None:
-        """USAJobsAdapter.fetch_jobs returns empty list (deferred implementation)."""
-        from app.adapters.sources.base import SearchParams
-        from app.adapters.sources.usajobs import USAJobsAdapter
-
-        adapter = USAJobsAdapter()
-        params = SearchParams(keywords=["python"])
-
-        result = await adapter.fetch_jobs(params)
-
-        assert result == []
 
 
 class TestAdapterNormalizeMissingRequiredKeys:

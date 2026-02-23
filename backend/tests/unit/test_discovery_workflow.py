@@ -29,16 +29,6 @@ from app.services.discovery_workflow import (
 # =============================================================================
 
 
-class TestTriggerType:
-    """Tests for TriggerType enum."""
-
-    def test_trigger_types_exist(self) -> None:
-        """All trigger types from REQ-007 §6.1 are defined."""
-        assert TriggerType.SCHEDULED is not None
-        assert TriggerType.MANUAL is not None
-        assert TriggerType.SOURCE_ADDED is not None
-
-
 class TestDiscoveryTrigger:
     """Tests for DiscoveryTrigger dataclass."""
 

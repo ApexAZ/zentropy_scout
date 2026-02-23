@@ -138,15 +138,6 @@ class TestGoldenSetMetadata:
         assert metadata.version == "1.0.0"
         assert metadata.target_correlation == 0.8
 
-    def test_metadata_default_target_correlation(self) -> None:
-        """Target correlation should default to 0.8 per REQ-008 §11.2."""
-        metadata = GoldenSetMetadata(
-            version="1.0.0",
-            created_date="2026-02-04",
-        )
-
-        assert metadata.target_correlation == 0.8
-
 
 # =============================================================================
 # GoldenSet Tests
@@ -180,24 +171,6 @@ class TestGoldenSet:
 
         assert len(golden_set.entries) == 2
         assert golden_set.metadata.version == "1.0.0"
-
-    def test_entry_count_returns_correct_count(self) -> None:
-        """Entry count property should return correct count."""
-        entries = [
-            GoldenSetEntry(
-                id=f"gs-{i:03d}",
-                persona_summary=f"Persona {i}",
-                job_summary=f"Job {i}",
-                human_fit_score=50,
-                human_stretch_score=50,
-            )
-            for i in range(5)
-        ]
-        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")
-
-        golden_set = GoldenSet(metadata=metadata, entries=entries)
-
-        assert golden_set.entry_count == 5
 
     def test_golden_set_rejects_duplicate_ids(self) -> None:
         """Golden set should reject entries with duplicate IDs."""

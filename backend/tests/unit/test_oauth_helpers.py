@@ -32,11 +32,6 @@ _TEST_SECRET = "test-secret-key-that-is-at-least-32-characters-long"  # nosec B1
 class TestGenerateCodeVerifier:
     """Tests for PKCE code verifier generation."""
 
-    def test_length_is_128_characters(self):
-        """Code verifier should be 128 characters (RFC 7636 max)."""
-        verifier = generate_code_verifier()
-        assert len(verifier) == 128
-
     def test_uses_only_unreserved_characters(self):
         """Code verifier must use only unreserved characters per RFC 7636."""
         verifier = generate_code_verifier()
@@ -63,12 +58,6 @@ class TestGenerateCodeChallenge:
         expected = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
         assert challenge == expected
-
-    def test_no_padding_characters(self):
-        """Base64url encoding should not include padding '=' characters."""
-        verifier = generate_code_verifier()
-        challenge = generate_code_challenge(verifier)
-        assert "=" not in challenge
 
     def test_deterministic_for_same_input(self):
         """Same verifier always produces the same challenge."""

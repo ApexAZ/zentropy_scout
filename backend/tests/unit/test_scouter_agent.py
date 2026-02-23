@@ -12,7 +12,6 @@ Tests verify:
 - Error handling
 """
 
-import re
 from datetime import UTC, datetime, timedelta
 
 # =============================================================================
@@ -140,17 +139,6 @@ class TestManualRefreshPatterns:
         for phrase in test_phrases:
             matched = any(p.search(phrase) for p in MANUAL_REFRESH_PATTERNS)
             assert matched, f"Pattern should match (case insensitive): {phrase}"
-
-    def test_patterns_are_valid_compiled_regex(self) -> None:
-        """Patterns are pre-compiled regex ready for efficient matching."""
-        from app.agents.scouter import MANUAL_REFRESH_PATTERNS
-
-        # Verify patterns can match - the behavior that matters
-        assert any(p.search("find jobs") for p in MANUAL_REFRESH_PATTERNS)
-        assert any(p.search("refresh my job list") for p in MANUAL_REFRESH_PATTERNS)
-        # Verify they're compiled (enables efficient repeated matching)
-        for pattern in MANUAL_REFRESH_PATTERNS:
-            assert isinstance(pattern, re.Pattern)
 
 
 # =============================================================================

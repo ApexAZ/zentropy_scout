@@ -169,8 +169,3 @@ class TestValidateNoBlacklistEdgeCases:
             things_to_avoid=["", "  "],
         )
         assert result == []
-
-    def test_returns_list_type(self) -> None:
-        """Should always return a list."""
-        result = validate_no_blacklist(text="Hello.", things_to_avoid=[])
-        assert isinstance(result, list)

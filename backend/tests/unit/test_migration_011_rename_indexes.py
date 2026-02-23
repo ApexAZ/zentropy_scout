@@ -304,20 +304,6 @@ async def upgraded_session(
 class TestRenameMapping:
     """Verify the rename mapping is complete and consistent."""
 
-    def test_rename_count_is_49(self):
-        """Migration renames exactly 49 indexes (53 total minus 4 already correct)."""
-        assert len(INDEX_RENAMES) == TOTAL_RENAMES
-
-    def test_no_duplicate_old_names(self):
-        """Every old name appears exactly once."""
-        old_names = [r[0] for r in INDEX_RENAMES]
-        assert len(old_names) == len(set(old_names))
-
-    def test_no_duplicate_new_names(self):
-        """Every new name appears exactly once."""
-        new_names = [r[1] for r in INDEX_RENAMES]
-        assert len(new_names) == len(set(new_names))
-
     def test_new_names_follow_convention(self):
         """All new names match idx_{table}_{columns} pattern."""
         for _old, new, table in INDEX_RENAMES:

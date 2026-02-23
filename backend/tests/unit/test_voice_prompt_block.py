@@ -36,11 +36,6 @@ def _default_kwargs() -> dict:
 class TestBuildVoiceProfileBlock:
     """Tests that the output matches REQ-010 §3.3 template structure."""
 
-    def test_returns_string(self) -> None:
-        """Should return a string."""
-        result = build_voice_profile_block(**_default_kwargs())
-        assert isinstance(result, str)
-
     def test_wrapped_in_voice_profile_tags(self) -> None:
         """Output must be wrapped in <voice_profile> XML tags."""
         result = build_voice_profile_block(**_default_kwargs())

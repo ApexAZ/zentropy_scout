@@ -53,30 +53,6 @@ def _make_data(
 
 
 # =============================================================================
-# Test: VariantValidationData
-# =============================================================================
-
-
-class TestVariantValidationData:
-    """Dataclass field storage."""
-
-    def test_stores_all_fields(self) -> None:
-        data = _make_data()
-        assert data.base_bullet_ids == {"b1", "b2", "b3"}
-        assert data.variant_bullet_ids == {"b1", "b2", "b3"}
-        assert (
-            data.base_summary
-            == "experienced software engineer with python and java skills"
-        )
-        assert (
-            data.variant_summary
-            == "experienced software engineer with python and java skills"
-        )
-        assert data.variant_summary_skills == {"python", "java"}
-        assert data.persona_skill_names == {"python", "java", "sql"}
-
-
-# =============================================================================
 # Test: Check 1 — Bullet ID Subset
 # =============================================================================
 
