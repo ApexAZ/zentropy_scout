@@ -19,6 +19,7 @@ import { ReviewMaterialsLink } from "@/components/jobs/review-materials-link";
 import { CultureSignals } from "@/components/jobs/culture-signals";
 import { ExtractedSkillsTags } from "@/components/jobs/extracted-skills-tags";
 import { JobDescription } from "@/components/jobs/job-description";
+import { JobDetailActions } from "@/components/jobs/job-detail-actions";
 import { JobDetailHeader } from "@/components/jobs/job-detail-header";
 import { MarkAsAppliedCard } from "@/components/jobs/mark-as-applied-card";
 import { ScoreBreakdown } from "@/components/jobs/score-breakdown";
@@ -58,6 +59,12 @@ export default function JobDetailPage() {
 			<JobDetailHeader jobId={params.id} />
 			{personaJob && (
 				<>
+					<div className="mt-4">
+						<JobDetailActions
+							personaJobId={personaJob.id}
+							status={personaJob.status}
+						/>
+					</div>
 					<div className="mt-6">
 						<MarkAsAppliedCard
 							jobId={params.id}

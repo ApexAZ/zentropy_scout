@@ -36,6 +36,7 @@ const COVER_LETTER_SECTION_TESTID = "cover-letter-section-stub";
 const DRAFT_MATERIALS_TESTID = "draft-materials-stub";
 const REVIEW_MATERIALS_TESTID = "review-materials-stub";
 const MARK_AS_APPLIED_TESTID = "mark-as-applied-stub";
+const ACTIONS_TESTID = "job-detail-actions-stub";
 const ONBOARDED_STATUS = { status: "onboarded", persona: { id: "p-1" } };
 
 // ---------------------------------------------------------------------------
@@ -67,6 +68,25 @@ MockJobDetailHeader.displayName = "MockJobDetailHeader";
 
 vi.mock("@/components/jobs/job-detail-header", () => ({
 	JobDetailHeader: MockJobDetailHeader,
+}));
+
+function MockJobDetailActions({
+	personaJobId,
+	status,
+}: {
+	personaJobId: string;
+	status: string;
+}) {
+	return (
+		<div data-testid={ACTIONS_TESTID}>
+			{personaJobId}|{status}
+		</div>
+	);
+}
+MockJobDetailActions.displayName = "MockJobDetailActions";
+
+vi.mock("@/components/jobs/job-detail-actions", () => ({
+	JobDetailActions: MockJobDetailActions,
 }));
 
 function MockScoreBreakdown({
@@ -236,6 +256,7 @@ function makeJobData(
 		data: {
 			data: {
 				id: MOCK_JOB_ID,
+				status: "Discovered",
 				score_details: scoreDetails ?? null,
 				job: {
 					description: "We are hiring a senior engineer.",
@@ -591,6 +612,32 @@ describe("JobDetailPage", () => {
 
 		expect(screen.getByTestId(MARK_AS_APPLIED_TESTID)).toHaveTextContent(
 			"https://example.com/apply",
+		);
+	});
+
+	// -----------------------------------------------------------------------
+	// JobDetailActions
+	// -----------------------------------------------------------------------
+
+	it("does not render JobDetailActions when data is loading", () => {
+		render(<JobDetailPage />);
+
+		expect(screen.queryByTestId(ACTIONS_TESTID)).not.toBeInTheDocument();
+	});
+
+	it("renders JobDetailActions when job data is available", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(ACTIONS_TESTID)).toBeInTheDocument();
+	});
+
+	it("passes personaJobId and status to JobDetailActions", () => {
+		setupQueries({ jobData: makeJobData() });
+		render(<JobDetailPage />);
+
+		expect(screen.getByTestId(ACTIONS_TESTID)).toHaveTextContent(
+			`${MOCK_JOB_ID}|Discovered`,
 		);
 	});
 });
