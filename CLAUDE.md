@@ -309,10 +309,22 @@ These patterns test implementation details rather than behavior. They break on r
 | `dataclasses.fields(Cls)` / `get_type_hints(Cls)` | Tests schema shape | Construct instances and assert on behavior |
 | `CONSTANT == 42` / `enum.value == "literal"` | Duplicates the source code | Test behavior that depends on the constant's value |
 | `len(some_enum) == N` | Breaks when enum grows | Test specific members that matter for behavior |
+| `callable(obj)` | Tests callable status, not behavior | Call the function and assert on its return value |
 
 **Decision criterion:** Ask "Would this test still pass if I rewrote the implementation using a completely different internal structure but preserved the same external behavior?" If yes, the test is behavioral (good). If no, the test is structural (bad).
 
+**Automated detection:** The conftest.py hook scans test functions via AST analysis and reports violations in the pytest terminal summary (warning-only, does not fail the build).
+
 **Frozen-test pattern (approved alternative for immutability):** When you need to verify a data structure hasn't changed (e.g., migration mappings), test the behavioral contract: "new names follow the naming convention" rather than "there are exactly 49 entries."
+
+```python
+# Approved: Test immutability through public API
+def test_result_preserves_original_on_copy():
+    result = SomeResult(field="value")
+    updated = replace(result, field="new")
+    assert result.field == "value"   # Original unchanged
+    assert updated.field == "new"    # Copy has new value
+```
 
 ### Pre-commit Hooks
 

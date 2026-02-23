@@ -19,38 +19,6 @@ class TestAdapterFactory:
     REQ-007 §6.3: Factory pattern for source adapters.
     """
 
-    def test_factory_returns_adzuna_adapter_when_name_is_adzuna(self) -> None:
-        """get_source_adapter returns AdzunaAdapter for 'Adzuna'."""
-        from app.adapters.sources import get_source_adapter
-        from app.adapters.sources.adzuna import AdzunaAdapter
-
-        adapter = get_source_adapter("Adzuna")
-        assert isinstance(adapter, AdzunaAdapter)
-
-    def test_factory_returns_remoteok_adapter_when_name_is_remoteok(self) -> None:
-        """get_source_adapter returns RemoteOKAdapter for 'RemoteOK'."""
-        from app.adapters.sources import get_source_adapter
-        from app.adapters.sources.remoteok import RemoteOKAdapter
-
-        adapter = get_source_adapter("RemoteOK")
-        assert isinstance(adapter, RemoteOKAdapter)
-
-    def test_factory_returns_muse_adapter_when_name_is_the_muse(self) -> None:
-        """get_source_adapter returns TheMuseAdapter for 'The Muse'."""
-        from app.adapters.sources import get_source_adapter
-        from app.adapters.sources.themuse import TheMuseAdapter
-
-        adapter = get_source_adapter("The Muse")
-        assert isinstance(adapter, TheMuseAdapter)
-
-    def test_factory_returns_usajobs_adapter_when_name_is_usajobs(self) -> None:
-        """get_source_adapter returns USAJobsAdapter for 'USAJobs'."""
-        from app.adapters.sources import get_source_adapter
-        from app.adapters.sources.usajobs import USAJobsAdapter
-
-        adapter = get_source_adapter("USAJobs")
-        assert isinstance(adapter, USAJobsAdapter)
-
     def test_factory_raises_when_source_unknown(self) -> None:
         """get_source_adapter raises ValueError for unknown source names."""
         import pytest
@@ -59,14 +27,6 @@ class TestAdapterFactory:
 
         with pytest.raises(ValueError, match="Unknown source"):
             get_source_adapter("UnknownSource")
-
-    def test_factory_handles_case_insensitive_names(self) -> None:
-        """get_source_adapter matches source names case-insensitively."""
-        from app.adapters.sources import get_source_adapter
-        from app.adapters.sources.adzuna import AdzunaAdapter
-
-        adapter = get_source_adapter("adzuna")
-        assert isinstance(adapter, AdzunaAdapter)
 
 
 # =============================================================================

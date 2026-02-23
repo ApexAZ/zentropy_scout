@@ -413,14 +413,3 @@ class TestScoreBounds:
             location_logistics=0.0,
         )
         assert result.total >= 0
-
-    def test_total_is_integer(self) -> None:
-        """Total score should be an integer."""
-        result = calculate_fit_score(
-            hard_skills=59.2,
-            soft_skills=70.0,
-            experience_level=85.0,
-            role_title=75.0,
-            location_logistics=100.0,
-        )
-        assert isinstance(result.total, int)

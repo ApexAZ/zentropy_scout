@@ -560,53 +560,6 @@ class TestGenerateSummarySentence:
 
 
 # =============================================================================
-# Return Type Tests (REQ-008 §8.2)
-# =============================================================================
-
-
-class TestReturnType:
-    """Tests for return type of generate_explanation."""
-
-    def test_returns_score_explanation(self) -> None:
-        """generate_explanation returns ScoreExplanation instance."""
-        fit_result = make_fit_result()
-        stretch_result = make_stretch_result()
-
-        persona = MockPersona()
-        job = MockJobPosting()
-
-        explanation = generate_explanation(fit_result, stretch_result, persona, job)
-
-        assert isinstance(explanation, ScoreExplanation)
-
-    def test_all_fields_are_correct_types(self) -> None:
-        """All fields have correct types."""
-        fit_result = make_fit_result()
-        stretch_result = make_stretch_result()
-
-        persona = MockPersona()
-        job = MockJobPosting()
-
-        explanation = generate_explanation(fit_result, stretch_result, persona, job)
-
-        assert isinstance(explanation.summary, str)
-        assert isinstance(explanation.strengths, list)
-        assert isinstance(explanation.gaps, list)
-        assert isinstance(explanation.stretch_opportunities, list)
-        assert isinstance(explanation.warnings, list)
-
-        # All list items should be strings
-        for s in explanation.strengths:
-            assert isinstance(s, str)
-        for g in explanation.gaps:
-            assert isinstance(g, str)
-        for so in explanation.stretch_opportunities:
-            assert isinstance(so, str)
-        for w in explanation.warnings:
-            assert isinstance(w, str)
-
-
-# =============================================================================
 # Edge Case Tests (REQ-008 §8.2)
 # =============================================================================
 

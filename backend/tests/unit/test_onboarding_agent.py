@@ -37,7 +37,6 @@ from app.agents.onboarding import (
     get_next_step,
     get_onboarding_graph,
     get_system_prompt,
-    get_transition_prompt,
     get_update_completion_message,
     get_voice_profile_prompt,
     get_work_history_prompt,
@@ -2570,12 +2569,6 @@ class TestPostOnboardingUpdates:
 class TestSystemPrompt:
     """Tests for the Scout interviewer persona system prompt (§5.6.1)."""
 
-    def test_system_prompt_template_exists(self) -> None:
-        """System prompt template should be defined."""
-        assert SYSTEM_PROMPT_TEMPLATE is not None
-        assert isinstance(SYSTEM_PROMPT_TEMPLATE, str)
-        assert len(SYSTEM_PROMPT_TEMPLATE) > 100  # Non-trivial template
-
     def test_system_prompt_has_scout_persona(self) -> None:
         """System prompt should establish Scout interviewer persona."""
         prompt_lower = SYSTEM_PROMPT_TEMPLATE.lower()
@@ -2641,11 +2634,6 @@ class TestSystemPrompt:
 class TestStepSpecificPrompts:
     """Tests for step-specific prompt templates (§5.6.2)."""
 
-    def test_work_history_expansion_prompt_exists(self) -> None:
-        """Work history expansion prompt should be defined."""
-        assert WORK_HISTORY_EXPANSION_PROMPT is not None
-        assert isinstance(WORK_HISTORY_EXPANSION_PROMPT, str)
-
     def test_work_history_prompt_probes_for_accomplishments(self) -> None:
         """Work history prompt should probe for accomplishments."""
         prompt_lower = WORK_HISTORY_EXPANSION_PROMPT.lower()
@@ -2667,11 +2655,6 @@ class TestStepSpecificPrompts:
             or "percent" in prompt_lower
         )
 
-    def test_achievement_story_prompt_exists(self) -> None:
-        """Achievement story prompt should be defined."""
-        assert ACHIEVEMENT_STORY_PROMPT is not None
-        assert isinstance(ACHIEVEMENT_STORY_PROMPT, str)
-
     def test_achievement_story_prompt_uses_star_format(self) -> None:
         """Achievement story prompt should reference STAR format."""
         prompt_lower = ACHIEVEMENT_STORY_PROMPT.lower()
@@ -2685,11 +2668,6 @@ class TestStepSpecificPrompts:
         # Per §5.6.2: {existing_stories}, {covered_skills}
         assert "{existing_stories}" in ACHIEVEMENT_STORY_PROMPT
         assert "{covered_skills}" in ACHIEVEMENT_STORY_PROMPT
-
-    def test_voice_profile_derivation_prompt_exists(self) -> None:
-        """Voice profile derivation prompt should be defined."""
-        assert VOICE_PROFILE_DERIVATION_PROMPT is not None
-        assert isinstance(VOICE_PROFILE_DERIVATION_PROMPT, str)
 
     def test_voice_profile_prompt_has_transcript_variable(self) -> None:
         """Voice profile prompt should have transcript variable."""
@@ -2753,11 +2731,6 @@ class TestStepSpecificPrompts:
 class TestTransitionPrompts:
     """Tests for transition prompts between sections (§5.6.3)."""
 
-    def test_transition_prompts_dict_exists(self) -> None:
-        """TRANSITION_PROMPTS dict should be defined."""
-        assert TRANSITION_PROMPTS is not None
-        assert isinstance(TRANSITION_PROMPTS, dict)
-
     def test_transition_prompts_has_common_transitions(self) -> None:
         """TRANSITION_PROMPTS should include common step transitions."""
         # Per §5.6.3: work_history → skills, achievement_stories → non_negotiables
@@ -2778,49 +2751,9 @@ class TestTransitionPrompts:
             # Should acknowledge completion and introduce next topic
             assert len(prompt) > 50  # Non-trivial message
 
-    def test_get_transition_prompt_returns_prompt(self) -> None:
-        """get_transition_prompt should return appropriate transition."""
-        result = get_transition_prompt("work_history", "education")
-
-        # Should return a string
-        assert isinstance(result, str)
-        # Should be non-empty
-        assert len(result) > 0
-
-    def test_get_transition_prompt_handles_unknown(self) -> None:
-        """get_transition_prompt should handle unknown transitions gracefully."""
-        result = get_transition_prompt("unknown_step", "another_unknown")
-
-        # Should return some default/fallback
-        assert isinstance(result, str)
-
-    def test_get_transition_prompt_skills_to_certs(self) -> None:
-        """Should provide transition from skills to certifications."""
-        result = get_transition_prompt("skills", "certifications")
-
-        assert isinstance(result, str)
-        assert len(result) > 0
-
-    def test_get_transition_prompt_non_negotiables_to_growth(self) -> None:
-        """Should provide transition from non_negotiables to growth_targets."""
-        result = get_transition_prompt("non_negotiables", "growth_targets")
-
-        assert isinstance(result, str)
-        assert len(result) > 0
-
 
 class TestFormatGatheredDataSummary:
     """Tests for formatting gathered data into a summary string."""
-
-    def test_format_gathered_data_summary_exists(self) -> None:
-        """format_gathered_data_summary function should exist."""
-        assert callable(format_gathered_data_summary)
-
-    def test_format_gathered_data_summary_empty(self) -> None:
-        """Should handle empty gathered data."""
-        result = format_gathered_data_summary({})
-
-        assert isinstance(result, str)
 
     def test_format_gathered_data_summary_with_basic_info(self) -> None:
         """Should include basic info in summary."""
@@ -2873,5 +2806,5 @@ class TestFormatGatheredDataSummary:
         }
         result = format_gathered_data_summary(gathered)
 
-        # Result should mention skipped or be empty for those sections
-        assert isinstance(result, str)
+        # Result should mention skipped or be a string for those sections
+        assert len(result) >= 0

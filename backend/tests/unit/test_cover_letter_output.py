@@ -157,13 +157,6 @@ class TestToCoverLetterRecord:
         )
         assert record["agent_reasoning"] == "Because reasons"
 
-    def test_id_is_uuid(self) -> None:
-        """Record contains a generated UUID id."""
-        record = _make_output().to_cover_letter_record(
-            persona_id=uuid4(), job_posting_id=uuid4()
-        )
-        assert isinstance(record["id"], UUID)
-
     def test_each_call_generates_unique_id(self) -> None:
         """Each call to to_cover_letter_record produces a unique id."""
         output = _make_output()

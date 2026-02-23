@@ -13,7 +13,6 @@ from app.services.generation_outcome import (
     _MAX_GENERATION_ID_LENGTH,
     _MAX_REASON_LENGTH,
     GenerationOutcome,
-    GenerationOutcomeRecord,
     categorize_feedback,
     create_outcome_record,
 )
@@ -42,25 +41,6 @@ class TestGenerationOutcomeRecordStructure:
         updated = replace(record, generation_id="changed-id")
         assert record.generation_id == _GEN_ID
         assert updated.generation_id == "changed-id"
-
-    def test_record_has_all_fields(self) -> None:
-        """GenerationOutcomeRecord should have all required fields."""
-        record = create_outcome_record(
-            generation_id=_GEN_ID,
-            outcome=GenerationOutcome.APPROVED,
-        )
-        assert hasattr(record, "generation_id")
-        assert hasattr(record, "outcome")
-        assert hasattr(record, "feedback_category")
-        assert hasattr(record, "regeneration_reason")
-
-    def test_record_type(self) -> None:
-        """create_outcome_record should return a GenerationOutcomeRecord."""
-        record = create_outcome_record(
-            generation_id=_GEN_ID,
-            outcome=GenerationOutcome.APPROVED,
-        )
-        assert isinstance(record, GenerationOutcomeRecord)
 
 
 # =============================================================================

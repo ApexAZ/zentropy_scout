@@ -18,7 +18,6 @@ import pytest
 
 from app.agents.base import (
     BaseAgentClient,
-    LocalAgentClient,
     get_agent_client,
     reset_agent_client,
 )
@@ -70,11 +69,6 @@ def reset_singleton() -> Generator[None, None, None]:
 
 class TestGetAgentClient:
     """Tests for get_agent_client factory function."""
-
-    def test_returns_local_client_by_default(self):
-        """Factory returns LocalAgentClient in local mode."""
-        client = get_agent_client()
-        assert isinstance(client, LocalAgentClient)
 
     def test_returns_singleton(self):
         """Factory returns the same instance on subsequent calls."""

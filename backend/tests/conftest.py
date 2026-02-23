@@ -535,7 +535,15 @@ def disable_rate_limiting() -> Iterator[None]:
 # Test Antipattern Detection (warning-only)
 # =============================================================================
 
-_BANNED_FUNCTIONS = frozenset({"isinstance", "issubclass", "hasattr"})
+_BANNED_FUNCTIONS = frozenset(
+    {
+        "isinstance",
+        "issubclass",
+        "hasattr",
+        "get_type_hints",
+        "callable",
+    }
+)
 _BANNED_ATTRS = frozenset({"__abstractmethods__"})
 
 
@@ -548,22 +556,32 @@ def _find_antipatterns_in_source(source: str) -> list[str]:
 
     findings: list[str] = []
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        # isinstance(), issubclass(), hasattr() calls
-        if isinstance(node.func, ast.Name) and node.func.id in _BANNED_FUNCTIONS:
-            findings.append(node.func.id)
-        # dataclasses.fields() calls
-        if (
-            isinstance(node.func, ast.Attribute)
-            and node.func.attr == "fields"
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id in ("dataclasses", "fields")
-        ):
-            findings.append("dataclasses.fields")
-        # __abstractmethods__ access
-        if isinstance(node.func, ast.Attribute) and node.func.attr in _BANNED_ATTRS:
-            findings.append(node.func.attr)
+        if isinstance(node, ast.Call):
+            # isinstance(), issubclass(), hasattr(), get_type_hints(), callable()
+            if isinstance(node.func, ast.Name) and node.func.id in _BANNED_FUNCTIONS:
+                findings.append(node.func.id)
+            # bare fields() call (from dataclasses import fields)
+            if isinstance(node.func, ast.Name) and node.func.id == "fields":
+                findings.append("dataclasses.fields")
+            # dataclasses.fields() call
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "fields"
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "dataclasses"
+            ):
+                findings.append("dataclasses.fields")
+            # __abstractmethods__ access via call
+            if isinstance(node.func, ast.Attribute) and node.func.attr in _BANNED_ATTRS:
+                findings.append(node.func.attr)
+        # "method" in Cls.__abstractmethods__ (ast.Compare with `in` operator)
+        if isinstance(node, ast.Compare):
+            for comparator in node.comparators:
+                if (
+                    isinstance(comparator, ast.Attribute)
+                    and comparator.attr in _BANNED_ATTRS
+                ):
+                    findings.append(comparator.attr)
     return findings
 
 

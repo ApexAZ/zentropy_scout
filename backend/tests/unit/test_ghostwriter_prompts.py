@@ -31,12 +31,6 @@ from app.schemas.prompt_params import JobContext, VoiceProfileData
 class TestCoverLetterSystemPrompt:
     """Tests for the COVER_LETTER_SYSTEM_PROMPT constant."""
 
-    def test_system_prompt_is_non_empty_string(self) -> None:
-        """System prompt should be a non-empty string."""
-
-        assert isinstance(COVER_LETTER_SYSTEM_PROMPT, str)
-        assert len(COVER_LETTER_SYSTEM_PROMPT) > 0
-
     def test_system_prompt_includes_voice_profile_rule(self) -> None:
         """System prompt should reference voice profile for authentic writing."""
 
@@ -111,14 +105,6 @@ class TestBuildCoverLetterPrompt:
             ),
             "stories": [],
         }
-
-    def test_returns_formatted_string(self) -> None:
-        """Builder should return a non-empty formatted string."""
-
-        result = build_cover_letter_prompt(**self._default_kwargs())
-
-        assert isinstance(result, str)
-        assert len(result) > 0
 
     def test_includes_applicant_name(self) -> None:
         """Prompt should include the applicant's name."""
@@ -305,12 +291,6 @@ class TestBuildCoverLetterPrompt:
 class TestSummaryTailoringSystemPrompt:
     """Tests for the SUMMARY_TAILORING_SYSTEM_PROMPT constant."""
 
-    def test_system_prompt_is_non_empty_string(self) -> None:
-        """System prompt should be a non-empty string."""
-
-        assert isinstance(SUMMARY_TAILORING_SYSTEM_PROMPT, str)
-        assert len(SUMMARY_TAILORING_SYSTEM_PROMPT) > 0
-
     def test_system_prompt_includes_length_rule(self) -> None:
         """System prompt must require same length (±10 words) per §4.2 rule 1."""
 
@@ -380,14 +360,6 @@ class TestBuildSummaryTailoringPrompt:
             "description_excerpt": "We are looking for a senior developer...",
             "missing_keywords": ["microservices", "AWS", "team leadership"],
         }
-
-    def test_returns_string(self) -> None:
-        """Builder should return a non-empty string."""
-
-        result = build_summary_tailoring_prompt(**self._default_kwargs())
-
-        assert isinstance(result, str)
-        assert len(result) > 0
 
     def test_includes_voice_profile_block(self) -> None:
         """Prompt should include the pre-built voice profile block."""
@@ -639,16 +611,6 @@ class TestBuildRegenerationContext:
         "Write a cover letter for the Software Engineer role at Acme Corp."
     )
     _DEFAULT_FEEDBACK = "Make it more technical"
-
-    def test_returns_string(self) -> None:
-        """Builder should return a non-empty string."""
-        result = build_regeneration_context(
-            original_prompt=self._ORIGINAL_PROMPT,
-            feedback=self._DEFAULT_FEEDBACK,
-        )
-
-        assert isinstance(result, str)
-        assert len(result) > 0
 
     def test_original_prompt_preserved_at_start(self) -> None:
         """Original prompt should appear verbatim at the start of the result."""

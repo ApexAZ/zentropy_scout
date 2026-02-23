@@ -132,6 +132,67 @@ Before marking a test complete:
 | 100% coverage as goal | Cover critical paths and edge cases |
 | Mocking everything | Use real DB for integration tests |
 
+### Structural Assertion Anti-Patterns (NEVER USE)
+
+These patterns test implementation details rather than behavior. They break on refactors that don't change functionality. The conftest.py hook detects most of these and reports warnings.
+
+| Banned Pattern | Why It's Wrong | What to Do Instead |
+|----------------|----------------|-------------------|
+| `isinstance(result, SomeType)` | Tests return type, not behavior | Assert on the result's value or properties |
+| `issubclass(Foo, Bar)` | Tests inheritance chain | Test that `Foo` exhibits `Bar`'s behavioral contract |
+| `hasattr(obj, "field")` | Tests attribute existence | Call the attribute and assert on its behavior |
+| `callable(obj)` | Tests callable status, not behavior | Call the function and assert on its return value |
+| `get_type_hints(Cls)` | Tests schema shape | Construct instances and assert on behavior |
+| `dataclasses.fields(Cls)` | Tests schema shape | Construct instances and assert on behavior |
+| `"method" in Cls.__abstractmethods__` | Tests ABC internals | Test that concrete subclasses implement the method |
+| `CONSTANT == 42` / `enum.value == "literal"` | Duplicates the source code | Test behavior that depends on the constant's value |
+| `len(some_enum) == N` | Breaks when enum grows | Test specific members that matter for behavior |
+
+**Decision criterion:** Ask "Would this test still pass if I rewrote the implementation using a completely different internal structure but preserved the same external behavior?" If yes, the test is behavioral (good). If no, the test is structural (bad).
+
+```python
+# BAD: Structural — tests that the type is correct
+def test_returns_cover_letter_result():
+    result = await generate_cover_letter(**kwargs)
+    assert isinstance(result, CoverLetterResult)
+
+# GOOD: Behavioral — tests what the caller actually cares about
+def test_result_contains_content_and_reasoning():
+    result = await generate_cover_letter(**kwargs)
+    assert "Dear Hiring Manager" in result.content
+    assert "cloud migration" in result.reasoning
+
+# BAD: Structural — tests field existence
+def test_record_has_all_fields():
+    record = create_outcome_record(gen_id="abc", outcome=APPROVED)
+    assert hasattr(record, "generation_id")
+    assert hasattr(record, "outcome")
+
+# GOOD: Behavioral — tests field values
+def test_approved_record_has_correct_values():
+    record = create_outcome_record(gen_id="abc", outcome=APPROVED)
+    assert record.generation_id == "abc"
+    assert record.outcome == APPROVED
+    assert record.feedback_category is None
+```
+
+**Frozen-test pattern (approved alternative for immutability):**
+
+```python
+# BAD: Tests Python's frozen mechanism
+def test_result_is_frozen():
+    result = SomeResult(field="value")
+    with pytest.raises(FrozenInstanceError):
+        result.field = "new"
+
+# GOOD: Tests immutability through public API
+def test_result_preserves_original_on_copy():
+    result = SomeResult(field="value")
+    updated = replace(result, field="new")
+    assert result.field == "value"   # Original unchanged
+    assert updated.field == "new"    # Copy has new value
+```
+
 ---
 
 ## Test Setup

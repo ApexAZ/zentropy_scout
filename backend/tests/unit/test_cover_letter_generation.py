@@ -21,7 +21,6 @@ from app.providers.llm.base import LLMResponse, TaskType
 from app.schemas.prompt_params import JobContext, VoiceProfileData
 from app.services.cover_letter_generation import (
     CoverLetterGenerationError,
-    CoverLetterResult,
     generate_cover_letter,
 )
 
@@ -148,21 +147,6 @@ class TestGenerateCoverLetter:
         assert len(messages) == 2
         assert messages[0].role == "system"
         assert messages[1].role == "user"
-
-    @pytest.mark.asyncio
-    async def test_returns_cover_letter_result(self) -> None:
-        """Service should return a CoverLetterResult dataclass."""
-
-        mock_provider = AsyncMock()
-        mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
-
-        with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
-            return_value=mock_provider,
-        ):
-            result = await generate_cover_letter(**_default_kwargs())
-
-        assert isinstance(result, CoverLetterResult)
 
     @pytest.mark.asyncio
     async def test_result_contains_content_field(self) -> None:

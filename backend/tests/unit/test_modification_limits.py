@@ -355,13 +355,6 @@ class TestEdgeCases:
         skill_violation = [v for v in violations if "cobol" in v]
         assert len(skill_violation) == 1
 
-    def test_return_type_is_list_of_strings(self) -> None:
-        """Function always returns a list of strings."""
-        data = _make_data()
-        result = validate_variant_modifications(data=data)
-        assert isinstance(result, list)
-        assert all(isinstance(v, str) for v in result)
-
 
 # =============================================================================
 # Test: Safety Bounds

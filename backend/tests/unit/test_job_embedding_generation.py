@@ -269,13 +269,6 @@ class TestGetNeutralEmbedding:
 
         assert all(v == 0.0 for v in result)
 
-    def test_returns_list_of_floats(self) -> None:
-        """Returns a list of floats."""
-        result = get_neutral_embedding()
-
-        assert isinstance(result, list)
-        assert all(isinstance(v, float) for v in result)
-
 
 # =============================================================================
 # JobEmbeddingsResult Tests

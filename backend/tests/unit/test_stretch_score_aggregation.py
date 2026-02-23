@@ -334,12 +334,3 @@ class TestScoreBounds:
             growth_trajectory=0.0,
         )
         assert result.total >= 0
-
-    def test_total_is_integer(self) -> None:
-        """Total score should be an integer."""
-        result = calculate_stretch_score(
-            target_role=100.0,
-            target_skills=50.0,
-            growth_trajectory=100.0,
-        )
-        assert isinstance(result.total, int)

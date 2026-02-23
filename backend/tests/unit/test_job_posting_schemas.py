@@ -95,7 +95,6 @@ class TestJobPostingResponse:
     def test_excludes_also_found_on(self):
         """Privacy: also_found_on MUST NOT be present in response."""
         resp = JobPostingResponse(**_make_job_data())
-        assert not hasattr(resp, "also_found_on")
         # Verify it's not in the serialized output
         dumped = resp.model_dump()
         assert "also_found_on" not in dumped
