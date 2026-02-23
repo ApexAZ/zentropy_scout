@@ -85,7 +85,17 @@ The Onboarding Agent is implemented in `onboarding.py` (2,490 lines) as a 13-nod
 |----------|----------------|-------|
 | REQ-007 §15.2 | Superseded | This document replaces §15.2 entirely |
 
-### 2.3 New Dependency
+### 2.3 Cross-REQ Implementation Order
+
+```
+REQ-016 (Scouter) ──┐
+                     ├──→ REQ-017 (Strategist) ──→ REQ-018 (Ghostwriter)
+REQ-019 (Onboarding)┘
+```
+
+**This document (REQ-019) has no dependencies on the other 3 REQs** and can be implemented in parallel with REQ-016. It touches no shared scoring or content generation infrastructure.
+
+### 2.4 New Dependency
 
 | Package | Version | Purpose | License |
 |---------|---------|---------|---------|
@@ -549,11 +559,19 @@ basic_info, work_history, education, skills, certifications, voice_suggestions
 | `frontend/src/components/onboarding/steps/resume-upload-step.tsx` | Call new `POST /onboarding/resume-parse` endpoint, populate later step forms with parsed data | Real resume parsing |
 | `frontend/src/lib/onboarding-provider.tsx` | Adjust step validation and navigation for 11 steps | Step removed |
 
-### 13.2 Files Unchanged
+### 13.2 Frontend Vitest Test Files to Update
+
+| File | Change | Reason |
+|------|--------|--------|
+| `frontend/src/components/onboarding/onboarding-steps.test.ts` | Update step count assertions from 12 to 11 | Step removed |
+| `frontend/src/components/onboarding/onboarding-shell.test.tsx` | Update progress bar calculations if hardcoded | Step removed |
+| `frontend/src/lib/onboarding-provider.test.tsx` | Update step navigation and validation tests | Step removed |
+
+### 13.3 Files Unchanged
 
 All other step components (basic-info, work-history, education, skills, certifications, stories, non-negotiables, growth-targets, voice-profile, review) remain unchanged. They already render form fields and submit via the existing API.
 
-### 13.3 Files Retained but Unused
+### 13.4 Files Retained but Unused
 
 | File | Status | Reason |
 |------|--------|--------|
@@ -576,4 +594,5 @@ All other step components (basic-info, work-history, education, skills, certific
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-02-23 | 0.2 | Audit fixes: added cross-REQ implementation order to §2, added frontend Vitest test files to §13.2, renumbered §13.3→§13.4. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Onboarding Agent with form wizard + ResumeParsingService. |

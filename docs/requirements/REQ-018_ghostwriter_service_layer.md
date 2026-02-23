@@ -54,7 +54,7 @@ The graph adds LangGraph overhead (state schema, checkpoint config, routing func
 
 ### 1.4 What Does NOT Change
 
-All 13 service files listed in §1.2 Tier 2 are **completely untouched**. They are the production-ready business logic. The redesign only removes the LangGraph orchestration layer that wraps them.
+All 15 service files listed in §4.2 are **completely untouched**. They are the production-ready business logic. The redesign only removes the LangGraph orchestration layer that wraps them.
 
 ---
 
@@ -77,6 +77,16 @@ All 13 service files listed in §1.2 Tier 2 are **completely untouched**. They a
 | Document | Dependency Type | Notes |
 |----------|----------------|-------|
 | REQ-007 §15.5 | Superseded | This document replaces §15.5 entirely |
+
+### 2.3 Cross-REQ Implementation Order
+
+```
+REQ-016 (Scouter) ──┐
+                     ├──→ REQ-017 (Strategist) ──→ REQ-018 (Ghostwriter)
+REQ-019 (Onboarding)┘
+```
+
+**This document (REQ-018) must be implemented last** (after REQ-017). The auto-draft trigger in the Strategist calls the Ghostwriter — `ContentGenerationService` must exist before `JobScoringService._check_auto_draft()` can reference it. Note: auto-draft is deferred to post-MVP (§3.2), but the service interface must exist.
 
 ---
 
@@ -125,7 +135,7 @@ All 13 service files listed in §1.2 Tier 2 are **completely untouched**. They a
 | `backend/app/agents/state.py` | 404 | Contains `GhostwriterState` TypedDict (~65 lines) | **MODIFY** (remove `GhostwriterState` and related TypedDicts) |
 | `backend/app/agents/__init__.py` | 196 | Re-exports Ghostwriter graph | **MODIFY** (remove Ghostwriter graph exports) |
 
-### 4.2 Service Files That Stay Unchanged (13 files)
+### 4.2 Service Files That Stay Unchanged (15 files)
 
 | File | Lines | Tests | Role |
 |------|-------|-------|------|
@@ -142,8 +152,10 @@ All 13 service files listed in §1.2 Tier 2 are **completely untouched**. They a
 | `services/regeneration.py` | 118 | 24 | Feedback categories |
 | `services/generation_outcome.py` | 181 | 53 | Outcome tracking |
 | `services/explanation_generation.py` | 427 | 30 | Strength/gap/stretch analysis |
+| `services/reasoning_explanation.py` | ~100 | 35 | Agent reasoning output formatting (REQ-010 §9) |
+| `services/duplicate_story.py` | ~100 | 31 | Duplicate story selection edge cases (REQ-010 §8.4) |
 
-**Total: ~3,165 lines of production code, 353 tests — all untouched.**
+**Total: ~3,365 lines of production code, 419 tests — all untouched.**
 
 ### 4.3 What to Keep in `ghostwriter.py`
 
@@ -424,8 +436,10 @@ Code-only changes. No database schema modifications. Git revert restores previou
 | `tests/unit/test_regeneration.py` | 24 | **KEEP** | Framework-independent |
 | `tests/unit/test_generation_outcome.py` | 53 | **KEEP** | Framework-independent |
 | `tests/unit/test_explanation_generation.py` | 30 | **KEEP** | Framework-independent |
+| `tests/unit/test_reasoning_explanation.py` | ~35 | **KEEP** | Tests `reasoning_explanation.py` (REQ-010 §9 agent reasoning output). Framework-independent. |
+| `tests/unit/test_duplicate_story.py` | ~31 | **KEEP** | Tests `duplicate_story.py` (REQ-010 §8.4 edge cases). Framework-independent. |
 
-**Summary:** DELETE 57 tests (graph topology), KEEP 435 tests (services + triggers + prompts), MODIFY 2 test files (import path updates), CREATE ~25 new service tests.
+**Summary:** DELETE 57 tests (graph topology), KEEP ~501 tests (services + triggers + prompts), MODIFY 2 test files (import path updates), CREATE ~25 new service tests.
 
 ### 11.2 New Tests to Create
 
@@ -467,7 +481,7 @@ Code-only changes. No database schema modifications. Git revert restores previou
 
 | # | Question | Status | Notes |
 |---|----------|--------|-------|
-| 1 | Should the 13 service files be reorganized into a `ghostwriter/` subdirectory? | Deferred | Currently scattered across `services/`. Could group as `services/ghostwriter/cover_letter_generation.py`, etc. Low priority — current flat structure works. |
+| 1 | Should the 15 service files be reorganized into a `ghostwriter/` subdirectory? | Deferred | Currently scattered across `services/`. Could group as `services/ghostwriter/cover_letter_generation.py`, etc. Low priority — current flat structure works. |
 | 2 | When should true pause/resume revision be implemented? | Post-MVP | The one genuine LangGraph use case for Ghostwriter. Requires real checkpoint/resume infrastructure. Only justified when multi-turn revision within a single session is needed. |
 | 3 | Should auto-draft be wired? | **No (MVP)** | See §3.2. User trust concern. `TriggerType.AUTO_DRAFT` exists in enum but is never called. Post-MVP: requires opt-in consent, credit system, and user preference toggle. |
 
@@ -477,4 +491,5 @@ Code-only changes. No database schema modifications. Git revert restores previou
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-02-23 | 0.2 | Audit fixes: added 2 missing service files to §4.2 (reasoning_explanation, duplicate_story), added 2 missing test files to §11, updated totals (15 service files, 501 tests kept), added cross-REQ implementation order to §2. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Ghostwriter with `ContentGenerationService` orchestrating 13 existing service files. |

@@ -66,6 +66,20 @@ The Scouter is a **batch data pipeline**: fetch → normalize → deduplicate �
 | REQ-017 Strategist Service Layer | Integration | Scouter invokes scoring after saving new jobs |
 | REQ-007 §15.3 | Superseded | This document replaces §15.3 entirely |
 
+### 2.3 Cross-REQ Implementation Order
+
+The four agent redesigns have this dependency chain:
+
+```
+REQ-016 (Scouter) ──┐
+                     ├──→ REQ-017 (Strategist) ──→ REQ-018 (Ghostwriter)
+REQ-019 (Onboarding)┘
+```
+
+- **REQ-016 and REQ-019** can be implemented in parallel (no dependencies on each other)
+- **REQ-017** depends on REQ-016 (Scouter invokes scoring after saving jobs)
+- **REQ-018** depends on REQ-017 (auto-draft trigger requires scoring to exist)
+
 ---
 
 ## §3 Design Decisions
@@ -105,7 +119,7 @@ The Scouter is a **batch data pipeline**: fetch → normalize → deduplicate �
 |------|-------|------|--------|
 | `backend/app/agents/scouter_graph.py` | 895 | LangGraph graph: 10 nodes, conditional routing, singleton | **DELETE** |
 | `backend/app/agents/scouter.py` | 237 | Trigger helpers, state factory, merge utility | **KEEP** (refactor) |
-| `backend/app/agents/checkpoint.py` | 211 | `MemorySaver`, `create_graph_config`, HITL utilities | **DELETE** (shared with all agents — see §4.3) |
+| `backend/app/agents/checkpoint.py` | 211 | `MemorySaver`, `create_graph_config`, HITL utilities | **DEFER** deletion (shared — see §4.3) |
 | `backend/app/agents/state.py` | 404 | `ScouterState`, `BaseAgentState`, other agent states | **MODIFY** (remove `ScouterState`) |
 | `backend/app/agents/__init__.py` | 196 | Re-exports all agents | **MODIFY** (remove Scouter graph exports) |
 
@@ -115,12 +129,40 @@ The Scouter is a **batch data pipeline**: fetch → normalize → deduplicate �
 |------|-------|------|---------------|
 | `backend/app/services/scouter_errors.py` | 393 | Error types, retry logic, processing metadata | Framework-independent error handling |
 | `backend/app/services/ghost_detection.py` | ~200 | Ghost score calculation | Called by service instead of graph node |
-| `backend/app/services/deduplication.py` | ~300 | Shared pool dedup | Called by repository instead of graph node |
+| `backend/app/services/global_dedup_service.py` | 428 | REQ-015 §6 4-step global dedup pipeline (source+external_id → hash → similarity → create) | Called by `JobPoolRepository` instead of graph node |
+| `backend/app/services/job_deduplication.py` | 880 | REQ-003 §9 dedup decision logic (similar title detection, priority merge rules) | Called by `JobPoolRepository` instead of graph node |
 | Source adapters (Adzuna, etc.) | ~800 | API clients for job sources | Called by fetch service instead of graph node |
 
-### 4.3 Note on `checkpoint.py` Deletion
+### 4.3 Note on `checkpoint.py` and Shared Files
 
-`checkpoint.py` is shared infrastructure used by all LangGraph agents. It should only be deleted when **all** agents have been redesigned (REQ-016 through REQ-019). Until then, the file remains. This document marks it for deletion; the last REQ to complete executes the deletion.
+`checkpoint.py` is shared infrastructure used by all LangGraph agents. It must only be deleted when **all** agents have been redesigned (REQ-016 through REQ-019) **and** the Chat Agent (backlog #11) no longer needs it. The Chat Agent may retain LangGraph for genuine multi-turn conversation, so `checkpoint.py` deletion is deferred to backlog #11.
+
+**`state.py` end-state after all 4 REQs complete:**
+
+After REQ-016 removes `ScouterState`, REQ-017 removes `StrategistState` + `ScoreResult`, REQ-018 removes `GhostwriterState` + `TailoringAnalysis` + `GeneratedContent` + `ScoredStoryDetail`, and REQ-019 removes `OnboardingState`, the file retains:
+
+| TypedDict | Lines | Used By |
+|-----------|-------|---------|
+| `BaseAgentState` | ~47 | Chat Agent (backlog #11) |
+| `ClassifiedIntent` | ~15 | Chat Agent (backlog #11) |
+| `ChatAgentState` | ~15 | Chat Agent (backlog #11) |
+
+Plus any enums (e.g., `CheckpointReason`) that survive. The file shrinks from 404L to ~77L. Final cleanup deferred to backlog #11.
+
+**`agents/` directory end-state after all 4 REQs complete:**
+
+| File | ~Lines | Contents | Future |
+|------|--------|----------|--------|
+| `__init__.py` | ~60 | Chat Agent + base exports only | Backlog #11 |
+| `base.py` | 1,042 | Shared agent infrastructure | Backlog #11 |
+| `chat.py` | 856 | Chat Agent (active) | Backlog #11 |
+| `checkpoint.py` | 211 | HITL utilities | Backlog #11 decides keep/delete |
+| `state.py` | ~77 | Chat + Base TypedDicts | Backlog #11 |
+| `scouter.py` | ~212 | Trigger helpers (`should_poll`, `is_manual_refresh_request`, etc.) | Consider moving to `services/scouter_triggers.py` during backlog #11 |
+| `ghostwriter.py` | ~180 | Trigger helpers (`is_draft_request`, `TriggerType`, etc.) | Consider moving to `services/ghostwriter_triggers.py` during backlog #11 |
+| `onboarding.py` | ~450 | Post-onboarding update utilities | Consider moving to `services/onboarding_updates.py` during backlog #11 |
+
+The trigger helper files (`scouter.py`, `ghostwriter.py`, `onboarding.py`) are no longer "agents" after the redesign. They remain in `agents/` for now to avoid unnecessary import churn, but should be relocated when backlog #11 redesigns the directory.
 
 ### 4.4 What Moves from `scouter_graph.py` to Services
 
@@ -477,6 +519,10 @@ If issues are discovered after migration:
 | `tests/unit/test_scouter_graph.py` | 42 | **DELETE** | Tests LangGraph graph topology, node functions, routing. All logic migrates to service tests. |
 | `tests/unit/test_scouter_agent.py` | 20 | **KEEP** | Tests trigger detection (`should_poll`, `is_manual_refresh_request`), `merge_results`, `calculate_next_poll_time`. These helpers remain in `scouter.py`. |
 | `tests/unit/test_scouter_error_handling.py` | 25 | **KEEP** | Tests `scouter_errors.py` (error types, retry logic, processing metadata). Framework-independent. |
+| `tests/unit/test_job_deduplication.py` | ~98 | **KEEP** | Tests `job_deduplication.py` dedup decision logic (REQ-003 §9). Framework-independent. |
+| `tests/unit/test_global_dedup_service.py` | ~8 | **KEEP** | Tests `global_dedup_service.py` 4-step dedup pipeline (REQ-015 §6). Framework-independent. |
+| `tests/unit/test_pool_scoring.py` | ~43 | **KEEP** | Tests pool pre-screening pure functions (REQ-015 §7.2). Framework-independent. |
+| `tests/unit/test_discovery_workflow.py` | ~22 | **MODIFY** | Tests discovery flow orchestration (REQ-003 §13.1). Currently invokes `scouter_graph` — update to call `JobFetchService`. |
 
 ### 11.2 New Tests to Create
 
@@ -502,8 +548,8 @@ Most test logic from `test_scouter_graph.py` migrates to the new service/reposit
 
 | Spec File | Tests | Action | Reason |
 |-----------|-------|--------|--------|
-| `frontend/tests/e2e/job-discovery.spec.ts` | 20 | **KEEP** (minor mock updates) | Tests job dashboard UI, not backend implementation. API mocks may need path updates if endpoints change. |
-| `frontend/tests/e2e/add-job.spec.ts` | ~10 | **KEEP** | Tests manual job ingest flow. Endpoint unchanged. |
+| `frontend/tests/e2e/job-discovery.spec.ts` | 25 | **KEEP** (minor mock updates) | Tests job dashboard UI, not backend implementation. API mocks may need path updates if endpoints change. |
+| `frontend/tests/e2e/add-job.spec.ts` | 6 | **KEEP** | Tests manual job ingest flow. Endpoint unchanged. |
 
 **E2E impact is minimal** because E2E tests mock all API calls. The frontend has no knowledge of whether the backend uses LangGraph or plain services.
 
@@ -536,4 +582,5 @@ Most test logic from `test_scouter_graph.py` migrates to the new service/reposit
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-02-23 | 0.2 | Audit fixes: corrected dedup file references (global_dedup_service.py + job_deduplication.py), added 4 missing test files to §11, fixed E2E test counts, added cross-REQ implementation order to §2, documented state.py/agents/ directory end-state in §4.3, clarified checkpoint.py as DEFER not DELETE. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Scouter with 3 services + 1 repository. |

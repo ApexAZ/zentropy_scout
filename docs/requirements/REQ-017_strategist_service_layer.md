@@ -70,6 +70,16 @@ The Strategist is a **scoring pipeline**: filter non-negotiables → generate em
 | REQ-018 Ghostwriter Service Layer | Integration | Auto-draft trigger when score exceeds threshold |
 | REQ-007 §15.4 | Superseded | This document replaces §15.4 entirely |
 
+### 2.3 Cross-REQ Implementation Order
+
+```
+REQ-016 (Scouter) ──┐
+                     ├──→ REQ-017 (Strategist) ──→ REQ-018 (Ghostwriter)
+REQ-019 (Onboarding)┘
+```
+
+**This document (REQ-017) must be implemented after REQ-016.** The Scouter invokes scoring after saving jobs — the `JobScoringService` must exist before `JobFetchService.run_poll()` can call it. REQ-019 is independent and can be done in parallel with REQ-016.
+
 ---
 
 ## §3 Design Decisions
@@ -166,7 +176,7 @@ The Strategist is a **scoring pipeline**: filter non-negotiables → generate em
 
 | File | What to Remove | Reason |
 |------|---------------|--------|
-| `backend/app/agents/state.py` | `StrategistState` TypedDict, `ScoreResult` TypedDict (~55 lines) | Replaced by function parameters. `ScoreResult` moves to `score_types.py` or service. |
+| `backend/app/agents/state.py` | `StrategistState` TypedDict, `ScoreResult` TypedDict (~55 lines) | Replaced by function parameters. `ScoreResult` moves to `backend/app/services/score_types.py` (co-located with other score type definitions). Update imports across codebase. |
 | `backend/app/agents/__init__.py` | Strategist graph imports/re-exports | No longer exists |
 
 ---
@@ -417,8 +427,10 @@ Code-only changes. No database schema modifications. Git revert restores previou
 | `tests/unit/test_stretch_score_interpretation.py` | 32 | **KEEP** | Tests stretch score label mapping. Framework-independent. |
 | `tests/unit/test_stretch_score_weights.py` | 4 | **KEEP** | Tests weight sum validation. Framework-independent. |
 | `tests/unit/test_non_negotiables_filter.py` | 40 | **KEEP** | Tests all 5 filter checks. Framework-independent. |
+| `tests/unit/test_batch_scoring.py` | ~9 | **KEEP** | Tests batch scoring optimization (REQ-008 §10.1). Framework-independent. |
+| `tests/unit/test_score_correlation.py` | ~22 | **KEEP** | Tests score validation utilities (REQ-008). Framework-independent. |
 
-**Summary:** DELETE 85 tests (graph topology), KEEP 189 tests (scoring logic), CREATE ~30 new service tests.
+**Summary:** DELETE 85 tests (graph topology), KEEP ~220 tests (scoring logic), CREATE ~30 new service tests.
 
 ### 11.2 New Tests to Create
 
@@ -440,8 +452,8 @@ Code-only changes. No database schema modifications. Git revert restores previou
 
 | Spec File | Tests | Action | Reason |
 |-----------|-------|--------|--------|
-| `frontend/tests/e2e/job-discovery.spec.ts` | 20 | **KEEP** | Tests score display in job dashboard UI. API mocks unchanged. |
-| `frontend/tests/e2e/persona-update.spec.ts` | ~10 | **KEEP** | Tests rescore trigger after persona edit. API contract unchanged. |
+| `frontend/tests/e2e/job-discovery.spec.ts` | 25 | **KEEP** | Tests score display in job dashboard UI. API mocks unchanged. |
+| `frontend/tests/e2e/persona-update.spec.ts` | 16 | **KEEP** | Tests rescore trigger after persona edit. API contract unchanged. |
 
 **E2E impact is zero** because the frontend has no knowledge of whether scoring happens in a LangGraph graph or a plain service. All API contracts are preserved.
 
@@ -467,4 +479,5 @@ Code-only changes. No database schema modifications. Git revert restores previou
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-02-23 | 0.2 | Audit fixes: added 2 missing test files to §11 (test_batch_scoring, test_score_correlation), fixed ScoreResult destination to score_types.py, fixed E2E test counts, added cross-REQ implementation order to §2. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Strategist with `JobScoringService`. |
