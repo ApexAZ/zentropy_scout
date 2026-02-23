@@ -40,13 +40,13 @@ const FAVORITE_ERROR_MESSAGE = "Failed to update favorite.";
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Returns a YYYY-MM-DD date string for N days before today. */
+/** Returns a YYYY-MM-DD date string for N UTC days before today. */
 function daysAgoDate(days: number): string {
 	const d = new Date();
-	d.setDate(d.getDate() - days);
-	const y = d.getFullYear();
-	const m = String(d.getMonth() + 1).padStart(2, "0");
-	const dd = String(d.getDate()).padStart(2, "0");
+	d.setUTCDate(d.getUTCDate() - days);
+	const y = d.getUTCFullYear();
+	const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+	const dd = String(d.getUTCDate()).padStart(2, "0");
 	return `${y}-${m}-${dd}`;
 }
 
