@@ -38,6 +38,7 @@ export {
 	expiredIngestPreviewResponse,
 	INGEST_NEW_JOB_ID,
 	JOB_IDS,
+	PERSONA_JOB_IDS,
 } from "../fixtures/job-discovery-mock-data";
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,8 @@ interface MockState {
 	favoriteIds: Set<string>;
 	/** IDs that have been bulk-dismissed. */
 	dismissedIds: Set<string>;
+	/** Per-job status overrides from individual PATCH calls. */
+	statusOverrides: Map<string, string>;
 	/** Whether the approved variant query returns a result. */
 	hasApprovedVariant: boolean;
 	/** Whether the approved cover letter query returns a result. */
@@ -73,6 +76,7 @@ export class JobDiscoveryMockController {
 			jobCount: 5,
 			favoriteIds: new Set<string>(),
 			dismissedIds: new Set<string>(),
+			statusOverrides: new Map<string, string>(),
 			hasApprovedVariant: false,
 			hasApprovedCoverLetter: false,
 			hasExistingApplication: false,
@@ -196,6 +200,11 @@ export class JobDiscoveryMockController {
 			return this.json(route, { data: result });
 		}
 
+		// Rescore: POST /job-postings/rescore
+		if (path.endsWith("/rescore") && method === "POST") {
+			return this.json(route, { data: { status: "queued" } });
+		}
+
 		// Extracted skills: GET /job-postings/{id}/extracted-skills
 		if (path.includes("/extracted-skills")) {
 			return this.json(route, extractedSkillsList());
@@ -211,6 +220,10 @@ export class JobDiscoveryMockController {
 				if (this.state.favoriteIds.has(jobId)) {
 					detail.data.is_favorite = !detail.data.is_favorite;
 				}
+				const overrideStatus = this.state.statusOverrides.get(jobId);
+				if (overrideStatus) {
+					Object.assign(detail.data, { status: overrideStatus });
+				}
 				return this.json(route, detail);
 			}
 
@@ -222,6 +235,9 @@ export class JobDiscoveryMockController {
 					} else {
 						this.state.favoriteIds.delete(jobId);
 					}
+				}
+				if (typeof body.status === "string") {
+					this.state.statusOverrides.set(jobId, body.status);
 				}
 				const detail = jobPostingDetail(jobId);
 				return this.json(route, {
@@ -244,6 +260,13 @@ export class JobDiscoveryMockController {
 					job.is_favorite = !job.is_favorite;
 				}
 			}
+			// Apply individual status overrides and filter dismissed
+			list.data = list.data.filter((j) => {
+				const override = this.state.statusOverrides.get(j.id);
+				if (override === "Dismissed") return false;
+				if (override) Object.assign(j, { status: override });
+				return true;
+			});
 			list.meta.total = list.data.length;
 			return this.json(route, list);
 		}
