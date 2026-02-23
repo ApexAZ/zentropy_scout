@@ -129,7 +129,7 @@ The test antipattern audit identified **~306 antipattern tests** across **~53 ba
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1 | **Add test quality rules to CLAUDE.md** — add "Test Antipatterns to Avoid" section under Testing Philosophy with banned patterns: no `isinstance()` assertions in tests, no `get_type_hints()` / `dataclasses.fields()` in tests, no `hasattr()` assertions, no `__abstractmethods__` assertions, no `enum.value == "literal"` assertions. Include the "implementation rewrite" lens question as the decision criterion. Add the behavioral frozen-test pattern as the approved alternative. | `plan` | ⬜ |
+| 1 | **Add test quality rules to CLAUDE.md** — add "Test Antipatterns to Avoid" section under Testing Philosophy with banned patterns: no `isinstance()` assertions in tests, no `get_type_hints()` / `dataclasses.fields()` in tests, no `hasattr()` assertions, no `__abstractmethods__` assertions, no `enum.value == "literal"` assertions. Include the "implementation rewrite" lens question as the decision criterion. Add the behavioral frozen-test pattern as the approved alternative. | `plan` | ✅ |
 | 2 | **Evaluate automated enforcement (optional)** — investigate whether `ruff` custom rules or a lightweight pytest plugin can flag banned patterns automatically. If straightforward (<30 min), implement. If complex, document as a future backlog item. This is a nice-to-have, not a blocker. | `lint, plan` | ⬜ |
 
 ---

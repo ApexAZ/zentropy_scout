@@ -296,6 +296,24 @@ Before considering a test complete:
 4. **Is it independent?** — Does it pass/fail regardless of test execution order?
 5. **Does it have a clear name?** — `test_<behavior>_when_<condition>` format preferred
 
+### Test Antipatterns to Avoid
+
+These patterns test implementation details rather than behavior. They break on refactors that don't change functionality. **Never write tests that use these patterns:**
+
+| Banned Pattern | Why It's Wrong | What to Do Instead |
+|----------------|----------------|-------------------|
+| `isinstance(result, SomeType)` | Tests return type, not behavior | Assert on the result's value or properties |
+| `issubclass(Foo, Bar)` | Tests inheritance chain | Test that `Foo` exhibits `Bar`'s behavioral contract |
+| `hasattr(obj, "field")` | Tests attribute existence | Call the attribute and assert on its behavior |
+| `"method" in Cls.__abstractmethods__` | Tests ABC internals | Test that concrete subclasses implement the method |
+| `dataclasses.fields(Cls)` / `get_type_hints(Cls)` | Tests schema shape | Construct instances and assert on behavior |
+| `CONSTANT == 42` / `enum.value == "literal"` | Duplicates the source code | Test behavior that depends on the constant's value |
+| `len(some_enum) == N` | Breaks when enum grows | Test specific members that matter for behavior |
+
+**Decision criterion:** Ask "Would this test still pass if I rewrote the implementation using a completely different internal structure but preserved the same external behavior?" If yes, the test is behavioral (good). If no, the test is structural (bad).
+
+**Frozen-test pattern (approved alternative for immutability):** When you need to verify a data structure hasn't changed (e.g., migration mappings), test the behavioral contract: "new names follow the naming convention" rather than "there are exactly 49 entries."
+
 ### Pre-commit Hooks
 
 This project uses `pre-commit` to enforce quality before commits. Configuration lives in `.pre-commit-config.yaml`.
