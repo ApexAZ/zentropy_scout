@@ -112,7 +112,7 @@ export default function LoginPage() {
 			});
 			// Full page load (not client-side nav) so AuthProvider remounts
 			// and calls /auth/me with the new cookie
-			window.location.assign("/");
+			globalThis.location.assign("/");
 		} catch (err) {
 			if (!(err instanceof ApiError)) {
 				setError(GENERIC_ERROR);

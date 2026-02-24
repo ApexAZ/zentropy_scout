@@ -319,13 +319,12 @@ export function AccountSection() {
 				) : (
 					<div className="space-y-2">
 						{passwordResetSuccess && (
-							<p
+							<output
 								className="text-sm font-medium text-green-600"
-								role="status"
 								data-testid="reset-password-success"
 							>
 								Password updated successfully.
-							</p>
+							</output>
 						)}
 						<div className="flex items-center gap-2">
 							<span className="text-muted-foreground text-sm">Password:</span>
