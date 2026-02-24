@@ -85,12 +85,13 @@ export default function LoginPage() {
 	const [view, setView] = useState<ViewState>("login");
 	const [error, setError] = useState<string | null>(null);
 
-	// Redirect if already authenticated
+	// Redirect if already authenticated (skip when waiting for magic link —
+	// the link opens in a new tab, so this tab should stay put)
 	useEffect(() => {
-		if (status === "authenticated") {
+		if (status === "authenticated" && view !== "magic-link-sent") {
 			router.replace("/");
 		}
-	}, [status, router]);
+	}, [status, router, view]);
 
 	// -----------------------------------------------------------------------
 	// Login form
@@ -109,11 +110,17 @@ export default function LoginPage() {
 				email: data.email,
 				password: data.password,
 			});
-			router.replace("/");
+			// Full page load (not client-side nav) so AuthProvider remounts
+			// and calls /auth/me with the new cookie
+			window.location.assign("/");
 		} catch (err) {
-			if (err instanceof ApiError && err.status === 401) {
+			if (!(err instanceof ApiError)) {
+				setError(GENERIC_ERROR);
+			} else if (err.status === 401) {
 				setError("Invalid email or password.");
-			} else if (err instanceof ApiError && err.status === 429) {
+			} else if (err.status === 403 && err.code === "EMAIL_NOT_VERIFIED") {
+				setError("Please verify your email before signing in.");
+			} else if (err.status === 429) {
 				setError("Too many attempts. Please try again later.");
 			} else {
 				setError(GENERIC_ERROR);
@@ -134,7 +141,10 @@ export default function LoginPage() {
 	async function onMagicLinkSubmit(data: MagicLinkFormData) {
 		setError(null);
 		try {
-			await apiPost("/auth/magic-link", { email: data.email });
+			await apiPost("/auth/magic-link", {
+				email: data.email,
+				purpose: "password_reset",
+			});
 			setView("magic-link-sent");
 		} catch {
 			setError(GENERIC_ERROR);
@@ -166,6 +176,10 @@ export default function LoginPage() {
 							<p className="text-muted-foreground text-sm">
 								Check your email for a sign-in link. It will expire in 10
 								minutes.
+							</p>
+							<p className="text-muted-foreground text-xs">
+								The link will open in a new tab. You can close this tab after
+								clicking it.
 							</p>
 							<Button variant="ghost" onClick={handleBackToLogin}>
 								Back to sign in

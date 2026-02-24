@@ -4,18 +4,20 @@ REQ-013 §7.5: verify-password, register, change-password endpoints.
 
 Security considerations:
 - verify-password: constant-time comparison via DUMMY_HASH prevents user enumeration
-- register: bcrypt cost 12, HIBP breach check, email uniqueness
+- register: bcrypt cost 12, HIBP breach check, email uniqueness, verification email
 - change-password: verifies current password, invalidates all sessions
 """
 
-from datetime import UTC, datetime
+import hashlib
+import secrets
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Request, Response
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import CurrentUserId, DbSession
+from app.api.deps import CurrentUserId, DbSession, PasswordResetEligible
 from app.core.auth import (
     DUMMY_HASH,
     check_password_breached,
@@ -24,10 +26,12 @@ from app.core.auth import (
     validate_password_strength,
 )
 from app.core.config import settings
+from app.core.email import send_magic_link_email
 from app.core.errors import APIError, ConflictError, UnauthorizedError, ValidationError
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse
 from app.repositories.user_repository import UserRepository
+from app.repositories.verification_token_repository import VerificationTokenRepository
 
 # bcrypt cost factor for password hashing (REQ-013 §10.8)
 _BCRYPT_ROUNDS = 12
@@ -35,6 +39,9 @@ _BCRYPT_ROUNDS = 12
 _PASSWORD_BREACHED_MSG = (  # nosec B105
     "This password has appeared in a data breach. Please choose a different one."
 )
+
+# Verification email token TTL (REQ-013 §10.5)
+_VERIFICATION_TOKEN_TTL = timedelta(minutes=10)
 
 router = APIRouter()
 
@@ -102,6 +109,14 @@ async def verify_password(
     if not bcrypt.checkpw(body.password.encode(), user.password_hash.encode()):
         raise UnauthorizedError("Invalid email or password")
 
+    # Block sign-in until email is verified (REQ-013 §4.3)
+    if user.email_verified is None:
+        raise APIError(
+            code="EMAIL_NOT_VERIFIED",
+            message="Please verify your email before signing in. Check your inbox for the verification link.",
+            status_code=403,
+        )
+
     # Issue JWT and set cookie
     token = create_jwt(
         user_id=str(user.id),
@@ -124,12 +139,14 @@ async def verify_password(
 async def register(
     request: Request,  # noqa: ARG001 - required by @limiter.limit()
     body: RegisterRequest,
+    background_tasks: BackgroundTasks,
     db: DbSession,
 ) -> DataResponse[dict]:
     """Register a new user with email + password.
 
     REQ-013 §7.5: Unauthenticated. Validates password strength,
-    checks HIBP breach database, and creates user with bcrypt hash.
+    checks HIBP breach database, creates user with bcrypt hash,
+    and sends a verification email (magic link).
 
     Rate limit: 3 per hour per IP.
     """
@@ -154,13 +171,31 @@ async def register(
         user = await UserRepository.create(
             db, email=body.email, password_hash=password_hash
         )
-        await db.commit()
+        await db.flush()
     except IntegrityError as exc:
         await db.rollback()
         raise ConflictError(
             code="EMAIL_ALREADY_EXISTS",
             message="Email already registered",
         ) from exc
+
+    # Generate verification token and store hash in DB
+    plain_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(plain_token.encode()).hexdigest()
+    await VerificationTokenRepository.create(
+        db,
+        identifier=body.email.strip().lower(),
+        token_hash=token_hash,
+        expires=datetime.now(UTC) + _VERIFICATION_TOKEN_TTL,
+    )
+    await db.commit()
+
+    # Send verification email as background task
+    background_tasks.add_task(
+        send_magic_link_email,
+        to_email=body.email.strip().lower(),
+        token=plain_token,
+    )
 
     return DataResponse(data={"id": str(user.id), "email": user.email})
 
@@ -177,13 +212,16 @@ async def change_password(
     body: ChangePasswordRequest,
     response: Response,
     user_id: CurrentUserId,
+    password_reset_eligible: PasswordResetEligible,
     db: DbSession,
 ) -> DataResponse[dict]:
     """Change password for authenticated user.
 
-    REQ-013 §7.5: Authenticated. Verifies current password if set,
-    validates new password strength, and invalidates all other sessions.
-    Re-issues JWT cookie so the current session stays valid.
+    REQ-013 §7.5: Authenticated. Verifies current password if set
+    (skipped when JWT has a valid password-reset claim from the
+    forgot-password flow). Validates new password strength and
+    invalidates all other sessions. Re-issues JWT cookie so the
+    current session stays valid.
 
     Rate limit: 5 per hour per user.
     """
@@ -192,7 +230,8 @@ async def change_password(
         raise UnauthorizedError()
 
     # If user has existing password, verify current password
-    if user.password_hash:
+    # (skipped when the JWT carries a valid password-reset claim)
+    if user.password_hash and not password_reset_eligible:
         if not body.current_password:
             raise ValidationError("Current password required")
         if not bcrypt.checkpw(

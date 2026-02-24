@@ -15,6 +15,33 @@ import { useSession } from "@/lib/auth-provider";
 import { showToast } from "@/lib/toast";
 
 // ---------------------------------------------------------------------------
+// Password policy (matches registration page — REQ-013 §10.8)
+// ---------------------------------------------------------------------------
+
+const PASSWORD_REQUIREMENTS = [
+	{
+		key: "length",
+		label: "At least 8 characters",
+		test: (p: string) => p.length >= 8,
+	},
+	{
+		key: "letter",
+		label: "At least one letter",
+		test: (p: string) => /[a-zA-Z]/.test(p),
+	},
+	{
+		key: "number",
+		label: "At least one number",
+		test: (p: string) => /\d/.test(p),
+	},
+	{
+		key: "special",
+		label: "At least one special character",
+		test: (p: string) => /[^a-zA-Z\d]/.test(p),
+	},
+];
+
+// ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
@@ -46,13 +73,25 @@ export function AccountSection() {
 		}
 	}, [session?.name]);
 
-	// Password form state
-	const [showPasswordForm, setShowPasswordForm] = useState(false);
+	// Auto-open password form when arriving from forgot-password flow.
+	// useState initial value only applies on first render (when session is null),
+	// so we need useEffect to react when canResetPassword becomes true.
+	useEffect(() => {
+		if (session?.canResetPassword) {
+			setShowPasswordForm(true);
+		}
+	}, [session?.canResetPassword]);
+
+	// Password form state — auto-open when arriving from forgot-password flow
+	const [showPasswordForm, setShowPasswordForm] = useState(
+		session?.canResetPassword ?? false,
+	);
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmNewPassword, setConfirmNewPassword] = useState("");
 	const [passwordError, setPasswordError] = useState<string | null>(null);
 	const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+	const [passwordResetSuccess, setPasswordResetSuccess] = useState(false);
 
 	// Sign out all devices confirmation
 	const [showSignOutAllConfirm, setShowSignOutAllConfirm] = useState(false);
@@ -103,11 +142,14 @@ export function AccountSection() {
 		setPasswordError(null);
 		setPasswordSubmitting(true);
 		try {
+			const needsCurrentPassword =
+				session.hasPassword && !session.canResetPassword;
 			await apiPost("/auth/change-password", {
-				current_password: session.hasPassword ? currentPassword : null,
+				current_password: needsCurrentPassword ? currentPassword : null,
 				new_password: newPassword,
 			});
 			setShowPasswordForm(false);
+			setPasswordResetSuccess(true);
 			showToast.success("Password updated");
 		} catch (err) {
 			if (err instanceof ApiError && err.status === 401) {
@@ -115,6 +157,10 @@ export function AccountSection() {
 			} else if (err instanceof ApiError && err.code === "PASSWORD_BREACHED") {
 				setPasswordError(
 					"This password has appeared in a data breach. Please choose a different one.",
+				);
+			} else if (err instanceof ApiError && err.status === 429) {
+				setPasswordError(
+					"Too many password change attempts. Please wait an hour before trying again.",
 				);
 			} else if (err instanceof ApiError && err.status === 400) {
 				setPasswordError(
@@ -181,7 +227,17 @@ export function AccountSection() {
 			<div>
 				{showPasswordForm ? (
 					<div className="space-y-3">
-						{session.hasPassword && (
+						{session.canResetPassword && (
+							<p
+								className="text-destructive text-sm font-medium"
+								role="alert"
+								data-testid="reset-password-banner"
+							>
+								Please set a new password.
+							</p>
+						)}
+
+						{session.hasPassword && !session.canResetPassword && (
 							<div className="space-y-1">
 								<Label htmlFor="current-password">Current password</Label>
 								<Input
@@ -204,6 +260,26 @@ export function AccountSection() {
 								autoComplete="new-password"
 							/>
 						</div>
+
+						{/* Password strength indicator */}
+						<ul
+							className="space-y-1 text-xs"
+							aria-label="Password requirements"
+						>
+							{PASSWORD_REQUIREMENTS.map((req) => {
+								const met = req.test(newPassword);
+								return (
+									<li
+										key={req.key}
+										data-testid={`req-${req.key}`}
+										data-met={met ? "true" : "false"}
+										className={met ? "text-green-600" : "text-muted-foreground"}
+									>
+										{met ? "\u2713" : "\u2022"} {req.label}
+									</li>
+								);
+							})}
+						</ul>
 
 						<div className="space-y-1">
 							<Label htmlFor="confirm-new-password">Confirm new password</Label>
@@ -241,15 +317,26 @@ export function AccountSection() {
 						</div>
 					</div>
 				) : (
-					<div className="flex items-center gap-2">
-						<span className="text-muted-foreground text-sm">Password:</span>
-						<Button
-							size="sm"
-							variant="outline"
-							onClick={handleOpenPasswordForm}
-						>
-							{session.hasPassword ? "Change password" : "Set a password"}
-						</Button>
+					<div className="space-y-2">
+						{passwordResetSuccess && (
+							<p
+								className="text-sm font-medium text-green-600"
+								role="status"
+								data-testid="reset-password-success"
+							>
+								Password updated successfully.
+							</p>
+						)}
+						<div className="flex items-center gap-2">
+							<span className="text-muted-foreground text-sm">Password:</span>
+							<Button
+								size="sm"
+								variant="outline"
+								onClick={handleOpenPasswordForm}
+							>
+								{session.hasPassword ? "Change password" : "Set a password"}
+							</Button>
+						</div>
 					</div>
 				)}
 			</div>

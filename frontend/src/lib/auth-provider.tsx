@@ -34,6 +34,7 @@ export interface User {
 	image: string | null;
 	emailVerified: boolean;
 	hasPassword: boolean;
+	canResetPassword: boolean;
 }
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -46,6 +47,7 @@ interface MeResponse {
 	image: string | null;
 	email_verified: boolean;
 	has_password: boolean;
+	can_reset_password?: boolean;
 }
 
 interface SessionContext {
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
 						image: me.image,
 						emailVerified: me.email_verified,
 						hasPassword: me.has_password,
+						canResetPassword: me.can_reset_password ?? false,
 					});
 					setStatus("authenticated");
 				}

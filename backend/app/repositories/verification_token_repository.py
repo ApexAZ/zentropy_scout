@@ -25,6 +25,7 @@ class VerificationTokenRepository:
         identifier: str,
         token_hash: str,
         expires: datetime,
+        purpose: str = "sign_in",
     ) -> VerificationToken:
         """Store a new verification token.
 
@@ -33,6 +34,7 @@ class VerificationTokenRepository:
             identifier: Email address.
             token_hash: SHA-256 hash of the plain token.
             expires: Token expiry timestamp.
+            purpose: Token intent — ``"sign_in"`` or ``"password_reset"``.
 
         Returns:
             Created VerificationToken.
@@ -41,6 +43,7 @@ class VerificationTokenRepository:
             identifier=identifier,
             token=token_hash,
             expires=expires,
+            purpose=purpose,
         )
         db.add(vt)
         await db.flush()

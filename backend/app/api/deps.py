@@ -10,6 +10,7 @@ WHY DEPENDENCY INJECTION:
 """
 
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 import jwt
@@ -141,7 +142,40 @@ async def get_current_user(
     return user
 
 
+def get_password_reset_eligible(request: Request) -> bool:
+    """Check if the current JWT has a valid password-reset claim.
+
+    Returns True when the JWT contains a ``pwr`` (password-reset-until)
+    timestamp that is still in the future.  Used by change-password to
+    skip the current-password requirement after a forgot-password flow.
+    """
+    if not settings.auth_enabled:
+        return False
+
+    token = request.cookies.get(settings.auth_cookie_name)
+    if not token:
+        return False
+
+    try:
+        payload = jwt.decode(
+            token,
+            settings.auth_secret.get_secret_value(),
+            algorithms=["HS256"],
+            audience="zentropy-scout",
+            issuer=settings.auth_issuer,
+        )
+    except jwt.InvalidTokenError:
+        return False
+
+    pwr = payload.get("pwr")
+    if pwr is None:
+        return False
+
+    return bool(datetime.now(UTC).timestamp() < pwr)
+
+
 # Reusable type aliases for dependency injection (SonarCloud S8410)
 CurrentUserId = Annotated[uuid.UUID, Depends(get_current_user_id)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+PasswordResetEligible = Annotated[bool, Depends(get_password_reset_eligible)]
 DbSession = Annotated[AsyncSession, Depends(get_db)]

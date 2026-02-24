@@ -287,7 +287,8 @@ describe("LoginPage", () => {
 			await fillAndSubmitCredentials(user);
 
 			await waitFor(() => {
-				expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/");
+				// Full page load (not client-side nav) so AuthProvider remounts
+				expect(globalThis.location.pathname).toBe("/");
 			});
 		});
 
@@ -378,7 +379,7 @@ describe("LoginPage", () => {
 			expect(screen.queryByLabelText(/password/i)).not.toBeInTheDocument();
 		});
 
-		it("calls magic-link API with email", async () => {
+		it("calls magic-link API with email and password_reset purpose", async () => {
 			mocks.mockApiPost.mockResolvedValueOnce({ data: {} });
 			const user = renderLogin();
 
@@ -387,6 +388,7 @@ describe("LoginPage", () => {
 			await waitFor(() => {
 				expect(mocks.mockApiPost).toHaveBeenCalledWith("/auth/magic-link", {
 					email: TEST_EMAIL,
+					purpose: "password_reset",
 				});
 			});
 		});

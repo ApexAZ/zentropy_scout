@@ -17,7 +17,9 @@ _RESEND_API_URL = "https://api.resend.com/emails"
 _RESEND_TIMEOUT = 10.0
 
 
-async def send_magic_link_email(*, to_email: str, token: str) -> None:
+async def send_magic_link_email(
+    *, to_email: str, token: str, purpose: str = "sign_in"
+) -> None:
     """Send a magic link sign-in email via Resend.
 
     Constructs a verification URL pointing to the backend directly. The user
@@ -27,8 +29,13 @@ async def send_magic_link_email(*, to_email: str, token: str) -> None:
     Args:
         to_email: Recipient email address.
         token: Plain (unhashed) magic link token.
+        purpose: ``"sign_in"`` or ``"password_reset"``. Passed through to
+            the verify endpoint so it can issue a password-reset JWT.
     """
-    params = urlencode({"token": token, "identifier": to_email}, quote_via=quote)
+    url_params: dict[str, str] = {"token": token, "identifier": to_email}
+    if purpose == "password_reset":
+        url_params["purpose"] = purpose
+    params = urlencode(url_params, quote_via=quote)
     verify_url = f"{settings.backend_url}/api/v1/auth/verify-magic-link?{params}"
 
     try:

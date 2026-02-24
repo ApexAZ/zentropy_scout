@@ -22,6 +22,7 @@ class VerificationToken(Base):
         identifier: Email address.
         token: Hashed token value.
         expires: Token expiry timestamp.
+        purpose: Token intent — ``"sign_in"`` or ``"password_reset"``.
     """
 
     __tablename__ = "verification_tokens"
@@ -46,4 +47,9 @@ class VerificationToken(Base):
     expires: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
+    )
+    purpose: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        server_default="sign_in",
     )

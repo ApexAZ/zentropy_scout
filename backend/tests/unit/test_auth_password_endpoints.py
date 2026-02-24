@@ -43,6 +43,7 @@ async def user_with_password(db_session: AsyncSession) -> User:
         id=TEST_USER_ID,
         email="test@example.com",
         password_hash=password_hash,
+        email_verified=datetime.now(UTC),
     )
     db_session.add(user)
     await db_session.commit()

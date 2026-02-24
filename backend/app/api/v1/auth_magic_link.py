@@ -16,14 +16,14 @@ import hashlib
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Query, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.responses import Response
 
-from app.api.deps import CurrentUserId, DbSession
+from app.api.deps import CurrentUserId, DbSession, PasswordResetEligible
 from app.core.auth import create_jwt, set_auth_cookie
 from app.core.config import settings
 from app.core.email import send_magic_link_email
@@ -55,6 +55,7 @@ class MagicLinkRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     email: EmailStr
+    purpose: Literal["sign_in", "password_reset"] = "sign_in"
 
 
 # ===================================================================
@@ -106,12 +107,13 @@ async def request_magic_link(
     user = await UserRepository.get_by_email(db, email)
 
     if user:
-        # Store hashed token in DB
+        # Store hashed token in DB (purpose bound to token to prevent escalation)
         await VerificationTokenRepository.create(
             db,
             identifier=email,
             token_hash=token_hash,
             expires=datetime.now(UTC) + _TOKEN_TTL,
+            purpose=body.purpose,
         )
 
     await db.commit()
@@ -119,7 +121,10 @@ async def request_magic_link(
     if user:
         # Send email as background task — response returns immediately
         background_tasks.add_task(
-            send_magic_link_email, to_email=email, token=plain_token
+            send_magic_link_email,
+            to_email=email,
+            token=plain_token,
+            purpose=body.purpose,
         )
 
     # Always return success (enumeration defense)
@@ -139,6 +144,7 @@ async def verify_magic_link(
     request: Request,  # noqa: ARG001 - required by @limiter.limit()
     token: Annotated[str, Query(min_length=1, max_length=256)],
     identifier: Annotated[str, Query(min_length=3, max_length=255)],
+    purpose: Annotated[Literal["sign_in", "password_reset"], Query()] = "sign_in",
     *,
     db: DbSession,
 ) -> RedirectResponse:
@@ -159,6 +165,11 @@ async def verify_magic_link(
     )
 
     if vt is None:
+        raise ValidationError(_INVALID_MAGIC_LINK_MSG)
+
+    # Security: purpose must match what was stored at creation time.
+    # Prevents escalation of a sign_in link to password_reset by URL tampering.
+    if vt.purpose != purpose:
         raise ValidationError(_INVALID_MAGIC_LINK_MSG)
 
     # Check expiry
@@ -190,14 +201,25 @@ async def verify_magic_link(
 
     await db.commit()
 
-    # Issue JWT and redirect
+    # Issue JWT — include password-reset claim if this was a forgot-password flow
+    is_password_reset = purpose == "password_reset"
+    pwr_until = datetime.now(UTC) + timedelta(minutes=10) if is_password_reset else None
+
     jwt_token = create_jwt(
         user_id=str(user.id),
         secret=settings.auth_secret.get_secret_value(),
+        password_reset_until=pwr_until,
+    )
+
+    # Redirect to /settings for password reset, otherwise to app root
+    redirect_url = (
+        f"{settings.frontend_url}/settings"
+        if is_password_reset
+        else settings.frontend_url
     )
 
     response = RedirectResponse(
-        url=settings.frontend_url,
+        url=redirect_url,
         status_code=307,
     )
     set_auth_cookie(response, jwt_token)
@@ -238,6 +260,7 @@ async def logout(response: Response) -> DataResponse[dict]:
 @router.get("/me")
 async def get_me(
     user_id: CurrentUserId,
+    password_reset_eligible: PasswordResetEligible,
     db: DbSession,
 ) -> DataResponse[dict]:
     """Return current user info from JWT.
@@ -255,7 +278,10 @@ async def get_me(
     if user is None:
         raise UnauthorizedError()
 
-    return DataResponse(data=_user_to_response(user))
+    data = _user_to_response(user)
+    if password_reset_eligible:
+        data["can_reset_password"] = True
+    return DataResponse(data=data)
 
 
 # ===================================================================

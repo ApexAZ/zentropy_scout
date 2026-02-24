@@ -41,6 +41,7 @@ def create_jwt(
     user_id: str,
     secret: str,
     expires_delta: timedelta | None = None,
+    password_reset_until: datetime | None = None,
 ) -> str:
     """Create a signed JWT with standard claims.
 
@@ -48,18 +49,22 @@ def create_jwt(
         user_id: User UUID string for the sub claim.
         secret: HMAC signing secret.
         expires_delta: Time until expiration. Defaults to 1 hour.
+        password_reset_until: If set, includes a ``pwr`` claim allowing
+            password change without the current password until this time.
 
     Returns:
         Encoded JWT string.
     """
     now = datetime.now(UTC)
-    payload = {
+    payload: dict = {
         "sub": user_id,
         "aud": "zentropy-scout",
         "iss": settings.auth_issuer,
         "exp": now + (expires_delta or _DEFAULT_EXPIRATION),
         "iat": now,
     }
+    if password_reset_until is not None:
+        payload["pwr"] = int(password_reset_until.timestamp())
     return jwt.encode(payload, secret, algorithm="HS256")
 
 

@@ -59,6 +59,7 @@ const TEST_USER_SESSION = {
 	image: null,
 	emailVerified: true,
 	hasPassword: false,
+	canResetPassword: false,
 };
 
 // ---------------------------------------------------------------------------
