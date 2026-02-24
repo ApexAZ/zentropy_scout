@@ -20,17 +20,16 @@ _RESEND_TIMEOUT = 10.0
 async def send_magic_link_email(*, to_email: str, token: str) -> None:
     """Send a magic link sign-in email via Resend.
 
-    Constructs a verification URL using frontend_url. This assumes the
-    frontend proxies /api/v1/ requests to the FastAPI backend. The user
-    clicks the link, the backend verifies the token and sets a JWT cookie,
-    then redirects to the frontend.
+    Constructs a verification URL pointing to the backend directly. The user
+    clicks the link, the backend verifies the token, sets a JWT cookie, and
+    redirects to the frontend.
 
     Args:
         to_email: Recipient email address.
         token: Plain (unhashed) magic link token.
     """
     params = urlencode({"token": token, "identifier": to_email}, quote_via=quote)
-    verify_url = f"{settings.frontend_url}/api/v1/auth/verify-magic-link?{params}"
+    verify_url = f"{settings.backend_url}/api/v1/auth/verify-magic-link?{params}"
 
     try:
         async with httpx.AsyncClient() as client:

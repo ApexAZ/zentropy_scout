@@ -81,6 +81,9 @@ class Settings(BaseSettings):
     # Frontend URL (for OAuth redirect back to frontend)
     frontend_url: str = "http://localhost:3000"
 
+    # Backend URL (for magic link emails that must hit the API directly)
+    backend_url: str = "http://localhost:8000"
+
     # Rate Limiting (Security)
     # Limits LLM-calling endpoints to prevent abuse and cost explosion
     # Format: "count/period" (e.g., "10/minute", "100/hour")
