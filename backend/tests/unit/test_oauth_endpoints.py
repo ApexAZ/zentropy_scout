@@ -121,6 +121,13 @@ class TestOAuthInitiation:
         assert "linkedin.com" in location
         assert "client_id=test-linkedin-client-id" in location
 
+    async def test_linkedin_does_not_include_pkce_params(self, oauth_client):
+        """LinkedIn does not support PKCE — no code_challenge in redirect."""
+        response = await oauth_client.get(_LINKEDIN_INITIATE_URL)
+        location = response.headers["location"]
+        assert "code_challenge" not in location
+        assert "code_challenge_method" not in location
+
     async def test_sets_state_cookie(self, oauth_client):
         """Initiation should set an oauth_state cookie."""
         response = await oauth_client.get(_GOOGLE_INITIATE_URL)

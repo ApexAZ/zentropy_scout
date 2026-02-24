@@ -47,17 +47,22 @@ async def exchange_code_for_tokens(
     client_id = getattr(settings, cred_attrs[0])
     client_secret = getattr(settings, cred_attrs[1]).get_secret_value()
 
+    data: dict[str, str] = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": redirect_uri,
+        "client_id": client_id,
+        "client_secret": client_secret,
+    }
+
+    # Add PKCE code_verifier only for providers that support it
+    if config.supports_pkce and code_verifier:
+        data["code_verifier"] = code_verifier
+
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             config.token_url,
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": redirect_uri,
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "code_verifier": code_verifier,
-            },
+            data=data,
             timeout=_OAUTH_HTTP_TIMEOUT,
         )
         resp.raise_for_status()

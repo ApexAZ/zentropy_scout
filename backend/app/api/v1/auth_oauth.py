@@ -93,9 +93,11 @@ async def oauth_initiate(
     if not client_id:
         raise ValidationError(f"OAuth provider {provider} is not configured")
 
-    # Generate PKCE code verifier + challenge
-    code_verifier = generate_code_verifier()
-    code_challenge = generate_code_challenge(code_verifier)
+    # Generate PKCE code verifier + challenge (if provider supports it)
+    code_verifier = generate_code_verifier() if config.supports_pkce else ""
+    code_challenge = (
+        generate_code_challenge(code_verifier) if config.supports_pkce else ""
+    )
 
     # Generate state parameter for CSRF protection
     state = secrets.token_urlsafe(32)
@@ -109,15 +111,18 @@ async def oauth_initiate(
 
     # Build authorization URL
     callback_url = _get_api_callback_url(request, provider)
-    params = {
+    params: dict[str, str] = {
         "client_id": client_id,
         "redirect_uri": callback_url,
         "response_type": "code",
         "scope": " ".join(config.scopes),
         "state": state,
-        "code_challenge": code_challenge,
-        "code_challenge_method": "S256",
     }
+
+    # Add PKCE parameters only for providers that support it
+    if config.supports_pkce:
+        params["code_challenge"] = code_challenge
+        params["code_challenge_method"] = "S256"
 
     # Google-specific: request offline access for refresh token
     if provider == "google":
@@ -186,7 +191,7 @@ async def oauth_callback(
         expected_state=state,
         secret=settings.auth_secret.get_secret_value(),
     )
-    if not code_verifier:
+    if code_verifier is None:
         raise ValidationError("Invalid or expired OAuth state")
 
     # Exchange code for tokens

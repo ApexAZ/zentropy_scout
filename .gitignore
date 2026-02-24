@@ -6,6 +6,9 @@ CLAUDE_TOOLS.md
 .env*
 !.env.example
 
+# Secrets
+docs/secrets/
+
 # Database
 postgres_data/
 

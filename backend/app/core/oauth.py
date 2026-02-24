@@ -129,6 +129,7 @@ class OAuthProviderConfig:
     token_url: str
     userinfo_url: str
     scopes: tuple[str, ...]
+    supports_pkce: bool
 
 
 _PROVIDERS: dict[str, OAuthProviderConfig] = {
@@ -137,12 +138,14 @@ _PROVIDERS: dict[str, OAuthProviderConfig] = {
         token_url="https://oauth2.googleapis.com/token",
         userinfo_url="https://openidconnect.googleapis.com/v1/userinfo",
         scopes=("openid", "email", "profile"),
+        supports_pkce=True,
     ),
     "linkedin": OAuthProviderConfig(  # nosec B106 — token_url is an endpoint, not a password
         authorization_url="https://www.linkedin.com/oauth/v2/authorization",
         token_url="https://www.linkedin.com/oauth/v2/accessToken",
         userinfo_url="https://api.linkedin.com/v2/userinfo",
         scopes=("openid", "email", "profile"),
+        supports_pkce=False,
     ),
 }
 
