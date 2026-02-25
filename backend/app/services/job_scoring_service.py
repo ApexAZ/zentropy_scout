@@ -479,7 +479,9 @@ class JobScoringService:
 
             messages = [
                 LLMMessage(role="system", content=SCORE_RATIONALE_SYSTEM_PROMPT),
-                LLMMessage(role="user", content=user_prompt),
+                LLMMessage(  # nosemgrep: zentropy.llm-unsanitized-input  # sanitized inside build_score_rationale_prompt()
+                    role="user", content=user_prompt
+                ),
             ]
 
             response = await llm.complete(
