@@ -10,7 +10,6 @@ stretch_score) moved from job_postings to persona_jobs.
 
 Tests verify:
 - PersonaJob model stores and retrieves score_details JSONB
-- save_scores_node assembles score_details from pipeline state
 - build_scored_result includes score_details parameter
 - build_filtered_score_result sets score_details to None
 """
@@ -25,8 +24,6 @@ import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.state import StrategistState
-from app.agents.strategist_graph import save_scores_node
 from app.models.job_posting import JobPosting
 from app.models.persona_job import PersonaJob
 from app.services.scoring_flow import build_filtered_score_result, build_scored_result
@@ -66,19 +63,6 @@ _SAMPLE_STRETCH: dict[str, Any] = {
         "growth_trajectory": 0.10,
     },
 }
-
-
-def _make_state(**overrides: Any) -> StrategistState:
-    """Build a StrategistState with sensible defaults for score_details tests."""
-    defaults: StrategistState = {
-        "current_job_id": "job-1",
-        "non_negotiables_passed": True,
-        "non_negotiables_reason": None,
-        "fit_result": _SAMPLE_FIT,
-        "stretch_result": _SAMPLE_STRETCH,
-        "rationale": "Strong technical match.",
-    }
-    return {**defaults, **overrides}
 
 
 @pytest_asyncio.fixture
@@ -200,59 +184,6 @@ class TestScoreDetailsColumn:
         assert refreshed.fit_score == 85
         assert refreshed.stretch_score == 72
         assert refreshed.score_details["fit"]["total"] == 85.0
-
-
-# =============================================================================
-# save_scores_node Tests — score_details assembly
-# =============================================================================
-
-
-class TestSaveScoresNodeScoreDetails:
-    """Tests for score_details assembly in save_scores_node."""
-
-    def test_assembles_for_passing_job(self) -> None:
-        """Node should build score_details from fit_result and stretch_result."""
-        result = save_scores_node(_make_state())
-        details = result["score_result"].get("score_details")
-
-        assert details is not None
-        assert details["fit"] == _SAMPLE_FIT
-        assert details["stretch"] == _SAMPLE_STRETCH
-        assert details["explanation"]["summary"] == "Strong technical match."
-
-    def test_none_for_filtered_job(self) -> None:
-        """Filtered jobs should have score_details=None."""
-        state = _make_state(
-            non_negotiables_passed=False,
-            non_negotiables_reason="salary_below_minimum",
-            fit_result=None,
-            stretch_result=None,
-            rationale=None,
-        )
-        result = save_scores_node(state)
-        assert result["score_result"].get("score_details") is None
-
-    def test_none_when_fit_stretch_are_none(self) -> None:
-        """When fit/stretch results are None (passed but not scored), score_details=None."""
-        state = _make_state(fit_result=None, stretch_result=None, rationale=None)
-        result = save_scores_node(state)
-        assert result["score_result"].get("score_details") is None
-
-    def test_explanation_has_empty_lists_when_rationale_only(self) -> None:
-        """When only rationale string exists, explanation uses empty lists."""
-        state = _make_state(
-            fit_result={"total": 80.0, "components": {}, "weights": {}},
-            stretch_result={"total": 60.0, "components": {}, "weights": {}},
-            rationale="Decent match overall.",
-        )
-        details = save_scores_node(state)["score_result"]["score_details"]
-
-        assert details is not None
-        assert details["explanation"]["summary"] == "Decent match overall."
-        assert details["explanation"]["strengths"] == []
-        assert details["explanation"]["gaps"] == []
-        assert details["explanation"]["stretch_opportunities"] == []
-        assert details["explanation"]["warnings"] == []
 
 
 # =============================================================================

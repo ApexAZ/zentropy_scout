@@ -20,7 +20,6 @@ Modules:
     chat: User-facing conversational interface (REQ-007 §4)
     onboarding: Persona creation interview (REQ-007 §5)
     scouter: Job discovery and ingestion (REQ-007 §6)
-    strategist: Job scoring and matching (REQ-007 §7)
     ghostwriter: Resume/cover letter generation (REQ-007 §8)
 """
 
@@ -96,14 +95,6 @@ from app.agents.state import (
     GeneratedContent,
     GhostwriterState,
     OnboardingState,
-    ScoreResult,
-    StrategistState,
-)
-from app.agents.strategist_graph import (
-    create_strategist_graph,
-    get_strategist_graph,
-    reset_strategist_graph,
-    score_jobs,
 )
 from app.prompts.strategist import (
     NON_NEGOTIABLES_SYSTEM_PROMPT,
@@ -132,8 +123,6 @@ __all__ = [
     "GeneratedContent",
     "GhostwriterState",
     "OnboardingState",
-    "ScoreResult",
-    "StrategistState",
     # Chat Agent
     "classify_intent",
     "create_chat_graph",
@@ -181,11 +170,6 @@ __all__ = [
     "generate_materials",
     "get_ghostwriter_graph",
     "reset_ghostwriter_graph",
-    # Strategist Graph
-    "create_strategist_graph",
-    "get_strategist_graph",
-    "reset_strategist_graph",
-    "score_jobs",
     # Strategist Prompts
     "NON_NEGOTIABLES_SYSTEM_PROMPT",
     "SCORE_RATIONALE_SYSTEM_PROMPT",

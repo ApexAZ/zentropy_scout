@@ -1,13 +1,13 @@
-"""Scoring flow service for the Strategist agent.
+"""Scoring flow service for job scoring.
 
-REQ-007 §7.2: Strategist Agent — Scoring Flow.
+REQ-007 §7.2 / REQ-017 §6: Scoring Flow.
 
 Orchestrates the complete scoring flow:
 1. Non-negotiables filtering (pass/fail gate)
 2. Score calculation for passing jobs
 3. Result aggregation into ScoreResult format
 
-This service is called by the Strategist graph's filter_and_score_node.
+Called by JobScoringService.score_batch() in job_scoring_service.py.
 """
 
 from dataclasses import dataclass

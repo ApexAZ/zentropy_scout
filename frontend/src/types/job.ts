@@ -193,7 +193,7 @@ export interface ScoreExplanation {
 /**
  * Composite JSONB stored in PersonaJob.score_details.
  *
- * Backend: Assembled by save_scores_node in strategist_graph.py.
+ * Backend: Assembled by _build_score_details in job_scoring_service.py.
  * REQ-012 Appendix A.3. Null when non-negotiables fail.
  */
 export interface ScoreDetails {
