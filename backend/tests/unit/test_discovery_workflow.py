@@ -4,13 +4,15 @@ REQ-003 §13.1: Workflow — Discovery Flow.
 
 The Discovery Workflow orchestrates:
 1. Trigger detection (scheduled, manual, source added)
-2. Scouter graph invocation
+2. JobFetchService invocation (replaced scouter graph in REQ-016)
 3. Result presentation (sorted by Fit Score)
 """
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -23,6 +25,12 @@ from app.services.discovery_workflow import (
     run_discovery,
     should_run_discovery,
 )
+from app.services.job_fetch_service import PollResult
+
+# S1192: Duplicated source name and patch path strings
+_SOURCE_ADZUNA = "Adzuna"
+_SOURCE_REMOTEOK = "RemoteOK"
+_JOB_FETCH_SERVICE = "app.services.discovery_workflow.JobFetchService"
 
 # =============================================================================
 # Trigger Detection Tests (REQ-003 §13.1)
@@ -58,13 +66,13 @@ class TestDiscoveryTrigger:
         """Source added trigger includes previous and current sources."""
         trigger = DiscoveryTrigger(
             trigger_type=TriggerType.SOURCE_ADDED,
-            previous_sources=["Adzuna"],
-            current_sources=["Adzuna", "RemoteOK"],
+            previous_sources=[_SOURCE_ADZUNA],
+            current_sources=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
         )
 
         assert trigger.trigger_type == TriggerType.SOURCE_ADDED
-        assert trigger.previous_sources == ["Adzuna"]
-        assert trigger.current_sources == ["Adzuna", "RemoteOK"]
+        assert trigger.previous_sources == [_SOURCE_ADZUNA]
+        assert trigger.current_sources == [_SOURCE_ADZUNA, _SOURCE_REMOTEOK]
 
 
 class TestCheckTriggerConditions:
@@ -77,8 +85,8 @@ class TestCheckTriggerConditions:
         trigger = check_trigger_conditions(
             next_poll_at=past_time,
             user_message=None,
-            previous_sources=["Adzuna"],
-            current_sources=["Adzuna"],
+            previous_sources=[_SOURCE_ADZUNA],
+            current_sources=[_SOURCE_ADZUNA],
         )
 
         assert trigger is not None
@@ -89,8 +97,8 @@ class TestCheckTriggerConditions:
         trigger = check_trigger_conditions(
             next_poll_at=datetime.now(UTC) + timedelta(hours=12),
             user_message="Find new jobs for me",
-            previous_sources=["Adzuna"],
-            current_sources=["Adzuna"],
+            previous_sources=[_SOURCE_ADZUNA],
+            current_sources=[_SOURCE_ADZUNA],
         )
 
         assert trigger is not None
@@ -101,8 +109,8 @@ class TestCheckTriggerConditions:
         trigger = check_trigger_conditions(
             next_poll_at=datetime.now(UTC) + timedelta(hours=12),
             user_message=None,
-            previous_sources=["Adzuna"],
-            current_sources=["Adzuna", "RemoteOK"],
+            previous_sources=[_SOURCE_ADZUNA],
+            current_sources=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
         )
 
         assert trigger is not None
@@ -113,8 +121,8 @@ class TestCheckTriggerConditions:
         trigger = check_trigger_conditions(
             next_poll_at=datetime.now(UTC) + timedelta(hours=12),
             user_message="Hello, how are you?",
-            previous_sources=["Adzuna"],
-            current_sources=["Adzuna"],
+            previous_sources=[_SOURCE_ADZUNA],
+            current_sources=[_SOURCE_ADZUNA],
         )
 
         assert trigger is None
@@ -126,8 +134,8 @@ class TestCheckTriggerConditions:
         trigger = check_trigger_conditions(
             next_poll_at=past_time,
             user_message="Find me jobs",
-            previous_sources=["Adzuna"],
-            current_sources=["Adzuna"],
+            previous_sources=[_SOURCE_ADZUNA],
+            current_sources=[_SOURCE_ADZUNA],
         )
 
         # WHY: Manual trigger takes priority because user explicitly requested
@@ -174,24 +182,24 @@ class TestDiscoveryResult:
         result = DiscoveryResult(
             jobs=jobs,
             total_discovered=2,
-            sources_queried=["Adzuna"],
+            sources_queried=[_SOURCE_ADZUNA],
             error_sources=[],
         )
 
         assert result.jobs == jobs
         assert result.total_discovered == 2
-        assert result.sources_queried == ["Adzuna"]
+        assert result.sources_queried == [_SOURCE_ADZUNA]
 
     def test_result_tracks_error_sources(self) -> None:
         """DiscoveryResult tracks sources that failed."""
         result = DiscoveryResult(
             jobs=[],
             total_discovered=0,
-            sources_queried=["Adzuna", "RemoteOK"],
-            error_sources=["RemoteOK"],
+            sources_queried=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
+            error_sources=[_SOURCE_REMOTEOK],
         )
 
-        assert "RemoteOK" in result.error_sources
+        assert _SOURCE_REMOTEOK in result.error_sources
 
 
 class TestFormatDiscoveryResults:
@@ -207,7 +215,7 @@ class TestFormatDiscoveryResults:
 
         result = format_discovery_results(
             jobs=jobs,
-            sources_queried=["Adzuna"],
+            sources_queried=[_SOURCE_ADZUNA],
             error_sources=[],
         )
 
@@ -226,7 +234,7 @@ class TestFormatDiscoveryResults:
 
         result = format_discovery_results(
             jobs=jobs,
-            sources_queried=["Adzuna"],
+            sources_queried=[_SOURCE_ADZUNA],
             error_sources=[],
         )
 
@@ -244,7 +252,7 @@ class TestFormatDiscoveryResults:
 
         result = format_discovery_results(
             jobs=jobs,
-            sources_queried=["Adzuna", "RemoteOK"],
+            sources_queried=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
             error_sources=[],
         )
 
@@ -254,11 +262,11 @@ class TestFormatDiscoveryResults:
         """Sources queried list is preserved."""
         result = format_discovery_results(
             jobs=[],
-            sources_queried=["Adzuna", "RemoteOK", "TheMuse"],
+            sources_queried=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK, "TheMuse"],
             error_sources=[],
         )
 
-        assert result.sources_queried == ["Adzuna", "RemoteOK", "TheMuse"]
+        assert result.sources_queried == [_SOURCE_ADZUNA, _SOURCE_REMOTEOK, "TheMuse"]
 
 
 # =============================================================================
@@ -269,158 +277,233 @@ class TestFormatDiscoveryResults:
 class TestRunDiscovery:
     """Tests for run_discovery function.
 
-    REQ-003 §13.1: Full discovery workflow execution.
+    REQ-003 §13.1 + REQ-016 §6.2: Full discovery workflow execution
+    via JobFetchService.
     """
 
-    @pytest.mark.asyncio
-    async def test_invokes_scouter_graph_when_trigger_exists(self) -> None:
-        """Scouter graph is invoked when trigger conditions are met."""
+    @pytest.fixture
+    def mock_db(self) -> AsyncMock:
+        """Mock async database session."""
+        return AsyncMock()
+
+    @pytest.fixture
+    def user_id(self) -> UUID:
+        """Stable user UUID."""
+        return uuid4()
+
+    @pytest.fixture
+    def persona_id(self) -> UUID:
+        """Stable persona UUID."""
+        return uuid4()
+
+    @pytest.fixture
+    def _make_poll_result(self) -> Callable[..., PollResult]:
+        """Factory for PollResult with sensible defaults."""
+
+        def _make(
+            processed_jobs: list[dict[str, Any]] | None = None,
+            new_job_count: int = 0,
+            existing_job_count: int = 0,
+            error_sources: list[str] | None = None,
+        ) -> PollResult:
+            return PollResult(
+                processed_jobs=processed_jobs or [],
+                new_job_count=new_job_count,
+                existing_job_count=existing_job_count,
+                error_sources=error_sources or [],
+            )
+
+        return _make
+
+    async def test_invokes_service_when_trigger_exists(
+        self,
+        mock_db,
+        user_id,
+        persona_id,
+        _make_poll_result,
+    ) -> None:
+        """JobFetchService.run_poll is called when trigger conditions are met."""
         trigger = DiscoveryTrigger(
             trigger_type=TriggerType.MANUAL,
             user_message="Find jobs",
         )
 
-        # Mock the scouter graph execution
-        mock_graph = MagicMock()
-        mock_graph.ainvoke = AsyncMock(
-            return_value={
-                "processed_jobs": [
-                    {"id": "1", "title": "Job A", "fit_score": 85},
-                ],
-                "enabled_sources": ["Adzuna"],
-                "error_sources": [],
-            }
+        poll_result = _make_poll_result(
+            processed_jobs=[
+                {"id": "1", "title": "Job A", "fit_score": 85},
+            ],
+            new_job_count=1,
         )
 
         with patch(
-            "app.services.discovery_workflow.get_scouter_graph",
-            return_value=mock_graph,
-        ):
+            _JOB_FETCH_SERVICE,
+        ) as mock_cls:
+            mock_cls.return_value.run_poll = AsyncMock(return_value=poll_result)
             result = await run_discovery(
-                user_id="user-123",
-                persona_id="persona-456",
-                enabled_sources=["Adzuna"],
+                db=mock_db,
+                user_id=user_id,
+                persona_id=persona_id,
+                enabled_sources=[_SOURCE_ADZUNA],
                 trigger=trigger,
             )
 
-        # Graph should have been invoked
-        mock_graph.ainvoke.assert_called_once()
-        assert result is not None
+        mock_cls.return_value.run_poll.assert_called_once()
         assert result.total_discovered == 1
 
-    @pytest.mark.asyncio
-    async def test_returns_empty_result_when_no_trigger(self) -> None:
+    async def test_returns_empty_result_when_no_trigger(
+        self,
+        mock_db,
+        user_id,
+        persona_id,
+    ) -> None:
         """Returns empty result when no trigger provided."""
         result = await run_discovery(
-            user_id="user-123",
-            persona_id="persona-456",
-            enabled_sources=["Adzuna"],
+            db=mock_db,
+            user_id=user_id,
+            persona_id=persona_id,
+            enabled_sources=[_SOURCE_ADZUNA],
             trigger=None,
         )
 
-        assert result is not None
         assert result.total_discovered == 0
         assert result.jobs == []
 
-    @pytest.mark.asyncio
-    async def test_result_includes_error_sources_from_graph(self) -> None:
-        """Error sources from graph execution are included in result."""
+    async def test_result_includes_error_sources_from_service(
+        self,
+        mock_db,
+        user_id,
+        persona_id,
+        _make_poll_result,
+    ) -> None:
+        """Error sources from JobFetchService are included in result."""
         trigger = DiscoveryTrigger(
             trigger_type=TriggerType.SCHEDULED,
             next_poll_at=datetime.now(UTC) - timedelta(hours=1),
         )
 
-        mock_graph = MagicMock()
-        mock_graph.ainvoke = AsyncMock(
-            return_value={
-                "processed_jobs": [],
-                "enabled_sources": ["Adzuna", "RemoteOK"],
-                "error_sources": ["RemoteOK"],
-            }
-        )
+        poll_result = _make_poll_result(error_sources=[_SOURCE_REMOTEOK])
 
         with patch(
-            "app.services.discovery_workflow.get_scouter_graph",
-            return_value=mock_graph,
-        ):
+            _JOB_FETCH_SERVICE,
+        ) as mock_cls:
+            mock_cls.return_value.run_poll = AsyncMock(return_value=poll_result)
             result = await run_discovery(
-                user_id="user-123",
-                persona_id="persona-456",
-                enabled_sources=["Adzuna", "RemoteOK"],
+                db=mock_db,
+                user_id=user_id,
+                persona_id=persona_id,
+                enabled_sources=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
                 trigger=trigger,
             )
 
-        assert "RemoteOK" in result.error_sources
+        assert _SOURCE_REMOTEOK in result.error_sources
 
-    @pytest.mark.asyncio
-    async def test_jobs_sorted_by_fit_score_in_result(self) -> None:
+    async def test_jobs_sorted_by_fit_score_in_result(
+        self,
+        mock_db,
+        user_id,
+        persona_id,
+        _make_poll_result,
+    ) -> None:
         """Jobs in result are sorted by fit_score descending."""
         trigger = DiscoveryTrigger(
             trigger_type=TriggerType.MANUAL,
             user_message="Search for jobs",
         )
 
-        mock_graph = MagicMock()
-        mock_graph.ainvoke = AsyncMock(
-            return_value={
-                "processed_jobs": [
-                    {"id": "1", "title": "Job A", "fit_score": 70},
-                    {"id": "2", "title": "Job B", "fit_score": 95},
-                    {"id": "3", "title": "Job C", "fit_score": 82},
-                ],
-                "enabled_sources": ["Adzuna"],
-                "error_sources": [],
-            }
+        poll_result = _make_poll_result(
+            processed_jobs=[
+                {"id": "1", "title": "Job A", "fit_score": 70},
+                {"id": "2", "title": "Job B", "fit_score": 95},
+                {"id": "3", "title": "Job C", "fit_score": 82},
+            ],
+            new_job_count=3,
         )
 
         with patch(
-            "app.services.discovery_workflow.get_scouter_graph",
-            return_value=mock_graph,
-        ):
+            _JOB_FETCH_SERVICE,
+        ) as mock_cls:
+            mock_cls.return_value.run_poll = AsyncMock(return_value=poll_result)
             result = await run_discovery(
-                user_id="user-123",
-                persona_id="persona-456",
-                enabled_sources=["Adzuna"],
+                db=mock_db,
+                user_id=user_id,
+                persona_id=persona_id,
+                enabled_sources=[_SOURCE_ADZUNA],
                 trigger=trigger,
             )
 
-        # Jobs should be sorted by fit_score descending
         assert result.jobs[0]["fit_score"] == 95
         assert result.jobs[1]["fit_score"] == 82
         assert result.jobs[2]["fit_score"] == 70
 
-    @pytest.mark.asyncio
-    async def test_creates_initial_state_for_graph(self) -> None:
-        """Graph is invoked with correct initial state."""
+    async def test_passes_correct_params_to_service(
+        self,
+        mock_db,
+        user_id,
+        persona_id,
+        _make_poll_result,
+    ) -> None:
+        """JobFetchService is constructed with correct db/user/persona."""
         trigger = DiscoveryTrigger(
             trigger_type=TriggerType.MANUAL,
             user_message="Find jobs",
         )
 
-        mock_graph = MagicMock()
-        mock_graph.ainvoke = AsyncMock(
-            return_value={
-                "processed_jobs": [],
-                "enabled_sources": ["Adzuna"],
-                "error_sources": [],
-            }
-        )
+        poll_result = _make_poll_result()
 
         with patch(
-            "app.services.discovery_workflow.get_scouter_graph",
-            return_value=mock_graph,
-        ):
+            _JOB_FETCH_SERVICE,
+        ) as mock_cls:
+            mock_cls.return_value.run_poll = AsyncMock(return_value=poll_result)
             await run_discovery(
-                user_id="user-123",
-                persona_id="persona-456",
-                enabled_sources=["Adzuna", "RemoteOK"],
+                db=mock_db,
+                user_id=user_id,
+                persona_id=persona_id,
+                enabled_sources=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
                 trigger=trigger,
             )
 
-        # Verify the state passed to graph
-        call_args = mock_graph.ainvoke.call_args
-        state = call_args[0][0]
+        # Verify constructor received correct params
+        mock_cls.assert_called_once_with(
+            db=mock_db,
+            user_id=user_id,
+            persona_id=persona_id,
+        )
 
-        assert state["user_id"] == "user-123"
-        assert state["persona_id"] == "persona-456"
-        assert state["enabled_sources"] == ["Adzuna", "RemoteOK"]
+        # Verify run_poll received sources
+        mock_cls.return_value.run_poll.assert_called_once_with(
+            enabled_sources=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
+            polling_frequency="daily",
+        )
+
+    async def test_forwards_polling_frequency_to_service(
+        self,
+        mock_db,
+        user_id,
+        persona_id,
+        _make_poll_result,
+    ) -> None:
+        """Custom polling_frequency is forwarded to run_poll."""
+        trigger = DiscoveryTrigger(
+            trigger_type=TriggerType.SCHEDULED,
+            next_poll_at=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        poll_result = _make_poll_result()
+
+        with patch(
+            _JOB_FETCH_SERVICE,
+        ) as mock_cls:
+            mock_cls.return_value.run_poll = AsyncMock(return_value=poll_result)
+            await run_discovery(
+                db=mock_db,
+                user_id=user_id,
+                persona_id=persona_id,
+                enabled_sources=[_SOURCE_ADZUNA],
+                trigger=trigger,
+                polling_frequency="weekly",
+            )
+
+        mock_cls.return_value.run_poll.assert_called_once_with(
+            enabled_sources=[_SOURCE_ADZUNA],
+            polling_frequency="weekly",
+        )

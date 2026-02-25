@@ -4,27 +4,31 @@ REQ-003 §13.1: Workflow — Discovery Flow.
 
 The Discovery Workflow orchestrates the full job discovery process:
 1. Trigger detection (scheduled, manual, source added)
-2. Scouter graph invocation
+2. JobFetchService invocation (replaced scouter graph in REQ-016)
 3. Result presentation (sorted by Fit Score)
 
 This service ties together trigger detection functions from scouter.py
-with the LangGraph execution in scouter_graph.py.
+with the JobFetchService pipeline.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any
+from uuid import UUID
 
-# WHY Any: Job data flows through multiple layers (source adapters, graph nodes,
-# API endpoints) with varying schemas. Using dict[str, Any] provides flexibility
-# while strict typing happens when creating JobPosting models at persistence.
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# WHY Any: Job data flows through multiple layers (source adapters,
+# services, API endpoints) with varying schemas. Using dict[str, Any]
+# provides flexibility while strict typing happens when creating
+# JobPosting models at persistence.
 from app.agents.scouter import (
     is_manual_refresh_request,
     is_source_added_trigger,
     should_poll,
 )
-from app.agents.scouter_graph import get_scouter_graph
+from app.services.job_fetch_service import JobFetchService
 
 # =============================================================================
 # Enums
@@ -201,30 +205,34 @@ def format_discovery_results(
 
 
 async def run_discovery(
-    user_id: str,
-    persona_id: str,
+    db: AsyncSession,
+    user_id: UUID,
+    persona_id: UUID,
     enabled_sources: list[str],
     trigger: DiscoveryTrigger | None,
+    polling_frequency: str = "daily",
 ) -> DiscoveryResult:
     """Run the full discovery workflow.
 
-    REQ-003 §13.1: Discovery Flow.
+    REQ-003 §13.1 + REQ-016 §6.2: Discovery Flow.
 
     Orchestrates:
     1. Check if discovery should run based on trigger
-    2. Invoke Scouter graph with initial state
+    2. Invoke JobFetchService pipeline (fetch, merge, pool, enrich, save)
     3. Format and return results sorted by Fit Score
 
     Args:
-        user_id: The user's ID.
-        persona_id: The persona's ID.
+        db: Async database session.
+        user_id: The user's UUID.
+        persona_id: The persona's UUID.
         enabled_sources: List of enabled source names.
         trigger: Detected trigger (or None to skip discovery).
+        polling_frequency: "twice_daily", "daily", or "weekly".
 
     Returns:
         DiscoveryResult with discovered jobs sorted by fit_score.
     """
-    # WHY: Early return if no trigger - avoid unnecessary graph execution
+    # WHY: Early return if no trigger - avoid unnecessary service execution
     if not should_run_discovery(trigger):
         return DiscoveryResult(
             jobs=[],
@@ -233,27 +241,16 @@ async def run_discovery(
             error_sources=[],
         )
 
-    # Build initial state for Scouter graph
-    initial_state = {
-        "user_id": user_id,
-        "persona_id": persona_id,
-        "enabled_sources": enabled_sources,
-        "discovered_jobs": [],
-        "processed_jobs": [],
-        "error_sources": [],
-    }
-
-    # Invoke the Scouter graph
-    graph = get_scouter_graph()
-    final_state = await graph.ainvoke(initial_state)  # type: ignore[attr-defined]
-
-    # Extract results from final state
-    jobs = final_state.get("processed_jobs", [])
-    error_sources = final_state.get("error_sources", [])
+    # Run the fetch pipeline via JobFetchService
+    service = JobFetchService(db=db, user_id=user_id, persona_id=persona_id)
+    poll_result = await service.run_poll(
+        enabled_sources=enabled_sources,
+        polling_frequency=polling_frequency,
+    )
 
     # Format and return results
     return format_discovery_results(
-        jobs=jobs,
+        jobs=poll_result.processed_jobs,
         sources_queried=enabled_sources,
-        error_sources=error_sources,
+        error_sources=poll_result.error_sources,
     )
