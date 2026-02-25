@@ -178,7 +178,7 @@ def _format_basic_info(gathered_data: dict[str, Any]) -> str | None:
     """Format basic info section for summary."""
     basic = gathered_data.get("basic_info", {})
     if isinstance(basic, dict) and basic.get("full_name"):
-        return f"Name: {basic.get('full_name')}"
+        return f"Name: {sanitize_llm_input(basic['full_name'])}"
     return None
 
 
@@ -200,7 +200,9 @@ def _format_skills(gathered_data: dict[str, Any]) -> str | None:
     entries = skills.get("entries", [])
     if not entries:
         return None
-    skill_names = [e.get("skill_name", "") for e in entries if e.get("skill_name")]
+    skill_names = [
+        sanitize_llm_input(e["skill_name"]) for e in entries if e.get("skill_name")
+    ]
     if not skill_names:
         return None
     result = f"Skills: {', '.join(skill_names[:5])}"
@@ -235,7 +237,7 @@ def format_gathered_data_summary(gathered_data: dict[str, Any]) -> str:
     """Format gathered data into a human-readable summary.
 
     Converts the gathered_data dict into a summary string suitable for
-    display or prompt injection.
+    display or prompt context. User-provided strings are sanitized.
 
     Args:
         gathered_data: Dict of section data collected during onboarding.
