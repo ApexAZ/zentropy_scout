@@ -1,13 +1,13 @@
 """Tests for graph invocation patterns.
 
-REQ-007 §15.6: Graph Invocation Patterns.
+REQ-007 §15.6 / REQ-018 §7: Graph Invocation Patterns.
 
 Tests the Chat Agent's sub-graph delegation: how it constructs target
-agent state from its own state, invokes the sub-graph, and captures
-the result in tool_results.
+agent state from its own state, invokes the service/sub-graph, and
+captures the result in tool_results.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -17,8 +17,17 @@ from app.agents.state import ChatAgentState
 _USER_ID = "user-123"
 _PERSONA_ID = "persona-456"
 _JOB_ID = "job-789"
-_PATCH_GENERATE_MATERIALS = "app.agents.chat.generate_materials"
+_PATCH_CONTENT_GEN_SERVICE = (
+    "app.services.content_generation_service.ContentGenerationService"
+)
 _PATCH_GET_ONBOARDING_GRAPH = "app.agents.chat.get_onboarding_graph"
+
+
+def _mock_generation_result(*, cover_letter: object = None) -> MagicMock:
+    """Build a mock GenerationResult with the given cover_letter."""
+    result = MagicMock()
+    result.cover_letter = cover_letter
+    return result
 
 
 def _make_chat_state(
@@ -50,32 +59,30 @@ def _make_chat_state(
 
 
 class TestDelegateGhostwriter:
-    """delegate_ghostwriter invokes Ghostwriter sub-graph via generate_materials."""
+    """delegate_ghostwriter invokes ContentGenerationService."""
 
     @pytest.mark.asyncio
-    async def test_calls_generate_materials_with_mapped_state(self) -> None:
-        """Passes user_id, persona_id, job_posting_id, and trigger_type."""
-        mock_gen = AsyncMock(return_value={"generated_resume": "resume"})
-        with patch(_PATCH_GENERATE_MATERIALS, mock_gen):
+    async def test_calls_generate_with_mapped_state(self) -> None:
+        """Passes user_id, persona_id, and job_posting_id to service."""
+        mock_service = MagicMock()
+        mock_service.generate = AsyncMock(return_value=_mock_generation_result())
+        with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             await delegate_ghostwriter(_make_chat_state())
 
-        mock_gen.assert_called_once_with(
+        mock_service.generate.assert_called_once_with(
             user_id=_USER_ID,
             persona_id=_PERSONA_ID,
             job_posting_id=_JOB_ID,
-            trigger_type="manual_request",
         )
 
     @pytest.mark.asyncio
     async def test_success_populates_tool_results(self) -> None:
         """Successful invocation stores completed status and content flags."""
-        mock_gen = AsyncMock(
-            return_value={
-                "generated_resume": {"content": "tailored resume"},
-                "generated_cover_letter": {"content": "cover letter"},
-            }
+        mock_service = MagicMock()
+        mock_service.generate = AsyncMock(
+            return_value=_mock_generation_result(cover_letter={"content": "cl"})
         )
-        with patch(_PATCH_GENERATE_MATERIALS, mock_gen):
+        with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             result = await delegate_ghostwriter(_make_chat_state())
 
         tool_results = result["tool_results"]
@@ -83,33 +90,30 @@ class TestDelegateGhostwriter:
         assert tool_results[0]["tool"] == "invoke_ghostwriter"
         assert tool_results[0]["error"] is None
         assert tool_results[0]["result"]["status"] == "completed"
-        assert tool_results[0]["result"]["has_resume"] is True
         assert tool_results[0]["result"]["has_cover_letter"] is True
 
     @pytest.mark.asyncio
-    async def test_partial_generation_flags(self) -> None:
-        """Reports has_resume=True, has_cover_letter=False for resume-only."""
-        mock_gen = AsyncMock(
-            return_value={
-                "generated_resume": {"content": "resume"},
-                "generated_cover_letter": None,
-            }
+    async def test_no_cover_letter_flag(self) -> None:
+        """Reports has_cover_letter=False when cover letter is None."""
+        mock_service = MagicMock()
+        mock_service.generate = AsyncMock(
+            return_value=_mock_generation_result(cover_letter=None)
         )
-        with patch(_PATCH_GENERATE_MATERIALS, mock_gen):
+        with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             result = await delegate_ghostwriter(_make_chat_state())
 
         data = result["tool_results"][0]["result"]
-        assert data["has_resume"] is True
         assert data["has_cover_letter"] is False
 
     @pytest.mark.asyncio
     async def test_missing_target_job_returns_error(self) -> None:
-        """Missing target_job_id produces an error without calling sub-graph."""
-        mock_gen = AsyncMock()
-        with patch(_PATCH_GENERATE_MATERIALS, mock_gen):
+        """Missing target_job_id produces an error without calling service."""
+        mock_service = MagicMock()
+        mock_service.generate = AsyncMock()
+        with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             result = await delegate_ghostwriter(_make_chat_state(target_job_id=None))
 
-        mock_gen.assert_not_called()
+        mock_service.generate.assert_not_called()
         tool_results = result["tool_results"]
         assert len(tool_results) == 1
         assert tool_results[0]["error"] is not None
@@ -117,9 +121,12 @@ class TestDelegateGhostwriter:
 
     @pytest.mark.asyncio
     async def test_exception_returns_safe_error_message(self) -> None:
-        """Sub-graph exception does not leak internals to user."""
-        mock_gen = AsyncMock(side_effect=RuntimeError("DB connection refused"))
-        with patch(_PATCH_GENERATE_MATERIALS, mock_gen):
+        """Service exception does not leak internals to user."""
+        mock_service = MagicMock()
+        mock_service.generate = AsyncMock(
+            side_effect=RuntimeError("DB connection refused")
+        )
+        with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             result = await delegate_ghostwriter(_make_chat_state())
 
         tool_results = result["tool_results"]
@@ -135,8 +142,9 @@ class TestDelegateGhostwriter:
         """Delegate returns new state, does not mutate the input."""
         state = _make_chat_state()
         original_results = state["tool_results"]
-        mock_gen = AsyncMock(return_value={"generated_resume": "r"})
-        with patch(_PATCH_GENERATE_MATERIALS, mock_gen):
+        mock_service = MagicMock()
+        mock_service.generate = AsyncMock(return_value=_mock_generation_result())
+        with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             result = await delegate_ghostwriter(state)
 
         assert result is not state
