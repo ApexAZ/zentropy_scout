@@ -1,7 +1,7 @@
 """Application workflow — persist Ghostwriter output into database entities.
 
 REQ-002 §6.2: After the Ghostwriter agent finishes generating materials,
-this service bridges the agent output (GhostwriterState) to database
+this service bridges the agent output (ghostwriter output dict) to database
 entities (JobVariant, CoverLetter, Application).
 
 Three public functions matching the application lifecycle:
@@ -118,7 +118,7 @@ async def persist_draft_materials(
     - Pass-through case (tailoring_needed=False): Approved JobVariant + Draft CoverLetter
 
     Args:
-        ghostwriter_output: Dict matching GhostwriterState output fields.
+        ghostwriter_output: Dict matching ghostwriter output fields.
         persona_id: Target persona ID.
         job_posting_id: Target job posting ID.
         db: Database session.

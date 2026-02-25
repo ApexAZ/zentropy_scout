@@ -65,7 +65,7 @@ def _make_ghostwriter_output(
     agent_reasoning: str = "Selected base resume for best fit.",
     selected_base_resume_id: str | None = None,
 ) -> dict[str, Any]:
-    """Build a dict matching GhostwriterState output fields.
+    """Build a dict matching ghostwriter output output fields.
 
     Args:
         tailoring_needed: Whether resume tailoring was applied.
@@ -80,7 +80,7 @@ def _make_ghostwriter_output(
         selected_base_resume_id: Base resume ID selected by Ghostwriter.
 
     Returns:
-        Dict matching GhostwriterState output fields.
+        Dict matching ghostwriter output output fields.
     """
     output: dict[str, Any] = {
         "selected_base_resume_id": selected_base_resume_id or str(_BASE_RESUME_ID),

@@ -129,7 +129,7 @@ def request_human_input(
         Updated state with HITL flags set and message added.
 
     Example:
-        def approval_node(state: GhostwriterState) -> GhostwriterState:
+        def approval_node(state: BaseAgentState) -> BaseAgentState:
             if state.get("generated_resume"):
                 return request_human_input(
                     state,

@@ -30,10 +30,10 @@ Architecture:
     │  BaseAgentState │  Common fields for all agents
     └────────┬────────┘
              │
-    ┌────────┼────────────┐
-    ▼        ▼            ▼
-  Chat   Onboarding  Ghostwriter
-  State    State       State
+    ┌────────┼────────┐
+    ▼        ▼        ▼
+  Chat   Onboarding  (future)
+  State    State
 """
 
 from enum import Enum
@@ -172,117 +172,3 @@ class OnboardingState(BaseAgentState, total=False):
     pending_question: str | None
     user_response: str | None
     is_partial_update: bool
-
-
-class TailoringAnalysis(TypedDict, total=False):
-    """Tailoring evaluation result for downstream nodes.
-
-    REQ-007 §8.4: Enriched analysis from evaluate_tailoring_need service.
-
-    Attributes:
-        action: Decision action ("use_base" or "create_variant").
-        signals: List of signal dicts with type, priority, and detail.
-        reasoning: Human-readable explanation of the decision.
-    """
-
-    action: str
-    # Any: Signal dicts have type (str), priority (float), detail (str).
-    # Kept as dicts for state serialization compatibility.
-    signals: list[dict[str, Any]]
-    reasoning: str
-
-
-class GeneratedContent(TypedDict, total=False):
-    """Generated resume or cover letter content.
-
-    Attributes:
-        content: The generated content (markdown or structured).
-        reasoning: Agent's reasoning for choices made.
-        stories_used: Achievement story IDs incorporated.
-    """
-
-    content: str
-    reasoning: str
-    stories_used: list[str]
-
-
-class ScoredStoryDetail(TypedDict):
-    """Story detail from scoring, carried through state for reasoning output.
-
-    REQ-007 §8.7: Downstream nodes need story titles and rationales
-    to build the user-facing reasoning explanation.
-
-    Attributes:
-        story_id: Unique story identifier.
-        title: Story title for display.
-        rationale: Human-readable selection rationale from scoring.
-    """
-
-    story_id: str
-    title: str
-    rationale: str
-
-
-class GhostwriterState(BaseAgentState, total=False):
-    """State schema for the Ghostwriter Agent.
-
-    REQ-007 §8: Generates tailored resumes and cover letters.
-    REQ-007 §15.5: 9-node graph with duplicate prevention and tailoring.
-
-    Extends BaseAgentState with:
-        job_posting_id: Target job for content generation.
-        trigger_type: How the Ghostwriter was triggered (REQ-007 §8.1).
-            Values: "auto_draft", "manual_request", "regeneration".
-        selected_base_resume_id: Base resume selected for tailoring.
-        existing_variant_id: Existing JobVariant ID if known (race condition
-            prevention per REQ-007 §10.4.2). Passed in from caller.
-        existing_variant_status: Status of existing variant after lookup.
-            Values: None (no variant), "draft", "approved".
-        duplicate_message: Message to display when duplicate variant found.
-        tailoring_needed: Whether the base resume needs tailoring for the job.
-        tailoring_analysis: Enriched tailoring evaluation result with action,
-            signals, and reasoning for downstream nodes (REQ-007 §8.4).
-        generated_resume: Generated/tailored resume content.
-        generated_cover_letter: Generated cover letter content.
-        selected_stories: Achievement story IDs selected for cover letter.
-        scored_story_details: Story titles and rationales from scoring, needed
-            by present_for_review to build reasoning explanation (REQ-007 §8.7).
-        data_warnings: User-facing warnings from data availability checks
-            (REQ-010 §8.1). Propagated to the review/output node.
-        skip_cover_letter: Whether to skip cover letter generation due to
-            insufficient data (e.g., no achievement stories).
-        job_active: Whether the target job is still active/not expired.
-        review_warning: Warning message for user review (e.g., expired job).
-        agent_reasoning: Combined user-facing reasoning explanation (REQ-010 §9).
-        feedback: User feedback for regeneration (if any).
-    """
-
-    # Job and trigger context
-    job_posting_id: str | None
-    trigger_type: str | None
-    feedback: str | None
-
-    # Duplicate prevention (§8.2, §10.4.2)
-    existing_variant_id: str | None
-    existing_variant_status: str | None
-    duplicate_message: str | None
-
-    # Resume selection and tailoring (§8.3, §8.4)
-    selected_base_resume_id: str | None
-    tailoring_needed: bool
-    tailoring_analysis: TailoringAnalysis | None
-
-    # Content generation (§8.5, §8.6)
-    generated_resume: GeneratedContent | None
-    generated_cover_letter: GeneratedContent | None
-    selected_stories: list[str]
-    scored_story_details: list[ScoredStoryDetail]
-
-    # Data availability (§8.1)
-    data_warnings: list[str]
-    skip_cover_letter: bool
-
-    # Job freshness and review (§8.2, §8.7, §15.5)
-    job_active: bool
-    review_warning: str | None
-    agent_reasoning: str | None
