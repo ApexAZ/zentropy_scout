@@ -42,7 +42,6 @@ from typing import Any
 
 from langgraph.graph import END, StateGraph
 
-from app.agents.ghostwriter_graph import generate_materials
 from app.agents.onboarding import get_onboarding_graph
 from app.agents.state import ChatAgentState, CheckpointReason, ClassifiedIntent
 
@@ -680,10 +679,9 @@ async def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:
 
 
 async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
-    """Delegate to Ghostwriter Agent sub-graph.
+    """Delegate to ContentGenerationService for material generation.
 
-    REQ-007 §15.6 Pattern 1: Constructs GhostwriterState from ChatAgentState
-    and invokes the ghostwriter graph via ``generate_materials``.
+    REQ-018 §7: Replaces ghostwriter graph invocation with direct service call.
 
     Args:
         state: Current chat state.
@@ -691,6 +689,8 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
     Returns:
         State with ghostwriter result in tool_results.
     """
+    from app.services.content_generation_service import ContentGenerationService
+
     new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
 
     target_job_id = state.get("target_job_id")
@@ -705,26 +705,24 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
         return new_state
 
     try:
-        result = await generate_materials(
+        service = ContentGenerationService()
+        result = await service.generate(
             user_id=state["user_id"],
             persona_id=state["persona_id"],
             job_posting_id=target_job_id,
-            trigger_type="manual_request",
         )
         new_state["tool_results"] = [
             {
                 "tool": "invoke_ghostwriter",
                 "result": {
                     "status": "completed",
-                    "has_resume": result.get("generated_resume") is not None,
-                    "has_cover_letter": result.get("generated_cover_letter")
-                    is not None,
+                    "has_cover_letter": result.cover_letter is not None,
                 },
                 "error": None,
             }
         ]
     except Exception:
-        logger.exception("Ghostwriter sub-graph failed")
+        logger.exception("Content generation failed")
         new_state["tool_results"] = [
             {
                 "tool": "invoke_ghostwriter",
