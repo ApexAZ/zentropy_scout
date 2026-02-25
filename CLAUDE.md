@@ -282,8 +282,8 @@ If refactoring breaks tests, the tests were likely testing implementation, not b
 | Phase | What to Run | Command | Why |
 |-------|-------------|---------|-----|
 | **While coding** | Affected tests | `pytest tests/unit/test_file.py -v` | Fast TDD feedback loop |
-| **Before commit** | Full test suite | `pytest tests/ -v` | Catch cross-module regressions |
-| **Before push** | Full suite + lint + types | `pre-commit run --all-files` | Gate for shared code |
+| **Before commit** (subtask) | Affected tests + lint | Pre-commit hooks (~25-40s) | Quick quality check |
+| **Before push** (phase gate) | Full suite + lint + types | test-runner Full mode (~90-135s) | Comprehensive quality gate |
 | **CI/CD** | Everything + coverage | GitHub Actions | Final quality gate |
 
 ### Test Quality Checklist
@@ -440,7 +440,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 - `[git]` Never attempt to commit `.claude/` directory or `CLAUDE_TOOLS.md` because they are gitignored and local-only; these files exist only on the user's machine.
 - `[testing]` Never use `--no-verify` to bypass failing tests because even "pre-existing" failures represent technical debt that compounds over time; fix the tests before pushing.
 - `[testing]` Always verify Docker/PostgreSQL is running at session start (`docker compose ps`) and before investigating test failures because the container may not be started; skipped tests violate the "100% pass rate, no skips" Definition of Done.
-- `[workflow]` After completing a subtask, always follow this exact order: (1) push to remote, (2) use AskUserQuestion tool (not prose) to offer "Continue"/"Compact first"/"Stop", (3) if "Compact first" is selected, immediately provide a detailed summary for compaction. The checklist exists to prevent shortcuts at the finish line when you feel "done."
+- `[workflow]` After completing a subtask, always follow this exact order: (1) commit (no push — pushes happen at phase gates only), (2) use AskUserQuestion tool (not prose) to offer "Continue to next subtask"/"Compact first"/"Stop", (3) if "Compact first" is selected, immediately provide a detailed summary for compaction. At phase gates: run full quality gate (test-runner Full mode) → fix regressions → commit → push → AskUserQuestion. The checklist exists to prevent shortcuts at the finish line when you feel "done."
 
 - `[security]` Never filter or suppress security scanner alerts from reporting output (SARIF, Security tab) because DAST/SAST findings are meant for manual human review — the protocol is: review each alert, determine if genuine or false positive, then dismiss via `gh api` with reason and comment if false positive.
 
