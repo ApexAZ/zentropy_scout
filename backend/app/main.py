@@ -24,6 +24,7 @@ from app.api.v1.router import router as v1_router
 from app.core.config import settings
 from app.core.database import async_session_factory
 from app.core.errors import APIError
+from app.core.null_byte_middleware import NullByteMiddleware
 from app.core.rate_limiting import limiter, rate_limit_exceeded_handler
 from app.core.responses import ErrorDetail, ErrorResponse
 from app.services.pool_surfacing_worker import PoolSurfacingWorker
@@ -212,7 +213,9 @@ def create_app() -> FastAPI:
     )
 
     # Middleware order: Starlette uses LIFO, so the LAST added runs FIRST.
+    # Execution order: CORS → SecurityHeaders → NullByte → handler
     # CORS must run first to handle preflight requests, so add it last.
+    app.add_middleware(NullByteMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,

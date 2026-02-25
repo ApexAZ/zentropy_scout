@@ -72,7 +72,7 @@ def _flag_to_dict(flag: PersonaChangeFlag) -> dict:
 
 
 StatusFilter = Annotated[
-    str | None,
+    Literal["Pending", "Resolved"] | None,
     Query(description="Filter by status (Pending or Resolved)"),
 ]
 
