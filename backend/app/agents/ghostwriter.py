@@ -26,12 +26,6 @@ Trigger Conditions (§8.1):
 
 import re
 from enum import Enum
-from typing import Any
-
-# WHY: GhostwriterState is a TypedDict defined in app/agents/state.py.
-# create_ghostwriter_state() returns dict[str, Any] because LangGraph state
-# dicts contain heterogeneous values (str, None, GeneratedContent, etc.).
-# Strict typing happens at the TypedDict level, not the dict factory.
 
 # =============================================================================
 # Trigger Types (§8.1)
@@ -168,45 +162,3 @@ def is_regeneration_request(message: str) -> bool:
         return False
 
     return any(pattern.search(message) for pattern in REGENERATION_PATTERNS)
-
-
-# =============================================================================
-# State Initialization (§8.2)
-# =============================================================================
-
-
-def create_ghostwriter_state(
-    user_id: str,
-    persona_id: str,
-    job_posting_id: str,
-    trigger_type: TriggerType,
-    feedback: str | None = None,
-    existing_variant_id: str | None = None,
-) -> dict[str, Any]:
-    """Create initial GhostwriterState for a generation run.
-
-    REQ-007 §8.2: Initialize state before starting the generation flow.
-
-    Args:
-        user_id: The user's ID.
-        persona_id: The persona's ID.
-        job_posting_id: Target job posting ID.
-        trigger_type: How the Ghostwriter was triggered.
-        feedback: User feedback for regeneration (only for REGENERATION trigger).
-        existing_variant_id: Existing JobVariant ID if known (race condition
-            prevention per REQ-007 §10.4.2).
-
-    Returns:
-        Initial GhostwriterState dict ready for the generation flow.
-    """
-    return {
-        "user_id": user_id,
-        "persona_id": persona_id,
-        "job_posting_id": job_posting_id,
-        "trigger_type": trigger_type.value,
-        "selected_base_resume_id": None,
-        "existing_variant_id": existing_variant_id,
-        "generated_resume": None,
-        "generated_cover_letter": None,
-        "feedback": feedback,
-    }

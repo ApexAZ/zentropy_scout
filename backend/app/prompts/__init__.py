@@ -6,4 +6,5 @@ system/user prompt pairs and builder functions for a specific domain.
 
 Modules:
     strategist: Score rationale + non-negotiables prompts (REQ-017 §8)
+    ghostwriter: Cover letter, summary tailoring + regeneration prompts (REQ-018 §8)
 """

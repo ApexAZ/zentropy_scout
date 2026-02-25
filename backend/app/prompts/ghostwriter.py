@@ -1,9 +1,10 @@
-"""Ghostwriter Agent prompt templates.
+"""Ghostwriter prompt templates.
 
 REQ-010 §4.2: Summary Tailoring Prompt.
 REQ-010 §5.3: Cover Letter Generation Prompts.
 REQ-010 §7.3: Regeneration Context Builder.
 REQ-007 §8.5: Cover Letter Generation.
+REQ-018 §5.2: Relocated from agents/ghostwriter_prompts.py.
 
 Contains:
 1. System prompt constants with writing rules and XML output format
@@ -11,8 +12,7 @@ Contains:
 3. Builder functions with sanitization and truncation
 4. Regeneration context builder for feedback-based re-generation
 
-Pattern follows app.prompts.strategist: module-level constants + builder functions
-with sanitize_llm_input().
+Pattern: module-level constants + builder functions with sanitize_llm_input().
 """
 
 from app.core.llm_sanitization import sanitize_llm_input, sanitize_user_feedback

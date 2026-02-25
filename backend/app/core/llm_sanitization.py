@@ -116,7 +116,7 @@ _INJECTION_PATTERNS: list[tuple[str, str, int]] = [
     (r"<\s*/?\s*[a-z]+(?:_[a-z]+)+(?:\s[^>]*)?\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
     # Known single-word structural tags that don't have underscores.
     # Maintain this list when adding new non-underscore tags to prompt templates.
-    # Current: applicant (ghostwriter_prompts.py:83), sample (ghostwriter_prompts.py:78)
+    # Current: applicant (prompts/ghostwriter.py:83), sample (prompts/ghostwriter.py:78)
     (r"<\s*/?\s*applicant(?:\s[^>]*)?\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
     (r"<\s*/?\s*sample(?:\s[^>]*)?\s*>", _REPLACEMENT_TAG, re.IGNORECASE),
     # ChatML-style role injections

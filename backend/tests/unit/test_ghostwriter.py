@@ -4,7 +4,6 @@ REQ-007 §8: Ghostwriter Agent
 
 Tests verify:
 - Trigger condition detection (auto-draft, manual request, regeneration)
-- State initialization
 """
 
 
@@ -180,72 +179,3 @@ class TestIsRegenerationRequest:
         from app.agents.ghostwriter import is_regeneration_request
 
         assert is_regeneration_request("") is False
-
-
-class TestCreateGhostwriterState:
-    """Tests for Ghostwriter state initialization.
-
-    REQ-007 §8.2: State is initialized before starting the generation flow.
-    """
-
-    def test_creates_state_with_required_fields(self) -> None:
-        """State contains user_id, persona_id, job_posting_id, trigger_type."""
-        from app.agents.ghostwriter import TriggerType, create_ghostwriter_state
-
-        state = create_ghostwriter_state(
-            user_id="user-1",
-            persona_id="persona-1",
-            job_posting_id="job-1",
-            trigger_type=TriggerType.MANUAL_REQUEST,
-        )
-
-        assert state["user_id"] == "user-1"
-        assert state["persona_id"] == "persona-1"
-        assert state["job_posting_id"] == "job-1"
-        assert state["trigger_type"] == "manual_request"
-
-    def test_creates_state_with_none_defaults(self) -> None:
-        """Optional fields default to None."""
-        from app.agents.ghostwriter import TriggerType, create_ghostwriter_state
-
-        state = create_ghostwriter_state(
-            user_id="user-1",
-            persona_id="persona-1",
-            job_posting_id="job-1",
-            trigger_type=TriggerType.AUTO_DRAFT,
-        )
-
-        assert state["selected_base_resume_id"] is None
-        assert state["existing_variant_id"] is None
-        assert state["generated_resume"] is None
-        assert state["generated_cover_letter"] is None
-        assert state["feedback"] is None
-
-    def test_creates_state_with_feedback_for_regeneration(self) -> None:
-        """Regeneration trigger includes feedback text."""
-        from app.agents.ghostwriter import TriggerType, create_ghostwriter_state
-
-        state = create_ghostwriter_state(
-            user_id="user-1",
-            persona_id="persona-1",
-            job_posting_id="job-1",
-            trigger_type=TriggerType.REGENERATION,
-            feedback="Make it more formal",
-        )
-
-        assert state["trigger_type"] == "regeneration"
-        assert state["feedback"] == "Make it more formal"
-
-    def test_creates_state_with_existing_variant_id(self) -> None:
-        """State can include existing_variant_id for race condition handling."""
-        from app.agents.ghostwriter import TriggerType, create_ghostwriter_state
-
-        state = create_ghostwriter_state(
-            user_id="user-1",
-            persona_id="persona-1",
-            job_posting_id="job-1",
-            trigger_type=TriggerType.MANUAL_REQUEST,
-            existing_variant_id="variant-1",
-        )
-
-        assert state["existing_variant_id"] == "variant-1"

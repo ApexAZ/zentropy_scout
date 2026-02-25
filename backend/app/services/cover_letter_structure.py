@@ -8,7 +8,7 @@ bounds used by downstream modules:
 
 - §5.4 (Validation) uses these constants to check generated cover letters.
 - §5.5 (Output Schema) uses the section enum for structured output.
-- ghostwriter_prompts.py system prompt mirrors this structure for LLM guidance.
+- prompts/ghostwriter.py system prompt mirrors this structure for LLM guidance.
 
 Cross-reference: REQ-002b §8.1 defines the same structure from the storage
 perspective (Opening, Body 1, Body 2, Closing).

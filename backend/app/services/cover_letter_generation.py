@@ -17,7 +17,7 @@ import logging
 import re
 from dataclasses import dataclass
 
-from app.agents.ghostwriter_prompts import (
+from app.prompts.ghostwriter import (
     COVER_LETTER_SYSTEM_PROMPT,
     build_cover_letter_prompt,
 )

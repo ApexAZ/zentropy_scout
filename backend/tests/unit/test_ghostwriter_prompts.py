@@ -14,7 +14,7 @@ Tests verify:
 
 from dataclasses import replace
 
-from app.agents.ghostwriter_prompts import (
+from app.prompts.ghostwriter import (
     COVER_LETTER_SYSTEM_PROMPT,
     SUMMARY_TAILORING_SYSTEM_PROMPT,
     build_cover_letter_prompt,

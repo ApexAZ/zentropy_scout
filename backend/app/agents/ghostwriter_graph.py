@@ -307,7 +307,7 @@ async def generate_cover_letter_node(
         State with generated_cover_letter populated as GeneratedContent dict.
     """
     # Lazy import to break circular dependency:
-    # cover_letter_generation → ghostwriter_prompts → agents/__init__ → ghostwriter_graph
+    # cover_letter_generation → prompts/ghostwriter → agents/__init__ → ghostwriter_graph
     from app.services.cover_letter_generation import generate_cover_letter
 
     job_id = state.get("job_posting_id")
