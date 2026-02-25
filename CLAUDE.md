@@ -84,7 +84,7 @@ zentropy_scout/
 |-------|-------|----------|
 | **4.1** | Chrome Extension | REQ-011 |
 
-**Plans:** `docs/plan/implementation_plan.md` (backend), `docs/plan/frontend_implementation_plan.md` (frontend)
+**Plans:** See `docs/plan/` for all implementation plans (backend, frontend, and feature-specific).
 
 **Rule:** Complete each phase before starting the next. Dependencies are strict.
 
@@ -174,19 +174,10 @@ RATE_LIMIT_ENABLED=true
 
 ## Working with Requirements
 
-1. **Start with `docs/plan/implementation_plan.md`** — shows phases and dependencies
-2. **Load only the REQ document(s) needed for current task**
+1. **Start with the active plan** — each task references the REQ sections needed
+2. **Use `req-reader`** to load specific REQ sections (discovers documents dynamically via `docs/requirements/`)
 3. **Reference sections like "REQ-005 §4.2"**
-
-| Topic | Primary Document |
-|-------|------------------|
-| Database schema | REQ-005 |
-| API endpoints | REQ-006 |
-| LLM providers | REQ-009 |
-| Agents | REQ-007 |
-| Scoring | REQ-008 |
-| Content generation | REQ-010 |
-| Frontend application | REQ-012 |
+4. **For ad-hoc work** (no active plan), search `docs/requirements/` by topic using `req-reader`
 
 ---
 
@@ -205,7 +196,7 @@ Run these checks at the start of every session (before any implementation work):
      - 4 Semgrep supply chain findings (all dev-only transitive deps, zero production risk):
        - ajv@6.12.6 ReDoS (CVE-2025-69873, GHSA-2g4f-4pwh-qvx6) — via ESLint. ESLint doesn't use the `$data` option that triggers the CVE. Issue [#20508](https://github.com/eslint/eslint/issues/20508) open/triaging, no fix planned. ESLint stance: "security issues like this don't usually affect ESLint" ([#14863](https://github.com/eslint/eslint/issues/14863)). Also accepted in npm audit (`pip-audit.yml:90`).
        - minimatch@3.1.2, @9.0.5, @10.1.2 ReDoS (CVE-2026-26996, GHSA-3ppc-4f35-3m26) — 3 findings via ESLint + shadcn CLI. Fixed in ESLint v10 (PR merged), but blocked for v9 — waiting on minimatch v3 backport. Issue [#20518](https://github.com/eslint/eslint/issues/20518) marked "Blocked." Also accepted in npm audit (`pip-audit.yml:90`).
-3. **Implementation plan** — Read `docs/plan/frontend_implementation_plan.md` (or `implementation_plan.md` for backend) to find the current task (first 🟡 or ⬜).
+3. **Implementation plan** — Discover the active plan: `Glob "docs/plan/*_plan.md"`, read each to find plans with 🟡 or ⬜ tasks, or ask the user which plan is in scope. The plan references the relevant REQ documents per task.
 4. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker + scanner status.
 
 ---
@@ -213,7 +204,7 @@ Run these checks at the start of every session (before any implementation work):
 ## DO / DON'T
 
 ### DO:
-- **Update `docs/plan/implementation_plan.md` after EVERY subtask** — see `zentropy-planner` skill
+- **Update the active plan file after EVERY subtask** — see `zentropy-planner` skill
 - **Commit after EVERY subtask** — do NOT batch commits
 - **Ask before pushing** — never auto-push to remote
 - Follow TDD (Red-Green-Refactor) — see `zentropy-tdd` skill
@@ -455,9 +446,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 **Frontend:** Phases 1–15 complete.
 **Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
 
-**IMPORTANT:** After completing ANY subtask, update the relevant plan file status (⬜ → ✅). See `zentropy-planner` skill.
-- Backend: `docs/plan/implementation_plan.md`
-- Frontend: `docs/plan/frontend_implementation_plan.md`
+**IMPORTANT:** After completing ANY subtask, update the active plan file status (⬜ → ✅). See `zentropy-planner` skill. Discover plan files via `Glob "docs/plan/*_plan.md"` or ask the user which plan is in scope.
 
 **Feature backlog:** `docs/backlog/feature-backlog.md` — 7 items (OpenRouter, auth, multi-tenant, tiered fetch, content TTL, Railway deployment, Socket.dev).
 
