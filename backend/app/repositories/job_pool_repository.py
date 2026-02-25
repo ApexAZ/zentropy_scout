@@ -23,9 +23,6 @@ logger = logging.getLogger(__name__)
 # untrusted source names from polluting the job_sources table.
 _KNOWN_SOURCE_NAMES = frozenset({"Adzuna", "RemoteOK", "TheMuse", "USAJobs"})
 
-# Max characters to send to LLM for skill extraction per REQ-007 §6.4.
-_MAX_DESCRIPTION_LENGTH = 15000
-
 
 def _compute_description_hash(text: str) -> str:
     """Compute SHA-256 hash of description text for dedup lookup.

@@ -3,11 +3,15 @@
 REQ-016 §6.3: Enriches raw job postings with extracted skills and ghost detection.
 """
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from app.services.job_enrichment_service import JobEnrichmentService
+
+_GHOST_SCORE_MOCK_TARGET = "app.services.job_enrichment_service.calculate_ghost_score"
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -15,7 +19,7 @@ from app.services.job_enrichment_service import JobEnrichmentService
 
 
 @pytest.fixture
-def sample_jobs() -> list[dict]:
+def sample_jobs() -> list[dict[str, Any]]:
     """Batch of raw jobs needing enrichment."""
     return [
         {
@@ -62,12 +66,9 @@ class TestExtractSkillsAndCulture:
             "Build APIs with Python, FastAPI, and PostgreSQL"
         )
 
-        assert "required_skills" in result
-        assert "preferred_skills" in result
+        assert result["required_skills"] == []
+        assert result["preferred_skills"] == []
         assert "culture_text" in result
-        # Verify lists by checking they support iteration (behavioral)
-        assert len(result["required_skills"]) >= 0
-        assert len(result["preferred_skills"]) >= 0
 
     async def test_truncates_long_descriptions(self):
         """Descriptions longer than 15k chars are truncated."""
@@ -103,11 +104,11 @@ class TestCalculateGhostScores:
     """Tests for ghost score calculation across a batch of jobs."""
 
     async def test_adds_ghost_score_to_each_job(
-        self, sample_jobs: list[dict], mock_ghost_signals: MagicMock
+        self, sample_jobs: list[dict[str, Any]], mock_ghost_signals: MagicMock
     ):
         """Each job gets ghost_score and ghost_signals fields."""
         with patch(
-            "app.services.job_enrichment_service.calculate_ghost_score",
+            _GHOST_SCORE_MOCK_TARGET,
             new_callable=AsyncMock,
             return_value=mock_ghost_signals,
         ):
@@ -115,18 +116,17 @@ class TestCalculateGhostScores:
 
         assert len(result) == 2
         for job in result:
-            assert "ghost_score" in job
-            assert "ghost_signals" in job
             assert job["ghost_score"] == 25
+            assert "ghost_signals" in job
 
-    async def test_handles_error_per_job(self, sample_jobs: list[dict]):
+    async def test_handles_error_per_job(self, sample_jobs: list[dict[str, Any]]):
         """Ghost score error for one job doesn't fail the batch."""
         signals = MagicMock()
         signals.ghost_score = 30
         signals.to_dict.return_value = {"ghost_score": 30}
 
         with patch(
-            "app.services.job_enrichment_service.calculate_ghost_score",
+            _GHOST_SCORE_MOCK_TARGET,
             new_callable=AsyncMock,
             side_effect=[RuntimeError("calculation failed"), signals],
         ):
@@ -152,11 +152,11 @@ class TestEnrichJobs:
     """Tests for the full enrichment pipeline (extraction + ghost scores)."""
 
     async def test_enriches_all_jobs(
-        self, sample_jobs: list[dict], mock_ghost_signals: MagicMock
+        self, sample_jobs: list[dict[str, Any]], mock_ghost_signals: MagicMock
     ):
         """All jobs get both extraction and ghost score fields."""
         with patch(
-            "app.services.job_enrichment_service.calculate_ghost_score",
+            _GHOST_SCORE_MOCK_TARGET,
             new_callable=AsyncMock,
             return_value=mock_ghost_signals,
         ):
@@ -174,7 +174,9 @@ class TestEnrichJobs:
         self, mock_ghost_signals: MagicMock
     ):
         """If extraction fails, ghost scoring still runs."""
-        jobs = [{"external_id": "ext-001", "description": "Test job"}]
+        jobs: list[dict[str, Any]] = [
+            {"external_id": "ext-001", "description": "Test job"}
+        ]
 
         with (
             patch.object(
@@ -184,7 +186,7 @@ class TestEnrichJobs:
                 side_effect=RuntimeError("LLM down"),
             ),
             patch(
-                "app.services.job_enrichment_service.calculate_ghost_score",
+                _GHOST_SCORE_MOCK_TARGET,
                 new_callable=AsyncMock,
                 return_value=mock_ghost_signals,
             ),
@@ -200,10 +202,12 @@ class TestEnrichJobs:
 
     async def test_ghost_failure_doesnt_block_extraction(self):
         """If ghost scoring fails, extraction results are preserved."""
-        jobs = [{"external_id": "ext-001", "description": "Test job"}]
+        jobs: list[dict[str, Any]] = [
+            {"external_id": "ext-001", "description": "Test job"}
+        ]
 
         with patch(
-            "app.services.job_enrichment_service.calculate_ghost_score",
+            _GHOST_SCORE_MOCK_TARGET,
             new_callable=AsyncMock,
             side_effect=RuntimeError("ghost down"),
         ):
@@ -215,7 +219,7 @@ class TestEnrichJobs:
 
     async def test_preserves_original_job_data(self, mock_ghost_signals: MagicMock):
         """Enriched jobs retain all original fields."""
-        jobs = [
+        jobs: list[dict[str, Any]] = [
             {
                 "external_id": "ext-001",
                 "description": "Build APIs",
@@ -225,7 +229,7 @@ class TestEnrichJobs:
         ]
 
         with patch(
-            "app.services.job_enrichment_service.calculate_ghost_score",
+            _GHOST_SCORE_MOCK_TARGET,
             new_callable=AsyncMock,
             return_value=mock_ghost_signals,
         ):

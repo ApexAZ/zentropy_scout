@@ -17,6 +17,112 @@ logger = logging.getLogger(__name__)
 _MAX_DESCRIPTION_LENGTH = 15000
 
 
+def _empty_extraction() -> dict[str, Any]:
+    """Return the default empty extraction result."""
+    return {
+        "required_skills": [],
+        "preferred_skills": [],
+        "culture_text": None,
+    }
+
+
+async def _score_single_job(job: dict[str, Any]) -> dict[str, Any]:
+    """Calculate ghost score for a single job, returning enriched copy.
+
+    Args:
+        job: Raw job dict with optional scoring fields.
+
+    Returns:
+        Copy of job with ghost_score and ghost_signals added.
+    """
+    try:
+        signals = await calculate_ghost_score(
+            posted_date=None,
+            first_seen_date=None,
+            repost_count=0,
+            salary_min=job.get("salary_min"),
+            salary_max=job.get("salary_max"),
+            application_deadline=job.get("application_deadline"),
+            location=job.get("location"),
+            seniority_level=job.get("seniority_level"),
+            years_experience_min=job.get("years_experience_min"),
+            description=job.get("description", ""),
+        )
+        return {
+            **job,
+            "ghost_score": signals.ghost_score,
+            "ghost_signals": signals.to_dict(),
+        }
+    except Exception as e:  # noqa: BLE001
+        logger.warning(
+            "Ghost score calculation failed for job %s: %s",
+            job.get("external_id"),
+            e,
+        )
+        return {
+            **job,
+            "ghost_score": None,
+            "ghost_signals": None,
+        }
+
+
+async def _enrich_single_job(job: dict[str, Any]) -> dict[str, Any]:
+    """Run extraction + ghost scoring for a single job.
+
+    Errors in one step don't block the other.
+
+    Args:
+        job: Raw job dict to enrich.
+
+    Returns:
+        Enriched copy with extraction + ghost fields.
+    """
+    description = job.get("description", "")
+    current = dict(job)
+
+    # Step 1: Extract skills and culture
+    try:
+        extraction = await JobEnrichmentService.extract_skills_and_culture(description)
+        current["required_skills"] = extraction.get("required_skills", [])
+        current["preferred_skills"] = extraction.get("preferred_skills", [])
+        current["culture_text"] = extraction.get("culture_text")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(
+            "Skill extraction failed for job %s: %s",
+            job.get("external_id"),
+            e,
+        )
+        current.update(_empty_extraction())
+        current["extraction_failed"] = True
+
+    # Step 2: Ghost score
+    try:
+        signals = await calculate_ghost_score(
+            posted_date=None,
+            first_seen_date=None,
+            repost_count=0,
+            salary_min=job.get("salary_min"),
+            salary_max=job.get("salary_max"),
+            application_deadline=job.get("application_deadline"),
+            location=job.get("location"),
+            seniority_level=job.get("seniority_level"),
+            years_experience_min=job.get("years_experience_min"),
+            description=description,
+        )
+        current["ghost_score"] = signals.ghost_score
+        current["ghost_signals"] = signals.to_dict()
+    except Exception as e:  # noqa: BLE001
+        logger.warning(
+            "Ghost score failed for job %s: %s",
+            job.get("external_id"),
+            e,
+        )
+        current["ghost_score"] = None
+        current["ghost_signals"] = None
+
+    return current
+
+
 class JobEnrichmentService:
     """Enriches raw job postings with extracted skills and ghost detection.
 
@@ -45,11 +151,7 @@ class JobEnrichmentService:
             layer call is wired (uses get_provider() from app/providers/).
         """
         if not description:
-            return {
-                "required_skills": [],
-                "preferred_skills": [],
-                "culture_text": None,
-            }
+            return _empty_extraction()
 
         # Truncate to 15k chars per REQ-007 §6.4
         truncated = description[:_MAX_DESCRIPTION_LENGTH]
@@ -65,11 +167,7 @@ class JobEnrichmentService:
 
         # Placeholder: returns empty extraction to allow pipeline testing.
         # Full LLM extraction will use get_provider() from app/providers/.
-        return {
-            "required_skills": [],
-            "preferred_skills": [],
-            "culture_text": None,
-        }
+        return _empty_extraction()
 
     @staticmethod
     async def calculate_ghost_scores(
@@ -86,46 +184,7 @@ class JobEnrichmentService:
         Returns:
             List of jobs enriched with ghost_score and ghost_signals.
         """
-        enhanced: list[dict[str, Any]] = []
-
-        for job in jobs:
-            try:
-                signals = await calculate_ghost_score(
-                    posted_date=None,
-                    first_seen_date=None,
-                    repost_count=0,
-                    salary_min=job.get("salary_min"),
-                    salary_max=job.get("salary_max"),
-                    application_deadline=job.get("application_deadline"),
-                    location=job.get("location"),
-                    seniority_level=job.get("seniority_level"),
-                    years_experience_min=job.get("years_experience_min"),
-                    description=job.get("description", ""),
-                )
-
-                enhanced.append(
-                    {
-                        **job,
-                        "ghost_score": signals.ghost_score,
-                        "ghost_signals": signals.to_dict(),
-                    }
-                )
-
-            except Exception as e:  # noqa: BLE001
-                logger.warning(
-                    "Ghost score calculation failed for job %s: %s",
-                    job.get("external_id"),
-                    e,
-                )
-                enhanced.append(
-                    {
-                        **job,
-                        "ghost_score": None,
-                        "ghost_signals": None,
-                    }
-                )
-
-        return enhanced
+        return [await _score_single_job(job) for job in jobs]
 
     @staticmethod
     async def enrich_jobs(
@@ -146,56 +205,4 @@ class JobEnrichmentService:
         Returns:
             List of enriched job dicts with extraction + ghost fields.
         """
-        enriched: list[dict[str, Any]] = []
-
-        for job in jobs:
-            description = job.get("description", "")
-            current = dict(job)
-
-            # Step 1: Extract skills and culture
-            try:
-                extraction = await JobEnrichmentService.extract_skills_and_culture(
-                    description
-                )
-                current["required_skills"] = extraction.get("required_skills", [])
-                current["preferred_skills"] = extraction.get("preferred_skills", [])
-                current["culture_text"] = extraction.get("culture_text")
-            except Exception as e:  # noqa: BLE001
-                logger.warning(
-                    "Skill extraction failed for job %s: %s",
-                    job.get("external_id"),
-                    e,
-                )
-                current["required_skills"] = []
-                current["preferred_skills"] = []
-                current["culture_text"] = None
-                current["extraction_failed"] = True
-
-            # Step 2: Ghost score
-            try:
-                signals = await calculate_ghost_score(
-                    posted_date=None,
-                    first_seen_date=None,
-                    repost_count=0,
-                    salary_min=job.get("salary_min"),
-                    salary_max=job.get("salary_max"),
-                    application_deadline=job.get("application_deadline"),
-                    location=job.get("location"),
-                    seniority_level=job.get("seniority_level"),
-                    years_experience_min=job.get("years_experience_min"),
-                    description=description,
-                )
-                current["ghost_score"] = signals.ghost_score
-                current["ghost_signals"] = signals.to_dict()
-            except Exception as e:  # noqa: BLE001
-                logger.warning(
-                    "Ghost score failed for job %s: %s",
-                    job.get("external_id"),
-                    e,
-                )
-                current["ghost_score"] = None
-                current["ghost_signals"] = None
-
-            enriched.append(current)
-
-        return enriched
+        return [await _enrich_single_job(job) for job in jobs]
