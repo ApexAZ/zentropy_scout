@@ -42,7 +42,6 @@ from typing import Any
 
 from langgraph.graph import END, StateGraph
 
-from app.agents.onboarding import get_onboarding_graph
 from app.agents.state import ChatAgentState, CheckpointReason, ClassifiedIntent
 
 logger = logging.getLogger(__name__)
@@ -634,46 +633,51 @@ def stream_response(state: ChatAgentState) -> ChatAgentState:
     return state
 
 
-async def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:
-    """Delegate to Onboarding Agent sub-graph.
+async def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:  # noqa: RUF029
+    """Handle onboarding-related requests via chat.
 
-    REQ-007 §15.6 Pattern 1: Constructs OnboardingState from ChatAgentState
-    and invokes the onboarding graph via ``ainvoke``.
+    REQ-019 §5: Onboarding is now form-based (frontend wizard). Chat requests
+    for onboarding or profile updates are redirected to the appropriate page.
+
+    Note: async required by LangGraph graph node registration (ainvoke).
 
     Args:
         state: Current chat state.
 
     Returns:
-        State with onboarding result in tool_results.
+        State with redirect message in tool_results.
     """
+    from app.agents.onboarding import detect_update_section, is_update_request
+
     new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    message = state.get("current_message") or ""
 
-    try:
-        graph = get_onboarding_graph()
-        onboarding_state = {
-            "user_id": state["user_id"],
-            "persona_id": state["persona_id"],
-            "messages": state.get("messages", []),
-            "current_message": state.get("current_message"),
+    if is_update_request(message):
+        section = detect_update_section(message)
+        if section:
+            section_display = section.replace("_", " ")
+            response_msg = (
+                f"To update your {section_display}, head over to the "
+                "Persona Management page where you can edit each section directly."
+            )
+        else:
+            response_msg = (
+                "To update your profile, head over to the Persona Management "
+                "page where you can edit each section directly."
+            )
+    else:
+        response_msg = (
+            "Onboarding is handled through the setup wizard. "
+            "You can access it from the onboarding page."
+        )
+
+    new_state["tool_results"] = [
+        {
+            "tool": "invoke_onboarding",
+            "result": {"status": "redirected", "message": response_msg},
+            "error": None,
         }
-        await graph.ainvoke(onboarding_state)  # type: ignore[attr-defined]
-
-        new_state["tool_results"] = [
-            {
-                "tool": "invoke_onboarding",
-                "result": {"status": "completed"},
-                "error": None,
-            }
-        ]
-    except Exception:
-        logger.exception("Onboarding sub-graph failed")
-        new_state["tool_results"] = [
-            {
-                "tool": "invoke_onboarding",
-                "result": None,
-                "error": "Onboarding could not be started. Please try again.",
-            }
-        ]
+    ]
 
     return new_state
 

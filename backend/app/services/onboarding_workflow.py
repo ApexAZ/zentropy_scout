@@ -480,7 +480,7 @@ async def finalize_onboarding(
     Commits the transaction on success.
 
     Args:
-        gathered_data: The gathered_data dict from OnboardingState.
+        gathered_data: The gathered data dict from the onboarding flow.
         persona_id: The persona to populate.
         db: Database session.
 

@@ -18,7 +18,7 @@ Modules:
     state: State schemas for all agents (REQ-007 §3.2)
     checkpoint: Checkpointing and HITL utilities (REQ-007 §3.3)
     chat: User-facing conversational interface (REQ-007 §4)
-    onboarding: Persona creation interview (REQ-007 §5)
+    onboarding: Post-onboarding update utilities (REQ-019 §5)
     scouter: Job discovery and ingestion (REQ-007 §6)
     ghostwriter: Resume/cover letter generation (REQ-007 §8)
 """
@@ -57,23 +57,14 @@ from app.agents.ghostwriter import (
 )
 from app.agents.onboarding import (
     ACHIEVEMENT_STORY_PROMPT,
-    ONBOARDING_STEPS,
-    OPTIONAL_SECTIONS,
     SECTIONS_REQUIRING_RESCORE,
-    SYSTEM_PROMPT_TEMPLATE,
-    TRANSITION_PROMPTS,
     VOICE_PROFILE_DERIVATION_PROMPT,
     WORK_HISTORY_EXPANSION_PROMPT,
-    create_onboarding_graph,
     create_update_state,
     detect_update_section,
     format_gathered_data_summary,
     get_achievement_story_prompt,
     get_affected_embeddings,
-    get_next_step,
-    get_onboarding_graph,
-    get_system_prompt,
-    get_transition_prompt,
     get_update_completion_message,
     get_voice_profile_prompt,
     get_work_history_prompt,
@@ -85,7 +76,6 @@ from app.agents.state import (
     BaseAgentState,
     ChatAgentState,
     CheckpointReason,
-    OnboardingState,
 )
 from app.prompts.strategist import (
     NON_NEGOTIABLES_SYSTEM_PROMPT,
@@ -111,7 +101,6 @@ __all__ = [
     "BaseAgentState",
     "ChatAgentState",
     "CheckpointReason",
-    "OnboardingState",
     # Chat Agent
     "classify_intent",
     "create_chat_graph",
@@ -121,25 +110,16 @@ __all__ = [
     "request_clarification",
     "route_by_intent",
     "select_tools",
-    # Onboarding Agent
+    # Onboarding Utilities
     "ACHIEVEMENT_STORY_PROMPT",
-    "ONBOARDING_STEPS",
-    "OPTIONAL_SECTIONS",
     "SECTIONS_REQUIRING_RESCORE",
-    "SYSTEM_PROMPT_TEMPLATE",
-    "TRANSITION_PROMPTS",
     "VOICE_PROFILE_DERIVATION_PROMPT",
     "WORK_HISTORY_EXPANSION_PROMPT",
-    "create_onboarding_graph",
     "create_update_state",
     "detect_update_section",
     "format_gathered_data_summary",
     "get_achievement_story_prompt",
     "get_affected_embeddings",
-    "get_next_step",
-    "get_onboarding_graph",
-    "get_system_prompt",
-    "get_transition_prompt",
     "get_update_completion_message",
     "get_voice_profile_prompt",
     "get_work_history_prompt",

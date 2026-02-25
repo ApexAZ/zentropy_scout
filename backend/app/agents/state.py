@@ -30,10 +30,9 @@ Architecture:
     │  BaseAgentState │  Common fields for all agents
     └────────┬────────┘
              │
-    ┌────────┼────────┐
-    ▼        ▼        ▼
-  Chat   Onboarding  (future)
-  State    State
+             ▼
+           Chat
+           State
 """
 
 from enum import Enum
@@ -143,32 +142,3 @@ class ChatAgentState(BaseAgentState, total=False):
 
     classified_intent: ClassifiedIntent | None
     target_job_id: str | None
-
-
-class OnboardingState(BaseAgentState, total=False):
-    """State schema for the Onboarding Agent.
-
-    REQ-007 §5: Creates Persona from user interview. Persists step for
-    resume after HITL interrupts.
-
-    Extends BaseAgentState with:
-        current_step: Current step in the onboarding flow. Persisted for
-            resumption. Values: "resume_upload", "basic_info", "work_history",
-            "skills", "achievement_stories", "non_negotiables", "voice_profile",
-            "base_resume_setup".
-        gathered_data: Data accumulated from user responses. Keyed by step name.
-        skipped_sections: List of optional sections the user chose to skip.
-        pending_question: Question waiting for user response. Set when paused.
-        user_response: User's response to pending_question. Set when resuming.
-        is_partial_update: True if this is a post-onboarding partial update
-            (REQ-007 §5.5) vs. full onboarding flow. Affects completion behavior.
-    """
-
-    current_step: str
-    # Any: Accumulated interview responses vary by step (text, lists, nested objects).
-    # Each step's data is validated when used, not at state level.
-    gathered_data: dict[str, Any]
-    skipped_sections: list[str]
-    pending_question: str | None
-    user_response: str | None
-    is_partial_update: bool

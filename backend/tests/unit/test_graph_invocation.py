@@ -20,7 +20,6 @@ _JOB_ID = "job-789"
 _PATCH_CONTENT_GEN_SERVICE = (
     "app.services.content_generation_service.ContentGenerationService"
 )
-_PATCH_GET_ONBOARDING_GRAPH = "app.agents.chat.get_onboarding_graph"
 
 
 def _mock_generation_result(*, cover_letter: object = None) -> MagicMock:
@@ -158,78 +157,59 @@ class TestDelegateGhostwriter:
 
 
 class TestDelegateOnboarding:
-    """delegate_onboarding invokes Onboarding sub-graph."""
+    """delegate_onboarding returns redirect messages (REQ-019 §5)."""
 
     @pytest.mark.asyncio
-    async def test_invokes_onboarding_graph(self) -> None:
-        """Calls ainvoke on the compiled onboarding graph."""
-        mock_graph = AsyncMock()
-        mock_graph.ainvoke = AsyncMock(
-            return_value={
-                "current_step": "complete",
-                "gathered_data": {"basic_info": {}},
-            }
-        )
-        with patch(_PATCH_GET_ONBOARDING_GRAPH, return_value=mock_graph):
-            await delegate_onboarding(_make_chat_state())
+    async def test_update_request_with_section_returns_specific_redirect(self) -> None:
+        """Update request with detected section returns section-specific message."""
+        state = _make_chat_state(current_message="Change my salary requirement")
+        result = await delegate_onboarding(state)
 
-        mock_graph.ainvoke.assert_called_once()
+        tool_results = result["tool_results"]
+        assert tool_results[0]["tool"] == "invoke_onboarding"
+        assert tool_results[0]["result"]["status"] == "redirected"
+        assert "non negotiables" in tool_results[0]["result"]["message"].lower()
+        assert "Persona Management" in tool_results[0]["result"]["message"]
 
     @pytest.mark.asyncio
-    async def test_maps_fields_to_onboarding_state(self) -> None:
-        """Passes user_id, persona_id, messages, and current_message."""
-        mock_graph = AsyncMock()
-        mock_graph.ainvoke = AsyncMock(return_value={})
-        with patch(_PATCH_GET_ONBOARDING_GRAPH, return_value=mock_graph):
-            await delegate_onboarding(_make_chat_state())
+    async def test_update_request_without_section_returns_generic_redirect(
+        self,
+    ) -> None:
+        """Update request without detectable section returns generic message."""
+        state = _make_chat_state(current_message="Edit my experience")
+        result = await delegate_onboarding(state)
 
-        call_args = mock_graph.ainvoke.call_args[0][0]
-        assert call_args["user_id"] == _USER_ID
-        assert call_args["persona_id"] == _PERSONA_ID
-        assert call_args["messages"] == [{"role": "user", "content": "Help me"}]
-        assert call_args["current_message"] == "Draft materials for this job"
+        tool_results = result["tool_results"]
+        assert tool_results[0]["result"]["status"] == "redirected"
+        assert "Persona Management" in tool_results[0]["result"]["message"]
 
     @pytest.mark.asyncio
-    async def test_success_populates_tool_results(self) -> None:
-        """Successful invocation stores result in tool_results."""
-        mock_graph = AsyncMock()
-        mock_graph.ainvoke = AsyncMock(return_value={"current_step": "complete"})
-        with patch(_PATCH_GET_ONBOARDING_GRAPH, return_value=mock_graph):
-            result = await delegate_onboarding(_make_chat_state())
+    async def test_non_update_request_redirects_to_wizard(self) -> None:
+        """Non-update onboarding request redirects to setup wizard."""
+        state = _make_chat_state(current_message="Start onboarding")
+        result = await delegate_onboarding(state)
+
+        tool_results = result["tool_results"]
+        assert tool_results[0]["result"]["status"] == "redirected"
+        assert "wizard" in tool_results[0]["result"]["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_populates_tool_results_without_error(self) -> None:
+        """Redirect always returns successfully with no error."""
+        state = _make_chat_state(current_message="Change my salary requirement")
+        result = await delegate_onboarding(state)
 
         tool_results = result["tool_results"]
         assert len(tool_results) == 1
-        assert tool_results[0]["tool"] == "invoke_onboarding"
         assert tool_results[0]["error"] is None
-        assert tool_results[0]["result"]["status"] == "completed"
-
-    @pytest.mark.asyncio
-    async def test_exception_returns_safe_error_message(self) -> None:
-        """Sub-graph exception does not leak internals to user."""
-        mock_graph = AsyncMock()
-        mock_graph.ainvoke = AsyncMock(
-            side_effect=RuntimeError("Internal error details")
-        )
-        with patch(_PATCH_GET_ONBOARDING_GRAPH, return_value=mock_graph):
-            result = await delegate_onboarding(_make_chat_state())
-
-        tool_results = result["tool_results"]
-        assert len(tool_results) == 1
-        assert tool_results[0]["tool"] == "invoke_onboarding"
-        assert tool_results[0]["result"] is None
-        # Error message must be generic — no internal details leaked
-        assert "Internal error details" not in tool_results[0]["error"]
-        assert tool_results[0]["error"] is not None
 
     @pytest.mark.asyncio
     async def test_does_not_mutate_input_state(self) -> None:
         """Delegate returns new state, does not mutate the input."""
-        state = _make_chat_state()
+        state = _make_chat_state(current_message="Change my salary requirement")
         original_results = state["tool_results"]
-        mock_graph = AsyncMock()
-        mock_graph.ainvoke = AsyncMock(return_value={})
-        with patch(_PATCH_GET_ONBOARDING_GRAPH, return_value=mock_graph):
-            result = await delegate_onboarding(state)
+
+        result = await delegate_onboarding(state)
 
         assert result is not state
         assert state["tool_results"] is original_results
