@@ -19,6 +19,7 @@ from app.api.v1 import (
     job_postings,
     job_sources,
     job_variants,
+    onboarding,
     persona_change_flags,
     personas,
     refresh,
@@ -100,6 +101,12 @@ router.include_router(
     prefix="/submitted-cover-letter-pdfs",
     tags=["files"],
 )
+
+# =============================================================================
+# Onboarding
+# =============================================================================
+
+router.include_router(onboarding.router, prefix="/onboarding", tags=["onboarding"])
 
 # =============================================================================
 # Action Endpoints
