@@ -7,8 +7,8 @@ bridges the gap so DAST findings appear alongside Trivy results in the GitHub
 Security tab (private, unlike GitHub Issues).
 
 All findings are uploaded unfiltered. Informational alerts (e.g. 4xx on
-invalid IDs) are reviewed manually and dismissed individually in the GitHub
-Security tab rather than blanket-filtered by rule ID.
+invalid IDs) are mapped to SARIF "note" level. Each alert gets a per-result
+severity level so GitHub can display accurate severity.
 
 Since DAST results target URLs rather than source files, each location uses
 the endpoint path as the artifact URI and startLine=1 as a placeholder.
@@ -24,16 +24,79 @@ def _strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text).strip()
 
 
-def _severity(riskdesc: str) -> str:
-    """Map ZAP riskdesc string to SARIF severity level."""
-    lower = riskdesc.lower()
-    if "high" in lower:
-        return "error"
-    if "medium" in lower:
-        return "warning"
-    if "low" in lower:
-        return "warning"
-    return "note"
+def _parse_risk(riskdesc: str) -> str:
+    """Extract risk level from ZAP riskdesc 'Risk (Confidence)' format.
+
+    ZAP's riskdesc combines risk and confidence: "Low (High)",
+    "Informational (High)", etc. We only care about the risk portion
+    (before the parenthesis).
+
+    Args:
+        riskdesc: ZAP risk description string.
+
+    Returns:
+        Lowercase risk level (e.g. "low", "informational", "medium", "high").
+
+    Examples:
+        >>> _parse_risk("Low (High)")
+        'low'
+        >>> _parse_risk("Informational (High)")
+        'informational'
+        >>> _parse_risk("Medium (Medium)")
+        'medium'
+    """
+    risk_part = riskdesc.split("(")[0].strip().lower()
+    return risk_part or "informational"
+
+
+def _risk_to_sarif_level(risk: str) -> str:
+    """Map ZAP risk level to SARIF severity level.
+
+    SARIF levels: error, warning, note, none.
+
+    Args:
+        risk: Lowercase risk string from _parse_risk().
+
+    Returns:
+        SARIF severity level string.
+    """
+    mapping = {
+        "high": "error",
+        "medium": "warning",
+        "low": "warning",
+        "informational": "note",
+    }
+    return mapping.get(risk, "note")
+
+
+def _make_rule_id(alert: dict) -> str:
+    """Generate a unique rule ID from alertRef + alert name.
+
+    ZAP uses the same alertRef (100000) for both "Server Error" and
+    "Client Error" alerts. We differentiate them by appending a suffix
+    so they get separate SARIF rules with correct names and severities.
+
+    Args:
+        alert: ZAP alert dict with "alertRef", "pluginid", and "name" keys.
+
+    Returns:
+        Unique rule ID string.
+    """
+    base_id = str(alert.get("alertRef", alert.get("pluginid", "0")))
+    name = alert.get("name", "")
+
+    if base_id == "100000":
+        if "Client Error" in name:
+            return "100000-client"
+        if "Server Error" in name:
+            return "100000-server"
+        # Fallback: use sanitized name suffix to avoid collisions
+        # with known client/server error alerts
+        if name:
+            suffix = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:30]
+            return f"100000-{suffix}"
+
+    return base_id
 
 
 def _uri_to_path(uri: str) -> str:
@@ -57,7 +120,9 @@ def convert(zap_json: dict) -> dict:
 
     for site in zap_json.get("site", []):
         for alert in site.get("alerts", []):
-            rule_id = str(alert.get("alertRef", alert.get("pluginid", "0")))
+            rule_id = _make_rule_id(alert)
+            risk = _parse_risk(alert.get("riskdesc", ""))
+            sarif_level = _risk_to_sarif_level(risk)
 
             if rule_id not in seen_rule_ids:
                 seen_rule_ids.add(rule_id)
@@ -68,12 +133,15 @@ def convert(zap_json: dict) -> dict:
                         "fullDescription": {
                             "text": _strip_html(alert.get("desc", ""))
                         },
-                        "helpUri": f"https://www.zaproxy.org/docs/alerts/{rule_id}/",
-                        "defaultConfiguration": {
-                            "level": _severity(alert.get("riskdesc", ""))
-                        },
+                        "helpUri": (
+                            f"https://www.zaproxy.org/docs/alerts/"
+                            f"{alert.get('pluginid', '0')}/"
+                        ),
+                        "defaultConfiguration": {"level": sarif_level},
                         "properties": {
-                            "tags": [f"external/cwe/cwe-{alert.get('cweid', '0')}"]
+                            "tags": [
+                                f"external/cwe/cwe-{alert.get('cweid', '0')}"
+                            ]
                         },
                     }
                 )
@@ -84,6 +152,7 @@ def convert(zap_json: dict) -> dict:
                 results.append(
                     {
                         "ruleId": rule_id,
+                        "level": sarif_level,
                         "message": {
                             "text": (
                                 f"{alert.get('name', '')} — "
