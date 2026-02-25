@@ -39,6 +39,10 @@ Architecture:
 from enum import Enum
 from typing import Any, TypedDict
 
+# Backward-compat re-export: ScoreResult moved to app.services.score_types
+# in REQ-017 §5.3. This re-export is removed in Phase 2 §7 cleanup.
+from app.services.score_types import ScoreResult as ScoreResult  # noqa: PLC0414
+
 
 class CheckpointReason(str, Enum):
     """Reasons for checkpointing and pausing graph execution.
@@ -172,30 +176,6 @@ class OnboardingState(BaseAgentState, total=False):
     pending_question: str | None
     user_response: str | None
     is_partial_update: bool
-
-
-class ScoreResult(TypedDict, total=False):
-    """Score result for a single job posting.
-
-    Attributes:
-        job_posting_id: The scored job's ID.
-        fit_score: Fit score (0-100).
-        stretch_score: Stretch score (0-100).
-        explanation: Human-readable explanation of scores.
-        filtered_reason: If filtered out, why (e.g., "salary_below_minimum").
-        score_details: Full component breakdown for frontend drill-down UI.
-            Contains fit/stretch component scores, weights, and explanation
-            fields (REQ-012 Appendix A.3).
-    """
-
-    job_posting_id: str
-    fit_score: float | None
-    stretch_score: float | None
-    explanation: str | None
-    filtered_reason: str | None
-    # Any: JSONB-serializable dict with fit/stretch component breakdowns
-    # and explanation structure. See REQ-012 Appendix A.3 for schema.
-    score_details: dict[str, Any] | None
 
 
 class StrategistState(BaseAgentState, total=False):

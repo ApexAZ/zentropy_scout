@@ -1,19 +1,19 @@
-"""Strategist Agent prompt templates.
+"""Strategist prompt templates for score rationale and non-negotiables.
 
-REQ-007 §7.6: Strategist Prompt Templates.
+REQ-017 §8: Prompt Specifications.
 
 Contains two prompt sets:
-1. Score Rationale (§7.6.1) — 2-3 sentence explanation of fit/stretch scores
-2. Non-Negotiables Explanation (§7.6.2) — one sentence per failed requirement
+1. Score Rationale (§8.1) — 2-3 sentence explanation of fit/stretch scores
+2. Non-Negotiables Explanation (§8.2) — one sentence per failed requirement
 
-Pattern follows onboarding.py: module-level constants + template functions.
+Relocated from app.agents.strategist_prompts during LLM redesign (REQ-017 §5.2).
 """
 
 from app.core.llm_sanitization import sanitize_llm_input
 from app.schemas.prompt_params import ScoreData
 
 # =============================================================================
-# Score Rationale Prompts (§7.6.1)
+# Score Rationale Prompts (§8.1)
 # =============================================================================
 
 # WHY: After calculating numeric scores, the Strategist generates a human-readable
@@ -57,7 +57,7 @@ def build_score_rationale_prompt(
 ) -> str:
     """Build the score rationale user prompt with match data.
 
-    REQ-007 §7.6.1: Score Rationale Generation.
+    REQ-017 §8.1: Score Rationale Generation.
 
     Formats the user prompt template with scoring data for LLM interpretation.
     All string parameters are sanitized to mitigate prompt injection, since
@@ -93,7 +93,7 @@ def build_score_rationale_prompt(
 
 
 # =============================================================================
-# Non-Negotiables Explanation Prompts (§7.6.2)
+# Non-Negotiables Explanation Prompts (§8.2)
 # =============================================================================
 
 # WHY: When a job fails non-negotiables, the user needs a clear, factual explanation.
@@ -124,7 +124,7 @@ def build_non_negotiables_prompt(
 ) -> str:
     """Build the non-negotiables explanation user prompt.
 
-    REQ-007 §7.6.2: Non-Negotiables Explanation.
+    REQ-017 §8.2: Non-Negotiables Explanation.
 
     Formats the user prompt with failure details for LLM interpretation.
     All string values are sanitized to mitigate prompt injection, since

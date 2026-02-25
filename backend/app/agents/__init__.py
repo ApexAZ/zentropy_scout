@@ -105,7 +105,7 @@ from app.agents.strategist_graph import (
     reset_strategist_graph,
     score_jobs,
 )
-from app.agents.strategist_prompts import (
+from app.prompts.strategist import (
     NON_NEGOTIABLES_SYSTEM_PROMPT,
     SCORE_RATIONALE_SYSTEM_PROMPT,
     build_non_negotiables_prompt,

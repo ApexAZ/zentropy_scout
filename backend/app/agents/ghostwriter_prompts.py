@@ -11,7 +11,7 @@ Contains:
 3. Builder functions with sanitization and truncation
 4. Regeneration context builder for feedback-based re-generation
 
-Pattern follows strategist_prompts.py: module-level constants + builder functions
+Pattern follows app.prompts.strategist: module-level constants + builder functions
 with sanitize_llm_input().
 """
 

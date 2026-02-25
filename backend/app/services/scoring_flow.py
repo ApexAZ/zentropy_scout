@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 from uuid import UUID
 
-from app.agents.state import ScoreResult
 from app.services.non_negotiables_filter import (
     NonNegotiablesResult,
     aggregate_filter_results,
@@ -24,6 +23,7 @@ from app.services.non_negotiables_filter import (
     check_remote_preference,
     check_visa_sponsorship,
 )
+from app.services.score_types import ScoreResult
 
 # =============================================================================
 # Protocol Definitions (for dependency injection)

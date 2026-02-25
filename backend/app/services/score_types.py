@@ -27,6 +27,38 @@ REQ-008 §1.2: Scoring Philosophy:
 """
 
 from enum import Enum
+from typing import Any, TypedDict
+
+# =============================================================================
+# Score Result TypedDict
+# =============================================================================
+
+
+class ScoreResult(TypedDict, total=False):
+    """Score result for a single job posting.
+
+    Relocated from app.agents.state during LLM redesign (REQ-017 §5.3).
+
+    Attributes:
+        job_posting_id: The scored job's ID.
+        fit_score: Fit score (0-100).
+        stretch_score: Stretch score (0-100).
+        explanation: Human-readable explanation of scores.
+        filtered_reason: If filtered out, why (e.g., "salary_below_minimum").
+        score_details: Full component breakdown for frontend drill-down UI.
+            Contains fit/stretch component scores, weights, and explanation
+            fields (REQ-012 Appendix A.3).
+    """
+
+    job_posting_id: str
+    fit_score: float | None
+    stretch_score: float | None
+    explanation: str | None
+    filtered_reason: str | None
+    # Any: JSONB-serializable dict with fit/stretch component breakdowns
+    # and explanation structure. See REQ-012 Appendix A.3 for schema.
+    score_details: dict[str, Any] | None
+
 
 # =============================================================================
 # Score Type Enum
