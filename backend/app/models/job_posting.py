@@ -170,9 +170,12 @@ class JobPosting(Base, TimestampMixin):
     )
 
     # Repost detection
+    # UNIQUE: prevents duplicate job postings from concurrent submissions
+    # (migration 019_race_condition_indexes).
     description_hash: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
+        unique=True,
     )
     repost_count: Mapped[int] = mapped_column(
         Integer,

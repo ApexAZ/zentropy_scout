@@ -12,6 +12,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     LargeBinary,
     String,
@@ -298,6 +299,16 @@ class JobVariant(Base, TimestampMixin, SoftDeleteMixin):
         CheckConstraint(
             "status IN ('Draft', 'Approved', 'Archived')",
             name="ck_jobvariant_status",
+        ),
+        # Only one active (non-archived) variant per base_resume + job_posting.
+        # Prevents duplicates from concurrent persist_draft_materials calls
+        # (migration 019_race_condition_indexes).
+        Index(
+            "uq_job_variants_active_base_job",
+            "base_resume_id",
+            "job_posting_id",
+            unique=True,
+            postgresql_where=text("archived_at IS NULL"),
         ),
     )
 

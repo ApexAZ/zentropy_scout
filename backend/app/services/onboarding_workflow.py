@@ -17,9 +17,10 @@ from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import InvalidStateError, NotFoundError
+from app.core.errors import ConflictError, InvalidStateError, NotFoundError
 from app.models.persona import Persona
 from app.models.persona_content import (
     AchievementStory,
@@ -491,7 +492,20 @@ async def finalize_onboarding(
         NotFoundError: If persona does not exist.
         InvalidStateError: If onboarding is already complete.
     """
-    result = await db.execute(select(Persona).where(Persona.id == persona_id))
+    # SELECT FOR UPDATE NOWAIT: lock the persona row to prevent concurrent
+    # finalize_onboarding calls from both reading onboarding_complete=False
+    # and both proceeding to create duplicate entities. NOWAIT fails
+    # immediately if the row is already locked (instead of blocking
+    # indefinitely which could exhaust the connection pool).
+    try:
+        result = await db.execute(
+            select(Persona).where(Persona.id == persona_id).with_for_update(nowait=True)
+        )
+    except OperationalError:
+        raise ConflictError(
+            code="ONBOARDING_IN_PROGRESS",
+            message="Onboarding finalization is already in progress",
+        ) from None
     persona = result.scalar_one_or_none()
     if persona is None:
         raise NotFoundError("Persona", str(persona_id))

@@ -26,6 +26,7 @@ from typing import Any
 
 from fastapi import APIRouter, Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import CurrentUserId, DbSession
 from app.core.config import settings
@@ -76,6 +77,10 @@ router = APIRouter()
 _DISCOVERY_MANUAL = "manual"
 _RATE_LIMIT_MSG = "Manual submission rate limit exceeded (max 20/day)"
 _CONTENT_SECURITY_MSG = "Content rejected by security policy"
+_ERR_DUPLICATE_JOB = "DUPLICATE_JOB"
+_LOG_CONTENT_REJECTION = "Content security rejection: %s (field=%s)"
+_HASH_CONSTRAINT = "job_postings_description_hash"
+_SOURCE_NAME_CONSTRAINT = "job_sources_source_name_key"
 
 # Security: Allowed modification fields for ingest confirm
 # Prevents mass assignment of sensitive fields (e.g., id, persona_id, source_id)
@@ -134,6 +139,9 @@ async def _get_user_persona(db: DbSession, user_id: uuid.UUID) -> Persona:
 async def _get_or_create_source(db: DbSession, source_type: str) -> JobSource:
     """Look up or create a JobSource by type.
 
+    Race-safe: uses SAVEPOINT so a concurrent INSERT on the
+    source_name unique constraint is caught and retried.
+
     Args:
         db: Database session.
         source_type: Source type (Extension, Manual, etc.).
@@ -145,15 +153,30 @@ async def _get_or_create_source(db: DbSession, source_type: str) -> JobSource:
         select(JobSource).where(JobSource.source_type == source_type)
     )
     source = result.scalar_one_or_none()
-    if source is None:
-        source = JobSource(
-            source_name=source_type,
-            source_type=source_type,
-            description=f"Jobs from {source_type.lower()} source",
+    if source is not None:
+        return source
+
+    try:
+        async with db.begin_nested():
+            source = JobSource(
+                source_name=source_type,
+                source_type=source_type,
+                description=f"Jobs from {source_type.lower()} source",
+            )
+            db.add(source)
+            await db.flush()
+        return source
+    except IntegrityError as exc:
+        if _SOURCE_NAME_CONSTRAINT not in str(exc.orig):
+            raise
+        logger.debug("Race on source_name=%s, re-fetching", source_type)
+        result = await db.execute(
+            select(JobSource).where(JobSource.source_type == source_type)
         )
-        db.add(source)
-        await db.flush()
-    return source
+        source = result.scalar_one_or_none()
+        if source is None:
+            raise
+        return source
 
 
 def _compute_description_hash(text: str) -> str:
@@ -270,7 +293,7 @@ async def create_job_posting(
     )
     if not content_check.is_valid:
         logger.warning(
-            "Content security rejection: %s (field=%s)",
+            _LOG_CONTENT_REJECTION,
             content_check.reason,
             content_check.field,
         )
@@ -281,73 +304,76 @@ async def create_job_posting(
     if not rate_ok:
         raise ContentSecurityError(message=_RATE_LIMIT_MSG)
 
-    persona = await _get_user_persona(db, user_id)
     description_hash = _compute_description_hash(request.description)
 
-    # Dedup: check if job with this hash already exists
+    # Phase 1: Get or create the shared job posting (race-safe).
+    # SELECT first, then INSERT inside a SAVEPOINT. If a concurrent request
+    # already created a job with the same hash, the SAVEPOINT catches the
+    # IntegrityError and we fall back to the existing job.
     existing_job = await JobPostingRepository.get_by_description_hash(
         db, description_hash
     )
 
-    if existing_job is not None:
-        # Check if user already has a link to this job
-        existing_link = await PersonaJobRepository.get_by_persona_and_job(
-            db,
-            persona_id=persona.id,
-            job_posting_id=existing_job.id,
-            user_id=user_id,
-        )
-        if existing_link is not None:
-            raise ConflictError(
-                code="DUPLICATE_JOB",
-                message="You already have this job in your list",
-                details=[{"existing_id": str(existing_link.id)}],
-            )
-
-        # Create persona_jobs link to existing job
-        persona_job = await PersonaJobRepository.create(
-            db,
-            persona_id=persona.id,
-            job_posting_id=existing_job.id,
-            discovery_method=_DISCOVERY_MANUAL,
-            user_id=user_id,
-        )
-    else:
-        # REQ-015 §8.4 mitigation 3: Quarantine manual submissions
+    if existing_job is None:
         quarantine = build_quarantine_fields(discovery_method=_DISCOVERY_MANUAL)
-
-        # Create new job in shared pool
         source = await _get_or_create_source(db, "Manual")
-        job_posting = await JobPostingRepository.create(
-            db,
-            source_id=source.id,
-            job_title=request.job_title,
-            company_name=request.company_name,
-            description=request.description,
-            description_hash=description_hash,
-            first_seen_date=date.today(),
-            source_url=request.source_url,
-            location=request.location,
-            work_model=request.work_model,
-            seniority_level=request.seniority_level,
-            salary_min=request.salary_min,
-            salary_max=request.salary_max,
-            salary_currency=request.salary_currency,
-            culture_text=request.culture_text,
-            requirements=request.requirements,
-            is_quarantined=quarantine["is_quarantined"],
-            quarantined_at=quarantine["quarantined_at"],
-            quarantine_expires_at=quarantine["quarantine_expires_at"],
+        try:
+            async with db.begin_nested():
+                existing_job = await JobPostingRepository.create(
+                    db,
+                    source_id=source.id,
+                    job_title=request.job_title,
+                    company_name=request.company_name,
+                    description=request.description,
+                    description_hash=description_hash,
+                    first_seen_date=date.today(),
+                    source_url=request.source_url,
+                    location=request.location,
+                    work_model=request.work_model,
+                    seniority_level=request.seniority_level,
+                    salary_min=request.salary_min,
+                    salary_max=request.salary_max,
+                    salary_currency=request.salary_currency,
+                    culture_text=request.culture_text,
+                    requirements=request.requirements,
+                    is_quarantined=quarantine["is_quarantined"],
+                    quarantined_at=quarantine["quarantined_at"],
+                    quarantine_expires_at=quarantine["quarantine_expires_at"],
+                )
+        except IntegrityError as exc:
+            if _HASH_CONSTRAINT not in str(exc.orig):
+                raise
+            logger.debug("Hash race during job creation, re-fetching")
+            existing_job = await JobPostingRepository.get_by_description_hash(
+                db, description_hash
+            )
+            if existing_job is None:
+                raise
+
+    # Phase 2: Create persona link to the job (new or existing).
+    # Re-fetch persona after potential SAVEPOINT rollback (which expires
+    # all session objects).
+    persona = await _get_user_persona(db, user_id)
+    existing_link = await PersonaJobRepository.get_by_persona_and_job(
+        db,
+        persona_id=persona.id,
+        job_posting_id=existing_job.id,
+        user_id=user_id,
+    )
+    if existing_link is not None:
+        raise ConflictError(
+            code=_ERR_DUPLICATE_JOB,
+            message="You already have this job in your list",
+            details=[{"existing_id": str(existing_link.id)}],
         )
 
-        # Create persona_jobs link
-        persona_job = await PersonaJobRepository.create(
-            db,
-            persona_id=persona.id,
-            job_posting_id=job_posting.id,
-            discovery_method=_DISCOVERY_MANUAL,
-            user_id=user_id,
-        )
+    persona_job = await PersonaJobRepository.create(
+        db,
+        persona_id=persona.id,
+        job_posting_id=existing_job.id,
+        discovery_method=_DISCOVERY_MANUAL,
+        user_id=user_id,
+    )
 
     if persona_job is None:
         raise NotFoundError("Persona", str(persona.id))
@@ -560,7 +586,6 @@ async def confirm_ingest_job_posting(
     if preview_data is None:
         raise NotFoundError("Preview")
 
-    persona = await _get_user_persona(db, user_id)
     source = await _get_or_create_source(db, "Extension")
 
     # Merge extracted data with any modifications
@@ -582,7 +607,7 @@ async def confirm_ingest_job_posting(
     )
     if not content_check.is_valid:
         logger.warning(
-            "Content security rejection: %s (field=%s)",
+            _LOG_CONTENT_REJECTION,
             content_check.reason,
             content_check.field,
         )
@@ -596,30 +621,58 @@ async def confirm_ingest_job_posting(
     # REQ-015 §8.4 mitigation 3: Quarantine manual submissions
     quarantine = build_quarantine_fields(discovery_method=_DISCOVERY_MANUAL)
 
-    # Create the shared job posting (Tier 0 — no per-user fields)
-    job_posting = JobPosting(
-        source_id=source.id,
-        source_url=preview_data.source_url,
-        raw_text=preview_data.raw_text,
-        job_title=extracted.get("job_title") or "Unknown Title",
-        company_name=extracted.get("company_name") or "Unknown Company",
-        location=extracted.get("location"),
-        salary_min=extracted.get("salary_min"),
-        salary_max=extracted.get("salary_max"),
-        salary_currency=extracted.get("salary_currency"),
-        culture_text=extracted.get("culture_text"),
-        description=description,
-        description_hash=description_hash,
-        first_seen_date=date.today(),
-        is_quarantined=quarantine["is_quarantined"],
-        quarantined_at=quarantine["quarantined_at"],
-        quarantine_expires_at=quarantine["quarantine_expires_at"],
+    # Create the shared job posting (race-safe with SAVEPOINT).
+    # If a concurrent request already created a job with the same hash,
+    # the SAVEPOINT catches the IntegrityError and we reuse the existing job.
+    try:
+        async with db.begin_nested():
+            job_posting = JobPosting(
+                source_id=source.id,
+                source_url=preview_data.source_url,
+                raw_text=preview_data.raw_text,
+                job_title=extracted.get("job_title") or "Unknown Title",
+                company_name=extracted.get("company_name") or "Unknown Company",
+                location=extracted.get("location"),
+                salary_min=extracted.get("salary_min"),
+                salary_max=extracted.get("salary_max"),
+                salary_currency=extracted.get("salary_currency"),
+                culture_text=extracted.get("culture_text"),
+                description=description,
+                description_hash=description_hash,
+                first_seen_date=date.today(),
+                is_quarantined=quarantine["is_quarantined"],
+                quarantined_at=quarantine["quarantined_at"],
+                quarantine_expires_at=quarantine["quarantine_expires_at"],
+            )
+            db.add(job_posting)
+            await db.flush()
+    except IntegrityError as exc:
+        if _HASH_CONSTRAINT not in str(exc.orig):
+            raise
+        logger.debug("Hash race during ingest confirm, re-fetching")
+        existing = await JobPostingRepository.get_by_description_hash(
+            db, description_hash
+        )
+        if existing is None:
+            raise
+        job_posting = existing
+
+    # Create per-user link (race-safe with SAVEPOINT).
+    # Re-fetch persona in case SAVEPOINT rollback expired session objects.
+    persona = await _get_user_persona(db, user_id)
+    existing_link = await PersonaJobRepository.get_by_persona_and_job(
+        db,
+        persona_id=persona.id,
+        job_posting_id=job_posting.id,
+        user_id=user_id,
     )
+    if existing_link is not None:
+        raise ConflictError(
+            code=_ERR_DUPLICATE_JOB,
+            message="You already have this job in your list",
+            details=[{"existing_id": str(existing_link.id)}],
+        )
 
-    db.add(job_posting)
-    await db.flush()
-
-    # Create per-user link (PersonaJob)
     persona_job = PersonaJob(
         persona_id=persona.id,
         job_posting_id=job_posting.id,
