@@ -28,7 +28,9 @@ from app.core.responses import (
 )
 from app.models import Persona
 from app.models.application import Application, TimelineEvent
+from app.models.cover_letter import CoverLetter
 from app.models.persona_job import PersonaJob
+from app.models.resume import BaseResume, JobVariant
 from app.schemas.bulk import BulkArchiveRequest, BulkFailedItem, BulkOperationResult
 
 _MAX_TEXT_LENGTH = 50000
@@ -278,7 +280,8 @@ async def create_application(
             DataResponse with created application.
 
     Raises:
-            NotFoundError: If persona not found or not owned by user.
+            NotFoundError: If persona, job posting link, job variant,
+                    or cover letter not found or not owned by user.
     """
     # Verify persona ownership
     persona_result = await db.execute(
@@ -298,6 +301,29 @@ async def create_application(
     )
     if not pj_result.scalar_one_or_none():
         raise NotFoundError("JobPosting", str(request.job_posting_id))
+
+    # VULN-003: Verify job_variant_id ownership via BaseResume → Persona chain
+    variant_result = await db.execute(
+        select(JobVariant)
+        .join(BaseResume, JobVariant.base_resume_id == BaseResume.id)
+        .join(Persona, BaseResume.persona_id == Persona.id)
+        .where(JobVariant.id == request.job_variant_id, Persona.user_id == user_id)
+    )
+    if not variant_result.scalar_one_or_none():
+        raise NotFoundError("JobVariant", str(request.job_variant_id))
+
+    # VULN-003: Verify cover_letter_id ownership via Persona (optional field)
+    if request.cover_letter_id is not None:
+        cl_result = await db.execute(
+            select(CoverLetter)
+            .join(Persona, CoverLetter.persona_id == Persona.id)
+            .where(
+                CoverLetter.id == request.cover_letter_id,
+                Persona.user_id == user_id,
+            )
+        )
+        if not cl_result.scalar_one_or_none():
+            raise NotFoundError("CoverLetter", str(request.cover_letter_id))
 
     app = Application(
         persona_id=request.persona_id,
