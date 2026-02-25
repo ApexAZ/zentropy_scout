@@ -265,23 +265,6 @@ class TestPollingFlowState:
     REQ-007 §6.2: Polling flow orchestration.
     """
 
-    def test_state_initialized_with_empty_lists_when_created(self) -> None:
-        """Returns ScouterState dict with user/persona IDs and empty job lists."""
-        from app.agents.scouter import create_scouter_state
-
-        state = create_scouter_state(
-            user_id="user-123",
-            persona_id="persona-456",
-            enabled_sources=["Adzuna", "RemoteOK"],
-        )
-
-        assert state["user_id"] == "user-123"
-        assert state["persona_id"] == "persona-456"
-        assert state["enabled_sources"] == ["Adzuna", "RemoteOK"]
-        assert state["discovered_jobs"] == []
-        assert state["processed_jobs"] == []
-        assert state["error_sources"] == []
-
     def test_source_error_recorded_when_source_fails(self) -> None:
         """Appends source_name to error_sources list in state."""
         from app.agents.scouter import record_source_error

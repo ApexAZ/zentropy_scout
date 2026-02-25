@@ -1,7 +1,7 @@
 """Repository for shared job pool operations.
 
 REQ-016 §6.4: Pool check, save, link, and source resolution.
-Extracts pool-specific logic from scouter_graph.py into a standalone repository.
+Standalone repository for shared pool operations.
 """
 
 import hashlib
@@ -43,7 +43,7 @@ def _build_dedup_job_data(
     """Transform a raw job dict into global dedup service input format.
 
     Args:
-        job: Raw job dict from source adapters or Scouter state.
+        job: Raw job dict from source adapters or the fetch pipeline.
         source_id: Resolved UUID of the job source.
 
     Returns:

@@ -1,8 +1,7 @@
 """Job enrichment service for skill extraction and ghost detection.
 
 REQ-016 §6.3: Enriches raw job postings with extracted skills, culture
-signals, and ghost detection scores. Extracts enrichment logic from
-scouter_graph.py into a standalone async service.
+signals, and ghost detection scores.
 """
 
 import logging

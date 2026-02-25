@@ -30,13 +30,12 @@ Architecture:
     │  BaseAgentState │  Common fields for all agents
     └────────┬────────┘
              │
-    ┌────────┼────────┬────────────┬────────────┐
-    ▼        ▼        ▼            ▼            ▼
-  Chat   Onboarding  Scouter  Strategist  Ghostwriter
-  State    State     State      State       State
+    ┌────────┼────────┬────────────┐
+    ▼        ▼        ▼            ▼
+  Chat   Onboarding  Strategist  Ghostwriter
+  State    State      State       State
 """
 
-from datetime import datetime
 from enum import Enum
 from typing import Any, TypedDict
 
@@ -173,42 +172,6 @@ class OnboardingState(BaseAgentState, total=False):
     pending_question: str | None
     user_response: str | None
     is_partial_update: bool
-
-
-class ScouterState(BaseAgentState, total=False):
-    """State schema for the Scouter Agent.
-
-    REQ-007 §6 + REQ-015 §10: Discovers and ingests jobs from configured
-    sources into the shared job pool.
-
-    Extends BaseAgentState with:
-        enabled_sources: List of enabled job sources for this user.
-            E.g., ["Adzuna", "RemoteOK", "TheMuse"].
-        polling_frequency: User's polling frequency preference.
-            Values: "twice_daily", "daily", "weekly". Used by
-            update_poll_state to calculate next_poll_at.
-        discovered_jobs: Jobs found during the current polling cycle.
-            Includes raw data before pool check.
-        processed_jobs: Jobs NOT found in pool (need extraction + save).
-        existing_pool_jobs: Jobs already in the shared pool (need
-            persona_jobs link only — skip extraction).
-        error_sources: Sources that failed during polling.
-        saved_job_ids: IDs of jobs saved/linked during persist step.
-        last_polled_at: Timestamp of last completed poll.
-        next_poll_at: Calculated next poll time based on frequency.
-    """
-
-    enabled_sources: list[str]
-    polling_frequency: str
-    # Any: Raw job data varies by source (LinkedIn, Indeed, Manual) and includes
-    # source-specific fields. Normalized to JobPosting schema during processing.
-    discovered_jobs: list[dict[str, Any]]
-    processed_jobs: list[dict[str, Any]]
-    existing_pool_jobs: list[dict[str, Any]]
-    error_sources: list[str]
-    saved_job_ids: list[str]
-    last_polled_at: datetime
-    next_poll_at: datetime
 
 
 class ScoreResult(TypedDict, total=False):

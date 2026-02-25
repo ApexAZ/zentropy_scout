@@ -4,8 +4,8 @@ REQ-016 §6.2: Fetches jobs from enabled sources, merges results,
 partitions new vs existing via pool check, enriches new jobs,
 saves/links to pool, and calculates poll state timestamps.
 
-Replaces the fetch/merge/pool-check/enrich/save pipeline previously
-implemented as LangGraph nodes in scouter_graph.py.
+Orchestrates the fetch/merge/pool-check/enrich/save pipeline
+for the job discovery workflow.
 """
 
 import asyncio
@@ -95,9 +95,8 @@ def get_source_adapter(source_name: str) -> JobSourceAdapter | None:
 class JobFetchService:
     """Orchestrates the job fetch pipeline: fetch, merge, pool, enrich, save.
 
-    Replaces the 10-node LangGraph scouter graph with a single service
-    that calls source adapters, merges results, partitions new vs
-    existing via the shared pool, enriches new jobs, and persists.
+    Calls source adapters, merges results, partitions new vs existing
+    via the shared pool, enriches new jobs, and persists.
 
     Args:
         db: Async database session (caller controls transaction).
@@ -122,7 +121,7 @@ class JobFetchService:
     ) -> PollResult:
         """Execute a full poll cycle.
 
-        REQ-016 §6.2: Single entry point replacing scouter_graph.ainvoke().
+        REQ-016 §6.2: Single entry point for the job discovery pipeline.
 
         Pipeline:
             1. Fetch from all enabled sources (parallel)

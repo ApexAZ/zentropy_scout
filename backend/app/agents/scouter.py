@@ -32,8 +32,6 @@ from typing import Any
 # WHY: Job data from external sources (Adzuna, RemoteOK, etc.) has varying
 # schemas that we normalize during processing. Using Any for raw job dicts
 # is intentional - strict typing happens when we create JobPosting models.
-# ScouterState uses dict[str, Any] because it's a TypedDict defined in
-# app/agents/state.py - we use dict here to avoid circular imports.
 
 # =============================================================================
 # Constants (§6.1)
@@ -184,34 +182,6 @@ def calculate_next_poll_time(current_time: datetime, frequency: str) -> datetime
     return current_time + interval
 
 
-def create_scouter_state(
-    user_id: str,
-    persona_id: str,
-    enabled_sources: list[str],
-) -> dict[str, Any]:
-    """Create initial ScouterState for a polling run.
-
-    REQ-007 §6.2: Initialize state before starting polling flow.
-
-    Args:
-        user_id: The user's ID.
-        persona_id: The persona's ID.
-        enabled_sources: List of enabled source names to poll.
-
-    Returns:
-        Initial ScouterState dict ready for the polling flow.
-    """
-    return {
-        "user_id": user_id,
-        "persona_id": persona_id,
-        "enabled_sources": enabled_sources,
-        "discovered_jobs": [],
-        "processed_jobs": [],
-        "existing_pool_jobs": [],
-        "error_sources": [],
-    }
-
-
 def record_source_error(
     state: dict[str, Any],
     source_name: str,
@@ -221,7 +191,7 @@ def record_source_error(
     REQ-007 §6.2: Track sources with errors for user feedback.
 
     Args:
-        state: Current ScouterState.
+        state: Current state dict with an error_sources list.
         source_name: Name of the source that encountered an error.
 
     Returns:
