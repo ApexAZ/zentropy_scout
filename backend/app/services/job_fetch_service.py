@@ -29,6 +29,7 @@ from app.adapters.sources.usajobs import USAJobsAdapter
 from app.agents.scouter import calculate_next_poll_time, merge_results
 from app.repositories.job_pool_repository import JobPoolRepository
 from app.services.job_enrichment_service import JobEnrichmentService
+from app.services.job_scoring_service import JobScoringService
 from app.services.scouter_errors import SourceError, is_retryable_error
 
 logger = logging.getLogger(__name__)
@@ -153,8 +154,11 @@ class JobFetchService:
         enriched_new = await JobEnrichmentService.enrich_jobs(new_jobs)
 
         # Step 5: Save new + link existing
-        saved_count = await self._save_new_jobs(enriched_new)
+        saved_count, saved_ids = await self._save_new_jobs(enriched_new)
         linked_count = await self._link_existing_jobs(existing_jobs)
+
+        # Step 5.5: Score new jobs (best-effort, failure does not fail poll)
+        await self._score_new_jobs(saved_ids)
 
         # Step 6: Calculate poll timestamps
         now = datetime.now(UTC)
@@ -312,16 +316,18 @@ class JobFetchService:
     async def _save_new_jobs(
         self,
         enriched_jobs: list[dict[str, Any]],
-    ) -> int:
+    ) -> tuple[int, list[str]]:
         """Save enriched new jobs to the shared pool.
 
         Args:
             enriched_jobs: Jobs enriched with extraction + ghost scores.
 
         Returns:
-            Count of successfully saved jobs.
+            Tuple of (saved_count, saved_job_ids) where saved_job_ids are
+            the job posting ID strings returned by save_job_to_pool.
         """
         saved = 0
+        saved_ids: list[str] = []
         for job in enriched_jobs:
             result = await JobPoolRepository.save_job_to_pool(
                 self.db,
@@ -331,7 +337,36 @@ class JobFetchService:
             )
             if result is not None:
                 saved += 1
-        return saved
+                saved_ids.append(result)
+        return saved, saved_ids
+
+    async def _score_new_jobs(self, saved_ids: list[str]) -> None:
+        """Score newly saved jobs (best-effort).
+
+        REQ-017 §6: Triggers scoring after job discovery.
+        Failures are logged but do not fail the poll.
+
+        Args:
+            saved_ids: Job posting ID strings from save_job_to_pool.
+        """
+        if not saved_ids:
+            return
+
+        try:
+            job_uuids = [UUID(jid) for jid in saved_ids]
+            scoring = JobScoringService(self.db)
+            await scoring.score_batch(self.persona_id, job_uuids, self.user_id)
+            logger.info("Scored %d new jobs", len(saved_ids))
+        # WHY BLE001: Scoring is best-effort during poll — any failure
+        # (ProviderError, DB errors, ValueError) must not fail the poll.
+        # Scores will be generated on next access.
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Scoring failed for %d new jobs — scores will be "
+                "generated on next access",
+                len(saved_ids),
+                exc_info=True,
+            )
 
     async def _link_existing_jobs(
         self,
