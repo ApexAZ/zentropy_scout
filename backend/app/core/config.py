@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     # Backend URL (for magic link emails that must hit the API directly)
     backend_url: str = "http://localhost:8000"
 
+    # Resume Parsing (REQ-019 §9)
+    resume_parse_max_size_mb: int = 10  # Maximum PDF upload size in MB
+
     # Rate Limiting (Security)
     # Limits LLM-calling endpoints to prevent abuse and cost explosion
     # Format: "count/period" (e.g., "10/minute", "100/hour")

@@ -30,6 +30,7 @@ class TaskType(Enum):
     COVER_LETTER = "cover_letter"
     RESUME_TAILORING = "resume_tailoring"
     STORY_SELECTION = "story_selection"
+    RESUME_PARSING = "resume_parsing"
 
 
 @dataclass

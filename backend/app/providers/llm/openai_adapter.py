@@ -57,6 +57,7 @@ DEFAULT_OPENAI_ROUTING: dict[str, str] = {
     "cover_letter": "gpt-4o",
     "resume_tailoring": "gpt-4o",
     "story_selection": "gpt-4o",
+    "resume_parsing": "gpt-4o-mini",
 }
 
 # Fallback if task type not in routing table

@@ -57,6 +57,7 @@ DEFAULT_CLAUDE_ROUTING: dict[str, str] = {
     "cover_letter": "claude-3-5-sonnet-20241022",
     "resume_tailoring": "claude-3-5-sonnet-20241022",
     "story_selection": "claude-3-5-sonnet-20241022",
+    "resume_parsing": "claude-3-5-haiku-20241022",
 }
 
 # Fallback if task type not in routing table

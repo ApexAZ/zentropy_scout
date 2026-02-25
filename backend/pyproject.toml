@@ -31,8 +31,9 @@ dependencies = [
     "langgraph>=0.0.40",
     "langgraph-checkpoint-postgres>=3.0.0",
 
-    # PDF Generation
+    # PDF Generation & Extraction
     "reportlab>=4.1.0",
+    "pdfplumber>=0.11.0",  # PDF text extraction for resume parsing (REQ-019 §6)
 
     # HTTP Client
     "httpx>=0.27.0",

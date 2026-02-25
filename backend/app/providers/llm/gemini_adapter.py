@@ -60,6 +60,7 @@ DEFAULT_GEMINI_ROUTING: dict[str, str] = {
     "cover_letter": DEFAULT_GEMINI_MODEL,
     "resume_tailoring": DEFAULT_GEMINI_MODEL,
     "story_selection": DEFAULT_GEMINI_MODEL,
+    "resume_parsing": "gemini-2.5-flash",
 }
 
 
