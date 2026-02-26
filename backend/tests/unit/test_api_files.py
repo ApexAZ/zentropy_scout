@@ -329,7 +329,7 @@ class TestResumeFileUpload:
         assert response.status_code == 400
         result = response.json()
         assert result["error"]["code"] == "VALIDATION_ERROR"
-        assert "Invalid file content" in result["error"]["message"]
+        assert "Invalid file type" in result["error"]["message"]
 
     @pytest.mark.asyncio
     async def test_upload_missing_persona_id(
