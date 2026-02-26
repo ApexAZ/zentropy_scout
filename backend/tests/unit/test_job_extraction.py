@@ -351,6 +351,35 @@ class TestResponseParsing:
 
         assert result["extracted_skills"] == []
 
+    def test_parse_string_skills_returns_empty_list(self) -> None:
+        """String extracted_skills (LLM error) returns empty list."""
+        response = '{"job_title": "Engineer", "extracted_skills": "Python, AWS"}'
+        result = _parse_extraction_response(response)
+
+        assert result["extracted_skills"] == []
+
+    def test_parse_filters_non_dict_skill_entries(self) -> None:
+        """Non-dict entries in skills list are silently dropped."""
+        response = (
+            '{"job_title": "Engineer", "extracted_skills": '
+            '["Python", {"skill_name": "AWS", "skill_type": "Hard"}]}'
+        )
+        result = _parse_extraction_response(response)
+
+        assert len(result["extracted_skills"]) == 1
+        assert result["extracted_skills"][0]["skill_name"] == "AWS"
+
+    def test_parse_filters_skill_missing_skill_name(self) -> None:
+        """Skill dicts without skill_name are silently dropped."""
+        response = (
+            '{"job_title": "Engineer", "extracted_skills": '
+            '[{"skill_type": "Hard"}, {"skill_name": "AWS", "skill_type": "Hard"}]}'
+        )
+        result = _parse_extraction_response(response)
+
+        assert len(result["extracted_skills"]) == 1
+        assert result["extracted_skills"][0]["skill_name"] == "AWS"
+
 
 # =============================================================================
 # Fallback Extraction Tests

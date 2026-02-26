@@ -132,6 +132,14 @@ def _parse_extraction_response(response: str) -> ExtractedJobData:
         ):
             data["extracted_skills"] = []
 
+        # Filter malformed skill entries — LLM may return strings, dicts
+        # missing required fields, or other non-dict values
+        data["extracted_skills"] = [
+            s
+            for s in data["extracted_skills"]
+            if isinstance(s, dict) and s.get("skill_name")
+        ]
+
         return cast(ExtractedJobData, data)
     except (json.JSONDecodeError, IndexError):
         # WHY EMPTY STRING: _basic_extraction returns a default structure with null fields;
