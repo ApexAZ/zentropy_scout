@@ -83,7 +83,14 @@ jobs:
           #   - ESLint team declined to upgrade (github.com/eslint/eslint/issues/18947)
           #   - Accepted 2026-02-17, zero production risk (linter config input only)
           #
-          ACCEPTED_ADVISORIES="GHSA-2g4f-4pwh-qvx6"
+          # GHSA-23c5-xmqv-rm74: minimatch ReDoS — nested *() extglobs (high, dev-only)
+          # GHSA-7r86-cg39-jmmj: minimatch ReDoS — GLOBSTAR backtracking (high, dev-only)
+          #   - Transitive dep of eslint, eslint-config-next, eslint-plugin-jsx-a11y, shadcn
+          #   - All are devDependencies; minimatch not imported by any production code
+          #   - ReDoS requires attacker-controlled glob patterns; all patterns from config files
+          #   - Accepted 2026-02-26, zero production risk
+          #
+          ACCEPTED_ADVISORIES="GHSA-2g4f-4pwh-qvx6 GHSA-23c5-xmqv-rm74 GHSA-7r86-cg39-jmmj"
 
           max_attempts=3
           attempt=1
