@@ -8,7 +8,9 @@ description: |
   - Someone mentions "agent", "LangGraph", "graph", "state", or "HITL"
 ---
 
-# LangGraph Agent Patterns (REQ-007)
+# LangGraph Agent Patterns
+
+> **Deprecation Notice (2026-02-24):** The LLM redesign is replacing Scouter, Strategist, Ghostwriter, and Onboarding LangGraph graphs with plain async service classes. After the redesign, only the **Chat Agent** will use LangGraph. The graph patterns, state schemas, and routing examples below still apply to Chat Agent but are no longer relevant for the other four agents. See the active implementation plan for details.
 
 ## Architecture Overview
 
@@ -356,10 +358,9 @@ graph.add_conditional_edges(
 ### Stale Embeddings ("Cold Start")
 
 ```python
-def is_embedding_stale(state: StrategistState) -> str:
-    current = state["persona_embedding_version"]
-    expected = state["persona"].embedding_version
-    return "stale" if current != expected else "fresh"
+def is_embedding_stale(persona: Persona, cached_version: int) -> bool:
+    """Check if persona embeddings need regeneration."""
+    return cached_version != persona.embedding_version
 ```
 
 ### Duplicate JobVariant

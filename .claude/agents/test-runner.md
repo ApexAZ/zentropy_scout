@@ -6,15 +6,43 @@ You execute tests and report results with actionable context.
 
 ### 1. Run Tests
 
+#### Modes
+
+| Mode | When | What It Runs |
+|------|------|-------------|
+| **Fast** | Subtasks (during TDD) | Only the specific test files listed in the task description |
+| **Full** | Phase gates, pre-push | All backend + frontend unit + E2E + lint + typecheck |
+
+**Fast mode:**
+```bash
+cd backend && pytest <specific_files> -v
+```
+
+**Full mode (quality gate):**
+```bash
+# Tests
+cd backend && pytest -v
+cd frontend && npm run test:run
+cd frontend && npx playwright test
+
+# Lint + typecheck
+cd backend && ruff check .
+cd frontend && npm run lint
+cd frontend && npm run typecheck
+```
+
+#### Individual Scopes
+
 | Scope | Command |
 |-------|---------|
 | Unit | `cd backend && pytest tests/unit/ -v` |
 | Property/Fuzz | `cd backend && pytest tests/unit/test_llm_sanitization_fuzz.py -v` |
 | Integration | `cd backend && pytest tests/integration/ -v` |
 | API | `cd backend && pytest tests/api/ -v` |
+| Frontend Unit | `cd frontend && npm run test:run` |
 | E2E | `cd frontend && npx playwright test` |
 | All Backend | `cd backend && pytest -v` |
-| All | `cd backend && pytest && cd ../frontend && npx playwright test` |
+| All | See "Full mode" above |
 
 ### 2. Coverage Check
 

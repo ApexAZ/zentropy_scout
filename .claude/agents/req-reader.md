@@ -23,7 +23,7 @@ You are a requirements document specialist for the Zentropy Scout project.
 
 ## Document Structure
 Requirements follow this pattern:
-- `REQ-001` through `REQ-011` — Individual requirement documents
+- `REQ-NNN` individual documents — discover via `Glob "docs/requirements/REQ-*.md"`
 - `_index.md` — Document index and dependency map
 - Each REQ has numbered sections (e.g., §4.2)
 
@@ -42,16 +42,13 @@ Requirements follow this pattern:
 3. **Read specific sections:**
    When asked about a topic, find the relevant REQ and section, then summarize only what's needed.
 
-## Key Documents by Topic
+## Finding the Right Document
 
-| Topic | Primary Document | Key Sections |
-|-------|------------------|--------------|
-| Database schema | REQ-005 | §4 (Tables), §5 (JSONB), §6 (Vectors) |
-| API endpoints | REQ-006 | §4-7 (Resource endpoints) |
-| LLM providers | REQ-009 | §1.5 (Dual mode), §4 (Interface) |
-| Agents | REQ-007 | §3-8 (Individual agents) |
-| Scoring | REQ-008 | §4-5 (Algorithm, vectors) |
-| Content generation | REQ-010 | §3-4 (Strategies, utilities) |
+1. **Start with the index** — `docs/requirements/_index.md` lists all REQ documents with descriptions and dependency maps
+2. **Search by topic** — `Grep "keyword" docs/requirements/` to find which REQ covers a topic
+3. **List all REQs** — `Glob "docs/requirements/REQ-*.md"` to see available documents
+
+Each REQ document has a title and table of contents in its first ~30 lines. Read those to confirm you have the right document before extracting specific sections.
 
 ## Output Format
 

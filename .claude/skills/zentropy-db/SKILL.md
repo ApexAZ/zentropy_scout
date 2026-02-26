@@ -12,9 +12,6 @@ description: |
 
 # Zentropy Scout Database Patterns
 
-## Reference Document
-**Read first:** `docs/requirements/REQ-005_database_schema.md`
-
 ## Critical Rule: File Storage
 **ALL files stored as BYTEA in PostgreSQL.** No S3, no filesystem paths.
 

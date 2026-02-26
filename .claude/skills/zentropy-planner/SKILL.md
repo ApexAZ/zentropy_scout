@@ -31,9 +31,19 @@ triggers:
 
 ## Part 1: Plan Creation
 
+### Prerequisites: Requirements First
+
+Plans implement requirements. Before creating a plan:
+
+1. **Check if a REQ document exists** — `Glob "docs/requirements/REQ-*.md"` and search for the topic
+2. **If no REQ exists** — Draft one with the user. Requirements live in `docs/requirements/` and are protected by a settings.json hook (the user must approve writes). Format: follow existing REQ documents as a template. The user may also create REQ documents outside of Claude Code.
+3. **If a REQ exists** — Use `req-reader` to load the relevant sections before planning
+
+Plans without requirements lead to scope creep. Always have a REQ to reference.
+
 ### When to Create a Plan
 
-Use EnterPlanMode when adding new features, phases, or multi-task work. Every plan should follow the format established in `docs/plan/implementation_plan.md` and `docs/plan/frontend_implementation_plan.md`.
+Use EnterPlanMode when adding new features, phases, or multi-task work. Every plan should follow the format below. Reference existing plans in `docs/plan/` for examples.
 
 ### Plan Format
 
@@ -115,17 +125,25 @@ Hints trigger skill auto-loading during implementation. **Before finalizing any 
 
 #### Phase-End Test Gate Example
 
-The last task in every phase should be:
+The last task in every phase should be a **phase gate** — uses the "Workflow: Phase Gate" process (see Part 2 below):
 ```markdown
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| N | Run full test suite (backend + frontend + E2E) | `plan` | ⬜ |
+| N | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
 ```
-This task uses the `test-runner` subagent to run all tests. No code is written — it's a verification gate.
+This task uses the `test-runner` subagent in **Full mode**. No feature code is written — it's a quality gate that verifies all subtask work and pushes to remote.
 
 #### qa-reviewer (Automatic)
 
-The `qa-reviewer` subagent runs automatically during step 4 (DISCOVERY) on every subtask. It does NOT need a plan hint — it's built into the workflow. It assesses whether the subtask's changes need new Playwright E2E tests and recommends them if so. Any recommended E2E tests become new tasks added to the plan.
+The `qa-reviewer` subagent runs automatically during step 4 (DISCOVERY) on every subtask. It does NOT need a plan hint — it's built into the workflow. It assesses whether the subtask's changes need new Playwright E2E tests and recommends them if so.
+
+**qa-reviewer → plan task chain:**
+1. qa-reviewer recommends E2E test(s) during DISCOVERY (step 4)
+2. In RESOLUTION (step 5), mark the finding as "✅ Tracked" (not "✅ Fixed")
+3. Add the recommended test as a **new task** in the plan, inserted before the next phase gate
+4. The new task gets `playwright, e2e, plan` hints
+5. The task is implemented in its own subtask cycle (TDD → review → commit)
+6. Phase gate verifies it passes with the full E2E suite
 
 ---
 
@@ -149,7 +167,7 @@ This is non-negotiable because:
 | 🟡 | In Progress | Currently working on |
 | ✅ | DONE | Completed and verified |
 
-### Workflow: Every Subtask
+### Workflow: Subtask (commit only, no push)
 
 ```
 1. BEFORE starting
@@ -157,13 +175,13 @@ This is non-negotiable because:
    → Read the workflow table for this phase (has skill hints)
 
 2. START subtask
-   → Update status to 🟡 in implementation_plan.md
+   → Update status to 🟡 in the active plan file
 
 3. DO the work (TDD cycle)
    → Write failing test first
    → Write code to make it pass
    → Refactor if needed
-   → Run full test suite
+   → Run affected tests only (files listed in task description)
 
 4. REVIEW — PHASE 1: DISCOVERY
    → Run in parallel:
@@ -212,7 +230,7 @@ This is non-negotiable because:
 
    → ALL rows MUST show "✅ Fixed" or "✅ Tracked" before proceeding
    → qa-reviewer recommendations are resolved by adding them as new plan tasks
-     (not by writing E2E tests inline — they are separate tasks)
+     before the next phase gate (not by writing E2E tests inline)
    → To defer ANY finding → use AskUserQuestion to get explicit approval
    → NO "acknowledged" or "will fix later" without user consent
 
@@ -222,7 +240,7 @@ This is non-negotiable because:
      - `ruff check <modified_files>`
    → Self-verify subagent findings by reading the fixed code:
      - State: "Finding #N: [desc] → Fixed by [change] → Verified at [file:line]"
-   → Run `pytest` to catch regressions
+   → Run affected tests to catch regressions
    → Produce verification summary:
 
      ## Verification
@@ -232,34 +250,70 @@ This is non-negotiable because:
      | ruff              | ✅ All checks passed            |
      | Finding #1        | ✅ Verified at hard_skills:185  |
      | Finding #2        | ✅ Verified at hard_skills:188  |
-     | pytest            | ✅ 1430 passed                  |
+     | pytest            | ✅ 42 passed (affected files)   |
 
    → If automated tools still report issues → return to Phase 2
    → If all clear → proceed to COMPLETE
 
 7. COMPLETE subtask
-   → Update status to ✅ in implementation_plan.md
-   → COMMIT immediately (code + plan update)
+   → Update status to ✅ in the active plan file
+   → COMMIT immediately (code + plan update) — no push
 
 8. STOP (MANDATORY)
+   → Do NOT push — pushes happen only at phase gates
    → Use AskUserQuestion tool with options:
-     - "Push and compact (Recommended)" — Push to remote, provide summary, user will compact
-     - "Continue to next task" — Keep working without break
-     - "Compact first, then continue" — Reduce context without pushing
-     - "Stop for now" — End session without pushing
+     - "Continue to next subtask" — Keep working on the next task
+     - "Compact first" — Reduce context, provide compact summary (see template above)
+     - "Stop for now" — End session
    → DO NOT proceed until user responds
    → This is a HARD STOP — not optional
-   → If user selects "Push and compact": push, then provide a compaction summary
 ```
+
+### Workflow: Phase Gate (full quality gate + push)
+
+Phase gates are the last task in each phase (e.g., §4, §8, §12, §18, §20). They verify all subtask work before pushing.
+
+```
+1. RUN full quality gate (use test-runner in Full mode)
+   → cd backend && pytest -v
+   → cd frontend && npm run test:run
+   → cd frontend && npx playwright test
+   → cd backend && ruff check .
+   → cd frontend && npm run lint
+   → cd frontend && npm run typecheck
+
+2. FIX any regressions
+   → If failures: check `git log` to identify which subtask introduced the issue
+   → Fix and COMMIT the fix
+   → Re-run full gate until all green
+
+3. UPDATE plan
+   → Mark phase gate task ✅
+   → Update phase Status line to ✅ Complete (if all tasks done)
+   → COMMIT the plan update
+
+4. PUSH to remote
+   → `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push` (SSH keep-alive needed — pre-push hooks ~5min cause timeout without it)
+   → All unpushed subtask commits + gate fixes + plan update go to remote
+
+5. STOP (MANDATORY)
+   → Use AskUserQuestion tool with options:
+     - "Continue to next phase" — Start the next phase
+     - "Compact first" — Reduce context before next phase
+     - "Stop for now" — End session
+   → DO NOT proceed until user responds
+```
+
+**Why push only at phase gates:** Pushing triggers pre-push hooks (full pytest + vitest, ~90-135s). By deferring pushes to phase boundaries, we save ~90-135s per subtask while maintaining quality gates. Trade-off: unpushed commits exist only locally between gates.
 
 **CRITICAL RULES:**
 - Invoke `req-reader` BEFORE starting work
 - Run all review tools in parallel during DISCOVERY phase
 - **NEVER skip findings** — every finding must be fixed or explicitly deferred with user approval
 - **Structured tables are mandatory** — forces enumeration, prevents hand-waving
-- Commit after EVERY subtask
+- Commit after EVERY subtask — but do NOT push (pushes happen only at phase gates)
 - Do NOT batch commits
-- Do NOT auto-push — use the STOP checkpoint to let user choose
+- Do NOT auto-push — subtasks commit only; phase gates handle push
 
 ### How to Update the Plan
 
@@ -279,11 +333,27 @@ Change the status column:
 | 8 | Extensions Required (pgvector) | `db, commands, tdd` | ✅ |
 ```
 
+### Compact Summary Template
+
+When providing a compaction summary (user selects "Compact first"), use this format:
+
+```
+## Compaction Summary
+
+**Plan:** docs/plan/<plan_file>.md
+**Completed:** Phase X, §Y — <task title>
+**Next:** Phase X, §Z — <task title>
+**Pushed:** Yes/No (unpushed commits: <list commit hashes if any>)
+**Blockers:** None / <describe any issues>
+**Decisions:** <any in-flight decisions the next session needs to know>
+```
+
 ### On Session Start / After Compaction
 
-1. Read the relevant plan file:
-   - Backend: `docs/plan/implementation_plan.md`
-   - Frontend: `docs/plan/frontend_implementation_plan.md`
+1. Discover the active plan file:
+   - Use `Glob "docs/plan/*_plan.md"` to find all plan files
+   - Read each to find the one with 🟡 or ⬜ tasks (active work)
+   - Or ask the user which plan is in scope
 2. Find the first 🟡 (in progress) or ⬜ (incomplete) task
 3. Resume from there
 4. Announce: "Resuming at Phase X.Y, Task §Z"
@@ -310,9 +380,7 @@ feat(db): add pgvector extension migration
 
 ### Quick Reference
 
-**Plan locations:**
-- Backend: `docs/plan/implementation_plan.md`
-- Frontend: `docs/plan/frontend_implementation_plan.md`
+**Plan locations:** Discover via `Glob "docs/plan/*_plan.md"` or ask the user which plan is active.
 
 **Update triggers:**
 - Subtask started → 🟡

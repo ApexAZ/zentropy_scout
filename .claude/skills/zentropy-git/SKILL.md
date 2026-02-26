@@ -68,7 +68,7 @@ chore(deps): upgrade pydantic to 2.6.0
 |-------|------|
 | `db` | Database, migrations |
 | `api` | API endpoints |
-| `agents` | LangGraph agents |
+| `agents` | Agent framework (Chat graph, services) |
 | `providers` | LLM/embedding providers |
 | `ui` | Frontend |
 | `extension` | Chrome extension |
@@ -78,19 +78,19 @@ chore(deps): upgrade pydantic to 2.6.0
 
 ## Workflow
 
-```bash
-# 1. Create feature branch
-git checkout -b feature/phase-1.1-database
+Development happens on `main` with frequent small commits. Pushes are batched at phase gates.
 
-# 2. Make changes, commit often
-git add .
+```bash
+# Subtask: commit after each task (no push)
+git add <specific_files>
 git commit -m "feat(db): add persona table with JSONB skills"
 
-# 3. Push and create PR
-git push -u origin feature/phase-1.1-database
-
-# 4. After review, squash merge to main
+# Phase gate: push all subtask commits at once
+# SSH keep-alive required — pre-push hooks (~5min) cause GitHub timeout without it
+GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push
 ```
+
+Branch naming conventions (above) apply when feature branches are needed in the future. Currently all work is committed directly to `main`.
 
 ## Pre-Commit Quality Gate
 

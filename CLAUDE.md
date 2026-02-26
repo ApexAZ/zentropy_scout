@@ -425,6 +425,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 - `[workflow]` After completing a subtask, always follow this exact order: (1) commit (no push — pushes happen at phase gates only), (2) use AskUserQuestion tool (not prose) to offer "Continue to next subtask"/"Compact first"/"Stop", (3) if "Compact first" is selected, immediately provide a detailed summary for compaction. At phase gates: run full quality gate (test-runner Full mode) → fix regressions → commit → push → AskUserQuestion. The checklist exists to prevent shortcuts at the finish line when you feel "done."
 
 - `[security]` Never filter or suppress security scanner alerts from reporting output (SARIF, Security tab) because DAST/SAST findings are meant for manual human review — the protocol is: review each alert, determine if genuine or false positive, then dismiss via `gh api` with reason and comment if false positive.
+- `[git]` Always use SSH keep-alive when pushing: `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push` because pre-push hooks (pytest+vitest ~5min) cause GitHub's SSH connection to timeout before the actual push occurs.
 
 <!-- Add new lessons above this line -->
 

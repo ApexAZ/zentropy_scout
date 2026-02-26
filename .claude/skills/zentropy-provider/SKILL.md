@@ -12,9 +12,6 @@ description: |
 
 # Zentropy Scout Provider Patterns
 
-## Reference Document
-**Read first:** `docs/requirements/REQ-009_provider_abstraction.md` (especially §1.5)
-
 ## Critical: Local Mode Uses Claude Agent SDK
 
 **MVP uses Claude Agent SDK, NOT direct API calls.**

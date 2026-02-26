@@ -67,7 +67,8 @@ Add the new rule to the "## Learned Lessons" section, above the `<!-- Add new le
 Tell the user:
 - What rule was added
 - Which category it belongs to
-- Remind them to commit when ready: `git commit -am "docs: add learned lesson [category]"`
+
+**Commit timing:** If you're mid-subtask, fold the CLAUDE.md change into the subtask commit (no separate commit needed). If you're between tasks, commit it standalone: `git commit -am "docs: add learned lesson [category]"`
 
 ---
 

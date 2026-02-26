@@ -8,7 +8,7 @@ description: |
   - Someone mentions "endpoint", "router", "REST", "response", or "API"
 ---
 
-# FastAPI API Patterns (REQ-006)
+# FastAPI API Patterns
 
 ## Architecture: API-Mediated Everything
 

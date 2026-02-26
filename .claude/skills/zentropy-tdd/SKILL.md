@@ -361,7 +361,7 @@ async def complete(self, messages, task, max_tokens=None):  # noqa: ARG002
     raise NotImplementedError("Implementation in next task")
 ```
 
-If you must use noqa, track it in `implementation_plan.md` for cleanup.
+If you must use noqa, track it in the active plan file for cleanup.
 
 ---
 
