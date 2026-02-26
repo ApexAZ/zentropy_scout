@@ -3,7 +3,7 @@
 /**
  * Onboarding page.
  *
- * REQ-012 §6: 12-step onboarding wizard.
+ * REQ-019 §7.1: 11-step onboarding wizard.
  * Wraps all step components in OnboardingProvider and OnboardingShell,
  * routing to the correct step based on provider state.
  */
@@ -12,7 +12,6 @@ import { Loader2 } from "lucide-react";
 
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { BasicInfoStep } from "@/components/onboarding/steps/basic-info-step";
-import { BaseResumeSetupStep } from "@/components/onboarding/steps/base-resume-setup-step";
 import { CertificationStep } from "@/components/onboarding/steps/certification-step";
 import { EducationStep } from "@/components/onboarding/steps/education-step";
 import { GrowthTargetsStep } from "@/components/onboarding/steps/growth-targets-step";
@@ -51,8 +50,6 @@ function StepRouter() {
 			return <VoiceProfileStep />;
 		case 11:
 			return <ReviewStep />;
-		case 12:
-			return <BaseResumeSetupStep />;
 		default:
 			return null;
 	}

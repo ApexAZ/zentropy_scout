@@ -3,9 +3,10 @@
 /**
  * Resume upload step for onboarding wizard (Step 1).
  *
- * REQ-012 §6.3.1: Drag-and-drop or file picker for PDF/DOCX upload,
+ * REQ-019 §7.2: Drag-and-drop or file picker for PDF upload,
  * client-side validation (10MB max), upload progress indicator,
- * skip option, and auto-advance on success.
+ * skip option, and auto-advance on success. Calls the resume
+ * parse endpoint to extract structured data for form pre-population.
  */
 
 import { AlertCircle, CheckCircle2, FileUp, Loader2 } from "lucide-react";
@@ -15,9 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ApiError, apiUploadFile } from "@/lib/api-client";
 import { useOnboarding } from "@/lib/onboarding-provider";
+import type { ResumeParseData } from "@/lib/onboarding-provider";
 import { cn } from "@/lib/utils";
 import type { ApiResponse } from "@/types/api";
-import type { ResumeFile } from "@/types/resume";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -29,17 +30,14 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 /** Human-readable size label. */
 const MAX_FILE_SIZE_LABEL = "10MB";
 
-/** Accepted file extensions (lowercase). */
-const ACCEPTED_EXTENSIONS = new Set([".pdf", ".docx"]);
+/** Accepted file extensions (lowercase). PDF only — pdfplumber backend. */
+const ACCEPTED_EXTENSIONS = new Set([".pdf"]);
 
 /** Accepted MIME types (client-side hint, backend validates magic bytes). */
-const ACCEPTED_MIME_TYPES = new Set([
-	"application/pdf",
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
+const ACCEPTED_MIME_TYPES = new Set(["application/pdf"]);
 
 /** File input accept attribute value. */
-const FILE_INPUT_ACCEPT = ".pdf,.docx";
+const FILE_INPUT_ACCEPT = ".pdf";
 
 /** Delay before auto-advancing after successful upload. */
 const AUTO_ADVANCE_DELAY_MS = 1500;
@@ -56,15 +54,21 @@ const PROGRESS_CAP = 90;
 /** Initial simulated progress value when upload starts. */
 const PROGRESS_INITIAL = 10;
 
+/** Client-side validation message for non-PDF files. */
+const PDF_ONLY_ERROR = "Only PDF files are accepted.";
+
 /** Friendly error messages keyed by API error code. */
 const FRIENDLY_ERROR_MESSAGES: Readonly<Record<string, string>> = {
 	FILE_TOO_LARGE: `File must be ${MAX_FILE_SIZE_LABEL} or smaller.`,
-	INVALID_FILE_CONTENT: "Only PDF and DOCX files are accepted.",
-	VALIDATION_ERROR: "Invalid file. Please try a different one.",
+	INVALID_FILE_CONTENT: PDF_ONLY_ERROR,
+	VALIDATION_ERROR:
+		"Couldn't read this PDF. You can skip this step and enter your info manually.",
+	PDF_REQUIRED: "Only PDF files are supported for resume parsing.",
 };
 
 /** Fallback error message for unexpected errors. */
-const GENERIC_ERROR_MESSAGE = "Upload failed. Please try again.";
+const GENERIC_ERROR_MESSAGE =
+	"Couldn't read this PDF. You can skip this step and enter your info manually.";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -82,10 +86,10 @@ function getFileExtension(fileName: string): string {
 function validateFile(file: File): string | null {
 	const ext = getFileExtension(file.name);
 	if (!ACCEPTED_EXTENSIONS.has(ext)) {
-		return "Only PDF and DOCX files are accepted.";
+		return PDF_ONLY_ERROR;
 	}
 	if (file.type && !ACCEPTED_MIME_TYPES.has(file.type)) {
-		return "Only PDF and DOCX files are accepted.";
+		return PDF_ONLY_ERROR;
 	}
 	if (file.size > MAX_FILE_SIZE_BYTES) {
 		return `File must be ${MAX_FILE_SIZE_LABEL} or smaller.`;
@@ -108,13 +112,13 @@ function toFriendlyError(err: unknown): string {
 /**
  * Onboarding Step 1: Resume Upload.
  *
- * Renders a drag-and-drop zone (or click-to-browse) for PDF/DOCX files.
- * Validates client-side before uploading via POST /resume-files.
+ * Renders a drag-and-drop zone (or click-to-browse) for PDF files.
+ * Validates client-side before uploading via POST /onboarding/resume-parse.
  * Shows simulated progress, success message, then auto-advances.
  * Always offers a skip option for manual entry.
  */
 export function ResumeUploadStep() {
-	const { personaId, next, skip } = useOnboarding();
+	const { next, skip, setResumeParseData } = useOnboarding();
 
 	const [status, setStatus] = useState<UploadStatus>("idle");
 	const [error, setError] = useState<string | null>(null);
@@ -167,16 +171,14 @@ export function ResumeUploadStep() {
 			abortRef.current = controller;
 
 			try {
-				const fields: Record<string, string> = {};
-				if (personaId) {
-					fields.persona_id = personaId;
-				}
-				await apiUploadFile<ApiResponse<ResumeFile>>(
-					"/resume-files",
+				const response = await apiUploadFile<ApiResponse<ResumeParseData>>(
+					"/onboarding/resume-parse",
 					file,
-					fields,
+					undefined,
 					{ signal: controller.signal },
 				);
+
+				setResumeParseData(response.data);
 
 				if (intervalRef.current !== null) clearInterval(intervalRef.current);
 				setProgress(100);
@@ -196,7 +198,7 @@ export function ResumeUploadStep() {
 				setError(toFriendlyError(err));
 			}
 		},
-		[personaId, next],
+		[next, setResumeParseData],
 	);
 
 	// -----------------------------------------------------------------------
@@ -283,12 +285,12 @@ export function ResumeUploadStep() {
 					data-testid="drop-zone"
 				>
 					<FileUp className="text-muted-foreground mx-auto mb-3 h-10 w-10" />
-					<p className="font-medium">Drop PDF or DOCX here</p>
+					<p className="font-medium">Drop PDF here</p>
 					<p className="text-muted-foreground mt-1 text-sm">
 						or click to browse
 					</p>
 					<p className="text-muted-foreground mt-3 text-xs">
-						Max {MAX_FILE_SIZE_LABEL} &middot; PDF or DOCX
+						Max {MAX_FILE_SIZE_LABEL} &middot; PDF only
 					</p>
 				</button>
 			)}
@@ -300,7 +302,7 @@ export function ResumeUploadStep() {
 					data-testid="upload-progress"
 				>
 					<Loader2 className="text-primary mx-auto mb-3 h-8 w-8 animate-spin" />
-					<p className="mb-3 font-medium">Uploading...</p>
+					<p className="mb-3 font-medium">Parsing resume...</p>
 					<Progress value={progress} />
 				</div>
 			)}
@@ -310,7 +312,7 @@ export function ResumeUploadStep() {
 				<div className="text-center" data-testid="upload-success">
 					<CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-green-500" />
 					<p className="font-medium">
-						Resume uploaded! I&apos;ll use this to pre-fill your profile.
+						Resume parsed! I&apos;ll use this to pre-fill your profile.
 					</p>
 				</div>
 			)}

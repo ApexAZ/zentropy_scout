@@ -16,7 +16,7 @@ import { OnboardingShell } from "./onboarding-shell";
 
 const defaultProps = {
 	currentStep: 3,
-	totalSteps: 12,
+	totalSteps: 11,
 	stepName: "Work History",
 	onNext: vi.fn(),
 };
@@ -59,20 +59,20 @@ describe("OnboardingShell", () => {
 
 		it("shows step counter as 'Step N of M'", () => {
 			renderShell();
-			expect(screen.getByText("Step 3 of 12")).toBeInTheDocument();
+			expect(screen.getByText("Step 3 of 11")).toBeInTheDocument();
 		});
 
 		it("renders a progress bar with correct value", () => {
 			renderShell();
 			const progressBar = screen.getByRole("progressbar");
 			expect(progressBar).toBeInTheDocument();
-			// Step 3 of 12 = 25%
-			expect(progressBar).toHaveAttribute("aria-valuenow", "25");
+			// Step 3 of 11 ≈ 27%
+			expect(progressBar).toHaveAttribute("aria-valuenow", "27");
 		});
 
 		it("shows step name on hover via title attribute", () => {
 			renderShell();
-			const stepCounter = screen.getByText("Step 3 of 12");
+			const stepCounter = screen.getByText("Step 3 of 11");
 			expect(stepCounter).toHaveAttribute("title", "Work History");
 		});
 	});
@@ -191,18 +191,18 @@ describe("OnboardingShell", () => {
 		});
 
 		it("renders the last step correctly", () => {
-			renderShell({ currentStep: 12, stepName: "Base Resume" });
-			expect(screen.getByText("Step 12 of 12")).toBeInTheDocument();
+			renderShell({ currentStep: 11, stepName: "Review" });
+			expect(screen.getByText("Step 11 of 11")).toBeInTheDocument();
 			const progressBar = screen.getByRole("progressbar");
 			expect(progressBar).toHaveAttribute("aria-valuenow", "100");
 		});
 
 		it("renders the first step correctly", () => {
 			renderShell({ currentStep: 1, stepName: "Resume Upload" });
-			expect(screen.getByText("Step 1 of 12")).toBeInTheDocument();
+			expect(screen.getByText("Step 1 of 11")).toBeInTheDocument();
 			const progressBar = screen.getByRole("progressbar");
-			// Step 1 of 12 ≈ 8%
-			expect(progressBar).toHaveAttribute("aria-valuenow", "8");
+			// Step 1 of 11 ≈ 9%
+			expect(progressBar).toHaveAttribute("aria-valuenow", "9");
 		});
 	});
 });

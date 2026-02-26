@@ -1,7 +1,7 @@
 /**
  * Onboarding wizard step definitions.
  *
- * REQ-012 §6.3: 12-step onboarding wizard.
+ * REQ-019 §7.1: 11-step onboarding wizard.
  * Each step maps to a section of the persona data model.
  */
 
@@ -25,7 +25,7 @@ export interface OnboardingStepDef {
 // Step definitions
 // ---------------------------------------------------------------------------
 
-/** All 12 onboarding steps in order. */
+/** All 11 onboarding steps in order (REQ-019 §7.1). */
 export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
 	{ number: 1, key: "resume-upload", name: "Resume Upload", skippable: true },
 	{ number: 2, key: "basic-info", name: "Basic Info", skippable: false },
@@ -63,12 +63,6 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
 		skippable: false,
 	},
 	{ number: 11, key: "review", name: "Review", skippable: false },
-	{
-		number: 12,
-		key: "base-resume",
-		name: "Base Resume Setup",
-		skippable: false,
-	},
 ] as const;
 
 /** Total number of onboarding steps. */

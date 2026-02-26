@@ -1,8 +1,9 @@
 /**
  * Tests for the resume upload step component.
  *
- * REQ-012 §6.3.1: Drag-and-drop or file picker for PDF/DOCX upload,
+ * REQ-019 §7.2: Drag-and-drop or file picker for PDF upload,
  * client-side validation, progress indicator, skip option, auto-advance.
+ * Calls resume parse endpoint for structured data extraction.
  */
 
 import {
@@ -20,13 +21,23 @@ import { ResumeUploadStep } from "./resume-upload-step";
 // Constants
 // ---------------------------------------------------------------------------
 
-const DEFAULT_PERSONA_ID = "00000000-0000-4000-a000-000000000001";
-const RESUME_FILES_PATH = "/resume-files";
+const RESUME_PARSE_PATH = "/onboarding/resume-parse";
 const TEN_MB = 10 * 1024 * 1024;
-const DROP_ZONE_TEXT = "Drop PDF or DOCX here";
-const UPLOADING_TEXT = "Uploading...";
-const GENERIC_ERROR_TEXT = "Upload failed. Please try again.";
-const MOCK_UPLOAD_RESPONSE = { data: { id: "f1" } };
+const DROP_ZONE_TEXT = "Drop PDF here";
+const UPLOADING_TEXT = "Parsing resume...";
+const GENERIC_ERROR_TEXT =
+	"Couldn't read this PDF. You can skip this step and enter your info manually.";
+const MOCK_PARSE_RESPONSE = {
+	data: {
+		basic_info: { full_name: "Test User", email: "test@example.com" },
+		work_history: [],
+		education: [],
+		skills: [],
+		certifications: [],
+		voice_suggestions: null,
+		raw_text: "Sample resume text",
+	},
+};
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -48,6 +59,7 @@ const mocks = vi.hoisted(() => {
 		MockApiError,
 		mockNext: vi.fn(),
 		mockSkip: vi.fn(),
+		mockSetResumeParseData: vi.fn(),
 	};
 });
 
@@ -58,9 +70,9 @@ vi.mock("@/lib/api-client", () => ({
 
 vi.mock("@/lib/onboarding-provider", () => ({
 	useOnboarding: () => ({
-		personaId: DEFAULT_PERSONA_ID,
 		next: mocks.mockNext,
 		skip: mocks.mockSkip,
+		setResumeParseData: mocks.mockSetResumeParseData,
 	}),
 }));
 
@@ -105,6 +117,7 @@ describe("ResumeUploadStep", () => {
 		mocks.mockApiUploadFile.mockReset();
 		mocks.mockNext.mockReset();
 		mocks.mockSkip.mockReset();
+		mocks.mockSetResumeParseData.mockReset();
 	});
 
 	afterEach(() => {
@@ -135,7 +148,7 @@ describe("ResumeUploadStep", () => {
 		it("renders file size and type hint", () => {
 			render(<ResumeUploadStep />);
 
-			expect(screen.getByText(/Max 10MB.*PDF or DOCX/)).toBeInTheDocument();
+			expect(screen.getByText(/Max 10MB.*PDF only/)).toBeInTheDocument();
 		});
 
 		it("renders skip link", () => {
@@ -151,7 +164,7 @@ describe("ResumeUploadStep", () => {
 
 	describe("file validation", () => {
 		it("accepts PDF files", async () => {
-			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_UPLOAD_RESPONSE);
+			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_PARSE_RESPONSE);
 			render(<ResumeUploadStep />);
 
 			selectFileViaInput(makePdfFile());
@@ -161,18 +174,20 @@ describe("ResumeUploadStep", () => {
 			});
 		});
 
-		it("accepts DOCX files", async () => {
-			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_UPLOAD_RESPONSE);
+		it("rejects DOCX files with error", async () => {
 			render(<ResumeUploadStep />);
 
 			selectFileViaInput(makeDocxFile());
 
 			await waitFor(() => {
-				expect(mocks.mockApiUploadFile).toHaveBeenCalledTimes(1);
+				expect(
+					screen.getByText(/Only PDF files are accepted/i),
+				).toBeInTheDocument();
 			});
+			expect(mocks.mockApiUploadFile).not.toHaveBeenCalled();
 		});
 
-		it("rejects non-PDF/DOCX files with error", async () => {
+		it("rejects non-PDF files with error", async () => {
 			render(<ResumeUploadStep />);
 
 			const txtFile = new File(["text"], "notes.txt", {
@@ -182,7 +197,7 @@ describe("ResumeUploadStep", () => {
 
 			await waitFor(() => {
 				expect(
-					screen.getByText(/Only PDF and DOCX files are accepted/i),
+					screen.getByText(/Only PDF files are accepted/i),
 				).toBeInTheDocument();
 			});
 			expect(mocks.mockApiUploadFile).not.toHaveBeenCalled();
@@ -201,7 +216,7 @@ describe("ResumeUploadStep", () => {
 		});
 
 		it("accepts files exactly at 10MB", async () => {
-			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_UPLOAD_RESPONSE);
+			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_PARSE_RESPONSE);
 			render(<ResumeUploadStep />);
 
 			const exactFile = makePdfFile("exact.pdf", TEN_MB);
@@ -229,19 +244,19 @@ describe("ResumeUploadStep", () => {
 			});
 		});
 
-		it("shows success message after upload completes", async () => {
-			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_UPLOAD_RESPONSE);
+		it("shows success message after parse completes", async () => {
+			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_PARSE_RESPONSE);
 			render(<ResumeUploadStep />);
 
 			selectFileViaInput(makePdfFile());
 
 			await waitFor(() => {
-				expect(screen.getByText(/Resume uploaded/i)).toBeInTheDocument();
+				expect(screen.getByText(/Resume parsed/i)).toBeInTheDocument();
 			});
 		});
 
 		it("auto-advances after successful upload", async () => {
-			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_UPLOAD_RESPONSE);
+			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_PARSE_RESPONSE);
 			render(<ResumeUploadStep />);
 
 			selectFileViaInput(makePdfFile());
@@ -254,18 +269,31 @@ describe("ResumeUploadStep", () => {
 			);
 		});
 
-		it("sends file to correct endpoint with persona_id", async () => {
-			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_UPLOAD_RESPONSE);
+		it("sends file to resume parse endpoint", async () => {
+			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_PARSE_RESPONSE);
 			render(<ResumeUploadStep />);
 
 			selectFileViaInput(makePdfFile());
 
 			await waitFor(() => {
 				expect(mocks.mockApiUploadFile).toHaveBeenCalledWith(
-					RESUME_FILES_PATH,
+					RESUME_PARSE_PATH,
 					expect.any(File),
-					{ persona_id: DEFAULT_PERSONA_ID },
+					undefined,
 					expect.objectContaining({ signal: expect.any(AbortSignal) }),
+				);
+			});
+		});
+
+		it("stores parsed data via setResumeParseData on success", async () => {
+			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_PARSE_RESPONSE);
+			render(<ResumeUploadStep />);
+
+			selectFileViaInput(makePdfFile());
+
+			await waitFor(() => {
+				expect(mocks.mockSetResumeParseData).toHaveBeenCalledWith(
+					MOCK_PARSE_RESPONSE.data,
 				);
 			});
 		});
@@ -407,7 +435,7 @@ describe("ResumeUploadStep", () => {
 		});
 
 		it("accepts files via drag-and-drop", async () => {
-			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_UPLOAD_RESPONSE);
+			mocks.mockApiUploadFile.mockResolvedValueOnce(MOCK_PARSE_RESPONSE);
 			render(<ResumeUploadStep />);
 
 			const dropZone = screen.getByTestId("drop-zone");

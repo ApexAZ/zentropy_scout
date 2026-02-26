@@ -1,7 +1,7 @@
 /**
  * Tests for the OnboardingProvider state management.
  *
- * REQ-012 §6.4: Checkpoint/resume behavior.
+ * REQ-019 §7: 11-step wizard with checkpoint/resume behavior.
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -317,7 +317,7 @@ describe("OnboardingProvider", () => {
 			mocks.mockApiGet.mockResolvedValue(
 				makeListResponse([
 					makePersona({
-						onboarding_step: "base-resume",
+						onboarding_step: "review",
 						updated_at: new Date().toISOString(),
 					}),
 				]),
@@ -325,14 +325,14 @@ describe("OnboardingProvider", () => {
 			const { result } = renderUseOnboarding();
 
 			await waitFor(() => {
-				expect(result.current.currentStep).toBe(12);
+				expect(result.current.currentStep).toBe(11);
 			});
 
 			act(() => {
 				result.current.next();
 			});
 
-			expect(result.current.currentStep).toBe(12);
+			expect(result.current.currentStep).toBe(11);
 		});
 
 		it("back() goes to the previous step", async () => {
@@ -456,7 +456,7 @@ describe("OnboardingProvider", () => {
 				result.current.goToStep(99);
 			});
 
-			expect(result.current.currentStep).toBe(12);
+			expect(result.current.currentStep).toBe(11);
 
 			act(() => {
 				result.current.goToStep(-5);
@@ -641,14 +641,14 @@ describe("OnboardingProvider", () => {
 			mocks.mockApiGet.mockResolvedValue(makeListResponse([makePersona()]));
 		});
 
-		it("totalSteps is always 12", async () => {
+		it("totalSteps is always 11", async () => {
 			const { result } = renderUseOnboarding();
 
 			await waitFor(() => {
 				expect(result.current.isLoadingCheckpoint).toBe(false);
 			});
 
-			expect(result.current.totalSteps).toBe(12);
+			expect(result.current.totalSteps).toBe(11);
 		});
 
 		it("stepName matches current step definition", async () => {
@@ -665,6 +665,45 @@ describe("OnboardingProvider", () => {
 			});
 
 			expect(result.current.stepName).toBe("Basic Info");
+		});
+
+		it("resumeParseData is initially null", async () => {
+			const { result } = renderUseOnboarding();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			expect(result.current.resumeParseData).toBeNull();
+		});
+
+		it("setResumeParseData stores parsed resume data", async () => {
+			const { result } = renderUseOnboarding();
+
+			await waitFor(() => {
+				expect(result.current.isLoadingCheckpoint).toBe(false);
+			});
+
+			const mockParseData = {
+				basic_info: { full_name: "Test User", email: "test@example.com" },
+				work_history: [{ job_title: "Engineer", company_name: "Acme" }],
+				education: [],
+				skills: [{ name: "TypeScript", type: "Hard", proficiency: "Expert" }],
+				certifications: [],
+				voice_suggestions: {
+					writing_style: "technical",
+					vocabulary_level: "technical",
+					personality_markers: "analytical",
+					confidence: 0.85,
+				},
+				raw_text: "Resume text content",
+			};
+
+			act(() => {
+				result.current.setResumeParseData(mockParseData);
+			});
+
+			expect(result.current.resumeParseData).toEqual(mockParseData);
 		});
 
 		it("isStepSkippable reflects current step", async () => {

@@ -3,8 +3,9 @@
 /**
  * Onboarding state provider.
  *
- * REQ-012 §6.4: Checkpoint/resume behavior.
- * Manages current step, persisted step position, and resume prompts.
+ * REQ-019 §7: 11-step wizard with checkpoint/resume behavior.
+ * Manages current step, persisted step position, resume prompts,
+ * and parsed resume data for form pre-population.
  *
  * Must be rendered inside a QueryClientProvider.
  */
@@ -39,6 +40,29 @@ import { queryKeys } from "./query-keys";
 /** Checkpoint TTL: 24 hours in milliseconds. */
 export const CHECKPOINT_TTL_MS = 24 * 60 * 60 * 1000;
 
+// ---------------------------------------------------------------------------
+// Resume parse data types (REQ-019 §6.2)
+// ---------------------------------------------------------------------------
+
+/** Voice suggestions inferred from resume content. */
+export interface VoiceSuggestions {
+	writing_style: string;
+	vocabulary_level: string;
+	personality_markers: string;
+	confidence: number;
+}
+
+/** Structured data returned by POST /onboarding/resume-parse. */
+export interface ResumeParseData {
+	basic_info: Record<string, string | null>;
+	work_history: Record<string, unknown>[];
+	education: Record<string, unknown>[];
+	skills: Record<string, unknown>[];
+	certifications: Record<string, unknown>[];
+	voice_suggestions: VoiceSuggestions | null;
+	raw_text: string;
+}
+
 /** UUID v4 format pattern for persona ID validation (defense-in-depth). */
 const UUID_PATTERN =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,7 +80,7 @@ function isValidUUID(value: string): boolean {
 export type ResumePromptType = "welcome-back" | "expired";
 
 interface OnboardingState {
-	/** Current step number (1-12). Defaults to 1. */
+	/** Current step number (1-11). Defaults to 1. */
 	currentStep: number;
 	/** Persona ID for PATCH calls. Null until persona is created/loaded. */
 	personaId: string | null;
@@ -68,6 +92,8 @@ interface OnboardingState {
 	isCompleting: boolean;
 	/** Resume prompt to display. Null if no prompt needed. */
 	resumePrompt: ResumePromptType | null;
+	/** Parsed resume data for pre-populating later steps. Null if no resume uploaded. */
+	resumeParseData: ResumeParseData | null;
 }
 
 const initialState: OnboardingState = {
@@ -77,6 +103,7 @@ const initialState: OnboardingState = {
 	isSavingCheckpoint: false,
 	isCompleting: false,
 	resumePrompt: null,
+	resumeParseData: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -94,7 +121,8 @@ type OnboardingAction =
 	| { type: "SET_PERSONA_ID"; personaId: string }
 	| { type: "SET_SAVING_CHECKPOINT"; saving: boolean }
 	| { type: "SET_COMPLETING"; completing: boolean }
-	| { type: "DISMISS_RESUME_PROMPT" };
+	| { type: "DISMISS_RESUME_PROMPT" }
+	| { type: "SET_RESUME_PARSE_DATA"; data: ResumeParseData };
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -131,6 +159,9 @@ function onboardingReducer(
 		case "DISMISS_RESUME_PROMPT":
 			return { ...state, resumePrompt: null };
 
+		case "SET_RESUME_PARSE_DATA":
+			return { ...state, resumeParseData: action.data };
+
 		default:
 			return state;
 	}
@@ -141,9 +172,9 @@ function onboardingReducer(
 // ---------------------------------------------------------------------------
 
 interface OnboardingContextValue {
-	/** Current step number (1-12). */
+	/** Current step number (1-11). */
 	currentStep: number;
-	/** Total number of steps (always 12). */
+	/** Total number of steps (always 11). */
 	totalSteps: number;
 	/** Human-readable name of the current step. */
 	stepName: string;
@@ -159,6 +190,8 @@ interface OnboardingContextValue {
 	isCompleting: boolean;
 	/** Resume prompt type to display. Null if none. */
 	resumePrompt: ResumePromptType | null;
+	/** Parsed resume data for pre-populating form steps. Null if no resume uploaded. */
+	resumeParseData: ResumeParseData | null;
 	/** Complete onboarding: PATCH persona, trigger Scouter, invalidate cache. */
 	completeOnboarding: () => Promise<void>;
 	/** Advance to the next step and save checkpoint. */
@@ -175,6 +208,8 @@ interface OnboardingContextValue {
 	dismissResumePrompt: () => void;
 	/** Update the persona ID (called when persona is created). */
 	setPersonaId: (id: string) => void;
+	/** Store parsed resume data for later step pre-population. */
+	setResumeParseData: (data: ResumeParseData) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
@@ -364,6 +399,10 @@ export function OnboardingProvider({
 		dispatch({ type: "SET_PERSONA_ID", personaId: id });
 	}, []);
 
+	const setResumeParseData = useCallback((data: ResumeParseData) => {
+		dispatch({ type: "SET_RESUME_PARSE_DATA", data });
+	}, []);
+
 	// -----------------------------------------------------------------------
 	// Completion
 	// -----------------------------------------------------------------------
@@ -403,6 +442,7 @@ export function OnboardingProvider({
 			isSavingCheckpoint: state.isSavingCheckpoint,
 			isCompleting: state.isCompleting,
 			resumePrompt: state.resumePrompt,
+			resumeParseData: state.resumeParseData,
 			completeOnboarding,
 			next,
 			back,
@@ -411,6 +451,7 @@ export function OnboardingProvider({
 			restart,
 			dismissResumePrompt,
 			setPersonaId,
+			setResumeParseData,
 		}),
 		[
 			state.currentStep,
@@ -419,6 +460,7 @@ export function OnboardingProvider({
 			state.isSavingCheckpoint,
 			state.isCompleting,
 			state.resumePrompt,
+			state.resumeParseData,
 			stepDef,
 			completeOnboarding,
 			next,
@@ -428,6 +470,7 @@ export function OnboardingProvider({
 			restart,
 			dismissResumePrompt,
 			setPersonaId,
+			setResumeParseData,
 		],
 	);
 

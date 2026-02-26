@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Review step for onboarding wizard (Step 11).
+ * Review step for onboarding wizard (Step 11 — final step).
  *
- * REQ-012 §6.3.11: Structured summary of the full persona in
+ * REQ-019 §7.1: Structured summary of the full persona in
  * collapsible sections. Each section has an "Edit" link that
  * navigates back to the relevant onboarding step. Read-only —
- * no form submission, only "Confirm and Continue" to advance.
+ * "Complete Onboarding" finalizes the persona.
  */
 
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
@@ -314,14 +314,15 @@ function VoiceProfileContent({
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 11: Review.
+ * Onboarding Step 11: Review (final step).
  *
  * Displays a read-only summary of the full persona in collapsible sections.
- * Each section links back to its edit step. "Confirm and Continue" advances
- * to Step 12 (Base Resume Setup).
+ * Each section links back to its edit step. "Complete Onboarding" finalizes
+ * the persona and triggers job discovery.
  */
 export function ReviewStep() {
-	const { personaId, next, back, goToStep } = useOnboarding();
+	const { personaId, completeOnboarding, isCompleting, back, goToStep } =
+		useOnboarding();
 
 	const [isLoading, setIsLoading] = useState(!!personaId);
 	const [persona, setPersona] = useState<Persona | null>(null);
@@ -386,8 +387,8 @@ export function ReviewStep() {
 	// -----------------------------------------------------------------------
 
 	const handleConfirm = useCallback(() => {
-		next();
-	}, [next]);
+		void completeOnboarding();
+	}, [completeOnboarding]);
 
 	// -----------------------------------------------------------------------
 	// Render helpers
@@ -472,9 +473,17 @@ export function ReviewStep() {
 				<Button
 					type="button"
 					onClick={handleConfirm}
+					disabled={isCompleting}
 					data-testid="confirm-button"
 				>
-					Confirm and Continue
+					{isCompleting ? (
+						<>
+							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							Completing...
+						</>
+					) : (
+						"Complete Onboarding"
+					)}
 				</Button>
 			</div>
 		</div>

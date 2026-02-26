@@ -1,7 +1,7 @@
 /**
  * Tests for onboarding step definitions.
  *
- * REQ-012 §6.3: 12-step onboarding wizard step metadata.
+ * REQ-019 §7.1: 11-step onboarding wizard step metadata.
  */
 
 import { describe, expect, it } from "vitest";
@@ -18,13 +18,13 @@ import {
 // ---------------------------------------------------------------------------
 
 describe("ONBOARDING_STEPS", () => {
-	it("has exactly 12 steps", () => {
-		expect(ONBOARDING_STEPS).toHaveLength(12);
+	it("has exactly 11 steps", () => {
+		expect(ONBOARDING_STEPS).toHaveLength(11);
 	});
 
-	it("numbers steps 1 through 12 sequentially", () => {
+	it("numbers steps 1 through 11 sequentially", () => {
 		const numbers = ONBOARDING_STEPS.map((s) => s.number);
-		expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+		expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 	});
 
 	it("every step has key, name, number, and skippable fields", () => {
@@ -52,8 +52,8 @@ describe("ONBOARDING_STEPS", () => {
 });
 
 describe("TOTAL_STEPS", () => {
-	it("equals 12", () => {
-		expect(TOTAL_STEPS).toBe(12);
+	it("equals 11", () => {
+		expect(TOTAL_STEPS).toBe(11);
 	});
 });
 
@@ -73,17 +73,17 @@ describe("getStepByNumber", () => {
 		expect(step?.key).toBe("resume-upload");
 	});
 
-	it("returns the last step for number 12", () => {
-		const step = getStepByNumber(12);
-		expect(step?.key).toBe("base-resume");
+	it("returns the last step for number 11", () => {
+		const step = getStepByNumber(11);
+		expect(step?.key).toBe("review");
 	});
 
 	it("returns undefined for number 0", () => {
 		expect(getStepByNumber(0)).toBeUndefined();
 	});
 
-	it("returns undefined for number 13", () => {
-		expect(getStepByNumber(13)).toBeUndefined();
+	it("returns undefined for number 12", () => {
+		expect(getStepByNumber(12)).toBeUndefined();
 	});
 
 	it("returns undefined for negative numbers", () => {
