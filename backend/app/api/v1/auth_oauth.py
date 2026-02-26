@@ -78,20 +78,21 @@ async def oauth_initiate(
 
     Rate limit: 10 per hour per IP.
     """
-    # Validate provider
+    # Validate provider against allowlist (don't echo user input in errors)
     try:
         config = get_provider_config(provider)
-    except ValueError as exc:
-        raise ValidationError(str(exc)) from exc
+    except ValueError:
+        logger.warning("OAuth initiate: unknown provider requested")
+        raise ValidationError("Unsupported OAuth provider") from None
 
     # Get client credentials
     cred_attrs = _PROVIDER_CREDENTIALS.get(provider)
     if not cred_attrs:
-        raise ValidationError(f"Unsupported OAuth provider: {provider}")
+        raise ValidationError("Unsupported OAuth provider")
 
     client_id = getattr(settings, cred_attrs[0])
     if not client_id:
-        raise ValidationError(f"OAuth provider {provider} is not configured")
+        raise ValidationError("OAuth provider is not configured")
 
     # Generate PKCE code verifier + challenge (if provider supports it)
     code_verifier = generate_code_verifier() if config.supports_pkce else ""
@@ -175,11 +176,12 @@ async def oauth_callback(
     if not state:
         raise ValidationError("Missing state parameter")
 
-    # Validate provider
+    # Validate provider against allowlist (don't echo user input in errors)
     try:
         get_provider_config(provider)
-    except ValueError as exc:
-        raise ValidationError(str(exc)) from exc
+    except ValueError:
+        logger.warning("OAuth callback: unknown provider requested")
+        raise ValidationError("Unsupported OAuth provider") from None
 
     # Validate state cookie
     state_cookie = request.cookies.get(_OAUTH_STATE_COOKIE)

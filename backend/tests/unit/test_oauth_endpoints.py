@@ -141,6 +141,14 @@ class TestOAuthInitiation:
         response = await oauth_client.get("/api/v1/auth/providers/facebook")
         assert response.status_code == 400
 
+    async def test_unknown_provider_does_not_echo_input(self, oauth_client):
+        """Security: error must NOT echo user-controlled provider name (CWE-209)."""
+        payload = "evil-provider-12345"
+        response = await oauth_client.get(f"/api/v1/auth/providers/{payload}")
+        assert response.status_code == 400
+        body = response.json()
+        assert payload not in body["error"]["message"]
+
     async def test_redirect_url_includes_state_parameter(self, oauth_client):
         """Redirect URL includes state parameter for CSRF protection."""
         response = await oauth_client.get(_GOOGLE_INITIATE_URL)
@@ -276,6 +284,17 @@ class TestOAuthCallback:
             params={"code": "code", "state": "state"},
         )
         assert response.status_code == 400
+
+    async def test_unknown_provider_does_not_echo_input(self, oauth_client):
+        """Security: error must NOT echo user-controlled provider name (CWE-209)."""
+        payload = "evil-provider-12345"
+        response = await oauth_client.get(
+            f"/api/v1/auth/callback/{payload}",
+            params={"code": "code", "state": "state"},
+        )
+        assert response.status_code == 400
+        body = response.json()
+        assert payload not in body["error"]["message"]
 
     async def test_clears_state_cookie_after_callback(self, oauth_client):
         """State cookie should be cleared after successful callback."""

@@ -164,6 +164,5 @@ def get_provider_config(provider: str) -> OAuthProviderConfig:
     """
     config = _PROVIDERS.get(provider)
     if config is None:
-        msg = f"Unsupported OAuth provider: {provider}"
-        raise ValueError(msg)
+        raise ValueError("Unsupported OAuth provider")
     return config
