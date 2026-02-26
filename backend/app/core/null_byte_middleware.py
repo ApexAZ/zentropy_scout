@@ -79,58 +79,85 @@ class NullByteMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # Strip null bytes from query string (literal \x00 and percent-encoded %00)
-        query_string = scope.get("query_string", b"")
-        if b"\x00" in query_string or b"%00" in query_string.lower():
-            cleaned = query_string.replace(b"\x00", b"")
-            scope["query_string"] = _PERCENT_NULL_RE.sub(b"", cleaned)
+        _sanitize_query_string(scope)
 
-        # For JSON bodies: parse, strip null bytes from strings, re-serialize
         if _is_json_request(scope):
-            original_receive = receive
-            body_consumed = False
+            receive = _make_sanitized_receive(receive)
 
-            async def sanitized_receive() -> dict[str, Any]:
-                nonlocal body_consumed
+        await self.app(scope, receive, send)
 
-                if body_consumed:
-                    return {
-                        "type": "http.request",
-                        "body": b"",
-                        "more_body": False,
-                    }
 
-                # Buffer the full body (may arrive in multiple chunks)
-                body_parts: list[bytes] = []
-                total_size = 0
-                oversized = False
-                while True:
-                    message = await original_receive()
-                    body = message.get("body", b"")
-                    if body:
-                        total_size += len(body)
-                        body_parts.append(body)
-                        if total_size > _MAX_JSON_BODY_SIZE:
-                            oversized = True
-                    if not message.get("more_body", False):
-                        break
+def _sanitize_query_string(scope: Scope) -> None:
+    """Strip literal and percent-encoded null bytes from the query string.
 
-                body_consumed = True
-                full_body = b"".join(body_parts)
+    Modifies scope["query_string"] in place if null bytes are found.
 
-                # Only sanitize if within size limit
-                if full_body and not oversized:
-                    full_body = _strip_null_bytes_from_json(full_body)
+    Args:
+        scope: ASGI connection scope.
+    """
+    query_string = scope.get("query_string", b"")
+    if b"\x00" in query_string or b"%00" in query_string.lower():
+        cleaned = query_string.replace(b"\x00", b"")
+        scope["query_string"] = _PERCENT_NULL_RE.sub(b"", cleaned)
 
-                return {
-                    "type": "http.request",
-                    "body": full_body,
-                    "more_body": False,
-                }
 
-            await self.app(scope, sanitized_receive, send)
-        else:
-            await self.app(scope, receive, send)
+def _make_sanitized_receive(original_receive: Receive) -> Receive:
+    """Create a receive callable that buffers and sanitizes JSON bodies.
+
+    Buffers the full ASGI body (may arrive in chunks), strips null bytes
+    from JSON string values, and re-serializes. Bodies exceeding
+    _MAX_JSON_BODY_SIZE are passed through unsanitized.
+
+    Args:
+        original_receive: The original ASGI receive callable.
+
+    Returns:
+        A new receive callable that returns sanitized body data.
+    """
+    body_consumed = False
+
+    async def sanitized_receive() -> dict[str, Any]:
+        nonlocal body_consumed
+
+        if body_consumed:
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        full_body, oversized = await _buffer_body(original_receive)
+        body_consumed = True
+
+        if full_body and not oversized:
+            full_body = _strip_null_bytes_from_json(full_body)
+
+        return {"type": "http.request", "body": full_body, "more_body": False}
+
+    return sanitized_receive
+
+
+async def _buffer_body(receive: Receive) -> tuple[bytes, bool]:
+    """Buffer the full ASGI request body from chunked messages.
+
+    Args:
+        receive: ASGI receive callable.
+
+    Returns:
+        Tuple of (full_body_bytes, oversized_flag).
+    """
+    body_parts: list[bytes] = []
+    total_size = 0
+    oversized = False
+
+    while True:
+        message = await receive()
+        body = message.get("body", b"")
+        if body:
+            total_size += len(body)
+            body_parts.append(body)
+            if total_size > _MAX_JSON_BODY_SIZE:
+                oversized = True
+        if not message.get("more_body", False):
+            break
+
+    return b"".join(body_parts), oversized
 
 
 def _is_json_request(scope: Scope) -> bool:
