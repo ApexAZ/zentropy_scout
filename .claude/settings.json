@@ -1,5 +1,25 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'SECURITY GATE: Spawn the security-triage subagent (model: opus) IMMEDIATELY. Do NOT query scanners yourself — the subagent handles everything autonomously. After it reports back: (1) CLEAR — proceed to implementation. (2) VULNERABLE — fix immediately, no other work until resolved. (3) FALSE POSITIVE — you MUST act as a zero-trust prosecutor. Challenge every FALSE POSITIVE verdict. Read the actual code the subagent cites. Look for gaps in its defense chain. Assume the subagent is wrong until you independently verify the evidence. Only dismiss via gh api if YOUR independent review confirms the finding is unexploitable. (4) NEEDS INVESTIGATION — escalate to user via AskUserQuestion. Do NOT proceed to implementation until ALL findings are resolved. This is non-negotiable.'"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'SECURITY GATE (post-compact): Spawn the security-triage subagent (model: opus) IMMEDIATELY. Do NOT query scanners yourself — the subagent handles everything autonomously. After it reports back: (1) CLEAR — proceed to implementation. (2) VULNERABLE — fix immediately, no other work until resolved. (3) FALSE POSITIVE — you MUST act as a zero-trust prosecutor. Challenge every FALSE POSITIVE verdict. Read the actual code the subagent cites. Look for gaps in its defense chain. Assume the subagent is wrong until you independently verify the evidence. Only dismiss via gh api if YOUR independent review confirms the finding is unexploitable. (4) NEEDS INVESTIGATION — escalate to user via AskUserQuestion. Do NOT proceed to implementation until ALL findings are resolved. This is non-negotiable.'"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit",
@@ -15,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'FILE=\"$1\"; if [[ \"$FILE\" == *zap-rules.tsv* ]]; then echo \"BLOCKED: zap-rules.tsv must remain empty. IGNORE rules suppress alerts before SARIF upload, preventing human review. Dismiss false positives individually via gh api — see zentropy-security-alerts skill.\" >&2; exit 1; fi' -- "
+            "command": "bash -c 'FILE=\"$1\"; if [[ \"$FILE\" == *zap-rules.tsv* ]]; then echo \"BLOCKED: zap-rules.tsv must remain empty. IGNORE rules suppress alerts before SARIF upload, preventing human review. Dismiss false positives individually via gh api — see security-triage subagent instructions.\" >&2; exit 1; fi' -- "
           }
         ]
       },
@@ -24,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [[ \"$CLAUDE_TOOL_INPUT\" == *\"git commit\"* ]]; then echo \"⚠️ WORKFLOW REMINDER: Did you run code-reviewer, security-reviewer, AND qa-reviewer subagents before this commit?\" >&2; fi'"
+            "command": "bash -c 'if [[ \"$CLAUDE_TOOL_INPUT\" == *\"git commit\"* ]]; then echo \"WORKFLOW CHECK: Before committing, verify: (1) code-reviewer (2) security-reviewer (3) qa-reviewer (4) All findings resolved — See zentropy-planner steps 4-6. If this is a phase gate fix or plan-only commit, proceed.\" >&2; fi'"
           }
         ]
       }

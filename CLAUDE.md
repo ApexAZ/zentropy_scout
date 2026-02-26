@@ -186,19 +186,9 @@ RATE_LIMIT_ENABLED=true
 Run these checks at the start of every session (before any implementation work):
 
 1. **Docker/PostgreSQL** — Run `docker compose ps` to verify the database container is running and healthy. If not running, start it with `docker compose up -d` and wait for the healthcheck to pass.
-2. **Security scanners** — Check all persistent scanners for new findings. Run these queries in parallel, then report a summary table. If any **new or unexpected** findings exist, **pause and ask the user** whether to address them now or continue to the plan.
-   - **GitHub code scanning** (ZAP + Trivy): `gh api repos/ApexAZ/zentropy_scout/code-scanning/alerts?state=open --jq 'length'`
-   - **SonarCloud**: WebFetch `https://sonarcloud.io/api/issues/search?componentKeys=ApexAZ_zentropy_scout&resolved=false` — check `total` field
-   - **Dependabot**: `gh api repos/ApexAZ/zentropy_scout/dependabot/alerts?state=open --jq 'length'`
-   - **Semgrep CI**: `gh run list --workflow=semgrep.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
-   - **Dependency audits** (pip-audit + npm audit): `gh run list --workflow=pip-audit.yml --limit=1 --json conclusion --jq '.[0].conclusion'`
-   - **Known/expected findings** (do NOT pause for these — only pause if count changes):
-     - 1 Semgrep supply chain finding (dev-only transitive dep, zero production risk):
-       - ajv@6.12.6 ReDoS (CVE-2025-69873, GHSA-2g4f-4pwh-qvx6) — via ESLint. ESLint doesn't use the `$data` option that triggers the CVE. Issue [#20508](https://github.com/eslint/eslint/issues/20508) open/triaging, no fix planned. ESLint stance: "security issues like this don't usually affect ESLint" ([#14863](https://github.com/eslint/eslint/issues/14863)). Also accepted in npm audit (`pip-audit.yml:90`).
-     - 1 SonarCloud finding (accepted — framework constraint):
-       - chat.py:636 S7503 (async without await) — `delegate_onboarding` must be async for LangGraph `ainvoke()`. Suppressed via `# noqa: RUF029` for ruff. SonarCloud doesn't support inline suppression for Python.
+2. **Security gate** — Spawn the `security-triage` subagent (`general-purpose` type, model: `opus`) immediately. The subagent autonomously queries all 5 scanner groups (GitHub code scanning, Dependabot, Semgrep CI, pip-audit + npm audit, SonarCloud), compares against known baselines, and investigates any new findings with zero-trust adversarial analysis. Two outcomes: (a) **CLEAR** — proceed to step 3. (b) **NEW FINDINGS** — the subagent returns structured verdicts. For **VULNERABLE**: fix immediately. For **FALSE POSITIVE**: you MUST act as a zero-trust prosecutor — read the actual code cited, challenge the defense chain, assume the subagent is wrong until you independently verify, and only dismiss via `gh api` if your review confirms unexploitability. For **NEEDS INVESTIGATION**: escalate to user. Do NOT skip this step. Do NOT proceed to implementation until all findings are resolved.
 3. **Implementation plan** — Discover the active plan: `Glob "docs/plan/*_plan.md"`, read each to find plans with 🟡 or ⬜ tasks, or ask the user which plan is in scope. The plan references the relevant REQ documents per task.
-4. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker + scanner status.
+4. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker + security gate status.
 
 ---
 
@@ -357,7 +347,7 @@ Layered security scanning across local development and CI:
 
 **Semgrep Team** is free for ≤10 contributors and provides cross-function, cross-file taint tracking with FastAPI-native understanding. Requires `SEMGREP_APP_TOKEN` secret in GitHub repo settings.
 
-**OWASP ZAP** runs API scans against the FastAPI OpenAPI spec in CI. All alerts flow unfiltered to Security tab. False positives dismissed individually via `gh api` — see `zentropy-security-alerts` skill. Results uploaded to GitHub Security tab (SARIF) and as workflow artifacts (30-day retention).
+**OWASP ZAP** runs API scans against the FastAPI OpenAPI spec in CI. All alerts flow unfiltered to Security tab. False positives dismissed individually via `gh api` after adversarial triage by the `security-triage` subagent. Results uploaded to GitHub Security tab (SARIF) and as workflow artifacts (30-day retention).
 
 **Dependabot** provides two services: (1) **vulnerability alerts** — continuous monitoring of the dependency graph for known CVEs, surfaced in the repo's Security tab (private, not visible in Issues); (2) **version updates** — weekly PRs to bump pip, npm, and GitHub Actions dependencies. Configured in `.github/dependabot.yml`.
 
@@ -380,7 +370,6 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `zentropy-tdd` | test, pytest, mock, fixture, coverage, hypothesis, TDD, implement, create, build | TDD enforcement, testing patterns, mocks, Hypothesis fuzz testing |
 | `zentropy-playwright` | playwright, e2e, end-to-end, UI testing | E2E tests, mocking, selectors |
 | `zentropy-lint` | lint, ruff, eslint, mypy, prettier | Linting stack, common errors |
-| `zentropy-security-alerts` | security alert, ZAP, dismiss, false positive, triage | Alert triage protocol, dismissal commands |
 | `zentropy-imports` | imports, import order | Python/TypeScript ordering |
 | `zentropy-git` | commit, branch, git | Conventional commits, workflow |
 | `zentropy-commands` | how do I start, run migrations | Docker, alembic, npm commands |
@@ -397,7 +386,8 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 |-------|---------|
 | `req-reader` | Look up requirement specs |
 | `code-reviewer` | Review code against conventions |
-| `security-reviewer` | Review code for security vulnerabilities (OWASP Top 10, injection, auth) |
+| `security-reviewer` | Pre-commit code review for security vulnerabilities (OWASP Top 10, injection, auth) |
+| `security-triage` | Autonomous security gate — queries all scanners, compares baselines, investigates new findings with zero-trust adversarial analysis (Opus) |
 | `qa-reviewer` | Assess whether changes need new Playwright E2E tests |
 | `test-runner` | Run and analyze test results |
 
@@ -453,4 +443,4 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ---
 
-*Last updated: 2026-02-19*
+*Last updated: 2026-02-26*
