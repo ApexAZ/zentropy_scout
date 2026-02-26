@@ -83,12 +83,7 @@ jobs:
           #   - ESLint team declined to upgrade (github.com/eslint/eslint/issues/18947)
           #   - Accepted 2026-02-17, zero production risk (linter config input only)
           #
-          # GHSA-3ppc-4f35-3m26: minimatch ReDoS via repeated wildcards (high, dev-only)
-          #   - In @eslint/config-array, @typescript-eslint/typescript-estree,
-          #     eslint-plugin-import, eslint-plugin-jsx-a11y, eslint-plugin-react
-          #   - Fix requires minimatch>=10.2.1 but ESLint ecosystem pins older versions
-          #   - Accepted 2026-02-18, zero production risk (linter glob matching only)
-          ACCEPTED_ADVISORIES="GHSA-2g4f-4pwh-qvx6 GHSA-3ppc-4f35-3m26"
+          ACCEPTED_ADVISORIES="GHSA-2g4f-4pwh-qvx6"
 
           max_attempts=3
           attempt=1
