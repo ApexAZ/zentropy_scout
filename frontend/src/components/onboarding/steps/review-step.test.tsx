@@ -229,12 +229,19 @@ const mocks = vi.hoisted(() => {
 		mockCompleteOnboarding: vi.fn().mockResolvedValue(undefined),
 		mockBack: vi.fn(),
 		mockGoToStep: vi.fn(),
+		mockRouterReplace: vi.fn(),
 	};
 });
 
 vi.mock("@/lib/api-client", () => ({
 	apiGet: mocks.mockApiGet,
 	ApiError: mocks.MockApiError,
+}));
+
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({
+		replace: mocks.mockRouterReplace,
+	}),
 }));
 
 vi.mock("@/lib/onboarding-provider", () => ({
@@ -313,6 +320,7 @@ describe("ReviewStep", () => {
 		mocks.mockCompleteOnboarding.mockReset().mockResolvedValue(undefined);
 		mocks.mockBack.mockReset();
 		mocks.mockGoToStep.mockReset();
+		mocks.mockRouterReplace.mockReset();
 		setupApiMocks();
 	});
 
@@ -570,6 +578,30 @@ describe("ReviewStep", () => {
 			await user.click(screen.getByTestId(CONFIRM_BUTTON_TESTID));
 
 			expect(mocks.mockCompleteOnboarding).toHaveBeenCalledTimes(1);
+		});
+
+		it("redirects to dashboard after completing onboarding", async () => {
+			const user = await renderAndWait();
+
+			await user.click(screen.getByTestId(CONFIRM_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/");
+			});
+		});
+
+		it("shows error and does not redirect when completeOnboarding fails", async () => {
+			mocks.mockCompleteOnboarding.mockRejectedValueOnce(
+				new mocks.MockApiError("INTERNAL_ERROR", "Server error", 500),
+			);
+			const user = await renderAndWait();
+
+			await user.click(screen.getByTestId(CONFIRM_BUTTON_TESTID));
+
+			await waitFor(() => {
+				expect(screen.getByRole("alert")).toBeInTheDocument();
+			});
+			expect(mocks.mockRouterReplace).not.toHaveBeenCalled();
 		});
 
 		it("calls back() when Back is clicked", async () => {

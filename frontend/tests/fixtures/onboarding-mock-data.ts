@@ -492,6 +492,34 @@ export function postCustomFilterResponse(
 }
 
 // ---------------------------------------------------------------------------
+// Resume Parse factories
+// ---------------------------------------------------------------------------
+
+/** Mock response for POST /onboarding/resume-parse. */
+export function resumeParseResponse(): ApiResponse<{
+	basic_info: Record<string, string | null>;
+	work_history: Record<string, unknown>[];
+	education: Record<string, unknown>[];
+	skills: Record<string, unknown>[];
+	certifications: Record<string, unknown>[];
+	voice_suggestions: null;
+	raw_text: string;
+}> {
+	return {
+		data: {
+			basic_info: { full_name: "Jane Doe", email: "jane@example.com" },
+			work_history: [],
+			education: [],
+			skills: [],
+			certifications: [],
+			voice_suggestions: null,
+			raw_text:
+				"Sample resume text for Jane Doe. Senior Engineer at Acme Corp.",
+		},
+	};
+}
+
+// ---------------------------------------------------------------------------
 // Resume File factories
 // ---------------------------------------------------------------------------
 

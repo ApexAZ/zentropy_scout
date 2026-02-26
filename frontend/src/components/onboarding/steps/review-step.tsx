@@ -10,10 +10,12 @@
  */
 
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { apiGet } from "@/lib/api-client";
+import { toFriendlyError } from "@/lib/form-errors";
 import { useOnboarding } from "@/lib/onboarding-provider";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type {
@@ -323,6 +325,7 @@ function VoiceProfileContent({
 export function ReviewStep() {
 	const { personaId, completeOnboarding, isCompleting, back, goToStep } =
 		useOnboarding();
+	const router = useRouter();
 
 	const [isLoading, setIsLoading] = useState(!!personaId);
 	const [persona, setPersona] = useState<Persona | null>(null);
@@ -332,6 +335,7 @@ export function ReviewStep() {
 	const [certifications, setCertifications] = useState<Certification[]>([]);
 	const [stories, setStories] = useState<AchievementStory[]>([]);
 	const [voiceProfile, setVoiceProfile] = useState<VoiceProfile | null>(null);
+	const [submitError, setSubmitError] = useState<string | null>(null);
 
 	// -----------------------------------------------------------------------
 	// Fetch all persona data on mount
@@ -386,9 +390,14 @@ export function ReviewStep() {
 	// Handlers
 	// -----------------------------------------------------------------------
 
-	const handleConfirm = useCallback(() => {
-		void completeOnboarding();
-	}, [completeOnboarding]);
+	const handleConfirm = useCallback(async () => {
+		try {
+			await completeOnboarding();
+			router.replace("/");
+		} catch (err) {
+			setSubmitError(toFriendlyError(err));
+		}
+	}, [completeOnboarding, router]);
 
 	// -----------------------------------------------------------------------
 	// Render helpers
@@ -458,6 +467,12 @@ export function ReviewStep() {
 					</CollapsibleSection>
 				))}
 			</div>
+
+			{submitError && (
+				<p className="text-destructive text-center text-sm" role="alert">
+					{submitError}
+				</p>
+			)}
 
 			{/* Navigation */}
 			<div className="flex items-center justify-between pt-4">
