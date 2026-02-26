@@ -21,6 +21,9 @@ _risk_to_sarif_level = _module._risk_to_sarif_level
 _make_rule_id = _module._make_rule_id
 _strip_html = _module._strip_html
 _uri_to_path = _module._uri_to_path
+_normalize_path_segment = _module._normalize_path_segment
+_normalize_path = _module._normalize_path
+_compute_fingerprint = _module._compute_fingerprint
 
 
 # =============================================================================
@@ -316,3 +319,223 @@ class TestUriToPath:
 
     def test_returns_slash_for_root(self):
         assert _uri_to_path("http://localhost:8000") == "/"
+
+
+# =============================================================================
+# _normalize_path_segment tests
+# =============================================================================
+
+
+class TestNormalizePathSegment:
+    """Tests for _normalize_path_segment() — replace dynamic segments with {id}."""
+
+    def test_replaces_large_number(self):
+        """ZAP fuzz payloads (10+ digit numbers) should become {id}."""
+        assert _normalize_path_segment("8297929860933747743") == "{id}"
+
+    def test_replaces_uuid(self):
+        """Standard UUID should become {id}."""
+        assert _normalize_path_segment("550e8400-e29b-41d4-a716-446655440000") == "{id}"
+
+    def test_replaces_uppercase_uuid(self):
+        """Uppercase UUID should also become {id}."""
+        assert _normalize_path_segment("550E8400-E29B-41D4-A716-446655440000") == "{id}"
+
+    def test_preserves_named_segment(self):
+        """Named path segments like 'resume_id' should not be replaced."""
+        assert _normalize_path_segment("resume_id") == "resume_id"
+
+    def test_preserves_api_prefix(self):
+        assert _normalize_path_segment("api") == "api"
+
+    def test_preserves_version(self):
+        """Short version numbers should not be replaced."""
+        assert _normalize_path_segment("v1") == "v1"
+
+    def test_preserves_short_number(self):
+        """Numbers under 10 digits should not be replaced."""
+        assert _normalize_path_segment("12345") == "12345"
+
+    def test_preserves_nine_digit_number(self):
+        """9-digit numbers are below the threshold."""
+        assert _normalize_path_segment("123456789") == "123456789"
+
+    def test_replaces_ten_digit_number(self):
+        """10-digit numbers hit the threshold."""
+        assert _normalize_path_segment("1234567890") == "{id}"
+
+    def test_preserves_kebab_case_name(self):
+        """Kebab-case endpoint names should not be replaced."""
+        assert _normalize_path_segment("job-postings") == "job-postings"
+
+    def test_preserves_empty_segment(self):
+        """Empty segments (from leading slash) should pass through."""
+        assert _normalize_path_segment("") == ""
+
+
+# =============================================================================
+# _normalize_path tests
+# =============================================================================
+
+
+class TestNormalizePath:
+    """Tests for _normalize_path() — normalize full URL paths."""
+
+    def test_normalizes_zap_payload_in_path(self):
+        """ZAP payload number should be replaced with {id}."""
+        assert _normalize_path("api/v1/personas/8297929860933747743") == "api/v1/personas/{id}"
+
+    def test_normalizes_uuid_in_path(self):
+        """UUID in path should be replaced with {id}."""
+        path = "api/v1/personas/550e8400-e29b-41d4-a716-446655440000"
+        assert _normalize_path(path) == "api/v1/personas/{id}"
+
+    def test_preserves_named_segments(self):
+        """Named segments like 'variant_id' should be preserved."""
+        path = "api/v1/job-variants/variant_id/3811768465121217484"
+        assert _normalize_path(path) == "api/v1/job-variants/variant_id/{id}"
+
+    def test_normalizes_multiple_dynamic_segments(self):
+        """Multiple dynamic segments should all be replaced."""
+        path = "api/v1/personas/1234567890/skills/9876543210"
+        assert _normalize_path(path) == "api/v1/personas/{id}/skills/{id}"
+
+    def test_preserves_static_path(self):
+        """Paths with no dynamic segments should be unchanged."""
+        assert _normalize_path("api/v1/personas") == "api/v1/personas"
+
+    def test_handles_leading_slash(self):
+        """Leading slash should be preserved."""
+        assert _normalize_path("/api/v1/test/1234567890") == "/api/v1/test/{id}"
+
+    def test_handles_root_path(self):
+        assert _normalize_path("/") == "/"
+
+    def test_handles_empty_string(self):
+        assert _normalize_path("") == ""
+
+
+# =============================================================================
+# _compute_fingerprint tests
+# =============================================================================
+
+
+class TestComputeFingerprint:
+    """Tests for _compute_fingerprint() — stable SARIF fingerprints."""
+
+    def test_returns_string_with_suffix(self):
+        """Fingerprint should be a hex string ending with ':1'."""
+        fp = _compute_fingerprint("10038", "GET", "api/v1/personas")
+        assert fp.endswith(":1")
+        # 16 hex chars + ":1" = 18 chars
+        assert len(fp) == 18
+
+    def test_same_input_same_output(self):
+        """Identical inputs should produce identical fingerprints."""
+        fp1 = _compute_fingerprint("10038", "GET", "api/v1/personas")
+        fp2 = _compute_fingerprint("10038", "GET", "api/v1/personas")
+        assert fp1 == fp2
+
+    def test_different_methods_different_fingerprints(self):
+        """GET vs POST on the same endpoint should differ."""
+        fp_get = _compute_fingerprint("10038", "GET", "api/v1/personas")
+        fp_post = _compute_fingerprint("10038", "POST", "api/v1/personas")
+        assert fp_get != fp_post
+
+    def test_different_rules_different_fingerprints(self):
+        """Different rule IDs on the same endpoint should differ."""
+        fp1 = _compute_fingerprint("10038", "GET", "api/v1/personas")
+        fp2 = _compute_fingerprint("40018", "GET", "api/v1/personas")
+        assert fp1 != fp2
+
+    def test_different_paths_different_fingerprints(self):
+        """Different endpoints should produce different fingerprints."""
+        fp1 = _compute_fingerprint("10038", "GET", "api/v1/personas")
+        fp2 = _compute_fingerprint("10038", "GET", "api/v1/job-postings")
+        assert fp1 != fp2
+
+    def test_hex_characters_only(self):
+        """The hash portion should be lowercase hex."""
+        fp = _compute_fingerprint("10038", "GET", "api/v1/test")
+        hash_part = fp.split(":")[0]
+        assert all(c in "0123456789abcdef" for c in hash_part)
+
+
+# =============================================================================
+# Integration: fingerprints in SARIF output
+# =============================================================================
+
+
+class TestSarifFingerprints:
+    """Integration tests: fingerprints and normalized paths in SARIF output."""
+
+    def test_fingerprint_present_in_results(self):
+        """Every result should include partialFingerprints."""
+        alert = _make_alert(
+            instances=[{"uri": "http://localhost/api/v1/personas/123456789012", "method": "GET"}],
+        )
+        sarif = convert(_make_zap_report(alert))
+        result = sarif["runs"][0]["results"][0]
+
+        assert "partialFingerprints" in result
+        assert "primaryLocationLineHash" in result["partialFingerprints"]
+        assert len(result["partialFingerprints"]["primaryLocationLineHash"]) > 0
+
+    def test_normalized_uri_in_artifact_location(self):
+        """Artifact URI should use {id} instead of ZAP payload numbers."""
+        alert = _make_alert(
+            instances=[{"uri": "http://localhost/api/v1/personas/8297929860933747743", "method": "GET"}],
+        )
+        sarif = convert(_make_zap_report(alert))
+        uri = sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+
+        assert uri == "api/v1/personas/{id}"
+        assert "8297929860933747743" not in uri
+
+    def test_raw_uri_preserved_in_message(self):
+        """The full original URI (with ZAP payload) should still appear in the message."""
+        full_uri = "http://localhost/api/v1/personas/8297929860933747743"
+        alert = _make_alert(instances=[{"uri": full_uri, "method": "GET"}])
+        sarif = convert(_make_zap_report(alert))
+        msg = sarif["runs"][0]["results"][0]["message"]["text"]
+
+        assert full_uri in msg
+
+    def test_same_endpoint_different_payloads_same_fingerprint(self):
+        """The core dedup test: different ZAP payloads for the same endpoint
+        should produce identical fingerprints."""
+        alert1 = _make_alert(
+            pluginid="100000",
+            alert_ref="100000",
+            name="A Client Error response code was returned by the server",
+            riskdesc="Informational (High)",
+            instances=[{"uri": "http://localhost/api/v1/personas/1111111111111111111", "method": "GET"}],
+        )
+        alert2 = _make_alert(
+            pluginid="100000",
+            alert_ref="100000",
+            name="A Client Error response code was returned by the server",
+            riskdesc="Informational (High)",
+            instances=[{"uri": "http://localhost/api/v1/personas/9999999999999999999", "method": "GET"}],
+        )
+        sarif1 = convert(_make_zap_report(alert1))
+        sarif2 = convert(_make_zap_report(alert2))
+
+        fp1 = sarif1["runs"][0]["results"][0]["partialFingerprints"]["primaryLocationLineHash"]
+        fp2 = sarif2["runs"][0]["results"][0]["partialFingerprints"]["primaryLocationLineHash"]
+        assert fp1 == fp2
+
+    def test_different_endpoints_different_fingerprints(self):
+        """Different endpoints should produce different fingerprints in SARIF."""
+        alert_personas = _make_alert(
+            instances=[{"uri": "http://localhost/api/v1/personas/1234567890", "method": "GET"}],
+        )
+        alert_jobs = _make_alert(
+            instances=[{"uri": "http://localhost/api/v1/job-postings/1234567890", "method": "GET"}],
+        )
+        sarif = convert(_make_zap_report(alert_personas, alert_jobs))
+        results = sarif["runs"][0]["results"]
+
+        fp1 = results[0]["partialFingerprints"]["primaryLocationLineHash"]
+        fp2 = results[1]["partialFingerprints"]["primaryLocationLineHash"]
+        assert fp1 != fp2

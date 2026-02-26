@@ -14,6 +14,7 @@ Since DAST results target URLs rather than source files, each location uses
 the endpoint path as the artifact URI and startLine=1 as a placeholder.
 """
 
+import hashlib
 import json
 import re
 import sys
@@ -112,6 +113,83 @@ def _uri_to_path(uri: str) -> str:
     return path
 
 
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+"""Matches a full UUID path segment (e.g. 550e8400-e29b-41d4-a716-446655440000)."""
+
+_LARGE_NUMBER_RE = re.compile(r"^\d{10,}$")
+"""Matches numeric-only path segments with 10+ digits (ZAP fuzz payloads).
+
+ZAP replaces UUID path params with large random integers (15-20 digits).
+The 10-digit threshold avoids false positives on short numbers like
+port numbers, pagination offsets, or version numbers (v1, v2).
+"""
+
+
+def _normalize_path_segment(segment: str) -> str:
+    """Replace dynamic path segments with {id} placeholder.
+
+    Normalizes UUIDs and large numeric ZAP fuzz payloads so that the
+    same endpoint produces the same artifact URI across scan runs.
+
+    Args:
+        segment: A single path segment (between slashes).
+
+    Returns:
+        "{id}" if the segment is a UUID or large number, otherwise unchanged.
+    """
+    if _UUID_RE.match(segment):
+        return "{id}"
+    if _LARGE_NUMBER_RE.match(segment):
+        return "{id}"
+    return segment
+
+
+def _normalize_path(path: str) -> str:
+    """Normalize a URL path by replacing dynamic segments with {id}.
+
+    Splits the path on "/", normalizes each segment, and rejoins.
+
+    Args:
+        path: URL path (e.g. "/api/v1/personas/8297929860933747743").
+
+    Returns:
+        Normalized path (e.g. "/api/v1/personas/{id}").
+
+    Examples:
+        >>> _normalize_path("/api/v1/personas/8297929860933747743")
+        '/api/v1/personas/{id}'
+        >>> _normalize_path("/api/v1/job-variants/variant_id/3811768465121217484")
+        '/api/v1/job-variants/variant_id/{id}'
+    """
+    segments = path.split("/")
+    normalized = [_normalize_path_segment(s) for s in segments]
+    return "/".join(normalized)
+
+
+def _compute_fingerprint(rule_id: str, method: str, normalized_path: str) -> str:
+    """Compute a stable SARIF fingerprint for a DAST finding.
+
+    GitHub uses partialFingerprints.primaryLocationLineHash to deduplicate
+    alerts across scan runs. This function produces a deterministic hash
+    from the finding's stable identity: rule + HTTP method + endpoint path.
+
+    Args:
+        rule_id: SARIF rule ID (e.g. "10038", "100000-client").
+        method: HTTP method (e.g. "GET", "POST").
+        normalized_path: URL path with dynamic segments replaced by {id}.
+
+    Returns:
+        SHA-256 hex digest (first 16 chars) with ":1" suffix,
+        matching GitHub's primaryLocationLineHash format convention.
+    """
+    identity = f"{rule_id}|{method}|{normalized_path}"
+    hash_hex = hashlib.sha256(identity.encode()).hexdigest()[:16]
+    return f"{hash_hex}:1"
+
+
 def convert(zap_json: dict) -> dict:
     """Convert ZAP JSON report to SARIF 2.1.0 format."""
     rules: list[dict] = []
@@ -149,6 +227,9 @@ def convert(zap_json: dict) -> dict:
             for instance in alert.get("instances", []):
                 uri = instance.get("uri", "")
                 method = instance.get("method", "GET")
+                raw_path = _uri_to_path(uri).lstrip("/") or "api"
+                normalized = _normalize_path(raw_path)
+                fingerprint = _compute_fingerprint(rule_id, method, normalized)
                 results.append(
                     {
                         "ruleId": rule_id,
@@ -163,13 +244,15 @@ def convert(zap_json: dict) -> dict:
                             {
                                 "physicalLocation": {
                                     "artifactLocation": {
-                                        "uri": _uri_to_path(uri).lstrip("/")
-                                        or "api",
+                                        "uri": normalized,
                                     },
                                     "region": {"startLine": 1},
                                 },
                             }
                         ],
+                        "partialFingerprints": {
+                            "primaryLocationLineHash": fingerprint,
+                        },
                     }
                 )
 
