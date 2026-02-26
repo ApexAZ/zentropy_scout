@@ -25,6 +25,17 @@ _normalize_path_segment = _module._normalize_path_segment
 _normalize_path = _module._normalize_path
 _compute_fingerprint = _module._compute_fingerprint
 
+# =============================================================================
+# Test Constants (S1192: extract duplicated string literals)
+# =============================================================================
+
+_CLIENT_ERROR_NAME = "A Client Error response code was returned by the server"
+_SERVER_ERROR_NAME = "A Server Error response code was returned by the server"
+_INFORMATIONAL_HIGH = "Informational (High)"
+_RULE_100000 = "100000"
+_TEST_RULE_ID = "10038"
+_TEST_PERSONAS_PATH = "api/v1/personas"
+
 
 # =============================================================================
 # Fixtures
@@ -57,6 +68,16 @@ def _make_alert(
 def _make_zap_report(*alerts: dict) -> dict:
     """Wrap alerts in a ZAP JSON report structure."""
     return {"site": [{"alerts": list(alerts)}]}
+
+
+def _get_results(sarif: dict) -> list[dict]:
+    """Extract results list from SARIF output."""
+    return sarif["runs"][0]["results"]
+
+
+def _get_rules(sarif: dict) -> list[dict]:
+    """Extract rules list from SARIF output."""
+    return sarif["runs"][0]["tool"]["driver"]["rules"]
 
 
 # =============================================================================
@@ -134,18 +155,18 @@ class TestMakeRuleId:
         This was Bug 1: both client and server shared rule ID '100000'.
         """
         alert = _make_alert(
-            name="A Server Error response code was returned by the server",
-            pluginid="100000",
-            alert_ref="100000",
+            name=_SERVER_ERROR_NAME,
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
         )
         assert _make_rule_id(alert) == "100000-server"
 
     def test_client_error_gets_suffix(self):
         """Client Error (100000) should get '-client' suffix."""
         alert = _make_alert(
-            name="A Client Error response code was returned by the server",
-            pluginid="100000",
-            alert_ref="100000",
+            name=_CLIENT_ERROR_NAME,
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
         )
         assert _make_rule_id(alert) == "100000-client"
 
@@ -153,8 +174,8 @@ class TestMakeRuleId:
         """Unknown 100000 alert name should get a sanitized name suffix."""
         alert = _make_alert(
             name="Some Other 100000 Alert",
-            pluginid="100000",
-            alert_ref="100000",
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
         )
         result = _make_rule_id(alert)
         assert result.startswith("100000-")
@@ -163,7 +184,7 @@ class TestMakeRuleId:
 
     def test_unknown_100000_no_name_uses_base_id(self):
         """100000 alert with no name should fall back to base ID."""
-        alert = {"pluginid": "100000", "alertRef": "100000", "name": ""}
+        alert = {"pluginid": _RULE_100000, "alertRef": _RULE_100000, "name": ""}
         assert _make_rule_id(alert) == "100000"
 
     def test_falls_back_to_pluginid(self):
@@ -183,21 +204,21 @@ class TestConvert:
     def test_separate_rules_for_client_and_server_errors(self):
         """Bug 1 fix: client and server 100000 alerts get separate SARIF rules."""
         server_alert = _make_alert(
-            name="A Server Error response code was returned by the server",
-            pluginid="100000",
-            alert_ref="100000",
+            name=_SERVER_ERROR_NAME,
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
             riskdesc="Low (High)",
         )
         client_alert = _make_alert(
-            name="A Client Error response code was returned by the server",
-            pluginid="100000",
-            alert_ref="100000",
-            riskdesc="Informational (High)",
+            name=_CLIENT_ERROR_NAME,
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
+            riskdesc=_INFORMATIONAL_HIGH,
         )
         report = _make_zap_report(server_alert, client_alert)
         sarif = convert(report)
 
-        rules = sarif["runs"][0]["tool"]["driver"]["rules"]
+        rules = _get_rules(sarif)
         rule_ids = {r["id"] for r in rules}
         assert "100000-server" in rule_ids
         assert "100000-client" in rule_ids
@@ -206,14 +227,14 @@ class TestConvert:
     def test_informational_alert_gets_note_severity(self):
         """Bug 2 fix: 'Informational (High)' should map to 'note', not 'error'."""
         alert = _make_alert(
-            name="A Client Error response code was returned by the server",
-            pluginid="100000",
-            alert_ref="100000",
-            riskdesc="Informational (High)",
+            name=_CLIENT_ERROR_NAME,
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
+            riskdesc=_INFORMATIONAL_HIGH,
         )
         sarif = convert(_make_zap_report(alert))
 
-        rules = sarif["runs"][0]["tool"]["driver"]["rules"]
+        rules = _get_rules(sarif)
         assert rules[0]["defaultConfiguration"]["level"] == "note"
 
     def test_per_result_level_field(self):
@@ -221,29 +242,29 @@ class TestConvert:
         alert = _make_alert(riskdesc="Medium (Medium)")
         sarif = convert(_make_zap_report(alert))
 
-        results = sarif["runs"][0]["results"]
+        results = _get_results(sarif)
         assert len(results) == 1
         assert results[0]["level"] == "warning"
 
     def test_per_result_level_matches_alert_risk(self):
         """Per-result level should reflect the parent alert's risk, not the rule default."""
         server_alert = _make_alert(
-            name="A Server Error response code was returned by the server",
-            pluginid="100000",
-            alert_ref="100000",
+            name=_SERVER_ERROR_NAME,
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
             riskdesc="Low (High)",
             instances=[{"uri": "http://localhost/api/v1/flags?status=%00", "method": "GET"}],
         )
         client_alert = _make_alert(
-            name="A Client Error response code was returned by the server",
-            pluginid="100000",
-            alert_ref="100000",
-            riskdesc="Informational (High)",
+            name=_CLIENT_ERROR_NAME,
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
+            riskdesc=_INFORMATIONAL_HIGH,
             instances=[{"uri": "http://localhost/api/v1/test", "method": "GET"}],
         )
         sarif = convert(_make_zap_report(server_alert, client_alert))
 
-        results = sarif["runs"][0]["results"]
+        results = _get_results(sarif)
         server_results = [r for r in results if r["ruleId"] == "100000-server"]
         client_results = [r for r in results if r["ruleId"] == "100000-client"]
 
@@ -253,13 +274,13 @@ class TestConvert:
     def test_help_uri_uses_pluginid_not_rule_id(self):
         """helpUri should use the original pluginid, not the suffixed rule ID."""
         alert = _make_alert(
-            name="A Server Error response code was returned by the server",
-            pluginid="100000",
-            alert_ref="100000",
+            name=_SERVER_ERROR_NAME,
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
         )
         sarif = convert(_make_zap_report(alert))
 
-        rules = sarif["runs"][0]["tool"]["driver"]["rules"]
+        rules = _get_rules(sarif)
         assert rules[0]["helpUri"] == "https://www.zaproxy.org/docs/alerts/100000/"
 
     def test_sarif_schema_version(self):
@@ -271,8 +292,8 @@ class TestConvert:
     def test_empty_report_produces_empty_results(self):
         """Empty ZAP report should produce valid SARIF with no results."""
         sarif = convert({"site": []})
-        assert sarif["runs"][0]["results"] == []
-        assert sarif["runs"][0]["tool"]["driver"]["rules"] == []
+        assert _get_results(sarif) == []
+        assert _get_rules(sarif) == []
 
     def test_result_message_includes_method_and_uri(self):
         """Result message should include HTTP method and full URI."""
@@ -281,7 +302,7 @@ class TestConvert:
             instances=[{"uri": "http://localhost:8000/api/v1/test", "method": "POST"}],
         )
         sarif = convert(_make_zap_report(alert))
-        msg = sarif["runs"][0]["results"][0]["message"]["text"]
+        msg = _get_results(sarif)[0]["message"]["text"]
         assert "POST" in msg
         assert "http://localhost:8000/api/v1/test" in msg
 
@@ -289,7 +310,7 @@ class TestConvert:
         """Rule properties should include CWE tag."""
         alert = _make_alert(cweid="89")
         sarif = convert(_make_zap_report(alert))
-        rule = sarif["runs"][0]["tool"]["driver"]["rules"][0]
+        rule = _get_rules(sarif)[0]
         assert "external/cwe/cwe-89" in rule["properties"]["tags"]
 
 
@@ -402,7 +423,7 @@ class TestNormalizePath:
 
     def test_preserves_static_path(self):
         """Paths with no dynamic segments should be unchanged."""
-        assert _normalize_path("api/v1/personas") == "api/v1/personas"
+        assert _normalize_path(_TEST_PERSONAS_PATH) == "api/v1/personas"
 
     def test_handles_leading_slash(self):
         """Leading slash should be preserved."""
@@ -425,38 +446,38 @@ class TestComputeFingerprint:
 
     def test_returns_string_with_suffix(self):
         """Fingerprint should be a hex string ending with ':1'."""
-        fp = _compute_fingerprint("10038", "GET", "api/v1/personas")
+        fp = _compute_fingerprint(_TEST_RULE_ID, "GET", _TEST_PERSONAS_PATH)
         assert fp.endswith(":1")
         # 16 hex chars + ":1" = 18 chars
         assert len(fp) == 18
 
     def test_same_input_same_output(self):
         """Identical inputs should produce identical fingerprints."""
-        fp1 = _compute_fingerprint("10038", "GET", "api/v1/personas")
-        fp2 = _compute_fingerprint("10038", "GET", "api/v1/personas")
+        fp1 = _compute_fingerprint(_TEST_RULE_ID, "GET", _TEST_PERSONAS_PATH)
+        fp2 = _compute_fingerprint(_TEST_RULE_ID, "GET", _TEST_PERSONAS_PATH)
         assert fp1 == fp2
 
     def test_different_methods_different_fingerprints(self):
         """GET vs POST on the same endpoint should differ."""
-        fp_get = _compute_fingerprint("10038", "GET", "api/v1/personas")
-        fp_post = _compute_fingerprint("10038", "POST", "api/v1/personas")
+        fp_get = _compute_fingerprint(_TEST_RULE_ID, "GET", _TEST_PERSONAS_PATH)
+        fp_post = _compute_fingerprint(_TEST_RULE_ID, "POST", _TEST_PERSONAS_PATH)
         assert fp_get != fp_post
 
     def test_different_rules_different_fingerprints(self):
         """Different rule IDs on the same endpoint should differ."""
-        fp1 = _compute_fingerprint("10038", "GET", "api/v1/personas")
-        fp2 = _compute_fingerprint("40018", "GET", "api/v1/personas")
+        fp1 = _compute_fingerprint(_TEST_RULE_ID, "GET", _TEST_PERSONAS_PATH)
+        fp2 = _compute_fingerprint("40018", "GET", _TEST_PERSONAS_PATH)
         assert fp1 != fp2
 
     def test_different_paths_different_fingerprints(self):
         """Different endpoints should produce different fingerprints."""
-        fp1 = _compute_fingerprint("10038", "GET", "api/v1/personas")
-        fp2 = _compute_fingerprint("10038", "GET", "api/v1/job-postings")
+        fp1 = _compute_fingerprint(_TEST_RULE_ID, "GET", _TEST_PERSONAS_PATH)
+        fp2 = _compute_fingerprint(_TEST_RULE_ID, "GET", "api/v1/job-postings")
         assert fp1 != fp2
 
     def test_hex_characters_only(self):
         """The hash portion should be lowercase hex."""
-        fp = _compute_fingerprint("10038", "GET", "api/v1/test")
+        fp = _compute_fingerprint(_TEST_RULE_ID, "GET", "api/v1/test")
         hash_part = fp.split(":")[0]
         assert all(c in "0123456789abcdef" for c in hash_part)
 
@@ -475,7 +496,7 @@ class TestSarifFingerprints:
             instances=[{"uri": "http://localhost/api/v1/personas/123456789012", "method": "GET"}],
         )
         sarif = convert(_make_zap_report(alert))
-        result = sarif["runs"][0]["results"][0]
+        result = _get_results(sarif)[0]
 
         assert "partialFingerprints" in result
         assert "primaryLocationLineHash" in result["partialFingerprints"]
@@ -487,7 +508,7 @@ class TestSarifFingerprints:
             instances=[{"uri": "http://localhost/api/v1/personas/8297929860933747743", "method": "GET"}],
         )
         sarif = convert(_make_zap_report(alert))
-        uri = sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+        uri = _get_results(sarif)[0]["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
 
         assert uri == "api/v1/personas/{id}"
         assert "8297929860933747743" not in uri
@@ -497,7 +518,7 @@ class TestSarifFingerprints:
         full_uri = "http://localhost/api/v1/personas/8297929860933747743"
         alert = _make_alert(instances=[{"uri": full_uri, "method": "GET"}])
         sarif = convert(_make_zap_report(alert))
-        msg = sarif["runs"][0]["results"][0]["message"]["text"]
+        msg = _get_results(sarif)[0]["message"]["text"]
 
         assert full_uri in msg
 
@@ -505,24 +526,24 @@ class TestSarifFingerprints:
         """The core dedup test: different ZAP payloads for the same endpoint
         should produce identical fingerprints."""
         alert1 = _make_alert(
-            pluginid="100000",
-            alert_ref="100000",
-            name="A Client Error response code was returned by the server",
-            riskdesc="Informational (High)",
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
+            name=_CLIENT_ERROR_NAME,
+            riskdesc=_INFORMATIONAL_HIGH,
             instances=[{"uri": "http://localhost/api/v1/personas/1111111111111111111", "method": "GET"}],
         )
         alert2 = _make_alert(
-            pluginid="100000",
-            alert_ref="100000",
-            name="A Client Error response code was returned by the server",
-            riskdesc="Informational (High)",
+            pluginid=_RULE_100000,
+            alert_ref=_RULE_100000,
+            name=_CLIENT_ERROR_NAME,
+            riskdesc=_INFORMATIONAL_HIGH,
             instances=[{"uri": "http://localhost/api/v1/personas/9999999999999999999", "method": "GET"}],
         )
         sarif1 = convert(_make_zap_report(alert1))
         sarif2 = convert(_make_zap_report(alert2))
 
-        fp1 = sarif1["runs"][0]["results"][0]["partialFingerprints"]["primaryLocationLineHash"]
-        fp2 = sarif2["runs"][0]["results"][0]["partialFingerprints"]["primaryLocationLineHash"]
+        fp1 = _get_results(sarif1)[0]["partialFingerprints"]["primaryLocationLineHash"]
+        fp2 = _get_results(sarif2)[0]["partialFingerprints"]["primaryLocationLineHash"]
         assert fp1 == fp2
 
     def test_different_endpoints_different_fingerprints(self):
@@ -534,7 +555,7 @@ class TestSarifFingerprints:
             instances=[{"uri": "http://localhost/api/v1/job-postings/1234567890", "method": "GET"}],
         )
         sarif = convert(_make_zap_report(alert_personas, alert_jobs))
-        results = sarif["runs"][0]["results"]
+        results = _get_results(sarif)
 
         fp1 = results[0]["partialFingerprints"]["primaryLocationLineHash"]
         fp2 = results[1]["partialFingerprints"]["primaryLocationLineHash"]
