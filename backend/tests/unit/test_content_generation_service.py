@@ -139,18 +139,15 @@ class TestFullPipeline:
     @pytest.fixture(autouse=True)
     def _patch_steps(self, service: ContentGenerationService) -> None:
         """Patch all private pipeline methods for isolation."""
-        # Step 1: no existing variant
-        self._p1 = patch.object(
-            service, "_check_existing", new_callable=AsyncMock, return_value=None
-        )
-        # Step 2: select base resume
+        # Step 1: no existing variant (sync stub)
+        self._p1 = patch.object(service, "_check_existing", return_value=None)
+        # Step 2: select base resume (sync stub)
         self._p2 = patch.object(
             service,
             "_select_base_resume",
-            new_callable=AsyncMock,
             return_value="resume-1",
         )
-        # Step 3: evaluate tailoring (no tailoring needed by default)
+        # Step 3: evaluate tailoring (sync stub, no tailoring needed by default)
         self._mock_tailoring = MagicMock()
         self._mock_tailoring.action = "use_base"
         self._mock_tailoring.signals = []
@@ -158,18 +155,13 @@ class TestFullPipeline:
         self._p3 = patch.object(
             service,
             "_evaluate_tailoring",
-            new_callable=AsyncMock,
             return_value=self._mock_tailoring,
         )
-        # Step 4: create variant (only called when tailoring needed)
-        self._p4 = patch.object(
-            service, "_create_variant", new_callable=AsyncMock, return_value=None
-        )
-        # Step 5: select stories
-        self._p5 = patch.object(
-            service, "_select_stories", new_callable=AsyncMock, return_value=[]
-        )
-        # Step 6: generate cover letter
+        # Step 4: create variant (sync stub, only called when tailoring needed)
+        self._p4 = patch.object(service, "_create_variant", return_value=None)
+        # Step 5: select stories (sync stub)
+        self._p5 = patch.object(service, "_select_stories", return_value=[])
+        # Step 6: generate cover letter (async — has real await)
         self._mock_cover_letter = MagicMock()
         self._mock_cover_letter.content = "Dear Hiring Manager..."
         self._mock_cover_letter.reasoning = "Selected stories for relevance."
@@ -181,10 +173,8 @@ class TestFullPipeline:
             new_callable=AsyncMock,
             return_value=self._mock_cover_letter,
         )
-        # Step 7: check job active
-        self._p7 = patch.object(
-            service, "_check_job_active", new_callable=AsyncMock, return_value=True
-        )
+        # Step 7: check job active (sync stub)
+        self._p7 = patch.object(service, "_check_job_active", return_value=True)
         # Step 8: build review response
         self._p8 = patch.object(
             service,
@@ -337,30 +327,24 @@ class TestReasoningExplanation:
     ) -> None:
         """_build_review_response should combine tailoring and story info."""
         with (
-            patch.object(
-                service, "_check_existing", new_callable=AsyncMock, return_value=None
-            ),
+            patch.object(service, "_check_existing", return_value=None),
             patch.object(
                 service,
                 "_select_base_resume",
-                new_callable=AsyncMock,
                 return_value="resume-1",
             ),
             patch.object(
                 service,
                 "_evaluate_tailoring",
-                new_callable=AsyncMock,
             ) as mock_tailoring,
             patch.object(
                 service,
                 "_create_variant",
-                new_callable=AsyncMock,
                 return_value=None,
             ),
             patch.object(
                 service,
                 "_select_stories",
-                new_callable=AsyncMock,
                 return_value=[],
             ),
             patch.object(
@@ -371,7 +355,6 @@ class TestReasoningExplanation:
             patch.object(
                 service,
                 "_check_job_active",
-                new_callable=AsyncMock,
                 return_value=True,
             ),
             patch(

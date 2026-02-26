@@ -133,24 +133,22 @@ class ContentGenerationService:
         )
 
         # --- Step 1: Check existing variant (duplicate prevention) ---
-        existing_status = await self._check_existing(
-            job_posting_id, existing_variant_id
-        )
+        existing_status = self._check_existing(job_posting_id, existing_variant_id)
         if existing_status is not None:
             return self._handle_duplicate(existing_status)
 
         # --- Step 2: Select base resume ---
-        base_resume_id = await self._select_base_resume(persona_id, job_posting_id)
+        base_resume_id = self._select_base_resume(persona_id, job_posting_id)
 
         # --- Step 3: Evaluate tailoring need ---
-        tailoring = await self._evaluate_tailoring(base_resume_id, job_posting_id)
+        tailoring = self._evaluate_tailoring(base_resume_id, job_posting_id)
 
         # --- Step 4: Create job variant (conditional) ---
         if tailoring.action == "create_variant":
-            await self._create_variant(base_resume_id, job_posting_id, tailoring)
+            self._create_variant(base_resume_id, job_posting_id, tailoring)
 
         # --- Step 5: Select achievement stories ---
-        scored_stories = await self._select_stories(persona_id, job_posting_id)
+        scored_stories = self._select_stories(persona_id, job_posting_id)
 
         # --- Step 6: Generate cover letter ---
         cover_letter = await self._generate_cover_letter(
@@ -158,7 +156,7 @@ class ContentGenerationService:
         )
 
         # --- Step 7: Check job still active ---
-        job_active = await self._check_job_active(job_posting_id)
+        job_active = self._check_job_active(job_posting_id)
 
         review_warning: str | None = None
         if not job_active:
@@ -192,7 +190,7 @@ class ContentGenerationService:
     # through sanitize_llm_input() before reaching LLM prompts.
     # See: app/core/llm_sanitization.py
 
-    async def _check_existing(
+    def _check_existing(
         self,
         job_posting_id: str,
         existing_variant_id: str | None,
@@ -234,9 +232,7 @@ class ContentGenerationService:
             job_active=True,
         )
 
-    async def _select_base_resume(
-        self, persona_id: str, job_posting_id: str
-    ) -> str | None:
+    def _select_base_resume(self, persona_id: str, job_posting_id: str) -> str | None:
         """Select the best base resume for the target job.
 
         REQ-018 §7.1 Step 2: Match role_type to job, fall back to is_primary.
@@ -253,7 +249,7 @@ class ContentGenerationService:
         # Real implementation will query base_resumes repository.
         return None
 
-    async def _evaluate_tailoring(
+    def _evaluate_tailoring(
         self, base_resume_id: str | None, job_posting_id: str
     ) -> TailoringDecision:
         """Evaluate whether the base resume needs tailoring.
@@ -273,11 +269,11 @@ class ContentGenerationService:
             fit_score=0.0,
         )
 
-    async def _create_variant(
+    def _create_variant(
         self,
         base_resume_id: str | None,
         job_posting_id: str,
-        tailoring: TailoringDecision,  # noqa: ARG002 - used when LLM wired
+        _tailoring: TailoringDecision,
     ) -> None:
         """Create a tailored JobVariant from the base resume.
 
@@ -291,7 +287,7 @@ class ContentGenerationService:
         # Placeholder: no content generated yet.
         # Real implementation will call LLM and POST /job-variants.
 
-    async def _select_stories(
+    def _select_stories(
         self, persona_id: str, job_posting_id: str
     ) -> list[ScoredStory]:
         """Select achievement stories for the cover letter.
@@ -311,7 +307,7 @@ class ContentGenerationService:
 
     async def _generate_cover_letter(
         self,
-        persona_id: str,  # noqa: ARG002 - used when persona data fetched
+        _persona_id: str,
         job_posting_id: str,
         stories: list[ScoredStory],
     ) -> CoverLetterResult:
@@ -353,7 +349,7 @@ class ContentGenerationService:
             stories_used=story_ids,
         )
 
-    async def _check_job_active(self, job_posting_id: str) -> bool:
+    def _check_job_active(self, job_posting_id: str) -> bool:
         """Check if the target job posting is still active.
 
         REQ-018 §7.1 Step 7: Query job posting status.
@@ -367,7 +363,7 @@ class ContentGenerationService:
         self,
         tailoring: TailoringDecision,
         stories: list[ScoredStory],
-        job_posting_id: str,  # noqa: ARG002 - used when job data fetched
+        _job_posting_id: str,
     ) -> str:
         """Build user-facing reasoning explanation.
 
