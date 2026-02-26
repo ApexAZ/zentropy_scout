@@ -28,7 +28,7 @@ jobs:
       security-events: write
     services:
       postgres:
-        image: pgvector/pgvector@sha256:33198da2828a14c30348d2ccb4750833d5ed9a44c88d840a0e523d7417120337  # pg16
+        image: pgvector/pgvector@sha256:a208a03832da123d45ec6049b4d5c9d49fcacfbffd7d6e3cb537bffdf62e769e  # pg16
         env:
           POSTGRES_USER: zentropy_user
           POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
