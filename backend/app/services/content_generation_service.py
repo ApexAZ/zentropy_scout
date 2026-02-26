@@ -89,7 +89,7 @@ class ContentGenerationService:
         persona_id: str,
         job_posting_id: str,
         trigger_type: TriggerType = TriggerType.MANUAL_REQUEST,
-        feedback: str | None = None,  # noqa: ARG002 — used in regeneration (post-MVP)
+        feedback: str | None = None,  # noqa: ARG002 - used in regeneration (post-MVP)
         existing_variant_id: str | None = None,
     ) -> GenerationResult:
         """Generate tailored resume variant + cover letter for a job.
@@ -277,7 +277,7 @@ class ContentGenerationService:
         self,
         base_resume_id: str | None,
         job_posting_id: str,
-        tailoring: TailoringDecision,  # noqa: ARG002 — used when LLM wired
+        tailoring: TailoringDecision,  # noqa: ARG002 - used when LLM wired
     ) -> None:
         """Create a tailored JobVariant from the base resume.
 
@@ -311,7 +311,7 @@ class ContentGenerationService:
 
     async def _generate_cover_letter(
         self,
-        persona_id: str,  # noqa: ARG002 — used when persona data fetched
+        persona_id: str,  # noqa: ARG002 - used when persona data fetched
         job_posting_id: str,
         stories: list[ScoredStory],
     ) -> CoverLetterResult:
@@ -367,7 +367,7 @@ class ContentGenerationService:
         self,
         tailoring: TailoringDecision,
         stories: list[ScoredStory],
-        job_posting_id: str,  # noqa: ARG002 — used when job data fetched
+        job_posting_id: str,  # noqa: ARG002 - used when job data fetched
     ) -> str:
         """Build user-facing reasoning explanation.
 

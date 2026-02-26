@@ -647,7 +647,7 @@ class TestFinalizeOnboardingGuards:
     async def test_nonexistent_persona_raises_not_found(
         self,
         db_session: AsyncSession,
-        persona_for_onboarding,  # noqa: ARG002 — ensures DB schema exists
+        persona_for_onboarding,  # noqa: ARG002 -ensures DB schema exists
     ) -> None:
         """Non-existent persona_id raises NotFoundError."""
         gathered = _make_gathered_data()

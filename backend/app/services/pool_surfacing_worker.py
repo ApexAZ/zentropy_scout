@@ -111,7 +111,7 @@ class PoolSurfacingWorker:
                         result.jobs_processed,
                         result.links_created,
                     )
-                except Exception:  # noqa: BLE001 — intentional catch-all for worker resilience
+                except Exception:  # noqa: BLE001 - intentional catch-all for worker resilience
                     logger.exception("Error in surfacing pass")
                 await asyncio.sleep(self._interval_seconds)
         except asyncio.CancelledError:
