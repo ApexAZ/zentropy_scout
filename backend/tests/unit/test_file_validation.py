@@ -15,6 +15,8 @@ from app.core.file_validation import (
     validate_file_content,
 )
 
+_PATCH_MAGIC = "app.core.file_validation.magic.from_buffer"
+
 
 class TestReadFileWithSizeLimit:
     """Tests for read_file_with_size_limit function."""
@@ -77,7 +79,7 @@ class TestValidateFileContent:
         # PDF magic bytes
         pdf_content = b"%PDF-1.4 fake pdf content"
 
-        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+        with patch(_PATCH_MAGIC) as mock_magic:
             mock_magic.return_value = "application/pdf"
             result = validate_file_content(pdf_content, "resume.pdf")
 
@@ -88,7 +90,7 @@ class TestValidateFileContent:
         # DOCX is a ZIP file with specific structure
         docx_content = b"PK\x03\x04 fake docx content"
 
-        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+        with patch(_PATCH_MAGIC) as mock_magic:
             mock_magic.return_value = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             result = validate_file_content(docx_content, "resume.docx")
 
@@ -98,35 +100,42 @@ class TestValidateFileContent:
         """Should reject executable files even with PDF extension."""
         exe_content = b"MZ executable content"
 
-        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+        with patch(_PATCH_MAGIC) as mock_magic:
             mock_magic.return_value = "application/x-dosexec"
 
             with pytest.raises(ValidationError) as exc_info:
                 validate_file_content(exe_content, "resume.pdf")
 
-            assert "Invalid file content" in exc_info.value.message
-            assert "application/x-dosexec" in exc_info.value.message
+            assert "Invalid file type" in exc_info.value.message
+            # Security: MIME type must NOT leak in client-facing error
+            assert "application/x-dosexec" not in exc_info.value.message
             assert exc_info.value.details[0]["error"] == "INVALID_FILE_CONTENT"
 
     def test_rejects_html(self) -> None:
         """Should reject HTML files disguised as documents."""
         html_content = b"<html><script>alert('xss')</script></html>"
 
-        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+        with patch(_PATCH_MAGIC) as mock_magic:
             mock_magic.return_value = "text/html"
 
-            with pytest.raises(ValidationError):
+            with pytest.raises(ValidationError) as exc_info:
                 validate_file_content(html_content, "resume.pdf")
 
-    def test_includes_detected_mime_in_error(self) -> None:
-        """Should include detected MIME type in error details."""
-        with patch("app.core.file_validation.magic.from_buffer") as mock_magic:
+            assert "Invalid file type" in exc_info.value.message
+            assert "text/html" not in exc_info.value.message
+            assert exc_info.value.details[0]["error"] == "INVALID_FILE_CONTENT"
+
+    def test_does_not_leak_detected_mime_type(self) -> None:
+        """Error must NOT include detected MIME type (information disclosure)."""
+        with patch(_PATCH_MAGIC) as mock_magic:
             mock_magic.return_value = "image/jpeg"
 
             with pytest.raises(ValidationError) as exc_info:
                 validate_file_content(b"fake jpeg", "image.pdf")
 
-            assert exc_info.value.details[0]["detected_mime"] == "image/jpeg"
+            # Security: detected MIME must not leak to client
+            assert "detected_mime" not in exc_info.value.details[0]
+            assert "image/jpeg" not in exc_info.value.message
 
 
 class TestSanitizeFilenameForHeader:

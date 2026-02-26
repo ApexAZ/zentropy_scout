@@ -8,11 +8,14 @@ import re
 from typing import TYPE_CHECKING
 
 import magic
+import structlog
 
 if TYPE_CHECKING:
     from fastapi import UploadFile
 
 from app.core.errors import ValidationError
+
+logger = structlog.get_logger()
 
 # Maximum file size (10 MB)
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
@@ -77,19 +80,15 @@ def validate_file_content(content: bytes, filename: str) -> str:
     detected_mime = magic.from_buffer(content, mime=True)
 
     if detected_mime not in ALLOWED_MIMES:
-        extension = filename.rsplit(".", 1)[-1].upper() if "." in filename else "none"
+        # Log detected MIME for server-side debugging; do NOT expose to client
+        logger.warning(
+            "File content validation failed",
+            detected_mime=detected_mime,
+            filename=filename,
+        )
         raise ValidationError(
-            message=(
-                f"Invalid file content. Detected type: {detected_mime}. "
-                f"Extension: {extension}. Allowed: PDF, DOCX"
-            ),
-            details=[
-                {
-                    "field": "file",
-                    "error": "INVALID_FILE_CONTENT",
-                    "detected_mime": detected_mime,
-                }
-            ],
+            message="Invalid file type. Allowed: PDF, DOCX.",
+            details=[{"field": "file", "error": "INVALID_FILE_CONTENT"}],
         )
 
     return ALLOWED_MIMES[detected_mime]
