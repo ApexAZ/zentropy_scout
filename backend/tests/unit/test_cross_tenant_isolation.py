@@ -693,7 +693,7 @@ class TestApplicationsIsolation:
         self,
         client: AsyncClient,
         client_user_b: AsyncClient,
-        application_b,  # noqa: ARG002 - triggers full fixture chain
+        application_b,  # noqa: ARG002
     ) -> None:
         """User B cannot access an application created for User A."""
         # Verify User B can't see User A's data by comparing lists —

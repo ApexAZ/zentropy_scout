@@ -286,9 +286,9 @@ async def test_job_source(db_session: AsyncSession):
 @pytest_asyncio.fixture
 async def client(
     db_engine,
-    test_user,  # noqa: ARG001 - ensures user exists
-    test_persona,  # noqa: ARG001 - ensures persona exists
-    test_job_source,  # noqa: ARG001 - ensures job source exists
+    test_user,  # noqa: ARG001
+    test_persona,  # noqa: ARG001
+    test_job_source,  # noqa: ARG001
 ) -> AsyncGenerator[AsyncClient, None]:
     """Async HTTP client for authenticated API tests.
 
@@ -459,9 +459,9 @@ async def persona_user_b(db_session: AsyncSession, user_b):
 
 @pytest_asyncio.fixture
 async def client_user_b(
-    client,  # noqa: ARG001 - ensures DB override, auth config, user_a data
-    user_b,  # noqa: ARG001 - ensures user_b exists in DB
-    persona_user_b,  # noqa: ARG001 - ensures user_b has a persona
+    client,  # noqa: ARG001
+    user_b,  # noqa: ARG001
+    persona_user_b,  # noqa: ARG001
 ) -> AsyncGenerator[AsyncClient, None]:
     """HTTP client authenticated as User B for cross-tenant tests.
 

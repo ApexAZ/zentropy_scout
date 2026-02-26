@@ -154,7 +154,7 @@ class TestListJobPostings:
         self,
         client: AsyncClient,
         persona_job_a: PersonaJob,
-        persona_job_b: PersonaJob,  # noqa: ARG002 -ensures user B data exists
+        persona_job_b: PersonaJob,  # noqa: ARG002
     ) -> None:
         """Only returns jobs linked to current user, not other users."""
         response = await client.get("/api/v1/job-postings")
@@ -274,8 +274,8 @@ class TestCreateJobPosting:
     async def test_duplicate_link_returns_409(
         self,
         client: AsyncClient,
-        persona_job_a: PersonaJob,  # noqa: ARG002 -ensures link exists
-        shared_job: JobPosting,  # noqa: ARG002 -ensures job exists
+        persona_job_a: PersonaJob,  # noqa: ARG002
+        shared_job: JobPosting,  # noqa: ARG002
     ) -> None:
         """If user already has link to this job, returns 409."""
         response = await client.post(

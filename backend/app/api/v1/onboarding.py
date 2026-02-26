@@ -45,9 +45,9 @@ ValueError gets replaced with a generic fallback to prevent information leakage.
 @router.post("/resume-parse")
 @limiter.limit(settings.rate_limit_llm)
 async def parse_resume(
-    request: Request,  # noqa: ARG001 - required by @limiter.limit()
+    request: Request,  # noqa: ARG001
     file: Annotated[UploadFile, File(...)],
-    user_id: CurrentUserId,  # noqa: ARG001 - auth required, ID unused
+    user_id: CurrentUserId,  # noqa: ARG001
 ) -> DataResponse[dict]:
     """Parse uploaded PDF resume and extract structured data.
 

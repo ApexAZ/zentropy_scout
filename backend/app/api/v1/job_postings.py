@@ -470,7 +470,7 @@ async def list_extracted_skills(
 @router.post("/ingest")
 @limiter.limit(settings.rate_limit_llm)
 async def ingest_job_posting(
-    request: Request,  # noqa: ARG001 - Required by rate limiter
+    request: Request,  # noqa: ARG001
     body: IngestJobPostingRequest,
     user_id: CurrentUserId,
     db: DbSession,
@@ -781,7 +781,7 @@ async def bulk_favorite_job_postings(
 @router.post("/rescore")
 @limiter.limit(settings.rate_limit_llm)
 async def rescore_job_postings(
-    request: Request,  # noqa: ARG001 - Required by rate limiter
+    request: Request,  # noqa: ARG001
     _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Re-run Strategist scoring on all Discovered jobs.

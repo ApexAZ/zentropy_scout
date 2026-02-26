@@ -86,7 +86,7 @@ class ChangePasswordRequest(BaseModel):
 @router.post("/verify-password")
 @limiter.limit("5/15minute")
 async def verify_password(
-    request: Request,  # noqa: ARG001 - required by @limiter.limit()
+    request: Request,  # noqa: ARG001
     body: VerifyPasswordRequest,
     response: Response,
     db: DbSession,
@@ -137,7 +137,7 @@ async def verify_password(
 @router.post("/register", status_code=201)
 @limiter.limit("3/hour")
 async def register(
-    request: Request,  # noqa: ARG001 - required by @limiter.limit()
+    request: Request,  # noqa: ARG001
     body: RegisterRequest,
     background_tasks: BackgroundTasks,
     db: DbSession,
@@ -208,7 +208,7 @@ async def register(
 @router.post("/change-password")
 @limiter.limit("5/hour")
 async def change_password(
-    request: Request,  # noqa: ARG001 - required by @limiter.limit()
+    request: Request,  # noqa: ARG001
     body: ChangePasswordRequest,
     response: Response,
     user_id: CurrentUserId,

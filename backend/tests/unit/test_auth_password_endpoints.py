@@ -89,7 +89,7 @@ async def password_client(
 @pytest_asyncio.fixture
 async def auth_password_client(
     db_engine,
-    user_with_password,  # noqa: ARG001 - ensures user exists in DB
+    user_with_password,  # noqa: ARG001
 ) -> AsyncGenerator[AsyncClient, None]:
     """Authenticated client with JWT cookie for change-password tests."""
     from app.core.database import get_db
@@ -136,7 +136,7 @@ class TestVerifyPassword:
     async def test_valid_credentials_returns_user_info(
         self,
         password_client,
-        user_with_password,  # noqa: ARG002 - fixture ensures user exists
+        user_with_password,  # noqa: ARG002
     ):
         """Valid email + password returns 200 with user data."""
         response = await password_client.post(
@@ -151,7 +151,7 @@ class TestVerifyPassword:
     async def test_valid_credentials_sets_jwt_cookie(
         self,
         password_client,
-        user_with_password,  # noqa: ARG002 - fixture ensures user exists
+        user_with_password,  # noqa: ARG002
     ):
         """Successful login sets httpOnly JWT cookie."""
         response = await password_client.post(
@@ -166,7 +166,7 @@ class TestVerifyPassword:
     async def test_wrong_password_returns_401(
         self,
         password_client,
-        user_with_password,  # noqa: ARG002 - fixture ensures user exists
+        user_with_password,  # noqa: ARG002
     ):
         """Wrong password returns 401."""
         response = await password_client.post(
@@ -270,7 +270,7 @@ class TestRegister:
         self,
         _mock_hibp,
         password_client,
-        user_with_password,  # noqa: ARG002 - fixture ensures user exists
+        user_with_password,  # noqa: ARG002
     ):
         """Registering with existing email returns 409."""
         response = await password_client.post(

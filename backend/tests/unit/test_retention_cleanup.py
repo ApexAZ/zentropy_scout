@@ -375,7 +375,7 @@ class TestCleanupOrphanPdfs:
     async def test_returns_zero_when_no_orphans(
         self,
         db_session: AsyncSession,
-        retention_persona,  # noqa: ARG002 - ensures user/persona exist
+        retention_persona,  # noqa: ARG002
     ):
         """Cleanup returns zero counts when no orphan PDFs exist."""
         result = await cleanup_orphan_pdfs(db_session)
@@ -478,7 +478,7 @@ class TestCleanupResolvedChangeFlags:
     async def test_returns_zero_when_no_flags(
         self,
         db_session: AsyncSession,
-        retention_persona,  # noqa: ARG002 - ensures user/persona exist
+        retention_persona,  # noqa: ARG002
     ):
         """Cleanup returns zero when no resolved flags exist."""
         deleted_count = await cleanup_resolved_change_flags(db_session)
@@ -606,7 +606,7 @@ class TestCleanupArchivedRecords:
     async def test_returns_zero_when_no_archived(
         self,
         db_session: AsyncSession,
-        retention_persona,  # noqa: ARG002 - ensures user/persona exist
+        retention_persona,  # noqa: ARG002
     ):
         """Cleanup returns zero counts when no archived records exist."""
         result = await cleanup_archived_records(db_session)
@@ -810,7 +810,7 @@ class TestCleanupExpiredJobs:
     async def test_returns_zero_when_no_expired(
         self,
         db_session: AsyncSession,
-        retention_persona,  # noqa: ARG002 - ensures user/persona exist
+        retention_persona,  # noqa: ARG002
     ):
         """Cleanup returns zero when no expired jobs exist."""
         deleted_count = await cleanup_expired_jobs(db_session)
@@ -830,7 +830,7 @@ class TestRunAllCleanups:
     async def test_returns_aggregate_results(
         self,
         db_session: AsyncSession,
-        retention_persona,  # noqa: ARG002 - ensures user/persona exist
+        retention_persona,  # noqa: ARG002
     ):
         """Run all cleanups returns AllCleanupResult with zero counts when empty."""
         result = await run_all_cleanups(db_session)

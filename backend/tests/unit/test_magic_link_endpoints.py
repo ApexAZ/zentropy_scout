@@ -143,7 +143,7 @@ async def magic_link_client(_auth_app) -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture
 async def auth_client(
     _auth_app,
-    verified_user,  # noqa: ARG001 - ensures user exists in DB
+    verified_user,  # noqa: ARG001
 ) -> AsyncGenerator[AsyncClient, None]:
     """Authenticated client with JWT cookie for /me and logout tests."""
     token = create_test_jwt()
@@ -159,7 +159,7 @@ async def auth_client(
 @pytest_asyncio.fixture
 async def minimal_auth_client(
     _auth_app,
-    minimal_user,  # noqa: ARG001 - ensures user exists in DB
+    minimal_user,  # noqa: ARG001
 ) -> AsyncGenerator[AsyncClient, None]:
     """Authenticated client for user without name/image."""
     token = create_test_jwt()
@@ -175,7 +175,7 @@ async def minimal_auth_client(
 @pytest_asyncio.fixture
 async def unverified_auth_client(
     _auth_app,
-    unverified_user,  # noqa: ARG001 - ensures user exists in DB
+    unverified_user,  # noqa: ARG001
 ) -> AsyncGenerator[AsyncClient, None]:
     """Authenticated client for unverified user (email_verified=NULL)."""
     token = create_test_jwt()
@@ -191,7 +191,7 @@ async def unverified_auth_client(
 @pytest_asyncio.fixture
 async def password_auth_client(
     _auth_app,
-    password_user,  # noqa: ARG001 - ensures user exists in DB
+    password_user,  # noqa: ARG001
 ) -> AsyncGenerator[AsyncClient, None]:
     """Authenticated client for user with password hash set."""
     token = create_test_jwt()
@@ -242,7 +242,7 @@ class TestMagicLinkRequest:
     async def test_returns_success_for_existing_user(
         self,
         magic_link_client,
-        verified_user,  # noqa: ARG002 - ensures user exists
+        verified_user,  # noqa: ARG002
     ):
         """Always returns success message even for existing users."""
         with patch(_PATCH_SEND_EMAIL, new_callable=AsyncMock) as mock_send:
@@ -310,7 +310,7 @@ class TestMagicLinkRequest:
     async def test_sends_email_with_plain_token(
         self,
         magic_link_client,
-        verified_user,  # noqa: ARG002 - ensures user exists
+        verified_user,  # noqa: ARG002
     ):
         """Email is sent with the plain (unhashed) token."""
         with patch(_PATCH_SEND_EMAIL, new_callable=AsyncMock) as mock_send:
@@ -335,7 +335,7 @@ class TestMagicLinkRequest:
     async def test_normalizes_email_to_lowercase(
         self,
         magic_link_client,
-        verified_user,  # noqa: ARG002 - ensures user exists
+        verified_user,  # noqa: ARG002
     ):
         """Email is normalized to lowercase before lookup."""
         with patch(_PATCH_SEND_EMAIL, new_callable=AsyncMock) as mock_send:

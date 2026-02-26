@@ -44,6 +44,8 @@ _PROVIDER_CREDENTIALS = {
     "linkedin": ("linkedin_client_id", "linkedin_client_secret"),
 }
 
+_UNSUPPORTED_PROVIDER_MSG = "Unsupported OAuth provider"
+
 
 def _get_api_callback_url(request: Request, provider: str) -> str:
     """Build the OAuth callback URL from the request's base URL.
@@ -83,12 +85,12 @@ async def oauth_initiate(
         config = get_provider_config(provider)
     except ValueError:
         logger.warning("OAuth initiate: unknown provider requested")
-        raise ValidationError("Unsupported OAuth provider") from None
+        raise ValidationError(_UNSUPPORTED_PROVIDER_MSG) from None
 
     # Get client credentials
     cred_attrs = _PROVIDER_CREDENTIALS.get(provider)
     if not cred_attrs:
-        raise ValidationError("Unsupported OAuth provider")
+        raise ValidationError(_UNSUPPORTED_PROVIDER_MSG)
 
     client_id = getattr(settings, cred_attrs[0])
     if not client_id:
@@ -181,7 +183,7 @@ async def oauth_callback(
         get_provider_config(provider)
     except ValueError:
         logger.warning("OAuth callback: unknown provider requested")
-        raise ValidationError("Unsupported OAuth provider") from None
+        raise ValidationError(_UNSUPPORTED_PROVIDER_MSG) from None
 
     # Validate state cookie
     state_cookie = request.cookies.get(_OAUTH_STATE_COOKIE)

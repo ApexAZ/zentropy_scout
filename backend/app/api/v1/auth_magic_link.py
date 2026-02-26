@@ -82,7 +82,7 @@ def _generate_token() -> tuple[str, str]:
 @router.post("/magic-link")
 @limiter.limit("5/hour")
 async def request_magic_link(
-    request: Request,  # noqa: ARG001 - required by @limiter.limit()
+    request: Request,  # noqa: ARG001
     body: MagicLinkRequest,
     background_tasks: BackgroundTasks,
     db: DbSession,
@@ -141,7 +141,7 @@ async def request_magic_link(
 @router.get("/verify-magic-link")
 @limiter.limit("10/minute")
 async def verify_magic_link(
-    request: Request,  # noqa: ARG001 - required by @limiter.limit()
+    request: Request,  # noqa: ARG001
     token: Annotated[str, Query(min_length=1, max_length=256)],
     identifier: Annotated[str, Query(min_length=3, max_length=255)],
     purpose: Annotated[Literal["sign_in", "password_reset"], Query()] = "sign_in",

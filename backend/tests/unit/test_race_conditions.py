@@ -57,7 +57,7 @@ _PATCH_GET_BY_HASH = (
 @pytest_asyncio.fixture
 async def race_source(
     db_session: AsyncSession,
-    test_user,  # noqa: ARG001 - ensure user exists
+    test_user,  # noqa: ARG001
 ) -> JobSource:
     """Pre-create a Manual source for race condition tests."""
     source = JobSource(
@@ -75,7 +75,7 @@ async def race_source(
 async def race_job_posting(
     db_session: AsyncSession,
     race_source: JobSource,
-    test_persona,  # noqa: ARG001 - ensure persona exists for link creation
+    test_persona,  # noqa: ARG001
 ) -> JobPosting:
     """Pre-create a job posting with known hash (no PersonaJob link)."""
     jp = JobPosting(

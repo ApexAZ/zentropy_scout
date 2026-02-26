@@ -842,7 +842,7 @@ async def delete_custom_non_negotiable(
 @router.post("/{persona_id}/embeddings/regenerate")
 @limiter.limit(settings.rate_limit_embeddings)
 async def regenerate_embeddings(
-    request: Request,  # noqa: ARG001 - Required by rate limiter
+    request: Request,  # noqa: ARG001
     persona_id: uuid.UUID,
     user_id: CurrentUserId,
     db: DbSession,

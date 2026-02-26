@@ -291,7 +291,55 @@ If ANY counts differ, after completing adversarial investigation of all new find
 **Evidence:** [attack scenario | defense proof | investigation gaps]
 **Recommended action:** [see below]
 
-(repeat for each finding)
+#### Prosecution Protocol (FALSE POSITIVE verdicts only)
+
+For each FALSE POSITIVE finding, include this block. Populate every item
+with finding-specific details from your investigation. The main session
+MUST complete every item before executing any dismissal command.
+
+```
+**PROSECUTION PROTOCOL — Main Session MANDATORY**
+
+You are a zero-trust prosecutor. This subagent's FALSE POSITIVE verdict
+is WRONG until YOU independently prove otherwise. The burden of proof is
+on YOU to confirm safety — not on the subagent to convince you.
+
+- Assume the subagent was lazy and skipped steps
+- Assume the defense chain has a gap the subagent missed
+- Assume the subagent is confirming its own bias
+
+You MUST complete ALL of the following. Do NOT skip any.
+
+1. READ THE FLAGGED CODE YOURSELF: Open [file:line]. Trace the exact
+   code path. Do NOT rely on the subagent's summary above.
+
+2. TRACE THE DATA FLOW: Starting from [HTTP method + endpoint], follow
+   the input through [middleware] → [validation] → [handler] → [service]
+   → [output]. At each hop, verify: is the input validated, sanitized,
+   or used raw?
+
+3. VERIFY EACH DEFENSE: The subagent claims these defenses protect this
+   code path:
+   - [ ] [Defense 1]: Read [defense_file:line] — confirm it covers THIS
+         specific input, not just inputs in general
+   - [ ] [Defense 2]: Read [defense_file:line] — confirm it cannot be
+         bypassed for this request type
+   (list every defense the subagent cited)
+
+4. TRY TO BREAK IT: Attempt to find a bypass the subagent missed.
+   Consider: [list 2-3 attack vectors specific to this finding type,
+   drawn from Rule 5 stack-relevant vectors]
+
+5. STATE THE DEFENSE IN YOUR OWN WORDS: Without referencing the
+   subagent's analysis above, explain in one sentence why this finding
+   is unexploitable. If you cannot do this, the verdict reverts to
+   NEEDS INVESTIGATION.
+
+If you cannot complete ALL items, do NOT dismiss. Revert verdict to
+NEEDS INVESTIGATION and escalate to user.
+```
+
+(repeat finding + prosecution block for each finding)
 ```
 
 ### Recommended Action Format by Verdict

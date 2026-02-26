@@ -70,7 +70,7 @@ async def sync_persona(db_session: AsyncSession):
 @pytest_asyncio.fixture
 async def two_resumes(
     db_session: AsyncSession,
-    sync_persona,  # noqa: ARG001 -ensures persona exists
+    sync_persona,  # noqa: ARG001
 ):
     """Create two active BaseResumes with a job included."""
     resume_a = BaseResume(
@@ -109,7 +109,7 @@ async def two_resumes(
 @pytest_asyncio.fixture
 async def work_history_with_bullet(
     db_session: AsyncSession,
-    sync_persona,  # noqa: ARG001 -ensures persona exists
+    sync_persona,  # noqa: ARG001
 ):
     """Create a WorkHistory entry with a Bullet for bullet_added tests."""
     from datetime import date
@@ -147,7 +147,7 @@ class TestRaiseChangeFlag:
     async def test_creates_flag_with_correct_fields(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Flag is created with all provided fields."""
         flag = await raise_change_flag(
@@ -166,7 +166,7 @@ class TestRaiseChangeFlag:
     async def test_flag_defaults_to_pending(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """New flags default to Pending status."""
         flag = await raise_change_flag(
@@ -184,7 +184,7 @@ class TestRaiseChangeFlag:
     async def test_flag_has_created_at(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Flag has a created_at timestamp."""
         before = datetime.now(UTC)
@@ -214,7 +214,7 @@ class TestRaiseChangeFlag:
     async def test_invalid_change_type(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Raises ValidationError for unknown change_type."""
         with pytest.raises(ValidationError):
@@ -229,7 +229,7 @@ class TestRaiseChangeFlag:
     async def test_all_valid_change_types(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """All five change types are accepted."""
         valid_types = [
@@ -261,8 +261,8 @@ class TestResolveFlagSkipped:
     async def test_marks_flag_resolved(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """Skipped resolution marks flag as Resolved without updating resumes."""
         flag = await raise_change_flag(
@@ -286,7 +286,7 @@ class TestResolveFlagSkipped:
     async def test_flag_fields_updated(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Flag status, resolution, and resolved_at are set."""
         flag = await raise_change_flag(
@@ -311,8 +311,8 @@ class TestResolveFlagSkipped:
     async def test_no_resume_changes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """BaseResumes are unchanged after skipped resolution."""
         flag = await raise_change_flag(
@@ -344,8 +344,8 @@ class TestResolveFlagAddedToAll:
     async def test_job_added_updates_all_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """job_added appends to included_jobs on all active BaseResumes."""
         new_job_id = uuid.uuid4()
@@ -373,8 +373,8 @@ class TestResolveFlagAddedToAll:
     async def test_skill_added_updates_all_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """skill_added appends to skills_emphasis on all active BaseResumes."""
         flag = await raise_change_flag(
@@ -399,8 +399,8 @@ class TestResolveFlagAddedToAll:
     async def test_education_added_updates_all_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """education_added appends to included_education on all active BaseResumes."""
         flag = await raise_change_flag(
@@ -425,8 +425,8 @@ class TestResolveFlagAddedToAll:
     async def test_certification_added_updates_all_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """certification_added appends to included_certifications."""
         flag = await raise_change_flag(
@@ -451,9 +451,9 @@ class TestResolveFlagAddedToAll:
     async def test_bullet_added_updates_job_bullet_selections(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        work_history_with_bullet,  # noqa: ARG002 -ensures job+bullet exist
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        work_history_with_bullet,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """bullet_added appends bullet to job_bullet_selections for resumes that include the job."""
         flag = await raise_change_flag(
@@ -480,9 +480,9 @@ class TestResolveFlagAddedToAll:
     async def test_bullet_added_skips_resumes_without_job(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        work_history_with_bullet,  # noqa: ARG002 -ensures job+bullet exist
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        work_history_with_bullet,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """bullet_added only updates resumes that include the bullet's parent job."""
         # Remove the job from resume_b
@@ -514,8 +514,8 @@ class TestResolveFlagAddedToAll:
     async def test_skips_archived_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """Archived BaseResumes are not updated."""
         resume_b = await db_session.get(BaseResume, _RESUME_B_ID)
@@ -545,8 +545,8 @@ class TestResolveFlagAddedToAll:
     async def test_idempotent_no_duplicate_entries(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """Adding the same item twice does not create duplicates in the list."""
         # Pre-add the skill to resume_a
@@ -586,8 +586,8 @@ class TestResolveFlagAddedToSome:
     async def test_updates_only_specified_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """Only target_resume_ids are updated."""
         flag = await raise_change_flag(
@@ -615,8 +615,8 @@ class TestResolveFlagAddedToSome:
     async def test_requires_target_resume_ids(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """Raises ValidationError when target_resume_ids not provided for added_to_some."""
         flag = await raise_change_flag(
@@ -637,8 +637,8 @@ class TestResolveFlagAddedToSome:
     async def test_ignores_nonexistent_resume_ids(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """Nonexistent resume IDs in target list are silently ignored."""
         flag = await raise_change_flag(
@@ -680,7 +680,7 @@ class TestResolveFlagGuards:
     async def test_already_resolved(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Raises InvalidStateError for already-resolved flag."""
         flag = await raise_change_flag(
@@ -707,7 +707,7 @@ class TestResolveFlagGuards:
     async def test_invalid_resolution(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Raises ValidationError for invalid resolution value."""
         flag = await raise_change_flag(
@@ -728,8 +728,8 @@ class TestResolveFlagGuards:
     async def test_bullet_not_found(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
-        two_resumes,  # noqa: ARG002 -ensures resumes exist
+        sync_persona,  # noqa: ARG002
+        two_resumes,  # noqa: ARG002
     ):
         """Raises NotFoundError when bullet_added references missing bullet."""
         flag = await raise_change_flag(
@@ -759,7 +759,7 @@ class TestGetPendingFlags:
     async def test_returns_pending_flags(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Returns all Pending flags for the persona."""
         await raise_change_flag(
@@ -784,7 +784,7 @@ class TestGetPendingFlags:
     async def test_excludes_resolved_flags(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Resolved flags are not returned."""
         flag = await raise_change_flag(
@@ -814,7 +814,7 @@ class TestGetPendingFlags:
     async def test_returns_empty_if_none(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Returns empty list when no pending flags exist."""
         flags = await get_pending_flags(db=db_session, persona_id=_PERSONA_ID)
@@ -823,7 +823,7 @@ class TestGetPendingFlags:
     async def test_sorted_by_created_at(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002 -ensures persona exists
+        sync_persona,  # noqa: ARG002
     ):
         """Flags are returned sorted by created_at ascending."""
         flag1 = await raise_change_flag(
