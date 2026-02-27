@@ -137,7 +137,7 @@ class PersonaEmbeddingCache:
     """
 
     # Type alias for the composite cache key
-    _CacheKey = tuple[uuid.UUID, uuid.UUID]
+    _cache_key = tuple[uuid.UUID, uuid.UUID]
 
     def __init__(self, max_size: int = _DEFAULT_MAX_SIZE) -> None:
         """Initialize empty cache.
@@ -152,7 +152,7 @@ class PersonaEmbeddingCache:
 
         self._max_size = max_size
         self._cache: OrderedDict[
-            PersonaEmbeddingCache._CacheKey, CachedPersonaEmbeddings
+            PersonaEmbeddingCache._cache_key, CachedPersonaEmbeddings
         ] = OrderedDict()
         self._hits = 0
         self._misses = 0
@@ -289,7 +289,7 @@ class PersonaEmbeddingCache:
         """
         self._invalidate_internal((user_id, persona_id))
 
-    def _invalidate_internal(self, key: _CacheKey) -> None:
+    def _invalidate_internal(self, key: _cache_key) -> None:
         """Internal invalidation that tracks stats."""
         if key in self._cache:
             del self._cache[key]

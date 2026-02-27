@@ -105,7 +105,7 @@ untested user-facing behavioral changes.*
 
 ## Phase 3: Error Handling & Code Quality
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Fix exception hierarchy violations, dataclass mutability, and LLM output validation gaps.*
 
@@ -124,7 +124,7 @@ untested user-facing behavioral changes.*
 | 12 | **Differentiated exception handling in `delegate_ghostwriter`** — In `delegate_ghostwriter` (chat.py:728), replace bare `except Exception` with differentiated handling: catch `NotFoundError` → "persona/job not found" message, catch `ValidationError` → specific validation message, catch `APIError` → forward error message, catch `Exception` → generic "try again". Add tests for each exception path. **Files:** `backend/app/agents/chat.py`, `backend/tests/unit/test_chat_agent.py` | `tdd, plan` | ✅ |
 | 13 | **Freeze dataclasses + LLM output validation** — (a) Make `CoverLetterResult` frozen with `tuple[str, ...]` for `stories_used`. (b) Make `DiscoveryTrigger` frozen with `tuple[str, ...] | None` for list fields. (c) In `job_extraction.py:143`, replace `cast(ExtractedJobData, data)` with Pydantic model validation. (d) In `resume_parsing_service.py:234`, add size bounds on parsed JSON before constructing `ResumeParseResult`. Update tests for frozen behavior. **Files:** `backend/app/services/cover_letter_generation.py`, `backend/app/services/discovery_workflow.py`, `backend/app/services/job_extraction.py`, `backend/app/services/resume_parsing_service.py`, affected test files | `tdd, security, plan` | ✅ |
 | 14 | **Dead code + docstring cleanup** — (a) Update `state.py` docstring to reflect current architecture (LangGraph only used for Chat Agent, other agents replaced by services). (b) Remove or mark as deprecated: unused `checkpoint.py` utilities (`request_human_input`, `resume_from_checkpoint`), unused `onboarding.py` graph state functions (`create_update_state`, `is_post_onboarding_update`). (c) Update `onboarding.py` module docstring. Verify no callers exist before removing (search codebase). Update affected tests. **Files:** `backend/app/agents/state.py`, `backend/app/agents/checkpoint.py`, `backend/app/agents/onboarding.py`, affected test files | `plan` | ✅ |
-| 15 | **Final gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 15 | **Final gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 ---
 
