@@ -1,8 +1,8 @@
 # REQ-005: Database Schema (ERD)
 
-**Status:** Draft
+**Status:** Implemented
 **PRD Reference:** §6 Data Strategy
-**Last Updated:** 2025-01-25
+**Last Updated:** 2026-02-27
 
 ---
 

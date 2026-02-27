@@ -1,8 +1,8 @@
 # REQ-006: API Contract
 
-**Status:** Draft
+**Status:** Implemented
 **PRD Reference:** §6 Technical Architecture
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-02-27
 
 ---
 

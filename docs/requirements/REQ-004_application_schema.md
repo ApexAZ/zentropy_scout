@@ -1,8 +1,8 @@
 # REQ-004: Application Schema
 
-**Status:** Draft
+**Status:** Implemented
 **PRD Reference:** §4.4 Application Tracking, §6 Workflow
-**Last Updated:** 2025-01-25
+**Last Updated:** 2026-02-27
 
 ---
 

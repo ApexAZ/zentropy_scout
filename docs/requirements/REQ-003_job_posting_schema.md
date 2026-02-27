@@ -1,9 +1,9 @@
 # REQ-003: Job Posting Schema
 
-**Status:** Draft
+**Status:** Implemented
 **Version:** 0.4
 **PRD Reference:** §4.2 Scouter Agent, §7 Job Discovery
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-02-27
 
 ---
 

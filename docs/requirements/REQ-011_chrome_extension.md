@@ -1,9 +1,9 @@
 # REQ-011: Chrome Extension
 
-**Status:** Draft
+**Status:** Postponed
 **Version:** 0.1
 **PRD Reference:** §4.2 Scouter (Manual Job Submission)
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-02-27
 
 ---
 

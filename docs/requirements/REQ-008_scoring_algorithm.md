@@ -1,9 +1,9 @@
 # REQ-008: Scoring Algorithm Specification
 
-**Status:** Draft
+**Status:** Implemented
 **Version:** 0.2
 **PRD Reference:** §4.3 Strategist Agent
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-02-27
 
 ---
 

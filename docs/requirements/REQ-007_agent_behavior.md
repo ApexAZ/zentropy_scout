@@ -1,9 +1,9 @@
 # REQ-007: Agent Behavior Specification
 
-**Status:** Draft
+**Status:** Implemented
 **Version:** 0.4
 **PRD Reference:** §4 Core Agentic Capabilities
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-02-27
 
 ---
 
