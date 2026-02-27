@@ -1,8 +1,8 @@
 # Zentropy Scout — LLM Agent Redesign Implementation Plan
 
 **Created:** 2026-02-23
-**Last Updated:** 2026-02-23 (audit corrections applied)
-**Status:** Ready for Implementation
+**Last Updated:** 2026-02-27
+**Status:** ✅ Complete
 **Destination:** `docs/plan/llm_redesign_plan.md`
 
 ---
@@ -179,7 +179,7 @@ Phase 5: Cross-Agent Verification
 
 ## Phase 4: Onboarding Service Layer (REQ-019)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *The most significant redesign. Replace `onboarding.py` graph/state-machine code (2490L total, ~1784L to delete, ~706L to keep — keyword matching, zero LLM calls) with ResumeParsingService (pdfplumber + Gemini 2.5 Flash). Frontend: 12→11 steps (remove base-resume step), resume upload calls new parse endpoint. Independent of Phases 1–3.*
 
@@ -219,7 +219,7 @@ Phase 5: Cross-Agent Verification
 
 ## Phase 5: Cross-Agent Verification
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Final verification that all 4 redesigns work together. Check shared file end-states, run codebase-wide import verification, full regression.*
 

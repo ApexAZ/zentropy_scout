@@ -1,9 +1,9 @@
 # Zentropy Scout — Feature Backlog
 
 **Created:** 2026-02-16
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-27
 
-**Items:** 11 (2 completed, 9 pending)
+**Items:** 11 (6 completed, 5 pending)
 
 ---
 
@@ -157,209 +157,35 @@ Code review found that unit tests mock SQLAlchemy sessions and repository calls,
 
 ---
 
-### 7. Scouter Redesign — Replace LangGraph with Service Layer
+### ~~7. Scouter Redesign — Replace LangGraph with Service Layer~~ ✅
 
-**Category:** Backend / Architecture
-**Added:** 2026-02-23
-**Depends on:** None (can be done independently)
-**Requirement:** [REQ-016: Scouter Service Layer Redesign](../requirements/REQ-016_scouter_service_layer.md)
-
-**Background:**
-The Scouter is implemented as a 5-node LangGraph `StateGraph` in `backend/app/agents/scouter_graph.py` and `backend/app/agents/scouter.py`. Code review (2026-02-23) found that every conditional edge in the graph is a deterministic if/elif — no LLM is making routing decisions. The graph exists solely to sequence function calls that could be called directly.
-
-**Why LangGraph is not justified here:**
-- All 5 nodes are pure Python functions with no LLM calls
-- All conditional edges check simple boolean flags (`should_enrich`, `has_results`)
-- HITL checkpointing is configured but never actually triggered
-- `execute_search_node`, `filter_results_node`, `store_results_node` are all placeholders returning empty results
-- The graph adds state schema overhead, checkpoint infrastructure, and LangGraph dependency for zero benefit
-
-**Proposed replacement — three plain services:**
-1. **`job_fetch_service.py`** — queries job sources (Adzuna, SerpApi, etc.), deduplicates against shared pool, returns raw job data
-2. **`job_enrichment_service.py`** — calls Gemini 2.5 Flash to extract structured fields (skills, salary, culture signals) from raw job text. One LLM call per new job, results cached in shared pool
-3. **`job_pool_repository.py`** — manages the shared job pool (jobs enriched once, matched to multiple users). Handles stale job archival
-
-**What to delete:**
-- `backend/app/agents/scouter_graph.py` — entire file
-- `backend/app/agents/checkpoint.py` — pure LangGraph infrastructure (`MemorySaver`, `create_graph_config`, `request_human_input`, `resume_from_checkpoint`). No value outside graph context. Note: `CheckpointReason` enum in `state.py` is worth keeping.
-- Most of `backend/app/agents/scouter.py` — keep only trigger detection helpers
-
-**What to create:**
-- `backend/app/services/job_fetch_service.py`
-- `backend/app/services/job_enrichment_service.py`
-- `backend/app/repositories/job_pool_repository.py`
-- `backend/app/services/job_archive_service.py` (stale job TTL cleanup)
-
-**Requirements references:** REQ-007 §6, REQ-015 (shared job pool)
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 1 (REQ-016)
+**Completed:** Replaced 10-node LangGraph StateGraph with JobPoolRepository, JobEnrichmentService, and JobFetchService. Deleted scouter_graph.py (895L). All tests passing.
 
 ---
 
-### 8. Strategist Redesign — Replace LangGraph with JobScoringService
+### ~~8. Strategist Redesign — Replace LangGraph with JobScoringService~~ ✅
 
-**Category:** Backend / Architecture
-**Added:** 2026-02-23
-**Depends on:** Item 7 (Scouter redesign — shared pool must exist)
-**Requirement:** [REQ-017: Strategist Service Layer Redesign](../requirements/REQ-017_strategist_service_layer.md)
-
-**Background:**
-The Strategist is implemented as a 10-node LangGraph `StateGraph` in `backend/app/agents/strategist_graph.py`. Code review (2026-02-23) found that 9 of 10 nodes are placeholders returning empty state. The only genuinely implemented node is `save_scores_node`. All conditional edges are deterministic checks (embedding staleness, non-negotiables pass/fail, score threshold).
-
-**Why LangGraph is not justified here:**
-- Only 1 of 10 nodes has real implementation
-- All routing is deterministic — no LLM decides which path to take
-- `score_against_persona_node`, `generate_rationale_node`, `check_non_negotiables_node` are all stubs
-- HITL checkpoint is configured but never used
-- The graph sequences placeholder calls that should be direct service calls
-
-**Proposed replacement — single service:**
-**`job_scoring_service.py`** with these responsibilities:
-- Pull persona embeddings for the user
-- Check non-negotiables (hard filters — remote preference, salary floor, excluded industries)
-- Score job against persona via embedding similarity
-- Generate rationale text via LLM (Gemini 2.5 Flash) only for jobs scoring above threshold (`RATIONALE_SCORE_THRESHOLD = 65`) to avoid wasting tokens on low-scoring jobs
-- Persist scores to database
-
-**What to delete:**
-- `backend/app/agents/strategist_graph.py` — entire file
-- Most of `backend/app/agents/strategist_prompts.py` — review what's actually used; keep any prompts that survive into the new service
-
-**What to create:**
-- `backend/app/services/job_scoring_service.py`
-
-**Requirements references:** REQ-007 §7, REQ-008 (scoring algorithm)
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 2 (REQ-017)
+**Completed:** Replaced 10-node LangGraph StateGraph (9 placeholder nodes) with single JobScoringService. Relocated prompts to `backend/app/prompts/` package, moved ScoreResult to score_types.py. Deleted strategist_graph.py (662L). All tests passing.
 
 ---
 
-### 9. Ghostwriter Redesign — Replace LangGraph with ContentGenerationService (MVP: User-Initiated Only)
+### ~~9. Ghostwriter Redesign — Replace LangGraph with ContentGenerationService (MVP: User-Initiated Only)~~ ✅
 
-**Category:** Backend / Architecture
-**Added:** 2026-02-23
-**Depends on:** Item 8 (scores must exist before drafting is triggered)
-**Requirement:** [REQ-018: Ghostwriter Service Layer Redesign](../requirements/REQ-018_ghostwriter_service_layer.md)
-
-**Background:**
-The Ghostwriter is implemented as a 9-node LangGraph `StateGraph` in `backend/app/agents/ghostwriter_graph.py`. Code review (2026-02-23) found it has more real implementation than Scouter or Strategist, but the HITL checkpoint is never actually implemented — it's just a flag set before END, not a true pause/resume. The "feedback loop" is two sequential API calls (re-invocation), not resume-from-checkpoint.
-
-**Why LangGraph is not justified here:**
-- HITL pattern not actually implemented — `requires_human_input` flag is set but graph never truly pauses mid-execution
-- "Feedback" means calling the graph again from the start, not resuming a paused instance
-- All routing is deterministic (has resume? → draft vs revise; score above threshold? → auto-draft vs skip)
-- `TriggerType.AUTO_DRAFT` is in the enum but never wired — correctly deferred (credit trust concern: users would be charged without consent)
-
-**MVP decision — user-initiated only:**
-Auto-draft is explicitly NOT wired for MVP. If the system spends user credits generating materials without explicit user action, trust is destroyed. User must click "Draft Materials" to trigger generation. `TriggerType.AUTO_DRAFT` kept in enum for future use but never called at MVP.
-
-**Proposed replacement — single service:**
-**`content_generation_service.py`** with these responsibilities:
-- Accept `user_id`, `persona_id`, `job_posting_id`, trigger type
-- Fetch persona and job data
-- Generate tailored resume variant via LLM (Gemini 2.5 Flash)
-- Generate cover letter via LLM
-- Persist drafts to database with status = Draft
-- Charge user credits after successful generation
-
-**What to keep:**
-- `backend/app/agents/ghostwriter_prompts.py` — fully implemented and production-ready. Move to `backend/app/services/ghostwriter_prompts.py` or `backend/app/prompts/`.
-
-**What to delete:**
-- `backend/app/agents/ghostwriter_graph.py` — entire file
-- `backend/app/agents/ghostwriter.py` — gut, keep any helpers that survive into the new service
-
-**What to create:**
-- `backend/app/services/content_generation_service.py`
-
-**Future genuine LangGraph use case (post-MVP):**
-True multi-turn revision workflow — user reviews draft, provides feedback, agent revises in the same session without restarting. This requires real pause/resume checkpointing and is the one place LangGraph would be justified. Document this clearly so future sessions don't re-implement the naive re-invocation pattern.
-
-**Requirements references:** REQ-007 §8, REQ-010 (content generation)
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 3 (REQ-018)
+**Completed:** Replaced 9-node LangGraph StateGraph with ContentGenerationService orchestrating 15 existing production-ready service files. Relocated prompts to `backend/app/prompts/ghostwriter.py`. Deleted ghostwriter_graph.py (687L). Auto-draft remains deferred (MVP: user-initiated only). All tests passing.
 
 ---
 
-### 10. Onboarding Redesign — Replace LangGraph Agent with HTML Wizard + Free Resume Parsing
+### ~~10. Onboarding Redesign — Replace LangGraph Agent with HTML Wizard + Free Resume Parsing~~ ✅
 
-**Category:** Backend / Frontend / Architecture
-**Added:** 2026-02-23
-**Depends on:** None (can be done independently)
-**Requirement:** [REQ-019: Onboarding Service Layer Redesign](../requirements/REQ-019_onboarding_service_layer.md)
-
-**Background:**
-The Onboarding Agent is implemented as a 13-node LangGraph `StateGraph` in `backend/app/agents/onboarding.py` (2490 lines). Code review (2026-02-23) found it is the most complete agent in the codebase — but that's exactly what reveals the problem. Every step function uses fragile keyword matching on `pending_question` to determine which field the user's response belongs to. This is a form wizard implemented as a chatbot.
-
-**Why this is a wizard, not an agent:**
-```python
-# Actual pattern repeated across 2000+ lines:
-if "name" in pending_question.lower():
-    basic_info["full_name"] = user_response
-elif "email" in pending_question.lower():
-    basic_info["email"] = user_response
-elif "phone" in pending_question.lower():
-    basic_info["phone"] = user_response
-```
-No LLM interprets responses. No adaptive behavior. No reasoning. Just deterministic state machines with keyword parsing advancing through a fixed question sequence. A form wizard with labeled fields, native validation, and a progress bar does this better in every dimension.
-
-**Why wizard beats chatbot for structured data collection:**
-
-| Concern | LangGraph chatbot | HTML wizard |
-|---------|-----------------|-------------|
-| Field validation | Fragile keyword matching | Native form validation |
-| User experience | Type answers in chat box | Labeled fields, dropdowns |
-| Back button | Not supported | Native step behavior |
-| Progress feedback | Inferred from conversation | Progress bar |
-| Maintainability | 2490 lines of state machines | Simple form components |
-
-**The one real LLM use case — resume parsing:**
-Resume upload genuinely requires LLM interpretation. A single Gemini 2.5 Flash call (not Flash-Lite — reliability on first impression matters more than the fraction-of-a-cent cost difference) parses the PDF into structured data AND infers a voice profile in one call.
-
-**Cost:** ~$0.00135 per user. Platform funds this as customer acquisition cost — free users are not charged. Add $50 to Gemini account; covers ~37,000 resume uploads.
-
-**Voice profile inference from resume:**
-Instead of asking users questions about their writing style, infer it from their actual resume text. One LLM call, two outputs. What's inferable: writing style (results-focused bullets vs narrative prose), vocabulary level (technical/accessible/business), personality markers (collaborative vs independent contributor language). What's NOT inferable: tone (offer presets instead), things to avoid (user fills manually). If confidence < 0.7, pre-populate voice profile fields as empty and let user fill manually.
-
-**11-step wizard design:**
-1. Resume Upload (optional) — triggers free LLM parse, pre-populates steps 2–6 and voice profile
-2. Basic Info — name, email, phone, location, LinkedIn, portfolio
-3. Work History — job entries with bullets
-4. Education (optional)
-5. Skills — with proficiency level and type
-6. Certifications (optional)
-7. Achievement Stories — STAR format, minimum 1, encouraged 3–5
-8. Non-Negotiables — remote preference, salary floor, visa, exclusions
-9. Growth Targets — target roles, target skills
-10. Voice Profile — pre-populated from resume parse if available
-11. Review — summary with edit links, submit button
-
-**What to keep from `onboarding.py` (~400 lines):**
-- `UPDATE_REQUEST_PATTERNS`, `SECTION_DETECTION_PATTERNS` — post-onboarding update routing
-- `SECTIONS_REQUIRING_RESCORE`, `SECTION_AFFECTED_EMBEDDINGS` — re-scoring trigger logic
-- Prompt templates for voice profile derivation and achievement story expansion
-
-**What to delete (~2000 lines):**
-- All step state machine functions (`gather_basic_info`, `gather_work_history`, etc.)
-- Graph construction (`get_onboarding_graph`, `create_onboarding_graph`)
-- LangGraph imports and HITL machinery
-
-**What to create:**
-- `backend/app/services/resume_parsing_service.py` — pdfplumber for text extraction, Gemini 2.5 Flash for LLM, `BILLING_MODE = "platform"` flag (never charged to user credits)
-- `backend/app/api/v1/onboarding.py` — wizard step endpoints + resume parse endpoint
-- `frontend/src/components/onboarding/` — wizard step components with progress bar
-
-**LLM output schema (single resume parse call):**
-```json
-{
-  "work_history": [...],
-  "education": [...],
-  "skills": [...],
-  "certifications": [...],
-  "voice_suggestions": {
-    "writing_style": "results-focused",
-    "vocabulary_level": "technical",
-    "personality_markers": "Independent contributor — uses owned/built/shipped language",
-    "confidence": 0.85
-  }
-}
-```
-
-**Requirements references:** REQ-007 §5, REQ-001 §3
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 4 (REQ-019)
+**Completed:** Replaced 13-node LangGraph StateGraph (2490L) with ResumeParsingService (pdfplumber + Gemini 2.5 Flash) and resume-parse API endpoint. Deleted ~1784L of graph/state-machine code, kept ~706L of post-onboarding utilities. Frontend updated from 12→11 steps (removed base-resume step). E2E tests rewritten for 11-step flow. All tests passing.
 
 ---
 

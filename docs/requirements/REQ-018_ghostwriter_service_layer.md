@@ -1,10 +1,10 @@
 # REQ-018: Ghostwriter Service Layer Redesign
 
-**Status:** Draft
-**Version:** 0.1
+**Status:** Implemented
+**Version:** 1.0
 **Supersedes:** REQ-007 §8 (Ghostwriter Agent), §15.5 (Ghostwriter Agent Graph)
 **PRD Reference:** §4.4 Ghostwriter
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-27
 
 ---
 

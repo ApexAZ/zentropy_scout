@@ -1,10 +1,10 @@
 # REQ-019: Onboarding Service Layer Redesign
 
-**Status:** Draft
-**Version:** 0.1
+**Status:** Implemented
+**Version:** 1.0
 **Supersedes:** REQ-007 §5 (Onboarding Agent), §15.2 (Onboarding Agent Graph)
 **PRD Reference:** §4.1 Onboarding
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-27
 
 ---
 

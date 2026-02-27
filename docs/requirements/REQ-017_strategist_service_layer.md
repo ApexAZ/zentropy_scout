@@ -1,10 +1,10 @@
 # REQ-017: Strategist Service Layer Redesign
 
-**Status:** Draft
-**Version:** 0.1
+**Status:** Implemented
+**Version:** 1.0
 **Supersedes:** REQ-007 §7 (Strategist Agent), §15.4 (Strategist Agent Graph)
 **PRD Reference:** §4.3 Strategist
-**Last Updated:** 2026-02-23
+**Last Updated:** 2026-02-27
 
 ---
 
