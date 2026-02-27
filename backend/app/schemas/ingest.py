@@ -8,9 +8,10 @@ This module defines schemas for the two-step ingest workflow:
 """
 
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from typing_extensions import TypedDict
 
 # =============================================================================
 # TypedDicts for Extracted Data

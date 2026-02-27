@@ -11,7 +11,10 @@ WHY SEPARATE SERVICE:
 import json
 import logging
 import re
-from typing import Any, cast
+from typing import Any
+
+from pydantic import TypeAdapter
+from pydantic import ValidationError as PydanticValidationError
 
 from app.core.llm_sanitization import sanitize_llm_input
 from app.providers import ProviderError, factory
@@ -19,6 +22,11 @@ from app.providers.llm.base import LLMMessage, TaskType
 from app.schemas.ingest import ExtractedJobData
 
 logger = logging.getLogger(__name__)
+
+_EXTRACTED_JOB_DATA_ADAPTER = TypeAdapter(ExtractedJobData)
+
+_MAX_EXTRACTED_SKILLS = 100
+"""Safety cap on extracted skills from LLM response."""
 
 
 async def extract_job_data(raw_text: str) -> ExtractedJobData:
@@ -133,15 +141,21 @@ def _parse_extraction_response(response: str) -> ExtractedJobData:
             data["extracted_skills"] = []
 
         # Filter malformed skill entries — LLM may return strings, dicts
-        # missing required fields, or other non-dict values
+        # missing required fields, or other non-dict values.
+        # Normalize with defaults since LLM output is unpredictable.
         data["extracted_skills"] = [
-            s
-            for s in data["extracted_skills"]
+            {
+                "skill_name": s["skill_name"],
+                "skill_type": s.get("skill_type", "Hard"),
+                "is_required": s.get("is_required", True),
+                "years_requested": s.get("years_requested"),
+            }
+            for s in data["extracted_skills"][:_MAX_EXTRACTED_SKILLS]
             if isinstance(s, dict) and s.get("skill_name")
         ]
 
-        return cast(ExtractedJobData, data)
-    except (json.JSONDecodeError, IndexError):
+        return _EXTRACTED_JOB_DATA_ADAPTER.validate_python(data)
+    except (json.JSONDecodeError, IndexError, PydanticValidationError):
         # WHY EMPTY STRING: _basic_extraction returns a default structure with null fields;
         # the input text doesn't matter since we're already falling back from LLM parsing.
         return _basic_extraction("")

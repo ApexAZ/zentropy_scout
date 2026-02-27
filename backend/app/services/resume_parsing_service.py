@@ -42,6 +42,18 @@ _MAX_PDF_PAGES = 50
 _LOG_EXCERPT_LENGTH = 200
 """Max characters of exception messages logged (truncate attacker-controlled content)."""
 
+_MAX_WORK_HISTORY_ENTRIES = 50
+"""Safety cap on work history entries from LLM response."""
+
+_MAX_EDUCATION_ENTRIES = 20
+"""Safety cap on education entries from LLM response."""
+
+_MAX_SKILLS_ENTRIES = 100
+"""Safety cap on skills entries from LLM response."""
+
+_MAX_CERTIFICATIONS_ENTRIES = 50
+"""Safety cap on certifications entries from LLM response."""
+
 # REQ-019 §8.1: System prompt for resume parsing
 RESUME_PARSE_SYSTEM_PROMPT = """\
 You are an expert resume parser. Extract structured data from the resume text below.
@@ -264,12 +276,20 @@ class ResumeParsingService:
 
         voice = self._parse_voice_suggestions(data.get("voice_suggestions"))
 
+        basic_info = data.get("basic_info", {})
+        if not isinstance(basic_info, dict):
+            basic_info = {}
+
         return ResumeParseResult(
-            basic_info=data.get("basic_info", {}),
-            work_history=tuple(data.get("work_history", [])),
-            education=tuple(data.get("education", [])),
-            skills=tuple(data.get("skills", [])),
-            certifications=tuple(data.get("certifications", [])),
+            basic_info=basic_info,
+            work_history=tuple(
+                data.get("work_history", [])[:_MAX_WORK_HISTORY_ENTRIES]
+            ),
+            education=tuple(data.get("education", [])[:_MAX_EDUCATION_ENTRIES]),
+            skills=tuple(data.get("skills", [])[:_MAX_SKILLS_ENTRIES]),
+            certifications=tuple(
+                data.get("certifications", [])[:_MAX_CERTIFICATIONS_ENTRIES]
+            ),
             voice_suggestions=voice,
             raw_text=raw_text,
         )
@@ -293,9 +313,13 @@ class ResumeParsingService:
         """Parse voice suggestions dict into VoiceSuggestions if valid."""
         if not isinstance(voice_data, dict) or "confidence" not in voice_data:
             return None
+        try:
+            confidence = max(0.0, min(1.0, float(voice_data.get("confidence", 0.0))))
+        except (TypeError, ValueError):
+            confidence = 0.0
         return VoiceSuggestions(
             writing_style=str(voice_data.get("writing_style", "")),
             vocabulary_level=str(voice_data.get("vocabulary_level", "")),
             personality_markers=str(voice_data.get("personality_markers", "")),
-            confidence=float(voice_data.get("confidence", 0.0)),
+            confidence=confidence,
         )

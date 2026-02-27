@@ -56,7 +56,7 @@ class TriggerType(Enum):
 # =============================================================================
 
 
-@dataclass
+@dataclass(frozen=True)
 class DiscoveryTrigger:
     """Detected trigger for discovery workflow.
 
@@ -73,8 +73,8 @@ class DiscoveryTrigger:
     trigger_type: TriggerType
     next_poll_at: datetime | None = None
     user_message: str | None = None
-    previous_sources: list[str] | None = None
-    current_sources: list[str] | None = None
+    previous_sources: tuple[str, ...] | None = None
+    current_sources: tuple[str, ...] | None = None
 
 
 @dataclass
@@ -136,8 +136,8 @@ def check_trigger_conditions(
     if is_source_added_trigger(previous_sources, current_sources):
         return DiscoveryTrigger(
             trigger_type=TriggerType.SOURCE_ADDED,
-            previous_sources=previous_sources,
-            current_sources=current_sources,
+            previous_sources=tuple(previous_sources),
+            current_sources=tuple(current_sources),
         )
 
     # WHY: Scheduled poll is lowest priority

@@ -208,6 +208,24 @@ class TestVoiceSuggestions:
         )
         assert voice.confidence < 0.7
 
+    @pytest.mark.asyncio
+    async def test_out_of_range_confidence_is_clamped(self) -> None:
+        """LLM returning confidence > 1.0 is clamped to 1.0."""
+        data = _full_resume_data()
+        data["voice_suggestions"]["confidence"] = 999.9
+        mock_provider = AsyncMock()
+        mock_provider.complete = AsyncMock(return_value=_make_llm_response(data))
+
+        with (
+            patch(_PATCH_PDFPLUMBER, _mock_pdfplumber()),
+            patch(_PATCH_SANITIZE, side_effect=lambda x: x),
+        ):
+            service = ResumeParsingService()
+            result = await service.parse_resume(_FAKE_PDF_BYTES, mock_provider)
+
+        assert result.voice_suggestions is not None
+        assert result.voice_suggestions.confidence == 1.0
+
 
 # =============================================================================
 # PDF text extraction
@@ -533,6 +551,67 @@ class TestErrorHandling:
         assert result.skills == ()
         assert result.certifications == ()
         assert result.voice_suggestions is None
+
+    @pytest.mark.asyncio
+    async def test_oversized_work_history_is_capped(self) -> None:
+        """Work history arrays from LLM exceeding the cap are truncated."""
+        from app.services.resume_parsing_service import _MAX_WORK_HISTORY_ENTRIES
+
+        data = _full_resume_data()
+        data["work_history"] = [
+            {"job_title": f"Job {i}", "company_name": f"Co {i}"}
+            for i in range(_MAX_WORK_HISTORY_ENTRIES + 20)
+        ]
+        mock_provider = AsyncMock()
+        mock_provider.complete = AsyncMock(return_value=_make_llm_response(data))
+
+        with (
+            patch(_PATCH_PDFPLUMBER, _mock_pdfplumber()),
+            patch(_PATCH_SANITIZE, side_effect=lambda x: x),
+        ):
+            service = ResumeParsingService()
+            result = await service.parse_resume(_FAKE_PDF_BYTES, mock_provider)
+
+        assert len(result.work_history) == _MAX_WORK_HISTORY_ENTRIES
+
+    @pytest.mark.asyncio
+    async def test_oversized_skills_is_capped(self) -> None:
+        """Skills arrays from LLM exceeding the cap are truncated."""
+        from app.services.resume_parsing_service import _MAX_SKILLS_ENTRIES
+
+        data = _full_resume_data()
+        data["skills"] = [
+            {"name": f"Skill {i}", "type": "Hard", "proficiency": "Proficient"}
+            for i in range(_MAX_SKILLS_ENTRIES + 50)
+        ]
+        mock_provider = AsyncMock()
+        mock_provider.complete = AsyncMock(return_value=_make_llm_response(data))
+
+        with (
+            patch(_PATCH_PDFPLUMBER, _mock_pdfplumber()),
+            patch(_PATCH_SANITIZE, side_effect=lambda x: x),
+        ):
+            service = ResumeParsingService()
+            result = await service.parse_resume(_FAKE_PDF_BYTES, mock_provider)
+
+        assert len(result.skills) == _MAX_SKILLS_ENTRIES
+
+    @pytest.mark.asyncio
+    async def test_non_dict_basic_info_gets_default(self) -> None:
+        """Non-dict basic_info from LLM is replaced with empty dict."""
+        data = _full_resume_data()
+        data["basic_info"] = "not a dict"
+        mock_provider = AsyncMock()
+        mock_provider.complete = AsyncMock(return_value=_make_llm_response(data))
+
+        with (
+            patch(_PATCH_PDFPLUMBER, _mock_pdfplumber()),
+            patch(_PATCH_SANITIZE, side_effect=lambda x: x),
+        ):
+            service = ResumeParsingService()
+            result = await service.parse_resume(_FAKE_PDF_BYTES, mock_provider)
+
+        assert result.basic_info == {}
 
     @pytest.mark.asyncio
     async def test_memory_error_propagates(self) -> None:

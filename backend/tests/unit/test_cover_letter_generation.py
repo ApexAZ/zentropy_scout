@@ -24,6 +24,11 @@ from app.services.cover_letter_generation import (
     generate_cover_letter,
 )
 
+# S1192: Duplicated patch path string
+_PATCH_GET_LLM_PROVIDER = (
+    "app.services.cover_letter_generation.factory.get_llm_provider"
+)
+
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -121,7 +126,7 @@ class TestGenerateCoverLetter:
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             await generate_cover_letter(**_default_kwargs())
@@ -137,7 +142,7 @@ class TestGenerateCoverLetter:
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             await generate_cover_letter(**_default_kwargs())
@@ -156,7 +161,7 @@ class TestGenerateCoverLetter:
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             result = await generate_cover_letter(**_default_kwargs())
@@ -172,7 +177,7 @@ class TestGenerateCoverLetter:
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             result = await generate_cover_letter(**_default_kwargs())
@@ -187,12 +192,12 @@ class TestGenerateCoverLetter:
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             result = await generate_cover_letter(**_default_kwargs())
 
-        assert result.stories_used == ["story-1"]
+        assert result.stories_used == ("story-1",)
 
     @pytest.mark.asyncio
     async def test_result_calculates_word_count(self) -> None:
@@ -202,7 +207,7 @@ class TestGenerateCoverLetter:
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             result = await generate_cover_letter(**_default_kwargs())
@@ -229,7 +234,7 @@ class TestXmlParsing:
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             result = await generate_cover_letter(**_default_kwargs())
@@ -247,7 +252,7 @@ class TestXmlParsing:
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             result = await generate_cover_letter(**_default_kwargs())
@@ -263,7 +268,7 @@ class TestXmlParsing:
         mock_provider.complete.return_value = _make_llm_response(_NO_XML_RESPONSE)
 
         with patch(
-            "app.services.cover_letter_generation.factory.get_llm_provider",
+            _PATCH_GET_LLM_PROVIDER,
             return_value=mock_provider,
         ):
             result = await generate_cover_letter(**_default_kwargs())
@@ -289,7 +294,7 @@ class TestErrorHandling:
 
         with (
             patch(
-                "app.services.cover_letter_generation.factory.get_llm_provider",
+                _PATCH_GET_LLM_PROVIDER,
                 return_value=mock_provider,
             ),
             pytest.raises(CoverLetterGenerationError, match="Please try again"),
@@ -305,7 +310,7 @@ class TestErrorHandling:
 
         with (
             patch(
-                "app.services.cover_letter_generation.factory.get_llm_provider",
+                _PATCH_GET_LLM_PROVIDER,
                 return_value=mock_provider,
             ),
             pytest.raises(CoverLetterGenerationError, match="empty"),
@@ -328,7 +333,7 @@ class TestErrorHandling:
 
         with (
             patch(
-                "app.services.cover_letter_generation.factory.get_llm_provider",
+                _PATCH_GET_LLM_PROVIDER,
                 return_value=mock_provider,
             ),
             pytest.raises(CoverLetterGenerationError, match="empty"),
@@ -347,3 +352,37 @@ class TestErrorHandling:
         assert error.code == "COVER_LETTER_GENERATION_ERROR"
         assert error.status_code == 500
         assert error.message == "generation failed"
+
+
+# =============================================================================
+# Frozen Dataclass Tests
+# =============================================================================
+
+
+class TestCoverLetterResultFrozen:
+    """Tests that CoverLetterResult is immutable."""
+
+    def test_cover_letter_result_is_frozen(self) -> None:
+        """CoverLetterResult attributes cannot be reassigned after creation."""
+        from app.services.cover_letter_generation import CoverLetterResult
+
+        result = CoverLetterResult(
+            content="Dear Hiring Manager",
+            reasoning="Chose story for relevance",
+            word_count=3,
+            stories_used=("story-1",),
+        )
+        with pytest.raises(AttributeError):
+            result.content = "Changed"  # type: ignore[misc]
+
+    def test_stories_used_preserves_order_as_tuple(self) -> None:
+        """stories_used stores items in order as a tuple."""
+        from app.services.cover_letter_generation import CoverLetterResult
+
+        result = CoverLetterResult(
+            content="Letter",
+            reasoning="Reasoning",
+            word_count=1,
+            stories_used=("s-1", "s-2"),
+        )
+        assert result.stories_used == ("s-1", "s-2")

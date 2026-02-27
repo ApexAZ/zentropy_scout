@@ -48,7 +48,7 @@ class CoverLetterGenerationError(APIError):
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class CoverLetterResult:
     """Result of cover letter generation.
 
@@ -62,7 +62,7 @@ class CoverLetterResult:
     content: str
     reasoning: str
     word_count: int
-    stories_used: list[str]
+    stories_used: tuple[str, ...]
 
 
 # =============================================================================
@@ -175,5 +175,5 @@ async def generate_cover_letter(
         content=cover_letter_text,
         reasoning=reasoning_text,
         word_count=len(cover_letter_text.split()),
-        stories_used=stories_used,
+        stories_used=tuple(stories_used),
     )

@@ -63,16 +63,25 @@ class TestDiscoveryTrigger:
         assert trigger.user_message == "Find me some jobs"
 
     def test_source_added_trigger_creation(self) -> None:
-        """Source added trigger includes previous and current sources."""
+        """Source added trigger includes previous and current sources as tuples."""
         trigger = DiscoveryTrigger(
             trigger_type=TriggerType.SOURCE_ADDED,
-            previous_sources=[_SOURCE_ADZUNA],
-            current_sources=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
+            previous_sources=(_SOURCE_ADZUNA,),
+            current_sources=(_SOURCE_ADZUNA, _SOURCE_REMOTEOK),
         )
 
         assert trigger.trigger_type == TriggerType.SOURCE_ADDED
-        assert trigger.previous_sources == [_SOURCE_ADZUNA]
-        assert trigger.current_sources == [_SOURCE_ADZUNA, _SOURCE_REMOTEOK]
+        assert trigger.previous_sources == (_SOURCE_ADZUNA,)
+        assert trigger.current_sources == (_SOURCE_ADZUNA, _SOURCE_REMOTEOK)
+
+    def test_discovery_trigger_is_frozen(self) -> None:
+        """DiscoveryTrigger attributes cannot be reassigned after creation."""
+        trigger = DiscoveryTrigger(
+            trigger_type=TriggerType.MANUAL,
+            user_message="Find jobs",
+        )
+        with pytest.raises(AttributeError):
+            trigger.user_message = "Changed"  # type: ignore[misc]
 
 
 class TestCheckTriggerConditions:

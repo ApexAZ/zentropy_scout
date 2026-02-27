@@ -23,6 +23,9 @@ from app.services.job_extraction import (
     extract_job_data,
 )
 
+# S1192: Duplicated test input string
+_SAMPLE_JOB_TEXT = "Job posting text"
+
 # =============================================================================
 # ExtractedSkill Schema Tests
 # =============================================================================
@@ -186,7 +189,7 @@ class TestLLMExtraction:
             '{"job_title": "Senior Software Engineer", "company_name": "Acme", "extracted_skills": [], "culture_text": null}',
         )
 
-        result = await extract_job_data("Job posting text")
+        result = await extract_job_data(_SAMPLE_JOB_TEXT)
 
         assert result["job_title"] == "Senior Software Engineer"
 
@@ -198,7 +201,7 @@ class TestLLMExtraction:
             '{"job_title": "Engineer", "company_name": "Acme Corporation", "extracted_skills": [], "culture_text": null}',
         )
 
-        result = await extract_job_data("Job posting text")
+        result = await extract_job_data(_SAMPLE_JOB_TEXT)
 
         assert result["company_name"] == "Acme Corporation"
 
@@ -221,7 +224,7 @@ class TestLLMExtraction:
             }""",
         )
 
-        result = await extract_job_data("Job posting text")
+        result = await extract_job_data(_SAMPLE_JOB_TEXT)
 
         skills = result["extracted_skills"]
         assert len(skills) == 3
@@ -255,7 +258,7 @@ class TestLLMExtraction:
             }""",
         )
 
-        result = await extract_job_data("Job posting text")
+        result = await extract_job_data(_SAMPLE_JOB_TEXT)
 
         assert (
             result["culture_text"]
@@ -278,7 +281,7 @@ class TestLLMExtraction:
             }""",
         )
 
-        result = await extract_job_data("Job posting text")
+        result = await extract_job_data(_SAMPLE_JOB_TEXT)
 
         assert result["salary_min"] == 150000
         assert result["salary_max"] == 200000
@@ -379,6 +382,40 @@ class TestResponseParsing:
 
         assert len(result["extracted_skills"]) == 1
         assert result["extracted_skills"][0]["skill_name"] == "AWS"
+
+    def test_parse_caps_extracted_skills_at_limit(self) -> None:
+        """Skills list from LLM exceeding _MAX_EXTRACTED_SKILLS is truncated."""
+        import json
+
+        from app.services.job_extraction import _MAX_EXTRACTED_SKILLS
+
+        skills = [
+            {
+                "skill_name": f"Skill{i}",
+                "skill_type": "Hard",
+                "is_required": True,
+                "years_requested": None,
+            }
+            for i in range(_MAX_EXTRACTED_SKILLS + 50)
+        ]
+        response = json.dumps({"job_title": "Engineer", "extracted_skills": skills})
+        result = _parse_extraction_response(response)
+
+        assert len(result["extracted_skills"]) == _MAX_EXTRACTED_SKILLS
+
+    def test_parse_validates_field_types_via_pydantic(self) -> None:
+        """Invalid field types (e.g., list for job_title) trigger fallback."""
+        response = (
+            '{"job_title": ["not", "a", "string"], '
+            '"company_name": 12345, '
+            '"extracted_skills": []}'
+        )
+        result = _parse_extraction_response(response)
+
+        # Should fall back to basic extraction (null fields) because
+        # Pydantic validation rejects the invalid types
+        assert result["job_title"] is None
+        assert result["extracted_skills"] == []
 
 
 # =============================================================================
