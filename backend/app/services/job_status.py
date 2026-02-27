@@ -15,12 +15,14 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
 
+from app.core.errors import APIError
+
 # =============================================================================
 # Exceptions
 # =============================================================================
 
 
-class InvalidStatusTransitionError(Exception):
+class InvalidStatusTransitionError(APIError):
     """Raised when attempting an invalid status transition.
 
     REQ-003 §6.1: Only valid transitions are allowed.
@@ -44,8 +46,12 @@ class InvalidStatusTransitionError(Exception):
         self.valid_transitions = valid_transitions
         valid_names = [s.value for s in valid_transitions]
         super().__init__(
-            f"Cannot transition from {current_status.value} to {target_status.value}. "
-            f"Valid transitions: {valid_names or 'none (terminal state)'}"
+            code="INVALID_STATUS_TRANSITION",
+            message=(
+                f"Cannot transition from {current_status.value} to {target_status.value}. "
+                f"Valid transitions: {valid_names or 'none (terminal state)'}"
+            ),
+            status_code=422,
         )
 
 

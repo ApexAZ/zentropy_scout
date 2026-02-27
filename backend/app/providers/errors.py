@@ -8,6 +8,8 @@ WHY SEPARATE ERROR CLASSES:
 - Provider-agnostic error handling (adapters map to these)
 """
 
+from app.core.errors import APIError
+
 __all__ = [
     "ProviderError",
     "RateLimitError",
@@ -19,14 +21,19 @@ __all__ = [
 ]
 
 
-class ProviderError(Exception):
+class ProviderError(APIError):
     """Base class for all provider errors.
 
     All provider-specific exceptions should inherit from this class,
     allowing callers to catch all provider errors with a single handler.
     """
 
-    pass
+    def __init__(self, message: str = "") -> None:
+        super().__init__(
+            code="PROVIDER_ERROR",
+            message=message,
+            status_code=502,
+        )
 
 
 class RateLimitError(ProviderError):

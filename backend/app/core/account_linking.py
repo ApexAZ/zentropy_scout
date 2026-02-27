@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import APIError
 from app.models.user import User
 from app.repositories.account_repository import AccountRepository
 from app.repositories.user_repository import UserRepository
@@ -22,12 +23,19 @@ from app.repositories.user_repository import UserRepository
 logger = logging.getLogger(__name__)
 
 
-class AccountLinkingBlockedError(Exception):
+class AccountLinkingBlockedError(APIError):
     """Raised when account linking is blocked by email verification rules.
 
     Pre-hijack defense: an account with the same email exists but one
     or both sides haven't verified the email, so linking is unsafe.
     """
+
+    def __init__(self, message: str = "") -> None:
+        super().__init__(
+            code="ACCOUNT_LINKING_BLOCKED",
+            message=message,
+            status_code=409,
+        )
 
 
 async def find_or_create_user_for_oauth(

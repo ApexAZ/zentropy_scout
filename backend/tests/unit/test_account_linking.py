@@ -175,6 +175,17 @@ class TestPreHijackDefense:
         assert user.email_verified is None
 
 
+class TestAccountLinkingBlockedErrorAttributes:
+    """AccountLinkingBlockedError API error attributes."""
+
+    def test_has_api_error_attributes(self) -> None:
+        """AccountLinkingBlockedError should have code and status_code for API error handling."""
+        error = AccountLinkingBlockedError("email verification failed")
+        assert error.code == "ACCOUNT_LINKING_BLOCKED"
+        assert error.status_code == 409
+        assert error.message == "email verification failed"
+
+
 class TestReturningUser:
     """Test returning user who already has an account for this provider."""
 

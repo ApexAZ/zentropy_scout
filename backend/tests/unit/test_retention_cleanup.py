@@ -24,6 +24,7 @@ from app.models.resume import JobVariant, SubmittedResumePDF
 from app.services.retention_cleanup import (
     AllCleanupResult,
     ArchivedRecordsCleanupResult,
+    CleanupError,
     OrphanPdfCleanupResult,
     cleanup_archived_records,
     cleanup_expired_jobs,
@@ -922,3 +923,19 @@ class TestRunAllCleanups:
         assert result.resolved_change_flags >= 1
         assert result.archived_job_variants >= 1
         assert result.expired_jobs >= 1
+
+
+# =============================================================================
+# CleanupError API Attributes
+# =============================================================================
+
+
+class TestCleanupError:
+    """CleanupError should integrate with API error handling."""
+
+    def test_cleanup_error_has_api_error_attributes(self) -> None:
+        """CleanupError should have code and status_code for API error handling."""
+        error = CleanupError("database failure")
+        assert error.code == "CLEANUP_ERROR"
+        assert error.status_code == 500
+        assert error.message == "database failure"

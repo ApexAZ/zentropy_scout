@@ -20,6 +20,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import APIError
+
 logger = logging.getLogger(__name__)
 
 
@@ -70,8 +72,15 @@ class AllCleanupResult:
     expired_jobs: int
 
 
-class CleanupError(Exception):
+class CleanupError(APIError):
     """Raised when a cleanup operation fails at the database level."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            code="CLEANUP_ERROR",
+            message=message,
+            status_code=500,
+        )
 
 
 async def cleanup_orphan_pdfs(db: AsyncSession) -> OrphanPdfCleanupResult:

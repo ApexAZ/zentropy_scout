@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from app.core.errors import APIError
+
 # =============================================================================
 # Enums
 # =============================================================================
@@ -144,7 +146,7 @@ class ProcessingMetadata:
 # =============================================================================
 
 
-class SourceError(Exception):
+class SourceError(APIError):
     """Exception for job source adapter failures.
 
     REQ-007 §6.7: Raised when a source API fails.
@@ -170,10 +172,14 @@ class SourceError(Exception):
             message: Human-readable error description.
             rate_limit_info: Optional retry information.
         """
-        super().__init__(message)
         self.source_name = source_name
         self.error_type = error_type
         self.rate_limit_info = rate_limit_info
+        super().__init__(
+            code="SOURCE_ERROR",
+            message=message,
+            status_code=502,
+        )
 
 
 # =============================================================================

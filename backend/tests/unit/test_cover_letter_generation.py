@@ -340,3 +340,10 @@ class TestErrorHandling:
         """CoverLetterGenerationError preserves the error message when raised."""
         with pytest.raises(CoverLetterGenerationError, match="test error"):
             raise CoverLetterGenerationError("test error")
+
+    def test_generation_error_has_api_error_attributes(self) -> None:
+        """CoverLetterGenerationError should have code and status_code for API error handling."""
+        error = CoverLetterGenerationError("generation failed")
+        assert error.code == "COVER_LETTER_GENERATION_ERROR"
+        assert error.status_code == 500
+        assert error.message == "generation failed"

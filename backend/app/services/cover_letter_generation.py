@@ -17,6 +17,7 @@ import logging
 import re
 from dataclasses import dataclass
 
+from app.core.errors import APIError
 from app.prompts.ghostwriter import (
     COVER_LETTER_SYSTEM_PROMPT,
     build_cover_letter_prompt,
@@ -33,13 +34,18 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class CoverLetterGenerationError(Exception):
+class CoverLetterGenerationError(APIError):
     """Error during cover letter generation.
 
     Raised when the LLM provider fails or returns an unusable response.
     """
 
-    pass
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            code="COVER_LETTER_GENERATION_ERROR",
+            message=message,
+            status_code=500,
+        )
 
 
 @dataclass

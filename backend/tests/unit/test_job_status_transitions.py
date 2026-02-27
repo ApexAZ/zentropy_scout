@@ -233,6 +233,17 @@ class TestTransitionStatus:
         error = exc_info.value
         assert error.valid_transitions == [JobPostingStatus.EXPIRED]
 
+    def test_error_has_api_error_attributes(self) -> None:
+        """InvalidStatusTransitionError should have code and status_code for API error handling."""
+        with pytest.raises(InvalidStatusTransitionError) as exc_info:
+            transition_status(
+                current=JobPostingStatus.EXPIRED,
+                target=JobPostingStatus.APPLIED,
+            )
+        error = exc_info.value
+        assert error.code == "INVALID_STATUS_TRANSITION"
+        assert error.status_code == 422
+
 
 # =============================================================================
 # String Conversion Tests

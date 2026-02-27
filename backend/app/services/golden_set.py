@@ -16,17 +16,29 @@ Usage:
 """
 
 import json
+import logging
 from pathlib import Path
 
 from pydantic import BaseModel, Field, model_validator
+
+from app.core.errors import APIError
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Custom Exception
 # =============================================================================
 
 
-class GoldenSetValidationError(Exception):
+class GoldenSetValidationError(APIError):
     """Raised when golden set file is invalid or cannot be loaded."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            code="GOLDEN_SET_VALIDATION_ERROR",
+            message=message,
+            status_code=500,
+        )
 
 
 # =============================================================================
@@ -167,14 +179,16 @@ def load_golden_set(file_path: Path) -> GoldenSet:
     """
     # Check file exists
     if not file_path.exists():
-        raise GoldenSetValidationError(f"Golden set file not found: {file_path}")
+        logger.error("Golden set file not found: %s", file_path)
+        raise GoldenSetValidationError("Golden set file could not be loaded")
 
     # Load and parse JSON
     try:
         content = file_path.read_text()
         data = json.loads(content)
     except json.JSONDecodeError as e:
-        raise GoldenSetValidationError(f"Invalid JSON in golden set file: {e}") from e
+        logger.error("Invalid JSON in golden set file: %s", e)
+        raise GoldenSetValidationError("Golden set file contains invalid JSON") from e
 
     # Validate required fields
     if "metadata" not in data:
@@ -190,4 +204,5 @@ def load_golden_set(file_path: Path) -> GoldenSet:
     try:
         return GoldenSet(**data)
     except ValueError as e:
-        raise GoldenSetValidationError(f"Golden set validation failed: {e}") from e
+        logger.error("Golden set validation failed: %s", e)
+        raise GoldenSetValidationError("Golden set validation failed") from e

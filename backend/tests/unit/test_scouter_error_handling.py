@@ -60,6 +60,16 @@ class TestSourceError:
         assert error.rate_limit_info is not None
         assert error.rate_limit_info.retry_after_seconds == 60
 
+    def test_has_api_error_attributes(self) -> None:
+        """SourceError should have code and status_code for API error handling."""
+        error = SourceError(
+            source_name="Adzuna",
+            error_type=SourceErrorType.API_DOWN,
+            message="Connection refused",
+        )
+        assert error.code == "SOURCE_ERROR"
+        assert error.status_code == 502
+
 
 # =============================================================================
 # Error Retry Classification Tests

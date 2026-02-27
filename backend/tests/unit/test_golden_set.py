@@ -285,7 +285,7 @@ class TestLoadGoldenSet:
 
     def test_load_missing_file_raises_error(self) -> None:
         """Should raise error for missing file."""
-        with pytest.raises(GoldenSetValidationError, match="not found"):
+        with pytest.raises(GoldenSetValidationError, match="could not be loaded"):
             load_golden_set(Path("/nonexistent/path/golden_set.json"))
 
     def test_load_invalid_json_raises_error(self, tmp_path: Path) -> None:
@@ -293,7 +293,7 @@ class TestLoadGoldenSet:
         file_path = tmp_path / "invalid.json"
         file_path.write_text("{ invalid json }")
 
-        with pytest.raises(GoldenSetValidationError, match="Invalid JSON"):
+        with pytest.raises(GoldenSetValidationError, match="invalid JSON"):
             load_golden_set(file_path)
 
     def test_load_missing_metadata_raises_error(self, tmp_path: Path) -> None:
@@ -314,6 +314,13 @@ class TestLoadGoldenSet:
         with pytest.raises(GoldenSetValidationError, match="entries"):
             load_golden_set(file_path)
 
+    def test_validation_error_has_api_error_attributes(self) -> None:
+        """GoldenSetValidationError should have code and status_code for API error handling."""
+        error = GoldenSetValidationError("bad file")
+        assert error.code == "GOLDEN_SET_VALIDATION_ERROR"
+        assert error.status_code == 500
+        assert error.message == "bad file"
+
     def test_load_invalid_entry_raises_error(self, tmp_path: Path) -> None:
         """Should raise error for invalid entry data."""
         data = {
@@ -331,5 +338,5 @@ class TestLoadGoldenSet:
         file_path = tmp_path / "invalid_entry.json"
         file_path.write_text(json.dumps(data))
 
-        with pytest.raises(GoldenSetValidationError, match="validation"):
+        with pytest.raises(GoldenSetValidationError, match="validation failed"):
             load_golden_set(file_path)
