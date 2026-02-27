@@ -90,7 +90,7 @@ async def oauth_client(
     settings.google_client_secret = original_google_secret
     settings.linkedin_client_id = original_linkedin_id
     settings.linkedin_client_secret = original_linkedin_secret
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_db, None)
 
 
 # ===================================================================

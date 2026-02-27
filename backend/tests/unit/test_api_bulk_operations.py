@@ -50,7 +50,7 @@ async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_current_user_id, None)
 
 
 @pytest.fixture

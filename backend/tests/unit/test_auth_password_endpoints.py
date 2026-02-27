@@ -83,7 +83,7 @@ async def password_client(
 
     settings.auth_enabled = original_auth_enabled
     settings.auth_secret = original_auth_secret
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_db, None)
 
 
 @pytest_asyncio.fixture
@@ -122,7 +122,7 @@ async def auth_password_client(
 
     settings.auth_enabled = original_auth_enabled
     settings.auth_secret = original_auth_secret
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_db, None)
 
 
 # ===================================================================
