@@ -10,11 +10,14 @@ Tests verify:
 - Response formatting
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from app.agents.chat import (
     classify_intent,
     create_chat_graph,
+    delegate_ghostwriter,
     delegate_onboarding,
     format_response,
     needs_clarification,
@@ -23,6 +26,7 @@ from app.agents.chat import (
     select_tools,
 )
 from app.agents.state import ChatAgentState
+from app.core.errors import APIError, NotFoundError, ValidationError
 
 # =============================================================================
 # Intent Classification Tests (§4.3)
@@ -844,3 +848,126 @@ class TestDelegateOnboarding:
         assert tool_result["tool"] == "invoke_onboarding"
         assert tool_result["result"]["status"] == "redirected"
         assert tool_result["error"] is None
+
+
+# =============================================================================
+# Delegate Ghostwriter Exception Handling Tests (§12 — Audit remediation)
+# =============================================================================
+
+
+_CONTENT_GEN_SERVICE_PATH = (
+    "app.services.content_generation_service.ContentGenerationService"
+)
+
+
+def _make_ghostwriter_state(target_job_id: str = "job-789") -> ChatAgentState:
+    """Build a ChatAgentState with a target_job_id for ghostwriter delegation."""
+    return {
+        "user_id": "user-123",
+        "persona_id": "persona-456",
+        "messages": [],
+        "current_message": "Draft materials for job 789",
+        "tool_calls": [],
+        "tool_results": [],
+        "next_action": None,
+        "requires_human_input": False,
+        "checkpoint_reason": None,
+        "classified_intent": None,
+        "target_job_id": target_job_id,
+    }
+
+
+class TestDelegateGhostwriterExceptionHandling:
+    """Tests for differentiated exception handling in delegate_ghostwriter.
+
+    §12: Replace bare 'except Exception' with specific handlers so users
+    receive actionable error messages instead of a generic 'try again'.
+    """
+
+    @pytest.mark.asyncio
+    async def test_not_found_error_returns_not_found_message(self) -> None:
+        """NotFoundError should produce a 'not found' error message."""
+        state = _make_ghostwriter_state()
+        mock_service = AsyncMock()
+        mock_service.generate.side_effect = NotFoundError("Persona", "persona-456")
+
+        with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
+            result = await delegate_ghostwriter(state)
+
+        error_msg = result["tool_results"][0]["error"]
+        assert error_msg is not None
+        assert "not found" in error_msg.lower()
+
+    @pytest.mark.asyncio
+    async def test_validation_error_returns_validation_message(self) -> None:
+        """ValidationError should forward the specific validation message."""
+        state = _make_ghostwriter_state()
+        mock_service = AsyncMock()
+        mock_service.generate.side_effect = ValidationError("persona_id is required")
+
+        with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
+            result = await delegate_ghostwriter(state)
+
+        error_msg = result["tool_results"][0]["error"]
+        assert error_msg is not None
+        assert "persona_id is required" in error_msg
+
+    @pytest.mark.asyncio
+    async def test_api_error_forwards_error_message(self) -> None:
+        """APIError subclasses should forward their message."""
+        state = _make_ghostwriter_state()
+        mock_service = AsyncMock()
+        mock_service.generate.side_effect = APIError(
+            code="COVER_LETTER_GENERATION_ERROR",
+            message="Cover letter generation failed due to missing data",
+            status_code=500,
+        )
+
+        with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
+            result = await delegate_ghostwriter(state)
+
+        error_msg = result["tool_results"][0]["error"]
+        assert error_msg is not None
+        assert "Cover letter generation failed due to missing data" in error_msg
+
+    @pytest.mark.asyncio
+    async def test_unexpected_exception_returns_generic_try_again(self) -> None:
+        """Unexpected Exception should produce generic 'try again' message."""
+        state = _make_ghostwriter_state()
+        mock_service = AsyncMock()
+        mock_service.generate.side_effect = RuntimeError(
+            "unexpected db connection lost"
+        )
+
+        with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
+            result = await delegate_ghostwriter(state)
+
+        error_msg = result["tool_results"][0]["error"]
+        assert error_msg is not None
+        assert "try again" in error_msg.lower()
+        # Should NOT leak the internal error message
+        assert "db connection" not in error_msg.lower()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "error",
+        [
+            NotFoundError("Job", "job-789"),
+            ValidationError("bad input"),
+            APIError(code="TEST", message="test error", status_code=500),
+            RuntimeError("boom"),
+        ],
+        ids=["not_found", "validation", "api_error", "runtime"],
+    )
+    async def test_error_path_sets_result_to_none(self, error: Exception) -> None:
+        """All error paths should set result to None (no partial data)."""
+        state = _make_ghostwriter_state()
+        mock_service = AsyncMock()
+        mock_service.generate.side_effect = error
+
+        with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
+            result = await delegate_ghostwriter(state)
+
+        tool_result = result["tool_results"][0]
+        assert tool_result["result"] is None
+        assert tool_result["error"] is not None

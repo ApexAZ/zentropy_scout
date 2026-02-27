@@ -43,6 +43,7 @@ from typing import Any
 from langgraph.graph import END, StateGraph
 
 from app.agents.state import ChatAgentState, CheckpointReason, ClassifiedIntent
+from app.core.errors import APIError, NotFoundError, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,8 @@ CONFIDENCE_THRESHOLD = 0.7
 
 # Defense-in-depth: bound regex input to prevent ReDoS on unbounded messages
 _MAX_REGEX_INPUT_LENGTH = 2000
+
+_TOOL_GHOSTWRITER = "invoke_ghostwriter"
 
 
 # =============================================================================
@@ -705,7 +708,7 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
     if not target_job_id:
         new_state["tool_results"] = [
             {
-                "tool": "invoke_ghostwriter",
+                "tool": _TOOL_GHOSTWRITER,
                 "result": None,
                 "error": "No target job specified for material generation.",
             }
@@ -721,7 +724,7 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
         )
         new_state["tool_results"] = [
             {
-                "tool": "invoke_ghostwriter",
+                "tool": _TOOL_GHOSTWRITER,
                 "result": {
                     "status": "completed",
                     "has_cover_letter": result.cover_letter is not None,
@@ -729,11 +732,40 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
                 "error": None,
             }
         ]
-    except Exception:
-        logger.exception("Content generation failed")
+    # SECURITY: e.message is safe to forward — NotFoundError/ValidationError/APIError
+    # messages are developer-authored, user-facing strings (no paths, SQL, or stack traces).
+    except NotFoundError as e:
+        logger.warning("Content generation resource not found: %s", e.message)
         new_state["tool_results"] = [
             {
-                "tool": "invoke_ghostwriter",
+                "tool": _TOOL_GHOSTWRITER,
+                "result": None,
+                "error": e.message,
+            }
+        ]
+    except ValidationError as e:
+        logger.warning("Content generation validation error: %s", e.message)
+        new_state["tool_results"] = [
+            {
+                "tool": _TOOL_GHOSTWRITER,
+                "result": None,
+                "error": e.message,
+            }
+        ]
+    except APIError as e:
+        logger.error("Content generation API error: %s", e.message)
+        new_state["tool_results"] = [
+            {
+                "tool": _TOOL_GHOSTWRITER,
+                "result": None,
+                "error": e.message,
+            }
+        ]
+    except Exception:
+        logger.exception("Content generation failed unexpectedly")
+        new_state["tool_results"] = [
+            {
+                "tool": _TOOL_GHOSTWRITER,
                 "result": None,
                 "error": "Material generation could not be completed. Please try again.",
             }
