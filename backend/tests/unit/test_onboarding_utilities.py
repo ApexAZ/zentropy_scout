@@ -450,3 +450,34 @@ class TestPromptTemplates:
         result = get_voice_profile_prompt(transcript)
         assert "{transcript}" not in result
         assert "remote" in result.lower() or len(result) > 100
+
+
+# =============================================================================
+# Input Truncation Tests (Security — §5)
+# =============================================================================
+
+
+class TestInputTruncation:
+    """Tests that regex-matched functions truncate input to prevent ReDoS."""
+
+    def test_is_update_request_ignores_pattern_beyond_2000_chars(self) -> None:
+        """is_update_request truncates so patterns beyond 2000 chars are ignored."""
+        padding = "x" * 2000
+        message = padding + " update my profile"
+        assert is_update_request(message) is False
+
+    def test_is_update_request_matches_within_2000_chars(self) -> None:
+        """is_update_request still matches patterns within the first 2000 chars."""
+        message = "update my profile" + " x" * 1000
+        assert is_update_request(message) is True
+
+    def test_detect_update_section_ignores_pattern_beyond_2000_chars(self) -> None:
+        """detect_update_section truncates so patterns beyond 2000 chars are ignored."""
+        padding = "x" * 2000
+        message = padding + " update my skills"
+        assert detect_update_section(message) is None
+
+    def test_detect_update_section_matches_within_2000_chars(self) -> None:
+        """detect_update_section still matches patterns within the first 2000 chars."""
+        message = "update my skills" + " x" * 1000
+        assert detect_update_section(message) == "skills"

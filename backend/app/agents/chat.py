@@ -146,6 +146,9 @@ SUBGRAPH_INTENTS = {"draft_materials", "onboarding_request"}
 # Confidence threshold for routing (below this, ask for clarification)
 CONFIDENCE_THRESHOLD = 0.7
 
+# Defense-in-depth: bound regex input to prevent ReDoS on unbounded messages
+_MAX_REGEX_INPUT_LENGTH = 2000
+
 
 # =============================================================================
 # Intent Classification (§4.3)
@@ -169,7 +172,8 @@ def classify_intent(state: ChatAgentState) -> ChatAgentState:
 
     Uses pattern matching to classify user messages into known intent types.
     Returns a ClassifiedIntent with type, confidence, and whether tools are
-    required.
+    required. Messages are truncated to _MAX_REGEX_INPUT_LENGTH characters
+    before matching (ReDoS defense-in-depth).
 
     Args:
         state: Current chat agent state with current_message set.
@@ -178,7 +182,7 @@ def classify_intent(state: ChatAgentState) -> ChatAgentState:
         Updated state with classified_intent populated.
     """
     message = state.get("current_message") or ""
-    message = message.strip()
+    message = message.strip()[:_MAX_REGEX_INPUT_LENGTH]
 
     best_intent: ClassifiedIntent = {
         "type": "unknown",

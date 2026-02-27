@@ -688,3 +688,64 @@ class TestGraphStructure:
         compiled = graph.compile()
 
         assert compiled is not None
+
+
+# =============================================================================
+# Input Truncation Tests (Security — §5)
+# =============================================================================
+
+
+class TestInputTruncation:
+    """Tests that regex-matched functions truncate input to prevent ReDoS."""
+
+    def test_classify_intent_ignores_pattern_beyond_2000_chars(self) -> None:
+        """classify_intent truncates message so patterns beyond 2000 chars are ignored."""
+        # Place a valid pattern ("show me jobs") only after the 2000-char boundary
+        padding = "x" * 2000
+        message = padding + " show me jobs"
+
+        state: ChatAgentState = {
+            "user_id": "user-123",
+            "persona_id": "persona-456",
+            "messages": [],
+            "current_message": message,
+            "tool_calls": [],
+            "tool_results": [],
+            "next_action": None,
+            "requires_human_input": False,
+            "checkpoint_reason": None,
+            "classified_intent": None,
+            "target_job_id": None,
+        }
+
+        result = classify_intent(state)
+        intent = result["classified_intent"]
+
+        # Pattern is beyond 2000 chars — should NOT match list_jobs
+        assert intent is not None
+        assert intent["type"] == "unknown"
+
+    def test_classify_intent_matches_pattern_within_2000_chars(self) -> None:
+        """classify_intent still matches patterns within the first 2000 chars."""
+        # Place a valid pattern at the start, with padding after
+        message = "show me jobs" + " x" * 1000
+
+        state: ChatAgentState = {
+            "user_id": "user-123",
+            "persona_id": "persona-456",
+            "messages": [],
+            "current_message": message,
+            "tool_calls": [],
+            "tool_results": [],
+            "next_action": None,
+            "requires_human_input": False,
+            "checkpoint_reason": None,
+            "classified_intent": None,
+            "target_job_id": None,
+        }
+
+        result = classify_intent(state)
+        intent = result["classified_intent"]
+
+        assert intent is not None
+        assert intent["type"] == "list_jobs"

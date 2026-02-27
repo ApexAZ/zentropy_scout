@@ -27,6 +27,9 @@ Trigger Conditions (§8.1):
 import re
 from enum import Enum
 
+# Defense-in-depth: bound regex input to prevent ReDoS on unbounded messages
+_MAX_REGEX_INPUT_LENGTH = 2000
+
 # =============================================================================
 # Trigger Types (§8.1)
 # =============================================================================
@@ -132,7 +135,9 @@ def is_draft_request(message: str) -> bool:
     """Check if user message is a manual draft request.
 
     REQ-007 §8.1: Manual request triggers when user explicitly asks to
-    draft materials (e.g., "Draft materials for this job").
+    draft materials (e.g., "Draft materials for this job"). Messages are
+    truncated to _MAX_REGEX_INPUT_LENGTH characters before matching
+    (ReDoS defense-in-depth).
 
     Args:
         message: User's message text.
@@ -143,6 +148,7 @@ def is_draft_request(message: str) -> bool:
     if not message:
         return False
 
+    message = message[:_MAX_REGEX_INPUT_LENGTH]
     return any(pattern.search(message) for pattern in DRAFT_REQUEST_PATTERNS)
 
 
@@ -150,7 +156,9 @@ def is_regeneration_request(message: str) -> bool:
     """Check if user message is a regeneration request.
 
     REQ-007 §8.1: Regeneration triggers when user asks to try a different
-    approach (e.g., "Try a different approach", "Regenerate").
+    approach (e.g., "Try a different approach", "Regenerate"). Messages are
+    truncated to _MAX_REGEX_INPUT_LENGTH characters before matching
+    (ReDoS defense-in-depth).
 
     Args:
         message: User's message text.
@@ -161,4 +169,5 @@ def is_regeneration_request(message: str) -> bool:
     if not message:
         return False
 
+    message = message[:_MAX_REGEX_INPUT_LENGTH]
     return any(pattern.search(message) for pattern in REGENERATION_PATTERNS)

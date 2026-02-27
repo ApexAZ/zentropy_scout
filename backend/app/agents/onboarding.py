@@ -23,6 +23,9 @@ from app.core.llm_sanitization import sanitize_llm_input
 
 _NO_DATA_COLLECTED_MSG = "No information collected yet."
 
+# Defense-in-depth: bound regex input to prevent ReDoS on unbounded messages
+_MAX_REGEX_INPUT_LENGTH = 2000
+
 # Patterns for detecting update requests (§5.1)
 UPDATE_REQUEST_PATTERNS = [
     re.compile(r"update\s+(?:my\s+)?(?:profile|info)", re.IGNORECASE),
@@ -382,12 +385,16 @@ def is_update_request(message: str) -> bool:
     - "Add a new skill"
     - "Change my salary requirement"
 
+    Messages are truncated to _MAX_REGEX_INPUT_LENGTH characters before
+    matching (ReDoS defense-in-depth).
+
     Args:
         message: User's message text.
 
     Returns:
         True if message indicates an update request.
     """
+    message = message[:_MAX_REGEX_INPUT_LENGTH]
     return any(pattern.search(message) for pattern in UPDATE_REQUEST_PATTERNS)
 
 
@@ -400,7 +407,8 @@ def detect_update_section(message: str) -> str | None:
     """Detect which persona section the user wants to update.
 
     Analyzes the user's message to determine which section of their persona
-    they want to update.
+    they want to update. Messages are truncated to _MAX_REGEX_INPUT_LENGTH
+    characters before matching (ReDoS defense-in-depth).
 
     Examples:
         - "I got a new certification" -> "certifications"
@@ -413,6 +421,7 @@ def detect_update_section(message: str) -> str | None:
     Returns:
         Section name if detected, None otherwise.
     """
+    message = message[:_MAX_REGEX_INPUT_LENGTH]
     for pattern, section in SECTION_DETECTION_PATTERNS:
         if pattern.search(message):
             return section

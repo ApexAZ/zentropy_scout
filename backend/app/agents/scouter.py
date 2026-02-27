@@ -40,6 +40,9 @@ from typing import Any
 # WHY: These patterns detect user intent to manually trigger job discovery.
 # They're case-insensitive and match common variations of job search requests.
 # Patterns are ordered by specificity (more specific first).
+# Defense-in-depth: bound regex input to prevent ReDoS on unbounded messages
+_MAX_REGEX_INPUT_LENGTH = 2000
+
 MANUAL_REFRESH_PATTERNS = [
     # Direct job search requests
     re.compile(r"find\s+(?:new\s+)?(?:me\s+)?(?:some\s+)?jobs?", re.IGNORECASE),
@@ -85,7 +88,9 @@ def is_manual_refresh_request(message: str) -> bool:
     """Check if user message is a manual job refresh request.
 
     REQ-007 §6.1: Manual refresh triggers when user explicitly requests
-    job discovery (e.g., "Find new jobs", "Refresh my job feed").
+    job discovery (e.g., "Find new jobs", "Refresh my job feed"). Messages
+    are truncated to _MAX_REGEX_INPUT_LENGTH characters before matching
+    (ReDoS defense-in-depth).
 
     Args:
         message: User's message text.
@@ -96,6 +101,7 @@ def is_manual_refresh_request(message: str) -> bool:
     if not message:
         return False
 
+    message = message[:_MAX_REGEX_INPUT_LENGTH]
     return any(pattern.search(message) for pattern in MANUAL_REFRESH_PATTERNS)
 
 

@@ -179,3 +179,42 @@ class TestIsRegenerationRequest:
         from app.agents.ghostwriter import is_regeneration_request
 
         assert is_regeneration_request("") is False
+
+
+# =============================================================================
+# Input Truncation Tests (Security — §5)
+# =============================================================================
+
+
+class TestInputTruncation:
+    """Tests that regex-matched functions truncate input to prevent ReDoS."""
+
+    def test_is_draft_request_ignores_pattern_beyond_2000_chars(self) -> None:
+        """is_draft_request truncates so patterns beyond 2000 chars are ignored."""
+        from app.agents.ghostwriter import is_draft_request
+
+        padding = "x" * 2000
+        message = padding + " draft a resume"
+        assert is_draft_request(message) is False
+
+    def test_is_draft_request_matches_within_2000_chars(self) -> None:
+        """is_draft_request still matches patterns within the first 2000 chars."""
+        from app.agents.ghostwriter import is_draft_request
+
+        message = "draft a resume" + " x" * 1000
+        assert is_draft_request(message) is True
+
+    def test_is_regeneration_request_ignores_pattern_beyond_2000_chars(self) -> None:
+        """is_regeneration_request truncates so patterns beyond 2000 chars are ignored."""
+        from app.agents.ghostwriter import is_regeneration_request
+
+        padding = "x" * 2000
+        message = padding + " try again"
+        assert is_regeneration_request(message) is False
+
+    def test_is_regeneration_request_matches_within_2000_chars(self) -> None:
+        """is_regeneration_request still matches patterns within the first 2000 chars."""
+        from app.agents.ghostwriter import is_regeneration_request
+
+        message = "try again" + " x" * 1000
+        assert is_regeneration_request(message) is True

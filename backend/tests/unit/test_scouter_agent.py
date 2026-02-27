@@ -125,6 +125,25 @@ class TestTriggerConditions:
         assert not is_source_added_trigger(previous_sources=[], current_sources=[])
 
 
+class TestInputTruncation:
+    """Tests that regex-matched functions truncate input to prevent ReDoS."""
+
+    def test_is_manual_refresh_request_ignores_pattern_beyond_2000_chars(self) -> None:
+        """is_manual_refresh_request truncates so patterns beyond 2000 chars are ignored."""
+        from app.agents.scouter import is_manual_refresh_request
+
+        padding = "x" * 2000
+        message = padding + " find new jobs"
+        assert is_manual_refresh_request(message) is False
+
+    def test_is_manual_refresh_request_matches_within_2000_chars(self) -> None:
+        """is_manual_refresh_request still matches patterns within the first 2000 chars."""
+        from app.agents.scouter import is_manual_refresh_request
+
+        message = "find new jobs" + " x" * 1000
+        assert is_manual_refresh_request(message) is True
+
+
 class TestManualRefreshPatterns:
     """Tests for the MANUAL_REFRESH_PATTERNS regex patterns.
 
