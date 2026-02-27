@@ -13,10 +13,17 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
+from app.core.errors import ValidationError
 from app.schemas.ingest import ExtractedJobData
 
 # Default TTL for preview tokens (15 minutes)
 DEFAULT_TOKEN_TTL_MINUTES = 15
+
+# Maximum total tokens in the store (prevents unbounded memory growth)
+_MAX_STORE_SIZE = 1000
+
+# Maximum tokens per user (prevents single user from monopolizing store)
+_MAX_PER_USER = 50
 
 
 @dataclass
@@ -53,14 +60,23 @@ class IngestTokenStore:
     - Testable with clear interface
     """
 
-    def __init__(self, ttl_minutes: int = DEFAULT_TOKEN_TTL_MINUTES) -> None:
+    def __init__(
+        self,
+        ttl_minutes: int = DEFAULT_TOKEN_TTL_MINUTES,
+        max_store_size: int = _MAX_STORE_SIZE,
+        max_per_user: int = _MAX_PER_USER,
+    ) -> None:
         """Initialize the token store.
 
         Args:
             ttl_minutes: Token time-to-live in minutes.
+            max_store_size: Maximum total tokens before rejection.
+            max_per_user: Maximum tokens per user before rejection.
         """
         self._store: dict[str, IngestPreviewData] = {}
         self._ttl_minutes = ttl_minutes
+        self._max_store_size = max_store_size
+        self._max_per_user = max_per_user
 
     def create(
         self,
@@ -81,7 +97,25 @@ class IngestTokenStore:
 
         Returns:
             Tuple of (token, expires_at).
+
+        Raises:
+            ValidationError: If global store capacity or per-user token
+                limit is exceeded.
         """
+        # Clean up expired tokens before checking capacity
+        self.cleanup_expired()
+
+        # Check global capacity
+        if len(self._store) >= self._max_store_size:
+            msg = "Token store at capacity"
+            raise ValidationError(msg)
+
+        # Check per-user cap
+        user_count = sum(1 for data in self._store.values() if data.user_id == user_id)
+        if user_count >= self._max_per_user:
+            msg = "Per-user token limit reached"
+            raise ValidationError(msg)
+
         token = str(uuid.uuid4())
         expires_at = datetime.now(UTC) + timedelta(minutes=self._ttl_minutes)
 
