@@ -65,7 +65,7 @@ curl -s "https://sonarcloud.io/api/hotspots/search?projectKey=ApexAZ_zentropy_sc
 | Dependabot | 0 |
 | Semgrep CI | success |
 | pip-audit + npm audit | success |
-| SonarCloud issues | 2 |
+| SonarCloud issues | 1 |
 | SonarCloud hotspots | 0 |
 
 ### Known/Expected Findings (Do NOT Triage)
@@ -76,11 +76,6 @@ These have been previously investigated and accepted. Only act if counts CHANGE.
   `chat.py:640` S7503 (async without await) — `delegate_onboarding` must be async
   for LangGraph `ainvoke()`. Suppressed via `# noqa: RUF029` for ruff. SonarCloud
   doesn't support inline suppression for Python.
-- **1 SonarCloud issue** (accepted — naming convention):
-  `embedding_cache.py:140` S116 (field naming) — `_CacheKey` is a private type alias
-  using PascalCase per PEP 8 convention. SonarCloud S116 does not distinguish type
-  aliases from data fields. Zero security or runtime impact.
-
 ---
 
 ## Phase 3: Gate Decision
