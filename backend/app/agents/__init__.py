@@ -1,26 +1,18 @@
-"""LangGraph agent definitions for Zentropy Scout.
+"""Agent definitions and utilities for Zentropy Scout.
 
 REQ-007 §3: LangGraph Framework
 
-This package contains all agent implementations following the API-mediated
-architecture (REQ-006 §2.3). Agents are internal API clients that call the
-API layer for all writes - they do NOT access the database directly.
-
-WHY LANGGRAPH (REQ-007 §3.1):
-    - HITL Checkpointing: Built-in state persistence for pause/resume
-    - Tool Calling: Native tool/function binding for API integration
-    - Streaming: Token-by-token streaming for responsive chat UX
-    - Sub-graphs: Agents can invoke other agents as nodes
-    - State Management: Typed state schemas with automatic serialization
+LangGraph is used for the Chat Agent only. Other agents (Onboarding,
+Ghostwriter, Scouter, Strategist) have been replaced by direct service
+calls in ``app.services``.
 
 Modules:
     base: Agent utilities and API client abstraction
-    state: State schemas for all agents (REQ-007 §3.2)
-    checkpoint: Checkpointing and HITL utilities (REQ-007 §3.3)
+    state: LangGraph state schemas for the Chat Agent (REQ-007 §3.2)
+    checkpoint: Checkpointer and graph config utilities (REQ-007 §3.3)
     chat: User-facing conversational interface (REQ-007 §4)
     onboarding: Post-onboarding update utilities (REQ-019 §5)
-    scouter: Job discovery and ingestion (REQ-007 §6)
-    ghostwriter: Resume/cover letter generation (REQ-007 §8)
+    ghostwriter: Draft/regeneration detection utilities (REQ-007 §8)
 """
 
 from app.agents.base import (
@@ -44,8 +36,6 @@ from app.agents.chat import (
 from app.agents.checkpoint import (
     create_checkpointer,
     create_graph_config,
-    request_human_input,
-    resume_from_checkpoint,
 )
 from app.agents.ghostwriter import (
     DRAFT_REQUEST_PATTERNS,
@@ -60,7 +50,6 @@ from app.agents.onboarding import (
     SECTIONS_REQUIRING_RESCORE,
     VOICE_PROFILE_DERIVATION_PROMPT,
     WORK_HISTORY_EXPANSION_PROMPT,
-    create_update_state,
     detect_update_section,
     format_gathered_data_summary,
     get_achievement_story_prompt,
@@ -68,7 +57,6 @@ from app.agents.onboarding import (
     get_update_completion_message,
     get_voice_profile_prompt,
     get_work_history_prompt,
-    is_post_onboarding_update,
     is_update_request,
     should_start_onboarding,
 )
@@ -95,8 +83,6 @@ __all__ = [
     # Checkpointing
     "create_checkpointer",
     "create_graph_config",
-    "request_human_input",
-    "resume_from_checkpoint",
     # State Schemas
     "BaseAgentState",
     "ChatAgentState",
@@ -115,7 +101,6 @@ __all__ = [
     "SECTIONS_REQUIRING_RESCORE",
     "VOICE_PROFILE_DERIVATION_PROMPT",
     "WORK_HISTORY_EXPANSION_PROMPT",
-    "create_update_state",
     "detect_update_section",
     "format_gathered_data_summary",
     "get_achievement_story_prompt",
@@ -123,7 +108,6 @@ __all__ = [
     "get_update_completion_message",
     "get_voice_profile_prompt",
     "get_work_history_prompt",
-    "is_post_onboarding_update",
     "is_update_request",
     "should_start_onboarding",
     # Ghostwriter

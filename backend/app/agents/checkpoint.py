@@ -1,34 +1,21 @@
-"""LangGraph checkpointing and HITL utilities.
+"""LangGraph checkpointing utilities for the Chat Agent.
 
-REQ-007 §3.3: Checkpointing & HITL
+REQ-007 §3.3: Checkpointing
 
 This module provides utilities for:
 - Creating checkpointers for state persistence
 - Configuring graph execution
-- Implementing Human-in-the-Loop (HITL) interrupt/resume patterns
 
 Checkpoint Storage:
-    MVP uses PostgreSQL for checkpoint storage via langgraph-checkpoint-postgres.
-    This integrates with the existing database infrastructure and keeps all
-    data in a single location for simpler backups and deployment.
-
-    For development/testing, MemorySaver can be used instead (no persistence).
-
-HITL Pattern:
-    Agents pause execution when human input is needed by setting:
-    - requires_human_input = True
-    - checkpoint_reason = <why paused>
-
-    The graph checkpoints automatically when requires_human_input is True.
-    To resume, call resume_from_checkpoint() with the user's response.
+    MVP uses MemorySaver (no persistence) for single-user local deployment.
+    PostgreSQL checkpointing will be enabled when multi-user support is added
+    (see feature backlog).
 """
 
 from typing import Any
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
-
-from app.agents.state import BaseAgentState, CheckpointReason
 
 
 def create_checkpointer() -> BaseCheckpointSaver:
@@ -106,106 +93,3 @@ def create_graph_config(
             "checkpoint_ns": checkpoint_ns,
         }
     }
-
-
-def request_human_input(
-    state: BaseAgentState,
-    *,
-    reason: CheckpointReason,
-    message: str,
-) -> BaseAgentState:
-    """Prepare state for HITL checkpoint.
-
-    Call this from a graph node when human input is needed. The graph
-    will checkpoint after this node returns, pausing execution until
-    resume_from_checkpoint() is called.
-
-    Args:
-        state: Current agent state.
-        reason: Why the graph is pausing (for context on resume).
-        message: Message to show the user (added to conversation).
-
-    Returns:
-        Updated state with HITL flags set and message added.
-
-    Example:
-        def approval_node(state: BaseAgentState) -> BaseAgentState:
-            if state.get("generated_resume"):
-                return request_human_input(
-                    state,
-                    reason=CheckpointReason.APPROVAL_NEEDED,
-                    message="Please review the generated resume. Reply 'approve' to continue.",
-                )
-            return state
-    """
-    # Copy state to avoid mutating input.
-    # Type ignore: dict() returns dict[str, Any] but we know it matches BaseAgentState
-    # structure since we're copying from a BaseAgentState. TypedDict doesn't support
-    # copy() or unpacking well, so dict() is the cleanest approach.
-    new_state: BaseAgentState = dict(state)  # type: ignore[assignment]
-
-    # Set HITL flags
-    new_state["requires_human_input"] = True
-    new_state["checkpoint_reason"] = reason.value
-
-    # Add assistant message to conversation
-    messages = list(state.get("messages", []))
-    messages.append(
-        {
-            "role": "assistant",
-            "content": message,
-        }
-    )
-    new_state["messages"] = messages
-
-    return new_state
-
-
-def resume_from_checkpoint(
-    state: BaseAgentState,
-    *,
-    user_response: str,
-) -> BaseAgentState:
-    """Prepare state for resuming after HITL checkpoint.
-
-    Call this with the loaded checkpoint state and user's response
-    before re-invoking the graph.
-
-    Args:
-        state: Checkpoint state loaded from storage.
-        user_response: User's response to the HITL prompt.
-
-    Returns:
-        Updated state ready for graph resumption.
-
-    Example:
-        # Load checkpoint
-        state = await checkpointer.aget(thread_id)
-
-        # Prepare for resume
-        state = resume_from_checkpoint(state, user_response="approve")
-
-        # Continue execution
-        result = await graph.ainvoke(state, config)
-    """
-    # Copy state to avoid mutating input (see request_human_input for rationale).
-    new_state: BaseAgentState = dict(state)  # type: ignore[assignment]
-
-    # Clear HITL flags
-    new_state["requires_human_input"] = False
-    new_state["checkpoint_reason"] = None
-
-    # Add user response to conversation
-    messages = list(state.get("messages", []))
-    messages.append(
-        {
-            "role": "user",
-            "content": user_response,
-        }
-    )
-    new_state["messages"] = messages
-
-    # Set current message for processing
-    new_state["current_message"] = user_response
-
-    return new_state

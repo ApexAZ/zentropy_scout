@@ -5,7 +5,6 @@ REQ-019 §5: Post-onboarding utility functions retained after graph deletion.
 These tests verify:
 - Trigger conditions (should_start_onboarding, is_update_request)
 - Update section detection (detect_update_section)
-- Update state creation (create_update_state, is_post_onboarding_update)
 - Embedding impact mapping (get_affected_embeddings, SECTIONS_REQUIRING_RESCORE)
 - Completion messages (get_update_completion_message)
 - Data summary formatting (format_gathered_data_summary)
@@ -19,7 +18,6 @@ from app.agents.onboarding import (
     SECTIONS_REQUIRING_RESCORE,
     VOICE_PROFILE_DERIVATION_PROMPT,
     WORK_HISTORY_EXPANSION_PROMPT,
-    create_update_state,
     detect_update_section,
     format_gathered_data_summary,
     get_achievement_story_prompt,
@@ -27,7 +25,6 @@ from app.agents.onboarding import (
     get_update_completion_message,
     get_voice_profile_prompt,
     get_work_history_prompt,
-    is_post_onboarding_update,
     is_update_request,
     should_start_onboarding,
 )
@@ -35,23 +32,6 @@ from app.agents.onboarding import (
 # =============================================================================
 # Test Helpers
 # =============================================================================
-
-
-_USER_ID = "user-123"
-_PERSONA_ID = "persona-456"
-
-
-def _make_update_state(**overrides: Any) -> dict[str, Any]:
-    """Create a minimal post-onboarding update state dict with overrides."""
-    base: dict[str, Any] = {
-        "user_id": _USER_ID,
-        "persona_id": _PERSONA_ID,
-        "current_step": "basic_info",
-        "gathered_data": {},
-        "is_partial_update": False,
-    }
-    base.update(overrides)
-    return base
 
 
 # =============================================================================
@@ -161,59 +141,6 @@ class TestUpdateSectionDetection:
     def test_case_insensitive(self) -> None:
         """Should detect update section regardless of case."""
         assert detect_update_section("UPDATE MY SKILLS") == "skills"
-
-
-# =============================================================================
-# Update State Management
-# =============================================================================
-
-
-class TestUpdateState:
-    """Tests for create_update_state and is_post_onboarding_update."""
-
-    def test_create_sets_current_step(self) -> None:
-        """Should create state with current_step set to target section."""
-        result = create_update_state(
-            section="skills",
-            user_id=_USER_ID,
-            persona_id=_PERSONA_ID,
-        )
-        assert result["current_step"] == "skills"
-        assert result["user_id"] == _USER_ID
-        assert result["persona_id"] == _PERSONA_ID
-
-    def test_create_sets_partial_update_flag(self) -> None:
-        """Should mark state as partial update (not full onboarding)."""
-        result = create_update_state(
-            section="certifications",
-            user_id=_USER_ID,
-            persona_id=_PERSONA_ID,
-        )
-        assert result["is_partial_update"] is True
-
-    def test_create_initializes_gathered_data(self) -> None:
-        """Should initialize gathered_data as empty dict."""
-        result = create_update_state(
-            section="skills",
-            user_id=_USER_ID,
-            persona_id=_PERSONA_ID,
-        )
-        assert result["gathered_data"] == {}
-
-    def test_is_post_onboarding_update_true_for_partial(self) -> None:
-        """Should return True when state indicates partial update."""
-        state = _make_update_state(is_partial_update=True)
-        assert is_post_onboarding_update(state) is True
-
-    def test_is_post_onboarding_update_false_for_full(self) -> None:
-        """Should return False for full onboarding flow."""
-        state = _make_update_state(is_partial_update=False)
-        assert is_post_onboarding_update(state) is False
-
-    def test_is_post_onboarding_update_false_when_not_set(self) -> None:
-        """Should return False when is_partial_update is not set."""
-        state: dict[str, Any] = {"user_id": _USER_ID}
-        assert is_post_onboarding_update(state) is False
 
 
 # =============================================================================

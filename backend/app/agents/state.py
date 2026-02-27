@@ -1,38 +1,29 @@
-"""LangGraph agent state schemas.
+"""LangGraph state schemas for the Chat Agent.
 
 REQ-007 §3: LangGraph Framework
 
-WHY LANGGRAPH:
-LangGraph is chosen for the agent framework because it provides:
+LangGraph is used for the Chat Agent, which is the only graph-based agent.
+Other agents (Onboarding, Ghostwriter, Scouter, Strategist) have been replaced
+by direct service calls — see ``app.services`` for those implementations.
 
-1. HITL Checkpointing - Built-in state persistence allows pausing and resuming
-   workflows when human input is needed (e.g., approving generated content,
-   clarifying requirements, handling errors).
+The Chat Agent uses LangGraph for:
 
-2. Tool Calling - Native tool/function binding integrates with the Claude API's
-   tool calling feature, allowing agents to invoke API endpoints as tools.
-
-3. Streaming - Token-by-token streaming support for chat responses, providing
+1. Streaming - Token-by-token streaming support for chat responses, providing
    responsive UX during generation.
 
-4. Sub-graphs - Agents can invoke other agents as nodes, enabling the Chat Agent
-   to delegate to specialized agents (Onboarding, Ghostwriter, etc.).
-
-5. State Management - Typed state schemas with automatic serialization ensure
+2. State Management - Typed state schemas with automatic serialization ensure
    consistent state across checkpoints and provide type safety.
 
-This module defines the state schemas used by all agents. Each agent extends
-BaseAgentState with agent-specific fields while maintaining compatibility with
-LangGraph's state management.
+3. Tool Calling - Native tool/function binding integrates with the Claude API's
+   tool calling feature, allowing the agent to invoke API endpoints as tools.
 
 Architecture:
     ┌─────────────────┐
-    │  BaseAgentState │  Common fields for all agents
+    │  BaseAgentState │  Common fields (user context, messages, control flow)
     └────────┬────────┘
              │
              ▼
-           Chat
-           State
+        ChatAgentState    Extends with classified_intent, target_job_id
 """
 
 from enum import Enum

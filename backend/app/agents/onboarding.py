@@ -428,44 +428,6 @@ def detect_update_section(message: str) -> str | None:
     return None
 
 
-def create_update_state(
-    section: str,
-    user_id: str,
-    persona_id: str,
-) -> dict[str, Any]:
-    """Create state for a single-section post-onboarding update.
-
-    Creates a state dict configured for partial update mode.
-
-    Args:
-        section: Section name to update (e.g., "skills", "certifications").
-        user_id: User's ID for tenant isolation.
-        persona_id: Persona ID being updated.
-
-    Returns:
-        State dict configured for partial update.
-    """
-    return {
-        "user_id": user_id,
-        "persona_id": persona_id,
-        "current_step": section,
-        "gathered_data": {},
-        "is_partial_update": True,
-    }
-
-
-def is_post_onboarding_update(state: dict[str, Any]) -> bool:
-    """Check if the current state represents a post-onboarding partial update.
-
-    Args:
-        state: Current state dict.
-
-    Returns:
-        True if this is a partial update (not full onboarding).
-    """
-    return bool(state.get("is_partial_update", False))
-
-
 def get_affected_embeddings(section: str) -> list[str]:
     """Get embedding types affected by updating a section.
 
