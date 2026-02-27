@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-02-27
 
-**Items:** 11 (6 completed, 5 pending)
+**Items:** 14 (6 completed, 8 pending)
 
 ---
 
@@ -17,54 +17,138 @@
 
 ---
 
-## Ideas
+## MVP Priority — Ordered by Dependency
 
-### ~~1. Authentication System with Account Linking~~ ✅
-
-**Status:** Promoted to plan and completed
-**Implemented in:** `docs/plan/auth_implementation_plan.md` — Phases 1–2 (REQ-013)
-**Decision:** Custom FastAPI-owned auth instead of Auth.js v5 — see `docs/plan/decisions/001_auth_adapter_decision.md`
-**Completed:** Google OAuth, LinkedIn OAuth, magic link, email/password, account linking, middleware, session context, login/register pages, account settings, E2E tests.
+These items are required to launch Zentropy Scout as a production SaaS tool on Render with real billing. Ordered so each item's dependencies are satisfied by items above it.
 
 ---
 
-### ~~2. Multi-Tenant Architecture~~ ✅
-
-**Status:** Promoted to plan and completed
-**Implemented in:** `docs/plan/auth_implementation_plan.md` — Phase 3 (REQ-014)
-**Completed:** Row-level isolation via `user_id` FK, ownership verification on all endpoints (404 not 403), cross-tenant leakage tests, TenantScopedSession for agents, E2E multi-tenant tests.
-
----
-
-### 3. Job Content TTL for Legal Compliance
+### 12. Token Metering & Usage Tracking
 
 **Category:** Backend / Database
-**Added:** 2026-02-16
+**Added:** 2026-02-27
+**Priority:** P1 — Foundation for billing. Must land first.
+**Depends on:** Nothing (provider layer already returns token counts)
 
-Split job posting storage into permanent metadata and time-limited content:
-- **Job metadata** (permanent): title, company, location, salary range, source URL, extracted skills, scores
-- **Job content** (24-hour TTL): full description text, raw HTML, original posting body
+Persist every LLM call's token usage per user so costs are tracked, credit balances can be computed, and usage can be gated when credits are exhausted. The provider abstraction layer already returns `input_tokens` and `output_tokens` on every `LLMResponse` — this item adds the storage, aggregation, and enforcement layers.
 
-After TTL expires, the full content is purged but metadata and extracted data remain. Users can re-fetch content by visiting the source URL.
+**What needs to be built:**
+- **`llm_usage` table** — `id`, `user_id`, `provider` (claude/openai/gemini), `model`, `task_type`, `input_tokens`, `output_tokens`, `estimated_cost_usd`, `created_at`
+- **`credit_balances` table** — `user_id`, `balance_credits`, `updated_at` (or derive from ledger)
+- **Credit ledger table** — `user_id`, `amount`, `type` (purchase/debit/refund/admin_grant), `reference_id`, `created_at` — immutable append-only log
+- **Cost calculation service** — maps (provider, model, token_count) → cost in USD using pricing tables, then applies margin multiplier to get credit cost
+- **Usage recording middleware/hook** — after every successful `llm.complete()` / `llm.stream()`, persist a usage row and debit credits
+- **Usage-gating middleware** — check credit balance before LLM calls; return 402 Payment Required when exhausted
+- **Usage API endpoints** — `GET /api/v1/usage/summary` (current period), `GET /api/v1/usage/history` (detailed log), `GET /api/v1/credits/balance`
+- **Frontend credits display** — show remaining credits in nav bar, low-balance warning, usage breakdown page
 
-**Motivation:** Legal compliance with job board terms of service (LinkedIn, Indeed, etc.) that prohibit long-term storage of scraped posting content.
+**Key files (existing):**
+- `backend/app/providers/llm/base.py` — `LLMResponse` already has `input_tokens`, `output_tokens`
+- `backend/app/services/embedding_cost.py` — existing pricing table pattern (embeddings only, needs expansion to LLM models)
+- `backend/app/providers/config.py` — provider/model configuration
+- `backend/app/core/config.py` — app settings
 
-**Key files:**
-- `backend/app/models/job_posting.py` (current schema — single table)
-- REQ-003 (job posting schema)
-- REQ-005 (database schema)
-
-**Existing overlap:**
-- **Job posting schema** (REQ-003, `backend/app/models/job_posting.py`) currently stores everything in one table — description, raw content, extracted skills, scores, metadata all in `job_postings`. This feature would split that table.
-- **Extracted data** (skills, culture signals, salary parsing) is already stored as structured JSONB fields separate from raw text. These are derivatives, not original content — likely safe to keep permanently.
-- **Frontend job detail page** renders description text and extracted data. Would need a "content expired" state when raw text is purged, with a "View on source site" link.
+**Pricing table approach:**
+Maintain a cost-per-1K-tokens table for each (provider, model) pair. Apply a configurable margin multiplier (e.g., 1.3x = 30% margin) to convert raw cost into credit cost. This keeps pricing transparent and adjustable without code changes.
 
 **Open questions:**
-- Is 24 hours the right TTL? Some ToS may allow longer.
-- Separate table (`job_content`) or nullable columns on existing table?
-- Background worker (cron) for TTL cleanup, or database-level expiry (pg_cron)?
-- Should extracted/transformed data (skills, culture signals) be considered "content" or "metadata"?
-- Does the user need to be notified when content expires?
+- Credit unit: 1 credit = $0.01 USD? Or abstract units decoupled from dollars?
+- Margin multiplier: configurable per provider/model, or flat across the board?
+- Embedding costs: meter separately or bundle with LLM credits?
+- Free tier: grant N credits on signup for trial usage?
+- Rate limiting: per-minute token caps in addition to credit balance checks?
+- Admin dashboard: needed for MVP or just direct DB queries?
+
+---
+
+### 13. Stripe Credits Integration
+
+**Category:** Backend / Frontend / Payments
+**Added:** 2026-02-27
+**Priority:** P2 — Monetization. Users purchase credits to use the tool.
+**Depends on:** #12 (Token Metering — credit balance model must exist)
+
+Integrate Stripe for credit pack purchases. Users buy credits via Stripe Checkout, webhook confirms payment and credits the ledger, credits are consumed by LLM usage (tracked by #12).
+
+**What needs to be built:**
+- **Stripe Checkout integration** — create checkout sessions for predefined credit packs
+- **Webhook handler** — `POST /api/v1/webhooks/stripe` — verify signature, process `checkout.session.completed`, credit the user's ledger
+- **Credit pack tiers** — e.g., Starter ($5 / 500 credits), Standard ($15 / 1,750 credits), Pro ($40 / 5,000 credits) — exact pricing TBD
+- **Purchase history** — `GET /api/v1/credits/purchases` — list of Stripe transactions with amounts and credit grants
+- **Frontend purchase flow** — credits page with pack options, "Buy Credits" buttons that redirect to Stripe Checkout, success/cancel return URLs
+- **Low-balance notifications** — frontend warning when credits drop below threshold (e.g., 10% of last purchase)
+- **Stripe Customer mapping** — link Stripe customer ID to user account (new column on users table or separate table)
+
+**Key considerations:**
+- **Stripe Checkout (hosted)** over Stripe Elements — simpler, PCI-compliant out of the box, no card data touches our servers
+- **Webhook idempotency** — use Stripe's `checkout.session.id` as idempotency key to prevent double-crediting
+- **Refunds** — Stripe refund webhook should debit the credit ledger (or flag for manual review if credits already spent)
+- **No subscriptions for MVP** — prepaid credit packs only. Subscriptions add complexity (proration, failed payments, dunning) better deferred to post-MVP
+
+**Key files (new):**
+- `backend/app/api/v1/stripe_webhooks.py` — webhook endpoint
+- `backend/app/api/v1/credits.py` — credit balance, purchase history, checkout session creation
+- `backend/app/services/stripe_service.py` — Stripe SDK calls, checkout session creation, webhook processing
+- `frontend/src/app/(main)/credits/page.tsx` — purchase flow UI
+
+**Dependencies (Python):**
+- `stripe` — official Stripe Python SDK
+
+**Open questions:**
+- Stripe account: personal or business? (Tax/legal implications)
+- Credit pack pricing: what margin on top of raw LLM costs feels fair?
+- Minimum purchase: is $5 the floor?
+- Subscription model for post-MVP? (Monthly credit allotment with overage billing)
+- Stripe Tax: collect sales tax automatically, or defer?
+- Test mode: use Stripe test keys in dev/staging, live keys only in production
+
+---
+
+### 14. UI Design Improvements
+
+**Category:** Frontend / Design
+**Added:** 2026-02-27
+**Priority:** P3 — Parallel with P1/P2 backend work. Needed before public launch.
+**Depends on:** Nothing (can start anytime, parallelizes with backend items)
+
+Elevate the visual design from functional-but-generic shadcn/ui defaults to a polished, branded product experience. The technical foundation is solid (28 shadcn/ui components, full CSS variable theming, dark mode, Tailwind v4) — the gap is visual identity and design polish.
+
+**Current state:**
+- shadcn/ui + Radix primitives with default styling
+- CSS variable theming with light/dark mode (globals.css)
+- System font stack (no custom typography)
+- Blue-600 primary — standard, not distinctive
+- Minimal visual hierarchy beyond basic card layouts
+- No illustrations, empty states, or visual storytelling
+
+**Areas to improve:**
+- **Brand identity** — distinctive color palette, logo, favicon, consistent visual language
+- **Typography** — custom web font (Inter, Cal Sans, or similar) for headings to add personality
+- **Component polish** — refined shadows, borders, hover/focus states, micro-animations
+- **Empty states** — illustrated or iconographic empty states instead of plain text
+- **Data visualization** — charts/graphs for job scoring, application pipeline, credit usage
+- **Dashboard layout** — information density improvements, better card hierarchy, status indicators
+- **Onboarding flow** — progress indicators, step illustrations, smoother transitions
+- **Responsive refinement** — mobile-first polish (currently functional but basic at mobile breakpoints)
+- **Loading states** — skeleton screens are in place; add subtle transitions and branded loading indicators
+
+**Approach options:**
+- **Option A:** Iterative self-improvement — pick a design reference (Linear, Vercel, Notion) and systematically align component styling
+- **Option B:** Tailwind UI / shadcn themes — purchase and apply a polished theme pack for rapid uplift
+- **Option C:** Designer engagement — hire a designer for brand identity + component specs, implement from their deliverables
+
+**Key files:**
+- `frontend/src/app/globals.css` — CSS variables, theme definitions
+- `frontend/src/components/ui/` — 28 shadcn/ui components (customizable)
+- `frontend/src/app/(main)/page.tsx` — home/dashboard page
+- `frontend/src/app/(main)/layout.tsx` — main layout with navigation
+
+**Open questions:**
+- Design reference: which existing product should we visually aspire to?
+- Custom font: worth the web font loading cost?
+- Illustrations: use an icon library (Lucide already included) or custom illustrations?
+- Dark mode: primary mode or secondary? (Affects design priority)
+- Scope: full redesign or targeted polish of highest-traffic pages first?
 
 ---
 
@@ -72,8 +156,9 @@ After TTL expires, the full content is purged but metadata and extracted data re
 
 **Category:** DevOps / Infrastructure
 **Added:** 2026-02-16
-**Updated:** 2026-02-23 (switched from Railway to Render)
-**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅ Dependencies satisfied
+**Updated:** 2026-02-27 (added metering/payments dependencies, revised service breakdown)
+**Priority:** P4 — Deploy after metering + payments are functional.
+**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, #12 (Token Metering), #13 (Stripe Integration)
 
 Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Python background workers on Render. Render is already familiar, uses fixed predictable pricing, has native background worker and cron job support, and no cold-start surprises.
 
@@ -85,11 +170,12 @@ Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Pyt
 
 **Key areas:**
 - **`render.yaml`** — infrastructure-as-code defining all services, env vars, and build commands
-- **Environment:** Production env vars via Render dashboard or `render.yaml` envVarGroups
+- **Environment:** Production env vars via Render dashboard or `render.yaml` envVarGroups (includes Stripe keys, LLM API keys, auth secrets)
 - **Build:** Python (pip + uvicorn) for backend, Node.js (`npm run build && npm start`) for frontend
 - **Networking:** Render private network between services, public URLs for frontend and API
 - **Database migrations:** Alembic `upgrade head` as a pre-deploy job or startup command
 - **pgvector:** Confirm availability on Render managed Postgres (available on Starter+)
+- **Stripe webhooks:** Configure Stripe webhook endpoint URL to point to production API
 
 **Existing overlap:**
 - **Docker Compose** (`docker-compose.yml`) already defines the PostgreSQL + pgvector service for local dev. `render.yaml` mirrors this structure.
@@ -106,86 +192,9 @@ Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Pyt
 
 ---
 
-### 5. Socket.dev Supply Chain Protection
+## Post-MVP
 
-**Category:** Security / Dependencies
-**Added:** 2026-02-18
-
-Add Socket.dev GitHub App for npm supply chain attack detection. Dependabot and npm audit catch *known* CVEs in published packages, but Socket.dev catches a different threat class: malicious packages, typosquatting, compromised maintainer accounts, hidden install scripts, and unexpected network/filesystem access.
-
-**Motivation:** As Zentropy Scout moves to SaaS with public users, the threat surface expands beyond known CVEs to active supply chain attacks. Socket.dev is free for open-source repos and provides PR-level alerts when a dependency introduces suspicious behavior.
-
-**Key areas:**
-- Install Socket.dev GitHub App (no config files needed — it reads `package.json`/`package-lock.json`)
-- Review initial findings and configure alert thresholds
-- Add to session start checklist in CLAUDE.md if it provides an API
-
-**Existing overlap:**
-- **Dependabot alerts** — catches known CVEs but not malicious/suspicious packages
-- **npm audit** — same as Dependabot, known CVEs only
-- **gitleaks** — catches secrets in *your* commits, not in dependency code
-
-**Open questions:**
-- Free tier limits for open-source repos?
-- Does it provide a queryable API for session-start checks?
-- Alert noise level — how many false positives on a typical Next.js + FastAPI project?
-
----
-
-### 6. Full Stack E2E Test Tier (Testcontainers)
-
-**Category:** Testing / Quality
-**Added:** 2026-02-23
-
-Add a true end-to-end test tier using Testcontainers to spin up real PostgreSQL + pgvector instances in Docker for integration tests. Current tests mock the database layer, which means no test currently validates that queries, migrations, and schema constraints work together correctly against a real database.
-
-**Why this is needed:**
-Code review found that unit tests mock SQLAlchemy sessions and repository calls, meaning the test suite gives false confidence — a broken migration or an invalid query would pass all current tests. Testcontainers provides a real Postgres instance per test session, no mocking required, no shared state between runs.
-
-**Key areas:**
-- `pytest-testcontainers` or `testcontainers-python` for Postgres container lifecycle
-- Alembic migrations run against the test container on startup — validates migration integrity
-- Repository-layer tests rewritten to use real DB rather than mocks
-- pgvector extension confirmed available in container
-- CI pipeline runs Testcontainers tier (Docker must be available in CI environment)
-
-**Prerequisite:** Backend service layer must be stable enough that repository interfaces aren't changing weekly. Defer until after LangGraph removal items (7–10) are complete to avoid rewriting tests twice.
-
-**Open questions:**
-- Shared container per test session or per test? Per session is faster; per test is cleaner. Start with per session.
-- Replace all mock-based repository tests or run both tiers? Replace — mocks provide false confidence once real DB tests exist.
-
----
-
-### ~~7. Scouter Redesign — Replace LangGraph with Service Layer~~ ✅
-
-**Status:** Promoted to plan and completed
-**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 1 (REQ-016)
-**Completed:** Replaced 10-node LangGraph StateGraph with JobPoolRepository, JobEnrichmentService, and JobFetchService. Deleted scouter_graph.py (895L). All tests passing.
-
----
-
-### ~~8. Strategist Redesign — Replace LangGraph with JobScoringService~~ ✅
-
-**Status:** Promoted to plan and completed
-**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 2 (REQ-017)
-**Completed:** Replaced 10-node LangGraph StateGraph (9 placeholder nodes) with single JobScoringService. Relocated prompts to `backend/app/prompts/` package, moved ScoreResult to score_types.py. Deleted strategist_graph.py (662L). All tests passing.
-
----
-
-### ~~9. Ghostwriter Redesign — Replace LangGraph with ContentGenerationService (MVP: User-Initiated Only)~~ ✅
-
-**Status:** Promoted to plan and completed
-**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 3 (REQ-018)
-**Completed:** Replaced 9-node LangGraph StateGraph with ContentGenerationService orchestrating 15 existing production-ready service files. Relocated prompts to `backend/app/prompts/ghostwriter.py`. Deleted ghostwriter_graph.py (687L). Auto-draft remains deferred (MVP: user-initiated only). All tests passing.
-
----
-
-### ~~10. Onboarding Redesign — Replace LangGraph Agent with HTML Wizard + Free Resume Parsing~~ ✅
-
-**Status:** Promoted to plan and completed
-**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 4 (REQ-019)
-**Completed:** Replaced 13-node LangGraph StateGraph (2490L) with ResumeParsingService (pdfplumber + Gemini 2.5 Flash) and resume-parse API endpoint. Deleted ~1784L of graph/state-machine code, kept ~706L of post-onboarding utilities. Frontend updated from 12→11 steps (removed base-resume step). E2E tests rewritten for 11-step flow. All tests passing.
+These items add value but don't block launching the tool as a usable, billable product.
 
 ---
 
@@ -247,4 +256,138 @@ Scout observes situation in tracker data
 
 ---
 
+### 3. Job Content TTL for Legal Compliance
+
+**Category:** Backend / Database
+**Added:** 2026-02-16
+
+Split job posting storage into permanent metadata and time-limited content:
+- **Job metadata** (permanent): title, company, location, salary range, source URL, extracted skills, scores
+- **Job content** (24-hour TTL): full description text, raw HTML, original posting body
+
+After TTL expires, the full content is purged but metadata and extracted data remain. Users can re-fetch content by visiting the source URL.
+
+**Motivation:** Legal compliance with job board terms of service (LinkedIn, Indeed, etc.) that prohibit long-term storage of scraped posting content.
+
+**Key files:**
+- `backend/app/models/job_posting.py` (current schema — single table)
+- REQ-003 (job posting schema)
+- REQ-005 (database schema)
+
+**Existing overlap:**
+- **Job posting schema** (REQ-003, `backend/app/models/job_posting.py`) currently stores everything in one table — description, raw content, extracted skills, scores, metadata all in `job_postings`. This feature would split that table.
+- **Extracted data** (skills, culture signals, salary parsing) is already stored as structured JSONB fields separate from raw text. These are derivatives, not original content — likely safe to keep permanently.
+- **Frontend job detail page** renders description text and extracted data. Would need a "content expired" state when raw text is purged, with a "View on source site" link.
+
+**Open questions:**
+- Is 24 hours the right TTL? Some ToS may allow longer.
+- Separate table (`job_content`) or nullable columns on existing table?
+- Background worker (cron) for TTL cleanup, or database-level expiry (pg_cron)?
+- Should extracted/transformed data (skills, culture signals) be considered "content" or "metadata"?
+- Does the user need to be notified when content expires?
+
+---
+
+### 5. Socket.dev Supply Chain Protection
+
+**Category:** Security / Dependencies
+**Added:** 2026-02-18
+
+Add Socket.dev GitHub App for npm supply chain attack detection. Dependabot and npm audit catch *known* CVEs in published packages, but Socket.dev catches a different threat class: malicious packages, typosquatting, compromised maintainer accounts, hidden install scripts, and unexpected network/filesystem access.
+
+**Motivation:** As Zentropy Scout moves to SaaS with public users, the threat surface expands beyond known CVEs to active supply chain attacks. Socket.dev is free for open-source repos and provides PR-level alerts when a dependency introduces suspicious behavior.
+
+**Key areas:**
+- Install Socket.dev GitHub App (no config files needed — it reads `package.json`/`package-lock.json`)
+- Review initial findings and configure alert thresholds
+- Add to session start checklist in CLAUDE.md if it provides an API
+
+**Existing overlap:**
+- **Dependabot alerts** — catches known CVEs but not malicious/suspicious packages
+- **npm audit** — same as Dependabot, known CVEs only
+- **gitleaks** — catches secrets in *your* commits, not in dependency code
+
+**Open questions:**
+- Free tier limits for open-source repos?
+- Does it provide a queryable API for session-start checks?
+- Alert noise level — how many false positives on a typical Next.js + FastAPI project?
+
+---
+
+### 6. Full Stack E2E Test Tier (Testcontainers)
+
+**Category:** Testing / Quality
+**Added:** 2026-02-23
+
+Add a true end-to-end test tier using Testcontainers to spin up real PostgreSQL + pgvector instances in Docker for integration tests. Current tests mock the database layer, which means no test currently validates that queries, migrations, and schema constraints work together correctly against a real database.
+
+**Why this is needed:**
+Code review found that unit tests mock SQLAlchemy sessions and repository calls, meaning the test suite gives false confidence — a broken migration or an invalid query would pass all current tests. Testcontainers provides a real Postgres instance per test session, no mocking required, no shared state between runs.
+
+**Key areas:**
+- `pytest-testcontainers` or `testcontainers-python` for Postgres container lifecycle
+- Alembic migrations run against the test container on startup — validates migration integrity
+- Repository-layer tests rewritten to use real DB rather than mocks
+- pgvector extension confirmed available in container
+- CI pipeline runs Testcontainers tier (Docker must be available in CI environment)
+
+**Prerequisite:** Backend service layer must be stable enough that repository interfaces aren't changing weekly. Defer until after LangGraph removal items (7–10) are complete to avoid rewriting tests twice.
+
+**Open questions:**
+- Shared container per test session or per test? Per session is faster; per test is cleaner. Start with per session.
+- Replace all mock-based repository tests or run both tiers? Replace — mocks provide false confidence once real DB tests exist.
+
+---
+
 <!-- Add new ideas above this line -->
+
+---
+
+## Completed
+
+### ~~1. Authentication System with Account Linking~~ ✅
+
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/auth_implementation_plan.md` — Phases 1–2 (REQ-013)
+**Decision:** Custom FastAPI-owned auth instead of Auth.js v5 — see `docs/plan/decisions/001_auth_adapter_decision.md`
+**Completed:** Google OAuth, LinkedIn OAuth, magic link, email/password, account linking, middleware, session context, login/register pages, account settings, E2E tests.
+
+---
+
+### ~~2. Multi-Tenant Architecture~~ ✅
+
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/auth_implementation_plan.md` — Phase 3 (REQ-014)
+**Completed:** Row-level isolation via `user_id` FK, ownership verification on all endpoints (404 not 403), cross-tenant leakage tests, TenantScopedSession for agents, E2E multi-tenant tests.
+
+---
+
+### ~~7. Scouter Redesign — Replace LangGraph with Service Layer~~ ✅
+
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 1 (REQ-016)
+**Completed:** Replaced 10-node LangGraph StateGraph with JobPoolRepository, JobEnrichmentService, and JobFetchService. Deleted scouter_graph.py (895L). All tests passing.
+
+---
+
+### ~~8. Strategist Redesign — Replace LangGraph with JobScoringService~~ ✅
+
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 2 (REQ-017)
+**Completed:** Replaced 10-node LangGraph StateGraph (9 placeholder nodes) with single JobScoringService. Relocated prompts to `backend/app/prompts/` package, moved ScoreResult to score_types.py. Deleted strategist_graph.py (662L). All tests passing.
+
+---
+
+### ~~9. Ghostwriter Redesign — Replace LangGraph with ContentGenerationService (MVP: User-Initiated Only)~~ ✅
+
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 3 (REQ-018)
+**Completed:** Replaced 9-node LangGraph StateGraph with ContentGenerationService orchestrating 15 existing production-ready service files. Relocated prompts to `backend/app/prompts/ghostwriter.py`. Deleted ghostwriter_graph.py (687L). Auto-draft remains deferred (MVP: user-initiated only). All tests passing.
+
+---
+
+### ~~10. Onboarding Redesign — Replace LangGraph Agent with HTML Wizard + Free Resume Parsing~~ ✅
+
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 4 (REQ-019)
+**Completed:** Replaced 13-node LangGraph StateGraph (2490L) with ResumeParsingService (pdfplumber + Gemini 2.5 Flash) and resume-parse API endpoint. Deleted ~1784L of graph/state-machine code, kept ~706L of post-onboarding utilities. Frontend updated from 12→11 steps (removed base-resume step). E2E tests rewritten for 11-step flow. All tests passing.
