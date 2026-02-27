@@ -15,6 +15,11 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
+from app.api.v1.chat import (
+    _SSE_HEARTBEAT_INTERVAL_SECONDS,
+    _SSE_MAX_CONNECTION_SECONDS,
+    event_generator,
+)
 from app.schemas.chat import (
     ChatDoneEvent,
     ChatMessageRequest,
@@ -258,3 +263,92 @@ class TestChatMessageRequest:
         """Content at exactly 50,000 characters passes validation."""
         request = ChatMessageRequest(content="x" * 50000)
         assert len(request.content) == 50000
+
+
+# =============================================================================
+# SSE Connection Timeout Tests
+# =============================================================================
+
+
+class TestSSEConnectionTimeout:
+    """Tests that SSE event_generator terminates after max connection duration.
+
+    Defense-in-depth: prevents abandoned clients from holding server resources
+    indefinitely via the infinite while True loop.
+    """
+
+    @staticmethod
+    async def _collect_events(
+        max_duration: float, heartbeat_interval: float
+    ) -> list[str]:
+        """Run event_generator and collect all yielded events."""
+        events: list[str] = []
+        async for event in event_generator(
+            max_duration=max_duration, heartbeat_interval=heartbeat_interval
+        ):
+            events.append(event)
+        return events
+
+    @pytest.mark.asyncio
+    async def test_generator_terminates_after_max_duration(self):
+        """event_generator stops yielding after max_duration seconds."""
+        events = await self._collect_events(max_duration=0.15, heartbeat_interval=0.03)
+
+        # Generator should have terminated (not hung forever)
+        # At least initial heartbeat + some periodic ones
+        assert len(events) >= 1
+
+    @pytest.mark.asyncio
+    async def test_generator_sends_heartbeats_before_timeout(self):
+        """event_generator sends multiple heartbeats before terminating."""
+        events = await self._collect_events(max_duration=0.2, heartbeat_interval=0.03)
+
+        # Should have initial heartbeat + at least a few periodic ones
+        # 0.2s / 0.03s interval ≈ 6 periodic heartbeats + 1 initial
+        assert len(events) > 2
+
+    @pytest.mark.asyncio
+    async def test_generator_always_sends_initial_heartbeat(self):
+        """event_generator sends initial heartbeat even with very short timeout."""
+        events = await self._collect_events(max_duration=0.001, heartbeat_interval=10.0)
+
+        # Initial heartbeat is yielded before the timeout loop starts
+        assert len(events) >= 1
+        assert '"heartbeat"' in events[0]
+
+    @pytest.mark.asyncio
+    async def test_generator_events_are_valid_heartbeats(self):
+        """All events from generator are valid heartbeat SSE events."""
+        events = await self._collect_events(max_duration=0.1, heartbeat_interval=0.02)
+
+        for event in events:
+            assert event.startswith("data: ")
+            assert event.endswith("\n\n")
+            parsed = json.loads(event[6:-2])
+            assert parsed["type"] == "heartbeat"
+
+    def test_generator_default_constants_are_reasonable(self):
+        """Default timeout constants have expected values.
+
+        Frozen-test: guards against accidental changes to security-relevant
+        constants. If you intentionally change the timeout values, update
+        these assertions to match.
+        """
+        # Max connection: 30 minutes
+        assert _SSE_MAX_CONNECTION_SECONDS == 30 * 60
+        # Heartbeat interval: 30 seconds
+        assert _SSE_HEARTBEAT_INTERVAL_SECONDS == 30
+
+    @pytest.mark.asyncio
+    async def test_generator_rejects_non_positive_max_duration(self):
+        """event_generator raises ValueError for non-positive max_duration."""
+        with pytest.raises(ValueError, match="max_duration must be positive"):
+            async for _ in event_generator(max_duration=0, heartbeat_interval=1):
+                pass
+
+    @pytest.mark.asyncio
+    async def test_generator_rejects_non_positive_heartbeat_interval(self):
+        """event_generator raises ValueError for non-positive heartbeat_interval."""
+        with pytest.raises(ValueError, match="heartbeat_interval must be positive"):
+            async for _ in event_generator(max_duration=1, heartbeat_interval=-1):
+                pass
