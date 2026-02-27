@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'SECURITY GATE: Spawn the security-triage subagent (model: opus) IMMEDIATELY. Do NOT query scanners yourself — the subagent handles everything autonomously. After it reports back: (1) CLEAR — proceed to implementation. (2) VULNERABLE — fix immediately, no other work until resolved. (3) FALSE POSITIVE — the subagent report includes a PROSECUTION PROTOCOL block for each finding. You MUST complete EVERY item in that protocol before dismissing. Do NOT rubber-stamp the subagent verdict. Do NOT just confirm the lines it cites. Do your own independent investigation as the protocol instructs. If you cannot complete the full protocol, revert the verdict to NEEDS INVESTIGATION. (4) NEEDS INVESTIGATION — escalate to user via AskUserQuestion. Do NOT proceed to implementation until ALL findings are resolved. This is non-negotiable.'"
+            "command": "echo 'REQUIRED FIRST ACTION — Your next tool call MUST be Task to spawn the security-triage subagent (general-purpose, model: opus). No Read, Edit, Write, or Bash calls until triage completes. Verdicts: CLEAR → proceed. VULNERABLE → fix first. FALSE POSITIVE → complete full PROSECUTION PROTOCOL. NEEDS INVESTIGATION → AskUserQuestion.'"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'SECURITY GATE (post-compact): Spawn the security-triage subagent (model: opus) IMMEDIATELY. Do NOT query scanners yourself — the subagent handles everything autonomously. After it reports back: (1) CLEAR — proceed to implementation. (2) VULNERABLE — fix immediately, no other work until resolved. (3) FALSE POSITIVE — the subagent report includes a PROSECUTION PROTOCOL block for each finding. You MUST complete EVERY item in that protocol before dismissing. Do NOT rubber-stamp the subagent verdict. Do NOT just confirm the lines it cites. Do your own independent investigation as the protocol instructs. If you cannot complete the full protocol, revert the verdict to NEEDS INVESTIGATION. (4) NEEDS INVESTIGATION — escalate to user via AskUserQuestion. Do NOT proceed to implementation until ALL findings are resolved. This is non-negotiable.'"
+            "command": "echo 'REQUIRED FIRST ACTION (post-compact) — Your next tool call MUST be Task to spawn the security-triage subagent (general-purpose, model: opus). No Read, Edit, Write, or Bash calls until triage completes. Verdicts: CLEAR → proceed. VULNERABLE → fix first. FALSE POSITIVE → complete full PROSECUTION PROTOCOL. NEEDS INVESTIGATION → AskUserQuestion.'"
           }
         ]
       }
