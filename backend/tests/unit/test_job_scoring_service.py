@@ -517,6 +517,38 @@ class TestScoreBatch:
         assert filtered_result["fit_score"] is None
 
     @pytest.mark.asyncio
+    async def test_passes_user_id_to_load_jobs_for_tenant_isolation(
+        self, mock_db: AsyncMock, user_id: UUID, persona_id: UUID
+    ) -> None:
+        """score_batch should pass user_id to _load_jobs for tenant isolation."""
+
+        job_id = uuid4()
+        persona = _make_persona(persona_id=persona_id, user_id=user_id)
+        job = _make_job(job_id=job_id)
+        scored = _make_scored_job(job_id=job_id, fit_total=70)
+        embeddings = _make_persona_embeddings(persona_id)
+
+        with (
+            patch(_PATCH_LOAD_PERSONA, return_value=persona),
+            patch(_PATCH_LOAD_JOBS, return_value=[job]) as mock_load_jobs,
+            patch(_PATCH_GEN_EMBEDDINGS, return_value=embeddings),
+            patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
+            patch(_PATCH_BATCH_SCORE, return_value=[scored]),
+            patch(_PATCH_FACTORY) as mock_factory,
+            patch(_PATCH_SAVE_SCORE),
+        ):
+            mock_llm = AsyncMock()
+            mock_llm.complete.return_value = _make_llm_response()
+            mock_factory.get_llm_provider.return_value = mock_llm
+            mock_factory.get_embedding_provider.return_value = AsyncMock()
+
+            svc = JobScoringService(mock_db)
+            await svc.score_batch(persona_id, [job_id], user_id)
+
+        # Security contract: user_id must be passed for tenant isolation
+        mock_load_jobs.assert_called_once_with(mock_db, [job_id], user_id)
+
+    @pytest.mark.asyncio
     async def test_returns_empty_list_for_empty_input(
         self, mock_db: AsyncMock, user_id: UUID, persona_id: UUID
     ) -> None:

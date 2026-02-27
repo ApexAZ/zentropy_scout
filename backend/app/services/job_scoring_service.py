@@ -103,22 +103,38 @@ async def _load_persona(
 async def _load_jobs(
     db: AsyncSession,
     job_posting_ids: list[UUID],
+    user_id: UUID,
 ) -> list[JobPosting]:
     """Load job postings with extracted skills eagerly loaded.
+
+    Only returns jobs linked to the user via persona_jobs → personas,
+    ensuring tenant isolation in multi-tenant deployments.
 
     Args:
         db: Async database session.
         job_posting_ids: UUIDs of job postings to load.
+        user_id: Owner's user UUID for tenant isolation.
 
     Returns:
         List of JobPosting ORM models.
 
     Raises:
-        NotFoundError: If any job posting does not exist.
+        NotFoundError: If any job posting does not exist or is not
+            accessible by the user.
     """
+    # Subquery: job IDs linked to this user via persona_jobs → personas
+    user_job_ids = (
+        select(PersonaJob.job_posting_id)
+        .join(Persona, PersonaJob.persona_id == Persona.id)
+        .where(Persona.user_id == user_id)
+    )
+
     result = await db.execute(
         select(JobPosting)
-        .where(JobPosting.id.in_(job_posting_ids))
+        .where(
+            JobPosting.id.in_(job_posting_ids),
+            JobPosting.id.in_(user_job_ids),
+        )
         .options(selectinload(JobPosting.extracted_skills))
     )
     jobs = list(result.scalars().all())
@@ -301,8 +317,8 @@ class JobScoringService:
         # incompatible due to invariant generic list typing.
         persona_embeddings = await generate_persona_embeddings(persona, _embed_fn)  # type: ignore[arg-type]
 
-        # Step 3: Load job postings
-        jobs = await _load_jobs(self.db, job_posting_ids)
+        # Step 3: Load job postings (user_id for tenant isolation)
+        jobs = await _load_jobs(self.db, job_posting_ids, user_id)
 
         # Step 4: Non-negotiables filter
         # WHY type: ignore: JobPosting satisfies JobFilterDataLike structurally
