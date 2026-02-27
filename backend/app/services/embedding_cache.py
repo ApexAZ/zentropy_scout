@@ -94,11 +94,15 @@ class PersonaEmbeddingCache:
 
     REQ-008 §10.2: Cache persona embeddings until persona update.
 
-    The cache stores PersonaEmbeddingsResult objects keyed by persona_id,
-    along with source text hashes for freshness validation. When embeddings
-    are retrieved, the caller can optionally provide current source texts
-    to validate freshness — if the source has changed, the cache entry is
-    invalidated and None is returned.
+    The cache stores PersonaEmbeddingsResult objects keyed by a
+    (user_id, persona_id) tuple, along with source text hashes for
+    freshness validation. The composite key ensures tenant isolation:
+    different users cannot read each other's cached embeddings even if
+    persona UUIDs collide (defense-in-depth for multi-tenant deployments).
+
+    When embeddings are retrieved, the caller can optionally provide
+    current source texts to validate freshness — if the source has
+    changed, the cache entry is invalidated and None is returned.
 
     This enables the optimization described in REQ-008 §10.1 (batch scoring):
     persona embeddings are loaded once and reused across multiple job scores.
@@ -116,19 +120,24 @@ class PersonaEmbeddingCache:
     Example:
         >>> cache = PersonaEmbeddingCache()
         >>> embeddings = await generate_persona_embeddings(persona, embed_fn)
-        >>> cache.put(persona.id, embeddings)
+        >>> cache.put(user_id, persona.id, embeddings)
         >>>
         >>> # Later, check if cached embeddings are still fresh
         >>> current_text = build_hard_skills_text(persona.skills)
-        >>> cached = cache.get_if_fresh(persona.id, hard_skills_text=current_text)
+        >>> cached = cache.get_if_fresh(
+        ...     user_id, persona.id, hard_skills_text=current_text
+        ... )
         >>> if cached:
         ...     # Use cached embeddings
         ...     result = cached.embeddings
         >>> else:
         ...     # Regenerate embeddings
         ...     result = await generate_persona_embeddings(persona, embed_fn)
-        ...     cache.put(persona.id, result)
+        ...     cache.put(user_id, persona.id, result)
     """
+
+    # Type alias for the composite cache key
+    _CacheKey = tuple[uuid.UUID, uuid.UUID]
 
     def __init__(self, max_size: int = _DEFAULT_MAX_SIZE) -> None:
         """Initialize empty cache.
@@ -142,34 +151,41 @@ class PersonaEmbeddingCache:
             raise ValueError(msg)
 
         self._max_size = max_size
-        self._cache: OrderedDict[uuid.UUID, CachedPersonaEmbeddings] = OrderedDict()
+        self._cache: OrderedDict[
+            PersonaEmbeddingCache._CacheKey, CachedPersonaEmbeddings
+        ] = OrderedDict()
         self._hits = 0
         self._misses = 0
         self._invalidations = 0
         self._evictions = 0
 
-    def get(self, persona_id: uuid.UUID) -> CachedPersonaEmbeddings | None:
+    def get(
+        self, user_id: uuid.UUID, persona_id: uuid.UUID
+    ) -> CachedPersonaEmbeddings | None:
         """Get cached embeddings without freshness validation.
 
         Moves the accessed entry to most-recently-used position.
 
         Args:
+            user_id: UUID of the owning user (tenant isolation).
             persona_id: UUID of the persona.
 
         Returns:
             CachedPersonaEmbeddings if found, None if not cached.
         """
-        entry = self._cache.get(persona_id)
+        key = (user_id, persona_id)
+        entry = self._cache.get(key)
         if entry is None:
             self._misses += 1
             return None
         # Move to end (most recently used)
-        self._cache.move_to_end(persona_id)
+        self._cache.move_to_end(key)
         self._hits += 1
         return entry
 
     def get_if_fresh(
         self,
+        user_id: uuid.UUID,
         persona_id: uuid.UUID,
         *,
         hard_skills_text: str | None = None,
@@ -183,6 +199,7 @@ class PersonaEmbeddingCache:
         invalidated and None is returned.
 
         Args:
+            user_id: UUID of the owning user (tenant isolation).
             persona_id: UUID of the persona.
             hard_skills_text: Current hard skills text to validate against.
             soft_skills_text: Current soft skills text to validate against.
@@ -192,7 +209,8 @@ class PersonaEmbeddingCache:
             CachedPersonaEmbeddings if cached and fresh, None otherwise.
             If stale, the cache entry is removed.
         """
-        entry = self._cache.get(persona_id)
+        key = (user_id, persona_id)
+        entry = self._cache.get(key)
         if entry is None:
             self._misses += 1
             return None
@@ -217,17 +235,18 @@ class PersonaEmbeddingCache:
 
         if is_stale:
             # Invalidate stale entry
-            self._invalidate_internal(persona_id)
+            self._invalidate_internal(key)
             self._misses += 1
             return None
 
         # Move to end (most recently used)
-        self._cache.move_to_end(persona_id)
+        self._cache.move_to_end(key)
         self._hits += 1
         return entry
 
     def put(
         self,
+        user_id: uuid.UUID,
         persona_id: uuid.UUID,
         embeddings: PersonaEmbeddingsResult,
     ) -> None:
@@ -238,39 +257,42 @@ class PersonaEmbeddingCache:
         least-recently-used entry.
 
         Args:
+            user_id: UUID of the owning user (tenant isolation).
             persona_id: UUID of the persona.
             embeddings: The embeddings to cache.
         """
+        key = (user_id, persona_id)
         # If updating existing entry, remove it first (will be re-added at end)
-        if persona_id in self._cache:
-            del self._cache[persona_id]
+        if key in self._cache:
+            del self._cache[key]
         # Evict LRU entries if at capacity
         while len(self._cache) >= self._max_size:
             # popitem(last=False) removes the oldest (least recently used)
             self._cache.popitem(last=False)
             self._evictions += 1
 
-        self._cache[persona_id] = CachedPersonaEmbeddings(
+        self._cache[key] = CachedPersonaEmbeddings(
             embeddings=embeddings,
             hard_skills_hash=compute_source_hash(embeddings.hard_skills.source_text),
             soft_skills_hash=compute_source_hash(embeddings.soft_skills.source_text),
             logistics_hash=compute_source_hash(embeddings.logistics.source_text),
         )
 
-    def invalidate(self, persona_id: uuid.UUID) -> None:
+    def invalidate(self, user_id: uuid.UUID, persona_id: uuid.UUID) -> None:
         """Remove cached embeddings for a persona.
 
-        No-op if persona_id is not in cache.
+        No-op if the entry is not in cache.
 
         Args:
+            user_id: UUID of the owning user (tenant isolation).
             persona_id: UUID of the persona to invalidate.
         """
-        self._invalidate_internal(persona_id)
+        self._invalidate_internal((user_id, persona_id))
 
-    def _invalidate_internal(self, persona_id: uuid.UUID) -> None:
+    def _invalidate_internal(self, key: _CacheKey) -> None:
         """Internal invalidation that tracks stats."""
-        if persona_id in self._cache:
-            del self._cache[persona_id]
+        if key in self._cache:
+            del self._cache[key]
             self._invalidations += 1
 
     def clear_all(self) -> None:

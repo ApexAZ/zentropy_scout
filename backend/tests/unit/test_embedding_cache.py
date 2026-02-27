@@ -6,6 +6,8 @@ REQ-008 §10.2: Caching for scoring performance.
 import uuid
 from datetime import UTC, datetime
 
+import pytest
+
 from app.services.embedding_cache import (
     CachedPersonaEmbeddings,
     PersonaEmbeddingCache,
@@ -14,6 +16,13 @@ from app.services.persona_embedding_generator import (
     PersonaEmbeddingData,
     PersonaEmbeddingsResult,
 )
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+
 
 # =============================================================================
 # Test Fixtures
@@ -57,7 +66,7 @@ class TestPersonaEmbeddingCacheBasics:
         cache = PersonaEmbeddingCache()
         persona_id = uuid.uuid4()
 
-        result = cache.get(persona_id)
+        result = cache.get(_USER_ID, persona_id)
 
         assert result is None
 
@@ -67,8 +76,8 @@ class TestPersonaEmbeddingCacheBasics:
         persona_id = uuid.uuid4()
         embeddings = make_persona_embeddings(persona_id=persona_id)
 
-        cache.put(persona_id, embeddings)
-        result = cache.get(persona_id)
+        cache.put(_USER_ID, persona_id, embeddings)
+        result = cache.get(_USER_ID, persona_id)
 
         assert result is not None
         assert result.embeddings == embeddings
@@ -79,9 +88,9 @@ class TestPersonaEmbeddingCacheBasics:
         persona_id = uuid.uuid4()
         embeddings = make_persona_embeddings(persona_id=persona_id)
 
-        cache.put(persona_id, embeddings)
-        cache.invalidate(persona_id)
-        result = cache.get(persona_id)
+        cache.put(_USER_ID, persona_id, embeddings)
+        cache.invalidate(_USER_ID, persona_id)
+        result = cache.get(_USER_ID, persona_id)
 
         assert result is None
 
@@ -91,7 +100,7 @@ class TestPersonaEmbeddingCacheBasics:
         persona_id = uuid.uuid4()
 
         # Should not raise
-        cache.invalidate(persona_id)
+        cache.invalidate(_USER_ID, persona_id)
 
     def test_clear_all_removes_all_entries(self):
         """clear_all removes all cached entries."""
@@ -101,12 +110,12 @@ class TestPersonaEmbeddingCacheBasics:
         embeddings_1 = make_persona_embeddings(persona_id=persona_id_1)
         embeddings_2 = make_persona_embeddings(persona_id=persona_id_2)
 
-        cache.put(persona_id_1, embeddings_1)
-        cache.put(persona_id_2, embeddings_2)
+        cache.put(_USER_ID, persona_id_1, embeddings_1)
+        cache.put(_USER_ID, persona_id_2, embeddings_2)
         cache.clear_all()
 
-        assert cache.get(persona_id_1) is None
-        assert cache.get(persona_id_2) is None
+        assert cache.get(_USER_ID, persona_id_1) is None
+        assert cache.get(_USER_ID, persona_id_2) is None
 
 
 # =============================================================================
@@ -124,8 +133,8 @@ class TestPersonaEmbeddingCacheFreshness:
         embeddings = make_persona_embeddings(persona_id=persona_id)
         source_text = embeddings.hard_skills.source_text
 
-        cache.put(persona_id, embeddings)
-        result = cache.get_if_fresh(persona_id, hard_skills_text=source_text)
+        cache.put(_USER_ID, persona_id, embeddings)
+        result = cache.get_if_fresh(_USER_ID, persona_id, hard_skills_text=source_text)
 
         assert result is not None
         assert result.embeddings == embeddings
@@ -135,15 +144,16 @@ class TestPersonaEmbeddingCacheFreshness:
         cache = PersonaEmbeddingCache()
         persona_id = uuid.uuid4()
         embeddings = make_persona_embeddings(persona_id=persona_id)
-        # Original source is "Python (Expert) | AWS (Proficient)" (from make_persona_embeddings)
         changed_source = "JavaScript (Expert) | React (Proficient)"
 
-        cache.put(persona_id, embeddings)
-        result = cache.get_if_fresh(persona_id, hard_skills_text=changed_source)
+        cache.put(_USER_ID, persona_id, embeddings)
+        result = cache.get_if_fresh(
+            _USER_ID, persona_id, hard_skills_text=changed_source
+        )
 
         assert result is None
         # Verify it was invalidated (can still get without freshness check)
-        assert cache.get(persona_id) is None
+        assert cache.get(_USER_ID, persona_id) is None
 
     def test_get_if_fresh_with_all_three_sources(self):
         """Freshness check validates all three embedding source texts."""
@@ -151,10 +161,11 @@ class TestPersonaEmbeddingCacheFreshness:
         persona_id = uuid.uuid4()
         embeddings = make_persona_embeddings(persona_id=persona_id)
 
-        cache.put(persona_id, embeddings)
+        cache.put(_USER_ID, persona_id, embeddings)
 
         # All sources match
         result = cache.get_if_fresh(
+            _USER_ID,
             persona_id,
             hard_skills_text=embeddings.hard_skills.source_text,
             soft_skills_text=embeddings.soft_skills.source_text,
@@ -168,9 +179,10 @@ class TestPersonaEmbeddingCacheFreshness:
         persona_id = uuid.uuid4()
         embeddings = make_persona_embeddings(persona_id=persona_id)
 
-        cache.put(persona_id, embeddings)
+        cache.put(_USER_ID, persona_id, embeddings)
 
         result = cache.get_if_fresh(
+            _USER_ID,
             persona_id,
             hard_skills_text=embeddings.hard_skills.source_text,
             soft_skills_text="Changed Soft Skills",
@@ -184,9 +196,10 @@ class TestPersonaEmbeddingCacheFreshness:
         persona_id = uuid.uuid4()
         embeddings = make_persona_embeddings(persona_id=persona_id)
 
-        cache.put(persona_id, embeddings)
+        cache.put(_USER_ID, persona_id, embeddings)
 
         result = cache.get_if_fresh(
+            _USER_ID,
             persona_id,
             hard_skills_text=embeddings.hard_skills.source_text,
             soft_skills_text=embeddings.soft_skills.source_text,
@@ -210,7 +223,7 @@ class TestPersonaEmbeddingCacheStats:
 
         assert cache.stats().size == 0
 
-        cache.put(embeddings.persona_id, embeddings)
+        cache.put(_USER_ID, embeddings.persona_id, embeddings)
         assert cache.stats().size == 1
 
     def test_stats_tracks_hits_and_misses(self):
@@ -220,13 +233,13 @@ class TestPersonaEmbeddingCacheStats:
         embeddings = make_persona_embeddings(persona_id=persona_id)
 
         # Miss
-        cache.get(uuid.uuid4())
+        cache.get(_USER_ID, uuid.uuid4())
         assert cache.stats().misses == 1
         assert cache.stats().hits == 0
 
         # Hit
-        cache.put(persona_id, embeddings)
-        cache.get(persona_id)
+        cache.put(_USER_ID, persona_id, embeddings)
+        cache.get(_USER_ID, persona_id)
         assert cache.stats().hits == 1
         assert cache.stats().misses == 1
 
@@ -236,8 +249,8 @@ class TestPersonaEmbeddingCacheStats:
         persona_id = uuid.uuid4()
         embeddings = make_persona_embeddings(persona_id=persona_id)
 
-        cache.put(persona_id, embeddings)
-        cache.invalidate(persona_id)
+        cache.put(_USER_ID, persona_id, embeddings)
+        cache.invalidate(_USER_ID, persona_id)
 
         assert cache.stats().invalidations == 1
 
@@ -288,10 +301,10 @@ class TestPersonaEmbeddingCacheEdgeCases:
             version=datetime(2026, 2, 1, tzinfo=UTC),
         )
 
-        cache.put(persona_id, embeddings_v1)
-        cache.put(persona_id, embeddings_v2)
+        cache.put(_USER_ID, persona_id, embeddings_v1)
+        cache.put(_USER_ID, persona_id, embeddings_v2)
 
-        result = cache.get(persona_id)
+        result = cache.get(_USER_ID, persona_id)
         assert result is not None
         assert result.embeddings.version == embeddings_v2.version
 
@@ -301,10 +314,11 @@ class TestPersonaEmbeddingCacheEdgeCases:
         persona_id = uuid.uuid4()
         embeddings = make_persona_embeddings(persona_id=persona_id)
 
-        cache.put(persona_id, embeddings)
+        cache.put(_USER_ID, persona_id, embeddings)
 
         # Only check hard_skills freshness
         result = cache.get_if_fresh(
+            _USER_ID,
             persona_id,
             hard_skills_text=embeddings.hard_skills.source_text,
         )
@@ -323,15 +337,99 @@ class TestPersonaEmbeddingCacheEdgeCases:
             model_name="text-embedding-3-small",
         )
 
-        cache.put(persona_id, embeddings)
+        cache.put(_USER_ID, persona_id, embeddings)
 
         # Empty source still matches empty source
-        result = cache.get_if_fresh(persona_id, hard_skills_text="")
+        result = cache.get_if_fresh(_USER_ID, persona_id, hard_skills_text="")
         assert result is not None
 
         # Non-empty vs empty is stale
-        result = cache.get_if_fresh(persona_id, hard_skills_text="Python (Expert)")
+        result = cache.get_if_fresh(
+            _USER_ID, persona_id, hard_skills_text="Python (Expert)"
+        )
         assert result is None
+
+
+# =============================================================================
+# Test: Tenant Isolation (Security — defense-in-depth)
+# =============================================================================
+
+
+class TestPersonaEmbeddingCacheTenantIsolation:
+    """Same persona_id with different user_id must not share cache entries."""
+
+    def test_different_user_same_persona_is_cache_miss(self):
+        """Embeddings cached under user A are invisible to user B."""
+        cache = PersonaEmbeddingCache()
+        persona_id = uuid.uuid4()
+        user_a = uuid.uuid4()
+        user_b = uuid.uuid4()
+        embeddings = make_persona_embeddings(persona_id=persona_id)
+
+        cache.put(user_a, persona_id, embeddings)
+
+        # User B should get a miss for the same persona_id
+        assert cache.get(user_b, persona_id) is None
+        # User A should still get a hit
+        assert cache.get(user_a, persona_id) is not None
+
+    def test_invalidate_only_affects_own_user(self):
+        """Invalidating user A's entry does not affect user B's."""
+        cache = PersonaEmbeddingCache()
+        persona_id = uuid.uuid4()
+        user_a = uuid.uuid4()
+        user_b = uuid.uuid4()
+        embeddings = make_persona_embeddings(persona_id=persona_id)
+
+        cache.put(user_a, persona_id, embeddings)
+        cache.put(user_b, persona_id, embeddings)
+
+        cache.invalidate(user_a, persona_id)
+
+        assert cache.get(user_a, persona_id) is None
+        assert cache.get(user_b, persona_id) is not None
+
+    def test_get_if_fresh_different_user_is_cache_miss(self):
+        """get_if_fresh with different user_id returns None."""
+        cache = PersonaEmbeddingCache()
+        persona_id = uuid.uuid4()
+        user_a = uuid.uuid4()
+        user_b = uuid.uuid4()
+        embeddings = make_persona_embeddings(persona_id=persona_id)
+
+        cache.put(user_a, persona_id, embeddings)
+
+        result = cache.get_if_fresh(
+            user_b,
+            persona_id,
+            hard_skills_text=embeddings.hard_skills.source_text,
+        )
+        assert result is None
+
+    def test_put_different_user_creates_separate_entry(self):
+        """put() with different user_id creates a new entry, not overwrite."""
+        cache = PersonaEmbeddingCache()
+        persona_id = uuid.uuid4()
+        user_a = uuid.uuid4()
+        user_b = uuid.uuid4()
+        embeddings_a = make_persona_embeddings(
+            persona_id=persona_id,
+            version=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        embeddings_b = make_persona_embeddings(
+            persona_id=persona_id,
+            version=datetime(2026, 6, 1, tzinfo=UTC),
+        )
+
+        cache.put(user_a, persona_id, embeddings_a)
+        cache.put(user_b, persona_id, embeddings_b)
+
+        result_a = cache.get(user_a, persona_id)
+        result_b = cache.get(user_b, persona_id)
+        assert result_a is not None
+        assert result_b is not None
+        assert result_a.embeddings.version != result_b.embeddings.version
+        assert cache.stats().size == 2
 
 
 # =============================================================================
@@ -354,12 +452,12 @@ class TestPersonaEmbeddingCacheLRU:
 
     def test_max_size_invalid_zero(self):
         """max_size of 0 raises ValueError."""
-        with __import__("pytest").raises(ValueError, match="must be positive"):
+        with pytest.raises(ValueError, match="must be positive"):
             PersonaEmbeddingCache(max_size=0)
 
     def test_max_size_invalid_negative(self):
         """Negative max_size raises ValueError."""
-        with __import__("pytest").raises(ValueError, match="must be positive"):
+        with pytest.raises(ValueError, match="must be positive"):
             PersonaEmbeddingCache(max_size=-1)
 
     def test_evicts_lru_when_full(self):
@@ -372,8 +470,8 @@ class TestPersonaEmbeddingCacheLRU:
         embeddings_1 = make_persona_embeddings(persona_id=persona_id_1)
         embeddings_2 = make_persona_embeddings(persona_id=persona_id_2)
 
-        cache.put(persona_id_1, embeddings_1)  # First (LRU)
-        cache.put(persona_id_2, embeddings_2)  # Second
+        cache.put(_USER_ID, persona_id_1, embeddings_1)  # First (LRU)
+        cache.put(_USER_ID, persona_id_2, embeddings_2)  # Second
 
         # Cache is full
         assert cache.stats().size == 2
@@ -381,12 +479,12 @@ class TestPersonaEmbeddingCacheLRU:
         # Add third entry - should evict first (LRU)
         persona_id_3 = uuid.uuid4()
         embeddings_3 = make_persona_embeddings(persona_id=persona_id_3)
-        cache.put(persona_id_3, embeddings_3)
+        cache.put(_USER_ID, persona_id_3, embeddings_3)
 
         # First entry should be evicted
-        assert cache.get(persona_id_1) is None
-        assert cache.get(persona_id_2) is not None
-        assert cache.get(persona_id_3) is not None
+        assert cache.get(_USER_ID, persona_id_1) is None
+        assert cache.get(_USER_ID, persona_id_2) is not None
+        assert cache.get(_USER_ID, persona_id_3) is not None
         assert cache.stats().size == 2
         assert cache.stats().evictions == 1
 
@@ -399,20 +497,22 @@ class TestPersonaEmbeddingCacheLRU:
         embeddings_1 = make_persona_embeddings(persona_id=persona_id_1)
         embeddings_2 = make_persona_embeddings(persona_id=persona_id_2)
 
-        cache.put(persona_id_1, embeddings_1)  # Oldest
-        cache.put(persona_id_2, embeddings_2)  # Newest
+        cache.put(_USER_ID, persona_id_1, embeddings_1)  # Oldest
+        cache.put(_USER_ID, persona_id_2, embeddings_2)  # Newest
 
         # Access persona_1, making it most recently used
-        cache.get(persona_id_1)
+        cache.get(_USER_ID, persona_id_1)
 
         # Now persona_2 is the LRU, should be evicted
         persona_id_3 = uuid.uuid4()
         embeddings_3 = make_persona_embeddings(persona_id=persona_id_3)
-        cache.put(persona_id_3, embeddings_3)
+        cache.put(_USER_ID, persona_id_3, embeddings_3)
 
-        assert cache.get(persona_id_1) is not None  # Was accessed, not evicted
-        assert cache.get(persona_id_2) is None  # LRU, evicted
-        assert cache.get(persona_id_3) is not None
+        assert (
+            cache.get(_USER_ID, persona_id_1) is not None
+        )  # Was accessed, not evicted
+        assert cache.get(_USER_ID, persona_id_2) is None  # LRU, evicted
+        assert cache.get(_USER_ID, persona_id_3) is not None
 
     def test_get_if_fresh_updates_lru_order(self):
         """get_if_fresh also moves entry to most-recently-used."""
@@ -423,22 +523,24 @@ class TestPersonaEmbeddingCacheLRU:
         embeddings_1 = make_persona_embeddings(persona_id=persona_id_1)
         embeddings_2 = make_persona_embeddings(persona_id=persona_id_2)
 
-        cache.put(persona_id_1, embeddings_1)  # Oldest
-        cache.put(persona_id_2, embeddings_2)  # Newest
+        cache.put(_USER_ID, persona_id_1, embeddings_1)  # Oldest
+        cache.put(_USER_ID, persona_id_2, embeddings_2)  # Newest
 
         # Access persona_1 via get_if_fresh
         cache.get_if_fresh(
-            persona_id_1, hard_skills_text=embeddings_1.hard_skills.source_text
+            _USER_ID,
+            persona_id_1,
+            hard_skills_text=embeddings_1.hard_skills.source_text,
         )
 
         # Now persona_2 is the LRU
         persona_id_3 = uuid.uuid4()
         embeddings_3 = make_persona_embeddings(persona_id=persona_id_3)
-        cache.put(persona_id_3, embeddings_3)
+        cache.put(_USER_ID, persona_id_3, embeddings_3)
 
-        assert cache.get(persona_id_1) is not None
-        assert cache.get(persona_id_2) is None
-        assert cache.get(persona_id_3) is not None
+        assert cache.get(_USER_ID, persona_id_1) is not None
+        assert cache.get(_USER_ID, persona_id_2) is None
+        assert cache.get(_USER_ID, persona_id_3) is not None
 
     def test_stats_tracks_evictions(self):
         """Stats includes eviction count."""
@@ -447,10 +549,10 @@ class TestPersonaEmbeddingCacheLRU:
         embeddings_1 = make_persona_embeddings()
         embeddings_2 = make_persona_embeddings()
 
-        cache.put(embeddings_1.persona_id, embeddings_1)
+        cache.put(_USER_ID, embeddings_1.persona_id, embeddings_1)
         assert cache.stats().evictions == 0
 
-        cache.put(embeddings_2.persona_id, embeddings_2)
+        cache.put(_USER_ID, embeddings_2.persona_id, embeddings_2)
         assert cache.stats().evictions == 1
 
     def test_update_existing_does_not_evict(self):
@@ -462,18 +564,18 @@ class TestPersonaEmbeddingCacheLRU:
         embeddings_1 = make_persona_embeddings(persona_id=persona_id_1)
         embeddings_2 = make_persona_embeddings(persona_id=persona_id_2)
 
-        cache.put(persona_id_1, embeddings_1)
-        cache.put(persona_id_2, embeddings_2)
+        cache.put(_USER_ID, persona_id_1, embeddings_1)
+        cache.put(_USER_ID, persona_id_2, embeddings_2)
 
         # Update persona_1 with new embeddings (same id)
         embeddings_1_v2 = make_persona_embeddings(
             persona_id=persona_id_1,
             version=datetime(2026, 6, 1, tzinfo=UTC),
         )
-        cache.put(persona_id_1, embeddings_1_v2)
+        cache.put(_USER_ID, persona_id_1, embeddings_1_v2)
 
         # No eviction should occur
         assert cache.stats().evictions == 0
         assert cache.stats().size == 2
-        assert cache.get(persona_id_1) is not None
-        assert cache.get(persona_id_2) is not None
+        assert cache.get(_USER_ID, persona_id_1) is not None
+        assert cache.get(_USER_ID, persona_id_2) is not None
