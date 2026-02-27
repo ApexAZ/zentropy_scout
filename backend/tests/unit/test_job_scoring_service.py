@@ -461,6 +461,10 @@ class TestScoreBatch:
             svc = JobScoringService(mock_db)
             await svc.score_batch(persona_id, job_ids, user_id)
 
+        # Performance optimization test: embedding generation is an expensive
+        # API call. Calling it N times instead of once would multiply cost and
+        # latency linearly with batch size. The call-count assertion guards
+        # against regressions that break this optimization.
         mock_gen_emb.assert_called_once()
 
     @pytest.mark.asyncio

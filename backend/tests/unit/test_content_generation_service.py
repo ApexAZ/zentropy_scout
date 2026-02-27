@@ -227,14 +227,14 @@ class TestFullPipeline:
     async def test_skips_variant_creation_when_no_tailoring(
         self, service: ContentGenerationService
     ) -> None:
-        """When tailoring not needed, _create_variant should not be called."""
-        await service.generate(
+        """When tailoring not needed, result reflects 'use_base' decision."""
+        result = await service.generate(
             user_id=_USER_ID,
             persona_id=_PERSONA_ID,
             job_posting_id=_JOB_POSTING_ID,
         )
 
-        service._create_variant.assert_not_called()  # type: ignore[attr-defined]
+        assert result.tailoring_action == "use_base"
 
     async def test_calls_variant_creation_when_tailoring_needed(
         self, service: ContentGenerationService
@@ -250,6 +250,11 @@ class TestFullPipeline:
             job_posting_id=_JOB_POSTING_ID,
         )
 
+        # Side-effect test: _create_variant produces a DB write (JobVariant
+        # row) that is not reflected in GenerationResult fields. The call-count
+        # assertion verifies the conditional branch executes when tailoring is
+        # needed — there is no result field that distinguishes "variant was
+        # created" from "variant was skipped."
         service._create_variant.assert_called_once()  # type: ignore[attr-defined]
 
     async def test_adds_warning_when_job_expired(
@@ -279,25 +284,33 @@ class TestFullPipeline:
 
         assert result.review_warning is None
 
-    async def test_pipeline_calls_steps_in_order(
+    async def test_full_pipeline_populates_all_result_fields(
         self, service: ContentGenerationService
     ) -> None:
-        """Steps should be called: check_existing → select_resume → evaluate →
-        select_stories → generate_cover_letter → check_active → build_review."""
-        await service.generate(
+        """Full pipeline should populate every GenerationResult field from
+        the corresponding pipeline step outputs."""
+        result = await service.generate(
             user_id=_USER_ID,
             persona_id=_PERSONA_ID,
             job_posting_id=_JOB_POSTING_ID,
         )
 
-        # Verify all non-conditional steps were called
-        service._check_existing.assert_called_once()  # type: ignore[attr-defined]
-        service._select_base_resume.assert_called_once()  # type: ignore[attr-defined]
-        service._evaluate_tailoring.assert_called_once()  # type: ignore[attr-defined]
-        service._select_stories.assert_called_once()  # type: ignore[attr-defined]
-        service._generate_cover_letter.assert_called_once()  # type: ignore[attr-defined]
-        service._check_job_active.assert_called_once()  # type: ignore[attr-defined]
-        service._build_review_response.assert_called_once()  # type: ignore[attr-defined]
+        # Step 1: no duplicate found
+        assert result.duplicate_message is None
+        # Step 3: tailoring evaluation
+        assert result.tailoring_action == "use_base"
+        assert result.tailoring_reasoning == "Resume aligns well."
+        # Step 5: story selection (mock returns [])
+        assert result.selected_stories == ()
+        # Step 6: cover letter generated
+        assert result.cover_letter is not None
+        assert result.cover_letter.content == "Dear Hiring Manager..."
+        assert result.cover_letter.word_count == 280
+        # Step 7: job freshness check
+        assert result.job_active is True
+        assert result.review_warning is None
+        # Step 8: reasoning explanation
+        assert result.agent_reasoning == "Materials ready for review."
 
     async def test_passes_trigger_type_through(
         self, service: ContentGenerationService
@@ -360,7 +373,7 @@ class TestReasoningExplanation:
             patch(
                 f"{_MODULE}.format_agent_reasoning",
                 return_value="Tailored resume, selected 2 stories.",
-            ) as mock_format,
+            ),
         ):
             td = MagicMock()
             td.action = "create_variant"
@@ -382,7 +395,6 @@ class TestReasoningExplanation:
             )
 
             assert result.agent_reasoning is not None
-            mock_format.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

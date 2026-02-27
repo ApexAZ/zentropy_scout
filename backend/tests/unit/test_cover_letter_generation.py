@@ -336,9 +336,7 @@ class TestErrorHandling:
             await generate_cover_letter(**_default_kwargs())
 
     @pytest.mark.asyncio
-    async def test_generation_error_is_exception(self) -> None:
-        """CoverLetterGenerationError should be a standard Exception."""
-
-        error = CoverLetterGenerationError("test error")
-        assert isinstance(error, Exception)
-        assert str(error) == "test error"
+    async def test_generation_error_preserves_message(self) -> None:
+        """CoverLetterGenerationError preserves the error message when raised."""
+        with pytest.raises(CoverLetterGenerationError, match="test error"):
+            raise CoverLetterGenerationError("test error")
