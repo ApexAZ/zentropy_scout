@@ -39,7 +39,7 @@ from app.models.persona_content import (
 )
 from app.models.persona_settings import VoiceProfile
 from app.models.resume import BaseResume
-from app.services.onboarding_workflow import OnboardingResult, finalize_onboarding
+from app.services.onboarding_workflow import finalize_onboarding
 from tests.conftest import TEST_PERSONA_ID, TEST_USER_ID
 
 
@@ -219,7 +219,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """basic_info fields update Persona contact info."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Persona).where(Persona.id == TEST_PERSONA_ID)
@@ -237,7 +237,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """non_negotiables and growth_targets update Persona preferences."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Persona).where(Persona.id == TEST_PERSONA_ID)
@@ -257,7 +257,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Sets persona.onboarding_complete = True."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Persona).where(Persona.id == TEST_PERSONA_ID)
@@ -274,7 +274,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Creates WorkHistory rows from gathered work_history data."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(WorkHistory)
@@ -295,7 +295,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Creates Bullet rows linked to WorkHistory entries."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(WorkHistory)
@@ -321,7 +321,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Creates Skill rows from gathered skills data."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Skill).where(Skill.persona_id == TEST_PERSONA_ID)
@@ -339,7 +339,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Creates Education rows from gathered education data."""
         gathered = _make_gathered_data(include_education=True)
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Education).where(Education.persona_id == TEST_PERSONA_ID)
@@ -357,7 +357,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Skipped education creates no Education rows."""
         gathered = _make_gathered_data(include_education=False)
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Education).where(Education.persona_id == TEST_PERSONA_ID)
@@ -372,7 +372,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Creates Certification rows from gathered certifications data."""
         gathered = _make_gathered_data(include_certifications=True)
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Certification).where(Certification.persona_id == TEST_PERSONA_ID)
@@ -389,7 +389,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Skipped certifications creates no Certification rows."""
         gathered = _make_gathered_data(include_certifications=False)
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Certification).where(Certification.persona_id == TEST_PERSONA_ID)
@@ -404,7 +404,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Creates AchievementStory rows from gathered stories."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(AchievementStory).where(
@@ -424,7 +424,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Creates VoiceProfile from gathered voice_profile data."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(VoiceProfile).where(VoiceProfile.persona_id == TEST_PERSONA_ID)
@@ -441,7 +441,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Creates BaseResume entries from base_resume_setup."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(BaseResume).where(BaseResume.persona_id == TEST_PERSONA_ID)
@@ -460,7 +460,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Multiple role entries create multiple BaseResume rows."""
         gathered = _make_gathered_data(role_count=3)
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(BaseResume)
@@ -480,7 +480,7 @@ class TestFinalizeOnboarding:
     ) -> None:
         """BaseResume included_jobs and skills_emphasis populated from gathered data."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(BaseResume).where(BaseResume.persona_id == TEST_PERSONA_ID)
@@ -497,9 +497,10 @@ class TestFinalizeOnboarding:
     ) -> None:
         """Returns OnboardingResult with entity counts."""
         gathered = _make_gathered_data()
-        result = await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        result = await finalize_onboarding(
+            gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session
+        )
 
-        assert isinstance(result, OnboardingResult)
         assert result.work_history_count == 2
         assert result.skill_count == 2
         assert result.education_count == 1
@@ -517,7 +518,9 @@ class TestFinalizeOnboarding:
         gathered = _make_gathered_data(
             include_education=False, include_certifications=False
         )
-        result = await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        result = await finalize_onboarding(
+            gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session
+        )
 
         assert result.education_count == 0
         assert result.certification_count == 0
@@ -541,7 +544,7 @@ class TestFinalizeOnboardingEdgeCases:
         """Empty work_history entries list creates no WorkHistory rows."""
         gathered = _make_gathered_data()
         gathered["work_history"]["entries"] = []
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(WorkHistory).where(WorkHistory.persona_id == TEST_PERSONA_ID)
@@ -558,7 +561,9 @@ class TestFinalizeOnboardingEdgeCases:
         gathered = _make_gathered_data()
         del gathered["education"]
         del gathered["certifications"]
-        result = await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        result = await finalize_onboarding(
+            gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session
+        )
 
         assert result.education_count == 0
         assert result.certification_count == 0
@@ -572,7 +577,7 @@ class TestFinalizeOnboardingEdgeCases:
         """Location string 'City, State' parsed into home_city and home_state."""
         gathered = _make_gathered_data()
         gathered["basic_info"]["location"] = "Denver, Colorado"
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Persona).where(Persona.id == TEST_PERSONA_ID)
@@ -590,7 +595,7 @@ class TestFinalizeOnboardingEdgeCases:
         """Location string without comma sets home_city only."""
         gathered = _make_gathered_data()
         gathered["basic_info"]["location"] = "Remote"
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Persona).where(Persona.id == TEST_PERSONA_ID)
@@ -607,7 +612,7 @@ class TestFinalizeOnboardingEdgeCases:
         """Salary string with formatting is parsed to integer."""
         gathered = _make_gathered_data()
         gathered["non_negotiables"]["minimum_base_salary"] = "$150,000"
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(Persona).where(Persona.id == TEST_PERSONA_ID)
@@ -623,7 +628,7 @@ class TestFinalizeOnboardingEdgeCases:
     ) -> None:
         """Work history dates like '2020-01' parsed to date objects."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         result = await db_session.execute(
             select(WorkHistory)
@@ -654,7 +659,7 @@ class TestFinalizeOnboardingGuards:
         fake_id = uuid.uuid4()
 
         with pytest.raises(NotFoundError):
-            await finalize_onboarding(gathered, fake_id, db_session)
+            await finalize_onboarding(gathered, fake_id, TEST_USER_ID, db_session)
 
     @pytest.mark.asyncio
     async def test_already_complete_raises_invalid_state(
@@ -664,7 +669,24 @@ class TestFinalizeOnboardingGuards:
     ) -> None:
         """Calling finalize twice raises InvalidStateError (idempotency guard)."""
         gathered = _make_gathered_data()
-        await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session)
 
         with pytest.raises(InvalidStateError):
-            await finalize_onboarding(gathered, TEST_PERSONA_ID, db_session)
+            await finalize_onboarding(
+                gathered, TEST_PERSONA_ID, TEST_USER_ID, db_session
+            )
+
+    @pytest.mark.asyncio
+    async def test_wrong_user_id_raises_not_found(
+        self,
+        db_session: AsyncSession,
+        persona_for_onboarding,  # noqa: ARG002
+    ) -> None:
+        """Persona owned by different user raises NotFoundError (tenant isolation)."""
+        gathered = _make_gathered_data()
+        wrong_user_id = uuid.uuid4()
+
+        with pytest.raises(NotFoundError):
+            await finalize_onboarding(
+                gathered, TEST_PERSONA_ID, wrong_user_id, db_session
+            )

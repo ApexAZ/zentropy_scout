@@ -473,6 +473,7 @@ def _create_base_resumes(
 async def finalize_onboarding(
     gathered_data: dict[str, object],
     persona_id: uuid.UUID,
+    user_id: uuid.UUID,
     db: AsyncSession,
 ) -> OnboardingResult:
     """Persist all gathered onboarding data into database entities.
@@ -483,13 +484,14 @@ async def finalize_onboarding(
     Args:
         gathered_data: The gathered data dict from the onboarding flow.
         persona_id: The persona to populate.
+        user_id: Owner user ID for tenant isolation.
         db: Database session.
 
     Returns:
         OnboardingResult with counts of created entities.
 
     Raises:
-        NotFoundError: If persona does not exist.
+        NotFoundError: If persona does not exist or belongs to another user.
         InvalidStateError: If onboarding is already complete.
     """
     # SELECT FOR UPDATE NOWAIT: lock the persona row to prevent concurrent
@@ -499,7 +501,9 @@ async def finalize_onboarding(
     # indefinitely which could exhaust the connection pool).
     try:
         result = await db.execute(
-            select(Persona).where(Persona.id == persona_id).with_for_update(nowait=True)
+            select(Persona)
+            .where(Persona.id == persona_id, Persona.user_id == user_id)
+            .with_for_update(nowait=True)
         )
     except OperationalError:
         raise ConflictError(

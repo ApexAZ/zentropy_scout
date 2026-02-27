@@ -30,7 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.job_posting import JobPosting
 from app.models.job_source import JobSource
 from app.models.persona_job import PersonaJob
-from tests.conftest import TEST_PERSONA_ID
+from tests.conftest import TEST_PERSONA_ID, TEST_USER_ID
 
 # =============================================================================
 # Constants
@@ -206,11 +206,15 @@ class TestFinalizeOnboardingLocking:
         minimal_data = _minimal_gathered_data()
 
         # First call succeeds
-        await finalize_onboarding(minimal_data, TEST_PERSONA_ID, db_session)
+        await finalize_onboarding(
+            minimal_data, TEST_PERSONA_ID, TEST_USER_ID, db_session
+        )
 
         # Second call must raise (onboarding already complete)
         with pytest.raises(InvalidStateError, match="already complete"):
-            await finalize_onboarding(minimal_data, TEST_PERSONA_ID, db_session)
+            await finalize_onboarding(
+                minimal_data, TEST_PERSONA_ID, TEST_USER_ID, db_session
+            )
 
 
 # =============================================================================
