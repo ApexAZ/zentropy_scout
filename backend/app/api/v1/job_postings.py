@@ -28,7 +28,7 @@ from fastapi import APIRouter, Request
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import CurrentUserId, DbSession
+from app.api.deps import BalanceCheck, CurrentUserId, DbSession, MeteredProvider
 from app.core.config import settings
 from app.core.errors import (
     ConflictError,
@@ -474,10 +474,13 @@ async def ingest_job_posting(
     body: IngestJobPostingRequest,
     user_id: CurrentUserId,
     db: DbSession,
+    provider: MeteredProvider,
+    _balance: BalanceCheck,
 ) -> DataResponse[IngestJobPostingResponse]:
     """Ingest raw job posting text from Chrome extension.
 
     REQ-006 §5.6: Chrome extension submits raw job text for parsing.
+    REQ-020 §7.1: Requires sufficient balance (BalanceCheck dependency).
     Returns a preview with confirmation token for user review.
     Security: Rate limited to prevent LLM cost abuse.
 
@@ -486,12 +489,15 @@ async def ingest_job_posting(
         body: Raw job text and source information.
         user_id: Current user ID from auth.
         db: Database session.
+        provider: Metered LLM provider (injected via DI).
+        _balance: Balance gate (injected, raises 402 if insufficient).
 
     Returns:
         Preview of extracted data with confirmation token.
 
     Raises:
         ConflictError: If job from this URL already exists (409).
+        InsufficientBalanceError: If user balance is too low (402).
     """
     # Check for duplicate URL scoped to current user (REQ-014 §5.2)
     source_url_str = str(body.source_url) if body.source_url is not None else None
@@ -512,7 +518,7 @@ async def ingest_job_posting(
             )
 
     # Extract job data from raw text
-    extracted = await extract_job_data(body.raw_text)
+    extracted = await extract_job_data(body.raw_text, provider)
 
     # Build preview from extracted data
     preview = IngestPreview(

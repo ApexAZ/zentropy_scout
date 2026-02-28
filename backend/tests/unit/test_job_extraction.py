@@ -147,7 +147,7 @@ class TestTextTruncation:
             '{"job_title": "Test", "company_name": "Test", "extracted_skills": [], "culture_text": null}',
         )
 
-        result = await extract_job_data(long_text)
+        result = await extract_job_data(long_text, mock_llm)
 
         # Should still work (truncation happens before LLM call)
         assert result is not None
@@ -176,7 +176,7 @@ class TestLLMExtraction:
             '{"job_title": "Engineer", "company_name": "Acme", "extracted_skills": [], "culture_text": null}',
         )
 
-        await extract_job_data("Software Engineer at Acme Corp")
+        await extract_job_data("Software Engineer at Acme Corp", mock_llm)
 
         # Verify TaskType.EXTRACTION was used
         assert mock_llm.last_task == TaskType.EXTRACTION
@@ -189,7 +189,7 @@ class TestLLMExtraction:
             '{"job_title": "Senior Software Engineer", "company_name": "Acme", "extracted_skills": [], "culture_text": null}',
         )
 
-        result = await extract_job_data(_SAMPLE_JOB_TEXT)
+        result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
         assert result["job_title"] == "Senior Software Engineer"
 
@@ -201,7 +201,7 @@ class TestLLMExtraction:
             '{"job_title": "Engineer", "company_name": "Acme Corporation", "extracted_skills": [], "culture_text": null}',
         )
 
-        result = await extract_job_data(_SAMPLE_JOB_TEXT)
+        result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
         assert result["company_name"] == "Acme Corporation"
 
@@ -224,7 +224,7 @@ class TestLLMExtraction:
             }""",
         )
 
-        result = await extract_job_data(_SAMPLE_JOB_TEXT)
+        result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
         skills = result["extracted_skills"]
         assert len(skills) == 3
@@ -258,7 +258,7 @@ class TestLLMExtraction:
             }""",
         )
 
-        result = await extract_job_data(_SAMPLE_JOB_TEXT)
+        result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
         assert (
             result["culture_text"]
@@ -281,7 +281,7 @@ class TestLLMExtraction:
             }""",
         )
 
-        result = await extract_job_data(_SAMPLE_JOB_TEXT)
+        result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
         assert result["salary_min"] == 150000
         assert result["salary_max"] == 200000
@@ -526,7 +526,7 @@ class TestEdgeCases:
             '{"job_title": null, "company_name": null, "extracted_skills": [], "culture_text": null}',
         )
 
-        result = await extract_job_data("")
+        result = await extract_job_data("", mock_llm)
 
         assert result is not None
         assert result["extracted_skills"] == []
@@ -541,7 +541,7 @@ class TestEdgeCases:
             '{"job_title": "Test", "company_name": "Test", "extracted_skills": [], "culture_text": null}',
         )
 
-        result = await extract_job_data("This is the job posting text.")
+        result = await extract_job_data("This is the job posting text.", mock_llm)
 
         assert "description_snippet" in result
         assert result["description_snippet"] == "This is the job posting text."
@@ -557,7 +557,7 @@ class TestEdgeCases:
         )
 
         long_text = "x" * 600
-        result = await extract_job_data(long_text)
+        result = await extract_job_data(long_text, mock_llm)
 
         assert len(result["description_snippet"]) == 503  # 500 + "..."
         assert result["description_snippet"].endswith("...")

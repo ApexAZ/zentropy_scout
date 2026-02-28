@@ -11,13 +11,12 @@ from typing import Annotated
 import structlog
 from fastapi import APIRouter, File, Request, UploadFile
 
-from app.api.deps import CurrentUserId
+from app.api.deps import BalanceCheck, CurrentUserId, MeteredProvider
 from app.core.config import settings
 from app.core.errors import ValidationError
 from app.core.file_validation import read_file_with_size_limit, validate_file_content
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse
-from app.providers import factory
 from app.services.resume_parsing_service import (
     _EMPTY_PDF_MSG,
     _EXTRACT_FAILURE_MSG,
@@ -48,17 +47,22 @@ async def parse_resume(
     request: Request,  # noqa: ARG001
     file: Annotated[UploadFile, File(...)],
     user_id: CurrentUserId,  # noqa: ARG001
+    provider: MeteredProvider,
+    _balance: BalanceCheck,
 ) -> DataResponse[dict]:
     """Parse uploaded PDF resume and extract structured data.
 
     REQ-019 §6.3, §7.2: Accepts PDF upload, extracts text via pdfplumber,
     parses with LLM, returns structured persona data for onboarding
     form pre-population.
+    REQ-020 §7.1: Requires sufficient balance (BalanceCheck dependency).
 
     Args:
         request: HTTP request (required by rate limiter).
         file: Uploaded PDF file.
         user_id: Current authenticated user (injected, ensures auth).
+        provider: Metered LLM provider (injected via DI).
+        _balance: Balance gate (injected, raises 402 if insufficient).
 
     Returns:
         DataResponse with parsed resume fields: basic_info, work_history,
@@ -66,6 +70,7 @@ async def parse_resume(
 
     Raises:
         ValidationError: If file is not PDF, too large, or parsing fails.
+        InsufficientBalanceError: If user balance is too low (402).
     """
     content = await read_file_with_size_limit(file)
 
@@ -78,7 +83,6 @@ async def parse_resume(
             details=[{"field": "file", "error": "PDF_REQUIRED"}],
         )
 
-    provider = factory.get_llm_provider()
     service = ResumeParsingService()
 
     try:

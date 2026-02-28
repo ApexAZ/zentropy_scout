@@ -17,8 +17,8 @@ from pydantic import TypeAdapter
 from pydantic import ValidationError as PydanticValidationError
 
 from app.core.llm_sanitization import sanitize_llm_input
-from app.providers import ProviderError, factory
-from app.providers.llm.base import LLMMessage, TaskType
+from app.providers import ProviderError
+from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 from app.schemas.ingest import ExtractedJobData
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ _MAX_EXTRACTED_SKILLS = 100
 """Safety cap on extracted skills from LLM response."""
 
 
-async def extract_job_data(raw_text: str) -> ExtractedJobData:
+async def extract_job_data(raw_text: str, provider: LLMProvider) -> ExtractedJobData:
     """Extract structured job data from raw posting text.
 
     REQ-007 §6.4: Uses LLM to extract structured fields from raw text.
@@ -37,6 +37,7 @@ async def extract_job_data(raw_text: str) -> ExtractedJobData:
 
     Args:
         raw_text: Raw job posting text to extract from.
+        provider: LLM provider for extraction (injected by caller).
 
     Returns:
         ExtractedJobData with fields: job_title, company_name, location,
@@ -53,8 +54,7 @@ async def extract_job_data(raw_text: str) -> ExtractedJobData:
 
     # Try LLM extraction
     try:
-        llm = factory.get_llm_provider()
-        response = await llm.complete(
+        response = await provider.complete(
             messages=[
                 LLMMessage(role="system", content="You are a job posting parser."),
                 LLMMessage(

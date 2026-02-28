@@ -332,6 +332,11 @@ async def client(
     settings.auth_enabled = True
     settings.auth_secret = SecretStr(TEST_AUTH_SECRET)
 
+    # Disable metering so LLM-triggering endpoints don't require balance.
+    # REQ-020 §7: Metering-specific tests override this locally.
+    original_metering_enabled = settings.metering_enabled
+    settings.metering_enabled = False
+
     # Generate valid JWT for test user
     test_jwt = create_test_jwt(TEST_USER_ID)
 
@@ -347,6 +352,7 @@ async def client(
     # Cleanup
     settings.auth_enabled = original_auth_enabled
     settings.auth_secret = original_auth_secret
+    settings.metering_enabled = original_metering_enabled
     app.dependency_overrides.pop(get_db, None)
 
 

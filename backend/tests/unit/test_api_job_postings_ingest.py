@@ -10,10 +10,14 @@ These tests verify:
 
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 import pytest
 from httpx import AsyncClient
+
+from app.api.deps import require_sufficient_balance
+from app.core.errors import InsufficientBalanceError
 
 # =============================================================================
 # Schema Validation Tests
@@ -567,3 +571,46 @@ class TestIngestModificationSecurity:
         assert data["job"]["salary_min"] == 100000
         assert data["job"]["salary_max"] == 150000
         assert data["job"]["salary_currency"] == "USD"
+
+
+# =============================================================================
+# Balance Gating Tests (REQ-020 §7)
+# =============================================================================
+
+_ZERO = Decimal("0.000000")
+
+
+class TestIngestBalanceGating:
+    """Tests for 402 balance gating on ingest endpoint.
+
+    REQ-020 §7.1: LLM-triggering endpoints require sufficient balance.
+    """
+
+    @pytest.mark.asyncio
+    async def test_ingest_returns_402_when_insufficient_balance(
+        self, client: AsyncClient
+    ) -> None:
+        """Ingest returns 402 when user has insufficient balance."""
+        from app.main import app
+
+        async def raise_insufficient_balance() -> None:
+            raise InsufficientBalanceError(balance=_ZERO, minimum_required=_ZERO)
+
+        app.dependency_overrides[require_sufficient_balance] = (
+            raise_insufficient_balance
+        )
+        try:
+            response = await client.post(
+                "/api/v1/job-postings/ingest",
+                json={
+                    "raw_text": "Job posting text",
+                    "source_url": "https://example.com/job/402-test",
+                    "source_name": "Example",
+                },
+            )
+            assert response.status_code == 402
+            error = response.json()["error"]
+            assert error["code"] == "INSUFFICIENT_BALANCE"
+            assert "$0.00" in error["message"]
+        finally:
+            app.dependency_overrides.pop(require_sufficient_balance, None)

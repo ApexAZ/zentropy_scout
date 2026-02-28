@@ -137,7 +137,7 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | § | Task | Status |
 |---|------|--------|
 | 7 | **Add InsufficientBalanceError + balance gating dependency (TDD)** | ✅ |
-| 8 | **Refactor extract_job_data + wire metered providers into both endpoints (TDD)** | ⬜ |
+| 8 | **Refactor extract_job_data + wire metered providers into both endpoints (TDD)** | ✅ |
 | 9 | **Refactor remaining internal services to accept provider parameter (TDD)** | ⬜ |
 | 10 | **Phase gate — full test suite + push** | ⬜ |
 
@@ -208,3 +208,4 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | 2026-02-28 | 0.6 | Phase 3 §5 complete — provider_name abstract property on all adapters, 11 tests |
 | 2026-02-28 | 0.7 | Phase 3 §6 complete — MeteredLLMProvider + MeteredEmbeddingProvider + DI deps, 23 tests |
 | 2026-02-28 | 0.8 | Phase 4 §7 complete — InsufficientBalanceError + balance gating dependency, 16 tests |
+| 2026-02-28 | 0.9 | Phase 4 §8 complete — extract_job_data refactor + metered providers in both endpoints, 2 new 402 tests |
