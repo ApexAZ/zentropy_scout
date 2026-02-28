@@ -18,7 +18,7 @@ import re
 
 from app.core.llm_sanitization import sanitize_llm_input
 from app.providers.factory import get_llm_provider
-from app.providers.llm.base import LLMMessage, TaskType
+from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,7 @@ _EXPECTED_JSON_ARRAY = "Expected JSON array"
 async def extract_keywords(
     text: str,
     max_keywords: int = 20,
+    provider: LLMProvider | None = None,
 ) -> set[str]:
     """Extract meaningful keywords from text using LLM.
 
@@ -37,6 +38,7 @@ async def extract_keywords(
     Args:
         text: Source text (job description, resume summary, etc.)
         max_keywords: Maximum keywords to return.
+        provider: Optional LLM provider. Falls back to factory if None.
 
     Returns:
         Set of lowercase normalized keywords.
@@ -47,7 +49,7 @@ async def extract_keywords(
     if not text.strip():
         return set()
 
-    llm = get_llm_provider()
+    llm = provider or get_llm_provider()
     safe_text = sanitize_llm_input(text[:2000])
 
     response = await llm.complete(
@@ -95,6 +97,7 @@ Example: ["kubernetes", "python", "distributed systems", "team leadership"]""",
 async def extract_skills_from_text(
     text: str,
     persona_skills: set[str] | None = None,
+    provider: LLMProvider | None = None,
 ) -> set[str]:
     """Extract skill mentions from free text using LLM.
 
@@ -105,6 +108,7 @@ async def extract_skills_from_text(
         text: Text to analyze (job description, bullet point, etc.)
         persona_skills: Optional set of known skills to bias extraction toward.
             When provided, up to 30 skills are included as hints in the prompt.
+        provider: Optional LLM provider. Falls back to factory if None.
 
     Returns:
         Set of lowercase skill names found.
@@ -115,7 +119,7 @@ async def extract_skills_from_text(
     if not text.strip():
         return set()
 
-    llm = get_llm_provider()
+    llm = provider or get_llm_provider()
     safe_text = sanitize_llm_input(text[:1500])
 
     skill_hint = ""
@@ -213,7 +217,7 @@ def has_metrics(text: str) -> bool:
     return False
 
 
-async def extract_metrics(text: str) -> list[str]:
+async def extract_metrics(text: str, provider: LLMProvider | None = None) -> list[str]:
     """Extract specific metric values from text.
 
     REQ-010 §6.4: Two-phase approach:
@@ -225,6 +229,7 @@ async def extract_metrics(text: str) -> list[str]:
 
     Args:
         text: Text to extract metric values from.
+        provider: Optional LLM provider. Falls back to factory if None.
 
     Returns:
         List of metric strings found (e.g., ["40%", "$1.2M", "500 users"]).
@@ -242,7 +247,7 @@ async def extract_metrics(text: str) -> list[str]:
         return list(dict.fromkeys(metrics))
 
     # Slow path: LLM for subtle metrics
-    llm = get_llm_provider()
+    llm = provider or get_llm_provider()
     safe_text = sanitize_llm_input(text[:1000])
 
     response = await llm.complete(
@@ -332,12 +337,14 @@ def _evict_oldest(cache: dict, max_size: int = _MAX_CACHE_SIZE) -> None:
 async def extract_keywords_cached(
     text: str,
     max_keywords: int = 20,
+    provider: LLMProvider | None = None,
 ) -> set[str]:
     """Cached version of extract_keywords.
 
     Args:
         text: Source text (job description, resume summary, etc.)
         max_keywords: Maximum keywords to return.
+        provider: Optional LLM provider (falls through to extract_keywords).
 
     Returns:
         Set of lowercase normalized keywords.
@@ -353,7 +360,7 @@ async def extract_keywords_cached(
     if cache_key in _keyword_cache:
         return set(_keyword_cache[cache_key])
 
-    result = await extract_keywords(text, max_keywords)
+    result = await extract_keywords(text, max_keywords, provider=provider)
     _keyword_cache[cache_key] = result
     _evict_oldest(_keyword_cache)
     return set(result)
@@ -362,12 +369,14 @@ async def extract_keywords_cached(
 async def extract_skills_cached(
     text: str,
     persona_skills: set[str] | None = None,
+    provider: LLMProvider | None = None,
 ) -> set[str]:
     """Cached version of extract_skills_from_text.
 
     Args:
         text: Text to analyze (job description, bullet point, etc.)
         persona_skills: Optional set of known skills to bias extraction toward.
+        provider: Optional LLM provider (falls through to extract_skills_from_text).
 
     Returns:
         Set of lowercase skill names found.
@@ -384,17 +393,21 @@ async def extract_skills_cached(
     if cache_key in _skills_cache:
         return set(_skills_cache[cache_key])
 
-    result = await extract_skills_from_text(text, persona_skills)
+    result = await extract_skills_from_text(text, persona_skills, provider=provider)
     _skills_cache[cache_key] = result
     _evict_oldest(_skills_cache)
     return set(result)
 
 
-async def extract_metrics_cached(text: str) -> list[str]:
+async def extract_metrics_cached(
+    text: str,
+    provider: LLMProvider | None = None,
+) -> list[str]:
     """Cached version of extract_metrics.
 
     Args:
         text: Text to extract metric values from.
+        provider: Optional LLM provider (falls through to extract_metrics).
 
     Returns:
         List of metric strings found.
@@ -410,7 +423,7 @@ async def extract_metrics_cached(text: str) -> list[str]:
     if cache_key in _metrics_cache:
         return list(_metrics_cache[cache_key])
 
-    result = await extract_metrics(text)
+    result = await extract_metrics(text, provider=provider)
     _metrics_cache[cache_key] = result
     _evict_oldest(_metrics_cache)
     return list(result)

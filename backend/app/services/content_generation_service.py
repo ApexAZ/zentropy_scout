@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from app.agents.ghostwriter import TriggerType
 from app.core.errors import ValidationError
 from app.core.llm_sanitization import sanitize_user_feedback
+from app.providers.llm.base import LLMProvider
 from app.schemas.prompt_params import JobContext, VoiceProfileData
 from app.services.cover_letter_generation import CoverLetterResult
 from app.services.reasoning_explanation import ReasoningStory, format_agent_reasoning
@@ -82,6 +83,9 @@ class ContentGenerationService:
     REQ-018 §6.2: Single orchestrator class replacing the LangGraph
     StateGraph. Calls existing services in an 8-step pipeline.
     """
+
+    def __init__(self, provider: LLMProvider | None = None) -> None:
+        self._provider = provider
 
     async def generate(
         self,
@@ -347,6 +351,7 @@ class ContentGenerationService:
             ),
             stories=[],
             stories_used=story_ids,
+            provider=self._provider,
         )
 
     def _check_job_active(self, job_posting_id: str) -> bool:

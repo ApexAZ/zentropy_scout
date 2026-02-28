@@ -138,7 +138,7 @@ Phase 7: Integration & Verification (REQ-020 §12)
 |---|------|--------|
 | 7 | **Add InsufficientBalanceError + balance gating dependency (TDD)** | ✅ |
 | 8 | **Refactor extract_job_data + wire metered providers into both endpoints (TDD)** | ✅ |
-| 9 | **Refactor remaining internal services to accept provider parameter (TDD)** | ⬜ |
+| 9 | **Refactor remaining internal services to accept provider parameter (TDD)** | ✅ |
 | 10 | **Phase gate — full test suite + push** | ⬜ |
 
 ---

@@ -27,6 +27,8 @@ from app.adapters.sources.remoteok import RemoteOKAdapter
 from app.adapters.sources.themuse import TheMuseAdapter
 from app.adapters.sources.usajobs import USAJobsAdapter
 from app.agents.scouter import calculate_next_poll_time, merge_results
+from app.providers.embedding.base import EmbeddingProvider
+from app.providers.llm.base import LLMProvider
 from app.repositories.job_pool_repository import JobPoolRepository
 from app.services.job_enrichment_service import JobEnrichmentService
 from app.services.job_scoring_service import JobScoringService
@@ -110,10 +112,14 @@ class JobFetchService:
         db: AsyncSession,
         user_id: UUID,
         persona_id: UUID,
+        llm_provider: LLMProvider | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
     ) -> None:
         self.db = db
         self.user_id = user_id
         self.persona_id = persona_id
+        self._llm_provider = llm_provider
+        self._embedding_provider = embedding_provider
 
     async def run_poll(
         self,
@@ -151,7 +157,9 @@ class JobFetchService:
         new_jobs, existing_jobs = await self._partition_jobs(merged_jobs)
 
         # Step 4: Enrich new jobs only
-        enriched_new = await JobEnrichmentService.enrich_jobs(new_jobs)
+        enriched_new = await JobEnrichmentService.enrich_jobs(
+            new_jobs, provider=self._llm_provider
+        )
 
         # Step 5: Save new + link existing
         saved_count, saved_ids = await self._save_new_jobs(enriched_new)
@@ -354,7 +362,11 @@ class JobFetchService:
 
         try:
             job_uuids = [UUID(jid) for jid in saved_ids]
-            scoring = JobScoringService(self.db)
+            scoring = JobScoringService(
+                self.db,
+                llm_provider=self._llm_provider,
+                embedding_provider=self._embedding_provider,
+            )
             await scoring.score_batch(self.persona_id, job_uuids, self.user_id)
             logger.info("Scored %d new jobs", len(saved_ids))
         # WHY BLE001: Scoring is best-effort during poll — any failure

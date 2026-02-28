@@ -25,7 +25,6 @@ _PATCH_LOAD_DISCOVERED = f"{_MODULE}._load_discovered_job_ids"
 _PATCH_GEN_EMBEDDINGS = f"{_MODULE}.generate_persona_embeddings"
 _PATCH_FILTER_BATCH = f"{_MODULE}.filter_jobs_batch"
 _PATCH_BATCH_SCORE = f"{_MODULE}.batch_score_jobs"
-_PATCH_FACTORY = f"{_MODULE}.factory"
 _PATCH_SAVE_SCORE = f"{_MODULE}._save_score"
 
 
@@ -196,6 +195,10 @@ class TestScoreJob:
         scored = _make_scored_job(job_id=job_id, fit_total=78)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+        mock_emb = AsyncMock()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona) as mock_load_p,
             patch(_PATCH_LOAD_JOBS, return_value=[job]),
@@ -211,15 +214,11 @@ class TestScoreJob:
                 _PATCH_BATCH_SCORE,
                 return_value=[scored],
             ),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=mock_emb
+            )
             result = await svc.score_job(persona_id, job_id, user_id)
 
         assert result["job_posting_id"] == str(job_id)
@@ -260,12 +259,9 @@ class TestScoreJob:
                 return_value=([], [filter_result]),
             ),
             patch(_PATCH_BATCH_SCORE) as mock_batch,
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(mock_db, embedding_provider=AsyncMock())
             result = await svc.score_job(persona_id, job_id, user_id)
 
         assert result["fit_score"] is None
@@ -285,6 +281,9 @@ class TestScoreJob:
         scored = _make_scored_job(job_id=job_id, fit_total=RATIONALE_SCORE_THRESHOLD)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response("Solid match.")
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[job]),
@@ -294,15 +293,11 @@ class TestScoreJob:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response("Solid match.")
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             result = await svc.score_job(persona_id, job_id, user_id)
 
         assert result["explanation"] == "Solid match."
@@ -331,12 +326,9 @@ class TestScoreJob:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(mock_db, embedding_provider=AsyncMock())
             result = await svc.score_job(persona_id, job_id, user_id)
 
         assert result["explanation"] is not None
@@ -376,11 +368,8 @@ class TestScoreJob:
                 _PATCH_GEN_EMBEDDINGS,
                 return_value=embeddings,
             ),
-            patch(_PATCH_FACTORY) as mock_factory,
         ):
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(mock_db, embedding_provider=AsyncMock())
             with pytest.raises(NotFoundError, match="JobPosting"):
                 await svc.score_job(persona_id, uuid4(), user_id)
 
@@ -405,6 +394,9 @@ class TestScoreBatch:
         scored_jobs = [_make_scored_job(job_id=jid, fit_total=70) for jid in job_ids]
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=jobs),
@@ -414,15 +406,11 @@ class TestScoreBatch:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=(jobs, [])),
             patch(_PATCH_BATCH_SCORE, return_value=scored_jobs),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             results = await svc.score_batch(persona_id, job_ids, user_id)
 
         assert len(results) == 3
@@ -441,6 +429,9 @@ class TestScoreBatch:
         scored_jobs = [_make_scored_job(job_id=jid) for jid in job_ids]
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=jobs),
@@ -450,15 +441,11 @@ class TestScoreBatch:
             ) as mock_gen_emb,
             patch(_PATCH_FILTER_BATCH, return_value=(jobs, [])),
             patch(_PATCH_BATCH_SCORE, return_value=scored_jobs),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             await svc.score_batch(persona_id, job_ids, user_id)
 
         # Performance optimization test: embedding generation is an expensive
@@ -489,6 +476,9 @@ class TestScoreBatch:
             warnings=[],
         )
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[pass_job, fail_job]),
@@ -501,15 +491,11 @@ class TestScoreBatch:
                 return_value=([pass_job], [filter_result]),
             ),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             results = await svc.score_batch(persona_id, [pass_id, fail_id], user_id)
 
         assert len(results) == 2
@@ -532,21 +518,20 @@ class TestScoreBatch:
         scored = _make_scored_job(job_id=job_id, fit_total=70)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[job]) as mock_load_jobs,
             patch(_PATCH_GEN_EMBEDDINGS, return_value=embeddings),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             await svc.score_batch(persona_id, [job_id], user_id)
 
         # Security contract: user_id must be passed for tenant isolation
@@ -607,12 +592,9 @@ class TestScoreBatch:
                 return_value=([], filter_results),
             ),
             patch(_PATCH_BATCH_SCORE) as mock_batch,
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(mock_db, embedding_provider=AsyncMock())
             results = await svc.score_batch(persona_id, job_ids, user_id)
 
         assert len(results) == 2
@@ -644,6 +626,9 @@ class TestRescoreAllDiscovered:
         ]
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(
@@ -657,15 +642,11 @@ class TestRescoreAllDiscovered:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=(jobs, [])),
             patch(_PATCH_BATCH_SCORE, return_value=scored),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             results = await svc.rescore_all_discovered(persona_id, user_id)
 
         assert len(results) == 2
@@ -708,6 +689,9 @@ class TestRationaleGeneration:
         scored = _make_scored_job(job_id=job_id, fit_total=80)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[job]),
@@ -717,15 +701,11 @@ class TestRationaleGeneration:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             await svc.score_job(persona_id, job_id, user_id)
 
         call_kwargs = mock_llm.complete.call_args
@@ -746,6 +726,9 @@ class TestRationaleGeneration:
         scored = _make_scored_job(job_id=job_id, fit_total=75)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.side_effect = ProviderError("API error")
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[job]),
@@ -755,15 +738,11 @@ class TestRationaleGeneration:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.side_effect = ProviderError("API error")
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             result = await svc.score_job(persona_id, job_id, user_id)
 
         # Should still return a result, just without LLM rationale
@@ -791,6 +770,9 @@ class TestScoreDetailsAndPersistence:
         scored = _make_scored_job(job_id=job_id, fit_total=75)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[job]),
@@ -800,15 +782,11 @@ class TestScoreDetailsAndPersistence:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             result = await svc.score_job(persona_id, job_id, user_id)
 
         details = result["score_details"]
@@ -829,6 +807,9 @@ class TestScoreDetailsAndPersistence:
         scored = _make_scored_job(job_id=job_id, fit_total=82)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[job]),
@@ -838,15 +819,11 @@ class TestScoreDetailsAndPersistence:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE) as mock_save,
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             await svc.score_job(persona_id, job_id, user_id)
 
         mock_save.assert_called_once()
@@ -884,12 +861,9 @@ class TestScoreDetailsAndPersistence:
                 _PATCH_FILTER_BATCH,
                 return_value=([], [filter_result]),
             ),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE) as mock_save,
         ):
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(mock_db, embedding_provider=AsyncMock())
             await svc.score_job(persona_id, job_id, user_id)
 
         mock_save.assert_called_once()
@@ -921,6 +895,9 @@ class TestAutoDraft:
         scored = _make_scored_job(job_id=job_id, fit_total=95)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[job]),
@@ -930,15 +907,11 @@ class TestAutoDraft:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]),
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db, llm_provider=mock_llm, embedding_provider=AsyncMock()
+            )
             result = await svc.score_job(persona_id, job_id, user_id)
 
         # Should still return normally — no Ghostwriter invocation
@@ -968,11 +941,8 @@ class TestErrorHandling:
                 _PATCH_GEN_EMBEDDINGS,
                 side_effect=ProviderError("Embedding API down"),
             ),
-            patch(_PATCH_FACTORY) as mock_factory,
         ):
-            mock_factory.get_embedding_provider.return_value = AsyncMock()
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(mock_db, embedding_provider=AsyncMock())
             with pytest.raises(ProviderError, match="Embedding API down"):
                 await svc.score_batch(persona_id, [uuid4()], user_id)
 
@@ -988,6 +958,10 @@ class TestErrorHandling:
         scored = _make_scored_job(job_id=job_id, fit_total=70)
         embeddings = _make_persona_embeddings(persona_id)
 
+        mock_emb_provider = AsyncMock()
+        mock_llm = AsyncMock()
+        mock_llm.complete.return_value = _make_llm_response()
+
         with (
             patch(_PATCH_LOAD_PERSONA, return_value=persona),
             patch(_PATCH_LOAD_JOBS, return_value=[job]),
@@ -997,16 +971,13 @@ class TestErrorHandling:
             ),
             patch(_PATCH_FILTER_BATCH, return_value=([job], [])),
             patch(_PATCH_BATCH_SCORE, return_value=[scored]) as mock_batch,
-            patch(_PATCH_FACTORY) as mock_factory,
             patch(_PATCH_SAVE_SCORE),
         ):
-            mock_emb_provider = AsyncMock()
-            mock_llm = AsyncMock()
-            mock_llm.complete.return_value = _make_llm_response()
-            mock_factory.get_llm_provider.return_value = mock_llm
-            mock_factory.get_embedding_provider.return_value = mock_emb_provider
-
-            svc = JobScoringService(mock_db)
+            svc = JobScoringService(
+                mock_db,
+                llm_provider=mock_llm,
+                embedding_provider=mock_emb_provider,
+            )
             await svc.score_batch(persona_id, [job_id], user_id)
 
         call_kwargs = mock_batch.call_args.kwargs

@@ -9,8 +9,8 @@ Async service that:
 3. Parses XML response (<cover_letter> + <agent_reasoning>)
 4. Returns a CoverLetterResult dataclass
 
-Follows the same import pattern as ghost_detection.py:
-uses factory.get_llm_provider() for the provider instance.
+Accepts an optional LLM provider; falls back to
+factory.get_llm_provider() if not supplied.
 """
 
 import logging
@@ -23,7 +23,7 @@ from app.prompts.ghostwriter import (
     build_cover_letter_prompt,
 )
 from app.providers import ProviderError, factory
-from app.providers.llm.base import LLMMessage, TaskType
+from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 from app.schemas.prompt_params import JobContext, VoiceProfileData
 
 logger = logging.getLogger(__name__)
@@ -116,6 +116,7 @@ async def generate_cover_letter(
     voice: VoiceProfileData,
     stories: list[dict],
     stories_used: list[str],
+    provider: LLMProvider | None = None,
 ) -> CoverLetterResult:
     """Generate a cover letter using the LLM provider.
 
@@ -128,6 +129,7 @@ async def generate_cover_letter(
         voice: Voice profile settings (tone, style, vocabulary, markers, etc.).
         stories: List of story dicts for prompt context.
         stories_used: Achievement story IDs being referenced.
+        provider: Optional LLM provider. Falls back to factory if None.
 
     Returns:
         CoverLetterResult with content, reasoning, word_count, and stories_used.
@@ -152,7 +154,7 @@ async def generate_cover_letter(
     ]
 
     try:
-        llm = factory.get_llm_provider()
+        llm = provider or factory.get_llm_provider()
         response = await llm.complete(
             messages=messages,
             task=TaskType.COVER_LETTER,

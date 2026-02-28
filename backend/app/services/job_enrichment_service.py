@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from app.core.llm_sanitization import sanitize_llm_input
+from app.providers.llm.base import LLMProvider
 from app.services.ghost_detection import calculate_ghost_score
 
 logger = logging.getLogger(__name__)
@@ -25,11 +26,15 @@ def _empty_extraction() -> dict[str, Any]:
     }
 
 
-async def _score_single_job(job: dict[str, Any]) -> dict[str, Any]:
+async def _score_single_job(
+    job: dict[str, Any],
+    provider: LLMProvider | None = None,
+) -> dict[str, Any]:
     """Calculate ghost score for a single job, returning enriched copy.
 
     Args:
         job: Raw job dict with optional scoring fields.
+        provider: Optional LLM provider for ghost detection.
 
     Returns:
         Copy of job with ghost_score and ghost_signals added.
@@ -46,6 +51,7 @@ async def _score_single_job(job: dict[str, Any]) -> dict[str, Any]:
             seniority_level=job.get("seniority_level"),
             years_experience_min=job.get("years_experience_min"),
             description=job.get("description", ""),
+            provider=provider,
         )
         return {
             **job,
@@ -65,13 +71,17 @@ async def _score_single_job(job: dict[str, Any]) -> dict[str, Any]:
         }
 
 
-async def _enrich_single_job(job: dict[str, Any]) -> dict[str, Any]:
+async def _enrich_single_job(
+    job: dict[str, Any],
+    provider: LLMProvider | None = None,
+) -> dict[str, Any]:
     """Run extraction + ghost scoring for a single job.
 
     Errors in one step don't block the other.
 
     Args:
         job: Raw job dict to enrich.
+        provider: Optional LLM provider for ghost detection.
 
     Returns:
         Enriched copy with extraction + ghost fields.
@@ -107,6 +117,7 @@ async def _enrich_single_job(job: dict[str, Any]) -> dict[str, Any]:
             seniority_level=job.get("seniority_level"),
             years_experience_min=job.get("years_experience_min"),
             description=description,
+            provider=provider,
         )
         current["ghost_score"] = signals.ghost_score
         current["ghost_signals"] = signals.to_dict()
@@ -171,6 +182,7 @@ class JobEnrichmentService:
     @staticmethod
     async def calculate_ghost_scores(
         jobs: list[dict[str, Any]],
+        provider: LLMProvider | None = None,
     ) -> list[dict[str, Any]]:
         """Calculate ghost detection scores for a batch of jobs.
 
@@ -179,15 +191,17 @@ class JobEnrichmentService:
 
         Args:
             jobs: List of job dicts to score.
+            provider: Optional LLM provider for ghost detection.
 
         Returns:
             List of jobs enriched with ghost_score and ghost_signals.
         """
-        return [await _score_single_job(job) for job in jobs]
+        return [await _score_single_job(job, provider=provider) for job in jobs]
 
     @staticmethod
     async def enrich_jobs(
         jobs: list[dict[str, Any]],
+        provider: LLMProvider | None = None,
     ) -> list[dict[str, Any]]:
         """Full enrichment pipeline: extraction + ghost scoring.
 
@@ -200,8 +214,9 @@ class JobEnrichmentService:
 
         Args:
             jobs: List of raw job dicts to enrich.
+            provider: Optional LLM provider for ghost detection.
 
         Returns:
             List of enriched job dicts with extraction + ghost fields.
         """
-        return [await _enrich_single_job(job) for job in jobs]
+        return [await _enrich_single_job(job, provider=provider) for job in jobs]

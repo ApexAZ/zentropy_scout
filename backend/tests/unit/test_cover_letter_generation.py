@@ -12,7 +12,7 @@ Tests verify:
 - Result contains content, reasoning, word_count, stories_used
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -22,11 +22,6 @@ from app.schemas.prompt_params import JobContext, VoiceProfileData
 from app.services.cover_letter_generation import (
     CoverLetterGenerationError,
     generate_cover_letter,
-)
-
-# S1192: Duplicated patch path string
-_PATCH_GET_LLM_PROVIDER = (
-    "app.services.cover_letter_generation.factory.get_llm_provider"
 )
 
 # =============================================================================
@@ -125,11 +120,7 @@ class TestGenerateCoverLetter:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            await generate_cover_letter(**_default_kwargs())
+        await generate_cover_letter(**_default_kwargs(), provider=mock_provider)
 
         call_kwargs = mock_provider.complete.call_args
         assert call_kwargs[1]["task"] == TaskType.COVER_LETTER
@@ -141,11 +132,7 @@ class TestGenerateCoverLetter:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            await generate_cover_letter(**_default_kwargs())
+        await generate_cover_letter(**_default_kwargs(), provider=mock_provider)
 
         call_kwargs = mock_provider.complete.call_args
         messages = call_kwargs[1]["messages"]
@@ -160,11 +147,9 @@ class TestGenerateCoverLetter:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            result = await generate_cover_letter(**_default_kwargs())
+        result = await generate_cover_letter(
+            **_default_kwargs(), provider=mock_provider
+        )
 
         assert "Dear Hiring Manager" in result.content
         assert "Jane Smith" in result.content
@@ -176,11 +161,9 @@ class TestGenerateCoverLetter:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            result = await generate_cover_letter(**_default_kwargs())
+        result = await generate_cover_letter(
+            **_default_kwargs(), provider=mock_provider
+        )
 
         assert "cloud migration story" in result.reasoning
 
@@ -191,11 +174,9 @@ class TestGenerateCoverLetter:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            result = await generate_cover_letter(**_default_kwargs())
+        result = await generate_cover_letter(
+            **_default_kwargs(), provider=mock_provider
+        )
 
         assert result.stories_used == ("story-1",)
 
@@ -206,11 +187,9 @@ class TestGenerateCoverLetter:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            result = await generate_cover_letter(**_default_kwargs())
+        result = await generate_cover_letter(
+            **_default_kwargs(), provider=mock_provider
+        )
 
         assert result.word_count > 0
         # Word count should match actual content words
@@ -233,11 +212,9 @@ class TestXmlParsing:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            result = await generate_cover_letter(**_default_kwargs())
+        result = await generate_cover_letter(
+            **_default_kwargs(), provider=mock_provider
+        )
 
         # Should extract content between tags, not include the tags themselves
         assert "<cover_letter>" not in result.content
@@ -251,11 +228,9 @@ class TestXmlParsing:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            result = await generate_cover_letter(**_default_kwargs())
+        result = await generate_cover_letter(
+            **_default_kwargs(), provider=mock_provider
+        )
 
         assert "<agent_reasoning>" not in result.reasoning
         assert "</agent_reasoning>" not in result.reasoning
@@ -267,11 +242,9 @@ class TestXmlParsing:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response(_NO_XML_RESPONSE)
 
-        with patch(
-            _PATCH_GET_LLM_PROVIDER,
-            return_value=mock_provider,
-        ):
-            result = await generate_cover_letter(**_default_kwargs())
+        result = await generate_cover_letter(
+            **_default_kwargs(), provider=mock_provider
+        )
 
         assert "Dear Hiring Manager" in result.content
         assert result.reasoning == ""
@@ -292,14 +265,8 @@ class TestErrorHandling:
         mock_provider = AsyncMock()
         mock_provider.complete.side_effect = ProviderError("API unavailable")
 
-        with (
-            patch(
-                _PATCH_GET_LLM_PROVIDER,
-                return_value=mock_provider,
-            ),
-            pytest.raises(CoverLetterGenerationError, match="Please try again"),
-        ):
-            await generate_cover_letter(**_default_kwargs())
+        with pytest.raises(CoverLetterGenerationError, match="Please try again"):
+            await generate_cover_letter(**_default_kwargs(), provider=mock_provider)
 
     @pytest.mark.asyncio
     async def test_empty_response_raises_generation_error(self) -> None:
@@ -308,14 +275,8 @@ class TestErrorHandling:
         mock_provider = AsyncMock()
         mock_provider.complete.return_value = _make_llm_response("")
 
-        with (
-            patch(
-                _PATCH_GET_LLM_PROVIDER,
-                return_value=mock_provider,
-            ),
-            pytest.raises(CoverLetterGenerationError, match="empty"),
-        ):
-            await generate_cover_letter(**_default_kwargs())
+        with pytest.raises(CoverLetterGenerationError, match="empty"):
+            await generate_cover_letter(**_default_kwargs(), provider=mock_provider)
 
     @pytest.mark.asyncio
     async def test_none_response_raises_generation_error(self) -> None:
@@ -331,14 +292,8 @@ class TestErrorHandling:
             latency_ms=1200.0,
         )
 
-        with (
-            patch(
-                _PATCH_GET_LLM_PROVIDER,
-                return_value=mock_provider,
-            ),
-            pytest.raises(CoverLetterGenerationError, match="empty"),
-        ):
-            await generate_cover_letter(**_default_kwargs())
+        with pytest.raises(CoverLetterGenerationError, match="empty"):
+            await generate_cover_letter(**_default_kwargs(), provider=mock_provider)
 
     @pytest.mark.asyncio
     async def test_generation_error_preserves_message(self) -> None:

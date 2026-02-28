@@ -25,7 +25,7 @@ from typing import Any
 
 from app.core.llm_sanitization import sanitize_llm_input
 from app.providers import ProviderError, factory
-from app.providers.llm.base import LLMMessage, TaskType
+from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 
 logger = logging.getLogger(__name__)
 
@@ -277,7 +277,10 @@ def calculate_requirement_mismatch_score(
     return 0
 
 
-async def calculate_vagueness_score(description: str) -> int:
+async def calculate_vagueness_score(
+    description: str,
+    provider: LLMProvider | None = None,
+) -> int:
     """Calculate vagueness score using LLM assessment.
 
     REQ-003 §7.2: LLM assesses how vague or specific the job description is.
@@ -285,6 +288,7 @@ async def calculate_vagueness_score(description: str) -> int:
 
     Args:
         description: Job description text to assess.
+        provider: Optional LLM provider. Falls back to factory if None.
 
     Returns:
         Score 0-100 where higher = more vague.
@@ -300,7 +304,7 @@ Respond with ONLY a number between 0 and 100.
 Job Description:
 """
     try:
-        llm = factory.get_llm_provider()
+        llm = provider or factory.get_llm_provider()
         response = await llm.complete(
             messages=[
                 # WHY 2000 chars: Vagueness assessment only needs enough text to assess
@@ -376,6 +380,7 @@ async def calculate_ghost_score(
     seniority_level: str | None,
     years_experience_min: int | None,
     description: str,
+    provider: LLMProvider | None = None,
 ) -> GhostSignals:
     """Calculate full ghost score with all signals.
 
@@ -392,6 +397,7 @@ async def calculate_ghost_score(
         seniority_level: Job seniority level.
         years_experience_min: Minimum years experience requested.
         description: Job description text.
+        provider: Optional LLM provider. Falls back to factory if None.
 
     Returns:
         GhostSignals with all signal values and final ghost_score.
@@ -405,7 +411,7 @@ async def calculate_ghost_score(
     requirement_mismatch_score = calculate_requirement_mismatch_score(
         seniority_level, years_experience_min
     )
-    vagueness_score = await calculate_vagueness_score(description)
+    vagueness_score = await calculate_vagueness_score(description, provider=provider)
 
     # Calculate weighted score
     weighted_score = (

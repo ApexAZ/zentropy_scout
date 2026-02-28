@@ -32,7 +32,8 @@ from app.prompts.strategist import (
     build_score_rationale_prompt,
 )
 from app.providers import ProviderError, factory
-from app.providers.llm.base import LLMMessage, TaskType
+from app.providers.embedding.base import EmbeddingProvider
+from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 from app.repositories.persona_job_repository import PersonaJobRepository
 from app.schemas.prompt_params import ScoreData
 from app.services.batch_scoring import ScoredJob, batch_score_jobs
@@ -240,8 +241,15 @@ class JobScoringService:
         db: Async database session (caller controls transaction).
     """
 
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(
+        self,
+        db: AsyncSession,
+        llm_provider: LLMProvider | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
+    ) -> None:
         self.db = db
+        self._llm_provider = llm_provider
+        self._embedding_provider = embedding_provider
 
     async def score_job(
         self,
@@ -306,7 +314,9 @@ class JobScoringService:
         persona = await _load_persona(self.db, persona_id, user_id)
 
         # Step 2: Generate persona embeddings (once for entire batch)
-        embedding_provider = factory.get_embedding_provider()
+        embedding_provider = (
+            self._embedding_provider or factory.get_embedding_provider()
+        )
 
         async def _embed_fn(text: str) -> list[list[float]]:
             result = await embedding_provider.embed([text])
@@ -454,7 +464,7 @@ class JobScoringService:
             return _LOW_MATCH_RATIONALE
 
         try:
-            llm = factory.get_llm_provider()
+            llm = self._llm_provider or factory.get_llm_provider()
 
             score_data = ScoreData(
                 fit_score=scored.fit_score.total,
