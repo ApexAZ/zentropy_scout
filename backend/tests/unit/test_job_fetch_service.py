@@ -369,7 +369,7 @@ class TestRunPoll:
         assert result.new_job_count == 0
         assert result.existing_job_count == 1
         # Enrichment should only be called with new jobs (empty list)
-        mock_enrich.assert_called_once_with([])
+        mock_enrich.assert_called_once_with([], provider=None)
         mock_link.assert_called_once()
 
     async def test_partitions_mixed_new_and_existing(self, service) -> None:
