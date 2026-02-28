@@ -1,7 +1,7 @@
 # REQ-020: Token Metering & Usage Tracking
 
 **Status:** Not Started
-**Version:** 0.2
+**Version:** 0.3
 **PRD Reference:** §6 Technical Architecture
 **Last Updated:** 2026-02-27
 
@@ -289,7 +289,7 @@ CREATE TABLE credit_transactions (
     user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     amount_usd      NUMERIC(10,6) NOT NULL, -- Positive = credit, negative = debit
     transaction_type VARCHAR(20) NOT NULL,  -- 'purchase', 'usage_debit', 'admin_grant', 'refund'
-    reference_id    UUID,                   -- FK to llm_usage_records (for debits) or Stripe session (for purchases)
+    reference_id    VARCHAR(255),            -- llm_usage_records.id (for debits) or Stripe session/refund ID (for purchases/refunds)
     description     VARCHAR(255),           -- Human-readable (e.g., "Stripe purchase: Standard Pack")
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -301,7 +301,7 @@ CREATE TABLE credit_transactions (
 | `user_id` | `UUID FK → users` | Account owner |
 | `amount_usd` | `NUMERIC(10,6)` | Signed amount. `+15.000000` for purchase, `-0.003315` for usage |
 | `transaction_type` | `VARCHAR(20)` | Enum: `purchase`, `usage_debit`, `admin_grant`, `refund` |
-| `reference_id` | `UUID` | Links to source: `llm_usage_records.id` for debits, Stripe checkout session ID for purchases |
+| `reference_id` | `VARCHAR(255)` | Links to source: `llm_usage_records.id` (as string) for debits, Stripe checkout session ID for purchases, Stripe refund ID for refunds. NULL for grants. |
 | `description` | `VARCHAR(255)` | Human-readable description |
 | `created_at` | `TIMESTAMPTZ` | Transaction timestamp |
 
@@ -884,3 +884,4 @@ New environment variables:
 |------|---------|---------|
 | 2026-02-27 | 0.1 | Initial draft |
 | 2026-02-27 | 0.2 | Audit fixes: added `provider_name` prerequisite, specified factory injection pattern with 7 call sites, deferred streaming metering (unused), corrected endpoint list (2 exist, 3 planned, removed `/confirm`), added §6.4 internal LLM calls, added §6.5 `MeteredEmbeddingProvider`, aligned all monetary columns to `NUMERIC(10,6)`, resolved 5 of 6 open questions, split repositories, added router registration |
+| 2026-02-27 | 0.3 | REQ-021 cross-reference: changed `credit_transactions.reference_id` from `UUID` to `VARCHAR(255)` to accommodate Stripe session/refund IDs (non-UUID strings) |
