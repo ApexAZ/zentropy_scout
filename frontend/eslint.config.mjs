@@ -32,7 +32,13 @@ const eslintConfig = defineConfig([
 	// Disable ESLint formatting rules that conflict with Prettier.
 	prettierConfig,
 	// Override default ignores of eslint-config-next.
-	globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+	globalIgnores([
+		".next/**",
+		"out/**",
+		"build/**",
+		"coverage/**",
+		"next-env.d.ts",
+	]),
 ]);
 
 export default eslintConfig;
