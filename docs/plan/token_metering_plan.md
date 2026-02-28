@@ -117,7 +117,7 @@ Phase 7: Integration & Verification (REQ-020 §12)
 
 ## Phase 3: Metered Providers (REQ-020 §6.2, §6.5)
 
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 *Add `provider_name` abstract property to all adapter classes. Create `MeteredLLMProvider` and `MeteredEmbeddingProvider` wrappers. Create FastAPI dependency functions for injecting metered providers.*
 
@@ -125,7 +125,7 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 5 | **Add `provider_name` to all adapters (TDD)** | See full plan for details | ✅ |
-| 6 | **Create MeteredLLMProvider + MeteredEmbeddingProvider + FastAPI dependencies (TDD)** | See full plan for details | ⬜ |
+| 6 | **Create MeteredLLMProvider + MeteredEmbeddingProvider + FastAPI dependencies (TDD)** | See full plan for details | ✅ |
 
 ---
 
@@ -205,3 +205,5 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | 2026-02-28 | 0.3 | Phase 2 §2 complete — metering service, pricing table, config, 30 tests |
 | 2026-02-28 | 0.4 | Phase 2 §3 complete — usage + credit repositories, 40 tests |
 | 2026-02-28 | 0.5 | Phase 2 §4 gate — 3977 backend + 3261 frontend + 213 E2E tests pass, ESLint coverage ignore fix |
+| 2026-02-28 | 0.6 | Phase 3 §5 complete — provider_name abstract property on all adapters, 11 tests |
+| 2026-02-28 | 0.7 | Phase 3 §6 complete — MeteredLLMProvider + MeteredEmbeddingProvider + DI deps, 23 tests |

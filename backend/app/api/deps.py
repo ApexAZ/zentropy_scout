@@ -1,6 +1,7 @@
 """Shared dependencies for API endpoints.
 
 REQ-006 §6.1, REQ-013 §7.1: Authentication dependencies.
+REQ-020 §6.2, §6.5: Metered provider dependencies.
 Local-first mode uses DEFAULT_USER_ID; hosted mode validates JWT from cookie.
 
 WHY DEPENDENCY INJECTION:
@@ -21,6 +22,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_db
 from app.models import User
+from app.providers.embedding.base import EmbeddingProvider
+from app.providers.factory import get_embedding_provider, get_llm_provider
+from app.providers.llm.base import LLMProvider
+from app.providers.metered_provider import MeteredEmbeddingProvider, MeteredLLMProvider
+from app.services.metering_service import MeteringService
 
 # Generic 401 detail — intentionally vague to prevent information leakage.
 # Security: Never include specifics about WHY auth failed (expired, bad sig, etc.).
@@ -179,3 +185,53 @@ CurrentUserId = Annotated[uuid.UUID, Depends(get_current_user_id)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 PasswordResetEligible = Annotated[bool, Depends(get_password_reset_eligible)]
 DbSession = Annotated[AsyncSession, Depends(get_db)]
+
+
+async def get_metered_provider(  # async required: FastAPI DI resolves async deps
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> LLMProvider:
+    """Get an LLM provider with optional metering wrapper.
+
+    REQ-020 §6.2: When metering is enabled, wraps the factory singleton
+    in a MeteredLLMProvider that records usage after each call.
+
+    Args:
+        user_id: Current user ID (from auth dependency).
+        db: Database session for metering records.
+
+    Returns:
+        LLMProvider — raw singleton or metered wrapper.
+    """
+    if not settings.metering_enabled:
+        return get_llm_provider()
+    inner = get_llm_provider()
+    metering_service = MeteringService(db)
+    return MeteredLLMProvider(inner, metering_service, user_id)
+
+
+async def get_metered_embedding_provider(  # async required: FastAPI DI resolves async deps
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> EmbeddingProvider:
+    """Get an embedding provider with optional metering wrapper.
+
+    REQ-020 §6.5: When metering is enabled, wraps the factory singleton
+    in a MeteredEmbeddingProvider that records usage after each call.
+
+    Args:
+        user_id: Current user ID (from auth dependency).
+        db: Database session for metering records.
+
+    Returns:
+        EmbeddingProvider — raw singleton or metered wrapper.
+    """
+    if not settings.metering_enabled:
+        return get_embedding_provider()
+    inner = get_embedding_provider()
+    metering_service = MeteringService(db)
+    return MeteredEmbeddingProvider(inner, metering_service, user_id)
+
+
+MeteredProvider = Annotated[LLMProvider, Depends(get_metered_provider)]
+MeteredEmbedding = Annotated[EmbeddingProvider, Depends(get_metered_embedding_provider)]
