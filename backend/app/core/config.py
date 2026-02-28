@@ -160,30 +160,37 @@ class Settings(BaseSettings):
             raise ValueError(msg)
 
         if self.environment == "production":
-            if self.database_password == _INSECURE_DEFAULT_PASSWORD:
-                msg = (
-                    "Cannot use default database password in production. "
-                    "Set DATABASE_PASSWORD environment variable to a secure value."
-                )
-                raise ValueError(msg)
-
-            if self.auth_enabled:
-                secret_value = self.auth_secret.get_secret_value()
-                if not secret_value:
-                    msg = (
-                        "AUTH_SECRET must be set when AUTH_ENABLED=true in production. "
-                        'Generate with: python -c "import secrets; '
-                        'print(secrets.token_hex(32))"'
-                    )
-                    raise ValueError(msg)
-                if len(secret_value) < _MIN_AUTH_SECRET_LENGTH:
-                    msg = (
-                        f"AUTH_SECRET must be at least {_MIN_AUTH_SECRET_LENGTH} "
-                        "characters for adequate security."
-                    )
-                    raise ValueError(msg)
+            self._check_production_defaults()
 
         return self
+
+    def _check_production_defaults(self) -> None:
+        """Validate production-specific security defaults.
+
+        Checks database password and auth secret strength.
+        """
+        if self.database_password == _INSECURE_DEFAULT_PASSWORD:
+            msg = (
+                "Cannot use default database password in production. "
+                "Set DATABASE_PASSWORD environment variable to a secure value."
+            )
+            raise ValueError(msg)
+
+        if self.auth_enabled:
+            secret_value = self.auth_secret.get_secret_value()
+            if not secret_value:
+                msg = (
+                    "AUTH_SECRET must be set when AUTH_ENABLED=true in production. "
+                    'Generate with: python -c "import secrets; '
+                    'print(secrets.token_hex(32))"'
+                )
+                raise ValueError(msg)
+            if len(secret_value) < _MIN_AUTH_SECRET_LENGTH:
+                msg = (
+                    f"AUTH_SECRET must be at least {_MIN_AUTH_SECRET_LENGTH} "
+                    "characters for adequate security."
+                )
+                raise ValueError(msg)
 
 
 settings = Settings()
