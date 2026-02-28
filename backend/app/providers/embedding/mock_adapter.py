@@ -23,6 +23,11 @@ class MockEmbeddingProvider(EmbeddingProvider):
     # Match OpenAI text-embedding-3-small dimensions
     MOCK_DIMENSIONS = 1536
 
+    @property
+    def provider_name(self) -> str:
+        """Return 'mock' for testing."""
+        return "mock"
+
     def __init__(self) -> None:
         """Initialize mock embedding provider.
 

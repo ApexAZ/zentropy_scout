@@ -196,6 +196,11 @@ class GeminiAdapter(LLMProvider):
     - Clear separation of concerns
     """
 
+    @property
+    def provider_name(self) -> str:
+        """Return 'gemini' for pricing lookup and usage tracking."""
+        return "gemini"
+
     def __init__(self, config: "ProviderConfig") -> None:
         """Initialize Gemini adapter.
 

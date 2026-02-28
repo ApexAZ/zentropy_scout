@@ -124,7 +124,7 @@ Phase 7: Integration & Verification (REQ-020 §12)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 5 | **Add `provider_name` to all adapters (TDD)** | See full plan for details | ⬜ |
+| 5 | **Add `provider_name` to all adapters (TDD)** | See full plan for details | ✅ |
 | 6 | **Create MeteredLLMProvider + MeteredEmbeddingProvider + FastAPI dependencies (TDD)** | See full plan for details | ⬜ |
 
 ---

@@ -32,6 +32,11 @@ class OpenAIEmbeddingAdapter(EmbeddingProvider):
     - Clear separation of concerns
     """
 
+    @property
+    def provider_name(self) -> str:
+        """Return 'openai' for pricing lookup and usage tracking."""
+        return "openai"
+
     def __init__(self, config: "ProviderConfig") -> None:
         """Initialize OpenAI embedding adapter.
 

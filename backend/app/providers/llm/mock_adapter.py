@@ -29,6 +29,11 @@ class MockLLMProvider(LLMProvider):
         last_task: The most recent TaskType used in a call (for quick assertions).
     """
 
+    @property
+    def provider_name(self) -> str:
+        """Return 'mock' for testing."""
+        return "mock"
+
     def __init__(self, responses: dict[TaskType, str] | None = None) -> None:
         """Initialize mock provider with optional pre-configured responses.
 

@@ -193,6 +193,11 @@ class ClaudeAdapter(LLMProvider):
     - Clear separation of concerns
     """
 
+    @property
+    def provider_name(self) -> str:
+        """Return 'claude' for pricing lookup and usage tracking."""
+        return "claude"
+
     def __init__(self, config: "ProviderConfig") -> None:
         """Initialize Claude adapter.
 

@@ -48,6 +48,16 @@ class EmbeddingProvider(ABC):
         """
         self.config = config
 
+    @property
+    @abstractmethod
+    def provider_name(self) -> str:
+        """Return the provider identifier (e.g., 'openai').
+
+        REQ-020 §6.2: Used by MeteredEmbeddingProvider to record which
+        provider handled a call for pricing lookup and usage tracking.
+        """
+        ...
+
     @abstractmethod
     async def embed(self, texts: list[str]) -> EmbeddingResult:
         """Generate embeddings for a list of texts.

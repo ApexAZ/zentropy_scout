@@ -199,6 +199,16 @@ class LLMProvider(ABC):
         """
         self.config = config
 
+    @property
+    @abstractmethod
+    def provider_name(self) -> str:
+        """Return the provider identifier (e.g., 'claude', 'openai', 'gemini').
+
+        REQ-020 §6.2: Used by MeteredLLMProvider to record which provider
+        handled a call for pricing lookup and usage tracking.
+        """
+        ...
+
     @abstractmethod
     async def complete(
         self,
