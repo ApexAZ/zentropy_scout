@@ -12,6 +12,7 @@ WHY DEPENDENCY INJECTION:
 
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Annotated
 
 import jwt
@@ -21,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.errors import InsufficientBalanceError
 from app.models import User
 from app.providers.embedding.base import EmbeddingProvider
 from app.providers.factory import get_embedding_provider, get_llm_provider
@@ -235,3 +237,46 @@ async def get_metered_embedding_provider(  # async required: FastAPI DI resolves
 
 MeteredProvider = Annotated[LLMProvider, Depends(get_metered_provider)]
 MeteredEmbedding = Annotated[EmbeddingProvider, Depends(get_metered_embedding_provider)]
+
+
+async def require_sufficient_balance(
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> None:
+    """Raise 402 if user has insufficient balance for LLM calls.
+
+    REQ-020 §7.1: FastAPI dependency that gates LLM-triggering endpoints.
+    Check is ``balance > threshold`` (strict greater-than).
+
+    This is a **soft gate** (read-only check). The hard enforcement is the
+    atomic debit in MeteringService.record_and_debit() which prevents
+    balance from going negative. Concurrent requests may pass this gate
+    simultaneously, but the atomic debit ensures correctness.
+
+    Args:
+        user_id: Current user ID (from auth dependency).
+        db: Database session (injected).
+
+    Raises:
+        InsufficientBalanceError: When balance <= minimum threshold.
+    """
+    if not settings.metering_enabled:
+        return
+
+    result = await db.execute(select(User.balance_usd).where(User.id == user_id))
+    balance = result.scalar_one_or_none()
+    # balance_usd is NOT NULL with server default 0. A None result means
+    # the user row does not exist (deleted account). Treat as zero balance
+    # for fail-safe behavior (402 blocks access).
+    if balance is None:
+        balance = Decimal("0.000000")
+
+    threshold = Decimal(str(settings.metering_minimum_balance))
+    if balance <= threshold:
+        raise InsufficientBalanceError(
+            balance=balance,
+            minimum_required=threshold,
+        )
+
+
+BalanceCheck = Annotated[None, Depends(require_sufficient_balance)]

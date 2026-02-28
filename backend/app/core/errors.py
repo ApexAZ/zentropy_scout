@@ -1,12 +1,15 @@
 """API error classes.
 
 REQ-006 §8.1-8.2: HTTP status codes and error codes.
+REQ-020 §7.2: InsufficientBalanceError (402).
 
 WHY CUSTOM ERROR CLASSES:
 - Consistent error response format across all endpoints
 - Easy to map to HTTP status codes in exception handlers
 - Type-safe error handling in services/repositories
 """
+
+from decimal import Decimal
 
 
 class APIError(Exception):
@@ -158,6 +161,35 @@ class InvalidStateError(APIError):
             code="INVALID_STATE_TRANSITION",
             message=message,
             status_code=422,
+        )
+
+
+class InsufficientBalanceError(APIError):
+    """Insufficient balance for LLM calls (402).
+
+    REQ-020 §7.2: Raised when user's balance is too low.
+    Details include current balance and minimum required threshold.
+
+    Args:
+        balance: Current user balance in USD.
+        minimum_required: Minimum balance threshold from config.
+    """
+
+    def __init__(
+        self,
+        balance: Decimal,
+        minimum_required: Decimal,
+    ) -> None:
+        super().__init__(
+            code="INSUFFICIENT_BALANCE",
+            message=f"Your balance is ${balance:.2f}. Please add funds to continue.",
+            status_code=402,
+            details=[
+                {
+                    "balance_usd": f"{balance:.6f}",
+                    "minimum_required": f"{minimum_required:.6f}",
+                }
+            ],
         )
 
 
