@@ -2,13 +2,15 @@
 
 REQ-005 §4.0 - Tier 0, no FK dependencies.
 REQ-013 §6.1 - Expanded with auth columns.
+REQ-020 §4.1 - balance_usd for token metering.
 """
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Text, text
+from sqlalchemy import Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,6 +38,7 @@ class User(Base, TimestampMixin):
         updated_at: Last modification timestamp (from TimestampMixin).
         password_hash: bcrypt hash. NULL for OAuth-only users.
         token_invalidated_before: JWTs issued before this are rejected.
+        balance_usd: Cached balance in USD (Numeric 10,6). Defaults to 0.
     """
 
     __tablename__ = "users"
@@ -67,6 +70,11 @@ class User(Base, TimestampMixin):
     )
     token_invalidated_before: Mapped[datetime | None] = mapped_column(
         nullable=True,
+    )
+    balance_usd: Mapped[Decimal] = mapped_column(
+        Numeric(10, 6),
+        nullable=False,
+        server_default=text("0.000000"),
     )
 
     # Relationships

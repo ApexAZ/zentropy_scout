@@ -17,6 +17,7 @@ Models are organized by domain:
 - job_posting.py: JobPosting, ExtractedSkill
 - cover_letter.py: CoverLetter, SubmittedCoverLetterPDF
 - application.py: Application, TimelineEvent
+- usage.py: LLMUsageRecord, CreditTransaction (Tier 2 - metering)
 """
 
 from app.models.account import Account
@@ -43,6 +44,7 @@ from app.models.persona_settings import (
 )
 from app.models.resume import BaseResume, JobVariant, ResumeFile, SubmittedResumePDF
 from app.models.session import Session
+from app.models.usage import CreditTransaction, LLMUsageRecord
 from app.models.user import User
 from app.models.verification_token import VerificationToken
 
@@ -82,6 +84,9 @@ __all__ = [
     "JobPosting",
     # Tier 2 - Per-user job relationship
     "PersonaJob",
+    # Tier 2 - Metering
+    "LLMUsageRecord",
+    "CreditTransaction",
     # Tier 3
     "Bullet",
     "JobVariant",
