@@ -87,6 +87,11 @@ class Settings(BaseSettings):
     # Resume Parsing (REQ-019 §9)
     resume_parse_max_size_mb: int = 10  # Maximum PDF upload size in MB
 
+    # Metering (REQ-020 §11)
+    metering_enabled: bool = True
+    metering_margin_multiplier: float = 1.30
+    metering_minimum_balance: float = 0.00
+
     # Rate Limiting (Security)
     # Limits LLM-calling endpoints to prevent abuse and cost explosion
     # Format: "count/period" (e.g., "10/minute", "100/hour")
@@ -116,6 +121,8 @@ class Settings(BaseSettings):
 
         Security: Prevents deployment with known insecure defaults.
         Checks:
+        - Metering margin must be positive (all environments)
+        - Metering minimum balance must be non-negative (all environments)
         - Database password must not be the default in production
         - AUTH_SECRET must be set and >= 32 chars when auth is enabled in production
         - CORS must not use wildcard origin (incompatible with credentials)
@@ -126,6 +133,20 @@ class Settings(BaseSettings):
             msg = (
                 "AUTH_COOKIE_SECURE must be true when AUTH_COOKIE_SAMESITE=none. "
                 "Browsers reject SameSite=None cookies without the Secure flag."
+            )
+            raise ValueError(msg)
+
+        # Metering config invariants (all environments)
+        if self.metering_margin_multiplier <= 0:
+            msg = (
+                "METERING_MARGIN_MULTIPLIER must be positive. "
+                f"Got: {self.metering_margin_multiplier}"
+            )
+            raise ValueError(msg)
+        if self.metering_minimum_balance < 0:
+            msg = (
+                "METERING_MINIMUM_BALANCE cannot be negative. "
+                f"Got: {self.metering_minimum_balance}"
             )
             raise ValueError(msg)
 
