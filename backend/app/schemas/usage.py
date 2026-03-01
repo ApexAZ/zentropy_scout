@@ -146,5 +146,5 @@ class CreditTransactionResponse(BaseModel):
     id: str
     amount_usd: str
     transaction_type: str
-    description: str | None
+    description: str | None = None
     created_at: datetime
