@@ -640,13 +640,11 @@ def stream_response(state: ChatAgentState) -> ChatAgentState:
     return state
 
 
-async def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:  # noqa: RUF029
+def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:
     """Handle onboarding-related requests via chat.
 
     REQ-019 §5: Onboarding is now form-based (frontend wizard). Chat requests
     for onboarding or profile updates are redirected to the appropriate page.
-
-    Note: async required by LangGraph graph node registration (ainvoke).
 
     Args:
         state: Current chat state.

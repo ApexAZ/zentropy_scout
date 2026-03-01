@@ -72,14 +72,10 @@ curl -s "https://sonarcloud.io/api/hotspots/search?projectKey=ApexAZ_zentropy_sc
 
 These have been previously investigated and accepted. Only act if counts CHANGE.
 
-- **3 SonarCloud issues** (all S7503 — accepted as framework constraints):
-  1. `chat.py:643` S7503 (async without await) — `delegate_onboarding` must be async
-     for LangGraph `ainvoke()`. Suppressed via `# noqa: RUF029` for ruff.
-  2. `deps.py:192` S7503 (async without await) — `get_metered_provider` uses async
-     to avoid FastAPI thread pool overhead in DI. Inline comment documents rationale.
-  3. `deps.py:215` S7503 (async without await) — `get_metered_embedding_provider`
-     uses async to avoid FastAPI thread pool overhead in DI. Inline comment documents rationale.
-  SonarCloud doesn't support inline suppression for Python.
+- **0 SonarCloud issues** — All previously known S7503 findings resolved:
+  - `chat.py:643` — `delegate_onboarding` changed from `async def` to `def` (matches other graph nodes).
+  - `deps.py:192,215` — `get_metered_provider` and `get_metered_embedding_provider` changed from
+    `async def` to `def` (no async work, sync avoids event loop blocking at scale).
 ---
 
 ## Phase 3: Gate Decision

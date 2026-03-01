@@ -780,10 +780,10 @@ def _make_state(message: str) -> ChatAgentState:
     }
 
 
-async def _delegate_and_get_msg(message: str) -> str:
+def _delegate_and_get_msg(message: str) -> str:
     """Run delegate_onboarding and return the response message string."""
     state = _make_state(message)
-    result = await delegate_onboarding(state)
+    result = delegate_onboarding(state)
     return result["tool_results"][0]["result"]["message"]
 
 
@@ -794,54 +794,49 @@ class TestDelegateOnboarding:
     for onboarding or profile updates are redirected to the appropriate page.
     """
 
-    @pytest.mark.asyncio
-    async def test_update_with_specific_section_mentions_section_and_persona_page(
+    def test_update_with_specific_section_mentions_section_and_persona_page(
         self,
     ) -> None:
         """Update request with a specific section names that section and Persona Management page."""
         # "add my skills" matches UPDATE_REQUEST_PATTERNS (add) and
         # SECTION_DETECTION_PATTERNS → "skills"
-        response_msg = await _delegate_and_get_msg("add my skills")
+        response_msg = _delegate_and_get_msg("add my skills")
 
         assert "skills" in response_msg
         assert "Persona Management" in response_msg
 
-    @pytest.mark.asyncio
-    async def test_update_with_different_section_mentions_that_section(self) -> None:
+    def test_update_with_different_section_mentions_that_section(self) -> None:
         """Update request targeting salary mentions 'non negotiables' section."""
         # "change my salary" matches UPDATE_REQUEST_PATTERNS (change my salary)
         # and SECTION_DETECTION_PATTERNS → "non_negotiables"
-        response_msg = await _delegate_and_get_msg("change my salary")
+        response_msg = _delegate_and_get_msg("change my salary")
 
         assert "non negotiables" in response_msg
         assert "Persona Management" in response_msg
 
-    @pytest.mark.asyncio
-    async def test_update_without_specific_section_returns_generic_redirect(
+    def test_update_without_specific_section_returns_generic_redirect(
         self,
     ) -> None:
         """Update request without a detectable section returns generic Persona Management redirect."""
-        response_msg = await _delegate_and_get_msg("update my profile")
+        response_msg = _delegate_and_get_msg("update my profile")
 
         assert "Persona Management" in response_msg
         # Should NOT mention a specific section name like "skills" or "certifications"
         assert "skills" not in response_msg.lower()
         assert "certifications" not in response_msg.lower()
 
-    @pytest.mark.asyncio
-    async def test_non_update_onboarding_request_returns_wizard_redirect(self) -> None:
+    def test_non_update_onboarding_request_returns_wizard_redirect(self) -> None:
         """Non-update onboarding request redirects to the setup wizard."""
-        response_msg = await _delegate_and_get_msg("start the onboarding")
+        response_msg = _delegate_and_get_msg("start the onboarding")
 
         assert "setup wizard" in response_msg.lower()
         # Should NOT mention Persona Management (that's for updates)
         assert "Persona Management" not in response_msg
 
-    @pytest.mark.asyncio
-    async def test_tool_result_structure_has_expected_shape(self) -> None:
+    def test_tool_result_structure_has_expected_shape(self) -> None:
         """delegate_onboarding returns tool_results with invoke_onboarding tool and redirected status."""
         state = _make_state("add my skills")
-        result = await delegate_onboarding(state)
+        result = delegate_onboarding(state)
 
         assert len(result["tool_results"]) == 1
         tool_result = result["tool_results"][0]

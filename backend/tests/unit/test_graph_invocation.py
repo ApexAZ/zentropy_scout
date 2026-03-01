@@ -159,11 +159,10 @@ class TestDelegateGhostwriter:
 class TestDelegateOnboarding:
     """delegate_onboarding returns redirect messages (REQ-019 §5)."""
 
-    @pytest.mark.asyncio
-    async def test_update_request_with_section_returns_specific_redirect(self) -> None:
+    def test_update_request_with_section_returns_specific_redirect(self) -> None:
         """Update request with detected section returns section-specific message."""
         state = _make_chat_state(current_message="Change my salary requirement")
-        result = await delegate_onboarding(state)
+        result = delegate_onboarding(state)
 
         tool_results = result["tool_results"]
         assert tool_results[0]["tool"] == "invoke_onboarding"
@@ -171,45 +170,41 @@ class TestDelegateOnboarding:
         assert "non negotiables" in tool_results[0]["result"]["message"].lower()
         assert "Persona Management" in tool_results[0]["result"]["message"]
 
-    @pytest.mark.asyncio
-    async def test_update_request_without_section_returns_generic_redirect(
+    def test_update_request_without_section_returns_generic_redirect(
         self,
     ) -> None:
         """Update request without detectable section returns generic message."""
         state = _make_chat_state(current_message="Edit my experience")
-        result = await delegate_onboarding(state)
+        result = delegate_onboarding(state)
 
         tool_results = result["tool_results"]
         assert tool_results[0]["result"]["status"] == "redirected"
         assert "Persona Management" in tool_results[0]["result"]["message"]
 
-    @pytest.mark.asyncio
-    async def test_non_update_request_redirects_to_wizard(self) -> None:
+    def test_non_update_request_redirects_to_wizard(self) -> None:
         """Non-update onboarding request redirects to setup wizard."""
         state = _make_chat_state(current_message="Start onboarding")
-        result = await delegate_onboarding(state)
+        result = delegate_onboarding(state)
 
         tool_results = result["tool_results"]
         assert tool_results[0]["result"]["status"] == "redirected"
         assert "wizard" in tool_results[0]["result"]["message"].lower()
 
-    @pytest.mark.asyncio
-    async def test_populates_tool_results_without_error(self) -> None:
+    def test_populates_tool_results_without_error(self) -> None:
         """Redirect always returns successfully with no error."""
         state = _make_chat_state(current_message="Change my salary requirement")
-        result = await delegate_onboarding(state)
+        result = delegate_onboarding(state)
 
         tool_results = result["tool_results"]
         assert len(tool_results) == 1
         assert tool_results[0]["error"] is None
 
-    @pytest.mark.asyncio
-    async def test_does_not_mutate_input_state(self) -> None:
+    def test_does_not_mutate_input_state(self) -> None:
         """Delegate returns new state, does not mutate the input."""
         state = _make_chat_state(current_message="Change my salary requirement")
         original_results = state["tool_results"]
 
-        result = await delegate_onboarding(state)
+        result = delegate_onboarding(state)
 
         assert result is not state
         assert state["tool_results"] is original_results
