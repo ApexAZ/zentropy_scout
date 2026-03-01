@@ -220,3 +220,4 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | 2026-03-01 | 1.7 | Phase 7 §16 complete — 19 integration tests for full metering pipeline |
 | 2026-03-01 | 1.8 | Phase 7 §17 complete — 17 E2E tests for usage page + nav balance, 1 nav balance test, 2 flaky test fixes |
 | 2026-03-01 | 1.9 | Phase 7 §18 gate — 4073 backend + 3319 frontend + 226 E2E tests pass, all lints clean |
+| 2026-03-01 | 2.0 | §17.1 suppression audit complete — 448 suppressions audited (type:ignore, nosec, nosemgrep, noqa, eslint-disable), 154 fixed/removed (34%), 294 verified legitimate via zero-trust code tracing. 4074 backend + 3319 frontend tests pass. |
