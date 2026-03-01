@@ -72,10 +72,7 @@ curl -s "https://sonarcloud.io/api/hotspots/search?projectKey=ApexAZ_zentropy_sc
 
 These have been previously investigated and accepted. Only act if counts CHANGE.
 
-- **0 SonarCloud issues** — All previously known S7503 findings resolved:
-  - `chat.py:643` — `delegate_onboarding` changed from `async def` to `def` (matches other graph nodes).
-  - `deps.py:192,215` — `get_metered_provider` and `get_metered_embedding_provider` changed from
-    `async def` to `def` (no async work, sync avoids event loop blocking at scale).
+- **No known findings** — All scanners at zero as of 2026-03-01.
 ---
 
 ## Phase 3: Gate Decision
@@ -256,7 +253,7 @@ If ALL scanner counts match expected baselines, return:
 | Dependabot | 0 | 0 | CLEAR |
 | Semgrep CI | success | success | CLEAR |
 | pip-audit + npm audit | success | success | CLEAR |
-| SonarCloud issues | 1 | 1 | CLEAR |
+| SonarCloud issues | 0 | 0 | CLEAR |
 | SonarCloud hotspots | 0 | 0 | CLEAR |
 
 No new findings. Proceed to implementation.
