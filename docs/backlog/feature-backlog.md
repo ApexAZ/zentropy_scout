@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-01
 
-**Items:** 15 (7 completed, 8 pending)
+**Items:** 19 (7 completed, 12 pending)
 
 ---
 
@@ -326,6 +326,84 @@ Deep audit of the entire backend for async/sync correctness under high concurren
 - Is `run_in_threadpool()` overhead measurable at expected user scale (hundreds to low thousands)?
 - Should this be a formal load testing exercise or code-review-only audit?
 - Profile tools: `py-spy`, `viztracer`, or FastAPI's built-in timing middleware?
+
+---
+
+### 16. Admin Pricing Dashboard
+
+**Category:** Backend / Frontend / Admin
+**Added:** 2026-03-01
+**Priority:** P1 — Required before launch. Must be able to configure pricing without code changes.
+**Depends on:** ~~#12 (Token Metering)~~ ✅
+
+CRUD interface for the pricing configuration table. Per (provider, model) rows with: raw input cost per 1K tokens, raw output cost per 1K tokens, margin multiplier, and effective date. Admin sees the final user-facing cost calculated live as values are adjusted. Includes the global credit denomination setting (credits-per-dollar) that all display logic derives from.
+
+**What needs to be built:**
+- **`pricing_config` table** — `id`, `provider`, `model`, `input_cost_per_1k`, `output_cost_per_1k`, `margin_multiplier`, `effective_date`, `created_at`, `updated_at`
+- **`system_config` table** — key/value store for global settings like `credits_per_dollar`
+- **Migrate metering service** — read pricing from DB instead of hardcoded Python dict
+- **Admin API endpoints** — CRUD for pricing config, system config
+- **Admin UI** — pricing table editor with live cost preview, effective date picker
+- **Admin auth/role** — admin-only access gate (could be a simple `is_admin` flag on user for MVP)
+
+**Key consideration:** The metering service currently uses a hardcoded pricing dict. This moves it to DB-backed with caching (pricing doesn't change often, no need to hit DB on every LLM call).
+
+---
+
+### 17. Pricing Simulation Tool
+
+**Category:** Backend / Frontend / Admin
+**Added:** 2026-03-01
+**Priority:** P2 — Important for informed pricing decisions before and after launch.
+**Depends on:** #16 (Admin Pricing Dashboard)
+
+Before committing a pricing change, preview "here's what last week's (or any date range's) usage would have cost users under the proposed rates." Queries existing `llm_usage_records` with proposed pricing applied and shows a comparison: current revenue vs. projected revenue, per-user impact, cost distribution by model.
+
+**What needs to be built:**
+- **Simulation API endpoint** — accepts proposed pricing config, date range; returns comparison report
+- **Admin UI panel** — side-by-side view of current vs. proposed pricing impact, histogram of per-user cost changes
+- **No user-facing changes** — purely an admin tool
+
+---
+
+### 18. A/B Test Support for Pricing
+
+**Category:** Backend / Frontend / Admin
+**Added:** 2026-03-01
+**Priority:** Post-MVP — Needs real users and usage data to be meaningful.
+**Depends on:** #16 (Admin Pricing Dashboard)
+
+Assign users to pricing cohorts, each with their own margin multipliers. Compare retention, usage volume, and revenue across cohorts. Enables data-driven pricing optimization.
+
+**What needs to be built:**
+- **Cohort assignment** — `pricing_cohort` column on users table, assignment logic (random, manual, or rule-based)
+- **Per-cohort pricing overrides** — cohort-specific margin multipliers that override the default pricing config
+- **Metering integration** — metering service resolves pricing by checking user's cohort first, falling back to default
+- **Reporting dashboard** — compare cohorts on revenue per user, usage frequency, churn, credit purchase patterns
+- **Admin UI** — create/manage cohorts, assign users, view comparison reports
+
+**Open questions:**
+- How many concurrent cohorts? 2 (A/B) or more (A/B/C/D)?
+- Duration-based auto-expiry for experiments?
+- Should users be notified they're in a pricing experiment? (Legal/ethical consideration)
+
+---
+
+### 19. Credit Denomination & Display Configuration
+
+**Category:** Backend / Frontend / Admin
+**Added:** 2026-03-01
+**Priority:** P1 — Needed to launch credit packs. Closely tied to #16.
+**Depends on:** #16 (Admin Pricing Dashboard)
+
+Global configuration for how credits are denominated, displayed, and labeled across the product. Controls the credits-per-dollar ratio, display precision (decimal places), unit label ("credits", "tokens", custom), and rounding behavior. All frontend display logic and Stripe credit pack descriptions derive from these settings.
+
+**What needs to be built:**
+- **Display config** in `system_config` — `credits_per_dollar`, `credit_display_name`, `display_precision`, `rounding_mode` (up/nearest/down)
+- **Frontend formatting utility** — single source of truth for rendering credit amounts everywhere (nav balance, usage page, transaction history, Stripe pack descriptions)
+- **Admin UI** — preview how different denominations look across all user-facing surfaces before committing
+
+**Key consideration:** This is less about code and more about the UX decision. The admin tooling lets you experiment with denomination without code changes. Start with a sensible default (e.g., 10,000 credits per dollar) and tune after seeing real usage patterns.
 
 ---
 
