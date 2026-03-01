@@ -20,9 +20,7 @@ from app.core.oauth import (
     get_provider_config,
     validate_oauth_state_cookie,
 )
-
-_TEST_SECRET = "test-secret-key-that-is-at-least-32-characters-long"  # nosec B105  # gitleaks:allow
-
+from tests.conftest import TEST_AUTH_SECRET
 
 # ===================================================================
 # PKCE Code Verifier / Challenge (RFC 7636)
@@ -80,20 +78,20 @@ class TestCreateOAuthStateCookie:
         value = create_oauth_state_cookie(
             state="test-state",
             code_verifier="test-verifier",
-            secret=_TEST_SECRET,
+            secret=TEST_AUTH_SECRET,
         )
         # Should be decodable as JWT
-        payload = jwt.decode(value, _TEST_SECRET, algorithms=["HS256"])
+        payload = jwt.decode(value, TEST_AUTH_SECRET, algorithms=["HS256"])
         assert payload["state"] == "test-state"
         assert payload["code_verifier"] == "test-verifier"
 
     def test_includes_expiry(self):
         """State cookie JWT should expire (short-lived)."""
         value = create_oauth_state_cookie(
-            state="s", code_verifier="v", secret=_TEST_SECRET
+            state="s", code_verifier="v", secret=TEST_AUTH_SECRET
         )
         payload = jwt.decode(
-            value, _TEST_SECRET, algorithms=["HS256"], options={"verify_exp": False}
+            value, TEST_AUTH_SECRET, algorithms=["HS256"], options={"verify_exp": False}
         )
         assert "exp" in payload
         # Should expire within ~10 minutes
@@ -106,20 +104,20 @@ class TestValidateOAuthStateCookie:
     def test_returns_code_verifier_on_valid_cookie(self):
         """Valid cookie + matching state returns the code_verifier."""
         cookie = create_oauth_state_cookie(
-            state="good-state", code_verifier="my-verifier", secret=_TEST_SECRET
+            state="good-state", code_verifier="my-verifier", secret=TEST_AUTH_SECRET
         )
         verifier = validate_oauth_state_cookie(
-            cookie_value=cookie, expected_state="good-state", secret=_TEST_SECRET
+            cookie_value=cookie, expected_state="good-state", secret=TEST_AUTH_SECRET
         )
         assert verifier == "my-verifier"
 
     def test_returns_none_on_mismatched_state(self):
         """Mismatched state (CSRF attempt) returns None."""
         cookie = create_oauth_state_cookie(
-            state="real-state", code_verifier="v", secret=_TEST_SECRET
+            state="real-state", code_verifier="v", secret=TEST_AUTH_SECRET
         )
         result = validate_oauth_state_cookie(
-            cookie_value=cookie, expected_state="forged-state", secret=_TEST_SECRET
+            cookie_value=cookie, expected_state="forged-state", secret=TEST_AUTH_SECRET
         )
         assert result is None
 
@@ -132,7 +130,7 @@ class TestValidateOAuthStateCookie:
             secret="wrong-secret-that-is-at-least-32-chars",  # gitleaks:allow
         )
         result = validate_oauth_state_cookie(
-            cookie_value=bad_cookie, expected_state="state", secret=_TEST_SECRET
+            cookie_value=bad_cookie, expected_state="state", secret=TEST_AUTH_SECRET
         )
         assert result is None
 
@@ -141,19 +139,19 @@ class TestValidateOAuthStateCookie:
         cookie = create_oauth_state_cookie(
             state="state",
             code_verifier="v",
-            secret=_TEST_SECRET,
+            secret=TEST_AUTH_SECRET,
             ttl_seconds=0,
         )
         # Cookie expires immediately
         result = validate_oauth_state_cookie(
-            cookie_value=cookie, expected_state="state", secret=_TEST_SECRET
+            cookie_value=cookie, expected_state="state", secret=TEST_AUTH_SECRET
         )
         assert result is None
 
     def test_returns_none_on_garbage_input(self):
         """Non-JWT garbage returns None."""
         result = validate_oauth_state_cookie(
-            cookie_value="not-a-jwt", expected_state="state", secret=_TEST_SECRET
+            cookie_value="not-a-jwt", expected_state="state", secret=TEST_AUTH_SECRET
         )
         assert result is None
 

@@ -20,9 +20,7 @@ from app.core.auth import (
     validate_password_strength,
 )
 from app.core.errors import ValidationError
-
-# Test-only secret for JWT tests
-_TEST_SECRET = "test-secret-key-that-is-at-least-32-characters-long"  # nosec B105  # gitleaks:allow
+from tests.conftest import TEST_AUTH_SECRET
 
 
 class TestCreateJwt:
@@ -32,11 +30,11 @@ class TestCreateJwt:
         """JWT can be decoded with the same secret."""
         token = create_jwt(
             user_id="00000000-0000-0000-0000-000000000001",
-            secret=_TEST_SECRET,
+            secret=TEST_AUTH_SECRET,
         )
         payload = jwt.decode(
             token,
-            _TEST_SECRET,
+            TEST_AUTH_SECRET,
             algorithms=["HS256"],
             audience="zentropy-scout",
             issuer="zentropy-scout",
@@ -47,11 +45,11 @@ class TestCreateJwt:
         """JWT has sub, aud, iss, exp, iat claims."""
         token = create_jwt(
             user_id="00000000-0000-0000-0000-000000000001",
-            secret=_TEST_SECRET,
+            secret=TEST_AUTH_SECRET,
         )
         payload = jwt.decode(
             token,
-            _TEST_SECRET,
+            TEST_AUTH_SECRET,
             algorithms=["HS256"],
             audience="zentropy-scout",
             issuer="zentropy-scout",
@@ -65,12 +63,12 @@ class TestCreateJwt:
         """Expiration can be customized via expires_delta."""
         token = create_jwt(
             user_id="00000000-0000-0000-0000-000000000001",
-            secret=_TEST_SECRET,
+            secret=TEST_AUTH_SECRET,
             expires_delta=timedelta(minutes=5),
         )
         payload = jwt.decode(
             token,
-            _TEST_SECRET,
+            TEST_AUTH_SECRET,
             algorithms=["HS256"],
             audience="zentropy-scout",
             issuer="zentropy-scout",
@@ -83,11 +81,11 @@ class TestCreateJwt:
         """Default expiration is 1 hour."""
         token = create_jwt(
             user_id="00000000-0000-0000-0000-000000000001",
-            secret=_TEST_SECRET,
+            secret=TEST_AUTH_SECRET,
         )
         payload = jwt.decode(
             token,
-            _TEST_SECRET,
+            TEST_AUTH_SECRET,
             algorithms=["HS256"],
             audience="zentropy-scout",
             issuer="zentropy-scout",
@@ -193,7 +191,9 @@ class TestCheckPasswordBreached:
     async def test_breached_returns_true(self):
         """Password found in breach database returns True."""
         password = "password"
-        sha1 = hashlib.sha1(password.encode()).hexdigest().upper()  # nosec B324
+        sha1 = (
+            hashlib.sha1(password.encode(), usedforsecurity=False).hexdigest().upper()
+        )
         suffix = sha1[5:]
 
         with patch(
@@ -217,7 +217,9 @@ class TestCheckPasswordBreached:
     async def test_uses_k_anonymity_prefix(self):
         """Only first 5 chars of SHA-1 hash sent to HIBP API."""
         password = "TestP@ss1"
-        sha1 = hashlib.sha1(password.encode()).hexdigest().upper()  # nosec B324
+        sha1 = (
+            hashlib.sha1(password.encode(), usedforsecurity=False).hexdigest().upper()
+        )
         prefix = sha1[:5]
 
         with patch(

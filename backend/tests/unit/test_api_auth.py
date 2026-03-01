@@ -13,9 +13,9 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.deps import get_current_user, get_current_user_id
+from tests.conftest import TEST_AUTH_SECRET
 
 _TEST_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
-_TEST_SECRET = "test-secret-key-that-is-at-least-32-characters-long"  # nosec B105  # gitleaks:allow
 _TEST_AUDIENCE = "zentropy-scout"
 _TEST_ISSUER = "zentropy-scout"
 
@@ -27,7 +27,7 @@ def _make_jwt(
     iss: str = _TEST_ISSUER,
     exp: datetime | None = None,
     iat: datetime | None = None,
-    secret: str = _TEST_SECRET,
+    secret: str = TEST_AUTH_SECRET,
     extra_claims: dict | None = None,
     exclude_claims: set[str] | None = None,
 ) -> str:
@@ -83,7 +83,7 @@ def _mock_settings(
     *,
     auth_enabled: bool = True,
     default_user_id: uuid.UUID | None = None,
-    auth_secret: str = _TEST_SECRET,
+    auth_secret: str = TEST_AUTH_SECRET,
     auth_issuer: str = _TEST_ISSUER,
     auth_cookie_name: str = "zentropy.session-token",
 ) -> MagicMock:
