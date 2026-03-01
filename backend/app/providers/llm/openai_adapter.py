@@ -11,12 +11,13 @@ WHY SUPPORT OPENAI:
 import contextlib
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
 import openai
 import structlog
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletion
 
 from app.providers.errors import (
     AuthenticationError,
@@ -105,10 +106,11 @@ def _convert_tool_result_message(msg: LLMMessage) -> dict[str, str]:
 
     WHY: OpenAI uses a dedicated ``tool`` role with ``tool_call_id``.
     """
+    assert msg.tool_result is not None, "tool-role message must have tool_result"
     return {
         "role": "tool",
-        "tool_call_id": msg.tool_result.tool_call_id,  # type: ignore[union-attr]
-        "content": msg.tool_result.content,  # type: ignore[union-attr]
+        "tool_call_id": msg.tool_result.tool_call_id,
+        "content": msg.tool_result.content,
     }
 
 
@@ -118,6 +120,7 @@ def _convert_tool_call_message(msg: LLMMessage) -> dict:
     WHY: Assistant messages containing tool calls must include the function
     call payload with JSON-encoded arguments.
     """
+    assert msg.tool_calls is not None, "assistant message must have tool_calls"
     return {
         "role": "assistant",
         "content": msg.content,
@@ -130,7 +133,7 @@ def _convert_tool_call_message(msg: LLMMessage) -> dict:
                     "arguments": json.dumps(tc.arguments),
                 },
             }
-            for tc in msg.tool_calls  # type: ignore[union-attr]
+            for tc in msg.tool_calls
         ],
     }
 
@@ -153,7 +156,7 @@ def _convert_openai_messages(messages: list[LLMMessage]) -> list[dict]:
 
 
 def _parse_openai_response(
-    response: object,
+    response: ChatCompletion,
 ) -> tuple[str | None, list[ToolCall] | None, str]:
     """Parse OpenAI chat-completion response.
 
@@ -162,15 +165,15 @@ def _parse_openai_response(
     Returns:
         Tuple of (content, tool_calls, finish_reason).
     """
-    choice = response.choices[0]  # type: ignore[attr-defined]
+    choice = response.choices[0]
 
     tool_calls: list[ToolCall] | None = None
     if choice.message.tool_calls:
         tool_calls = [
             ToolCall(
                 id=tc.id,
-                name=tc.function.name,
-                arguments=json.loads(tc.function.arguments),
+                name=tc.function.name,  # type: ignore[union-attr]
+                arguments=json.loads(tc.function.arguments),  # type: ignore[union-attr]
             )
             for tc in choice.message.tool_calls
         ]
@@ -317,13 +320,13 @@ class OpenAIAdapter(LLMProvider):
             tool_calls=tool_calls,
         )
 
-    async def stream(  # type: ignore[override]
+    async def stream(
         self,
         messages: list[LLMMessage],
         task: TaskType,
         max_tokens: int | None = None,
         temperature: float | None = None,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncGenerator[str, None]:
         """Stream completion using OpenAI GPT.
 
         Args:

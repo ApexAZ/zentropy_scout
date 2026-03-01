@@ -4,11 +4,14 @@ REQ-020 §6.2: Every adapter must expose provider_name so the metering
 wrapper can identify which provider handled a call.
 """
 
+from typing import Any
+
 import pytest
 
 from app.providers.config import ProviderConfig
+from app.providers.embedding.base import EmbeddingResult
 from app.providers.embedding.mock_adapter import MockEmbeddingProvider
-from app.providers.llm.base import LLMProvider
+from app.providers.llm.base import LLMProvider, TaskType
 from app.providers.llm.claude_adapter import ClaudeAdapter
 from app.providers.llm.gemini_adapter import GeminiAdapter
 from app.providers.llm.mock_adapter import MockLLMProvider
@@ -16,15 +19,15 @@ from app.providers.llm.openai_adapter import OpenAIAdapter
 from app.services.metering_service import _LLM_PRICING
 
 
-def _make_config(**overrides: object) -> ProviderConfig:
+def _make_config(**overrides: Any) -> ProviderConfig:
     """Create a ProviderConfig with dummy keys for adapter construction."""
-    defaults = {
+    defaults: dict[str, Any] = {
         "anthropic_api_key": "sk-ant-test",
         "openai_api_key": "sk-test",
         "google_api_key": "google-test",
     }
     defaults.update(overrides)
-    return ProviderConfig(**defaults)  # type: ignore[arg-type]
+    return ProviderConfig(**defaults)
 
 
 def _pricing_keys_for(provider_name: str) -> list[tuple[str, str]]:
@@ -110,7 +113,7 @@ class TestAbstractEnforcement:
             async def stream(self, _messages, _task, **_kwargs):  # type: ignore[override]
                 yield ""
 
-            def get_model_for_task(self, _task):  # type: ignore[override]
+            def get_model_for_task(self, _task: TaskType) -> str:
                 return "test"
 
         with pytest.raises(TypeError, match="provider_name"):
@@ -121,8 +124,7 @@ class TestAbstractEnforcement:
         from app.providers.embedding.base import EmbeddingProvider
 
         class IncompleteEmbedding(EmbeddingProvider):
-            async def embed(self, _texts):  # type: ignore[override]
-                ...
+            async def embed(self, _texts: list[str]) -> EmbeddingResult: ...
 
             @property
             def dimensions(self) -> int:

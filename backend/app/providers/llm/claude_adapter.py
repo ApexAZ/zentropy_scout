@@ -11,12 +11,13 @@ WHY ANTHROPIC AS PRIMARY:
 
 import contextlib
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
 import anthropic
 import structlog
 from anthropic import AsyncAnthropic
+from anthropic.types import Message as AnthropicMessage
 
 from app.providers.errors import (
     AuthenticationError,
@@ -101,14 +102,15 @@ def _convert_tool_result_message(msg: LLMMessage) -> dict:
 
     WHY: Anthropic uses tool_result content blocks within user messages.
     """
+    assert msg.tool_result is not None, "tool-role message must have tool_result"
     return {
         "role": "user",
         "content": [
             {
                 "type": "tool_result",
-                "tool_use_id": msg.tool_result.tool_call_id,  # type: ignore[union-attr]
-                "content": msg.tool_result.content,  # type: ignore[union-attr]
-                "is_error": msg.tool_result.is_error,  # type: ignore[union-attr]
+                "tool_use_id": msg.tool_result.tool_call_id,
+                "content": msg.tool_result.content,
+                "is_error": msg.tool_result.is_error,
             }
         ],
     }
@@ -119,10 +121,11 @@ def _convert_tool_call_message(msg: LLMMessage) -> dict:
 
     WHY: Assistant messages with tool calls need content blocks format for Anthropic.
     """
+    assert msg.tool_calls is not None, "assistant message must have tool_calls"
     content_blocks: list[dict] = []
     if msg.content:
         content_blocks.append({"type": "text", "text": msg.content})
-    for tc in msg.tool_calls:  # type: ignore[union-attr]
+    for tc in msg.tool_calls:
         content_blocks.append(
             {
                 "type": "tool_use",
@@ -161,13 +164,13 @@ def _convert_claude_messages(
 
 
 def _parse_claude_response(
-    response: object,
+    response: AnthropicMessage,
 ) -> tuple[str | None, list[ToolCall] | None, str]:
     """Parse Anthropic response into content, tool_calls, and finish_reason."""
     content = None
     tool_calls: list[ToolCall] | None = None
 
-    for block in response.content:  # type: ignore[attr-defined]
+    for block in response.content:
         if block.type == "text":
             content = block.text
         elif block.type == "tool_use":
@@ -181,7 +184,7 @@ def _parse_claude_response(
                 )
             )
 
-    return content, tool_calls, response.stop_reason  # type: ignore[attr-defined]
+    return content, tool_calls, response.stop_reason or "unknown"
 
 
 class ClaudeAdapter(LLMProvider):
@@ -327,13 +330,13 @@ class ClaudeAdapter(LLMProvider):
             tool_calls=tool_calls,
         )
 
-    async def stream(  # type: ignore[override]
+    async def stream(
         self,
         messages: list[LLMMessage],
         task: TaskType,
         max_tokens: int | None = None,
         temperature: float | None = None,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncGenerator[str, None]:
         """Stream completion using Claude.
 
         Args:

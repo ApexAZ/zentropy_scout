@@ -187,13 +187,10 @@ async def persist_draft_materials(
         # Pass-through: approve immediately with snapshots
         variant.status = "Approved"
         variant.approved_at = now
-        # WHY type: ignore — snapshot_* model fields are typed as dict|None
-        # but JSONB columns actually store lists. This is a pre-existing model
-        # annotation issue; the runtime values are correct JSON arrays.
-        variant.snapshot_included_jobs = base_resume.included_jobs  # type: ignore[assignment]
-        variant.snapshot_included_education = base_resume.included_education  # type: ignore[assignment]
-        variant.snapshot_included_certifications = base_resume.included_certifications  # type: ignore[assignment]
-        variant.snapshot_skills_emphasis = base_resume.skills_emphasis  # type: ignore[assignment]
+        variant.snapshot_included_jobs = base_resume.included_jobs
+        variant.snapshot_included_education = base_resume.included_education
+        variant.snapshot_included_certifications = base_resume.included_certifications
+        variant.snapshot_skills_emphasis = base_resume.skills_emphasis
         variant.snapshot_job_bullet_selections = base_resume.job_bullet_selections
 
     db.add(variant)
@@ -267,12 +264,12 @@ async def approve_materials(
         # Populate snapshots from BaseResume
         base_resume = await db.get(BaseResume, variant.base_resume_id)
         if base_resume is not None:
-            variant.snapshot_included_jobs = base_resume.included_jobs  # type: ignore[assignment]
-            variant.snapshot_included_education = base_resume.included_education  # type: ignore[assignment]
+            variant.snapshot_included_jobs = base_resume.included_jobs
+            variant.snapshot_included_education = base_resume.included_education
             variant.snapshot_included_certifications = (
-                base_resume.included_certifications  # type: ignore[assignment]
+                base_resume.included_certifications
             )
-            variant.snapshot_skills_emphasis = base_resume.skills_emphasis  # type: ignore[assignment]
+            variant.snapshot_skills_emphasis = base_resume.skills_emphasis
             variant.snapshot_job_bullet_selections = base_resume.job_bullet_selections
 
         variant.status = "Approved"

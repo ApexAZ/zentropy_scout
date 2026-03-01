@@ -9,6 +9,7 @@ TDD tests for ReportLab-based resume PDF rendering:
 import uuid
 from datetime import date
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 import pytest_asyncio
@@ -324,14 +325,14 @@ async def job_variant_approved(
         status="Approved",
         approved_at=datetime.now(UTC),
         # Snapshot fields — frozen copy of base resume selections
-        snapshot_included_jobs=[str(p.job1.id), str(p.job2.id)],  # type: ignore[arg-type]
+        snapshot_included_jobs=[str(p.job1.id), str(p.job2.id)],
         snapshot_job_bullet_selections={
             str(p.job1.id): [str(p.b1.id), str(p.b2.id)],
             str(p.job2.id): [str(p.b4.id)],
         },
-        snapshot_included_education=[str(p.edu1.id)],  # type: ignore[arg-type]
-        snapshot_included_certifications=[str(p.cert1.id)],  # type: ignore[arg-type]
-        snapshot_skills_emphasis=[str(p.skill1.id), str(p.skill2.id)],  # type: ignore[arg-type]
+        snapshot_included_education=[str(p.edu1.id)],
+        snapshot_included_certifications=[str(p.cert1.id)],
+        snapshot_skills_emphasis=[str(p.skill1.id), str(p.skill2.id)],
     )
     db_session.add(variant)
     await db_session.flush()
@@ -597,7 +598,7 @@ class TestRenderResumePdf:
     """Tests for the pure PDF rendering function (no DB)."""
 
     @staticmethod
-    def _make_content(**kwargs: object) -> ResumeContent:
+    def _make_content(**kwargs: Any) -> ResumeContent:
         """Build a ResumeContent with defaults for any unspecified fields."""
         from app.services.pdf_generation import (
             ResumeCertificationEntry,
@@ -607,7 +608,7 @@ class TestRenderResumePdf:
             ResumeSkillEntry,
         )
 
-        defaults: dict[str, object] = {
+        defaults: dict[str, Any] = {
             "contact": ResumeContactInfo(
                 full_name="Jane Smith",
                 email="jane@example.com",
@@ -654,7 +655,7 @@ class TestRenderResumePdf:
             ],
         }
         defaults.update(kwargs)
-        return ResumeContent(**defaults)  # type: ignore[arg-type]
+        return ResumeContent(**defaults)
 
     def test_returns_pdf_bytes(self) -> None:
         """Output starts with PDF magic bytes."""

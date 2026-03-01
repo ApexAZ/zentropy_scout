@@ -403,11 +403,11 @@ async def approve_job_variant(
 
     # Snapshot: copy BaseResume selection fields
     base = variant.base_resume
-    variant.snapshot_included_jobs = base.included_jobs  # type: ignore[assignment]
+    variant.snapshot_included_jobs = base.included_jobs
     variant.snapshot_job_bullet_selections = base.job_bullet_selections
-    variant.snapshot_included_education = base.included_education  # type: ignore[assignment]
-    variant.snapshot_included_certifications = base.included_certifications  # type: ignore[assignment]
-    variant.snapshot_skills_emphasis = base.skills_emphasis  # type: ignore[assignment]
+    variant.snapshot_included_education = base.included_education
+    variant.snapshot_included_certifications = base.included_certifications
+    variant.snapshot_skills_emphasis = base.skills_emphasis
 
     variant.status = _STATUS_APPROVED
     variant.approved_at = datetime.now(UTC)

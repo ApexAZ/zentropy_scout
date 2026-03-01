@@ -368,7 +368,7 @@ class TestEdgeCases:
         """None work history treated as empty list."""
         score = calculate_role_title_score(
             current_role="Software Engineer",
-            work_history_titles=None,  # type: ignore[arg-type]
+            work_history_titles=None,
             job_title="Software Engineer",
             user_titles_embedding=None,
             job_title_embedding=None,

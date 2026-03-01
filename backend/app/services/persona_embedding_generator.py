@@ -11,7 +11,7 @@ Called on: Persona creation, Persona update (REQ-007 §7.1).
 """
 
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
@@ -33,7 +33,7 @@ class PersonaLike(Protocol):
     """Protocol for persona objects (avoids tight coupling to ORM model)."""
 
     id: uuid.UUID
-    skills: list[SkillLike]
+    skills: Sequence[SkillLike]
     home_city: str
     home_state: str
     home_country: str
@@ -93,7 +93,7 @@ class PersonaEmbeddingsResult:
 # =============================================================================
 
 
-def build_hard_skills_text(skills: list[SkillLike]) -> str:
+def build_hard_skills_text(skills: Sequence[SkillLike]) -> str:
     """Build embedding text from hard skills.
 
     REQ-008 §6.3: Format is "{skill_name} ({proficiency})" joined by " | ".
@@ -111,7 +111,7 @@ def build_hard_skills_text(skills: list[SkillLike]) -> str:
     return " | ".join(f"{s.skill_name} ({s.proficiency})" for s in hard_skills)
 
 
-def build_soft_skills_text(skills: list[SkillLike]) -> str:
+def build_soft_skills_text(skills: Sequence[SkillLike]) -> str:
     """Build embedding text from soft skills.
 
     REQ-008 §6.3: Format is "{skill_name}" joined by " | " (no proficiency).

@@ -15,9 +15,10 @@ import logging
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import func, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.llm_sanitization import detect_injection_patterns
@@ -222,8 +223,8 @@ async def release_expired_quarantines(db: AsyncSession) -> int:
         )
         .values(is_quarantined=False)
     )
-    result = await db.execute(stmt)
-    released: int = result.rowcount  # type: ignore[attr-defined]  # CursorResult from UPDATE
+    result = cast(CursorResult[Any], await db.execute(stmt))
+    released: int = result.rowcount
     if released > 0:
         logger.info("Released %d expired quarantines", released)
     return released

@@ -5,8 +5,10 @@ with composite key (identifier, token) and time-limited expiry.
 """
 
 from datetime import UTC, datetime
+from typing import Any, cast
 
 from sqlalchemy import delete, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.verification_token import VerificationToken
@@ -124,6 +126,6 @@ class VerificationTokenRepository:
         stmt = delete(VerificationToken).where(
             VerificationToken.expires < datetime.now(UTC),
         )
-        result = await db.execute(stmt)
-        row_count: int = result.rowcount  # type: ignore[attr-defined]
+        result = cast(CursorResult[Any], await db.execute(stmt))
+        row_count: int = result.rowcount
         return row_count

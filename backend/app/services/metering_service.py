@@ -8,8 +8,10 @@ and debits the user's balance atomically.
 import logging
 import uuid
 from decimal import Decimal
+from typing import Any, cast
 
 from sqlalchemy import text
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -205,16 +207,19 @@ class MeteringService:
             self._db.add(credit_txn)
 
             # Step 6: Atomic debit
-            result = await self._db.execute(
-                text(
-                    "UPDATE users SET balance_usd = balance_usd - :amount "
-                    "WHERE id = :user_id AND balance_usd >= :amount"
+            result = cast(
+                CursorResult[Any],
+                await self._db.execute(
+                    text(
+                        "UPDATE users SET balance_usd = balance_usd - :amount "
+                        "WHERE id = :user_id AND balance_usd >= :amount"
+                    ),
+                    {"amount": billed_cost, "user_id": user_id},
                 ),
-                {"amount": billed_cost, "user_id": user_id},
             )
 
             # Step 7: Log insufficient balance (REQ-020 §6.3)
-            rows_updated: int = result.rowcount  # type: ignore[attr-defined]  # CursorResult from UPDATE
+            rows_updated: int = result.rowcount
             if rows_updated == 0:
                 logger.warning(
                     "Insufficient balance for user %s (debit: $%s)",

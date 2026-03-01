@@ -112,10 +112,7 @@ class TestMeteredLLMProviderComplete:
     ) -> None:
         """If inner.complete() raises, no usage is recorded."""
 
-        async def failing_complete(*_args: object, **_kwargs: object) -> None:
-            raise RuntimeError("Provider unavailable")
-
-        inner_llm.complete = failing_complete  # type: ignore[assignment]
+        inner_llm.complete = AsyncMock(side_effect=RuntimeError("Provider unavailable"))
 
         messages = _HELLO_MESSAGES
         with pytest.raises(RuntimeError, match="Provider unavailable"):
@@ -253,10 +250,9 @@ class TestMeteredEmbeddingProviderEmbed:
     ) -> None:
         """If inner.embed() raises, no usage is recorded."""
 
-        async def failing_embed(*_args: object, **_kwargs: object) -> None:
-            raise RuntimeError("Embedding service down")
-
-        inner_embedding.embed = failing_embed  # type: ignore[assignment]
+        inner_embedding.embed = AsyncMock(
+            side_effect=RuntimeError("Embedding service down")
+        )
 
         with pytest.raises(RuntimeError, match="Embedding service down"):
             await metered_embedding.embed(["Hello"])

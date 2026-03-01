@@ -6,8 +6,10 @@ and atomic balance operations on the users table.
 
 import uuid
 from decimal import Decimal
+from typing import Any, cast
 
 from sqlalchemy import func, select, text
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.usage import CreditTransaction
@@ -138,14 +140,17 @@ class CreditRepository:
         """
         if amount <= Decimal("0"):
             raise ValueError("atomic_debit amount must be positive")
-        result = await db.execute(
-            text(
-                "UPDATE users SET balance_usd = balance_usd - :amount "
-                "WHERE id = :user_id AND balance_usd >= :amount"
+        result = cast(
+            CursorResult[Any],
+            await db.execute(
+                text(
+                    "UPDATE users SET balance_usd = balance_usd - :amount "
+                    "WHERE id = :user_id AND balance_usd >= :amount"
+                ),
+                {"amount": amount, "user_id": user_id},
             ),
-            {"amount": amount, "user_id": user_id},
         )
-        rows_updated: int = result.rowcount  # type: ignore[attr-defined]  # CursorResult from UPDATE
+        rows_updated: int = result.rowcount
         return rows_updated > 0
 
     @staticmethod

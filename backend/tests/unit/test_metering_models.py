@@ -16,6 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
@@ -477,7 +478,7 @@ class TestMigration020Upgrade:
     @pytest_asyncio.fixture
     async def migration_engine(
         self,
-    ) -> AsyncGenerator[object, None]:
+    ) -> AsyncGenerator[AsyncEngine, None]:
         """Run alembic up to 020_token_metering."""
         from tests.conftest import skip_if_no_postgres
 
@@ -507,11 +508,11 @@ class TestMigration020Upgrade:
 
     @pytest_asyncio.fixture
     async def migration_session(
-        self, migration_engine: object
+        self, migration_engine: AsyncEngine
     ) -> AsyncGenerator[AsyncSession, None]:
         """Session on migrated database."""
         session_factory = async_sessionmaker(
-            migration_engine,  # type: ignore[arg-type]
+            migration_engine,
             class_=AsyncSession,
             expire_on_commit=False,
         )

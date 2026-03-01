@@ -6,8 +6,10 @@ All read/write operations are scoped to user_id via Persona JOIN.
 
 import uuid
 from datetime import datetime
+from typing import Any, cast
 
 from sqlalchemy import select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -317,8 +319,8 @@ class PersonaJobRepository:
             )
             .values(**values)
         )
-        result = await db.execute(stmt)
-        row_count: int = result.rowcount  # type: ignore[attr-defined]
+        result = cast(CursorResult[Any], await db.execute(stmt))
+        row_count: int = result.rowcount
         return row_count
 
     @staticmethod
@@ -356,6 +358,6 @@ class PersonaJobRepository:
             )
             .values(is_favorite=is_favorite)
         )
-        result = await db.execute(stmt)
-        row_count: int = result.rowcount  # type: ignore[attr-defined]
+        result = cast(CursorResult[Any], await db.execute(stmt))
+        row_count: int = result.rowcount
         return row_count

@@ -11,6 +11,7 @@ Called by: Strategist agent when Scouter discovers many jobs at once.
 """
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -189,7 +190,7 @@ def _build_job_titles_text(job: JobPostingLike) -> str:
 
 
 async def batch_score_jobs(
-    jobs: list[JobPostingLike],
+    jobs: Sequence[JobPostingLike],
     persona: PersonaLike,
     persona_embeddings: PersonaEmbeddingsResult,
     embedding_provider: EmbeddingProviderLike,
@@ -204,7 +205,7 @@ async def batch_score_jobs(
     3. Component scoring is sequential (CPU-bound, no async benefit)
 
     Args:
-        jobs: List of job postings to score.
+        jobs: Sequence of job postings to score.
         persona: User's persona with skills, experience, and preferences.
         persona_embeddings: Pre-computed persona embeddings (avoids re-generation).
         embedding_provider: Embedding provider for generating job embeddings.

@@ -97,12 +97,12 @@ class TestQualifiesForAutoDraftValidation:
     def test_rejects_bool_true_input(self) -> None:
         """Boolean True input raises TypeError (bool is subclass of int)."""
         with pytest.raises(TypeError, match="must be an integer"):
-            qualifies_for_auto_draft(True)  # type: ignore[arg-type]
+            qualifies_for_auto_draft(True)
 
     def test_rejects_bool_false_input(self) -> None:
         """Boolean False input raises TypeError (bool is subclass of int)."""
         with pytest.raises(TypeError, match="must be an integer"):
-            qualifies_for_auto_draft(False)  # type: ignore[arg-type]
+            qualifies_for_auto_draft(False)
 
     # -------------------------------------------------------------------------
     # Range validation

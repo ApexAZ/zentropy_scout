@@ -268,7 +268,7 @@ class JobVariant(Base, TimestampMixin, SoftDeleteMixin):
     )
 
     # Snapshots (JSONB - populated on approval, frozen copy of base resume selections)
-    snapshot_included_jobs: Mapped[dict | None] = mapped_column(
+    snapshot_included_jobs: Mapped[list | None] = mapped_column(
         JSONB,
         nullable=True,
     )
@@ -276,15 +276,15 @@ class JobVariant(Base, TimestampMixin, SoftDeleteMixin):
         JSONB,
         nullable=True,
     )
-    snapshot_included_education: Mapped[dict | None] = mapped_column(
+    snapshot_included_education: Mapped[list | None] = mapped_column(
         JSONB,
         nullable=True,
     )
-    snapshot_included_certifications: Mapped[dict | None] = mapped_column(
+    snapshot_included_certifications: Mapped[list | None] = mapped_column(
         JSONB,
         nullable=True,
     )
-    snapshot_skills_emphasis: Mapped[dict | None] = mapped_column(
+    snapshot_skills_emphasis: Mapped[list | None] = mapped_column(
         JSONB,
         nullable=True,
     )

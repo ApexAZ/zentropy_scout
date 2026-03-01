@@ -13,6 +13,7 @@ Tests verify:
 - Error propagation from downstream services
 """
 
+from collections.abc import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -205,8 +206,8 @@ class TestFullPipeline:
             p.stop()
 
     @pytest.fixture(autouse=True)
-    def _cleanup(self) -> None:  # noqa: PT004
-        yield  # type: ignore[misc]
+    def _cleanup(self) -> Generator[None, None, None]:  # noqa: PT004
+        yield
         self._stop_patches()
 
     async def test_returns_generation_result(

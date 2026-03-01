@@ -95,7 +95,7 @@ def mock_client():
     client.aio = MagicMock()
     client.aio.models = MagicMock()
     client.aio.models.generate_content = AsyncMock()
-    client.aio.models.generate_content_stream = MagicMock()
+    client.aio.models.generate_content_stream = AsyncMock()
     return client
 
 

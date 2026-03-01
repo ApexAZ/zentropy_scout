@@ -10,8 +10,9 @@ Orchestrates the complete scoring flow:
 Called by JobScoringService.score_batch() in job_scoring_service.py.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 from uuid import UUID
 
 from app.services.non_negotiables_filter import (
@@ -24,6 +25,8 @@ from app.services.non_negotiables_filter import (
     check_visa_sponsorship,
 )
 from app.services.score_types import ScoreResult
+
+_JobT = TypeVar("_JobT", bound="JobFilterDataLike")
 
 # =============================================================================
 # Protocol Definitions (for dependency injection)
@@ -170,8 +173,8 @@ def filter_job_non_negotiables(
 
 def filter_jobs_batch(
     persona: PersonaNonNegotiablesLike,
-    jobs: list[JobFilterDataLike],
-) -> tuple[list[JobFilterDataLike], list[JobFilterResult]]:
+    jobs: Sequence[_JobT],
+) -> tuple[list[_JobT], list[JobFilterResult]]:
     """Filter a batch of jobs using non-negotiables.
 
     REQ-007 §7.2 Step 1: Non-Negotiables Filter (Pass/Fail).
@@ -180,14 +183,14 @@ def filter_jobs_batch(
 
     Args:
         persona: Persona with non-negotiables preferences.
-        jobs: List of job postings to filter.
+        jobs: Sequence of job postings to filter.
 
     Returns:
         Tuple of (passing_jobs, filtered_results).
         - passing_jobs: Jobs that passed all filters (for scoring).
         - filtered_results: JobFilterResult for jobs that failed.
     """
-    passing_jobs: list[JobFilterDataLike] = []
+    passing_jobs: list[_JobT] = []
     filtered_results: list[JobFilterResult] = []
 
     for job in jobs:

@@ -5,7 +5,7 @@ message types, tool calling support, and JSON mode.
 """
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -264,7 +264,7 @@ class LLMProvider(ABC):
         task: TaskType,
         max_tokens: int | None = None,
         temperature: float | None = None,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncGenerator[str, None]:
         """Generate a streaming completion.
 
         WHY SEPARATE METHOD: Streaming has fundamentally different
@@ -284,7 +284,9 @@ class LLMProvider(ABC):
                 Token counts not available until stream completes.
                 Use complete() if you need token counts immediately.
         """
-        ...
+        # Bare yield makes mypy treat this as an async generator body,
+        # which is required for abstract async generator methods.
+        yield ""  # pragma: no cover
 
     @abstractmethod
     def get_model_for_task(self, task: TaskType) -> str:

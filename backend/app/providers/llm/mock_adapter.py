@@ -3,7 +3,7 @@
 REQ-009 §9.1: MockLLMProvider enables unit testing without hitting real LLM APIs.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import Any
 
 from app.providers.llm.base import (
@@ -109,13 +109,13 @@ class MockLLMProvider(LLMProvider):
             latency_ms=10,
         )
 
-    async def stream(  # type: ignore[override]
+    async def stream(
         self,
         messages: list[LLMMessage],
         task: TaskType,
         max_tokens: int | None = None,
         temperature: float | None = None,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncGenerator[str, None]:
         """Generate a mock streaming completion.
 
         Records the call and yields content word-by-word with trailing spaces.

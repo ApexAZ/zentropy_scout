@@ -6,7 +6,7 @@ after successful LLM/embedding calls and debit user balances.
 
 import logging
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 
 from app.providers.embedding.base import EmbeddingProvider, EmbeddingResult
 from app.providers.llm.base import (
@@ -104,13 +104,13 @@ class MeteredLLMProvider(LLMProvider):
             )
         return response
 
-    async def stream(  # type: ignore[override]
+    async def stream(
         self,
         messages: list[LLMMessage],
         task: TaskType,
         max_tokens: int | None = None,
         temperature: float | None = None,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncGenerator[str, None]:
         """Stream from inner provider without metering.
 
         REQ-020 §6.2: Streaming metering is deferred — stream() is not
@@ -125,7 +125,7 @@ class MeteredLLMProvider(LLMProvider):
         Yields:
             Text chunks from the inner provider's stream.
         """
-        async for chunk in self._inner.stream(  # type: ignore[attr-defined]
+        async for chunk in self._inner.stream(
             messages, task, max_tokens=max_tokens, temperature=temperature
         ):
             yield chunk

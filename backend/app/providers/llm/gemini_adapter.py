@@ -11,7 +11,7 @@ Uses the unified google-genai SDK (successor to google-generativeai).
 """
 
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
 import structlog
@@ -108,9 +108,10 @@ def _convert_gemini_messages(
 
 def _convert_tool_result(msg: LLMMessage) -> types.Content:
     """Convert a tool result message to Gemini function_response format."""
+    assert msg.tool_result is not None, "tool-role message must have tool_result"
     func_name = (
-        msg.tool_result.tool_call_id.split("_")[-1]  # type: ignore[union-attr]
-        if "_" in msg.tool_result.tool_call_id  # type: ignore[union-attr]
+        msg.tool_result.tool_call_id.split("_")[-1]
+        if "_" in msg.tool_result.tool_call_id
         else "function"
     )
     return types.Content(
@@ -119,7 +120,7 @@ def _convert_tool_result(msg: LLMMessage) -> types.Content:
             types.Part(
                 function_response=types.FunctionResponse(
                     name=func_name,
-                    response={"result": msg.tool_result.content},  # type: ignore[union-attr]
+                    response={"result": msg.tool_result.content},
                 )
             )
         ],
@@ -128,10 +129,11 @@ def _convert_tool_result(msg: LLMMessage) -> types.Content:
 
 def _convert_tool_call_message(msg: LLMMessage) -> types.Content:
     """Convert an assistant message with tool calls to Gemini format."""
+    assert msg.tool_calls is not None, "assistant message must have tool_calls"
     parts: list[types.Part] = []
     if msg.content:
         parts.append(types.Part(text=msg.content))
-    for tc in msg.tool_calls:  # type: ignore[union-attr]
+    for tc in msg.tool_calls:
         parts.append(
             types.Part(
                 function_call=types.FunctionCall(
@@ -168,14 +170,14 @@ def _extract_parts(
 
 
 def _parse_gemini_response(
-    response: object,
+    response: types.GenerateContentResponse,
 ) -> tuple[str | None, list[ToolCall] | None, str]:
     """Parse Gemini response into content, tool_calls, and finish_reason."""
     content = None
     tool_calls: list[ToolCall] | None = None
 
-    if response.candidates:  # type: ignore[attr-defined]
-        candidate = response.candidates[0]  # type: ignore[attr-defined]
+    if response.candidates:
+        candidate = response.candidates[0]
         if candidate.content and candidate.content.parts:
             content, tool_calls = _extract_parts(candidate.content.parts)
         finish_reason = (
@@ -228,13 +230,13 @@ class GeminiAdapter(LLMProvider):
         system_instruction, contents = _convert_gemini_messages(messages)
 
         # Convert tools to Gemini format
-        gemini_tools = None
+        gemini_tools: types.ToolListUnion | None = None
         if tools:
             function_declarations = [
                 types.FunctionDeclaration(
                     name=tool.name,
                     description=tool.description,
-                    parameters=tool.to_json_schema(),  # type: ignore[arg-type]
+                    parameters_json_schema=tool.to_json_schema(),
                 )
                 for tool in tools
             ]
@@ -245,7 +247,7 @@ class GeminiAdapter(LLMProvider):
             temperature=temperature or self.config.default_temperature,
             stop_sequences=stop_sequences or [],
             system_instruction=system_instruction,
-            tools=gemini_tools,  # type: ignore[arg-type]
+            tools=gemini_tools,
             response_mime_type="application/json" if json_mode else None,
         )
 
@@ -310,13 +312,13 @@ class GeminiAdapter(LLMProvider):
             tool_calls=tool_calls,
         )
 
-    async def stream(  # type: ignore[override]
+    async def stream(
         self,
         messages: list[LLMMessage],
         task: TaskType,
         max_tokens: int | None = None,
         temperature: float | None = None,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncGenerator[str, None]:
         """Stream completion using Gemini."""
         model_name = self.get_model_for_task(task)
         system_instruction, contents = _convert_gemini_messages(messages)
@@ -338,7 +340,7 @@ class GeminiAdapter(LLMProvider):
         start_time = time.monotonic()
 
         try:
-            async for chunk in self.client.aio.models.generate_content_stream(  # type: ignore[attr-defined]
+            async for chunk in await self.client.aio.models.generate_content_stream(
                 model=model_name,
                 contents=contents,  # type: ignore[arg-type]
                 config=gen_config,

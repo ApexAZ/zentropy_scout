@@ -38,14 +38,21 @@ Intent Types (REQ-007 §4.3):
 
 import logging
 import re
-from typing import Any
+from typing import Any, cast
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from app.agents.state import ChatAgentState, CheckpointReason, ClassifiedIntent
 from app.core.errors import APIError, NotFoundError, ValidationError
 
 logger = logging.getLogger(__name__)
+
+
+def _copy_state(state: ChatAgentState) -> ChatAgentState:
+    """Shallow-copy a ChatAgentState TypedDict."""
+    return cast(ChatAgentState, dict(state))
+
 
 # =============================================================================
 # Intent Patterns
@@ -210,7 +217,7 @@ def classify_intent(state: ChatAgentState) -> ChatAgentState:
     # Type annotation: dict() returns dict[str, Any] which matches ChatAgentState
     # structure since we're copying from a TypedDict. TypedDict doesn't support
     # copy() directly, so dict() is the cleanest approach.
-    new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    new_state = _copy_state(state)
     new_state["classified_intent"] = best_intent
 
     # Also set target_job_id if a job-related intent with target
@@ -350,7 +357,7 @@ def select_tools(state: ChatAgentState) -> ChatAgentState:
         )
 
     # Copy state and update
-    new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    new_state = _copy_state(state)
     new_state["tool_calls"] = tool_calls
     return new_state
 
@@ -436,7 +443,7 @@ def request_clarification(state: ChatAgentState) -> ChatAgentState:
         message = "Could you provide more details about what you'd like me to do?"
 
     # Copy state and update
-    new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    new_state = _copy_state(state)
 
     # Add clarification message
     messages = list(state.get("messages", []))
@@ -536,7 +543,7 @@ def format_response(state: ChatAgentState) -> ChatAgentState:
         response = "Done."
 
     # Copy state and add response message
-    new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    new_state = _copy_state(state)
     messages = list(state.get("messages", []))
     messages.append(
         {
@@ -579,7 +586,7 @@ def receive_message(state: ChatAgentState) -> ChatAgentState:
             current_message = msg.get("content", "")
             break
 
-    new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    new_state = _copy_state(state)
     new_state["current_message"] = current_message
     return new_state
 
@@ -604,7 +611,7 @@ def execute_tools(state: ChatAgentState) -> ChatAgentState:
 
     # Mark tools as "executed" (results will be mocked in tests or filled
     # by actual service calls in production)
-    new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    new_state = _copy_state(state)
     new_state["tool_results"] = state.get("tool_results", [])
 
     return new_state
@@ -654,7 +661,7 @@ def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:
     """
     from app.agents.onboarding import detect_update_section, is_update_request
 
-    new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    new_state = _copy_state(state)
     message = state.get("current_message") or ""
 
     if is_update_request(message):
@@ -700,7 +707,7 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
     """
     from app.services.content_generation_service import ContentGenerationService
 
-    new_state: ChatAgentState = dict(state)  # type: ignore[assignment]
+    new_state = _copy_state(state)
 
     target_job_id = state.get("target_job_id")
     if not target_job_id:
@@ -875,10 +882,10 @@ def create_chat_graph() -> StateGraph:
 
 
 # Compiled graph singleton
-_chat_graph: StateGraph | None = None
+_chat_graph: CompiledStateGraph | None = None
 
 
-def get_chat_graph() -> StateGraph:
+def get_chat_graph() -> CompiledStateGraph:
     """Get the compiled chat graph.
 
     Returns a singleton compiled graph instance for use in the API.
@@ -888,5 +895,6 @@ def get_chat_graph() -> StateGraph:
     """
     global _chat_graph
     if _chat_graph is None:
-        _chat_graph = create_chat_graph().compile()  # type: ignore[assignment]
-    return _chat_graph  # type: ignore[return-value]
+        _chat_graph = create_chat_graph().compile()
+    graph = _chat_graph
+    return graph

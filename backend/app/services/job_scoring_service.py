@@ -333,7 +333,7 @@ class JobScoringService:
         # Step 4: Non-negotiables filter
         # WHY type: ignore: JobPosting satisfies JobFilterDataLike structurally
         # but mypy can't verify Protocol conformance for ORM models.
-        passing_jobs, filtered_results = filter_jobs_batch(persona, jobs)  # type: ignore[arg-type]
+        passing_jobs, filtered_results = filter_jobs_batch(persona, jobs)  # type: ignore[type-var]
 
         # Build results for filtered jobs
         results: list[ScoreResult] = []
@@ -359,7 +359,7 @@ class JobScoringService:
         # returns list[JobFilterDataLike]; batch_score_jobs expects
         # list[JobPostingLike]. Both are satisfied by JobPosting ORM model.
         scored_jobs = await batch_score_jobs(
-            jobs=passing_jobs,  # type: ignore[arg-type]
+            jobs=passing_jobs,
             persona=persona,
             persona_embeddings=persona_embeddings,
             embedding_provider=embedding_provider,
