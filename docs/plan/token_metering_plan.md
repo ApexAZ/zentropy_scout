@@ -176,7 +176,8 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | § | Task | Status |
 |---|------|--------|
 | 16 | **Backend integration tests for full metering pipeline** | ✅ |
-| 17 | **E2E Playwright tests for usage page + nav balance** | ⬜ |
+| 17 | **E2E Playwright tests for usage page + nav balance** — **Read:** REQ-020 §9, `frontend/tests/e2e/navigation.spec.ts`, `frontend/tests/e2e/settings.spec.ts`. **Create:** `frontend/tests/e2e/usage.spec.ts` (~15 tests) — mock API responses for balance/summary/history/transactions. Test: balance in nav, color coding, click → /usage, page renders all sections, pagination, 402 toast. **Modify:** `frontend/tests/e2e/navigation.spec.ts` (~3L) — assert balance indicator visible. **Run:** `npx playwright test usage.spec.ts navigation.spec.ts` **Done when:** All E2E tests pass. | ✅ |
+| 17.1 | **Audit SonarCloud + Semgrep suppression history** — Review all `# noqa`, `# nosec`, `# type: ignore`, Semgrep `nosemgrep` comments, and SonarCloud accepted/dismissed findings across the entire codebase. For each suppression: verify the justification is still valid, check whether the underlying issue has been fixed (making the suppression stale), and investigate whether any were added as lazy bypasses rather than genuine exceptions. Fix any findings that can be resolved; remove stale suppressions. Update security-triage baseline if counts change. **Run:** `grep -rn "noqa\|nosec\|nosemgrep\|type: ignore" backend/ frontend/` + review SonarCloud dismissed history via API. **Done when:** Every suppression has a verified justification or has been removed/fixed. | ⬜ |
 | 18 | **Final gate — full test suite + push** | ⬜ |
 
 ---
@@ -191,8 +192,8 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | 4 — Service Refactoring | §2.1, §7 | 3 | 1 | 4 |
 | 5 — API Endpoints | §8 | 1 | 1 | 2 |
 | 6 — Frontend | §9 | 2 | 1 | 3 |
-| 7 — Integration | §12 | 2 | 1 | 3 |
-| **Total** | | **13** | **5** | **18** |
+| 7 — Integration | §12 | 3 | 1 | 4 |
+| **Total** | | **14** | **5** | **19** |
 
 ---
 
@@ -217,3 +218,4 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | 2026-03-01 | 1.5 | Phase 6 §14 complete — Usage dashboard page, 6 components, shared format-utils, 40 tests |
 | 2026-03-01 | 1.6 | Phase 6 §15 gate — 4055 backend + 3319 frontend + 213 E2E tests pass, app-shell useBalance mock fix |
 | 2026-03-01 | 1.7 | Phase 7 §16 complete — 19 integration tests for full metering pipeline |
+| 2026-03-01 | 1.8 | Phase 7 §17 complete — 17 E2E tests for usage page + nav balance, 1 nav balance test, 2 flaky test fixes |

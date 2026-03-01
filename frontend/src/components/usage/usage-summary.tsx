@@ -92,7 +92,7 @@ export function UsageSummary({ data, isLoading }: Readonly<UsageSummaryProps>) {
 
 				{/* Task type breakdown */}
 				{data.by_task_type.length > 0 && (
-					<div>
+					<div data-testid="task-type-breakdown">
 						<h3 className="mb-2 text-sm font-medium">By Task Type</h3>
 						<table className="w-full text-sm">
 							<thead>
@@ -121,7 +121,7 @@ export function UsageSummary({ data, isLoading }: Readonly<UsageSummaryProps>) {
 
 				{/* Provider breakdown */}
 				{data.by_provider.length > 0 && (
-					<div>
+					<div data-testid="provider-breakdown">
 						<h3 className="mb-2 text-sm font-medium">By Provider</h3>
 						<table className="w-full text-sm">
 							<thead>

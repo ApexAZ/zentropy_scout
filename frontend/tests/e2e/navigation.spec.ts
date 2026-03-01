@@ -7,9 +7,10 @@
  * All API calls are mocked via Playwright's page.route() — no real backend.
  */
 
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 
 import { changeFlagsList } from "../fixtures/persona-update-mock-data";
+import { balanceResponse } from "../fixtures/usage-mock-data";
 import { setupDashboardMocks } from "../utils/job-discovery-api-mocks";
 import { setupSettingsMocks } from "../utils/settings-api-mocks";
 
@@ -66,6 +67,27 @@ test.describe("Nav Link Rendering", () => {
 		await expect(
 			page.getByRole("button", { name: "Toggle chat" }),
 		).toBeVisible();
+	});
+
+	test("displays balance indicator when balance API responds", async ({
+		page,
+	}) => {
+		await setupDashboardMocks(page);
+
+		// Add balance route (not included in dashboard mocks)
+		await page.route(/\/api\/v1\/usage\/balance/, async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify(balanceResponse("5.000000")),
+			});
+		});
+
+		await page.goto("/");
+
+		const indicator = page.getByTestId("balance-indicator");
+		await expect(indicator).toBeVisible();
+		await expect(indicator).toHaveText("$5.00");
 	});
 });
 
@@ -162,10 +184,11 @@ test.describe("Error States", () => {
 	}) => {
 		await setupSettingsMocks(page);
 
-		// Fail all requests until flag flipped (React Query retries automatically)
-		let shouldFail = true;
-		await page.route(/\/api\/v1\/job-sources$/, async (route) => {
-			if (route.request().method() === "GET" && shouldFail) {
+		// Always-fail handler for job-sources GET. Registered AFTER setup, so
+		// it takes priority over the controller's success handler (LIFO order).
+		const jobSourcesPattern = /\/api\/v1\/job-sources$/;
+		const failHandler = async (route: Route) => {
+			if (route.request().method() === "GET") {
 				await route.fulfill({
 					status: 500,
 					contentType: "application/json",
@@ -174,15 +197,20 @@ test.describe("Error States", () => {
 			} else {
 				await route.fallback();
 			}
-		});
+		};
+		await page.route(jobSourcesPattern, failHandler);
 
 		await page.goto("/settings");
 
+		// React Query retries once (retry: 1) with ~1 s delay. Under parallel
+		// workers, Next.js dev compilation adds latency, so use a generous
+		// timeout to avoid flakiness.
 		const failedState = page.locator(FAILED_STATE);
-		await expect(failedState).toBeVisible();
+		await expect(failedState).toBeVisible({ timeout: 15_000 });
 
-		// Allow subsequent requests to succeed
-		shouldFail = false;
+		// Remove the failing handler — subsequent requests fall through to the
+		// setupSettingsMocks controller which returns success.
+		await page.unroute(jobSourcesPattern, failHandler);
 
 		// Click Retry
 		await failedState.getByRole("button", { name: "Retry" }).click();
@@ -232,6 +260,8 @@ test.describe("Toast Notifications", () => {
 		// Error toasts use duration: Infinity (REQ-012 §13.5).
 		// Wait past the 3 s success auto-dismiss window to verify persistence.
 		await page.waitForTimeout(4000);
-		await expect(errorToast).toBeVisible();
+		// Under parallel workers, Next.js HMR may cause brief re-renders.
+		// Allow extra time for the toast to re-stabilize in the DOM.
+		await expect(errorToast).toBeVisible({ timeout: 5_000 });
 	});
 });
