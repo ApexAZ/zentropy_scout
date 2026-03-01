@@ -46,91 +46,101 @@ export function TransactionTable({
 	totalPages,
 	onPageChange,
 }: Readonly<TransactionTableProps>) {
+	function renderContent() {
+		if (isLoading) {
+			return (
+				<div data-testid="transaction-table-loading" className="space-y-3">
+					<Skeleton className="h-6 w-full" />
+					<Skeleton className="h-6 w-full" />
+					<Skeleton className="h-6 w-full" />
+				</div>
+			);
+		}
+
+		if (transactions.length === 0) {
+			return (
+				<p className="text-muted-foreground text-sm">No transactions yet.</p>
+			);
+		}
+
+		return (
+			<>
+				<table className="w-full text-sm">
+					<thead>
+						<tr className="text-muted-foreground border-b text-left">
+							<th className="pb-2">Amount</th>
+							<th className="pb-2">Type</th>
+							<th className="pb-2">Description</th>
+							<th className="pb-2 text-right">Date</th>
+						</tr>
+					</thead>
+					<tbody>
+						{transactions.map((tx) => {
+							const num = Number.parseFloat(tx.amount_usd);
+							const isPositive = num >= 0;
+
+							return (
+								<tr key={tx.id} className="border-b">
+									<td className="py-2">
+										<span
+											data-testid={`tx-amount-${tx.id}`}
+											className={cn(
+												"font-medium",
+												isPositive ? "text-green-600" : "text-red-500",
+											)}
+										>
+											{formatAmount(tx.amount_usd)}
+										</span>
+									</td>
+									<td className="py-2">{tx.transaction_type}</td>
+									<td className="text-muted-foreground py-2">
+										{tx.description ?? "—"}
+									</td>
+									<td className="py-2 text-right">
+										{formatDate(tx.created_at)}
+									</td>
+								</tr>
+							);
+						})}
+					</tbody>
+				</table>
+
+				{/* Pagination */}
+				{totalPages > 1 && (
+					<div className="mt-4 flex items-center justify-between">
+						<p className="text-muted-foreground text-sm">
+							Page {page} of {totalPages}
+						</p>
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={page <= 1}
+								onClick={() => onPageChange(page - 1)}
+							>
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={page >= totalPages}
+								onClick={() => onPageChange(page + 1)}
+							>
+								Next
+							</Button>
+						</div>
+					</div>
+				)}
+			</>
+		);
+	}
+
 	return (
 		<Card>
 			<CardHeader>
 				<CardTitle>Transaction History</CardTitle>
 			</CardHeader>
-			<CardContent>
-				{isLoading ? (
-					<div data-testid="transaction-table-loading" className="space-y-3">
-						<Skeleton className="h-6 w-full" />
-						<Skeleton className="h-6 w-full" />
-						<Skeleton className="h-6 w-full" />
-					</div>
-				) : transactions.length === 0 ? (
-					<p className="text-muted-foreground text-sm">No transactions yet.</p>
-				) : (
-					<>
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-muted-foreground border-b text-left">
-									<th className="pb-2">Amount</th>
-									<th className="pb-2">Type</th>
-									<th className="pb-2">Description</th>
-									<th className="pb-2 text-right">Date</th>
-								</tr>
-							</thead>
-							<tbody>
-								{transactions.map((tx) => {
-									const num = Number.parseFloat(tx.amount_usd);
-									const isPositive = num >= 0;
-
-									return (
-										<tr key={tx.id} className="border-b">
-											<td className="py-2">
-												<span
-													data-testid={`tx-amount-${tx.id}`}
-													className={cn(
-														"font-medium",
-														isPositive ? "text-green-600" : "text-red-500",
-													)}
-												>
-													{formatAmount(tx.amount_usd)}
-												</span>
-											</td>
-											<td className="py-2">{tx.transaction_type}</td>
-											<td className="text-muted-foreground py-2">
-												{tx.description ?? "—"}
-											</td>
-											<td className="py-2 text-right">
-												{formatDate(tx.created_at)}
-											</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-
-						{/* Pagination */}
-						{totalPages > 1 && (
-							<div className="mt-4 flex items-center justify-between">
-								<p className="text-muted-foreground text-sm">
-									Page {page} of {totalPages}
-								</p>
-								<div className="flex gap-2">
-									<Button
-										variant="outline"
-										size="sm"
-										disabled={page <= 1}
-										onClick={() => onPageChange(page - 1)}
-									>
-										Previous
-									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										disabled={page >= totalPages}
-										onClick={() => onPageChange(page + 1)}
-									>
-										Next
-									</Button>
-								</div>
-							</div>
-						)}
-					</>
-				)}
-			</CardContent>
+			<CardContent>{renderContent()}</CardContent>
 		</Card>
 	);
 }
