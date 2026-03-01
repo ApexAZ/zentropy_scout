@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-02-27
 
-**Items:** 14 (6 completed, 8 pending)
+**Items:** 15 (6 completed, 9 pending)
 
 ---
 
@@ -336,6 +336,34 @@ Code review found that unit tests mock SQLAlchemy sessions and repository calls,
 **Open questions:**
 - Shared container per test session or per test? Per session is faster; per test is cleaner. Start with per session.
 - Replace all mock-based repository tests or run both tiers? Replace — mocks provide false confidence once real DB tests exist.
+
+---
+
+### 15. Async/Sync Performance Audit
+
+**Category:** Backend / Performance
+**Added:** 2026-02-28
+**Priority:** Post-MVP — No user-facing impact until high concurrency.
+**Depends on:** Nothing
+
+Deep audit of the entire backend for async/sync correctness under high concurrency. Ensure all FastAPI dependency functions, service methods, and provider calls use the optimal async/sync pattern to avoid unnecessary thread pool dispatch overhead at scale.
+
+**Motivation:** During REQ-020 implementation, SonarCloud S7503 findings revealed that `async def` without `await` is an intentional FastAPI optimization (avoids `run_in_threadpool()` overhead). This raised the question: are there other places where sync functions unnecessarily use the thread pool when they could be async, or vice versa?
+
+**Key areas to audit:**
+- All FastAPI dependency functions in `backend/app/api/deps.py`
+- Service layer methods that only perform fast synchronous operations
+- Provider factory functions and singleton patterns
+- Database session lifecycle management
+- Middleware and exception handler async patterns
+- Background task scheduling patterns
+
+**Expected outcome:** Documentation of which functions are intentionally async-without-await (with rationale), identification of any functions that should be converted for better scalability, and SonarCloud baseline updates.
+
+**Open questions:**
+- Is `run_in_threadpool()` overhead measurable at expected user scale (hundreds to low thousands)?
+- Should this be a formal load testing exercise or code-review-only audit?
+- Profile tools: `py-spy`, `viztracer`, or FastAPI's built-in timing middleware?
 
 ---
 

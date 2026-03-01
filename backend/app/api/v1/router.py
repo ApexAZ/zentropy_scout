@@ -23,6 +23,7 @@ from app.api.v1 import (
     persona_change_flags,
     personas,
     refresh,
+    usage,
     user_source_preferences,
 )
 
@@ -113,3 +114,9 @@ router.include_router(onboarding.router, prefix="/onboarding", tags=["onboarding
 # =============================================================================
 
 router.include_router(refresh.router, prefix="/refresh", tags=["actions"])
+
+# =============================================================================
+# Usage & Billing (REQ-020)
+# =============================================================================
+
+router.include_router(usage.router, prefix="/usage", tags=["usage"])

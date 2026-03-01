@@ -145,12 +145,12 @@ Phase 7: Integration & Verification (REQ-020 §12)
 
 ## Phase 5: API Endpoints (REQ-020 §8)
 
-**Status:** ⬜ Not Started
+**Status:** 🟡 In Progress
 
 #### Tasks
 | § | Task | Status |
 |---|------|--------|
-| 11 | **Create usage schemas + 4 API endpoints + router registration (TDD)** | ⬜ |
+| 11 | **Create usage schemas + 4 API endpoints + router registration (TDD)** | ✅ |
 | 12 | **Phase gate — full test suite + push** | ⬜ |
 
 ---
@@ -211,3 +211,4 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | 2026-02-28 | 0.9 | Phase 4 §8 complete — extract_job_data refactor + metered providers in both endpoints, 2 new 402 tests |
 | 2026-02-28 | 1.0 | Phase 4 §9 complete — all internal services accept provider parameter, backward compat preserved |
 | 2026-02-28 | 1.1 | Phase 4 §10 gate — 4029 backend + 3261 frontend + 213 E2E tests pass, S3776 fix, 1 test assertion fix |
+| 2026-02-28 | 1.2 | Phase 5 §11 complete — usage schemas, 4 API endpoints, router registration, 26 tests |
