@@ -1,9 +1,9 @@
 # Zentropy Scout — Feature Backlog
 
 **Created:** 2026-02-16
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-01
 
-**Items:** 15 (6 completed, 9 pending)
+**Items:** 15 (7 completed, 8 pending)
 
 ---
 
@@ -23,50 +23,12 @@ These items are required to launch Zentropy Scout as a production SaaS tool on R
 
 ---
 
-### 12. Token Metering & Usage Tracking
-
-**Category:** Backend / Database
-**Added:** 2026-02-27
-**Priority:** P1 — Foundation for billing. Must land first.
-**Depends on:** Nothing (provider layer already returns token counts)
-
-Persist every LLM call's token usage per user so costs are tracked, credit balances can be computed, and usage can be gated when credits are exhausted. The provider abstraction layer already returns `input_tokens` and `output_tokens` on every `LLMResponse` — this item adds the storage, aggregation, and enforcement layers.
-
-**What needs to be built:**
-- **`llm_usage` table** — `id`, `user_id`, `provider` (claude/openai/gemini), `model`, `task_type`, `input_tokens`, `output_tokens`, `estimated_cost_usd`, `created_at`
-- **`credit_balances` table** — `user_id`, `balance_credits`, `updated_at` (or derive from ledger)
-- **Credit ledger table** — `user_id`, `amount`, `type` (purchase/debit/refund/admin_grant), `reference_id`, `created_at` — immutable append-only log
-- **Cost calculation service** — maps (provider, model, token_count) → cost in USD using pricing tables, then applies margin multiplier to get credit cost
-- **Usage recording middleware/hook** — after every successful `llm.complete()` / `llm.stream()`, persist a usage row and debit credits
-- **Usage-gating middleware** — check credit balance before LLM calls; return 402 Payment Required when exhausted
-- **Usage API endpoints** — `GET /api/v1/usage/summary` (current period), `GET /api/v1/usage/history` (detailed log), `GET /api/v1/credits/balance`
-- **Frontend credits display** — show remaining credits in nav bar, low-balance warning, usage breakdown page
-
-**Key files (existing):**
-- `backend/app/providers/llm/base.py` — `LLMResponse` already has `input_tokens`, `output_tokens`
-- `backend/app/services/embedding_cost.py` — existing pricing table pattern (embeddings only, needs expansion to LLM models)
-- `backend/app/providers/config.py` — provider/model configuration
-- `backend/app/core/config.py` — app settings
-
-**Pricing table approach:**
-Maintain a cost-per-1K-tokens table for each (provider, model) pair. Apply a configurable margin multiplier (e.g., 1.3x = 30% margin) to convert raw cost into credit cost. This keeps pricing transparent and adjustable without code changes.
-
-**Open questions:**
-- Credit unit: 1 credit = $0.01 USD? Or abstract units decoupled from dollars?
-- Margin multiplier: configurable per provider/model, or flat across the board?
-- Embedding costs: meter separately or bundle with LLM credits?
-- Free tier: grant N credits on signup for trial usage?
-- Rate limiting: per-minute token caps in addition to credit balance checks?
-- Admin dashboard: needed for MVP or just direct DB queries?
-
----
-
 ### 13. Stripe Credits Integration
 
 **Category:** Backend / Frontend / Payments
 **Added:** 2026-02-27
 **Priority:** P2 — Monetization. Users purchase credits to use the tool.
-**Depends on:** #12 (Token Metering — credit balance model must exist)
+**Depends on:** ~~#12 (Token Metering)~~ ✅
 
 Integrate Stripe for credit pack purchases. Users buy credits via Stripe Checkout, webhook confirms payment and credits the ledger, credits are consumed by LLM usage (tracked by #12).
 
@@ -158,7 +120,7 @@ Elevate the visual design from functional-but-generic shadcn/ui defaults to a po
 **Added:** 2026-02-16
 **Updated:** 2026-02-27 (added metering/payments dependencies, revised service breakdown)
 **Priority:** P4 — Deploy after metering + payments are functional.
-**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, #12 (Token Metering), #13 (Stripe Integration)
+**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, ~~#12 (Token Metering)~~ ✅, #13 (Stripe Integration)
 
 Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Python background workers on Render. Render is already familiar, uses fixed predictable pricing, has native background worker and cron job support, and no cold-start surprises.
 
@@ -419,3 +381,11 @@ Deep audit of the entire backend for async/sync correctness under high concurren
 **Status:** Promoted to plan and completed
 **Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 4 (REQ-019)
 **Completed:** Replaced 13-node LangGraph StateGraph (2490L) with ResumeParsingService (pdfplumber + Gemini 2.5 Flash) and resume-parse API endpoint. Deleted ~1784L of graph/state-machine code, kept ~706L of post-onboarding utilities. Frontend updated from 12→11 steps (removed base-resume step). E2E tests rewritten for 11-step flow. All tests passing.
+
+---
+
+### ~~12. Token Metering & Usage Tracking~~ ✅
+
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/token_metering_plan.md` — Phases 1–7 (REQ-020)
+**Completed:** Full metering pipeline — `llm_usage_records` + `credit_transactions` tables, MeteringService with pricing tables, MeteredLLMProvider/MeteredEmbeddingProvider proxies, balance-gating middleware (402), usage/credits/transactions API endpoints, frontend usage dashboard with balance indicator in nav. 19 integration tests, 17 E2E tests. Zero-trust suppression audit of 448 lint suppressions (154 fixed, 294 verified). 4074 backend + 3319 frontend tests passing.
