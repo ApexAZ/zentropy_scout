@@ -189,7 +189,7 @@ PasswordResetEligible = Annotated[bool, Depends(get_password_reset_eligible)]
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
-async def get_metered_provider(  # async preferred: avoids thread pool overhead in FastAPI DI
+def get_metered_provider(
     user_id: CurrentUserId,
     db: DbSession,
 ) -> LLMProvider:
@@ -212,7 +212,7 @@ async def get_metered_provider(  # async preferred: avoids thread pool overhead 
     return MeteredLLMProvider(inner, metering_service, user_id)
 
 
-async def get_metered_embedding_provider(  # async preferred: avoids thread pool overhead in FastAPI DI
+def get_metered_embedding_provider(
     user_id: CurrentUserId,
     db: DbSession,
 ) -> EmbeddingProvider:

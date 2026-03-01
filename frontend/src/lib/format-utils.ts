@@ -6,6 +6,29 @@
  */
 
 // ---------------------------------------------------------------------------
+// Balance thresholds & color coding (REQ-020 §9.1)
+// ---------------------------------------------------------------------------
+
+/** Balance at or above this threshold is displayed in green. */
+export const BALANCE_THRESHOLD_HIGH = 1;
+/** Balance at or above this threshold (but below HIGH) is amber. */
+export const BALANCE_THRESHOLD_LOW = 0.1;
+
+/** Get the Tailwind text color class for a balance amount. */
+export function getBalanceColorClass(balance: number): string {
+	if (balance >= BALANCE_THRESHOLD_HIGH) return "text-green-600";
+	if (balance >= BALANCE_THRESHOLD_LOW) return "text-amber-500";
+	return "text-red-500";
+}
+
+/** Format a balance string (6 decimal places from API) to $X.XX display. */
+export function formatBalance(raw: string): string {
+	const num = Number.parseFloat(raw);
+	if (Number.isNaN(num)) return "$0.00";
+	return `$${num.toFixed(2)}`;
+}
+
+// ---------------------------------------------------------------------------
 // Currency formatting
 // ---------------------------------------------------------------------------
 

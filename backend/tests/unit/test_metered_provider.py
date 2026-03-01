@@ -329,7 +329,7 @@ class TestGetMeteredProvider:
             patch("app.api.deps.MeteringService") as mock_metering_cls,
         ):
             mock_settings.metering_enabled = False
-            result = await get_metered_provider(TEST_USER_ID, AsyncMock())
+            result = get_metered_provider(TEST_USER_ID, AsyncMock())
             assert result is mock_inner
             mock_metering_cls.assert_not_called()
 
@@ -344,7 +344,7 @@ class TestGetMeteredProvider:
             patch("app.api.deps.MeteringService") as mock_metering_cls,
         ):
             mock_settings.metering_enabled = True
-            result = await get_metered_provider(TEST_USER_ID, mock_db)
+            result = get_metered_provider(TEST_USER_ID, mock_db)
             mock_metering_cls.assert_called_once_with(mock_db)
             # Verify wrapper delegates to inner provider
             assert result.provider_name == "mock"
@@ -364,7 +364,7 @@ class TestGetMeteredEmbeddingProvider:
             patch("app.api.deps.MeteringService") as mock_metering_cls,
         ):
             mock_settings.metering_enabled = False
-            result = await get_metered_embedding_provider(TEST_USER_ID, AsyncMock())
+            result = get_metered_embedding_provider(TEST_USER_ID, AsyncMock())
             assert result is mock_inner
             mock_metering_cls.assert_not_called()
 
@@ -382,7 +382,7 @@ class TestGetMeteredEmbeddingProvider:
             patch("app.api.deps.MeteringService") as mock_metering_cls,
         ):
             mock_settings.metering_enabled = True
-            result = await get_metered_embedding_provider(TEST_USER_ID, mock_db)
+            result = get_metered_embedding_provider(TEST_USER_ID, mock_db)
             mock_metering_cls.assert_called_once_with(mock_db)
             # Verify wrapper delegates to inner provider
             assert result.provider_name == "mock"

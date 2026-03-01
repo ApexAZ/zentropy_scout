@@ -22,6 +22,7 @@ import type { ComponentType } from "react";
 
 import { useBalance } from "@/hooks/use-balance";
 import { useChatPanel } from "@/lib/chat-panel-provider";
+import { formatBalance, getBalanceColorClass } from "@/lib/format-utils";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -87,25 +88,6 @@ function navLinkClasses(active: boolean, extra?: string): string {
 			: "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
 		extra,
 	);
-}
-
-// ---------------------------------------------------------------------------
-// Balance color thresholds (REQ-020 §9.1)
-// ---------------------------------------------------------------------------
-
-const BALANCE_THRESHOLD_HIGH = 1.0;
-const BALANCE_THRESHOLD_LOW = 0.1;
-
-function getBalanceColorClass(balance: number): string {
-	if (balance >= BALANCE_THRESHOLD_HIGH) return "text-green-600";
-	if (balance >= BALANCE_THRESHOLD_LOW) return "text-amber-500";
-	return "text-red-500";
-}
-
-function formatBalance(balanceUsd: string): string {
-	const num = Number.parseFloat(balanceUsd);
-	if (Number.isNaN(num)) return "$0.00";
-	return `$${num.toFixed(2)}`;
 }
 
 // ---------------------------------------------------------------------------
