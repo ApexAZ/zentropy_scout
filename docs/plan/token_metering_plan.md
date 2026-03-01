@@ -163,7 +163,7 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | § | Task | Status |
 |---|------|--------|
 | 13 | **Add balance display to top nav + 402 handling (TDD)** | ✅ |
-| 14 | **Create usage dashboard page (TDD)** | ⬜ |
+| 14 | **Create usage dashboard page (TDD)** | ✅ |
 | 15 | **Phase gate — full test suite + push** | ⬜ |
 
 ---
@@ -214,3 +214,4 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | 2026-02-28 | 1.2 | Phase 5 §11 complete — usage schemas, 4 API endpoints, router registration, 26 tests |
 | 2026-03-01 | 1.3 | Phase 5 §12 gate — 4055 backend + 3261 frontend + 213 E2E tests pass |
 | 2026-03-01 | 1.4 | Phase 6 §13 — Balance display in top nav + 402 toast handling |
+| 2026-03-01 | 1.5 | Phase 6 §14 complete — Usage dashboard page, 6 components, shared format-utils, 40 tests |
