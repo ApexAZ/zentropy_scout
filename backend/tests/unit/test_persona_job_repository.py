@@ -60,7 +60,6 @@ class TestGetForPersona:
         db_session: AsyncSession,
         persona_a: Persona,
         user_a: User,
-        shared_job: JobPosting,  # noqa: ARG002
         shared_job_2: JobPosting,
         pj_a: PersonaJob,  # noqa: ARG002
     ):

@@ -40,7 +40,7 @@ _SSE_HEARTBEAT_INTERVAL_SECONDS: float = 30
 @limiter.limit(settings.rate_limit_llm)
 async def send_chat_message(
     request: Request,  # noqa: ARG001
-    body: ChatMessageRequest,  # noqa: ARG001
+    _body: ChatMessageRequest,
     _user_id: CurrentUserId,
 ) -> DataResponse[dict]:
     """Send a message to the chat agent.

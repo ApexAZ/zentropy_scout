@@ -5,6 +5,7 @@ REQ-005 §4.1 - Tier 2 tables for persona metadata and settings.
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -19,6 +20,9 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, EmbeddingColumnsMixin, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.persona import Persona  # noqa: F401
 
 _DEFAULT_UUID = text("gen_random_uuid()")
 _PERSONA_FK = "personas.id"
@@ -247,7 +251,3 @@ class PersonaChangeFlag(Base):
         "Persona",
         back_populates="change_flags",
     )
-
-
-# Avoid circular imports
-from app.models.persona import Persona  # noqa: E402, F401

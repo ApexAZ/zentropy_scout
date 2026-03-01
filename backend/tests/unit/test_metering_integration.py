@@ -683,7 +683,6 @@ class TestUnknownModelFallback:
     async def test_unknown_model_uses_fallback_pricing(
         self,
         db_session,
-        metering_user,  # noqa: ARG002
         caplog,
     ):
         """An unknown model for a known provider uses fallback pricing."""
@@ -709,7 +708,6 @@ class TestUnknownModelFallback:
     async def test_unknown_provider_returns_zero_cost(
         self,
         db_session,
-        metering_user,  # noqa: ARG002
         caplog,
     ):
         """An unknown provider returns zero cost and logs a warning."""

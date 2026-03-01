@@ -282,7 +282,6 @@ class TestGetActivePersonasWithSkills:
         self,
         db_session: AsyncSession,
         persona_a: Persona,
-        persona_b: Persona,  # noqa: ARG002
     ) -> None:
         personas = await get_active_personas_with_skills(db_session)
         ids = {p.id for p in personas}
@@ -291,7 +290,6 @@ class TestGetActivePersonasWithSkills:
     async def test_excludes_non_onboarded(
         self,
         db_session: AsyncSession,
-        persona_a: Persona,  # noqa: ARG002
         persona_not_onboarded: Persona,
     ) -> None:
         personas = await get_active_personas_with_skills(db_session)

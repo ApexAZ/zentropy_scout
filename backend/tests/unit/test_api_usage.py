@@ -116,7 +116,6 @@ class TestGetBalance:
     async def test_returns_balance(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
     ) -> None:
         """Balance endpoint returns current balance as string."""
         response = await client.get(_URL_BALANCE)
@@ -131,7 +130,6 @@ class TestGetBalance:
     async def test_balance_format_six_decimals(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Balance value has exactly 6 decimal places."""
@@ -159,7 +157,6 @@ class TestGetBalance:
     async def test_balance_as_of_is_recent(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
     ) -> None:
         """as_of timestamp should be within the last few seconds."""
         response = await client.get(_URL_BALANCE)
@@ -181,7 +178,6 @@ class TestGetSummary:
     async def test_summary_empty_month(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
     ) -> None:
         """Summary with no usage returns zero totals and empty lists."""
         response = await client.get(_URL_SUMMARY)
@@ -199,7 +195,6 @@ class TestGetSummary:
     async def test_summary_with_usage(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Summary aggregates usage records correctly."""
@@ -240,7 +235,6 @@ class TestGetSummary:
     async def test_summary_custom_period(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Summary respects custom period_start and period_end."""
@@ -265,7 +259,6 @@ class TestGetSummary:
     async def test_summary_default_period_is_current_month(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
     ) -> None:
         """Summary without period params defaults to current UTC month."""
         response = await client.get(_URL_SUMMARY)
@@ -278,7 +271,6 @@ class TestGetSummary:
     async def test_summary_rejects_inverted_period(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
     ) -> None:
         """Summary returns 422 when period_start > period_end."""
         response = await client.get(
@@ -293,7 +285,6 @@ class TestGetSummary:
     async def test_summary_does_not_expose_margin_multiplier(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Summary response does not leak margin_multiplier."""
@@ -318,7 +309,6 @@ class TestGetSummary:
     async def test_summary_monetary_values_are_strings(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """All monetary values in summary are strings, not numbers."""
@@ -352,7 +342,6 @@ class TestGetHistory:
     async def test_history_empty(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
     ) -> None:
         """History with no records returns empty list with pagination."""
         response = await client.get(_URL_HISTORY)
@@ -366,7 +355,6 @@ class TestGetHistory:
     async def test_history_returns_records(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """History returns usage records with correct fields."""
@@ -394,7 +382,6 @@ class TestGetHistory:
     async def test_history_pagination(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """History supports pagination with page and per_page."""
@@ -431,7 +418,6 @@ class TestGetHistory:
     async def test_history_filter_by_task_type(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """History filters by task_type parameter."""
@@ -452,7 +438,6 @@ class TestGetHistory:
     async def test_history_filter_by_provider(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """History filters by provider parameter."""
@@ -490,7 +475,6 @@ class TestGetTransactions:
     async def test_transactions_empty(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
     ) -> None:
         """Transactions with no records returns empty list."""
         response = await client.get(_URL_TRANSACTIONS)
@@ -503,7 +487,6 @@ class TestGetTransactions:
     async def test_transactions_returns_records(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Transactions returns records with correct fields."""
@@ -533,7 +516,6 @@ class TestGetTransactions:
     async def test_transactions_debit_is_negative(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Debit transactions have negative amount_usd."""
@@ -556,7 +538,6 @@ class TestGetTransactions:
     async def test_transactions_pagination(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Transactions supports pagination."""
@@ -578,7 +559,6 @@ class TestGetTransactions:
     async def test_transactions_filter_by_type(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Transactions filters by type parameter."""
@@ -614,7 +594,6 @@ class TestGetTransactions:
     async def test_transactions_null_description(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
         db_session: AsyncSession,
     ) -> None:
         """Transactions with null description returns null."""
@@ -630,7 +609,6 @@ class TestGetTransactions:
     async def test_transactions_rejects_invalid_type(
         self,
         client: AsyncClient,
-        test_user: None,  # noqa: ARG002
     ) -> None:
         """Transactions rejects invalid type filter values."""
         response = await client.get(

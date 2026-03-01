@@ -5,6 +5,7 @@ REQ-005 §4.4 - JobSource (Tier 0), UserSourcePreference, PollingConfiguration (
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -21,6 +22,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.job_posting import JobPosting  # noqa: F401
+    from app.models.persona import Persona  # noqa: F401
 
 _DEFAULT_UUID = text("gen_random_uuid()")
 
@@ -168,8 +173,3 @@ class PollingConfiguration(Base):
         "Persona",
         back_populates="polling_configuration",
     )
-
-
-# Avoid circular imports
-from app.models.job_posting import JobPosting  # noqa: E402, F401
-from app.models.persona import Persona  # noqa: E402, F401

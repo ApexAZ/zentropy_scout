@@ -36,7 +36,7 @@ _HASH_B = hashlib.sha256(b"Analyze data at DataCo").hexdigest()
 @pytest_asyncio.fixture
 async def shared_job(
     db_session: AsyncSession,
-    test_job_source,  # noqa: ARG001
+    test_job_source,
 ) -> JobPosting:
     """Create a shared job posting in the pool."""
     jp = JobPosting(
@@ -56,7 +56,7 @@ async def shared_job(
 @pytest_asyncio.fixture
 async def shared_job_2(
     db_session: AsyncSession,
-    test_job_source,  # noqa: ARG001
+    test_job_source,
 ) -> JobPosting:
     """Create a second shared job in the pool."""
     jp = JobPosting(
@@ -77,7 +77,7 @@ async def shared_job_2(
 async def persona_job_a(
     db_session: AsyncSession,
     test_persona,
-    shared_job,  # noqa: ARG001
+    shared_job,
 ) -> PersonaJob:
     """PersonaJob linking test_persona (user A) to shared_job."""
     pj = PersonaJob(
@@ -96,7 +96,7 @@ async def persona_job_a(
 async def persona_job_b(
     db_session: AsyncSession,
     persona_user_b,
-    shared_job,  # noqa: ARG001
+    shared_job,
 ) -> PersonaJob:
     """PersonaJob linking user B's persona to shared_job (cross-tenant)."""
     pj = PersonaJob(

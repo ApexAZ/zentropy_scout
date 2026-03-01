@@ -46,7 +46,7 @@ ValueError gets replaced with a generic fallback to prevent information leakage.
 async def parse_resume(
     request: Request,  # noqa: ARG001
     file: Annotated[UploadFile, File(...)],
-    user_id: CurrentUserId,  # noqa: ARG001
+    _user_id: CurrentUserId,
     provider: MeteredProvider,
     _balance: BalanceCheck,
 ) -> DataResponse[dict]:

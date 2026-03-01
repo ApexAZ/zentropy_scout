@@ -211,7 +211,7 @@ async def pdf_persona(db_session: AsyncSession) -> SimpleNamespace:
 @pytest_asyncio.fixture
 async def base_resume(
     db_session: AsyncSession,
-    pdf_persona: SimpleNamespace,  # noqa: ARG001
+    pdf_persona: SimpleNamespace,
 ) -> BaseResume:
     """Create a base resume with selections referencing pdf_persona data."""
     p = pdf_persona
@@ -285,7 +285,7 @@ async def job_variant_draft(
 @pytest_asyncio.fixture
 async def job_variant_approved(
     db_session: AsyncSession,
-    pdf_persona: SimpleNamespace,  # noqa: ARG001
+    pdf_persona: SimpleNamespace,
     base_resume: BaseResume,
 ) -> JobVariant:
     """Create an approved job variant with snapshot fields populated."""
@@ -488,7 +488,7 @@ class TestGatherBaseResumeContent:
     async def test_handles_empty_selections(
         self,
         db_session: AsyncSession,
-        pdf_persona: SimpleNamespace,  # noqa: ARG002
+        pdf_persona: SimpleNamespace,
     ) -> None:
         """Empty selections produce empty content lists."""
         resume = BaseResume(

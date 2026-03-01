@@ -109,7 +109,6 @@ async def submitted_resume_pdf(db_session: AsyncSession, base_resume_with_pdf):
 @pytest_asyncio.fixture
 async def submitted_resume_pdf_variant(
     db_session: AsyncSession,
-    persona_for_files,  # noqa: ARG001
     base_resume_with_pdf,
 ):
     """Create a submitted resume PDF with Variant source type.

@@ -93,7 +93,7 @@ class ContentGenerationService:
         persona_id: str,
         job_posting_id: str,
         trigger_type: TriggerType = TriggerType.MANUAL_REQUEST,
-        feedback: str | None = None,  # noqa: ARG002
+        feedback: str | None = None,
         existing_variant_id: str | None = None,
     ) -> GenerationResult:
         """Generate tailored resume variant + cover letter for a job.

@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.job_pool_repository import JobPoolRepository
@@ -109,11 +110,11 @@ class TestSaveJobToPool:
     async def test_returns_none_on_unexpected_error(
         self, db_session: AsyncSession, sample_job: dict[str, Any]
     ):
-        """Unexpected exception during save returns None."""
+        """SQLAlchemy exception during save returns None."""
         with patch(
             _DEDUP_MOCK_TARGET,
             new_callable=AsyncMock,
-            side_effect=RuntimeError("db down"),
+            side_effect=SQLAlchemyError("db down"),
         ):
             sample_job["source_id"] = str(uuid.uuid4())
             result = await JobPoolRepository.save_job_to_pool(

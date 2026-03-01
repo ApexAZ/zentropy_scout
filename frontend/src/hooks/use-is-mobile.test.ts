@@ -114,8 +114,7 @@ describe("useIsMobile", () => {
 	});
 
 	it("returns false when matchMedia is unavailable (SSR)", () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- SSR simulation requires removing matchMedia
-		window.matchMedia = undefined as any;
+		window.matchMedia = undefined as unknown as typeof window.matchMedia;
 
 		const { result } = renderHook(() => useIsMobile());
 		expect(result.current).toBe(false);

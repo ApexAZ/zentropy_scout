@@ -334,7 +334,7 @@ function DiscoveredHeader({
 	return <DataTableColumnHeader column={column} title="Discovered" />;
 }
 
-interface OpportunitiesTableMeta {
+interface OpportunitiesTableMeta extends Record<string, unknown> {
 	togglingFavoriteId: string | null;
 	handleFavoriteToggle: (job: PersonaJobResponse) => void;
 }

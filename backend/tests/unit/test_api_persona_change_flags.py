@@ -162,7 +162,6 @@ class TestListPersonaChangeFlags:
     async def test_list_excludes_other_user_flags(
         self,
         client: AsyncClient,
-        persona_for_flags,  # noqa: ARG002
         other_user_flag,  # noqa: ARG002
     ):
         """List should not return flags from other users."""
@@ -209,7 +208,6 @@ class TestListPersonaChangeFlags:
     async def test_list_returns_empty_when_no_flags(
         self,
         client: AsyncClient,
-        persona_for_flags,  # noqa: ARG002
     ):
         """List returns empty array when no flags exist."""
         response = await client.get("/api/v1/persona-change-flags")
@@ -260,7 +258,6 @@ class TestGetPersonaChangeFlag:
     async def test_get_not_found(
         self,
         client: AsyncClient,
-        persona_for_flags,  # noqa: ARG002
     ):
         """Get non-existent flag returns 404."""
         flag_id = uuid.uuid4()
@@ -274,7 +271,6 @@ class TestGetPersonaChangeFlag:
     async def test_get_other_user_flag_returns_404(
         self,
         client: AsyncClient,
-        persona_for_flags,  # noqa: ARG002
         other_user_flag,
     ):
         """Get flag belonging to another user returns 404 (not 403)."""
@@ -360,7 +356,6 @@ class TestPatchPersonaChangeFlag:
     async def test_patch_not_found(
         self,
         client: AsyncClient,
-        persona_for_flags,  # noqa: ARG002
     ):
         """Patch non-existent flag returns 404."""
         flag_id = uuid.uuid4()
@@ -377,7 +372,6 @@ class TestPatchPersonaChangeFlag:
     async def test_patch_other_user_flag_returns_404(
         self,
         client: AsyncClient,
-        persona_for_flags,  # noqa: ARG002
         other_user_flag,
     ):
         """Patch flag belonging to another user returns 404."""

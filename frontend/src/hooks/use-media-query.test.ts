@@ -122,8 +122,7 @@ describe("useMediaQuery", () => {
 	});
 
 	it("returns false for SSR (no window.matchMedia)", () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- SSR simulation requires removing matchMedia
-		window.matchMedia = undefined as any;
+		window.matchMedia = undefined as unknown as typeof window.matchMedia;
 
 		const { result } = renderHook(() => useMediaQuery(TEST_QUERY));
 		expect(result.current).toBe(false);

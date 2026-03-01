@@ -261,7 +261,6 @@ class TestResolveFlagSkipped:
     async def test_marks_flag_resolved(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """Skipped resolution marks flag as Resolved without updating resumes."""
@@ -311,7 +310,6 @@ class TestResolveFlagSkipped:
     async def test_no_resume_changes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """BaseResumes are unchanged after skipped resolution."""
@@ -344,7 +342,6 @@ class TestResolveFlagAddedToAll:
     async def test_job_added_updates_all_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """job_added appends to included_jobs on all active BaseResumes."""
@@ -373,7 +370,6 @@ class TestResolveFlagAddedToAll:
     async def test_skill_added_updates_all_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """skill_added appends to skills_emphasis on all active BaseResumes."""
@@ -399,7 +395,6 @@ class TestResolveFlagAddedToAll:
     async def test_education_added_updates_all_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """education_added appends to included_education on all active BaseResumes."""
@@ -425,7 +420,6 @@ class TestResolveFlagAddedToAll:
     async def test_certification_added_updates_all_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """certification_added appends to included_certifications."""
@@ -451,7 +445,6 @@ class TestResolveFlagAddedToAll:
     async def test_bullet_added_updates_job_bullet_selections(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         work_history_with_bullet,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
@@ -480,7 +473,6 @@ class TestResolveFlagAddedToAll:
     async def test_bullet_added_skips_resumes_without_job(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         work_history_with_bullet,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
@@ -514,7 +506,6 @@ class TestResolveFlagAddedToAll:
     async def test_skips_archived_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """Archived BaseResumes are not updated."""
@@ -545,7 +536,6 @@ class TestResolveFlagAddedToAll:
     async def test_idempotent_no_duplicate_entries(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """Adding the same item twice does not create duplicates in the list."""
@@ -586,7 +576,6 @@ class TestResolveFlagAddedToSome:
     async def test_updates_only_specified_resumes(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """Only target_resume_ids are updated."""
@@ -615,7 +604,6 @@ class TestResolveFlagAddedToSome:
     async def test_requires_target_resume_ids(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """Raises ValidationError when target_resume_ids not provided for added_to_some."""
@@ -637,7 +625,6 @@ class TestResolveFlagAddedToSome:
     async def test_ignores_nonexistent_resume_ids(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """Nonexistent resume IDs in target list are silently ignored."""
@@ -728,7 +715,6 @@ class TestResolveFlagGuards:
     async def test_bullet_not_found(
         self,
         db_session: AsyncSession,
-        sync_persona,  # noqa: ARG002
         two_resumes,  # noqa: ARG002
     ):
         """Raises NotFoundError when bullet_added references missing bullet."""

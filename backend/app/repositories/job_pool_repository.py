@@ -11,6 +11,7 @@ from datetime import date
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job_source import JobSource
@@ -207,7 +208,7 @@ class JobPoolRepository:
         except (ValueError, KeyError) as e:
             logger.warning("Invalid job data for %s: %s", job.get("external_id"), e)
             return None
-        except Exception as e:  # noqa: BLE001
+        except SQLAlchemyError as e:
             logger.warning("Failed to save job %s: %s", job.get("external_id"), e)
             return None
 
@@ -247,7 +248,7 @@ class JobPoolRepository:
                 e,
             )
             return None
-        except Exception as e:  # noqa: BLE001
+        except SQLAlchemyError as e:
             logger.warning(
                 "Failed to link pool job %s: %s",
                 job.get("pool_job_posting_id"),

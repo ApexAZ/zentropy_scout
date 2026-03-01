@@ -512,7 +512,6 @@ class TestCrossUserDedup:
     async def test_second_user_links_to_existing_job(
         self,
         db_session: AsyncSession,
-        existing_job: JobPosting,  # noqa: ARG002
         source_indeed: JobSource,
         persona_a: Persona,
         user_a: User,
@@ -556,7 +555,6 @@ class TestExistingLink:
     async def test_returns_existing_link(
         self,
         db_session: AsyncSession,
-        existing_job: JobPosting,  # noqa: ARG002
         source_linkedin: JobSource,
         persona_a: Persona,
         user_a: User,
@@ -637,8 +635,6 @@ class TestRaceConditionRecovery:
         db_session: AsyncSession,
         source_linkedin: JobSource,
         existing_job: JobPosting,
-        persona_a: Persona,  # noqa: ARG002
-        user_a: User,  # noqa: ARG002
     ) -> None:
         """Mock-based race condition: create raises IntegrityError, recovery finds existing.
 

@@ -408,7 +408,6 @@ class TestPersistDraftMaterialsGuards:
     async def test_missing_persona_raises_not_found(
         self,
         db_session: AsyncSession,
-        application_scenario: SimpleNamespace,  # noqa: ARG002
     ) -> None:
         """Non-existent persona_id raises NotFoundError."""
         output = _make_ghostwriter_output()

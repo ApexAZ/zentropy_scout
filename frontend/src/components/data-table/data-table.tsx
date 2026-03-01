@@ -90,8 +90,7 @@ export interface DataTableProps<TData> {
 	getRowClassName?: (row: TData) => string | undefined;
 
 	/** Arbitrary metadata passed to cell renderers via table.options.meta. */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- TanStack Table meta is typed as `any` by design
-	meta?: Record<string, any>;
+	meta?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
