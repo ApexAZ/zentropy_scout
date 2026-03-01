@@ -18,7 +18,14 @@ import { TopNav } from "./top-nav";
 const mocks = vi.hoisted(() => {
 	const mockUsePathname = vi.fn<() => string>();
 	const mockToggle = vi.fn();
-	return { mockUsePathname, mockToggle };
+	const mockUseBalance = vi.fn<
+		() => {
+			balance: string | undefined;
+			isLoading: boolean;
+			error: Error | null;
+		}
+	>();
+	return { mockUsePathname, mockToggle, mockUseBalance };
 });
 
 vi.mock("next/navigation", () => ({
@@ -43,6 +50,10 @@ vi.mock("next/link", () => ({
 	},
 }));
 
+vi.mock("@/hooks/use-balance", () => ({
+	useBalance: mocks.mockUseBalance,
+}));
+
 vi.mock("@/lib/chat-panel-provider", () => ({
 	useChatPanel: () => ({
 		isOpen: false,
@@ -53,12 +64,32 @@ vi.mock("@/lib/chat-panel-provider", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function balanceState(
+	overrides?: Partial<{
+		balance: string | undefined;
+		isLoading: boolean;
+		error: Error | null;
+	}>,
+) {
+	return {
+		balance: "10.500000" as string | undefined,
+		isLoading: false,
+		error: null as Error | null,
+		...overrides,
+	};
+}
+
+// ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.mockUsePathname.mockReturnValue("/");
+	mocks.mockUseBalance.mockReturnValue(balanceState());
 });
 
 // ---------------------------------------------------------------------------
@@ -203,5 +234,68 @@ describe("TopNav", () => {
 		expect(
 			screen.queryByTestId("active-applications-badge"),
 		).not.toBeInTheDocument();
+	});
+
+	// -------------------------------------------------------------------
+	// Balance indicator (REQ-020 §9.1)
+	// -------------------------------------------------------------------
+
+	it("renders balance indicator with formatted amount", () => {
+		mocks.mockUseBalance.mockReturnValue(
+			balanceState({ balance: "10.500000" }),
+		);
+		render(<TopNav />);
+		expect(screen.getByTestId("balance-indicator")).toHaveTextContent("$10.50");
+	});
+
+	it("renders balance link pointing to /usage", () => {
+		render(<TopNav />);
+		const link = screen.getByTestId("balance-indicator").closest("a");
+		expect(link).toHaveAttribute("href", "/usage");
+	});
+
+	it("shows green text when balance > $1.00", () => {
+		mocks.mockUseBalance.mockReturnValue(balanceState({ balance: "5.000000" }));
+		render(<TopNav />);
+		const indicator = screen.getByTestId("balance-indicator");
+		expect(indicator.className).toContain("text-green");
+	});
+
+	it("shows amber text when balance is between $0.10 and $1.00", () => {
+		mocks.mockUseBalance.mockReturnValue(balanceState({ balance: "0.500000" }));
+		render(<TopNav />);
+		const indicator = screen.getByTestId("balance-indicator");
+		expect(indicator.className).toContain("text-amber");
+	});
+
+	it("shows red text when balance < $0.10", () => {
+		mocks.mockUseBalance.mockReturnValue(balanceState({ balance: "0.050000" }));
+		render(<TopNav />);
+		const indicator = screen.getByTestId("balance-indicator");
+		expect(indicator.className).toContain("text-red");
+	});
+
+	it("shows zero balance correctly", () => {
+		mocks.mockUseBalance.mockReturnValue(balanceState({ balance: "0.000000" }));
+		render(<TopNav />);
+		const indicator = screen.getByTestId("balance-indicator");
+		expect(indicator).toHaveTextContent("$0.00");
+		expect(indicator.className).toContain("text-red");
+	});
+
+	it("hides balance indicator while loading", () => {
+		mocks.mockUseBalance.mockReturnValue(
+			balanceState({ balance: undefined, isLoading: true }),
+		);
+		render(<TopNav />);
+		expect(screen.queryByTestId("balance-indicator")).not.toBeInTheDocument();
+	});
+
+	it("hides balance indicator on error", () => {
+		mocks.mockUseBalance.mockReturnValue(
+			balanceState({ balance: undefined, error: new Error("Failed") }),
+		);
+		render(<TopNav />);
+		expect(screen.queryByTestId("balance-indicator")).not.toBeInTheDocument();
 	});
 });

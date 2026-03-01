@@ -156,3 +156,12 @@ export { INGEST_SOURCE_NAMES } from "./ingest";
 export type { JobSource, SourceType, UserSourcePreference } from "./source";
 
 export { SOURCE_TYPES } from "./source";
+
+export type {
+	BalanceResponse,
+	CreditTransactionResponse,
+	ProviderSummary,
+	TaskTypeSummary,
+	UsageRecordResponse,
+	UsageSummaryResponse,
+} from "./usage";

@@ -14,6 +14,7 @@
 
 import type { ErrorResponse } from "../types/api";
 import { getActiveQueryClient } from "./query-client";
+import { showToast } from "./toast";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -116,6 +117,19 @@ function handleUnauthorized(status: number): void {
 	) {
 		globalThis.location.href = "/login";
 	}
+}
+
+/**
+ * Handle 402 Payment Required responses (REQ-020 §9.3).
+ *
+ * Shows a persistent error toast when the user has insufficient balance.
+ * Does NOT redirect — the user stays on the current page.
+ */
+function handleInsufficientBalance(status: number): void {
+	if (status !== 402) return;
+	showToast.error("Insufficient balance. Please add funds to continue.", {
+		id: "insufficient-balance",
+	});
 }
 
 async function parseErrorResponse(response: Response): Promise<ApiError> {
@@ -224,6 +238,7 @@ export async function apiFetch<T>(
 
 		if (!response.ok) {
 			handleUnauthorized(response.status);
+			handleInsufficientBalance(response.status);
 			throw await parseErrorResponse(response);
 		}
 
@@ -308,6 +323,7 @@ export async function apiUploadFile<T>(
 
 	if (!response.ok) {
 		handleUnauthorized(response.status);
+		handleInsufficientBalance(response.status);
 		throw await parseErrorResponse(response);
 	}
 

@@ -10,6 +10,7 @@
 const PERSONAS = "personas" as const;
 const JOBS = "jobs" as const;
 const BASE_RESUMES = "base-resumes" as const;
+const USAGE = "usage" as const;
 
 export const queryKeys = {
 	// List keys
@@ -56,4 +57,11 @@ export const queryKeys = {
 	// Sub-entity keys (nested under job for prefix invalidation)
 	extractedSkills: (jobId: string) =>
 		[JOBS, jobId, "extracted-skills"] as const,
+
+	// Usage & billing keys (REQ-020 §9.1)
+	balance: [USAGE, "balance"] as const,
+	usageSummary: (start: string, end: string) =>
+		[USAGE, "summary", start, end] as const,
+	usageHistory: (page: number) => [USAGE, "history", page] as const,
+	usageTransactions: (page: number) => [USAGE, "transactions", page] as const,
 } as const;

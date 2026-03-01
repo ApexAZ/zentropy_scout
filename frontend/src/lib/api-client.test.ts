@@ -4,6 +4,7 @@
  * REQ-012 §4.3: API client with typed fetch wrapper, error handling,
  * response envelope parsing, and 429 retry with exponential backoff.
  * REQ-013 §8.8: credentials: 'include' on all fetch calls, 401 interceptor.
+ * REQ-020 §9.3: 402 insufficient balance toast notification.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,6 +23,25 @@ import {
 	buildUrl,
 } from "./api-client";
 import { createQueryClient, setActiveQueryClient } from "./query-client";
+
+// ---------------------------------------------------------------------------
+// Toast mock
+// ---------------------------------------------------------------------------
+
+const toastMocks = vi.hoisted(() => {
+	const mockError = vi.fn();
+	return { mockError };
+});
+
+vi.mock("@/lib/toast", () => ({
+	showToast: {
+		success: vi.fn(),
+		error: toastMocks.mockError,
+		warning: vi.fn(),
+		info: vi.fn(),
+		dismiss: vi.fn(),
+	},
+}));
 
 // ---------------------------------------------------------------------------
 // Test constants
@@ -832,6 +852,66 @@ describe("API Client", () => {
 			).rejects.toThrow(ApiError);
 
 			expect(window.location.href).toBe("/login");
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// 402 insufficient balance (REQ-020 §9.3)
+	// -----------------------------------------------------------------------
+
+	describe("402 insufficient balance", () => {
+		function mock402Response(): Response {
+			return mockErrorResponse(
+				"INSUFFICIENT_BALANCE",
+				"Your balance is $0.00. Please add funds to continue.",
+				402,
+				[{ balance_usd: "0.000000", minimum_required: "0.000000" }],
+			);
+		}
+
+		it("shows toast on 402 response", async () => {
+			fetchMock.mockResolvedValueOnce(mock402Response());
+
+			await expect(apiFetch(PERSONAS_PATH)).rejects.toThrow(ApiError);
+
+			expect(toastMocks.mockError).toHaveBeenCalledWith(
+				"Insufficient balance. Please add funds to continue.",
+				{ id: "insufficient-balance" },
+			);
+		});
+
+		it("still throws ApiError with correct code after 402 toast", async () => {
+			fetchMock.mockResolvedValueOnce(mock402Response());
+
+			const error = await apiFetch(PERSONAS_PATH).catch((e: unknown) => e);
+
+			expect(error).toBeInstanceOf(ApiError);
+			expect((error as ApiError).code).toBe("INSUFFICIENT_BALANCE");
+			expect((error as ApiError).status).toBe(402);
+		});
+
+		it("does not retry 402 responses", async () => {
+			fetchMock.mockResolvedValueOnce(mock402Response());
+
+			await expect(apiFetch(PERSONAS_PATH)).rejects.toThrow(ApiError);
+
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		it("handles 402 in apiUploadFile", async () => {
+			fetchMock.mockResolvedValueOnce(mock402Response());
+
+			await expect(
+				apiUploadFile(
+					"/resume-files",
+					new File(["x"], "test.pdf", { type: "application/pdf" }),
+				),
+			).rejects.toThrow(ApiError);
+
+			expect(toastMocks.mockError).toHaveBeenCalledWith(
+				"Insufficient balance. Please add funds to continue.",
+				{ id: "insufficient-balance" },
+			);
 		});
 	});
 });

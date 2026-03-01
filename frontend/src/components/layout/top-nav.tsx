@@ -5,6 +5,7 @@
  *
  * REQ-012 §3.2: Horizontal top bar with links to major sections,
  * chat toggle button, and critical info badge indicators.
+ * REQ-020 §9.1: Balance indicator with color coding.
  */
 
 import {
@@ -19,6 +20,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
 
+import { useBalance } from "@/hooks/use-balance";
 import { useChatPanel } from "@/lib/chat-panel-provider";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +90,25 @@ function navLinkClasses(active: boolean, extra?: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Balance color thresholds (REQ-020 §9.1)
+// ---------------------------------------------------------------------------
+
+const BALANCE_THRESHOLD_HIGH = 1.0;
+const BALANCE_THRESHOLD_LOW = 0.1;
+
+function getBalanceColorClass(balance: number): string {
+	if (balance >= BALANCE_THRESHOLD_HIGH) return "text-green-600";
+	if (balance >= BALANCE_THRESHOLD_LOW) return "text-amber-500";
+	return "text-red-500";
+}
+
+function formatBalance(balanceUsd: string): string {
+	const num = Number.parseFloat(balanceUsd);
+	if (Number.isNaN(num)) return "$0.00";
+	return `$${num.toFixed(2)}`;
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -98,6 +119,11 @@ export function TopNav({
 }: Readonly<TopNavProps>) {
 	const pathname = usePathname();
 	const { toggle } = useChatPanel();
+	const {
+		balance,
+		isLoading: balanceLoading,
+		error: balanceError,
+	} = useBalance();
 
 	const badgeCounts: Record<string, number> = {
 		"pending-flags-badge": pendingFlagsCount,
@@ -147,8 +173,22 @@ export function TopNav({
 					})}
 				</div>
 
-				{/* Right side: Settings + Chat toggle */}
+				{/* Right side: Balance + Settings + Chat toggle */}
 				<div className="ml-auto flex items-center gap-2">
+					{balance !== undefined && !balanceLoading && !balanceError && (
+						<Link href="/usage" className="hidden md:flex">
+							<span
+								data-testid="balance-indicator"
+								className={cn(
+									"text-sm font-medium",
+									getBalanceColorClass(Number.parseFloat(balance)),
+								)}
+							>
+								{formatBalance(balance)}
+							</span>
+						</Link>
+					)}
+
 					<Link
 						href="/settings"
 						aria-current={settingsActive ? "page" : undefined}
