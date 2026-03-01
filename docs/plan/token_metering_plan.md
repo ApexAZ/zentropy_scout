@@ -170,12 +170,12 @@ Phase 7: Integration & Verification (REQ-020 §12)
 
 ## Phase 7: Integration & Verification (REQ-020 §12)
 
-**Status:** ⬜ Not Started
+**Status:** 🟡 In Progress
 
 #### Tasks
 | § | Task | Status |
 |---|------|--------|
-| 16 | **Backend integration tests for full metering pipeline** | ⬜ |
+| 16 | **Backend integration tests for full metering pipeline** | ✅ |
 | 17 | **E2E Playwright tests for usage page + nav balance** | ⬜ |
 | 18 | **Final gate — full test suite + push** | ⬜ |
 
@@ -216,3 +216,4 @@ Phase 7: Integration & Verification (REQ-020 §12)
 | 2026-03-01 | 1.4 | Phase 6 §13 — Balance display in top nav + 402 toast handling |
 | 2026-03-01 | 1.5 | Phase 6 §14 complete — Usage dashboard page, 6 components, shared format-utils, 40 tests |
 | 2026-03-01 | 1.6 | Phase 6 §15 gate — 4055 backend + 3319 frontend + 213 E2E tests pass, app-shell useBalance mock fix |
+| 2026-03-01 | 1.7 | Phase 7 §16 complete — 19 integration tests for full metering pipeline |
