@@ -169,8 +169,10 @@ def calculate_experience_score(
         return _score_under_qualified(job_min_years - effective_user_years)
 
     # Case 4: Maximum only specified (unusual)
-    # This is the final case - if job_min_years is None, job_max_years must be set
-    # (we already returned for both-None case above)
-    if effective_user_years <= job_max_years:  # type: ignore[operator]
+    # Cases 1-3 returned for both-None, both-set, and min-only.
+    # The only remaining case: min is None, max is not None.
+    if job_max_years is None:
+        return FIT_NEUTRAL_SCORE  # unreachable; satisfies type narrowing
+    if effective_user_years <= job_max_years:
         return 100.0
-    return _score_over_qualified(effective_user_years - job_max_years)  # type: ignore[operator]
+    return _score_over_qualified(effective_user_years - job_max_years)

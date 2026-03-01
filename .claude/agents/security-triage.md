@@ -65,7 +65,7 @@ curl -s "https://sonarcloud.io/api/hotspots/search?projectKey=ApexAZ_zentropy_sc
 | Dependabot | 0 |
 | Semgrep CI | success |
 | pip-audit + npm audit | success |
-| SonarCloud issues | 3 |
+| SonarCloud issues | 0 |
 | SonarCloud hotspots | 0 |
 
 ### Known/Expected Findings (Do NOT Triage)

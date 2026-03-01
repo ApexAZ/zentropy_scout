@@ -2,7 +2,7 @@
 
 **Created:** 2026-02-27
 **Last Updated:** 2026-03-01
-**Status:** ✅ Complete (§17.1 suppression audit deferred)
+**Status:** ✅ Complete
 **Destination:** `docs/plan/token_metering_plan.md`
 
 ---
@@ -170,14 +170,14 @@ Phase 7: Integration & Verification (REQ-020 §12)
 
 ## Phase 7: Integration & Verification (REQ-020 §12)
 
-**Status:** ✅ Complete (§17.1 deferred)
+**Status:** ✅ Complete
 
 #### Tasks
 | § | Task | Status |
 |---|------|--------|
 | 16 | **Backend integration tests for full metering pipeline** | ✅ |
 | 17 | **E2E Playwright tests for usage page + nav balance** — **Read:** REQ-020 §9, `frontend/tests/e2e/navigation.spec.ts`, `frontend/tests/e2e/settings.spec.ts`. **Create:** `frontend/tests/e2e/usage.spec.ts` (~15 tests) — mock API responses for balance/summary/history/transactions. Test: balance in nav, color coding, click → /usage, page renders all sections, pagination, 402 toast. **Modify:** `frontend/tests/e2e/navigation.spec.ts` (~3L) — assert balance indicator visible. **Run:** `npx playwright test usage.spec.ts navigation.spec.ts` **Done when:** All E2E tests pass. | ✅ |
-| 17.1 | **Audit SonarCloud + Semgrep suppression history** — Review all `# noqa`, `# nosec`, `# type: ignore`, Semgrep `nosemgrep` comments, and SonarCloud accepted/dismissed findings across the entire codebase. For each suppression: verify the justification is still valid, check whether the underlying issue has been fixed (making the suppression stale), and investigate whether any were added as lazy bypasses rather than genuine exceptions. Fix any findings that can be resolved; remove stale suppressions. Update security-triage baseline if counts change. **Run:** `grep -rn "noqa\|nosec\|nosemgrep\|type: ignore" backend/ frontend/` + review SonarCloud dismissed history via API. **Done when:** Every suppression has a verified justification or has been removed/fixed. | ⬜ |
+| 17.1 | **Audit SonarCloud + Semgrep suppression history** — Review all `# noqa`, `# nosec`, `# type: ignore`, Semgrep `nosemgrep` comments, and SonarCloud accepted/dismissed findings across the entire codebase. For each suppression: verify the justification is still valid, check whether the underlying issue has been fixed (making the suppression stale), and investigate whether any were added as lazy bypasses rather than genuine exceptions. Fix any findings that can be resolved; remove stale suppressions. Update security-triage baseline if counts change. **Run:** `grep -rn "noqa\|nosec\|nosemgrep\|type: ignore" backend/ frontend/` + review SonarCloud dismissed history via API. **Done when:** Every suppression has a verified justification or has been removed/fixed. | ✅ |
 | 18 | **Final gate — full test suite + push** | ✅ |
 
 ---
