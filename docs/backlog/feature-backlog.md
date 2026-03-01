@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-01
 
-**Items:** 19 (7 completed, 12 pending)
+**Items:** 21 (7 completed, 14 pending)
 
 ---
 
@@ -23,19 +23,63 @@ These items are required to launch Zentropy Scout as a production SaaS tool on R
 
 ---
 
+### 16. Admin Pricing Dashboard & Model Registry
+
+**Category:** Backend / Frontend / Admin
+**Added:** 2026-03-01
+**Priority:** P1 — Required before launch. Must be able to configure pricing and models without code changes.
+**Depends on:** ~~#12 (Token Metering)~~ ✅
+
+Admin-configurable pricing and model management. Replaces the hardcoded pricing dict in the metering service and the hardcoded model routing tables in the LLM adapters with DB-backed configuration editable from the admin UI.
+
+**What needs to be built:**
+- **`pricing_config` table** — `id`, `provider`, `model`, `input_cost_per_1k`, `output_cost_per_1k`, `margin_multiplier`, `effective_date`, `created_at`, `updated_at`
+- **`model_registry` table** — `id`, `provider`, `model`, `display_name`, `is_active`, `created_at` — canonical list of available models. Calls to unregistered models are blocked (prevents unmetered usage).
+- **`task_routing_config` table** — `id`, `provider`, `task_type`, `model_id` (FK to model_registry) — replaces hardcoded `DEFAULT_CLAUDE_ROUTING` / `DEFAULT_OPENAI_ROUTING` dicts. Admin can reroute task types to different models without code changes.
+- **`system_config` table** — key/value store for global settings like `credits_per_dollar`
+- **Migrate metering service** — read pricing from DB instead of hardcoded Python dict, with caching (pricing doesn't change often)
+- **Migrate LLM adapters** — `get_model_for_task()` reads from `task_routing_config` instead of hardcoded dicts
+- **Block unknown models** — if a (provider, model) pair has no `pricing_config` row, the call is rejected. Prevents unmetered usage when providers release new models.
+- **Admin API endpoints** — CRUD for pricing config, model registry, task routing, system config
+- **Admin UI** — pricing table editor with live cost preview, effective date picker, model registry management, task routing editor
+- **Admin auth/role** — admin-only access gate (could be a simple `is_admin` flag on user for MVP)
+
+**Key consideration:** Effective dates on pricing changes — when a provider raises prices, admin updates the raw cost and sets an effective date. The system applies the new pricing from that date forward. Prevents running a deficit between provider price change and admin noticing.
+
+---
+
+### 19. Credit Denomination & Display Configuration
+
+**Category:** Backend / Frontend / Admin
+**Added:** 2026-03-01
+**Priority:** P1 — Needed to launch credit packs. Closely tied to #16.
+**Depends on:** #16 (Admin Pricing Dashboard)
+
+Global configuration for how credits are denominated, displayed, and labeled across the product. Controls the credits-per-dollar ratio, display precision (decimal places), unit label ("credits", "tokens", custom), and rounding behavior. All frontend display logic and Stripe credit pack descriptions derive from these settings.
+
+**What needs to be built:**
+- **Display config** in `system_config` — `credits_per_dollar`, `credit_display_name`, `display_precision`, `rounding_mode` (up/nearest/down)
+- **Frontend formatting utility** — single source of truth for rendering credit amounts everywhere (nav balance, usage page, transaction history, Stripe pack descriptions)
+- **Admin UI** — preview how different denominations look across all user-facing surfaces before committing
+
+**Key consideration:** Abstract credits from day one — not dollar-denominated. Decouples from USD, allows margin flexibility, psychologically easier for users. Denomination (e.g., 10,000 credits per dollar) is tunable from admin without code changes.
+
+---
+
 ### 13. Stripe Credits Integration
 
 **Category:** Backend / Frontend / Payments
 **Added:** 2026-02-27
+**Updated:** 2026-03-01 (reordered after #16/#19, narrowed scope to payment rail)
 **Priority:** P2 — Monetization. Users purchase credits to use the tool.
-**Depends on:** ~~#12 (Token Metering)~~ ✅
+**Depends on:** ~~#12 (Token Metering)~~ ✅, #16 (Admin Pricing Dashboard), #19 (Credit Denomination)
 
-Integrate Stripe for credit pack purchases. Users buy credits via Stripe Checkout, webhook confirms payment and credits the ledger, credits are consumed by LLM usage (tracked by #12).
+Integrate Stripe as the payment rail for credit pack purchases. Users buy credits via Stripe Checkout, webhook confirms payment and credits the ledger. Pricing intelligence and margin configuration live in #16 — Stripe just processes the payment and triggers the credit grant.
 
 **What needs to be built:**
 - **Stripe Checkout integration** — create checkout sessions for predefined credit packs
 - **Webhook handler** — `POST /api/v1/webhooks/stripe` — verify signature, process `checkout.session.completed`, credit the user's ledger
-- **Credit pack tiers** — e.g., Starter ($5 / 500 credits), Standard ($15 / 1,750 credits), Pro ($40 / 5,000 credits) — exact pricing TBD
+- **Credit pack tiers** — pack amounts derived from credit denomination (#19), e.g., Starter ($5 / 50,000 credits), Standard ($15 / 175,000 credits), Pro ($40 / 500,000 credits) — exact amounts TBD based on denomination tuning
 - **Purchase history** — `GET /api/v1/credits/purchases` — list of Stripe transactions with amounts and credit grants
 - **Frontend purchase flow** — credits page with pack options, "Buy Credits" buttons that redirect to Stripe Checkout, success/cancel return URLs
 - **Low-balance notifications** — frontend warning when credits drop below threshold (e.g., 10% of last purchase)
@@ -58,11 +102,38 @@ Integrate Stripe for credit pack purchases. Users buy credits via Stripe Checkou
 
 **Open questions:**
 - Stripe account: personal or business? (Tax/legal implications)
-- Credit pack pricing: what margin on top of raw LLM costs feels fair?
 - Minimum purchase: is $5 the floor?
 - Subscription model for post-MVP? (Monthly credit allotment with overage billing)
 - Stripe Tax: collect sales tax automatically, or defer?
 - Test mode: use Stripe test keys in dev/staging, live keys only in production
+
+---
+
+### 20. Landing Page & Home Dashboard
+
+**Category:** Frontend
+**Added:** 2026-03-01
+**Priority:** P2 — Needed before public launch. First thing users see.
+**Depends on:** Nothing (can start anytime, parallelizes with backend items)
+
+Public landing page for unauthenticated visitors (marketing, value prop, sign-up CTA) and an authenticated home dashboard for logged-in users. New users get the option to skip onboarding and start with free credits to explore the tool immediately.
+
+**What needs to be built:**
+- **Public landing page** (`/`) — value proposition, feature highlights, sign-up/sign-in CTAs. Unauthenticated visitors see this. Clean, professional first impression.
+- **Authenticated home dashboard** (`/dashboard` or `/`) — logged-in users see their activity summary: recent jobs, application pipeline status, credit balance, quick actions. Future home for insight engine cards (#11).
+- **Skip onboarding flow** — new users can bypass the 11-step onboarding wizard and go straight to the dashboard with a starter credit grant. Onboarding is available later from settings/profile. "Get started free" path lowers friction.
+- **Starter credit grant** — on account creation, automatically grant free credits (amount configurable in `system_config` via #16). Lets users try the tool before purchasing.
+
+**Key files (existing):**
+- `frontend/src/app/(main)/page.tsx` — current home page (placeholder)
+- `frontend/src/app/(main)/layout.tsx` — authenticated layout
+- `frontend/src/app/(auth)/` — login/register pages
+
+**Open questions:**
+- Landing page content: what's the core value prop headline?
+- How many free starter credits? Enough for 2-3 job analyses + 1 ghostwriter run?
+- Should the landing page be a separate Next.js route group (static, no auth layout)?
+- SEO considerations: meta tags, Open Graph, structured data?
 
 ---
 
@@ -118,9 +189,9 @@ Elevate the visual design from functional-but-generic shadcn/ui defaults to a po
 
 **Category:** DevOps / Infrastructure
 **Added:** 2026-02-16
-**Updated:** 2026-02-27 (added metering/payments dependencies, revised service breakdown)
+**Updated:** 2026-03-01 (updated dependencies for new ordering)
 **Priority:** P4 — Deploy after metering + payments are functional.
-**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, ~~#12 (Token Metering)~~ ✅, #13 (Stripe Integration)
+**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, ~~#12 (Token Metering)~~ ✅, #16 (Admin Pricing), #13 (Stripe Integration)
 
 Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Python background workers on Render. Render is already familiar, uses fixed predictable pricing, has native background worker and cron job support, and no cold-start surprises.
 
@@ -301,6 +372,27 @@ Code review found that unit tests mock SQLAlchemy sessions and repository calls,
 
 ---
 
+### 21. Recruiter Portal
+
+**Category:** Frontend / Backend / Architecture
+**Added:** 2026-03-01
+**Priority:** Post-MVP — Future revenue stream and product expansion.
+**Depends on:** Core product stable and launched
+
+Separate portal for recruiters to discover and connect with job seekers. Flips the marketplace — instead of only candidates searching for jobs, recruiters can search for candidates whose skills and preferences match their open positions.
+
+**Scope is intentionally vague — this is a future vision item, not a near-term deliverable.** Details to be scoped when the candidate-side product is stable and generating revenue.
+
+**Potential areas:**
+- Recruiter accounts (separate from job seeker accounts)
+- Candidate discovery — search/filter by skills, experience, location, availability
+- Candidate opt-in — job seekers choose whether to be visible to recruiters
+- Messaging/outreach — recruiters contact candidates through the platform
+- Recruiter pricing model — separate from candidate credits (per-seat, per-contact, or subscription)
+- Privacy controls — candidates control what recruiters can see (anonymized profiles until mutual interest)
+
+---
+
 ### 15. Async/Sync Performance Audit
 
 **Category:** Backend / Performance
@@ -326,27 +418,6 @@ Deep audit of the entire backend for async/sync correctness under high concurren
 - Is `run_in_threadpool()` overhead measurable at expected user scale (hundreds to low thousands)?
 - Should this be a formal load testing exercise or code-review-only audit?
 - Profile tools: `py-spy`, `viztracer`, or FastAPI's built-in timing middleware?
-
----
-
-### 16. Admin Pricing Dashboard
-
-**Category:** Backend / Frontend / Admin
-**Added:** 2026-03-01
-**Priority:** P1 — Required before launch. Must be able to configure pricing without code changes.
-**Depends on:** ~~#12 (Token Metering)~~ ✅
-
-CRUD interface for the pricing configuration table. Per (provider, model) rows with: raw input cost per 1K tokens, raw output cost per 1K tokens, margin multiplier, and effective date. Admin sees the final user-facing cost calculated live as values are adjusted. Includes the global credit denomination setting (credits-per-dollar) that all display logic derives from.
-
-**What needs to be built:**
-- **`pricing_config` table** — `id`, `provider`, `model`, `input_cost_per_1k`, `output_cost_per_1k`, `margin_multiplier`, `effective_date`, `created_at`, `updated_at`
-- **`system_config` table** — key/value store for global settings like `credits_per_dollar`
-- **Migrate metering service** — read pricing from DB instead of hardcoded Python dict
-- **Admin API endpoints** — CRUD for pricing config, system config
-- **Admin UI** — pricing table editor with live cost preview, effective date picker
-- **Admin auth/role** — admin-only access gate (could be a simple `is_admin` flag on user for MVP)
-
-**Key consideration:** The metering service currently uses a hardcoded pricing dict. This moves it to DB-backed with caching (pricing doesn't change often, no need to hit DB on every LLM call).
 
 ---
 
@@ -386,24 +457,6 @@ Assign users to pricing cohorts, each with their own margin multipliers. Compare
 - How many concurrent cohorts? 2 (A/B) or more (A/B/C/D)?
 - Duration-based auto-expiry for experiments?
 - Should users be notified they're in a pricing experiment? (Legal/ethical consideration)
-
----
-
-### 19. Credit Denomination & Display Configuration
-
-**Category:** Backend / Frontend / Admin
-**Added:** 2026-03-01
-**Priority:** P1 — Needed to launch credit packs. Closely tied to #16.
-**Depends on:** #16 (Admin Pricing Dashboard)
-
-Global configuration for how credits are denominated, displayed, and labeled across the product. Controls the credits-per-dollar ratio, display precision (decimal places), unit label ("credits", "tokens", custom), and rounding behavior. All frontend display logic and Stripe credit pack descriptions derive from these settings.
-
-**What needs to be built:**
-- **Display config** in `system_config` — `credits_per_dollar`, `credit_display_name`, `display_precision`, `rounding_mode` (up/nearest/down)
-- **Frontend formatting utility** — single source of truth for rendering credit amounts everywhere (nav balance, usage page, transaction history, Stripe pack descriptions)
-- **Admin UI** — preview how different denominations look across all user-facing surfaces before committing
-
-**Key consideration:** This is less about code and more about the UX decision. The admin tooling lets you experiment with denomination without code changes. Start with a sensible default (e.g., 10,000 credits per dollar) and tune after seeing real usage patterns.
 
 ---
 
