@@ -460,6 +460,34 @@ Assign users to pricing cohorts, each with their own margin multipliers. Compare
 
 ---
 
+### 22. User Dark Mode Setting
+
+**Category:** Frontend / Backend
+**Added:** 2026-03-01
+**Priority:** Post-MVP — Quality-of-life feature. Infrastructure already exists.
+**Depends on:** Nothing (can start anytime)
+
+Add a user-facing dark mode toggle in the settings page. The frontend already has dark mode CSS variables and Tailwind dark mode classes defined in `globals.css` — the gap is a user-persisted preference.
+
+**What needs to be built:**
+- **User preference storage** — `theme_preference` column on `users` table (`VARCHAR(10)`: `'light'`, `'dark'`, `'system'`; default `'system'`)
+- **Settings UI** — theme toggle in the existing Settings page (3-way: Light / Dark / System)
+- **Frontend implementation** — read preference from user profile, apply `class="dark"` on `<html>`, persist on change via API
+- **API endpoint** — `PATCH /api/v1/users/me/preferences` to save theme preference (or extend existing user settings endpoint)
+- **SSR consideration** — read preference from cookie or JWT claim to avoid dark-mode flash on page load
+
+**Current state:**
+- CSS variables for both light and dark themes exist in `frontend/src/app/globals.css`
+- Tailwind dark mode is configured (class-based strategy)
+- No user preference persistence — currently relies on system preference only
+
+**Key files:**
+- `frontend/src/app/globals.css` — theme CSS variables (already has dark mode definitions)
+- `frontend/src/app/(main)/settings/page.tsx` — settings page (add toggle here)
+- `backend/app/models/user.py` — add `theme_preference` column
+
+---
+
 <!-- Add new ideas above this line -->
 
 ---
