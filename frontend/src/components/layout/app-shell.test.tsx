@@ -39,6 +39,14 @@ vi.mock("next/link", () => ({
 	},
 }));
 
+vi.mock("@/hooks/use-balance", () => ({
+	useBalance: () => ({
+		balance: "10.000000",
+		isLoading: false,
+		error: null,
+	}),
+}));
+
 vi.mock("@/lib/chat-provider", () => ({
 	useChat: () => ({
 		messages: [],
