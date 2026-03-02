@@ -44,8 +44,19 @@ def _validate_model_type(value: str) -> str:
     return value
 
 
-def _validate_non_negative_decimal(value: str, field_name: str) -> str:
-    """Validate a string parses as a finite, non-negative Decimal."""
+def _validate_decimal(
+    value: str,
+    field_name: str,
+    *,
+    allow_zero: bool = True,
+) -> str:
+    """Validate a string parses as a finite Decimal.
+
+    Args:
+        value: Raw string to parse.
+        field_name: Field name for error messages.
+        allow_zero: If True, value must be >= 0. If False, must be > 0.
+    """
     if len(value) > _MAX_DECIMAL_STR_LEN:
         msg = f"{field_name} string representation too long"
         raise ValueError(msg)
@@ -57,26 +68,10 @@ def _validate_non_negative_decimal(value: str, field_name: str) -> str:
     if not d.is_finite():
         msg = f"{field_name} must be a finite number"
         raise ValueError(msg)
-    if d < 0:
+    if allow_zero and d < 0:
         msg = f"{field_name} must be >= 0"
         raise ValueError(msg)
-    return value
-
-
-def _validate_positive_decimal(value: str, field_name: str) -> str:
-    """Validate a string parses as a finite, positive Decimal (> 0)."""
-    if len(value) > _MAX_DECIMAL_STR_LEN:
-        msg = f"{field_name} string representation too long"
-        raise ValueError(msg)
-    try:
-        d = Decimal(value)
-    except InvalidOperation:
-        msg = f"{field_name} must be a valid decimal number"
-        raise ValueError(msg) from None
-    if not d.is_finite():
-        msg = f"{field_name} must be a finite number"
-        raise ValueError(msg)
-    if d <= 0:
+    if not allow_zero and d <= 0:
         msg = f"{field_name} must be > 0"
         raise ValueError(msg)
     return value
@@ -232,17 +227,17 @@ class PricingConfigCreate(BaseModel):
     @field_validator("input_cost_per_1k")
     @classmethod
     def check_input_cost(cls, v: str) -> str:
-        return _validate_non_negative_decimal(v, "input_cost_per_1k")
+        return _validate_decimal(v, "input_cost_per_1k")
 
     @field_validator("output_cost_per_1k")
     @classmethod
     def check_output_cost(cls, v: str) -> str:
-        return _validate_non_negative_decimal(v, "output_cost_per_1k")
+        return _validate_decimal(v, "output_cost_per_1k")
 
     @field_validator("margin_multiplier")
     @classmethod
     def check_margin(cls, v: str) -> str:
-        return _validate_positive_decimal(v, "margin_multiplier")
+        return _validate_decimal(v, "margin_multiplier", allow_zero=False)
 
 
 class PricingConfigUpdate(BaseModel):
@@ -266,21 +261,21 @@ class PricingConfigUpdate(BaseModel):
     @classmethod
     def check_input_cost(cls, v: str | None) -> str | None:
         if v is not None:
-            return _validate_non_negative_decimal(v, "input_cost_per_1k")
+            return _validate_decimal(v, "input_cost_per_1k")
         return v
 
     @field_validator("output_cost_per_1k")
     @classmethod
     def check_output_cost(cls, v: str | None) -> str | None:
         if v is not None:
-            return _validate_non_negative_decimal(v, "output_cost_per_1k")
+            return _validate_decimal(v, "output_cost_per_1k")
         return v
 
     @field_validator("margin_multiplier")
     @classmethod
     def check_margin(cls, v: str | None) -> str | None:
         if v is not None:
-            return _validate_positive_decimal(v, "margin_multiplier")
+            return _validate_decimal(v, "margin_multiplier", allow_zero=False)
         return v
 
 
@@ -399,6 +394,47 @@ class TaskRoutingResponse(BaseModel):
 
 
 # =============================================================================
+# Credit Packs — shared validation helpers
+# =============================================================================
+
+
+def _check_pack_name(v: str) -> None:
+    if len(v) > 50:
+        msg = "name must be at most 50 characters"
+        raise ValueError(msg)
+
+
+def _check_price_cents(v: int) -> None:
+    if v <= 0:
+        msg = "price_cents must be > 0"
+        raise ValueError(msg)
+    if v > 10_000_000:
+        msg = "price_cents must be <= 10000000"
+        raise ValueError(msg)
+
+
+def _check_credit_amount(v: int) -> None:
+    if v <= 0:
+        msg = "credit_amount must be > 0"
+        raise ValueError(msg)
+    if v > 1_000_000_000:
+        msg = "credit_amount must be <= 1000000000"
+        raise ValueError(msg)
+
+
+def _check_display_order(v: int) -> None:
+    if v < 0 or v > 1000:
+        msg = "display_order must be between 0 and 1000"
+        raise ValueError(msg)
+
+
+def _check_highlight_label(v: str) -> None:
+    if len(v) > 50:
+        msg = "highlight_label must be at most 50 characters"
+        raise ValueError(msg)
+
+
+# =============================================================================
 # Credit Packs
 # =============================================================================
 
@@ -427,39 +463,25 @@ class CreditPackCreate(BaseModel):
     @field_validator("name")
     @classmethod
     def check_name_length(cls, v: str) -> str:
-        if len(v) > 50:
-            msg = "name must be at most 50 characters"
-            raise ValueError(msg)
+        _check_pack_name(v)
         return v
 
     @field_validator("price_cents")
     @classmethod
     def check_price_positive(cls, v: int) -> int:
-        if v <= 0:
-            msg = "price_cents must be > 0"
-            raise ValueError(msg)
-        if v > 10_000_000:
-            msg = "price_cents must be <= 10000000"
-            raise ValueError(msg)
+        _check_price_cents(v)
         return v
 
     @field_validator("credit_amount")
     @classmethod
     def check_credit_positive(cls, v: int) -> int:
-        if v <= 0:
-            msg = "credit_amount must be > 0"
-            raise ValueError(msg)
-        if v > 1_000_000_000:
-            msg = "credit_amount must be <= 1000000000"
-            raise ValueError(msg)
+        _check_credit_amount(v)
         return v
 
     @field_validator("display_order")
     @classmethod
     def check_display_order_range(cls, v: int) -> int:
-        if v < 0 or v > 1000:
-            msg = "display_order must be between 0 and 1000"
-            raise ValueError(msg)
+        _check_display_order(v)
         return v
 
     @field_validator("description")
@@ -472,9 +494,8 @@ class CreditPackCreate(BaseModel):
     @field_validator("highlight_label")
     @classmethod
     def check_highlight_length(cls, v: str | None) -> str | None:
-        if v is not None and len(v) > 50:
-            msg = "highlight_label must be at most 50 characters"
-            raise ValueError(msg)
+        if v is not None:
+            _check_highlight_label(v)
         return v
 
 
@@ -506,39 +527,29 @@ class CreditPackUpdate(BaseModel):
     @field_validator("name")
     @classmethod
     def check_name_length(cls, v: str | None) -> str | None:
-        if v is not None and len(v) > 50:
-            msg = "name must be at most 50 characters"
-            raise ValueError(msg)
+        if v is not None:
+            _check_pack_name(v)
         return v
 
     @field_validator("price_cents")
     @classmethod
     def check_price_positive(cls, v: int | None) -> int | None:
-        if v is not None and v <= 0:
-            msg = "price_cents must be > 0"
-            raise ValueError(msg)
-        if v is not None and v > 10_000_000:
-            msg = "price_cents must be <= 10000000"
-            raise ValueError(msg)
+        if v is not None:
+            _check_price_cents(v)
         return v
 
     @field_validator("credit_amount")
     @classmethod
     def check_credit_positive(cls, v: int | None) -> int | None:
-        if v is not None and v <= 0:
-            msg = "credit_amount must be > 0"
-            raise ValueError(msg)
-        if v is not None and v > 1_000_000_000:
-            msg = "credit_amount must be <= 1000000000"
-            raise ValueError(msg)
+        if v is not None:
+            _check_credit_amount(v)
         return v
 
     @field_validator("display_order")
     @classmethod
     def check_display_order_range(cls, v: int | None) -> int | None:
-        if v is not None and (v < 0 or v > 1000):
-            msg = "display_order must be between 0 and 1000"
-            raise ValueError(msg)
+        if v is not None:
+            _check_display_order(v)
         return v
 
     @field_validator("description")
@@ -551,9 +562,8 @@ class CreditPackUpdate(BaseModel):
     @field_validator("highlight_label")
     @classmethod
     def check_highlight_length(cls, v: str | None) -> str | None:
-        if v is not None and len(v) > 50:
-            msg = "highlight_label must be at most 50 characters"
-            raise ValueError(msg)
+        if v is not None:
+            _check_highlight_label(v)
         return v
 
 

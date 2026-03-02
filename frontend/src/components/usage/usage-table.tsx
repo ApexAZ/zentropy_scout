@@ -5,10 +5,10 @@
  * provider, model, task type, tokens, cost, and date.
  */
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCost, formatDate, formatNumber } from "@/lib/format-utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { formatCost, formatDate, formatNumber } from "@/lib/format-utils";
 import type { UsageRecordResponse } from "@/types/usage";
 
 // ---------------------------------------------------------------------------
@@ -84,32 +84,11 @@ export function UsageTable({
 					</tbody>
 				</table>
 
-				{/* Pagination */}
-				{totalPages > 1 && (
-					<div className="mt-4 flex items-center justify-between">
-						<p className="text-muted-foreground text-sm">
-							Page {page} of {totalPages}
-						</p>
-						<div className="flex gap-2">
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={page <= 1}
-								onClick={() => onPageChange(page - 1)}
-							>
-								Previous
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={page >= totalPages}
-								onClick={() => onPageChange(page + 1)}
-							>
-								Next
-							</Button>
-						</div>
-					</div>
-				)}
+				<TablePagination
+					page={page}
+					totalPages={totalPages}
+					onPageChange={onPageChange}
+				/>
 			</>
 		);
 	}
