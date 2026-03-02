@@ -118,7 +118,7 @@ function ScoreExplanation({
 			<CategorySection
 				testId="explanation-warnings"
 				label="Warnings"
-				icon={<Info className="h-4 w-4 text-blue-500" />}
+				icon={<Info className="text-info h-4 w-4" />}
 				items={explanation.warnings}
 			/>
 		</section>

@@ -8,222 +8,99 @@
  * Design Tokens — Zentropy Brand Palette
  *
  * Dark-only theme: amber-gold primary on dark slate.
- * Variable names follow shadcn/ui convention.
- * :root and .dark share identical values so the app
- * renders dark regardless of the .dark class presence.
- * ============================================ */
-
-:root {
-	/* Background & Foreground — Dark Slate */
-	--background: #1e2535;
-	--foreground: #f5f5f5;
-
-	/* Card — Surface elevation */
-	--card: #253044;
-	--card-foreground: #f5f5f5;
-
-	/* Popover — Raised surface (modals, dropdowns) */
-	--popover: #2d3a52;
-	--popover-foreground: #f5f5f5;
-
-	/* Primary — Amber Gold */
-	--primary: #f0a500;
-	--primary-hover: #d4920a;
-	--primary-foreground: #0a0a0a;
-
-	/* Secondary — Surface (same as card) */
-	--secondary: #253044;
-	--secondary-foreground: #f5f5f5;
-
-	/* Muted — Surface bg, subdued text */
-	--muted: #253044;
-	--muted-foreground: #94a3b8;
-
-	/* Accent — Raised surface */
-	--accent: #2d3a52;
-	--accent-foreground: #f5f5f5;
-
-	/* Destructive — Red (unchanged) */
-	--destructive: #ef4444;
-	--destructive-foreground: #ffffff;
-
-	/* Success — Green (unchanged) */
-	--success: #22c55e;
-	--success-foreground: #ffffff;
-
-	/* Warning — Orange (differentiated from brand amber) */
-	--warning: #f97316;
-	--warning-foreground: #0a0a0a;
-
-	/* Info — Sky-400 (blue is no longer primary) */
-	--info: #38bdf8;
-	--info-foreground: #0a0a0a;
-
-	/* Stretch High — Purple (unchanged) */
-	--stretch-high: #a855f7;
-	--stretch-high-foreground: #ffffff;
-
-	/* Stretch Lateral — Gray-600 */
-	--stretch-lateral: #4b5563;
-	--stretch-lateral-foreground: #e5e7eb;
-
-	/* Border & Input — Subtle slate */
-	--border: #3a4a63;
-	--input: #3a4a63;
-	--ring: #f0a500;
-
-	/* Border Radius */
-	--radius: 0.5rem;
-
-	/* Chart colors */
-	--chart-1: oklch(0.488 0.243 264.376);
-	--chart-2: oklch(0.696 0.17 162.48);
-	--chart-3: oklch(0.769 0.188 70.08);
-	--chart-4: oklch(0.627 0.265 303.9);
-	--chart-5: oklch(0.645 0.246 16.439);
-
-	/* Sidebar — slightly darker than page bg */
-	--sidebar: #1a2030;
-	--sidebar-foreground: #f5f5f5;
-	--sidebar-primary: #f0a500;
-	--sidebar-primary-foreground: #0a0a0a;
-	--sidebar-accent: #253044;
-	--sidebar-accent-foreground: #f5f5f5;
-	--sidebar-border: #3a4a63;
-	--sidebar-ring: #f0a500;
-}
-
-/* ============================================
- * Dark Mode — mirrors :root (dark-only theme)
  *
- * Maintained for components using dark: Tailwind
- * prefix via @custom-variant above.
- * ============================================ */
-
-.dark {
-	--background: #1e2535;
-	--foreground: #f5f5f5;
-
-	--card: #253044;
-	--card-foreground: #f5f5f5;
-
-	--popover: #2d3a52;
-	--popover-foreground: #f5f5f5;
-
-	--primary: #f0a500;
-	--primary-foreground: #0a0a0a;
-
-	--secondary: #253044;
-	--secondary-foreground: #f5f5f5;
-
-	--muted: #253044;
-	--muted-foreground: #94a3b8;
-
-	--accent: #2d3a52;
-	--accent-foreground: #f5f5f5;
-
-	--destructive: #ef4444;
-	--destructive-foreground: #ffffff;
-
-	--success: #22c55e;
-	--success-foreground: #ffffff;
-
-	--warning: #f97316;
-	--warning-foreground: #0a0a0a;
-
-	--info: #38bdf8;
-	--info-foreground: #0a0a0a;
-
-	--stretch-high: #a855f7;
-	--stretch-high-foreground: #ffffff;
-
-	--stretch-lateral: #4b5563;
-	--stretch-lateral-foreground: #e5e7eb;
-
-	--border: #3a4a63;
-	--input: #3a4a63;
-	--ring: #f0a500;
-
-	--chart-1: oklch(0.488 0.243 264.376);
-	--chart-2: oklch(0.696 0.17 162.48);
-	--chart-3: oklch(0.769 0.188 70.08);
-	--chart-4: oklch(0.627 0.265 303.9);
-	--chart-5: oklch(0.645 0.246 16.439);
-
-	--sidebar: #1a2030;
-	--sidebar-foreground: #f5f5f5;
-	--sidebar-primary: #f0a500;
-	--sidebar-primary-foreground: #0a0a0a;
-	--sidebar-accent: #253044;
-	--sidebar-accent-foreground: #f5f5f5;
-	--sidebar-border: #3a4a63;
-	--sidebar-ring: #f0a500;
-}
-
-/* ============================================
- * Tailwind v4 Theme — maps CSS vars to utilities
- *
- * Usage: bg-primary, text-muted-foreground, etc.
+ * Colors are defined directly in @theme inline so
+ * Tailwind v4 inlines them into utility classes.
+ * This avoids the Tailwind v4.2 issue where var()
+ * references in @theme cause the PostCSS plugin to
+ * generate :root/:dark blocks with blue defaults
+ * that override custom CSS variable definitions.
  * ============================================ */
 
 @theme inline {
-	/* Colors */
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-	--color-card: var(--card);
-	--color-card-foreground: var(--card-foreground);
-	--color-popover: var(--popover);
-	--color-popover-foreground: var(--popover-foreground);
-	--color-primary: var(--primary);
-	--color-primary-hover: var(--primary-hover);
-	--color-primary-foreground: var(--primary-foreground);
-	--color-secondary: var(--secondary);
-	--color-secondary-foreground: var(--secondary-foreground);
-	--color-muted: var(--muted);
-	--color-muted-foreground: var(--muted-foreground);
-	--color-accent: var(--accent);
-	--color-accent-foreground: var(--accent-foreground);
-	--color-destructive: var(--destructive);
-	--color-destructive-foreground: var(--destructive-foreground);
-	--color-success: var(--success);
-	--color-success-foreground: var(--success-foreground);
-	--color-warning: var(--warning);
-	--color-warning-foreground: var(--warning-foreground);
-	--color-info: var(--info);
-	--color-info-foreground: var(--info-foreground);
-	--color-stretch-high: var(--stretch-high);
-	--color-stretch-high-foreground: var(--stretch-high-foreground);
-	--color-stretch-lateral: var(--stretch-lateral);
-	--color-stretch-lateral-foreground: var(--stretch-lateral-foreground);
-	--color-border: var(--border);
-	--color-input: var(--input);
-	--color-ring: var(--ring);
+	/* Background & Foreground — Dark Slate */
+	--color-background: #1e2535;
+	--color-foreground: #f5f5f5;
 
-	/* Chart */
-	--color-chart-1: var(--chart-1);
-	--color-chart-2: var(--chart-2);
-	--color-chart-3: var(--chart-3);
-	--color-chart-4: var(--chart-4);
-	--color-chart-5: var(--chart-5);
+	/* Card — Surface elevation */
+	--color-card: #253044;
+	--color-card-foreground: #f5f5f5;
 
-	/* Sidebar */
-	--color-sidebar: var(--sidebar);
-	--color-sidebar-foreground: var(--sidebar-foreground);
-	--color-sidebar-primary: var(--sidebar-primary);
-	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-	--color-sidebar-accent: var(--sidebar-accent);
-	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-	--color-sidebar-border: var(--sidebar-border);
-	--color-sidebar-ring: var(--sidebar-ring);
+	/* Popover — Raised surface (modals, dropdowns) */
+	--color-popover: #2d3a52;
+	--color-popover-foreground: #f5f5f5;
+
+	/* Primary — Amber Gold */
+	--color-primary: #f0a500;
+	--color-primary-hover: #d4920a;
+	--color-primary-foreground: #0a0a0a;
+
+	/* Secondary — Surface (same as card) */
+	--color-secondary: #253044;
+	--color-secondary-foreground: #f5f5f5;
+
+	/* Muted — Surface bg, subdued text */
+	--color-muted: #253044;
+	--color-muted-foreground: #94a3b8;
+
+	/* Accent — Raised surface */
+	--color-accent: #2d3a52;
+	--color-accent-foreground: #f5f5f5;
+
+	/* Destructive — Red */
+	--color-destructive: #ef4444;
+	--color-destructive-foreground: #ffffff;
+
+	/* Success — Green */
+	--color-success: #22c55e;
+	--color-success-foreground: #ffffff;
+
+	/* Warning — Orange (differentiated from brand amber) */
+	--color-warning: #f97316;
+	--color-warning-foreground: #0a0a0a;
+
+	/* Info — Sky-400 (blue reserved for informational, not interactive) */
+	--color-info: #38bdf8;
+	--color-info-foreground: #0a0a0a;
+
+	/* Stretch High — Purple */
+	--color-stretch-high: #a855f7;
+	--color-stretch-high-foreground: #ffffff;
+
+	/* Stretch Lateral — Gray-600 */
+	--color-stretch-lateral: #4b5563;
+	--color-stretch-lateral-foreground: #e5e7eb;
+
+	/* Border & Input — Subtle slate */
+	--color-border: #3a4a63;
+	--color-input: #3a4a63;
+	--color-ring: #f0a500;
+
+	/* Chart colors */
+	--color-chart-1: oklch(0.488 0.243 264.376);
+	--color-chart-2: oklch(0.696 0.17 162.48);
+	--color-chart-3: oklch(0.769 0.188 70.08);
+	--color-chart-4: oklch(0.627 0.265 303.9);
+	--color-chart-5: oklch(0.645 0.246 16.439);
+
+	/* Sidebar — slightly darker than page bg */
+	--color-sidebar: #1a2030;
+	--color-sidebar-foreground: #f5f5f5;
+	--color-sidebar-primary: #f0a500;
+	--color-sidebar-primary-foreground: #0a0a0a;
+	--color-sidebar-accent: #253044;
+	--color-sidebar-accent-foreground: #f5f5f5;
+	--color-sidebar-border: #3a4a63;
+	--color-sidebar-ring: #f0a500;
 
 	/* Animations */
 	--animate-blink-caret: blink-caret 1s step-end infinite;
 
 	/* Border Radius */
-	--radius-sm: calc(var(--radius) - 4px);
-	--radius-md: calc(var(--radius) - 2px);
-	--radius-lg: var(--radius);
-	--radius-xl: calc(var(--radius) + 4px);
+	--radius-sm: calc(0.5rem - 4px);
+	--radius-md: calc(0.5rem - 2px);
+	--radius-lg: 0.5rem;
+	--radius-xl: calc(0.5rem + 4px);
 
 	/* Typography — System font stack per REQ-012 §13.1 */
 	--font-sans:

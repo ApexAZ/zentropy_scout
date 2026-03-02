@@ -133,7 +133,7 @@ export function UsersTab() {
 											</span>
 										)}
 										{item.is_env_protected && (
-											<span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+											<span className="bg-info/20 text-info rounded px-1.5 py-0.5 text-xs font-medium">
 												Protected
 											</span>
 										)}

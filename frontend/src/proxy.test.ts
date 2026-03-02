@@ -91,14 +91,11 @@ describe("proxy", () => {
 		"/icon.gif",
 		"/hero.webp",
 		"/sitemap.xml",
-	])(
-		"does not redirect static file %s (excluded by matcher)",
-		(path) => {
-			const matcherPattern = config.matcher[0];
-			const regex = new RegExp(matcherPattern);
-			expect(regex.test(path)).toBe(false);
-		},
-	);
+	])("does not redirect static file %s (excluded by matcher)", (path) => {
+		const matcherPattern = config.matcher[0];
+		const regex = new RegExp(matcherPattern);
+		expect(regex.test(path)).toBe(false);
+	});
 
 	it("protects the root path when cookie is missing", () => {
 		const request = createRequest("/");

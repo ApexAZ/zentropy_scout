@@ -125,9 +125,7 @@ describe("LoginPage", () => {
 		it("renders the page heading", () => {
 			renderLogin();
 
-			expect(
-				screen.getByText(/sign in to zentropy scout/i),
-			).toBeInTheDocument();
+			expect(screen.getByText(/sign in to zentropy/i)).toBeInTheDocument();
 		});
 
 		it("renders Google OAuth button with correct href", () => {
