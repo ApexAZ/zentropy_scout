@@ -165,3 +165,23 @@ export type {
 	UsageRecordResponse,
 	UsageSummaryResponse,
 } from "./usage";
+
+export type {
+	AdminUserItem,
+	AdminUserUpdateRequest,
+	CacheRefreshResult,
+	CreditPackCreateRequest,
+	CreditPackItem,
+	CreditPackUpdateRequest,
+	ModelRegistryCreateRequest,
+	ModelRegistryItem,
+	ModelRegistryUpdateRequest,
+	PricingConfigCreateRequest,
+	PricingConfigItem,
+	PricingConfigUpdateRequest,
+	SystemConfigItem,
+	SystemConfigUpsertRequest,
+	TaskRoutingCreateRequest,
+	TaskRoutingItem,
+	TaskRoutingUpdateRequest,
+} from "./admin";

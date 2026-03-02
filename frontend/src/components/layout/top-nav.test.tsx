@@ -25,7 +25,15 @@ const mocks = vi.hoisted(() => {
 			error: Error | null;
 		}
 	>();
-	return { mockUsePathname, mockToggle, mockUseBalance };
+	const mockUseSession = vi.fn<
+		() => {
+			session: { isAdmin: boolean } | null;
+			status: string;
+			logout: () => Promise<void>;
+			logoutAllDevices: () => Promise<void>;
+		}
+	>();
+	return { mockUsePathname, mockToggle, mockUseBalance, mockUseSession };
 });
 
 vi.mock("next/navigation", () => ({
@@ -52,6 +60,10 @@ vi.mock("next/link", () => ({
 
 vi.mock("@/hooks/use-balance", () => ({
 	useBalance: mocks.mockUseBalance,
+}));
+
+vi.mock("@/lib/auth-provider", () => ({
+	useSession: mocks.mockUseSession,
 }));
 
 vi.mock("@/lib/chat-panel-provider", () => ({
@@ -86,10 +98,26 @@ function balanceState(
 // Setup
 // ---------------------------------------------------------------------------
 
+function sessionState(
+	overrides?: Partial<{
+		session: { isAdmin: boolean } | null;
+		status: string;
+	}>,
+) {
+	return {
+		session: { isAdmin: false } as { isAdmin: boolean } | null,
+		status: "authenticated",
+		logout: vi.fn(),
+		logoutAllDevices: vi.fn(),
+		...overrides,
+	};
+}
+
 beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.mockUsePathname.mockReturnValue("/");
 	mocks.mockUseBalance.mockReturnValue(balanceState());
+	mocks.mockUseSession.mockReturnValue(sessionState());
 });
 
 // ---------------------------------------------------------------------------
@@ -297,5 +325,46 @@ describe("TopNav", () => {
 		);
 		render(<TopNav />);
 		expect(screen.queryByTestId("balance-indicator")).not.toBeInTheDocument();
+	});
+
+	// -------------------------------------------------------------------
+	// Admin link (REQ-022 §11.4)
+	// -------------------------------------------------------------------
+
+	it("renders admin link when session.isAdmin is true", () => {
+		mocks.mockUseSession.mockReturnValue(
+			sessionState({ session: { isAdmin: true } }),
+		);
+		render(<TopNav />);
+		const link = screen.getByRole("link", { name: /admin/i });
+		expect(link).toHaveAttribute("href", "/admin/config");
+	});
+
+	it("hides admin link when session.isAdmin is false", () => {
+		mocks.mockUseSession.mockReturnValue(
+			sessionState({ session: { isAdmin: false } }),
+		);
+		render(<TopNav />);
+		expect(
+			screen.queryByRole("link", { name: /admin/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("hides admin link when session is null", () => {
+		mocks.mockUseSession.mockReturnValue(sessionState({ session: null }));
+		render(<TopNav />);
+		expect(
+			screen.queryByRole("link", { name: /admin/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("marks admin link as active on /admin path", () => {
+		mocks.mockUsePathname.mockReturnValue("/admin/config");
+		mocks.mockUseSession.mockReturnValue(
+			sessionState({ session: { isAdmin: true } }),
+		);
+		render(<TopNav />);
+		const link = screen.getByRole("link", { name: /admin/i });
+		expect(link).toHaveAttribute("aria-current", "page");
 	});
 });

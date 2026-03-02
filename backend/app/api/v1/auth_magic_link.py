@@ -309,6 +309,7 @@ def _user_to_response(user: User) -> dict:
         "image": user.image,
         "email_verified": user.email_verified is not None,
         "has_password": user.password_hash is not None,
+        "is_admin": user.is_admin,
     }
 
 

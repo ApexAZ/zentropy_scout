@@ -11,6 +11,7 @@ const PERSONAS = "personas" as const;
 const JOBS = "jobs" as const;
 const BASE_RESUMES = "base-resumes" as const;
 const USAGE = "usage" as const;
+const ADMIN = "admin" as const;
 
 export const queryKeys = {
 	// List keys
@@ -64,4 +65,12 @@ export const queryKeys = {
 		[USAGE, "summary", start, end] as const,
 	usageHistory: (page: number) => [USAGE, "history", page] as const,
 	usageTransactions: (page: number) => [USAGE, "transactions", page] as const,
+
+	// Admin keys (REQ-022 §11)
+	adminModels: [ADMIN, "models"] as const,
+	adminPricing: [ADMIN, "pricing"] as const,
+	adminRouting: [ADMIN, "routing"] as const,
+	adminPacks: [ADMIN, "packs"] as const,
+	adminConfig: [ADMIN, "config"] as const,
+	adminUsers: [ADMIN, "users"] as const,
 } as const;

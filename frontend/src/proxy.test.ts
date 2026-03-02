@@ -3,6 +3,8 @@
  *
  * REQ-013 §8.6: Server-side route protection — redirects unauthenticated
  * users to /login before any page renders.
+ * REQ-022 §5.4: Admin route guard — redirects non-admin users away from
+ * /admin/* routes based on JWT `adm` claim.
  */
 
 import { NextRequest } from "next/server";
@@ -17,6 +19,14 @@ import { config, proxy } from "./proxy";
 const AUTH_COOKIE_NAME = "zentropy.session-token";
 const BASE_URL = "http://localhost:3000";
 const LOGIN_URL = `${BASE_URL}/login`;
+const HOME_URL = `${BASE_URL}/`;
+
+/** Build a fake JWT with a given payload. Not cryptographically valid. */
+function fakeJwt(payload: Record<string, unknown>): string {
+	const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+	const body = btoa(JSON.stringify(payload));
+	return `${header}.${body}.fake-signature`;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -85,5 +95,51 @@ describe("proxy", () => {
 
 		expect(response.status).toBe(307);
 		expect(response.headers.get("location")).toBe(LOGIN_URL);
+	});
+
+	// -------------------------------------------------------------------
+	// Admin route guard (REQ-022 §5.4)
+	// -------------------------------------------------------------------
+
+	it("passes through /admin/config when JWT has adm claim", () => {
+		const token = fakeJwt({ sub: "user-1", adm: true });
+		const request = createRequest("/admin/config", token);
+		const response = proxy(request);
+
+		expect(response.headers.get("location")).toBeNull();
+	});
+
+	it("redirects /admin/config to / when JWT lacks adm claim", () => {
+		const token = fakeJwt({ sub: "user-1" });
+		const request = createRequest("/admin/config", token);
+		const response = proxy(request);
+
+		expect(response.status).toBe(307);
+		expect(response.headers.get("location")).toBe(HOME_URL);
+	});
+
+	it("redirects /admin/config to / when adm claim is false", () => {
+		const token = fakeJwt({ sub: "user-1", adm: false });
+		const request = createRequest("/admin/config", token);
+		const response = proxy(request);
+
+		expect(response.status).toBe(307);
+		expect(response.headers.get("location")).toBe(HOME_URL);
+	});
+
+	it("redirects /admin to / when JWT payload is malformed", () => {
+		const request = createRequest("/admin/config", "not-a-jwt");
+		const response = proxy(request);
+
+		expect(response.status).toBe(307);
+		expect(response.headers.get("location")).toBe(HOME_URL);
+	});
+
+	it("does not apply admin guard to non-admin paths", () => {
+		const token = fakeJwt({ sub: "user-1" });
+		const request = createRequest("/settings", token);
+		const response = proxy(request);
+
+		expect(response.headers.get("location")).toBeNull();
 	});
 });

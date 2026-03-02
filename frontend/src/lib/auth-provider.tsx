@@ -35,6 +35,7 @@ export interface User {
 	emailVerified: boolean;
 	hasPassword: boolean;
 	canResetPassword: boolean;
+	isAdmin: boolean;
 }
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -48,6 +49,7 @@ interface MeResponse {
 	email_verified: boolean;
 	has_password: boolean;
 	can_reset_password?: boolean;
+	is_admin?: boolean;
 }
 
 interface SessionContext {
@@ -110,6 +112,7 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
 						emailVerified: me.email_verified,
 						hasPassword: me.has_password,
 						canResetPassword: me.can_reset_password ?? false,
+						isAdmin: me.is_admin ?? false,
 					});
 					setStatus("authenticated");
 				}

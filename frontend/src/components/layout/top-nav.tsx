@@ -14,6 +14,7 @@ import {
 	LayoutDashboard,
 	MessageSquare,
 	Settings,
+	Shield,
 	User,
 } from "lucide-react";
 import Link from "next/link";
@@ -21,6 +22,7 @@ import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
 
 import { useBalance } from "@/hooks/use-balance";
+import { useSession } from "@/lib/auth-provider";
 import { useChatPanel } from "@/lib/chat-panel-provider";
 import { formatBalance, getBalanceColorClass } from "@/lib/format-utils";
 import { cn } from "@/lib/utils";
@@ -100,6 +102,7 @@ export function TopNav({
 	activeApplicationsCount = 0,
 }: Readonly<TopNavProps>) {
 	const pathname = usePathname();
+	const { session } = useSession();
 	const { toggle } = useChatPanel();
 	const {
 		balance,
@@ -114,6 +117,7 @@ export function TopNav({
 	};
 
 	const settingsActive = isActive(pathname, "/settings");
+	const adminActive = isActive(pathname, "/admin");
 
 	return (
 		<header className="bg-background border-b">
@@ -155,7 +159,7 @@ export function TopNav({
 					})}
 				</div>
 
-				{/* Right side: Balance + Settings + Chat toggle */}
+				{/* Right side: Balance + Admin + Settings + Chat toggle */}
 				<div className="ml-auto flex items-center gap-2">
 					{balance !== undefined && !balanceLoading && !balanceError && (
 						<Link href="/usage" className="hidden md:flex">
@@ -168,6 +172,17 @@ export function TopNav({
 							>
 								{formatBalance(balance)}
 							</span>
+						</Link>
+					)}
+
+					{session?.isAdmin && (
+						<Link
+							href="/admin/config"
+							aria-current={adminActive ? "page" : undefined}
+							className={navLinkClasses(adminActive, "hidden md:flex")}
+						>
+							<Shield className="h-4 w-4" />
+							Admin
 						</Link>
 					)}
 
