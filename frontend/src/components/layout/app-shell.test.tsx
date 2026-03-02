@@ -47,6 +47,13 @@ vi.mock("@/hooks/use-balance", () => ({
 	}),
 }));
 
+vi.mock("@/lib/auth-provider", () => ({
+	useSession: () => ({
+		session: null,
+		status: "unauthenticated",
+	}),
+}));
+
 vi.mock("@/lib/chat-provider", () => ({
 	useChat: () => ({
 		messages: [],

@@ -49,6 +49,7 @@ const TEST_USER_RESPONSE = {
 	image: null,
 	email_verified: true,
 	has_password: false,
+	is_admin: false,
 };
 
 /** Expected mapped session shape (camelCase). */
@@ -59,6 +60,7 @@ const TEST_USER_SESSION = {
 	image: null,
 	emailVerified: true,
 	hasPassword: false,
+	isAdmin: false,
 	canResetPassword: false,
 };
 
