@@ -58,9 +58,15 @@ export function AddPackDialog({
 	}
 
 	const handleCreate = useCallback(() => {
-		const cents = parseInt(priceCents, 10);
-		const credits = parseInt(creditAmount, 10);
-		if (isNaN(cents) || cents <= 0 || isNaN(credits) || credits <= 0) return;
+		const cents = Number.parseInt(priceCents, 10);
+		const credits = Number.parseInt(creditAmount, 10);
+		if (
+			Number.isNaN(cents) ||
+			cents <= 0 ||
+			Number.isNaN(credits) ||
+			credits <= 0
+		)
+			return;
 		onSubmit({
 			name,
 			price_cents: cents,
@@ -77,10 +83,10 @@ export function AddPackDialog({
 		[onOpenChange],
 	);
 
-	const cents = parseInt(priceCents, 10);
-	const credits = parseInt(creditAmount, 10);
+	const cents = Number.parseInt(priceCents, 10);
+	const credits = Number.parseInt(creditAmount, 10);
 	const numericValid =
-		!isNaN(cents) && cents > 0 && !isNaN(credits) && credits > 0;
+		!Number.isNaN(cents) && cents > 0 && !Number.isNaN(credits) && credits > 0;
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>

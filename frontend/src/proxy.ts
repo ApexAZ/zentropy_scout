@@ -26,7 +26,7 @@ function decodeJwtPayload(tokenValue: string): Record<string, unknown> | null {
 		const parts = tokenValue.split(".");
 		if (parts.length !== 3) return null;
 		const payload = parts[1];
-		const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+		const decoded = atob(payload.replaceAll("-", "+").replaceAll("_", "/"));
 		return JSON.parse(decoded) as Record<string, unknown>;
 	} catch {
 		return null;

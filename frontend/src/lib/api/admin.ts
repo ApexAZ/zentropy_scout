@@ -28,12 +28,14 @@ import type {
 } from "@/types/admin";
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api-client";
 
+type QueryParamValue = string | number | boolean | undefined | null;
+
 // =============================================================================
 // Model Registry
 // =============================================================================
 
 export async function fetchModels(
-	params?: Record<string, string | number | boolean | undefined | null>,
+	params?: Record<string, QueryParamValue>,
 ): Promise<ApiResponse<ModelRegistryItem[]>> {
 	return apiGet("/admin/models", params);
 }
@@ -60,7 +62,7 @@ export async function deleteModel(id: string): Promise<void> {
 // =============================================================================
 
 export async function fetchPricing(
-	params?: Record<string, string | number | boolean | undefined | null>,
+	params?: Record<string, QueryParamValue>,
 ): Promise<ApiResponse<PricingConfigItem[]>> {
 	return apiGet("/admin/pricing", params);
 }
@@ -87,7 +89,7 @@ export async function deletePricing(id: string): Promise<void> {
 // =============================================================================
 
 export async function fetchRouting(
-	params?: Record<string, string | number | boolean | undefined | null>,
+	params?: Record<string, QueryParamValue>,
 ): Promise<ApiResponse<TaskRoutingItem[]>> {
 	return apiGet("/admin/routing", params);
 }
@@ -158,7 +160,7 @@ export async function deleteConfig(key: string): Promise<void> {
 // =============================================================================
 
 export async function fetchUsers(
-	params?: Record<string, string | number | boolean | undefined | null>,
+	params?: Record<string, QueryParamValue>,
 ): Promise<ApiListResponse<AdminUserItem>> {
 	return apiGet("/admin/users", params);
 }

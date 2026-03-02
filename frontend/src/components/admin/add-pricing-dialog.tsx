@@ -58,9 +58,9 @@ function computeCostPreview(
 		!inputCost ||
 		!outputCost ||
 		!margin ||
-		isNaN(inputNum) ||
-		isNaN(outputNum) ||
-		isNaN(marginNum) ||
+		Number.isNaN(inputNum) ||
+		Number.isNaN(outputNum) ||
+		Number.isNaN(marginNum) ||
 		marginNum <= 0
 	) {
 		return null;

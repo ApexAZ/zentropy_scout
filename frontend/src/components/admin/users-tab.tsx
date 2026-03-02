@@ -95,7 +95,7 @@ export function UsersTab() {
 	return (
 		<div data-testid="users-tab" className="space-y-4 pt-4">
 			<p className="text-muted-foreground text-sm">
-				{total} user{total !== 1 ? "s" : ""}
+				{total} user{total === 1 ? "" : "s"}
 			</p>
 
 			{items.length === 0 ? (

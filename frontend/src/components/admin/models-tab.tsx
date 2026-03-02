@@ -130,7 +130,7 @@ export function ModelsTab() {
 		<div data-testid="models-tab" className="space-y-4 pt-4">
 			<div className="flex items-center justify-between">
 				<p className="text-muted-foreground text-sm">
-					{items.length} model{items.length !== 1 ? "s" : ""} registered
+					{items.length} model{items.length === 1 ? "" : "s"} registered
 				</p>
 				<Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
 					<Plus className="mr-1 h-4 w-4" />
