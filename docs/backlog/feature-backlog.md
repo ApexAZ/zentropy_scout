@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-01
 
-**Items:** 22 (7 completed, 15 pending)
+**Items:** 23 (7 completed, 16 pending)
 
 ---
 
@@ -228,6 +228,53 @@ Personalized bookmarklet that lets users capture job postings from any browser w
 - Rate limiting on the capture endpoint? (Prevent abuse if token leaks)
 - Should fetched HTML be stored temporarily for debugging, or discarded after extraction?
 - Mobile browser support — bookmarklets work poorly on mobile. Offer a "paste URL" fallback?
+
+---
+
+### 24. Resume Editor — TipTap Rich Text
+
+**Category:** Frontend / Backend / LLM
+**Added:** 2026-03-02
+**Priority:** P2 — Core resume workflow upgrade. Replaces current static resume view with an interactive editor.
+**Depends on:** Nothing (can start anytime)
+
+Replace the current resume management flow with a TipTap rich text editor that supports real-time AI-assisted writing. Users pick a starter template, Claude streams tailored content directly into the editor, and users can edit, tweak, then export to PDF or DOCX.
+
+**What needs to be built:**
+
+- **TipTap editor integration** — embed TipTap (ProseMirror-based) rich text editor in the Next.js frontend. Right-side panel layout for the editor, left side for controls/context.
+- **Starter templates** — pre-baked markdown/HTML templates: Clean/Minimal, Modern, Executive, Technical. Each defines section structure, heading styles, and layout conventions.
+- **Template picker UI** — selection screen when creating a new resume. Preview thumbnails or rendered previews of each template style.
+- **AI writing into editor** — Claude generates resume content and writes it directly into the TipTap editor via full document replace (Option 1: tailoring workflow — AI generates complete document, user edits from there).
+- **Streaming output** — stream LLM response into the editor in real time so the user watches the resume populate progressively. Uses SSE or similar streaming transport from the backend.
+- **Export to PDF** — leverage existing ReportLab + Platypus backend pipeline. Convert editor content (markdown/HTML) to PDF server-side.
+- **Export to DOCX** — new export path using `python-docx`. Convert editor content to formatted Word document server-side.
+- **Markdown storage** — store resume content as markdown on the backend for clean LLM read/write. TipTap renders markdown ↔ rich text bidirectionally. Markdown is the canonical format for LLM input/output.
+
+**Key considerations:**
+- TipTap has a free open-source core (`@tiptap/core`, `@tiptap/react`) and paid pro extensions. The free tier covers what we need (headings, lists, bold/italic, links). Evaluate whether pro extensions (collaboration, comments) are needed later.
+- Streaming into the editor requires careful handling — TipTap transactions need to be batched so the editor doesn't re-render on every token. Buffer chunks and flush at sentence or paragraph boundaries.
+- Template structure should be defined as markdown with front-matter metadata (template name, category, description) so templates are easy to add and maintain.
+- Markdown ↔ HTML round-tripping must be lossless for the features we use. TipTap's markdown extension handles this, but test edge cases (nested lists, links, bold+italic).
+- DOCX export styling should approximate the PDF output for consistency. Users expect similar-looking documents regardless of export format.
+
+**Key files (new):**
+- `frontend/src/components/resume/resume-editor.tsx` — TipTap editor wrapper
+- `frontend/src/components/resume/template-picker.tsx` — template selection UI
+- `frontend/src/lib/templates/` — starter template definitions (markdown files)
+- `backend/app/services/docx_export_service.py` — DOCX generation via python-docx
+- `backend/app/api/v1/resume_export.py` — export endpoints (PDF + DOCX)
+
+**Dependencies (new):**
+- `@tiptap/core`, `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-markdown` — TipTap editor (npm, free/open-source)
+- `python-docx` — DOCX generation (pip)
+
+**Open questions:**
+- Should users be able to edit the template structure itself (add/remove sections), or only fill in content within the template's predefined sections?
+- Collaborative editing (multiple tabs/devices) — needed for MVP or deferred?
+- Version history in the editor — show diffs between AI-generated versions?
+- How to handle template switching after content exists — warn and replace, or attempt content migration?
+- Should markdown be the source of truth with HTML as a render format, or store both?
 
 ---
 
