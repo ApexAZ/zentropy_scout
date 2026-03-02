@@ -81,6 +81,25 @@ describe("proxy", () => {
 		expect(registerRegex.test("/register")).toBe(false);
 	});
 
+	it.each([
+		"/zentropy_logo.png",
+		"/favicon.ico",
+		"/robots.txt",
+		"/next.svg",
+		"/some-image.jpg",
+		"/photo.jpeg",
+		"/icon.gif",
+		"/hero.webp",
+		"/sitemap.xml",
+	])(
+		"does not redirect static file %s (excluded by matcher)",
+		(path) => {
+			const matcherPattern = config.matcher[0];
+			const regex = new RegExp(matcherPattern);
+			expect(regex.test(path)).toBe(false);
+		},
+	);
+
 	it("protects the root path when cookie is missing", () => {
 		const request = createRequest("/");
 		const response = proxy(request);

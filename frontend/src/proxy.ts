@@ -58,8 +58,10 @@ export const config = {
 		 * - /login, /register (auth pages — exact segment match)
 		 * - /api (API routes handled by Next.js)
 		 * - /_next (Next.js internals)
-		 * - /favicon.ico, /robots.txt (static files)
+		 * - Static files by extension (served from /public, must bypass
+		 *   auth because the Next.js Image optimizer fetches them
+		 *   server-side without browser cookies)
 		 */
-		"/((?!login(?:/|$)|register(?:/|$)|api(?:/|$)|_next(?:/|$)|favicon\\.ico$|robots\\.txt$).*)", // NOSONAR — String.raw breaks Next.js static matcher analysis
+		"/((?!login(?:/|$)|register(?:/|$)|api(?:/|$)|_next(?:/|$)|.*\\.(?:ico|png|svg|jpg|jpeg|gif|webp|txt|xml)$).*)", // NOSONAR — String.raw breaks Next.js static matcher analysis
 	],
 };
