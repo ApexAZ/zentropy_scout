@@ -92,7 +92,7 @@ class Settings(BaseSettings):
 
     # Metering (REQ-020 §11)
     metering_enabled: bool = True
-    metering_margin_multiplier: float = 1.30
+    # REMOVED: metering_margin_multiplier (REQ-022 §7.7 — now per-model in pricing_config table)
     metering_minimum_balance: float = 0.00
 
     # Rate Limiting (Security)
@@ -124,7 +124,6 @@ class Settings(BaseSettings):
 
         Security: Prevents deployment with known insecure defaults.
         Checks:
-        - Metering margin must be positive (all environments)
         - Metering minimum balance must be non-negative (all environments)
         - Database password must not be the default in production
         - AUTH_SECRET must be set and >= 32 chars when auth is enabled in production
@@ -140,12 +139,6 @@ class Settings(BaseSettings):
             raise ValueError(msg)
 
         # Metering config invariants (all environments)
-        if self.metering_margin_multiplier <= 0:
-            msg = (
-                "METERING_MARGIN_MULTIPLIER must be positive. "
-                f"Got: {self.metering_margin_multiplier}"
-            )
-            raise ValueError(msg)
         if self.metering_minimum_balance < 0:
             msg = (
                 "METERING_MINIMUM_BALANCE cannot be negative. "

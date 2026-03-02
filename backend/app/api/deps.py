@@ -239,7 +239,8 @@ def get_metered_provider(
     if not settings.metering_enabled:
         return get_llm_provider()
     inner = get_llm_provider()
-    metering_service = MeteringService(db)
+    admin_config = AdminConfigService(db)
+    metering_service = MeteringService(db, admin_config)
     return MeteredLLMProvider(inner, metering_service, user_id)
 
 
@@ -262,7 +263,8 @@ def get_metered_embedding_provider(
     if not settings.metering_enabled:
         return get_embedding_provider()
     inner = get_embedding_provider()
-    metering_service = MeteringService(db)
+    admin_config = AdminConfigService(db)
+    metering_service = MeteringService(db, admin_config)
     return MeteredEmbeddingProvider(inner, metering_service, user_id)
 
 

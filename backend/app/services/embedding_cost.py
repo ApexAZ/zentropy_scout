@@ -28,6 +28,9 @@ from dataclasses import dataclass
 
 # Embedding model pricing (per 1K tokens) as of January 2025
 # Source: https://openai.com/pricing
+# NOTE: In production (METERING_ENABLED=true), pricing comes from the
+# pricing_config database table via AdminConfigService (REQ-022 §7.6).
+# This dict serves as a dev-mode reference only.
 EMBEDDING_MODELS: dict[str, dict[str, float | int]] = {
     "text-embedding-3-small": {
         "price_per_1k_tokens": 0.00002,  # $0.02 per million tokens
