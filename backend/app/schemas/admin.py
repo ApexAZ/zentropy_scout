@@ -23,6 +23,10 @@ _VALID_TASK_TYPES = frozenset({t.value for t in TaskType} | {"_default"})
 # Decimal parsing (e.g. "0." + "0" * 100_000) from consuming CPU/memory.
 _MAX_DECIMAL_STR_LEN = 20
 
+# Shared validation messages (SonarCloud S1192 — extract duplicated literals).
+_MSG_MODEL_MAX_100 = "model must be at most 100 characters"
+_MSG_DESC_MAX_255 = "description must be at most 255 characters"
+
 
 def _validate_provider(value: str) -> str:
     """Validate provider is one of the allowed values."""
@@ -109,8 +113,7 @@ class ModelRegistryCreate(BaseModel):
     @classmethod
     def check_model_length(cls, v: str) -> str:
         if len(v) > 100:
-            msg = "model must be at most 100 characters"
-            raise ValueError(msg)
+            raise ValueError(_MSG_MODEL_MAX_100)
         return v
 
     @field_validator("display_name")
@@ -223,8 +226,7 @@ class PricingConfigCreate(BaseModel):
     @classmethod
     def check_model_length(cls, v: str) -> str:
         if len(v) > 100:
-            msg = "model must be at most 100 characters"
-            raise ValueError(msg)
+            raise ValueError(_MSG_MODEL_MAX_100)
         return v
 
     @field_validator("input_cost_per_1k")
@@ -349,8 +351,7 @@ class TaskRoutingCreate(BaseModel):
     @classmethod
     def check_model_length(cls, v: str) -> str:
         if len(v) > 100:
-            msg = "model must be at most 100 characters"
-            raise ValueError(msg)
+            raise ValueError(_MSG_MODEL_MAX_100)
         return v
 
 
@@ -369,8 +370,7 @@ class TaskRoutingUpdate(BaseModel):
     @classmethod
     def check_model_length(cls, v: str | None) -> str | None:
         if v is not None and len(v) > 100:
-            msg = "model must be at most 100 characters"
-            raise ValueError(msg)
+            raise ValueError(_MSG_MODEL_MAX_100)
         return v
 
 
@@ -393,7 +393,7 @@ class TaskRoutingResponse(BaseModel):
     provider: str
     task_type: str
     model: str
-    model_display_name: str | None
+    model_display_name: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -466,8 +466,7 @@ class CreditPackCreate(BaseModel):
     @classmethod
     def check_description_length(cls, v: str | None) -> str | None:
         if v is not None and len(v) > 255:
-            msg = "description must be at most 255 characters"
-            raise ValueError(msg)
+            raise ValueError(_MSG_DESC_MAX_255)
         return v
 
     @field_validator("highlight_label")
@@ -546,8 +545,7 @@ class CreditPackUpdate(BaseModel):
     @classmethod
     def check_description_length(cls, v: str | None) -> str | None:
         if v is not None and len(v) > 255:
-            msg = "description must be at most 255 characters"
-            raise ValueError(msg)
+            raise ValueError(_MSG_DESC_MAX_255)
         return v
 
     @field_validator("highlight_label")
@@ -584,11 +582,11 @@ class CreditPackResponse(BaseModel):
     price_cents: int
     price_display: str
     credit_amount: int
-    stripe_price_id: str | None
+    stripe_price_id: str | None = None
     display_order: int
     is_active: bool
-    description: str | None
-    highlight_label: str | None
+    description: str | None = None
+    highlight_label: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -623,8 +621,7 @@ class SystemConfigUpsert(BaseModel):
     @classmethod
     def check_description_length(cls, v: str | None) -> str | None:
         if v is not None and len(v) > 255:
-            msg = "description must be at most 255 characters"
-            raise ValueError(msg)
+            raise ValueError(_MSG_DESC_MAX_255)
         return v
 
 
@@ -642,7 +639,7 @@ class SystemConfigResponse(BaseModel):
 
     key: str
     value: str
-    description: str | None
+    description: str | None = None
     updated_at: datetime
 
 
@@ -680,7 +677,7 @@ class AdminUserResponse(BaseModel):
 
     id: str
     email: str
-    name: str | None
+    name: str | None = None
     is_admin: bool
     is_env_protected: bool
     balance_usd: str
