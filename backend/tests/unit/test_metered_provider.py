@@ -2,6 +2,8 @@
 
 REQ-020 §6.2, §6.5: Proxy wrappers that record token usage after
 successful LLM/embedding calls and debit user balances.
+REQ-022 §8.3: MeteredLLMProvider resolves routing from DB via
+AdminConfigService and passes model_override to inner adapter.
 """
 
 import uuid
@@ -11,15 +13,17 @@ import pytest
 
 from app.providers.embedding.base import EmbeddingResult
 from app.providers.embedding.mock_adapter import MockEmbeddingProvider
-from app.providers.llm.base import LLMMessage, LLMResponse, TaskType
+from app.providers.llm.base import LLMMessage, TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
 from app.providers.metered_provider import MeteredEmbeddingProvider, MeteredLLMProvider
 
 TEST_USER_ID = uuid.UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 _HELLO_MESSAGES = [LLMMessage(role="user", content="Hello")]
+_MOCK_PROVIDER_NAME = "mock"
 _MOCK_MODEL = "mock-model"
 _MOCK_EMBEDDING_MODEL = "mock-embedding-model"
 _DB_ERROR_MSG = "DB error"
+_ROUTED_MODEL = "claude-3-5-haiku-20241022"
 
 
 # =============================================================================
@@ -36,6 +40,14 @@ def mock_metering() -> AsyncMock:
 
 
 @pytest.fixture
+def mock_admin_config() -> AsyncMock:
+    """Create a mock AdminConfigService for routing lookups."""
+    config = AsyncMock()
+    config.get_model_for_task = AsyncMock(return_value=_ROUTED_MODEL)
+    return config
+
+
+@pytest.fixture
 def inner_llm() -> MockLLMProvider:
     """Create a MockLLMProvider as the inner provider."""
     return MockLLMProvider()
@@ -49,18 +61,24 @@ def inner_embedding() -> MockEmbeddingProvider:
 
 @pytest.fixture
 def metered_llm(
-    inner_llm: MockLLMProvider, mock_metering: AsyncMock
+    inner_llm: MockLLMProvider,
+    mock_metering: AsyncMock,
+    mock_admin_config: AsyncMock,
 ) -> MeteredLLMProvider:
     """Create a MeteredLLMProvider wrapping a mock inner provider."""
-    return MeteredLLMProvider(inner_llm, mock_metering, TEST_USER_ID)
+    return MeteredLLMProvider(inner_llm, mock_metering, mock_admin_config, TEST_USER_ID)
 
 
 @pytest.fixture
 def metered_embedding(
-    inner_embedding: MockEmbeddingProvider, mock_metering: AsyncMock
+    inner_embedding: MockEmbeddingProvider,
+    mock_metering: AsyncMock,
+    mock_admin_config: AsyncMock,
 ) -> MeteredEmbeddingProvider:
     """Create a MeteredEmbeddingProvider wrapping a mock inner provider."""
-    return MeteredEmbeddingProvider(inner_embedding, mock_metering, TEST_USER_ID)
+    return MeteredEmbeddingProvider(
+        inner_embedding, mock_metering, mock_admin_config, TEST_USER_ID
+    )
 
 
 # =============================================================================
@@ -75,8 +93,7 @@ class TestMeteredLLMProviderComplete:
         self, metered_llm: MeteredLLMProvider
     ) -> None:
         """complete() returns the inner provider's response unchanged."""
-        messages = _HELLO_MESSAGES
-        response = await metered_llm.complete(messages, TaskType.EXTRACTION)
+        response = await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         assert response.model == _MOCK_MODEL
         assert response.input_tokens == 100
         assert response.output_tokens == 50
@@ -85,19 +102,17 @@ class TestMeteredLLMProviderComplete:
         self, metered_llm: MeteredLLMProvider, mock_metering: AsyncMock
     ) -> None:
         """complete() calls record_and_debit after successful call."""
-        messages = _HELLO_MESSAGES
-        await metered_llm.complete(messages, TaskType.EXTRACTION)
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         mock_metering.record_and_debit.assert_called_once()
 
     async def test_records_correct_arguments(
         self, metered_llm: MeteredLLMProvider, mock_metering: AsyncMock
     ) -> None:
         """record_and_debit receives correct provider, model, task, tokens."""
-        messages = _HELLO_MESSAGES
-        await metered_llm.complete(messages, TaskType.EXTRACTION)
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         mock_metering.record_and_debit.assert_called_once_with(
             user_id=TEST_USER_ID,
-            provider="mock",
+            provider=_MOCK_PROVIDER_NAME,
             model=_MOCK_MODEL,
             task_type="extraction",
             input_tokens=100,
@@ -114,18 +129,16 @@ class TestMeteredLLMProviderComplete:
 
         inner_llm.complete = AsyncMock(side_effect=RuntimeError("Provider unavailable"))
 
-        messages = _HELLO_MESSAGES
         with pytest.raises(RuntimeError, match="Provider unavailable"):
-            await metered_llm.complete(messages, TaskType.EXTRACTION)
+            await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         mock_metering.record_and_debit.assert_not_called()
 
     async def test_passes_kwargs_through(
         self, metered_llm: MeteredLLMProvider, inner_llm: MockLLMProvider
     ) -> None:
         """complete() forwards all kwargs to inner provider."""
-        messages = _HELLO_MESSAGES
         await metered_llm.complete(
-            messages,
+            _HELLO_MESSAGES,
             TaskType.EXTRACTION,
             max_tokens=500,
             temperature=0.5,
@@ -138,8 +151,7 @@ class TestMeteredLLMProviderComplete:
     ) -> None:
         """If record_and_debit fails, response is still returned."""
         mock_metering.record_and_debit.side_effect = RuntimeError(_DB_ERROR_MSG)
-        messages = _HELLO_MESSAGES
-        response = await metered_llm.complete(messages, TaskType.EXTRACTION)
+        response = await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         assert response.model == _MOCK_MODEL
 
     async def test_logs_when_recording_fails(
@@ -150,8 +162,7 @@ class TestMeteredLLMProviderComplete:
     ) -> None:
         """Recording failure is logged with user ID."""
         mock_metering.record_and_debit.side_effect = RuntimeError(_DB_ERROR_MSG)
-        messages = _HELLO_MESSAGES
-        await metered_llm.complete(messages, TaskType.EXTRACTION)
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         assert str(TEST_USER_ID) in caplog.text
         assert "Failed to record" in caplog.text
 
@@ -168,9 +179,8 @@ class TestMeteredLLMProviderStream:
         self, metered_llm: MeteredLLMProvider
     ) -> None:
         """stream() yields all chunks from inner provider."""
-        messages = _HELLO_MESSAGES
         chunks = []
-        async for chunk in metered_llm.stream(messages, TaskType.EXTRACTION):
+        async for chunk in metered_llm.stream(_HELLO_MESSAGES, TaskType.EXTRACTION):
             chunks.append(chunk)
         assert len(chunks) > 0
 
@@ -178,8 +188,7 @@ class TestMeteredLLMProviderStream:
         self, metered_llm: MeteredLLMProvider, mock_metering: AsyncMock
     ) -> None:
         """stream() does NOT call record_and_debit."""
-        messages = _HELLO_MESSAGES
-        async for _ in metered_llm.stream(messages, TaskType.EXTRACTION):
+        async for _ in metered_llm.stream(_HELLO_MESSAGES, TaskType.EXTRACTION):
             pass
         mock_metering.record_and_debit.assert_not_called()
 
@@ -201,72 +210,89 @@ class TestMeteredLLMProviderDelegation:
 
     def test_provider_name_delegates(self, metered_llm: MeteredLLMProvider) -> None:
         """provider_name returns inner provider's name."""
-        assert metered_llm.provider_name == "mock"
+        assert metered_llm.provider_name == _MOCK_PROVIDER_NAME
 
 
 # =============================================================================
-# MeteredLLMProvider — model_override passthrough
+# MeteredLLMProvider — DB routing (REQ-022 §8.3)
 # =============================================================================
 
 
-class TestMeteredLLMProviderModelOverride:
-    """MeteredLLMProvider passes model_override to inner provider."""
+class TestMeteredLLMProviderRouting:
+    """MeteredLLMProvider resolves routing from AdminConfigService."""
 
-    async def test_model_override_passed_to_inner(
+    async def test_routing_lookup_passes_correct_provider_and_task(
+        self,
+        metered_llm: MeteredLLMProvider,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """Routing lookup uses inner provider's name and task value."""
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        mock_admin_config.get_model_for_task.assert_called_once_with(
+            _MOCK_PROVIDER_NAME, "extraction"
+        )
+
+    async def test_resolved_model_passed_to_inner_as_override(
         self,
         metered_llm: MeteredLLMProvider,
         inner_llm: MockLLMProvider,
+        mock_admin_config: AsyncMock,
     ) -> None:
-        """model_override is forwarded to inner.complete()."""
-        inner_llm.complete = AsyncMock(
-            return_value=LLMResponse(
-                content="test",
-                model="override-model",
-                input_tokens=10,
-                output_tokens=5,
-                finish_reason="stop",
-                latency_ms=1.0,
-            )
-        )
-        metered_llm._inner = inner_llm  # noqa: SLF001
+        """DB-resolved model is passed as model_override to inner adapter."""
+        mock_admin_config.get_model_for_task.return_value = _ROUTED_MODEL
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        last_call = inner_llm.calls[-1]
+        assert last_call["kwargs"]["model_override"] == _ROUTED_MODEL
 
-        await metered_llm.complete(
-            _HELLO_MESSAGES,
-            TaskType.EXTRACTION,
-            model_override="override-model",
-        )
-
-        inner_llm.complete.assert_called_once()
-        call_kwargs = inner_llm.complete.call_args
-        assert call_kwargs.kwargs.get("model_override") == "override-model"
-
-    async def test_model_override_none_passed_as_none(
+    async def test_routing_none_passes_none_override(
         self,
         metered_llm: MeteredLLMProvider,
         inner_llm: MockLLMProvider,
+        mock_admin_config: AsyncMock,
     ) -> None:
-        """When model_override is None, None is forwarded to inner."""
-        inner_llm.complete = AsyncMock(
-            return_value=LLMResponse(
-                content="test",
-                model=_MOCK_MODEL,
-                input_tokens=10,
-                output_tokens=5,
-                finish_reason="stop",
-                latency_ms=1.0,
+        """When routing returns None, model_override=None (adapter uses fallback)."""
+        mock_admin_config.get_model_for_task.return_value = None
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        last_call = inner_llm.calls[-1]
+        assert last_call["kwargs"]["model_override"] is None
+
+    async def test_routing_used_for_different_task_types(
+        self,
+        metered_llm: MeteredLLMProvider,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """Routing is looked up per-task — different tasks get separate lookups."""
+        mock_admin_config.get_model_for_task.return_value = "some-model"
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.CHAT_RESPONSE)
+
+        calls = mock_admin_config.get_model_for_task.call_args_list
+        assert calls[0].args == (_MOCK_PROVIDER_NAME, "extraction")
+        assert calls[1].args == (_MOCK_PROVIDER_NAME, "chat_response")
+
+    async def test_caller_cannot_pass_model_override_keyword(
+        self,
+        metered_llm: MeteredLLMProvider,
+    ) -> None:
+        """Callers cannot pass model_override= keyword — parameter is underscore-prefixed."""
+        with pytest.raises(TypeError, match="model_override"):
+            await metered_llm.complete(
+                _HELLO_MESSAGES,
+                TaskType.EXTRACTION,
+                model_override="should-be-rejected",  # type: ignore[call-arg]
             )
-        )
-        metered_llm._inner = inner_llm  # noqa: SLF001
 
-        await metered_llm.complete(
-            _HELLO_MESSAGES,
-            TaskType.EXTRACTION,
-            model_override=None,
-        )
-
-        inner_llm.complete.assert_called_once()
-        call_kwargs = inner_llm.complete.call_args
-        assert call_kwargs.kwargs.get("model_override") is None
+    async def test_routing_db_error_propagates(
+        self,
+        metered_llm: MeteredLLMProvider,
+        mock_admin_config: AsyncMock,
+        mock_metering: AsyncMock,
+    ) -> None:
+        """Routing DB errors propagate (fail-closed) — request is blocked."""
+        mock_admin_config.get_model_for_task.side_effect = RuntimeError(_DB_ERROR_MSG)
+        with pytest.raises(RuntimeError, match=_DB_ERROR_MSG):
+            await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        mock_metering.record_and_debit.assert_not_called()
 
 
 # =============================================================================
@@ -368,7 +394,7 @@ class TestMeteredEmbeddingProviderDelegation:
         self, metered_embedding: MeteredEmbeddingProvider
     ) -> None:
         """provider_name returns inner provider's name."""
-        assert metered_embedding.provider_name == "mock"
+        assert metered_embedding.provider_name == _MOCK_PROVIDER_NAME
 
 
 # =============================================================================
@@ -379,7 +405,7 @@ class TestMeteredEmbeddingProviderDelegation:
 class TestGetMeteredProvider:
     """get_metered_provider DI function."""
 
-    async def test_returns_raw_when_metering_disabled(self) -> None:
+    def test_returns_raw_when_metering_disabled(self) -> None:
         """When metering disabled, returns factory singleton directly."""
         from app.api.deps import get_metered_provider
 
@@ -394,27 +420,29 @@ class TestGetMeteredProvider:
             assert result is mock_inner
             mock_metering_cls.assert_not_called()
 
-    async def test_creates_metering_when_enabled(self) -> None:
-        """When metering enabled, creates MeteringService and wraps provider."""
+    def test_creates_metering_and_admin_config_when_enabled(self) -> None:
+        """When metering enabled, creates AdminConfigService, MeteringService, wraps."""
         from app.api.deps import get_metered_provider
 
         mock_db = AsyncMock()
         with (
             patch("app.api.deps.settings") as mock_settings,
             patch("app.api.deps.get_llm_provider", return_value=MockLLMProvider()),
+            patch("app.api.deps.AdminConfigService") as mock_config_cls,
             patch("app.api.deps.MeteringService") as mock_metering_cls,
         ):
             mock_settings.metering_enabled = True
+            mock_admin_config = mock_config_cls.return_value
             result = get_metered_provider(TEST_USER_ID, mock_db)
-            mock_metering_cls.assert_called_once_with(mock_db)
-            # Verify wrapper delegates to inner provider
-            assert result.provider_name == "mock"
+            mock_config_cls.assert_called_once_with(mock_db)
+            mock_metering_cls.assert_called_once_with(mock_db, mock_admin_config)
+            assert result.provider_name == _MOCK_PROVIDER_NAME
 
 
 class TestGetMeteredEmbeddingProvider:
     """get_metered_embedding_provider DI function."""
 
-    async def test_returns_raw_when_metering_disabled(self) -> None:
+    def test_returns_raw_when_metering_disabled(self) -> None:
         """When metering disabled, returns factory singleton directly."""
         from app.api.deps import get_metered_embedding_provider
 
@@ -429,8 +457,8 @@ class TestGetMeteredEmbeddingProvider:
             assert result is mock_inner
             mock_metering_cls.assert_not_called()
 
-    async def test_creates_metering_when_enabled(self) -> None:
-        """When metering enabled, creates MeteringService and wraps provider."""
+    def test_creates_metering_and_admin_config_when_enabled(self) -> None:
+        """When metering enabled, creates AdminConfigService, MeteringService, wraps."""
         from app.api.deps import get_metered_embedding_provider
 
         mock_db = AsyncMock()
@@ -440,10 +468,12 @@ class TestGetMeteredEmbeddingProvider:
                 "app.api.deps.get_embedding_provider",
                 return_value=MockEmbeddingProvider(),
             ),
+            patch("app.api.deps.AdminConfigService") as mock_config_cls,
             patch("app.api.deps.MeteringService") as mock_metering_cls,
         ):
             mock_settings.metering_enabled = True
+            mock_admin_config = mock_config_cls.return_value
             result = get_metered_embedding_provider(TEST_USER_ID, mock_db)
-            mock_metering_cls.assert_called_once_with(mock_db)
-            # Verify wrapper delegates to inner provider
-            assert result.provider_name == "mock"
+            mock_config_cls.assert_called_once_with(mock_db)
+            mock_metering_cls.assert_called_once_with(mock_db, mock_admin_config)
+            assert result.provider_name == _MOCK_PROVIDER_NAME

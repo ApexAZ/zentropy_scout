@@ -228,6 +228,8 @@ def get_metered_provider(
 
     REQ-020 §6.2: When metering is enabled, wraps the factory singleton
     in a MeteredLLMProvider that records usage after each call.
+    REQ-022 §7.5, §8.3: Wires AdminConfigService for DB-backed pricing
+    and task routing into the metered provider chain.
 
     Args:
         user_id: Current user ID (from auth dependency).
@@ -241,7 +243,7 @@ def get_metered_provider(
     inner = get_llm_provider()
     admin_config = AdminConfigService(db)
     metering_service = MeteringService(db, admin_config)
-    return MeteredLLMProvider(inner, metering_service, user_id)
+    return MeteredLLMProvider(inner, metering_service, admin_config, user_id)
 
 
 def get_metered_embedding_provider(
@@ -252,6 +254,8 @@ def get_metered_embedding_provider(
 
     REQ-020 §6.5: When metering is enabled, wraps the factory singleton
     in a MeteredEmbeddingProvider that records usage after each call.
+    REQ-022 §8.5: Wires AdminConfigService for DB-backed pricing into
+    the metered provider chain (no routing change for embeddings).
 
     Args:
         user_id: Current user ID (from auth dependency).
@@ -265,7 +269,7 @@ def get_metered_embedding_provider(
     inner = get_embedding_provider()
     admin_config = AdminConfigService(db)
     metering_service = MeteringService(db, admin_config)
-    return MeteredEmbeddingProvider(inner, metering_service, user_id)
+    return MeteredEmbeddingProvider(inner, metering_service, admin_config, user_id)
 
 
 MeteredProvider = Annotated[LLMProvider, Depends(get_metered_provider)]

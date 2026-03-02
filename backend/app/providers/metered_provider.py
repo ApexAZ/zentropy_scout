@@ -2,6 +2,8 @@
 
 REQ-020 §6.2, §6.5: Proxy providers that record token usage
 after successful LLM/embedding calls and debit user balances.
+REQ-022 §8.3: MeteredLLMProvider resolves routing from DB via
+AdminConfigService and passes model_override to inner adapter.
 """
 
 import logging
@@ -16,6 +18,7 @@ from app.providers.llm.base import (
     TaskType,
     ToolDefinition,
 )
+from app.services.admin_config_service import AdminConfigService
 from app.services.metering_service import MeteringService
 
 logger = logging.getLogger(__name__)
@@ -26,10 +29,13 @@ class MeteredLLMProvider(LLMProvider):
 
     REQ-020 §6.2: Wraps a real LLMProvider, delegates all calls,
     and records usage after successful complete() calls.
+    REQ-022 §8.3: Resolves task routing from DB via AdminConfigService,
+    passing model_override to the inner adapter.
 
     Args:
         inner: The actual LLM provider to delegate to.
         metering_service: Service for recording usage and debiting balance.
+        admin_config: Service for resolving task-to-model routing from DB.
         user_id: User who made the API call.
     """
 
@@ -37,17 +43,19 @@ class MeteredLLMProvider(LLMProvider):
         self,
         inner: LLMProvider,
         metering_service: MeteringService,
+        admin_config: AdminConfigService,
         user_id: uuid.UUID,
     ) -> None:
         # Don't call super().__init__() — no ProviderConfig needed.
         # The inner provider already has its config.
         self._inner = inner
         self._metering_service = metering_service
+        self._admin_config = admin_config
         self._user_id = user_id
 
     @property
     def provider_name(self) -> str:
-        """Delegate to inner provider."""
+        """Return inner provider's name."""
         return self._inner.provider_name
 
     async def complete(
@@ -59,13 +67,16 @@ class MeteredLLMProvider(LLMProvider):
         stop_sequences: list[str] | None = None,
         tools: list[ToolDefinition] | None = None,
         json_mode: bool = False,
-        model_override: str | None = None,
+        _model_override: str | None = None,
     ) -> LLMResponse:
         """Call inner provider, then record usage and debit balance.
 
         REQ-020 §6.2: Delegates to inner, records usage on success.
         REQ-020 §6.6: If recording fails, logs error but returns response.
-        REQ-022 §8.2: Passes model_override through to inner adapter.
+        REQ-022 §8.3: Resolves routing from DB via AdminConfigService.
+        The caller's model_override is ignored — routing is always resolved
+        from the task_routing_config table. If no routing exists, the inner
+        adapter falls back to its hardcoded routing table.
 
         Args:
             messages: Conversation history.
@@ -75,9 +86,8 @@ class MeteredLLMProvider(LLMProvider):
             stop_sequences: Stop sequences.
             tools: Tool definitions.
             json_mode: JSON output mode.
-            model_override: If provided, inner adapter uses this model
-                instead of its routing table. Will be replaced in §9
-                with DB routing resolved by MeteredLLMProvider itself.
+            _model_override: Ignored — routing is resolved from DB.
+                Kept in signature for LLMProvider interface compatibility.
 
         Returns:
             LLMResponse from the inner provider.
@@ -85,6 +95,11 @@ class MeteredLLMProvider(LLMProvider):
         Raises:
             ProviderError: If the inner provider fails (no usage recorded).
         """
+        # REQ-022 §8.3: Resolve routing from DB, ignoring caller's override.
+        # Fail-closed: DB errors propagate and block the request.
+        resolved_model = await self._admin_config.get_model_for_task(
+            self._inner.provider_name, task.value
+        )
         response = await self._inner.complete(
             messages,
             task,
@@ -93,7 +108,7 @@ class MeteredLLMProvider(LLMProvider):
             stop_sequences=stop_sequences,
             tools=tools,
             json_mode=json_mode,
-            model_override=model_override,
+            model_override=resolved_model,
         )
         try:
             await self._metering_service.record_and_debit(
@@ -122,6 +137,9 @@ class MeteredLLMProvider(LLMProvider):
         REQ-020 §6.2: Streaming metering is deferred — stream() is not
         used in production. Passes through to inner provider unchanged.
 
+        WARNING: stream() does NOT apply DB routing (REQ-022 §8.3).
+        If stream() is used in production, routing must be added here.
+
         Args:
             messages: Conversation history.
             task: Task type for model routing.
@@ -137,7 +155,7 @@ class MeteredLLMProvider(LLMProvider):
             yield chunk
 
     def get_model_for_task(self, task: TaskType) -> str:
-        """Delegate to inner provider."""
+        """Return inner provider's model for the given task."""
         return self._inner.get_model_for_task(task)
 
 
@@ -146,10 +164,14 @@ class MeteredEmbeddingProvider(EmbeddingProvider):
 
     REQ-020 §6.5: Wraps a real EmbeddingProvider, delegates all calls,
     and records usage after successful embed() calls.
+    REQ-022 §8.5: No routing change for embeddings — only pricing
+    lookup migrated to DB via AdminConfigService in MeteringService.
 
     Args:
         inner: The actual embedding provider to delegate to.
         metering_service: Service for recording usage and debiting balance.
+        _admin_config: Accepted for DI symmetry with MeteredLLMProvider.
+            Pricing lookups happen via MeteringService internally.
         user_id: User who made the API call.
     """
 
@@ -157,16 +179,19 @@ class MeteredEmbeddingProvider(EmbeddingProvider):
         self,
         inner: EmbeddingProvider,
         metering_service: MeteringService,
+        _admin_config: AdminConfigService,
         user_id: uuid.UUID,
     ) -> None:
         # Don't call super().__init__() — no ProviderConfig needed.
+        # _admin_config accepted for DI symmetry with MeteredLLMProvider
+        # but not stored — pricing lookups happen via MeteringService.
         self._inner = inner
         self._metering_service = metering_service
         self._user_id = user_id
 
     @property
     def provider_name(self) -> str:
-        """Delegate to inner provider."""
+        """Return inner provider's name."""
         return self._inner.provider_name
 
     async def embed(self, texts: list[str]) -> EmbeddingResult:
@@ -213,5 +238,5 @@ class MeteredEmbeddingProvider(EmbeddingProvider):
 
     @property
     def dimensions(self) -> int:
-        """Delegate to inner provider."""
+        """Return inner provider's embedding dimensions."""
         return self._inner.dimensions
