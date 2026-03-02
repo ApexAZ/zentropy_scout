@@ -101,12 +101,14 @@ Hints trigger skill auto-loading during implementation. **Before finalizing any 
 | `lint` | zentropy-lint | Ruff, ESLint, Prettier, type checking |
 | `playwright` / `e2e` | zentropy-playwright | E2E tests, UI testing, browser automation |
 | `commands` | zentropy-commands | Docker, alembic, npm, CLI operations |
+| `ui` | ui-reviewer | Brand palette, colors, elevation, typography, spacing, interactive states, accessibility |
 | `plan` | zentropy-planner | Always include — triggers this skill |
 
 **Rules:**
 - Every task MUST include `plan` as a hint (triggers progress tracking)
 - Include `tdd` or `test` for any task that creates or modifies code
 - Include `security` for any task handling user input, auth, or external data
+- Include `ui` for any task that creates or modifies frontend UI components (`.tsx` files)
 - Include `e2e` / `playwright` at phase boundaries where UI behavior changes
 - When in doubt, include the hint — loading an extra skill is cheap, missing one is expensive
 
@@ -200,6 +202,9 @@ This is non-negotiable because:
        load [LLM] + [BACKEND] from security-references.md"
      - `qa-reviewer` subagent — list modified file paths, assesses whether
        new Playwright E2E tests are needed for user-visible changes
+     - `ui-reviewer` subagent (for frontend subtasks only) — list modified
+       `.tsx` file paths, audits brand palette compliance, elevation, typography,
+       interactive states, and accessibility
    → STOP and enumerate ALL findings in a structured table:
 
      ## Review Findings
@@ -209,6 +214,7 @@ This is non-negotiable because:
      | 2 | security-reviewer | Low      | No input size validation   |
      | 3 | bandit            | Low      | Assert used in production  |
      | 4 | qa-reviewer       | Info     | New E2E: skill editor flow |
+     | 5 | ui-reviewer       | Major    | Hardcoded text-amber-500   |
 
    → If 0 findings → Skip to step 7 (COMPLETE)
    → If 1+ findings → MUST proceed to Phase 2 (step 5)

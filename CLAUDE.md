@@ -391,6 +391,7 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 | `security-reviewer` | Pre-commit code review for security vulnerabilities (OWASP Top 10, injection, auth) |
 | `security-triage` | Autonomous security gate — queries all scanners, compares baselines, investigates new findings with zero-trust adversarial analysis (Opus) |
 | `qa-reviewer` | Assess whether changes need new Playwright E2E tests |
+| `ui-reviewer` | Audit UI code for brand palette compliance, elevation, typography, interactive states, and accessibility |
 | `test-runner` | Run and analyze test results |
 
 ### Proactive Subagent Usage
@@ -400,8 +401,9 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 - **`Explore`**: If unfamiliar with the code area, explore the codebase first
 
 **AFTER completing code (run in parallel):**
-- **`code-reviewer`** + **`security-reviewer`** + **`qa-reviewer`**: Launch ALL THREE simultaneously before commit
+- **`code-reviewer`** + **`security-reviewer`** + **`qa-reviewer`** + **`ui-reviewer`** (for UI subtasks): Launch simultaneously before commit
 - All are read-only — parallel execution is safe and faster
+- **`ui-reviewer`** should be included whenever the subtask touches frontend component files (`.tsx`)
 
 **For open-ended questions:**
 - **`Explore`**: Use for "Where is X?", "How does Y work?", "Find all Z" queries instead of manual Glob/Grep

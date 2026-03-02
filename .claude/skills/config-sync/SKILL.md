@@ -13,6 +13,8 @@ description: |
 
 When you modify anything in `.claude/`, you MUST update `CLAUDE_TOOLS.md` to match.
 
+**File location:** `CLAUDE_TOOLS.md` lives at the **project root** (`/home/brianhusk/repos/zentropy_scout/CLAUDE_TOOLS.md`), NOT inside `.claude/`. It is gitignored (local-only).
+
 ---
 
 ## Triggers
