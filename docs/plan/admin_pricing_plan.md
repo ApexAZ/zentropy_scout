@@ -70,7 +70,7 @@ Phase 6: Integration & Verification (REQ-022 §15)
 
 ## Phase 1: Database Foundation (REQ-022 §4, §12)
 
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
 *Create SQLAlchemy models for all 5 admin tables, add `is_admin` column to User, create the Alembic migration with seed data. No business logic yet — just schema and initial data.*
 
@@ -89,7 +89,7 @@ Phase 6: Integration & Verification (REQ-022 §15)
 |---|------|-------|--------|
 | 1 | **Create ORM models for 5 admin tables + User extension (TDD)** | `tdd, db, plan` | ✅ |
 | 2 | **Create Alembic migration with seed data** — Single migration creates tables, indexes, and seeds all data. **Read:** REQ-022 §4.7–§4.8 (indexes, migration notes), REQ-022 §12.1–§12.5 (seed data tables), `backend/migrations/versions/020_token_metering.py` (migration pattern: type-local constants, named constraints, `op.bulk_insert`), `backend/app/providers/llm/claude_adapter.py` lines 49–62 (DEFAULT_CLAUDE_ROUTING), `backend/app/providers/llm/openai_adapter.py` lines 49–62 (DEFAULT_OPENAI_ROUTING), `backend/app/providers/llm/gemini_adapter.py` lines 51–64 (DEFAULT_GEMINI_ROUTING), `backend/app/services/metering_service.py` lines 27–64 (_LLM_PRICING dict). **Create:** `backend/migrations/versions/021_admin_pricing.py` (~250L) — **Upgrade:** (1) Add is_admin BOOLEAN NOT NULL DEFAULT FALSE to users; (2) Create model_registry table with UniqueConstraint(provider, model); (3) Create pricing_config table with UniqueConstraint(provider, model, effective_date); (4) Create task_routing_config table with UniqueConstraint(provider, task_type); (5) Create credit_packs table; (6) Create system_config table with key as VARCHAR(100) PK; (7) Create 3 indexes (ix_pricing_config_lookup, ix_task_routing_config_lookup, ix_credit_packs_active partial); (8) Seed model_registry with 9 models per §12.1; (9) Seed pricing_config with 8 entries per §12.2 (effective_date = current date); (10) Seed task_routing_config with 33 entries per §12.3 (11 per provider); (11) Seed system_config with signup_grant_credits=0; (12) Seed credit_packs with 3 packs per §12.5. Use `op.bulk_insert()` for seed data with type-local constants for all values. **Downgrade:** Drop all 5 tables, drop indexes, remove is_admin column from users. **Run:** `cd backend && alembic upgrade head && alembic downgrade -1 && alembic upgrade head` (test both directions). **Done when:** Migration applies cleanly, all tables created with seed data, downgrade removes everything, re-upgrade succeeds. | `db, commands, plan` | ✅ |
-| 3 | **Phase gate — full test suite + push** — Run complete test suites, fix regressions. **Run:** `pytest tests/ -v`, `npm run test:run`, `npx playwright test`. **Also:** `ruff check .`, `npm run lint`, `npm run typecheck`. **Push:** `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push`. **Done when:** All tests green, pushed to remote. | `plan, commands` | ⬜ |
+| 3 | **Phase gate — full test suite + push** — Run complete test suites, fix regressions. **Run:** `pytest tests/ -v`, `npm run test:run`, `npx playwright test`. **Also:** `ruff check .`, `npm run lint`, `npm run typecheck`. **Push:** `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push`. **Done when:** All tests green, pushed to remote. | `plan, commands` | ✅ |
 
 #### Phase 1 Notes
 
