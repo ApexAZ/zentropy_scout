@@ -23,7 +23,6 @@ import {
 	STORY_IDS,
 	WORK_HISTORY_IDS,
 } from "../utils/persona-update-api-mocks";
-import { removeDevToolsOverlay } from "../utils/playwright-helpers";
 
 // ---------------------------------------------------------------------------
 // A. Work History Editor (3 tests)
@@ -383,10 +382,6 @@ test.describe("Voice Profile Editor", () => {
 		// Modify tone field
 		await page.getByLabel("Tone").fill("Casual and approachable");
 
-		// Remove TanStack Query devtools — its floating toggle SVG at the page
-		// bottom intercepts pointer events on the Save button
-		await removeDevToolsOverlay(page);
-
 		// Listen for PATCH
 		const patchPromise = page.waitForResponse(
 			(res) =>
@@ -444,9 +439,6 @@ test.describe("Non-Negotiables Editor", () => {
 		await filterForm.getByRole("radio", { name: "Exclude" }).check();
 		await filterForm.getByLabel("Field to Check").selectOption("company_name");
 		await filterForm.getByLabel("Value to Match").fill("DraftKings");
-
-		// Remove TanStack Query devtools — intercepts pointer events on Save
-		await removeDevToolsOverlay(page);
 
 		// Listen for POST
 		const postPromise = page.waitForResponse(
@@ -555,9 +547,6 @@ test.describe("Discovery Preferences Editor", () => {
 
 		// Change polling frequency
 		await page.getByLabel("Polling Frequency").selectOption("Weekly");
-
-		// Remove TanStack Query devtools overlay if needed
-		await removeDevToolsOverlay(page);
 
 		// Listen for PATCH
 		const patchPromise = page.waitForResponse(

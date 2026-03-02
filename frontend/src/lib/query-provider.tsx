@@ -6,13 +6,9 @@
  * REQ-012 §4.2.1: QueryClientProvider wraps the application tree.
  * Must be a client component ("use client") because QueryClientProvider
  * uses React context.
- *
- * ReactQueryDevtools renders as a no-op in production (guarded internally
- * by the library via process.env.NODE_ENV check and tree-shaken by the bundler).
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { createQueryClient, setActiveQueryClient } from "./query-client";
@@ -38,9 +34,6 @@ export function QueryProvider({
 	}, [queryClient]);
 
 	return (
-		<QueryClientProvider client={queryClient}>
-			{children}
-			<ReactQueryDevtools initialIsOpen={false} />
-		</QueryClientProvider>
+		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 	);
 }

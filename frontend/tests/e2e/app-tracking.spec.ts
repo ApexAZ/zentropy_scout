@@ -16,7 +16,6 @@ import {
 	setupRejectedAppMocks,
 	setupTimelineAppMocks,
 } from "../utils/app-tracking-api-mocks";
-import { removeDevToolsOverlay } from "../utils/playwright-helpers";
 
 // ---------------------------------------------------------------------------
 // Shared constants
@@ -455,8 +454,6 @@ test.describe("Notes", () => {
 		// App-001 has no notes — should show placeholder
 		await expect(page.getByText("No notes yet.")).toBeVisible();
 
-		await removeDevToolsOverlay(page);
-
 		// Click edit
 		await page.getByTestId("notes-edit-button").click();
 
@@ -492,8 +489,6 @@ test.describe("Notes", () => {
 
 		// App-002 has notes: "Went well"
 		await expect(page.getByText("Went well")).toBeVisible();
-
-		await removeDevToolsOverlay(page);
 
 		// Click edit
 		await page.getByTestId("notes-edit-button").click();
