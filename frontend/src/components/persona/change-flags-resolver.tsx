@@ -206,7 +206,7 @@ export function ChangeFlagsResolver() {
 						<div
 							key={flag.id}
 							data-testid={`flag-${flag.id}`}
-							className="space-y-3 rounded-lg border p-4"
+							className="bg-card space-y-3 rounded-lg border p-4"
 						>
 							<div className="flex items-start justify-between gap-4">
 								<span className="text-sm">

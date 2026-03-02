@@ -107,7 +107,7 @@ function CollapsibleSection({
 
 	return (
 		<div
-			className="rounded-lg border"
+			className="bg-card rounded-lg border"
 			data-testid={`review-section-${sectionKey}`}
 		>
 			<button

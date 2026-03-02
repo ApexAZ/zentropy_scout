@@ -236,7 +236,7 @@ function JobDetailHeader({ jobId }: Readonly<JobDetailHeaderProps>) {
 			{hasGhostRisk && ghostTier && (
 				<div
 					data-testid="ghost-risk-section"
-					className="space-y-3 rounded-lg border p-4"
+					className="bg-card space-y-3 rounded-lg border p-4"
 				>
 					<div className="flex items-center gap-2">
 						<TriangleAlert className={cn("h-5 w-5", ghostTier.colorClass)} />

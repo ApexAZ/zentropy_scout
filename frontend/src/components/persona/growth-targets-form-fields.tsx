@@ -86,7 +86,7 @@ function GrowthTargetsFormFields({
 									<label
 										key={level}
 										aria-label={level}
-										className="hover:bg-accent flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
+										className="hover:bg-accent bg-card flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
 									>
 										<input
 											type="radio"

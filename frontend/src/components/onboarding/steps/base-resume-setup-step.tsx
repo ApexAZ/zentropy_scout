@@ -140,7 +140,7 @@ function WorkHistorySection({
 		>
 			<div className="space-y-3">
 				{workHistories.map((wh) => (
-					<div key={wh.id} className="rounded-lg border p-3">
+					<div key={wh.id} className="bg-card rounded-lg border p-3">
 						<div className="flex items-center gap-2">
 							<Checkbox
 								checked={selectedJobs.has(wh.id)}

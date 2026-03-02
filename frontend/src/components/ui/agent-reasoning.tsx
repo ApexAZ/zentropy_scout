@@ -34,7 +34,7 @@ function AgentReasoning({ reasoning }: Readonly<AgentReasoningProps>) {
 				<span className="text-sm font-semibold">Agent Reasoning</span>
 			</button>
 			{expanded && (
-				<div className="text-muted-foreground mt-2 rounded-lg border p-3 text-sm leading-relaxed">
+				<div className="text-muted-foreground bg-card mt-2 rounded-lg border p-3 text-sm leading-relaxed">
 					{reasoning}
 				</div>
 			)}

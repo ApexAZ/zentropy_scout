@@ -106,7 +106,7 @@ function PersonaHeader({ persona }: Readonly<{ persona: Persona }>) {
 
 	return (
 		<div
-			className="grid grid-cols-1 gap-6 rounded-lg border p-6 md:grid-cols-2"
+			className="bg-card grid grid-cols-1 gap-6 rounded-lg border p-6 md:grid-cols-2"
 			data-testid="persona-header"
 		>
 			{/* Left column: identity */}
@@ -187,7 +187,7 @@ function SectionCard({
 }>) {
 	return (
 		<div
-			className="flex flex-col justify-between rounded-lg border p-4"
+			className="bg-card flex flex-col justify-between rounded-lg border p-4"
 			data-testid={`section-card-${sectionKey}`}
 		>
 			<div>
@@ -217,7 +217,7 @@ function DiscoveryPreferences({
 }>) {
 	return (
 		<div
-			className="flex items-center justify-between rounded-lg border p-4"
+			className="bg-card flex items-center justify-between rounded-lg border p-4"
 			data-testid="discovery-preferences"
 		>
 			<div className="flex gap-6 text-sm">

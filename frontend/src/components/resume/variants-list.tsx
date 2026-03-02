@@ -135,7 +135,7 @@ export function VariantsList({ baseResumeId }: Readonly<VariantsListProps>) {
 							<div
 								key={variant.id}
 								data-testid="variant-card"
-								className="rounded-lg border p-4"
+								className="bg-card rounded-lg border p-4"
 							>
 								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-2">
