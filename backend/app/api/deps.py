@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.errors import InsufficientBalanceError
+from app.core.errors import AdminRequiredError, InsufficientBalanceError
 from app.models import User
 from app.providers.embedding.base import EmbeddingProvider
 from app.providers.factory import get_embedding_provider, get_llm_provider
@@ -187,6 +187,25 @@ CurrentUserId = Annotated[uuid.UUID, Depends(get_current_user_id)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 PasswordResetEligible = Annotated[bool, Depends(get_password_reset_eligible)]
 DbSession = Annotated[AsyncSession, Depends(get_db)]
+
+
+async def require_admin(
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> uuid.UUID:
+    """Require admin access. REQ-022 §5.3.
+
+    Raises:
+        AdminRequiredError: If user is not admin or not found.
+    """
+    result = await db.execute(select(User.is_admin).where(User.id == user_id))
+    is_admin = result.scalar_one_or_none()
+    if not is_admin:
+        raise AdminRequiredError()
+    return user_id
+
+
+AdminUser = Annotated[uuid.UUID, Depends(require_admin)]
 
 
 def get_metered_provider(

@@ -9,6 +9,7 @@ Security considerations:
 """
 
 import hashlib
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -32,6 +33,8 @@ from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse
 from app.repositories.user_repository import UserRepository
 from app.repositories.verification_token_repository import VerificationTokenRepository
+
+logger = logging.getLogger(__name__)
 
 # bcrypt cost factor for password hashing (REQ-013 §10.8)
 _BCRYPT_ROUNDS = 12
@@ -117,10 +120,21 @@ async def verify_password(
             status_code=403,
         )
 
+    # REQ-022 §5.1: ADMIN_EMAILS bootstrap — auto-promote matching users on login
+    admin_emails = [
+        e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()
+    ]
+    if user.email.lower() in admin_emails and not user.is_admin:
+        await UserRepository.set_admin(db, user.id, is_admin=True)
+        await db.commit()
+        await db.refresh(user)
+        logger.info("Admin bootstrap: promoted user %s via ADMIN_EMAILS", user.id)
+
     # Issue JWT and set cookie
     token = create_jwt(
         user_id=str(user.id),
         secret=settings.auth_secret.get_secret_value(),
+        is_admin=user.is_admin,
     )
     set_auth_cookie(response, token)
 
@@ -269,9 +283,12 @@ async def change_password(
     await db.commit()
 
     # Re-issue JWT so the current session stays valid after invalidation
+    # Refresh user to get current is_admin state for JWT adm claim (REQ-022 §5.2)
+    await db.refresh(user)
     token = create_jwt(
         user_id=str(user_id),
         secret=settings.auth_secret.get_secret_value(),
+        is_admin=user.is_admin,
     )
     set_auth_cookie(response, token)
 

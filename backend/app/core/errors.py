@@ -193,6 +193,64 @@ class InsufficientBalanceError(APIError):
         )
 
 
+class AdminRequiredError(ForbiddenError):
+    """Admin access required (403).
+
+    REQ-022 §5.3: Raised by require_admin dependency when user lacks admin flag.
+    """
+
+    def __init__(self) -> None:
+        APIError.__init__(
+            self,
+            code="ADMIN_REQUIRED",
+            message="Admin access required",
+            status_code=403,
+        )
+
+
+class UnregisteredModelError(APIError):
+    """LLM model not in model registry or inactive (503).
+
+    REQ-022 §7.3: Raised when MeteringService encounters an unregistered model.
+
+    Security: Provider/model names are intentionally included in the message.
+    These are operational config errors (not auth errors), only reachable by
+    authenticated users, and admins need the detail to fix misconfiguration.
+
+    Args:
+        provider: LLM provider identifier (e.g., "claude").
+        model: Model identifier (e.g., "claude-3-5-haiku-20241022").
+    """
+
+    def __init__(self, provider: str, model: str) -> None:
+        super().__init__(
+            code="UNREGISTERED_MODEL",
+            message=f"Model '{model}' from provider '{provider}' is not registered or is inactive",
+            status_code=503,
+        )
+
+
+class NoPricingConfigError(APIError):
+    """No effective pricing config for model (503).
+
+    REQ-022 §7.3: Raised when no pricing_config row has effective_date <= today.
+
+    Security: Same rationale as UnregisteredModelError — operational error
+    with detail needed for admin debugging.
+
+    Args:
+        provider: LLM provider identifier.
+        model: Model identifier.
+    """
+
+    def __init__(self, provider: str, model: str) -> None:
+        super().__init__(
+            code="NO_PRICING_CONFIG",
+            message=f"No pricing configuration found for '{model}' from provider '{provider}'",
+            status_code=503,
+        )
+
+
 class InternalError(APIError):
     """Unexpected server error (500).
 

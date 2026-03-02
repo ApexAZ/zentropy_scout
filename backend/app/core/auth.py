@@ -42,6 +42,7 @@ def create_jwt(
     secret: str,
     expires_delta: timedelta | None = None,
     password_reset_until: datetime | None = None,
+    is_admin: bool = False,
 ) -> str:
     """Create a signed JWT with standard claims.
 
@@ -51,6 +52,8 @@ def create_jwt(
         expires_delta: Time until expiration. Defaults to 1 hour.
         password_reset_until: If set, includes a ``pwr`` claim allowing
             password change without the current password until this time.
+        is_admin: If True, includes ``adm: true`` claim. Omitted when False
+            to keep JWT compact for non-admin users (REQ-022 §5.2).
 
     Returns:
         Encoded JWT string.
@@ -65,6 +68,8 @@ def create_jwt(
     }
     if password_reset_until is not None:
         payload["pwr"] = int(password_reset_until.timestamp())
+    if is_admin:
+        payload["adm"] = True
     return jwt.encode(payload, secret, algorithm="HS256")
 
 

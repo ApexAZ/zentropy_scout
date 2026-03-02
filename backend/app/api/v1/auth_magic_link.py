@@ -205,10 +205,21 @@ async def verify_magic_link(
     is_password_reset = purpose == "password_reset"
     pwr_until = datetime.now(UTC) + timedelta(minutes=10) if is_password_reset else None
 
+    # REQ-022 §5.1: ADMIN_EMAILS bootstrap — auto-promote matching users on login
+    admin_emails = [
+        e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()
+    ]
+    if user.email.lower() in admin_emails and not user.is_admin:
+        await UserRepository.set_admin(db, user.id, is_admin=True)
+        await db.commit()
+        await db.refresh(user)
+        logger.info("Admin bootstrap: promoted user %s via ADMIN_EMAILS", user.id)
+
     jwt_token = create_jwt(
         user_id=str(user.id),
         secret=settings.auth_secret.get_secret_value(),
         password_reset_until=pwr_until,
+        is_admin=user.is_admin,
     )
 
     # Redirect to /settings for password reset, otherwise to app root
@@ -356,10 +367,14 @@ async def invalidate_sessions(
     await UserRepository.update(db, user_id, token_invalidated_before=invalidation_time)
     await db.commit()
 
+    # Fetch is_admin for JWT adm claim (REQ-022 §5.2)
+    user = await UserRepository.get_by_id(db, user_id)
+
     # Re-issue JWT so current session survives
     jwt_token = create_jwt(
         user_id=str(user_id),
         secret=settings.auth_secret.get_secret_value(),
+        is_admin=user.is_admin if user else False,
     )
     set_auth_cookie(response, jwt_token)
 

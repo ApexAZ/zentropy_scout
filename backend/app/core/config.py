@@ -87,6 +87,9 @@ class Settings(BaseSettings):
     # Resume Parsing (REQ-019 §9)
     resume_parse_max_size_mb: int = 10  # Maximum PDF upload size in MB
 
+    # Admin (REQ-022 §5.1, §13.1)
+    admin_emails: str = ""
+
     # Metering (REQ-020 §11)
     metering_enabled: bool = True
     metering_margin_multiplier: float = 1.30

@@ -17,6 +17,8 @@ from app.models.user import User
 # - id: primary key, immutable
 # - email: unique identity, requires dedicated flow with re-verification
 # - created_at/updated_at: server-managed timestamps
+# Security: is_admin is excluded to prevent mass-assignment privilege escalation.
+# Use set_admin() for explicit admin promotion (REQ-022 §5.1).
 _UPDATABLE_FIELDS: frozenset[str] = frozenset(
     {
         "name",
@@ -107,7 +109,7 @@ class UserRepository:
     async def update(
         db: AsyncSession,
         user_id: uuid.UUID,
-        **kwargs: str | datetime | None,
+        **kwargs: str | datetime | bool | None,
     ) -> User | None:
         """Update user fields.
 
@@ -137,6 +139,31 @@ class UserRepository:
         for field, value in kwargs.items():
             setattr(user, field, value)
 
+        await db.flush()
+        await db.refresh(user)
+        return user
+
+    @staticmethod
+    async def set_admin(
+        db: AsyncSession, user_id: uuid.UUID, *, is_admin: bool
+    ) -> User | None:
+        """Set admin status for a user.
+
+        REQ-022 §5.1: Separated from update() to prevent mass-assignment
+        privilege escalation. Only call from explicit admin promotion paths.
+
+        Args:
+            db: Async database session.
+            user_id: UUID of the user.
+            is_admin: New admin status.
+
+        Returns:
+            Updated User if found, None if user does not exist.
+        """
+        user = await db.get(User, user_id)
+        if user is None:
+            return None
+        user.is_admin = is_admin
         await db.flush()
         await db.refresh(user)
         return user

@@ -257,10 +257,23 @@ async def oauth_callback(
         ) from None
     await db.commit()
 
+    # REQ-022 §5.1: ADMIN_EMAILS bootstrap — auto-promote matching users on login
+    admin_emails = [
+        e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()
+    ]
+    if user.email.lower() in admin_emails and not user.is_admin:
+        from app.repositories.user_repository import UserRepository
+
+        await UserRepository.set_admin(db, user.id, is_admin=True)
+        await db.commit()
+        await db.refresh(user)
+        logger.info("Admin bootstrap: promoted user %s via ADMIN_EMAILS", user.id)
+
     # Issue JWT cookie
     token = create_jwt(
         user_id=str(user.id),
         secret=settings.auth_secret.get_secret_value(),
+        is_admin=user.is_admin,
     )
 
     # Redirect to frontend
