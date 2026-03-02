@@ -16,9 +16,9 @@ export const BALANCE_THRESHOLD_LOW = 0.1;
 
 /** Get the Tailwind text color class for a balance amount. */
 export function getBalanceColorClass(balance: number): string {
-	if (balance >= BALANCE_THRESHOLD_HIGH) return "text-green-600";
-	if (balance >= BALANCE_THRESHOLD_LOW) return "text-amber-500";
-	return "text-red-500";
+	if (balance >= BALANCE_THRESHOLD_HIGH) return "text-success";
+	if (balance >= BALANCE_THRESHOLD_LOW) return "text-primary";
+	return "text-destructive";
 }
 
 /** Format a balance string (6 decimal places from API) to $X.XX display. */

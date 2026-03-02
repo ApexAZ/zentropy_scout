@@ -129,9 +129,9 @@ describe("TopNav", () => {
 	// Rendering
 	// -------------------------------------------------------------------
 
-	it("renders brand text", () => {
+	it("renders brand logo", () => {
 		render(<TopNav />);
-		expect(screen.getByText("Zentropy Scout")).toBeInTheDocument();
+		expect(screen.getByAltText("Zentropy Scout")).toBeInTheDocument();
 	});
 
 	it("renders navigation landmark", () => {
@@ -286,21 +286,21 @@ describe("TopNav", () => {
 		mocks.mockUseBalance.mockReturnValue(balanceState({ balance: "5.000000" }));
 		render(<TopNav />);
 		const indicator = screen.getByTestId("balance-indicator");
-		expect(indicator.className).toContain("text-green");
+		expect(indicator.className).toContain("text-success");
 	});
 
 	it("shows amber text when balance is between $0.10 and $1.00", () => {
 		mocks.mockUseBalance.mockReturnValue(balanceState({ balance: "0.500000" }));
 		render(<TopNav />);
 		const indicator = screen.getByTestId("balance-indicator");
-		expect(indicator.className).toContain("text-amber");
+		expect(indicator.className).toContain("text-primary");
 	});
 
 	it("shows red text when balance < $0.10", () => {
 		mocks.mockUseBalance.mockReturnValue(balanceState({ balance: "0.050000" }));
 		render(<TopNav />);
 		const indicator = screen.getByTestId("balance-indicator");
-		expect(indicator.className).toContain("text-red");
+		expect(indicator.className).toContain("text-destructive");
 	});
 
 	it("shows zero balance correctly", () => {
@@ -308,7 +308,7 @@ describe("TopNav", () => {
 		render(<TopNav />);
 		const indicator = screen.getByTestId("balance-indicator");
 		expect(indicator).toHaveTextContent("$0.00");
-		expect(indicator.className).toContain("text-red");
+		expect(indicator.className).toContain("text-destructive");
 	});
 
 	it("hides balance indicator while loading", () => {

@@ -36,21 +36,21 @@ describe("BalanceCard", () => {
 	it("shows green text for balance > $1.00", () => {
 		render(<BalanceCard balance="5.000000" isLoading={false} />);
 		expect(screen.getByTestId("balance-amount").className).toContain(
-			"text-green",
+			"text-success",
 		);
 	});
 
 	it("shows amber text for balance between $0.10 and $1.00", () => {
 		render(<BalanceCard balance="0.500000" isLoading={false} />);
 		expect(screen.getByTestId("balance-amount").className).toContain(
-			"text-amber",
+			"text-primary",
 		);
 	});
 
 	it("shows red text for balance < $0.10", () => {
 		render(<BalanceCard balance="0.050000" isLoading={false} />);
 		expect(screen.getByTestId("balance-amount").className).toContain(
-			"text-red",
+			"text-destructive",
 		);
 	});
 

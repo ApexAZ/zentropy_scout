@@ -116,14 +116,14 @@ describe("AppShell", () => {
 		).toBeInTheDocument();
 	});
 
-	it("renders brand text", () => {
+	it("renders brand logo", () => {
 		render(
 			<AppShell>
 				<div>Content</div>
 			</AppShell>,
 		);
 
-		expect(screen.getByText("Zentropy Scout")).toBeInTheDocument();
+		expect(screen.getByAltText("Zentropy Scout")).toBeInTheDocument();
 	});
 
 	// -------------------------------------------------------------------
