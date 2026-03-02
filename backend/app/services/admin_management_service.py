@@ -588,6 +588,9 @@ class AdminManagementService:
     ) -> CreditPack:
         """Create a credit pack.
 
+        stripe_price_id is intentionally excluded — it is set via
+        update_pack after the Stripe price object is created externally.
+
         Args:
             name: Pack display name.
             price_cents: Price in cents.

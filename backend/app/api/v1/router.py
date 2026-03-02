@@ -8,6 +8,7 @@ All v1 endpoint routers are included here.
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    admin,
     applications,
     auth,
     auth_magic_link,
@@ -120,3 +121,9 @@ router.include_router(refresh.router, prefix="/refresh", tags=["actions"])
 # =============================================================================
 
 router.include_router(usage.router, prefix="/usage", tags=["usage"])
+
+# =============================================================================
+# Admin (REQ-022)
+# =============================================================================
+
+router.include_router(admin.router, prefix="/admin", tags=["admin"])

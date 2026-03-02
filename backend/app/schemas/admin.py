@@ -438,6 +438,9 @@ class CreditPackCreate(BaseModel):
         if v <= 0:
             msg = "price_cents must be > 0"
             raise ValueError(msg)
+        if v > 10_000_000:
+            msg = "price_cents must be <= 10000000"
+            raise ValueError(msg)
         return v
 
     @field_validator("credit_amount")
@@ -445,6 +448,17 @@ class CreditPackCreate(BaseModel):
     def check_credit_positive(cls, v: int) -> int:
         if v <= 0:
             msg = "credit_amount must be > 0"
+            raise ValueError(msg)
+        if v > 1_000_000_000:
+            msg = "credit_amount must be <= 1000000000"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("display_order")
+    @classmethod
+    def check_display_order_range(cls, v: int) -> int:
+        if v < 0 or v > 1000:
+            msg = "display_order must be between 0 and 1000"
             raise ValueError(msg)
         return v
 
@@ -504,6 +518,9 @@ class CreditPackUpdate(BaseModel):
         if v is not None and v <= 0:
             msg = "price_cents must be > 0"
             raise ValueError(msg)
+        if v is not None and v > 10_000_000:
+            msg = "price_cents must be <= 10000000"
+            raise ValueError(msg)
         return v
 
     @field_validator("credit_amount")
@@ -511,6 +528,17 @@ class CreditPackUpdate(BaseModel):
     def check_credit_positive(cls, v: int | None) -> int | None:
         if v is not None and v <= 0:
             msg = "credit_amount must be > 0"
+            raise ValueError(msg)
+        if v is not None and v > 1_000_000_000:
+            msg = "credit_amount must be <= 1000000000"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("display_order")
+    @classmethod
+    def check_display_order_range(cls, v: int | None) -> int | None:
+        if v is not None and (v < 0 or v > 1000):
+            msg = "display_order must be between 0 and 1000"
             raise ValueError(msg)
         return v
 
