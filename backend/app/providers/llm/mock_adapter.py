@@ -64,6 +64,7 @@ class MockLLMProvider(LLMProvider):
         stop_sequences: list[str] | None = None,
         tools: list[ToolDefinition] | None = None,
         json_mode: bool = False,
+        model_override: str | None = None,
     ) -> LLMResponse:
         """Generate a mock completion.
 
@@ -78,6 +79,7 @@ class MockLLMProvider(LLMProvider):
             stop_sequences: Ignored (recorded in kwargs).
             tools: Ignored (recorded in kwargs).
             json_mode: Ignored (recorded in kwargs).
+            model_override: Ignored (recorded in kwargs).
 
         Returns:
             LLMResponse with configured or default content.
@@ -93,6 +95,7 @@ class MockLLMProvider(LLMProvider):
                     "stop_sequences": stop_sequences,
                     "tools": tools,
                     "json_mode": json_mode,
+                    "model_override": model_override,
                 },
             }
         )

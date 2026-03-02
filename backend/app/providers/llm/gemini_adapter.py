@@ -42,9 +42,9 @@ logger = structlog.get_logger()
 
 
 # Default model routing table per REQ-009 §4.3
-# WHY TASK-BASED ROUTING: Optimizes cost without sacrificing quality
-# - High-volume extraction tasks use Flash (cheaper, faster)
-# - Quality-critical tasks use Pro (better reasoning)
+# Fallback routing used when METERING_ENABLED=false (dev mode).
+# Production routing is configured in task_routing_config table.
+# See REQ-022 §8.4.
 # Fallback if task type not in routing table
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
 
@@ -224,9 +224,10 @@ class GeminiAdapter(LLMProvider):
         stop_sequences: list[str] | None = None,
         tools: list[ToolDefinition] | None = None,
         json_mode: bool = False,
+        model_override: str | None = None,
     ) -> LLMResponse:
         """Generate completion using Gemini."""
-        model_name = self.get_model_for_task(task)
+        model_name = model_override or self.get_model_for_task(task)
         system_instruction, contents = _convert_gemini_messages(messages)
 
         # Convert tools to Gemini format

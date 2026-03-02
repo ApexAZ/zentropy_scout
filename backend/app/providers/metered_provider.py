@@ -59,11 +59,13 @@ class MeteredLLMProvider(LLMProvider):
         stop_sequences: list[str] | None = None,
         tools: list[ToolDefinition] | None = None,
         json_mode: bool = False,
+        model_override: str | None = None,
     ) -> LLMResponse:
         """Call inner provider, then record usage and debit balance.
 
         REQ-020 §6.2: Delegates to inner, records usage on success.
         REQ-020 §6.6: If recording fails, logs error but returns response.
+        REQ-022 §8.2: Passes model_override through to inner adapter.
 
         Args:
             messages: Conversation history.
@@ -73,6 +75,9 @@ class MeteredLLMProvider(LLMProvider):
             stop_sequences: Stop sequences.
             tools: Tool definitions.
             json_mode: JSON output mode.
+            model_override: If provided, inner adapter uses this model
+                instead of its routing table. Will be replaced in §9
+                with DB routing resolved by MeteredLLMProvider itself.
 
         Returns:
             LLMResponse from the inner provider.
@@ -88,6 +93,7 @@ class MeteredLLMProvider(LLMProvider):
             stop_sequences=stop_sequences,
             tools=tools,
             json_mode=json_mode,
+            model_override=model_override,
         )
         try:
             await self._metering_service.record_and_debit(

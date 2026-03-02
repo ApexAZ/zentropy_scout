@@ -43,9 +43,9 @@ logger = structlog.get_logger()
 
 
 # Default model routing table per REQ-009 §4.3
-# WHY TASK-BASED ROUTING: Optimizes cost without sacrificing quality
-# - High-volume extraction tasks use Haiku (~$0.0002/call)
-# - Quality-critical tasks use Sonnet (~$0.01/call for cover letters)
+# Fallback routing used when METERING_ENABLED=false (dev mode).
+# Production routing is configured in task_routing_config table.
+# See REQ-022 §8.4.
 DEFAULT_CLAUDE_ROUTING: dict[str, str] = {
     # High-volume, simple extraction tasks → Claude 3.5 Haiku (cheaper, faster)
     "skill_extraction": "claude-3-5-haiku-20241022",
@@ -223,6 +223,7 @@ class ClaudeAdapter(LLMProvider):
         stop_sequences: list[str] | None = None,
         tools: list[ToolDefinition] | None = None,
         json_mode: bool = False,
+        model_override: str | None = None,
     ) -> LLMResponse:
         """Generate completion using Claude.
 
@@ -234,11 +235,12 @@ class ClaudeAdapter(LLMProvider):
             stop_sequences: Custom stop sequences.
             tools: Available tools the LLM can call.
             json_mode: If True, enforce JSON output format.
+            model_override: If provided, use this model instead of routing table.
 
         Returns:
             LLMResponse with content and/or tool_calls.
         """
-        model = self.get_model_for_task(task)
+        model = model_override or self.get_model_for_task(task)
         system_msg, api_messages = _convert_claude_messages(messages)
 
         # WHY: Anthropic doesn't have native JSON mode, so we modify system prompt

@@ -11,7 +11,7 @@ import pytest
 
 from app.providers.embedding.base import EmbeddingResult
 from app.providers.embedding.mock_adapter import MockEmbeddingProvider
-from app.providers.llm.base import LLMMessage, TaskType
+from app.providers.llm.base import LLMMessage, LLMResponse, TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
 from app.providers.metered_provider import MeteredEmbeddingProvider, MeteredLLMProvider
 
@@ -202,6 +202,71 @@ class TestMeteredLLMProviderDelegation:
     def test_provider_name_delegates(self, metered_llm: MeteredLLMProvider) -> None:
         """provider_name returns inner provider's name."""
         assert metered_llm.provider_name == "mock"
+
+
+# =============================================================================
+# MeteredLLMProvider — model_override passthrough
+# =============================================================================
+
+
+class TestMeteredLLMProviderModelOverride:
+    """MeteredLLMProvider passes model_override to inner provider."""
+
+    async def test_model_override_passed_to_inner(
+        self,
+        metered_llm: MeteredLLMProvider,
+        inner_llm: MockLLMProvider,
+    ) -> None:
+        """model_override is forwarded to inner.complete()."""
+        inner_llm.complete = AsyncMock(
+            return_value=LLMResponse(
+                content="test",
+                model="override-model",
+                input_tokens=10,
+                output_tokens=5,
+                finish_reason="stop",
+                latency_ms=1.0,
+            )
+        )
+        metered_llm._inner = inner_llm  # noqa: SLF001
+
+        await metered_llm.complete(
+            _HELLO_MESSAGES,
+            TaskType.EXTRACTION,
+            model_override="override-model",
+        )
+
+        inner_llm.complete.assert_called_once()
+        call_kwargs = inner_llm.complete.call_args
+        assert call_kwargs.kwargs.get("model_override") == "override-model"
+
+    async def test_model_override_none_passed_as_none(
+        self,
+        metered_llm: MeteredLLMProvider,
+        inner_llm: MockLLMProvider,
+    ) -> None:
+        """When model_override is None, None is forwarded to inner."""
+        inner_llm.complete = AsyncMock(
+            return_value=LLMResponse(
+                content="test",
+                model=_MOCK_MODEL,
+                input_tokens=10,
+                output_tokens=5,
+                finish_reason="stop",
+                latency_ms=1.0,
+            )
+        )
+        metered_llm._inner = inner_llm  # noqa: SLF001
+
+        await metered_llm.complete(
+            _HELLO_MESSAGES,
+            TaskType.EXTRACTION,
+            model_override=None,
+        )
+
+        inner_llm.complete.assert_called_once()
+        call_kwargs = inner_llm.complete.call_args
+        assert call_kwargs.kwargs.get("model_override") is None
 
 
 # =============================================================================

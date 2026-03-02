@@ -1108,3 +1108,57 @@ class TestClaudeAdapterLogging:
             mock_logger.error.assert_called_once()
             call_args = mock_logger.error.call_args
             assert call_args[0][0] == "llm_request_failed"
+
+
+class TestClaudeAdapterModelOverride:
+    """Test model_override parameter (REQ-022 §8.2)."""
+
+    @pytest.mark.asyncio
+    async def test_model_override_used_when_provided(
+        self, config, mock_anthropic_response
+    ):
+        """complete() uses model_override instead of routing table."""
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            response = await adapter.complete(
+                messages,
+                TaskType.EXTRACTION,
+                model_override="claude-3-opus-20240229",
+            )
+
+            call_kwargs = mock_client.messages.create.call_args.kwargs
+            assert call_kwargs["model"] == "claude-3-opus-20240229"
+            assert response.model == "claude-3-opus-20240229"
+
+    @pytest.mark.asyncio
+    async def test_model_override_none_falls_back_to_routing(
+        self, config, mock_anthropic_response
+    ):
+        """complete() falls back to routing table when model_override is None."""
+        with patch(
+            "app.providers.llm.claude_adapter.AsyncAnthropic"
+        ) as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.messages.create = AsyncMock(
+                return_value=mock_anthropic_response
+            )
+            mock_client_cls.return_value = mock_client
+
+            adapter = ClaudeAdapter(config)
+            messages = [LLMMessage(role="user", content="Hello")]
+
+            await adapter.complete(messages, TaskType.EXTRACTION, model_override=None)
+
+            call_kwargs = mock_client.messages.create.call_args.kwargs
+            # Extraction routes to Haiku in DEFAULT_CLAUDE_ROUTING
+            assert "haiku" in call_kwargs["model"].lower()

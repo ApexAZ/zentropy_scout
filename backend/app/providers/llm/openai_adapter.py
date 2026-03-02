@@ -43,9 +43,9 @@ logger = structlog.get_logger()
 
 
 # Default model routing table per REQ-009 §4.3
-# WHY TASK-BASED ROUTING: Optimizes cost without sacrificing quality
-# - High-volume extraction tasks use gpt-4o-mini (cheaper, faster)
-# - Quality-critical tasks use gpt-4o (better reasoning)
+# Fallback routing used when METERING_ENABLED=false (dev mode).
+# Production routing is configured in task_routing_config table.
+# See REQ-022 §8.4.
 DEFAULT_OPENAI_ROUTING: dict[str, str] = {
     # High-volume, simple extraction tasks → gpt-4o-mini (cheaper, faster)
     "skill_extraction": "gpt-4o-mini",
@@ -217,6 +217,7 @@ class OpenAIAdapter(LLMProvider):
         stop_sequences: list[str] | None = None,
         tools: list[ToolDefinition] | None = None,
         json_mode: bool = False,
+        model_override: str | None = None,
     ) -> LLMResponse:
         """Generate completion using OpenAI GPT.
 
@@ -228,11 +229,12 @@ class OpenAIAdapter(LLMProvider):
             stop_sequences: Custom stop sequences.
             tools: Available tools the LLM can call.
             json_mode: If True, enforce JSON output format.
+            model_override: If provided, use this model instead of routing table.
 
         Returns:
             LLMResponse with content and/or tool_calls.
         """
-        model = self.get_model_for_task(task)
+        model = model_override or self.get_model_for_task(task)
         api_messages = _convert_openai_messages(messages)
 
         # Convert tools to OpenAI format

@@ -219,6 +219,7 @@ class LLMProvider(ABC):
         stop_sequences: list[str] | None = None,
         tools: list[ToolDefinition] | None = None,
         json_mode: bool = False,
+        model_override: str | None = None,
     ) -> LLMResponse:
         """Generate a completion (non-streaming).
 
@@ -230,6 +231,8 @@ class LLMProvider(ABC):
                 stop_sequences: Custom stop sequences.
                 tools: Available tools the LLM can call (native function calling).
                 json_mode: If True, enforce JSON output format.
+                model_override: If provided, use this model instead of routing table.
+                        REQ-022 §8.2: Passed by MeteredLLMProvider after DB routing lookup.
 
         Returns:
                 LLMResponse with content and/or tool_calls.
