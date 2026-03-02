@@ -144,7 +144,7 @@ export function PacksTab() {
 								<TableCell>{item.credit_amount.toLocaleString()}</TableCell>
 								<TableCell>
 									{item.highlight_label ? (
-										<span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+										<span className="bg-warning/20 text-warning rounded px-2 py-0.5 text-xs font-medium">
 											{item.highlight_label}
 										</span>
 									) : (
@@ -154,9 +154,7 @@ export function PacksTab() {
 								<TableCell>
 									<span
 										className={
-											item.is_active
-												? "text-green-600"
-												: "text-muted-foreground"
+											item.is_active ? "text-success" : "text-muted-foreground"
 										}
 									>
 										{item.is_active ? "Active" : "Inactive"}

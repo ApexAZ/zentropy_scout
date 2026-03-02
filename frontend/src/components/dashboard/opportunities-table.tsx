@@ -68,19 +68,19 @@ import { JOB_POSTING_STATUSES } from "@/types/job";
 const GHOST_TIER_CONFIG = [
 	{
 		minScore: 76,
-		colorClass: "text-red-500",
+		colorClass: "text-destructive",
 		ariaLabel: "High ghost risk",
 		tooltip: "High ghost risk \u2014 likely stale or fake",
 	},
 	{
 		minScore: 51,
-		colorClass: "text-orange-500",
+		colorClass: "text-warning",
 		ariaLabel: "Elevated ghost risk",
 		tooltip: "Elevated ghost risk \u2014 verify before applying",
 	},
 	{
 		minScore: 26,
-		colorClass: "text-amber-500",
+		colorClass: "text-warning/70",
 		ariaLabel: "Moderate ghost risk",
 		tooltip: "Moderate ghost risk \u2014 posting may be stale",
 	},
@@ -221,7 +221,7 @@ function FilteredJobInfo({ job }: Readonly<{ job: PersonaJobResponse }>) {
 						return (
 							<li
 								key={f.filter}
-								className={isWarning ? "text-amber-500" : "text-destructive"}
+								className={isWarning ? "text-warning" : "text-destructive"}
 							>
 								{text}
 							</li>
@@ -361,7 +361,7 @@ function FavoriteCell({
 			<Heart
 				className={cn(
 					"h-4 w-4",
-					personaJob.is_favorite && "fill-current text-red-500",
+					personaJob.is_favorite && "text-destructive fill-current",
 				)}
 			/>
 		</Button>

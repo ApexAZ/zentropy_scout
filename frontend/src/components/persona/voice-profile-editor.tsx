@@ -150,7 +150,7 @@ export function VoiceProfileEditor({
 
 					{saveSuccess && (
 						<div
-							className="text-sm font-medium text-green-600"
+							className="text-success text-sm font-medium"
 							data-testid="save-success"
 						>
 							Voice profile saved.

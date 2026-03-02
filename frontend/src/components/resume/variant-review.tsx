@@ -53,9 +53,8 @@ interface VariantReviewProps {
 /** CSS classes for diff token highlighting keyed by token type. */
 const DIFF_CLASS_MAP: Readonly<Record<string, string | undefined>> = {
 	same: undefined,
-	added: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-	removed:
-		"bg-red-100 text-red-800 line-through dark:bg-red-900 dark:text-red-200",
+	added: "bg-success/20 text-success",
+	removed: "bg-destructive/20 text-destructive line-through",
 };
 
 // ---------------------------------------------------------------------------
@@ -103,15 +102,15 @@ function GuardrailViolationBanner({
 		<div
 			data-testid="guardrail-violations"
 			role="alert"
-			className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950"
+			className="border-destructive/20 bg-destructive/10 mt-4 rounded-lg border p-4"
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-				<span className="text-sm font-semibold text-red-800 dark:text-red-200">
+				<AlertTriangle className="text-destructive h-4 w-4" />
+				<span className="text-destructive text-sm font-semibold">
 					Guardrail Violation
 				</span>
 			</div>
-			<ul className="mb-3 list-disc space-y-1 pl-5 text-sm text-red-700 dark:text-red-300">
+			<ul className="text-destructive mb-3 list-disc space-y-1 pl-5 text-sm">
 				{violations.map((v) => (
 					<li key={v.rule}>{v.message}</li>
 				))}
@@ -120,7 +119,7 @@ function GuardrailViolationBanner({
 				<Link
 					href="/persona"
 					data-testid="go-to-persona-link"
-					className="text-sm font-medium text-red-700 underline hover:text-red-900 dark:text-red-300 dark:hover:text-red-100"
+					className="text-destructive hover:text-destructive/80 text-sm font-medium underline"
 				>
 					Go to Persona
 				</Link>

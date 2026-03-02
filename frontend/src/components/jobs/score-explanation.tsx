@@ -100,19 +100,19 @@ function ScoreExplanation({
 			<CategorySection
 				testId="explanation-strengths"
 				label="Strengths"
-				icon={<CheckCircle2 className="h-4 w-4 text-green-500" />}
+				icon={<CheckCircle2 className="text-success h-4 w-4" />}
 				items={explanation.strengths}
 			/>
 			<CategorySection
 				testId="explanation-gaps"
 				label="Gaps"
-				icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+				icon={<AlertTriangle className="text-warning h-4 w-4" />}
 				items={explanation.gaps}
 			/>
 			<CategorySection
 				testId="explanation-stretch"
 				label="Stretch Opportunities"
-				icon={<TrendingUp className="h-4 w-4 text-purple-500" />}
+				icon={<TrendingUp className="text-stretch-high h-4 w-4" />}
 				items={explanation.stretch_opportunities}
 			/>
 			<CategorySection

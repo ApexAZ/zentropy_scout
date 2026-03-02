@@ -46,10 +46,10 @@ const GHOST_TIER_CONFIG: {
 	tier: GhostScoreTier;
 	colorClass: string;
 }[] = [
-	{ minScore: 76, tier: "High Risk", colorClass: "text-red-500" },
-	{ minScore: 51, tier: "Elevated", colorClass: "text-orange-500" },
-	{ minScore: 26, tier: "Moderate", colorClass: "text-amber-500" },
-	{ minScore: 1, tier: "Fresh", colorClass: "text-green-500" },
+	{ minScore: 76, tier: "High Risk", colorClass: "text-destructive" },
+	{ minScore: 51, tier: "Elevated", colorClass: "text-warning" },
+	{ minScore: 26, tier: "Moderate", colorClass: "text-warning/70" },
+	{ minScore: 1, tier: "Fresh", colorClass: "text-success" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -171,7 +171,7 @@ function JobDetailHeader({ jobId }: Readonly<JobDetailHeaderProps>) {
 					<Heart
 						className={cn(
 							"mr-1 h-4 w-4",
-							personaJob.is_favorite && "fill-current text-red-500",
+							personaJob.is_favorite && "text-destructive fill-current",
 						)}
 					/>
 					{personaJob.is_favorite ? "Unfavorite" : "Favorite"}

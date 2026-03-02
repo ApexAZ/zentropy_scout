@@ -303,7 +303,7 @@ export default function RegisterPage() {
 													data-testid={`req-${req.key}`}
 													data-met={met ? "true" : "false"}
 													className={
-														met ? "text-green-600" : "text-muted-foreground"
+														met ? "text-success" : "text-muted-foreground"
 													}
 												>
 													{met ? "\u2713" : "\u2022"} {req.label}

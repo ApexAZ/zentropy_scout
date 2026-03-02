@@ -609,7 +609,7 @@ describe("OpportunitiesTable", () => {
 			await waitFor(() => {
 				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
 				expect(icon).toBeInTheDocument();
-				expect(icon).toHaveClass("text-amber-500");
+				expect(icon).toHaveClass("text-warning/70");
 				expect(icon).toHaveAttribute("aria-label", "Moderate ghost risk");
 			});
 		});
@@ -624,7 +624,7 @@ describe("OpportunitiesTable", () => {
 			await waitFor(() => {
 				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
 				expect(icon).toBeInTheDocument();
-				expect(icon).toHaveClass("text-orange-500");
+				expect(icon).toHaveClass("text-warning");
 				expect(icon).toHaveAttribute("aria-label", "Elevated ghost risk");
 			});
 		});
@@ -639,7 +639,7 @@ describe("OpportunitiesTable", () => {
 			await waitFor(() => {
 				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
 				expect(icon).toBeInTheDocument();
-				expect(icon).toHaveClass("text-red-500");
+				expect(icon).toHaveClass("text-destructive");
 				expect(icon).toHaveAttribute("aria-label", "High ghost risk");
 			});
 		});
@@ -653,7 +653,7 @@ describe("OpportunitiesTable", () => {
 
 			await waitFor(() => {
 				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
-				expect(icon).toHaveClass("text-amber-500");
+				expect(icon).toHaveClass("text-warning/70");
 			});
 		});
 
@@ -666,7 +666,7 @@ describe("OpportunitiesTable", () => {
 
 			await waitFor(() => {
 				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
-				expect(icon).toHaveClass("text-orange-500");
+				expect(icon).toHaveClass("text-warning");
 			});
 		});
 
@@ -679,7 +679,7 @@ describe("OpportunitiesTable", () => {
 
 			await waitFor(() => {
 				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
-				expect(icon).toHaveClass("text-red-500");
+				expect(icon).toHaveClass("text-destructive");
 			});
 		});
 	});

@@ -81,7 +81,7 @@ describe("TransactionTable", () => {
 			/>,
 		);
 		const amount = screen.getByTestId("tx-amount-t-1");
-		expect(amount.className).toContain("text-green");
+		expect(amount.className).toContain("text-success");
 	});
 
 	it("shows red text for negative amounts", () => {
@@ -92,7 +92,7 @@ describe("TransactionTable", () => {
 			/>,
 		);
 		const amount = screen.getByTestId("tx-amount-t-2");
-		expect(amount.className).toContain("text-red");
+		expect(amount.className).toContain("text-destructive");
 	});
 
 	it("shows empty state when no transactions", () => {

@@ -161,7 +161,7 @@ export function PricingTab() {
 								<TableCell>{item.effective_date}</TableCell>
 								<TableCell>
 									{item.is_current ? (
-										<span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+										<span className="bg-success/20 text-success rounded px-2 py-0.5 text-xs font-medium">
 											Current
 										</span>
 									) : (

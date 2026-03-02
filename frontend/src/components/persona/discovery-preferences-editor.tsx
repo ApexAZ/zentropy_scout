@@ -206,7 +206,7 @@ export function DiscoveryPreferencesEditor({
 					{/* Cross-field validation warning */}
 					{showThresholdWarning && (
 						<div
-							className="rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300"
+							className="border-warning/20 bg-warning/10 text-warning rounded-md border p-3 text-sm"
 							role="alert"
 							data-testid="threshold-warning"
 						>
@@ -263,7 +263,7 @@ export function DiscoveryPreferencesEditor({
 
 					{saveSuccess && (
 						<div
-							className="text-sm font-medium text-green-600"
+							className="text-success text-sm font-medium"
 							data-testid="save-success"
 						>
 							Discovery preferences saved.

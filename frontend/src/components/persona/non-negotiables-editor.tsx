@@ -116,7 +116,7 @@ export function NonNegotiablesEditor({
 
 					{saveSuccess && (
 						<div
-							className="text-sm font-medium text-green-600"
+							className="text-success text-sm font-medium"
 							data-testid="save-success"
 						>
 							Non-negotiables saved.

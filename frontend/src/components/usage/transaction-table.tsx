@@ -86,7 +86,7 @@ export function TransactionTable({
 											data-testid={`tx-amount-${tx.id}`}
 											className={cn(
 												"font-medium",
-												isPositive ? "text-green-600" : "text-red-500",
+												isPositive ? "text-success" : "text-destructive",
 											)}
 										>
 											{formatAmount(tx.amount_usd)}

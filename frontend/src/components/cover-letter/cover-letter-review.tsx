@@ -100,7 +100,7 @@ function WordCount({ text }: Readonly<{ text: string }>) {
 		<div
 			data-testid="word-count"
 			data-in-range={inRange ? "true" : "false"}
-			className={`mt-2 text-sm ${inRange ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}
+			className={`mt-2 text-sm ${inRange ? "text-success" : "text-warning"}`}
 		>
 			Word count: {wordCount} / {WORD_COUNT_MIN}–{WORD_COUNT_MAX} target{" "}
 			{inRange ? "✓" : ""}
@@ -113,15 +113,15 @@ function ValidationErrors({ issues }: Readonly<{ issues: ValidationIssue[] }>) {
 		<div
 			data-testid="validation-errors"
 			role="alert"
-			className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950"
+			className="border-destructive/20 bg-destructive/10 mt-4 rounded-lg border p-4"
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<X className="h-4 w-4 text-red-600 dark:text-red-400" />
-				<span className="text-sm font-semibold text-red-800 dark:text-red-200">
+				<X className="text-destructive h-4 w-4" />
+				<span className="text-destructive text-sm font-semibold">
 					Validation Error
 				</span>
 			</div>
-			<ul className="list-disc space-y-1 pl-5 text-sm text-red-700 dark:text-red-300">
+			<ul className="text-destructive list-disc space-y-1 pl-5 text-sm">
 				{issues.map((issue) => (
 					<li key={issue.rule}>{issue.message}</li>
 				))}
@@ -136,15 +136,13 @@ function ValidationWarnings({
 	return (
 		<output
 			data-testid="validation-warnings"
-			className="mt-4 block rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950"
+			className="border-warning/20 bg-warning/10 mt-4 block rounded-lg border p-4"
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-				<span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-					Warning
-				</span>
+				<AlertTriangle className="text-warning h-4 w-4" />
+				<span className="text-warning text-sm font-semibold">Warning</span>
 			</div>
-			<ul className="list-disc space-y-1 pl-5 text-sm text-amber-700 dark:text-amber-300">
+			<ul className="text-warning list-disc space-y-1 pl-5 text-sm">
 				{issues.map((issue) => (
 					<li key={issue.rule}>{issue.message}</li>
 				))}

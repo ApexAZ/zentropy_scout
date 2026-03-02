@@ -47,7 +47,7 @@ const PASSWORD_REQUIREMENTS = [
 
 function VerifiedBadge({ verified }: Readonly<{ verified: boolean }>) {
 	return verified ? (
-		<span className="text-xs font-medium text-green-600">Verified</span>
+		<span className="text-success text-xs font-medium">Verified</span>
 	) : (
 		<span className="text-destructive text-xs font-medium">Unverified</span>
 	);
@@ -273,7 +273,7 @@ export function AccountSection() {
 										key={req.key}
 										data-testid={`req-${req.key}`}
 										data-met={met ? "true" : "false"}
-										className={met ? "text-green-600" : "text-muted-foreground"}
+										className={met ? "text-success" : "text-muted-foreground"}
 									>
 										{met ? "\u2713" : "\u2022"} {req.label}
 									</li>
@@ -320,7 +320,7 @@ export function AccountSection() {
 					<div className="space-y-2">
 						{passwordResetSuccess && (
 							<output
-								className="text-sm font-medium text-green-600"
+								className="text-success text-sm font-medium"
 								data-testid="reset-password-success"
 							>
 								Password updated successfully.

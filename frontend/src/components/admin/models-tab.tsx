@@ -166,9 +166,7 @@ export function ModelsTab() {
 								<TableCell>
 									<span
 										className={
-											item.is_active
-												? "text-green-600"
-												: "text-muted-foreground"
+											item.is_active ? "text-success" : "text-muted-foreground"
 										}
 									>
 										{item.is_active ? "Active" : "Inactive"}

@@ -310,7 +310,7 @@ export function ResumeUploadStep() {
 			{/* Success: Confirmation */}
 			{status === "success" && (
 				<div className="text-center" data-testid="upload-success">
-					<CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-green-500" />
+					<CheckCircle2 className="text-success mx-auto mb-3 h-10 w-10" />
 					<p className="font-medium">
 						Resume parsed! I&apos;ll use this to pre-fill your profile.
 					</p>
