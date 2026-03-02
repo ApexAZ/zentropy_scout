@@ -11,6 +11,7 @@ import { expect, type Page, type Route, test } from "@playwright/test";
 
 import { changeFlagsList } from "../fixtures/persona-update-mock-data";
 import { balanceResponse } from "../fixtures/usage-mock-data";
+import { setupAdminMocks } from "../utils/admin-api-mocks";
 import { setupDashboardMocks } from "../utils/job-discovery-api-mocks";
 import { setupSettingsMocks } from "../utils/settings-api-mocks";
 
@@ -88,6 +89,13 @@ test.describe("Nav Link Rendering", () => {
 		const indicator = page.getByTestId("balance-indicator");
 		await expect(indicator).toBeVisible();
 		await expect(indicator).toHaveText("$5.00");
+	});
+
+	test("displays Admin link when user is admin", async ({ page }) => {
+		await setupAdminMocks(page);
+		await page.goto("/");
+
+		await expect(page.getByRole("link", { name: "Admin" })).toBeVisible();
 	});
 });
 

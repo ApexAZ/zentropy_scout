@@ -40,6 +40,7 @@ function listMeta(total: number): PaginationMeta {
 interface AuthMeOptions {
 	hasPassword?: boolean;
 	name?: string;
+	isAdmin?: boolean;
 }
 
 /** GET /auth/me — authenticated user (with password by default). */
@@ -52,6 +53,7 @@ export function authMeResponse(options?: AuthMeOptions) {
 			image: null,
 			email_verified: true,
 			has_password: options?.hasPassword ?? true,
+			is_admin: options?.isAdmin ?? false,
 		},
 	};
 }
