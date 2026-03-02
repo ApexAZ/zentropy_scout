@@ -1,9 +1,9 @@
 # Zentropy Scout — Feature Backlog
 
 **Created:** 2026-02-16
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-02
 
-**Items:** 24 (7 completed, 17 pending)
+**Items:** 24 (8 completed, 16 pending)
 
 ---
 
@@ -23,46 +23,120 @@ These items are required to launch Zentropy Scout as a production SaaS tool on R
 
 ---
 
-### 16. Admin Pricing Dashboard & Model Registry
-
-**Category:** Backend / Frontend / Admin
-**Added:** 2026-03-01
-**Priority:** P1 — Required before launch. Must be able to configure pricing and models without code changes.
-**Depends on:** ~~#12 (Token Metering)~~ ✅
-
-Admin-configurable pricing and model management. Replaces the hardcoded pricing dict in the metering service and the hardcoded model routing tables in the LLM adapters with DB-backed configuration editable from the admin UI.
-
-**What needs to be built:**
-- **`pricing_config` table** — `id`, `provider`, `model`, `input_cost_per_1k`, `output_cost_per_1k`, `margin_multiplier`, `effective_date`, `created_at`, `updated_at`
-- **`model_registry` table** — `id`, `provider`, `model`, `display_name`, `is_active`, `created_at` — canonical list of available models. Calls to unregistered models are blocked (prevents unmetered usage).
-- **`task_routing_config` table** — `id`, `provider`, `task_type`, `model_id` (FK to model_registry) — replaces hardcoded `DEFAULT_CLAUDE_ROUTING` / `DEFAULT_OPENAI_ROUTING` dicts. Admin can reroute task types to different models without code changes.
-- **`system_config` table** — key/value store for global settings like `credits_per_dollar`
-- **Migrate metering service** — read pricing from DB instead of hardcoded Python dict, with caching (pricing doesn't change often)
-- **Migrate LLM adapters** — `get_model_for_task()` reads from `task_routing_config` instead of hardcoded dicts
-- **Block unknown models** — if a (provider, model) pair has no `pricing_config` row, the call is rejected. Prevents unmetered usage when providers release new models.
-- **Admin API endpoints** — CRUD for pricing config, model registry, task routing, system config
-- **Admin UI** — pricing table editor with live cost preview, effective date picker, model registry management, task routing editor
-- **Admin auth/role** — admin-only access gate (could be a simple `is_admin` flag on user for MVP)
-
-**Key consideration:** Effective dates on pricing changes — when a provider raises prices, admin updates the raw cost and sets an effective date. The system applies the new pricing from that date forward. Prevents running a deficit between provider price change and admin noticing.
-
 ---
 
-### 19. Credit Denomination & Display Configuration
+### 19. USD-Direct Billing & Pack Configuration
 
 **Category:** Backend / Frontend / Admin
 **Added:** 2026-03-01
+**Updated:** 2026-03-02 (scope redefined — abstract credits replaced with USD-direct billing)
 **Priority:** P1 — Needed to launch credit packs. Closely tied to #16.
-**Depends on:** #16 (Admin Pricing Dashboard)
+**Depends on:** ~~#16 (Admin Pricing Dashboard)~~ ✅
 
-Global configuration for how credits are denominated, displayed, and labeled across the product. Controls the credits-per-dollar ratio, display precision (decimal places), unit label ("credits", "tokens", custom), and rounding behavior. All frontend display logic and Stripe credit pack descriptions derive from these settings.
+Configure the billing model for USD-direct display and tiered pack pricing. Repurpose the existing `credit_packs` table for USD-denominated balance packs and update frontend display to show dollar amounts with a usage depletion bar.
+
+#### Decision Record: USD-Direct Over Abstract Credits (2026-03-02)
+
+**Original proposal:** Abstract credit system with configurable `credits_per_dollar` conversion rate (e.g., 10,000 credits per dollar). Users would see "175,000 credits" instead of "$17.50". Four new `system_config` keys (`credits_per_dollar`, `credit_display_name`, `display_precision`, `rounding_mode`) and a frontend formatting utility to convert USD to credits at display time.
+
+**Decision:** Use USD directly — no abstract credit layer. Users see dollar amounts everywhere.
+
+**Why abstract credits were rejected:**
+
+1. **Denomination dilemma with no good answer.** At 10,000 credits/dollar, a $20 purchase shows "200,000 credits" — feels like a mobile game, not a professional tool. At 1,000 credits/dollar, the cheapest LLM calls (Gemini Flash ~$0.000169) round to 0 credits at integer display. At 100 credits/dollar, most operations round to 0. Every ratio has a fatal tradeoff between relatable numbers and display precision.
+
+2. **Redenomination risk.** `credits_per_dollar` is a global display multiplier applied retroactively to all existing balances. Changing it from 10,000 to 5,000 instantly halves every user's displayed balance overnight — a redenomination event. Options to mitigate (snapshot at transaction time, lock after first set, dual-rate tracking) all add significant complexity for a scenario that ideally never happens.
+
+3. **Margin flexibility already exists.** The admin pricing dashboard (REQ-022) provides `margin_multiplier` per model in `pricing_config`. Adjusting margins doesn't require a credit abstraction — it's already configurable per-model from the admin UI.
+
+4. **Transparency is a feature for professional SaaS.** Anthropic, OpenAI, Vercel, and AWS all show USD costs directly. For a job application assistant (a productivity tool, not a game), transparent pricing builds trust. The "psychological abundance" of large credit numbers is a gaming industry pattern that was widely criticized and largely abandoned (Microsoft Points, Wii Points).
+
+5. **The system already works in USD.** The metering pipeline calculates in USD, `balance_usd` stores USD, `credit_transactions.amount_usd` is USD, the frontend already displays `$X.XX`. Abstract credits would add a conversion layer on top of a system that already does the right thing.
+
+**Why USD-direct works:**
+
+- **Pack changes only affect future purchases.** When a user buys a pack, the granted amount is written to `credit_transactions` as an immutable ledger entry. Changing pack pricing later doesn't affect existing balances — it's just a menu change. No redenomination risk.
+- **Volume bonuses supported but deferred.** The `credit_packs` table has both `price_cents` (what user pays) and `credit_amount` (what they get). For MVP launch, these are equal (dollar-for-dollar, no bonuses). If volume bonuses are added later, the `credit_amount` exceeding `price_cents` IS the bonus — tracked implicitly by the two existing fields. Effective margin in that case: `base_margin × (price_cents / credit_amount)`.
+- **Fully reconfigurable from admin UI.** Pack tiers, prices, and grant amounts are editable anytime from the admin Packs tab. No code deploy needed to adjust pricing. Only future purchases are affected.
+
+**What this eliminates:**
+- ~~`credits_per_dollar` system config key~~ — not needed
+- ~~`credit_display_name` system config key~~ — not needed
+- ~~`display_precision` system config key~~ — not needed (USD uses 2 decimal places)
+- ~~`rounding_mode` system config key~~ — not needed
+- ~~Frontend credit formatting utility~~ — not needed (existing `formatBalance`/`formatCost` already display USD)
+- ~~Admin denomination preview UI~~ — not needed
+- ~~Column renames (`balance_usd` → `balance_credits`)~~ — not needed (column names are now accurate)
+
+#### Decision Record: Funding Model & Pack Structure (2026-03-02)
+
+**Model: "Add Funds" with quick-select amounts, not differentiated tiers.**
+
+Packs are not tiers with differentiated value — they are suggested funding amounts with admin-controlled descriptions to help users make informed choices. The `credit_packs` table is repurposed as a menu of quick-select options with context labels tied to service volume (number of jobs/resumes), not time.
+
+**Rationale for quick-select over free-entry:** Fewer clicks — a row of amount buttons that go straight to Stripe checkout is faster than a text input with validation. Predefined amounts also let the admin attach volume-based descriptions so users understand what they're buying.
+
+**Rationale for volume-based labels over time-based:** Users aren't buying time in the job market. They're buying a service — job analysis, resume generation, cover letter creation. Labels should communicate service volume: "Analyze ~250 jobs and generate tailored materials" not "3 months of use."
+
+**Initial configuration (3 options, admin-editable):**
+
+| Amount | Name | Description (admin-controlled) |
+|--------|------|-------------------------------|
+| $5 | Starter | e.g., "Analyze ~250 jobs and generate tailored materials" |
+| $10 | Standard | e.g., "Analyze ~500 jobs and generate tailored materials" |
+| $15 | Pro | e.g., "Analyze ~750 jobs and generate tailored materials" |
+
+Exact descriptions are set by admin from the Packs tab. Names, descriptions, and `highlight_label` (e.g., "Most Popular") are all editable without code changes. Amounts, number of options, and descriptions can all be reconfigured at any time — only future purchases are affected.
+
+**No volume bonuses for MVP.** Dollar-for-dollar — pay $10, get $10.00 in balance. Volume bonuses can be added later by setting `credit_amount` > `price_cents` on a pack. The infrastructure supports it; the business decision is deferred.
+
+**Usage cost context (informs amount sizing):**
+
+| User Profile | Monthly Usage | Monthly Cost (1.3x margin) |
+|-------------|---------------|---------------------------|
+| Light (5 jobs, 2 resumes, 2 cover letters) | ~15 LLM calls | ~$0.05 |
+| Typical (20 jobs, 10 resumes, 10 cover letters) | ~65 LLM calls | ~$0.22 |
+| Heavy (50 jobs, 20 resumes, 20 cover letters) | ~130 LLM calls | ~$0.50 |
+| Power (100 jobs, 50 resumes, 50 cover letters) | ~300 LLM calls | ~$1.60 |
+
+**Per-operation cost breakdown (at 1.3x margin):**
+
+| Operation | Model (default routing) | Approx. Cost |
+|-----------|------------------------|-------------|
+| Job extraction | Claude Haiku | ~$0.002 |
+| Job scoring/rationale | Claude Haiku | ~$0.002 |
+| Cover letter generation | Claude Sonnet | ~$0.008 |
+| Resume tailoring decisions | Claude Haiku | ~$0.002 |
+| Story selection | Claude Sonnet | ~$0.004 |
+| Resume parsing | Gemini 2.5 Flash | ~$0.002 |
+| Embedding (per call) | OpenAI text-embedding-3-small | ~$0.00003 |
+
+**Stripe fee impact:**
+
+| Amount | Stripe Fee (~$0.30 + 2.9%) | Net Revenue | Fee % |
+|--------|----------------------------|-------------|-------|
+| $5 | $0.45 | $4.55 | 9.0% |
+| $10 | $0.59 | $9.41 | 5.9% |
+| $15 | $0.74 | $14.26 | 4.9% |
 
 **What needs to be built:**
-- **Display config** in `system_config` — `credits_per_dollar`, `credit_display_name`, `display_precision`, `rounding_mode` (up/nearest/down)
-- **Frontend formatting utility** — single source of truth for rendering credit amounts everywhere (nav balance, usage page, transaction history, Stripe pack descriptions)
-- **Admin UI** — preview how different denominations look across all user-facing surfaces before committing
 
-**Key consideration:** Abstract credits from day one — not dollar-denominated. Decouples from USD, allows margin flexibility, psychologically easier for users. Denomination (e.g., 10,000 credits per dollar) is tunable from admin without code changes.
+- **Update `credit_packs` seed data** — Change from abstract credits (50000, 175000, 500000) to USD cents matching price (500, 1000, 1500). Update descriptions to volume-based labels. Alembic migration to update seed data. The `credit_amount` column stays as-is (reinterpret as cents). Rename deferred until bonuses are needed.
+- **Frontend usage bar** — Depletion-style progress indicator showing the user's current dollar balance visually.
+- **Update `signup_grant_credits` system config key** — Rename to `signup_grant_cents`. Value represents USD cents granted on signup (0 = no grant).
+
+**Scope reduction:** This feature shrank dramatically from the original abstract-credits design. The four `system_config` denomination keys, the frontend formatting utility, the admin preview UI, the column renames, the bonus math display, and the effective margin columns are all eliminated or deferred. The remaining work is a seed data migration, a usage bar component, and a config key rename. This could fold into #13 (Stripe Integration) as a preparatory subtask.
+
+**Key files (modify):**
+- `backend/migrations/versions/` — new migration to update `credit_packs` seed data and rename `signup_grant_credits` config key
+- `backend/app/models/admin_config.py` — update CreditPack column comments/docs
+- `frontend/src/components/usage/balance-card.tsx` — add usage depletion bar
+- `frontend/src/components/layout/top-nav.tsx` — balance display (already USD, may add bar)
+
+**Open questions:**
+- Should this remain standalone (#19), or fold into #13 (Stripe Integration) as a preparatory subtask?
+- Usage bar reference point: absolute dollar balance, or "last purchase amount" as 100%?
+- `signup_grant_cents` default: how much free balance for new users? Enough for 2-3 job analyses (~$0.05-$0.10)?
 
 ---
 
@@ -70,16 +144,16 @@ Global configuration for how credits are denominated, displayed, and labeled acr
 
 **Category:** Backend / Frontend / Payments
 **Added:** 2026-02-27
-**Updated:** 2026-03-01 (reordered after #16/#19, narrowed scope to payment rail)
-**Priority:** P2 — Monetization. Users purchase credits to use the tool.
-**Depends on:** ~~#12 (Token Metering)~~ ✅, #16 (Admin Pricing Dashboard), #19 (Credit Denomination)
+**Updated:** 2026-03-02 (reordered after #16/#19, narrowed scope to payment rail, updated for USD-direct billing)
+**Priority:** P2 — Monetization. Users purchase balance packs to use the tool.
+**Depends on:** ~~#12 (Token Metering)~~ ✅, ~~#16 (Admin Pricing Dashboard)~~ ✅, #19 (USD-Direct Billing)
 
-Integrate Stripe as the payment rail for credit pack purchases. Users buy credits via Stripe Checkout, webhook confirms payment and credits the ledger. Pricing intelligence and margin configuration live in #16 — Stripe just processes the payment and triggers the credit grant.
+Integrate Stripe as the payment rail for "Add Funds" purchases. Users select a quick-select amount ($5/$10/$15 — admin-configurable), Stripe Checkout processes the payment, webhook confirms and credits the user's dollar balance. Pricing intelligence and margin configuration live in #16 — Stripe just processes the payment and triggers the balance grant.
 
 **What needs to be built:**
-- **Stripe Checkout integration** — create checkout sessions for predefined credit packs
+- **Stripe Checkout integration** — create checkout sessions for the selected funding amount
 - **Webhook handler** — `POST /api/v1/webhooks/stripe` — verify signature, process `checkout.session.completed`, credit the user's ledger
-- **Credit pack tiers** — pack amounts derived from credit denomination (#19), e.g., Starter ($5 / 50,000 credits), Standard ($15 / 175,000 credits), Pro ($40 / 500,000 credits) — exact amounts TBD based on denomination tuning
+- **"Add Funds" UI** — quick-select amount buttons ($5/$10/$15) with admin-controlled volume-based descriptions, leading to Stripe Checkout. Amounts and descriptions configurable from admin Packs tab.
 - **Purchase history** — `GET /api/v1/credits/purchases` — list of Stripe transactions with amounts and credit grants
 - **Frontend purchase flow** — credits page with pack options, "Buy Credits" buttons that redirect to Stripe Checkout, success/cancel return URLs
 - **Low-balance notifications** — frontend warning when credits drop below threshold (e.g., 10% of last purchase)
@@ -284,7 +358,7 @@ Replace the current resume management flow with a TipTap rich text editor that s
 **Added:** 2026-02-16
 **Updated:** 2026-03-01 (updated dependencies for new ordering)
 **Priority:** P4 — Deploy after metering + payments are functional.
-**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, ~~#12 (Token Metering)~~ ✅, #16 (Admin Pricing), #13 (Stripe Integration)
+**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, ~~#12 (Token Metering)~~ ✅, ~~#16 (Admin Pricing)~~ ✅, #13 (Stripe Integration)
 
 Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Python background workers on Render. Render is already familiar, uses fixed predictable pricing, has native background worker and cron job support, and no cold-start surprises.
 
@@ -323,7 +397,7 @@ Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Pyt
 **Category:** Security / Testing / Quality
 **Added:** 2026-03-02
 **Priority:** Critical — Complete before public launch. Final gate before real user data is at risk.
-**Depends on:** All MVP items complete (#16, #19, #13, #20, #23, #24, #14, #4), private Render deployment live
+**Depends on:** All MVP items complete (~~#16~~ ✅, #19, #13, #20, #23, #24, #14, #4), private Render deployment live
 **Assigned to:** Claude Code (Opus 4.6) + Brian (joint review)
 
 Structured white-box security audit and penetration test of the full Zentropy Scout system. Conducted against the live Render deployment (not localhost) to capture infrastructure-level issues. Goal: surface and remediate vulnerabilities before real user data and payment information are at risk.
@@ -859,7 +933,7 @@ Deep audit of the entire backend for async/sync correctness under high concurren
 **Category:** Backend / Frontend / Admin
 **Added:** 2026-03-01
 **Priority:** P2 — Important for informed pricing decisions before and after launch.
-**Depends on:** #16 (Admin Pricing Dashboard)
+**Depends on:** ~~#16 (Admin Pricing Dashboard)~~ ✅
 
 Before committing a pricing change, preview "here's what last week's (or any date range's) usage would have cost users under the proposed rates." Queries existing `llm_usage_records` with proposed pricing applied and shows a comparison: current revenue vs. projected revenue, per-user impact, cost distribution by model.
 
@@ -875,7 +949,7 @@ Before committing a pricing change, preview "here's what last week's (or any dat
 **Category:** Backend / Frontend / Admin
 **Added:** 2026-03-01
 **Priority:** Post-MVP — Needs real users and usage data to be meaningful.
-**Depends on:** #16 (Admin Pricing Dashboard)
+**Depends on:** ~~#16 (Admin Pricing Dashboard)~~ ✅
 
 Assign users to pricing cohorts, each with their own margin multipliers. Compare retention, usage volume, and revenue across cohorts. Enables data-driven pricing optimization.
 
@@ -973,6 +1047,14 @@ Add a user-facing dark mode toggle in the settings page. The frontend already ha
 **Status:** Promoted to plan and completed
 **Implemented in:** `docs/plan/llm_redesign_plan.md` — Phase 4 (REQ-019)
 **Completed:** Replaced 13-node LangGraph StateGraph (2490L) with ResumeParsingService (pdfplumber + Gemini 2.5 Flash) and resume-parse API endpoint. Deleted ~1784L of graph/state-machine code, kept ~706L of post-onboarding utilities. Frontend updated from 12→11 steps (removed base-resume step). E2E tests rewritten for 11-step flow. All tests passing.
+
+---
+
+### ~~16. Admin Pricing Dashboard & Model Registry~~ ✅
+
+**Status:** Promoted to plan and completed
+**Implemented in:** `docs/plan/admin_pricing_plan.md` — Phases 1–6 (REQ-022)
+**Completed:** 5 admin DB tables (model_registry, pricing_config, task_routing_config, credit_packs, system_config), admin auth (ADMIN_EMAILS bootstrap, JWT `adm` claim, `require_admin` dependency), AdminConfigService (read-side pricing/routing/registration lookups), metering migration (hardcoded → DB-backed per-model pricing and margins), LLM adapter model_override support, AdminManagementService (CRUD with validation), 7 admin API endpoint groups, 6-tab admin frontend UI, backend integration tests, Playwright E2E tests. All tests passing.
 
 ---
 

@@ -1,17 +1,19 @@
 # REQ-021: Credits & Billing
 
 **Status:** Not Started
-**Version:** 0.3
+**Version:** 0.5
 **PRD Reference:** §6 Technical Architecture
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-02
 
 ---
 
 ## 1. Overview
 
-This document specifies the Stripe payment rail for purchasing credits, crediting user balances, and displaying purchase history. It builds on the metering infrastructure defined in REQ-020 (Token Metering & Usage Tracking) and depends on the Admin Pricing Dashboard (backlog #16) and Credit Denomination system (backlog #19) for pricing configuration and credit display.
+This document specifies the Stripe payment rail for adding funds to user balances and displaying purchase history. It builds on the metering infrastructure defined in REQ-020 (Token Metering & Usage Tracking) and depends on the Admin Pricing Dashboard (backlog #16 / REQ-022) and USD-Direct Billing configuration (backlog #19 / REQ-023) for pack definitions and display model.
 
-**Scope boundary:** This REQ covers **Stripe as a payment rail only** — checkout, webhooks, refunds, purchase history. Pricing configuration, model registry, margin multipliers, credit denomination, and admin UI are specified in the REQs for backlog #16 and #19. REQ-021 consumes those systems; it does not define them.
+**Scope boundary:** This REQ covers **Stripe as a payment rail only** — checkout, webhooks, refunds, purchase history. Pricing configuration, model registry, and margin multipliers are specified in REQ-022 (backlog #16). USD-direct billing decisions and seed data corrections are specified in REQ-023 (backlog #19). REQ-021 consumes those systems; it does not define them.
+
+> **v0.4–0.5 Errata (2026-03-02):** This document was originally written assuming abstract credits (v0.3). A design review (documented in backlog PBI #19 and REQ-023) rejected abstract credits in favor of USD-direct billing. v0.4 replaced all references to abstract credits, `credits_per_dollar`, and credit formatting utilities with USD-direct equivalents. v0.5 aligned table/column names with REQ-023's naming clean-up: `credit_packs` → `funding_packs`, `credit_amount` → `grant_cents`. See REQ-023 §6.1 for the full change map and §2.3 for the naming rationale.
 
 ### 1.1 Problem Statement
 
@@ -24,28 +26,27 @@ REQ-020 defines a per-user credit balance and an append-only credit ledger (`cre
 ### 1.2 Solution
 
 A Stripe Checkout integration that:
-1. **Offers** admin-configurable credit packs at fixed USD prices (packs grant abstract credits)
+1. **Offers** admin-configurable funding packs at fixed USD prices (packs grant USD balance, dollar-for-dollar)
 2. **Redirects** users to Stripe's hosted checkout page for secure payment
 3. **Processes** completed payments via Stripe webhooks
-4. **Credits** the user's balance atomically via the `credit_transactions` ledger
+4. **Credits** the user's USD balance atomically via the `credit_transactions` ledger
 5. **Displays** purchase history and current balance in the frontend
-6. **Grants** free starter credits on signup so new users can try the service
+6. **Grants** a free starter balance on signup so new users can try the service
 
 ### 1.3 Scope
 
 | In Scope | Out of Scope |
 |----------|-------------|
 | Stripe Checkout (hosted redirect mode) | Stripe Elements / embedded card forms |
-| Credit pack purchase flow (packs defined in admin UI) | Custom amounts / pay-what-you-want |
+| "Add Funds" pack purchase flow (packs defined in admin UI) | Custom amounts / pay-what-you-want |
 | One-time purchases | Subscriptions / recurring billing |
 | Stripe webhook handling (signature verified) | Stripe Connect / marketplace payouts |
 | Idempotent webhook processing | Invoice generation / tax calculation |
-| Free trial grant on signup | Referral / promo codes |
+| Free starter balance on signup | Referral / promo codes |
 | Stripe Customer creation per user | Saved payment methods / card-on-file |
 | Purchase history API + frontend | Admin refund UI (manual via Stripe Dashboard) |
-| Frontend credits purchase page | Mobile payment (Apple Pay, Google Pay) |
-| | Pricing config / model registry / margin config (backlog #16) |
-| | Credit denomination / display formatting (backlog #19) |
+| Frontend "Add Funds" page | Mobile payment (Apple Pay, Google Pay) |
+| | Pricing config / model registry / margin config (REQ-022 / backlog #16) |
 
 ---
 
@@ -65,7 +66,7 @@ A Stripe Checkout integration that:
 **Chosen: Option A — Stripe Checkout (Hosted Redirect)**
 
 Flow:
-1. User clicks "Buy" on a credit pack
+1. User clicks "Add Funds" on a pack
 2. Frontend calls `POST /api/v1/credits/checkout` with the pack ID
 3. Backend creates a Stripe Checkout Session with the pack's price and the user's ID in metadata
 4. Backend returns the Checkout Session URL
@@ -73,7 +74,7 @@ Flow:
 6. User completes payment on Stripe's domain
 7. Stripe redirects user back to our success/cancel URL
 8. Stripe sends a `checkout.session.completed` webhook to our backend
-9. Backend verifies webhook signature, credits the user's balance in abstract credits
+9. Backend verifies webhook signature, credits the user's USD balance
 
 ### 2.2 Pricing Strategy
 
@@ -81,13 +82,13 @@ Flow:
 
 | Option | Chosen? | Rationale |
 |--------|---------|-----------|
-| A. Fixed credit packs (tiered) | ✅ | Simple, clear pricing. Users pick a pack. No decision fatigue. Standard SaaS pattern. |
+| A. Fixed funding packs (quick-select) | ✅ | Simple, clear pricing. Users pick an amount. No decision fatigue. Standard SaaS pattern. Quick-select buttons go straight to Stripe checkout. |
 | B. Custom amount (pay-what-you-want) | — | More flexible but adds UI complexity (amount input, validation, dynamic Stripe price creation). No clear user demand. |
 | C. Single fixed amount | — | Too restrictive. Users with different budgets want different options. |
 
-**Chosen: Option A — Fixed Credit Packs (Tiered)**
+**Chosen: Option A — Fixed Funding Packs (Quick-Select)**
 
-Pack definitions are **admin-configurable** via the Admin Pricing Dashboard (backlog #16), stored in the `credit_packs` table (see §4.3). Packs grant **abstract credits** (not USD). The credit amount per pack is derived from the `credits_per_dollar` system setting (backlog #19) and the admin's chosen pricing. Each pack has a corresponding Stripe Price ID for checkout.
+Pack definitions are **admin-configurable** via the Admin Pricing Dashboard (REQ-022 / backlog #16), stored in the `funding_packs` table (see §4.3). Packs grant **USD balance** — dollar-for-dollar for MVP (no volume bonuses). Each pack has a corresponding Stripe Price ID for checkout. Descriptions are volume-based and admin-editable to help users understand what they're buying.
 
 See §5 for pack definitions and example values.
 
@@ -129,13 +130,13 @@ The `credit_transactions` table gains a `stripe_event_id` column with a unique i
 
 | Option | Chosen? | Rationale |
 |--------|---------|-----------|
-| A. Configurable starter credit grant on signup | ✅ | Lets users explore all features before paying. Grant amount is admin-configurable via `system_config` (backlog #16). Creates a `credit_transactions` row with `type = 'signup_grant'`. |
-| B. No free credits | — | New users hit 402 immediately. Terrible onboarding experience. Forces payment before users understand value. |
-| C. Free tier (unlimited free usage up to N calls) | — | Requires separate gating logic. Harder to implement than a simple balance grant. Doesn't teach users about the credit model. |
+| A. Configurable starter balance on signup | ✅ | Lets users explore all features before paying. Grant amount is admin-configurable via `system_config` (REQ-022 / backlog #16). Creates a `credit_transactions` row with `type = 'signup_grant'`. |
+| B. No free balance | — | New users hit 402 immediately. Terrible onboarding experience. Forces payment before users understand value. |
+| C. Free tier (unlimited free usage up to N calls) | — | Requires separate gating logic. Harder to implement than a simple balance grant. Doesn't teach users about the billing model. |
 
-**Chosen: Option A — Configurable Starter Credit Grant**
+**Chosen: Option A — Configurable Starter Balance**
 
-Granted once per user at account creation. The grant amount is stored in the `system_config` table (key: `signup_grant_credits`) and configurable via the Admin Pricing Dashboard (backlog #16). Example: 10,000 credits — enough for ~30 job extractions or ~3 cover letters at typical margins. Creates a `credit_transactions` row with `transaction_type = 'signup_grant'`. This is a new transaction type added to the enum defined in REQ-020 §4.3.
+Granted once per user at account creation. The grant amount is stored in the `system_config` table (key: `signup_grant_cents`, renamed from `signup_grant_credits` by REQ-023) and configurable via the Admin System Config tab. Default: 10 cents ($0.10) — enough for ~5 job extractions or ~2 complete workflows at typical margins. Creates a `credit_transactions` row with `transaction_type = 'signup_grant'`. This is a new transaction type added to the enum defined in REQ-020 §4.3.
 
 **Updated `transaction_type` enum:** `purchase`, `usage_debit`, `admin_grant`, `refund`, `signup_grant`.
 
@@ -150,9 +151,9 @@ Granted once per user at account creation. The grant amount is stored in the `sy
 
 **Chosen: Option A — Manual via Stripe Dashboard**
 
-When a refund is issued via Stripe Dashboard, the `charge.refunded` webhook fires. The backend creates a `credit_transactions` row with `transaction_type = 'refund'` and a **negative** credit amount, then reduces the user's credit balance accordingly.
+When a refund is issued via Stripe Dashboard, the `charge.refunded` webhook fires. The backend creates a `credit_transactions` row with `transaction_type = 'refund'` and a **negative** USD amount, then reduces the user's balance accordingly.
 
-**Why negative?** A refund returns money to the user via Stripe, so we must remove the corresponding credits from their balance. The negative amount reflects credits being taken back — the money refund happens entirely on Stripe's side. The credit amount to remove is calculated by reversing the original purchase: if the user paid $15 for 150,000 credits and receives a full refund, 150,000 credits are debited. For partial refunds, the credit debit is proportional to the refund percentage. If the user has already spent some or all of the refunded credits, their balance may go negative. This is expected and logged as a warning.
+**Why negative?** A refund returns money to the user via Stripe, so we must remove the corresponding balance. The negative `amount_usd` reflects balance being taken back — the money refund happens entirely on Stripe's side. The amount to remove matches the refund: if the user paid $10 and receives a full refund, $10.00 is debited from their balance. For partial refunds, the debit matches the refund amount. If the user has already spent some or all of the refunded balance, their `balance_usd` may go negative. This is expected and logged as a warning.
 
 ---
 
@@ -163,8 +164,8 @@ When a refund is issued via Stripe Dashboard, the `charge.refunded` webhook fire
 | Document | Dependency Type | Notes |
 |----------|----------------|-------|
 | REQ-020 Token Metering v0.5 | Foundation | `credit_transactions` table, user balance column, balance API endpoints, metering pipeline |
-| REQ for backlog #16 (Admin Pricing Dashboard) | Foundation | `credit_packs` table, `system_config` table (signup grant amount), admin auth gate |
-| REQ for backlog #19 (Credit Denomination) | Foundation | `credits_per_dollar` setting, credit display formatting utility, abstract credit system |
+| REQ-022 Admin Pricing (backlog #16) | Foundation | `funding_packs` table (renamed from `credit_packs` by REQ-023), `system_config` table (signup grant amount), admin auth gate |
+| REQ-023 USD-Direct Billing (backlog #19) | Foundation | Corrected seed data (USD cents), `signup_grant_cents` config key, usage bar |
 | REQ-005 Database Schema v0.10 | Schema | `users` table to extend with `stripe_customer_id` |
 | REQ-006 API Contract v0.8 | Integration | Response envelope pattern (§7), error codes (§8) |
 | REQ-013 Authentication v0.1 | Integration | `CurrentUserId` dependency, user creation flow (for signup grant) |
@@ -178,10 +179,10 @@ When a refund is issued via Stripe Dashboard, the `charge.refunded` webhook fire
 ### 3.3 Prerequisite Implementation Order
 
 This REQ **cannot be implemented** until:
-1. **Backlog #16** (Admin Pricing Dashboard) is complete — provides `credit_packs` table, `system_config` table, and admin auth
-2. **Backlog #19** (Credit Denomination) is complete — provides `credits_per_dollar` configuration and frontend formatting utility
+1. **Backlog #16 / REQ-022** (Admin Pricing Dashboard) is complete ✅ — provides `funding_packs` table (renamed from `credit_packs` by REQ-023), `system_config` table, and admin auth
+2. **Backlog #19 / REQ-023** (USD-Direct Billing) is complete — renames `credit_packs` → `funding_packs` and `credit_amount` → `grant_cents`, provides corrected seed data (USD cents), renamed `signup_grant_cents` config key, and usage bar
 
-The column renames from REQ-020's current USD-denominated schema (e.g., `balance_usd` → `balance_credits`, `amount_usd` → `amount_credits`) are handled by the migration in the REQ for backlog #16, not this REQ.
+No column renames are needed on `users` or `credit_transactions`. The existing USD-denominated columns (`balance_usd`, `amount_usd`) are correct as-is — the USD-direct decision (REQ-023 §2.1) means the column names match their semantic meaning. The `credit_packs` → `funding_packs` and `credit_amount` → `grant_cents` renames are handled by REQ-023's migration (§4.1).
 
 ---
 
@@ -213,16 +214,16 @@ ALTER TABLE credit_transactions ADD COLUMN stripe_event_id VARCHAR(255) UNIQUE;
 
 **Migration note:** REQ-020 is already implemented. This column is added in a separate Alembic migration by this REQ.
 
-### 4.3 Credit Packs Table
+### 4.3 Funding Packs Table
 
-**Defined by backlog #16 (Admin Pricing Dashboard), consumed by this REQ.** Listed here for reference:
+**Defined by backlog #16 (Admin Pricing Dashboard), renamed by backlog #19 (REQ-023), consumed by this REQ.** Listed here for reference with post-rename names:
 
 ```sql
-CREATE TABLE credit_packs (
+CREATE TABLE funding_packs (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name            VARCHAR(50) NOT NULL,         -- "Starter", "Standard", "Pro"
     price_cents     INTEGER NOT NULL,              -- USD price in cents (e.g., 500 = $5.00)
-    credit_amount   BIGINT NOT NULL,               -- Abstract credits granted (e.g., 50000)
+    grant_cents     BIGINT NOT NULL,               -- USD cents to grant (e.g., 500 = $5.00). Equals price_cents for MVP (dollar-for-dollar).
     stripe_price_id VARCHAR(255) NOT NULL UNIQUE,  -- Stripe Price ID (e.g., "price_abc123")
     display_order   INTEGER NOT NULL DEFAULT 0,    -- Sort order in UI
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,  -- Soft-disable without deleting
@@ -235,9 +236,11 @@ CREATE TABLE credit_packs (
 
 **Why `price_cents` (integer) instead of `price_usd` (decimal)?** Following Stripe's convention — storing monetary amounts as integers in the smallest currency unit (cents for USD) eliminates floating-point rounding issues. Stripe's API uses the same convention.
 
-**Why `credit_amount` (bigint)?** Abstract credits can be large numbers (e.g., 10,000 credits per dollar × $40 = 400,000 credits). BIGINT provides headroom for denomination changes without overflow.
+**Why `grant_cents` (bigint)?** BIGINT accommodates future volume bonuses where `grant_cents > price_cents`. For MVP, `grant_cents == price_cents` (dollar-for-dollar). See REQ-023 §2.3 for the naming rationale and §4.1 for the rename migration.
 
-This table is created and managed by the Admin Pricing Dashboard (backlog #16). REQ-021 reads from it; it does not write to it.
+**Naming history:** Originally created as `credit_packs` with `credit_amount` column (REQ-022). Renamed to `funding_packs` with `grant_cents` by REQ-023 to eliminate confusion between the rejected "abstract credits" concept and accounting credits (`credit_transactions`). See REQ-023 §2.3 for rationale.
+
+This table is created by the Admin Pricing Dashboard (REQ-022 / backlog #16), renamed and re-seeded by REQ-023 (backlog #19). REQ-021 reads from it; it does not write to it.
 
 ### 4.4 Transaction Type Extension
 
@@ -254,36 +257,36 @@ The unique index on `stripe_event_id` (§4.2) serves both lookup and idempotency
 
 ---
 
-## 5. Credit Packs
+## 5. Funding Packs
 
 ### 5.1 Pack Definitions
 
-Credit packs are **admin-configurable** via the Admin Pricing Dashboard (backlog #16). The admin sets:
-- **Name** and description
+Packs are **admin-configurable** via the Admin Pricing Dashboard (REQ-022 / backlog #16). The admin sets:
+- **Name** and volume-based description
 - **USD price** (what Stripe charges the user)
-- **Credit amount** (abstract credits granted to the user's balance)
+- **Grant amount** (USD cents credited to the user's balance — equals price for MVP)
 - **Stripe Price ID** (links to the corresponding Stripe Product/Price)
 - **Display order** and optional highlight label
 
-**Example configuration** (illustrative — actual values set by admin based on denomination from backlog #19):
+**Default configuration** (set by REQ-023 seed data migration, admin-editable):
 
-| Name | Price (USD) | Credits | Bonus | Highlight |
-|------|-------------|---------|-------|-----------|
-| Starter | $5.00 | 50,000 | — | — |
-| Standard | $15.00 | 175,000 | +17% | Most Popular |
-| Pro | $40.00 | 500,000 | +25% | Best Value |
+| Name | Price (USD) | Grant | Bonus | Description | Highlight |
+|------|-------------|-------|-------|-------------|-----------|
+| Starter | $5.00 | $5.00 | — | Analyze ~250 jobs and generate tailored materials | — |
+| Standard | $10.00 | $10.00 | — | Analyze ~500 jobs and generate tailored materials | Most Popular |
+| Pro | $15.00 | $15.00 | — | Analyze ~750 jobs and generate tailored materials | Best Value |
 
-**Example assumes** `credits_per_dollar = 10,000` (from backlog #19's `system_config`). The Starter pack grants exactly 10,000 × $5 = 50,000 credits (no bonus). Higher tiers include a bonus to incentivize larger purchases, reducing Stripe's per-transaction fixed fee ($0.30) as a percentage of revenue.
+**Dollar-for-dollar for MVP.** `grant_cents == price_cents` — no volume bonuses. Volume bonuses can be added later by setting `grant_cents > price_cents`. See REQ-023 §2.2 for rationale.
 
-**Stripe fee impact:** Stripe charges 2.9% + $0.30 per domestic card transaction. At the Starter tier ($5.00), Stripe takes $0.445 (8.9%). At the Pro tier ($40.00), Stripe takes $1.46 (3.7%). The per-model margin multipliers (configured in backlog #16) are the primary revenue source — pack bonuses compensate users for making fewer, larger purchases.
+**Stripe fee impact:** Stripe charges 2.9% + $0.30 per domestic card transaction. At the Starter tier ($5.00), Stripe takes $0.45 (9.0%). At the Pro tier ($15.00), Stripe takes $0.74 (4.9%). The per-model margin multipliers (configured in REQ-022) are the primary revenue source.
 
 ### 5.2 Stripe Product/Price Setup
 
-Each credit pack corresponds to a Stripe Product with a one-time Price, created in the Stripe Dashboard:
+Each pack corresponds to a Stripe Product with a one-time Price, created in the Stripe Dashboard:
 
-1. Create a Product for each pack (e.g., "Starter Credit Pack — 50,000 credits")
+1. Create a Product for each pack (e.g., "Zentropy Scout — Starter ($5)")
 2. Add a one-time Price to each Product (e.g., $5.00 USD)
-3. Copy the Price ID (`price_abc123`) into the `credit_packs` table via the admin UI
+3. Copy the Price ID (`price_abc123`) into the `funding_packs` table via the admin UI
 
 **Test vs Live:** Test mode and live mode have different Price IDs. The admin configures the appropriate IDs for each environment. No env var mapping needed — the Price IDs live in the database.
 
@@ -321,7 +324,7 @@ class StripeService:
         """Create a Stripe Checkout Session and return the URL.
 
         Steps:
-        1. Look up pack in credit_packs table (must be active)
+        1. Look up pack in funding_packs table (must be active)
         2. Look up or create Stripe Customer for this user
         3. Create Checkout Session with pack's Stripe Price ID
         4. Return session.url for frontend redirect
@@ -350,10 +353,10 @@ class StripeService:
         Steps:
         1. Extract session from event.data.object
         2. Extract user_id and pack_id from session.metadata
-        3. Look up pack to determine credit_amount
+        3. Look up pack to determine grant amount (grant_cents)
         4. Check idempotency (stripe_event_id already processed?)
-        5. Insert credit_transactions row (type='purchase', amount=+credit_amount)
-        6. Atomically credit user's balance
+        5. Insert credit_transactions row (type='purchase', amount_usd=+grant in USD)
+        6. Atomically credit user's balance_usd
         """
         ...
 
@@ -366,10 +369,10 @@ class StripeService:
         Steps:
         1. Extract charge from event.data.object
         2. Look up the original purchase transaction by reference_id
-        3. Calculate refund credit amount (proportional to refund percentage)
+        3. Calculate refund amount in USD (matches Stripe refund amount)
         4. Check idempotency
-        5. Insert credit_transactions row (type='refund', amount=-refund_credits)
-        6. Atomically debit user's balance
+        5. Insert credit_transactions row (type='refund', amount_usd=-refund_usd)
+        6. Atomically debit user's balance_usd
         7. If balance goes negative after refund, log warning
         """
         ...
@@ -381,11 +384,11 @@ class StripeService:
         """Grant free starter credits to a new user.
 
         Steps:
-        1. Read signup_grant_credits from system_config
+        1. Read signup_grant_cents from system_config (REQ-023)
         2. If amount is 0, skip (grants disabled)
         3. Check if user already has a signup_grant transaction (prevent double-grant)
-        4. Insert credit_transactions row (type='signup_grant', amount=+grant_credits)
-        5. Atomically credit user's balance
+        4. Convert cents to USD, insert credit_transactions row (type='signup_grant', amount_usd=+grant_usd)
+        5. Atomically credit user's balance_usd
         """
         ...
 ```
@@ -404,12 +407,12 @@ session = await stripe.checkout.Session.create_async(
     metadata={
         "user_id": str(user_id),
         "pack_id": str(pack.id),
-        "credit_amount": str(pack.credit_amount),
+        "grant_cents": str(pack.grant_cents),
     },
 )
 ```
 
-**Why store `credit_amount` in metadata?** If the admin changes pack pricing between session creation and webhook processing, the metadata preserves the amount the user was promised at checkout time. The webhook uses `metadata.credit_amount`, not the current pack definition.
+**Why store `grant_cents` in metadata?** If the admin changes pack pricing between session creation and webhook processing, the metadata preserves the grant amount the user was promised at checkout time. The webhook uses `metadata.grant_cents`, not the current pack definition.
 
 ### 6.4 Webhook Processing
 
@@ -488,16 +491,17 @@ When a purchase is confirmed via webhook:
 
 ```sql
 -- 1. Insert credit transaction (idempotent via stripe_event_id unique constraint)
-INSERT INTO credit_transactions (user_id, amount, transaction_type, reference_id, stripe_event_id, description)
-VALUES (:user_id, :credit_amount, 'purchase', :stripe_session_id, :stripe_event_id, :description);
+-- grant_cents from metadata is in cents; convert to USD for the NUMERIC(10,6) column
+INSERT INTO credit_transactions (user_id, amount_usd, transaction_type, reference_id, stripe_event_id, description)
+VALUES (:user_id, :grant_usd, 'purchase', :stripe_session_id, :stripe_event_id, :description);
 
 -- 2. Atomically credit balance
-UPDATE users SET balance = balance + :credit_amount WHERE id = :user_id;
+UPDATE users SET balance_usd = balance_usd + :grant_usd WHERE id = :user_id;
 ```
 
 Both operations run in the same database transaction. If either fails, both roll back.
 
-**Note:** Column names shown above (`amount`, `balance`) reflect the target state after the migration in backlog #16 renames the USD-denominated columns. The actual column names at implementation time depend on what #16 establishes.
+**Column names:** `amount_usd` and `balance_usd` are the actual column names — no renames needed. The USD-direct decision (REQ-023 §2.1) means these names are semantically correct.
 
 ### 6.8 REQ-020 Amendment: `reference_id` Type
 
@@ -517,7 +521,7 @@ All endpoints except the webhook require authentication (`CurrentUserId` depende
 
 ### 7.1 GET /api/v1/credits/packs
 
-Returns the active credit packs. No authentication required (public pricing page).
+Returns the active funding packs. No authentication required (public pricing page).
 
 **Response:** `200 OK`
 ```json
@@ -528,39 +532,36 @@ Returns the active credit packs. No authentication required (public pricing page
             "name": "Starter",
             "price_cents": 500,
             "price_display": "$5.00",
-            "credit_amount": 50000,
-            "credit_display": "50,000 credits",
-            "bonus_display": null,
-            "description": "Get started with Zentropy Scout",
+            "grant_cents": 500,
+            "amount_display": "$5.00",
+            "description": "Analyze ~250 jobs and generate tailored materials",
             "highlight_label": null
         },
         {
             "id": "e5f6g7h8-...",
             "name": "Standard",
-            "price_cents": 1500,
-            "price_display": "$15.00",
-            "credit_amount": 175000,
-            "credit_display": "175,000 credits",
-            "bonus_display": "+17% bonus",
-            "description": "Most popular — 17% bonus credits",
+            "price_cents": 1000,
+            "price_display": "$10.00",
+            "grant_cents": 1000,
+            "amount_display": "$10.00",
+            "description": "Analyze ~500 jobs and generate tailored materials",
             "highlight_label": "Most Popular"
         },
         {
             "id": "i9j0k1l2-...",
             "name": "Pro",
-            "price_cents": 4000,
-            "price_display": "$40.00",
-            "credit_amount": 500000,
-            "credit_display": "500,000 credits",
-            "bonus_display": "+25% bonus",
-            "description": "Best value — 25% bonus credits",
+            "price_cents": 1500,
+            "price_display": "$15.00",
+            "grant_cents": 1500,
+            "amount_display": "$15.00",
+            "description": "Analyze ~750 jobs and generate tailored materials",
             "highlight_label": "Best Value"
         }
     ]
 }
 ```
 
-**Display fields:** `price_display`, `credit_display`, and `bonus_display` are computed server-side using the credit denomination formatting utility (backlog #19). The frontend renders these strings directly — no client-side formatting needed for pack cards.
+**Display fields:** `price_display` and `amount_display` are computed server-side. For MVP (dollar-for-dollar), they are identical. If volume bonuses are added later, `amount_display` would show the bonus amount (e.g., "$12.00" for a $10 pack with 20% bonus). The frontend renders these strings directly — no client-side formatting needed.
 
 ### 7.2 POST /api/v1/credits/checkout
 
@@ -575,7 +576,7 @@ Creates a Stripe Checkout Session and returns the redirect URL. Requires authent
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `pack_id` | UUID string | Yes | Must reference an active credit pack |
+| `pack_id` | UUID string | Yes | Must reference an active funding pack |
 
 **Response:** `200 OK`
 ```json
@@ -613,18 +614,18 @@ Returns the user's purchase history (credit transactions of type `purchase`, `si
     "data": [
         {
             "id": "a1b2c3d4-...",
-            "credit_amount": 175000,
-            "credit_display": "175,000 credits",
+            "amount_usd": "10.000000",
+            "amount_display": "$10.00",
             "transaction_type": "purchase",
-            "description": "Standard Credit Pack",
+            "description": "Standard Pack",
             "created_at": "2026-02-27T15:30:00Z"
         },
         {
             "id": "e5f6g7h8-...",
-            "credit_amount": 10000,
-            "credit_display": "10,000 credits",
+            "amount_usd": "0.100000",
+            "amount_display": "$0.10",
             "transaction_type": "signup_grant",
-            "description": "Welcome bonus — free starter credits",
+            "description": "Welcome bonus — free starter balance",
             "created_at": "2026-02-25T10:00:00Z"
         }
     ],
@@ -672,10 +673,10 @@ The signup grant is applied when a new user account is created, after the user r
 1. User registers (OAuth, email+password, or magic link)
 2. Backend creates the `users` row
 3. Backend calls `stripe_service.grant_signup_credits(user_id)`
-4. Service reads `signup_grant_credits` from `system_config` table
+4. Service reads `signup_grant_cents` from `system_config` table (renamed by REQ-023)
 5. If amount is 0, skip (grants disabled by admin)
-6. A `credit_transactions` row is inserted with `transaction_type = 'signup_grant'`
-7. User's balance is atomically incremented by the grant amount
+6. Converts cents to USD, inserts a `credit_transactions` row with `transaction_type = 'signup_grant'`
+7. User's `balance_usd` is atomically incremented by the grant amount
 
 ### 8.2 Integration Points
 
@@ -702,17 +703,18 @@ async def grant_signup_credits(self, user_id: UUID) -> None:
     if existing:
         return  # Already granted
 
-    grant_amount = await self._get_system_config("signup_grant_credits")
-    if grant_amount == 0:
+    grant_cents = await self._get_system_config_int("signup_grant_cents")
+    if grant_cents == 0:
         return  # Grants disabled
 
+    grant_usd = Decimal(grant_cents) / Decimal(100)
     await self._credit_repo.create_transaction(
         user_id=user_id,
-        amount=grant_amount,
+        amount_usd=grant_usd,
         transaction_type="signup_grant",
-        description="Welcome bonus — free starter credits",
+        description="Welcome bonus — free starter balance",
     )
-    await self._user_repo.credit_balance(user_id, grant_amount)
+    await self._user_repo.credit_balance(user_id, grant_usd)
 ```
 
 ### 8.4 Existing Users
@@ -738,19 +740,19 @@ The Alembic migration includes a data migration step that inserts a `signup_gran
 
 **Sections:**
 
-1. **Current Balance** — Large display showing credit amount (e.g., "125,430 credits") using the formatting utility from backlog #19. Color coding same as nav bar (see REQ-020 §9.1 — adapted for abstract credits).
-2. **Credit Packs** — Cards for each active pack showing name, price, credit amount, bonus, and "Buy" button. Server-rendered display strings (`credit_display`, `bonus_display`, `highlight_label`) are used directly — no client-side formatting needed. The pack with `highlight_label` is visually emphasized.
-3. **Purchase History** — Paginated table showing all credit transactions (purchases, grants, refunds). Each row shows date, type, credit amount (formatted), and description.
+1. **Current Balance** — Large display showing USD amount (e.g., "$12.54") with usage bar (REQ-023 §5.1). Color coding same as nav bar (see REQ-020 §9.1): green > $1.00, amber $0.10–$1.00, red < $0.10.
+2. **Funding Packs** — Cards for each active pack showing name, price, description, and "Add Funds" button. Server-rendered display strings (`price_display`, `amount_display`, `highlight_label`) are used directly — no client-side formatting needed. The pack with `highlight_label` is visually emphasized.
+3. **Purchase History** — Paginated table showing all credit transactions (purchases, grants, refunds). Each row shows date, type, USD amount (`amount_display`), and description.
 
 ### 9.2 Checkout Flow (Frontend)
 
-1. User clicks "Buy" on a credit pack card
+1. User clicks "Add Funds" on a pack card
 2. Frontend calls `POST /api/v1/credits/checkout` with `{ pack_id: "a1b2c3d4-..." }`
 3. Frontend receives `checkout_url` in response
 4. Frontend redirects to `checkout_url` via `window.location.href = checkout_url`
 5. User completes payment on Stripe's hosted page
 6. Stripe redirects to `/credits?status=success&session_id=cs_test_...`
-7. Frontend shows success toast: "Payment successful! Your credits have been added."
+7. Frontend shows success toast: "Payment successful! Your balance has been updated."
 8. Frontend invalidates the balance query key to refresh the balance display (see query key pattern below)
 
 **Cancel flow:** If the user cancels on Stripe's page, they're redirected to `/credits?status=cancelled`. Frontend shows an info toast: "Purchase cancelled." No balance change.
@@ -766,7 +768,7 @@ const status = searchParams.get("status");
 
 useEffect(() => {
     if (status === "success") {
-        showToast.success("Payment successful! Your credits have been added.");
+        showToast.success("Payment successful! Your balance has been updated.");
         queryClient.invalidateQueries({ queryKey: queryKeys.balance });
         // Clean up URL params
         router.replace("/credits");
@@ -812,8 +814,8 @@ The existing balance display in the nav bar (REQ-020 §9.1) links directly to `/
 | `CREDITS_ENABLED` | bool | `true` | No | Master switch. When `false`, checkout endpoint returns 503. Signup grant still works. |
 
 **Removed from env vars (moved to admin UI):**
-- ~~`STRIPE_PRICE_STARTER`~~, ~~`STRIPE_PRICE_STANDARD`~~, ~~`STRIPE_PRICE_PRO`~~ — Stripe Price IDs now stored in `credit_packs` table (§4.3)
-- ~~`CREDITS_SIGNUP_GRANT_USD`~~ — Grant amount now in `system_config` table as `signup_grant_credits` (backlog #16)
+- ~~`STRIPE_PRICE_STARTER`~~, ~~`STRIPE_PRICE_STANDARD`~~, ~~`STRIPE_PRICE_PRO`~~ — Stripe Price IDs now stored in `funding_packs` table (§4.3)
+- ~~`CREDITS_SIGNUP_GRANT_USD`~~ — Grant amount now in `system_config` table as `signup_grant_cents` (REQ-022/REQ-023)
 
 **Note:** `FRONTEND_URL` already exists in `backend/app/core/config.py` (as `frontend_url`, default `http://localhost:3000`). It is used to construct success/cancel redirect URLs for Stripe Checkout — no new env var needed.
 
@@ -840,7 +842,7 @@ CREDITS_ENABLED=false          # Disables checkout endpoint
 METERING_ENABLED=false         # REQ-020: disables metering + gating
 ```
 
-The signup grant still works in this mode if `system_config.signup_grant_credits > 0`, allowing balance display testing.
+The signup grant still works in this mode if `system_config.signup_grant_cents > 0`, allowing balance display testing.
 
 For local development with Stripe (testing the checkout flow):
 
@@ -903,7 +905,7 @@ The webhook handler trusts metadata from verified Stripe events. Since signature
 
 - **Always validate `user_id`** — Confirm the user exists in our database
 - **Always validate `pack_id`** — Confirm the pack exists and was active at session creation time
-- **Use `metadata.credit_amount`** for the actual credit grant (not the current pack definition, which may have changed)
+- **Use `metadata.grant_cents`** for the actual credit grant (not the current pack definition, which may have changed)
 
 ---
 
@@ -942,20 +944,20 @@ When Stripe returns an error during checkout session creation, map it to a user-
 | Test Area | Key Scenarios |
 |-----------|---------------|
 | StripeService.create_checkout_session | Valid pack creates session; inactive pack raises error; Stripe customer created on first purchase; existing customer reused |
-| StripeService.handle_checkout_completed | Credits balance correctly (in abstract credits); idempotent (same event_id skipped); missing metadata logged and skipped; user not found logged and skipped |
+| StripeService.handle_checkout_completed | Credits USD balance correctly; idempotent (same event_id skipped); missing metadata logged and skipped; user not found logged and skipped |
 | StripeService.handle_charge_refunded | Debits balance correctly; partial refund handled proportionally; idempotent |
-| StripeService.grant_signup_credits | Grants on first call; skips on duplicate; reads amount from system_config; zero amount disables grant |
+| StripeService.grant_signup_balance | Grants on first call; skips on duplicate; reads `signup_grant_cents` from system_config; zero amount disables grant; converts cents to USD correctly |
 | Webhook signature verification | Valid signature accepted; invalid signature rejected (401); expired timestamp rejected |
-| Credit packs endpoint | Returns active packs with correct pricing and display strings; no auth required |
+| Packs endpoint | Returns active packs with correct pricing and USD display strings; no auth required |
 | Checkout endpoint | Requires auth; valid pack returns URL; invalid/inactive pack returns 400 |
 
 ### 13.2 Integration Tests
 
 | Test Area | Key Scenarios |
 |-----------|---------------|
-| End-to-end purchase | Checkout session created → webhook received → balance credited in abstract credits → visible in API |
+| End-to-end purchase | Checkout session created → webhook received → USD balance credited → visible in API |
 | Duplicate webhook | Same event sent twice → balance credited only once |
-| Signup grant + purchase | New user → signup grant → purchase → balance = grant + purchase credits |
+| Signup grant + purchase | New user → signup grant → purchase → balance_usd = grant + purchase amount |
 | Refund | Purchase → refund webhook → balance reduced proportionally → transaction history shows both |
 
 ### 13.3 Mocking Strategy
@@ -996,9 +998,9 @@ No new frontend dependencies. The hosted redirect flow uses `window.location.hre
 | 1 | Should the webhook endpoint be rate-limited differently than other API endpoints? | **Exempt from rate limiting.** | Stripe may send bursts of webhooks. Signature verification provides sufficient security. See §11.2 for full rationale. |
 | 2 | Should we track Stripe Checkout Session IDs in a separate table for status polling? | **Defer — no session table for MVP.** | Webhook processing is near-instant in practice (1-2 seconds). Adding a `checkout_sessions` table and polling logic adds complexity without clear benefit. If webhook delays become a user issue, add session tracking as a follow-up. |
 | 3 | Should the publishable key be exposed via an API endpoint or baked into the frontend build? | **Build-time env var (`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`).** | Standard Next.js pattern. Simpler than an API endpoint. The publishable key is safe to embed in client-side code (Stripe designs it for this). Different environments (dev/prod) use different builds anyway. Note: the hosted redirect flow does not actually require the publishable key on the frontend (the redirect URL comes from the backend). This is only needed if we add embedded checkout in the future. |
-| 4 | Should credits be denominated in USD or abstract units? | **Abstract credits.** | Decouples from USD, allows margin flexibility, psychologically easier for users ("50,000 credits" feels more valuable than "$5.00"). Denomination (`credits_per_dollar`) is admin-configurable via `system_config` (backlog #16/#19). |
-| 5 | Should credit pack pricing be hardcoded or admin-configurable? | **Admin-configurable via DB.** | Pack definitions live in `credit_packs` table, managed through Admin Pricing Dashboard (backlog #16). Allows changing packs, prices, and credit amounts without code deploys. Stripe Price IDs are also stored per-pack in DB. |
-| 6 | Should the signup grant amount be an env var or admin-configurable? | **Admin-configurable via `system_config`.** | Allows adjusting the grant amount based on real usage data without code deploys. Stored as `signup_grant_credits` key in `system_config` table (backlog #16). |
+| 4 | Should credits be denominated in USD or abstract units? | **USD-direct.** *(Changed in v0.4)* | Abstract credits were rejected due to denomination dilemma, redenomination risk, and existing USD infrastructure. See REQ-023 §2.1 for full rationale. Backlog PBI #19 documents the design review. |
+| 5 | Should funding pack pricing be hardcoded or admin-configurable? | **Admin-configurable via DB.** | Pack definitions live in `funding_packs` table, managed through Admin Pricing Dashboard (REQ-022 / backlog #16). Allows changing packs, prices, and grant amounts without code deploys. Stripe Price IDs are also stored per-pack in DB. |
+| 6 | Should the signup grant amount be an env var or admin-configurable? | **Admin-configurable via `system_config`.** | Allows adjusting the grant amount based on real usage data without code deploys. Stored as `signup_grant_cents` key in `system_config` table (REQ-022, renamed by REQ-023). |
 
 ---
 
@@ -1009,3 +1011,5 @@ No new frontend dependencies. The hosted redirect flow uses `window.location.hre
 | 2026-02-27 | 0.1 | Initial draft |
 | 2026-02-27 | 0.2 | Audit fixes: corrected signup grant integration points (OAuth uses `account_linking.py`, email+password is `auth.py` not `auth_register.py`), amended REQ-020 `reference_id` from `UUID` to `VARCHAR(255)` for Stripe ID compatibility, noted `FRONTEND_URL` already exists in config, resolved webhook rate limiting (exempt), added query key pattern following existing `query-keys.ts` convention, added Stripe API version pinning, documented `{CHECKOUT_SESSION_ID}` as Stripe template variable, clarified refund negative amount semantics, added Stripe fee impact analysis on pack pricing, added `Suspense` requirement for `useSearchParams`, added configuration matrix for `METERING_ENABLED` × `CREDITS_ENABLED`, added toast pattern note, resolved all 3 open questions |
 | 2026-03-01 | 0.3 | **Major revision for abstract credits and admin-configurable pricing.** Changes driven by pricing/billing architecture decisions captured in backlog items #16 (Admin Pricing Dashboard & Model Registry), #19 (Credit Denomination & Display Configuration). Key changes: (1) Replaced all USD-denominated references with abstract credits throughout. (2) Credit pack definitions moved from hardcoded Python dict to admin-configurable `credit_packs` DB table. (3) Signup grant amount moved from `CREDITS_SIGNUP_GRANT_USD` env var to `system_config` table (`signup_grant_credits`). (4) Added explicit dependencies on REQs for backlog #16 and #19. (5) Added §3.3 prerequisite implementation order. (6) Added §4.3 `credit_packs` table reference (owned by #16, consumed by this REQ). (7) Stripe Price IDs moved from env vars to `credit_packs` table. (8) API responses now include server-rendered display strings via credit denomination formatting utility (#19). (9) Refund logic updated for proportional credit debit calculation. (10) Removed 3 Stripe Price env vars (now in DB). (11) Added 3 resolved questions (#4–#6) for architecture decisions. (12) Narrowed scope: pricing config, model registry, and credit denomination are explicitly out of scope (owned by #16 and #19). |
+| 2026-03-02 | 0.4 | **Errata: USD-direct billing replaces abstract credits.** Design review (documented in backlog PBI #19 and REQ-023) rejected abstract credits in favor of USD-direct billing. Key changes: (1) All "abstract credits" references replaced with USD amounts throughout. (2) Pack definitions updated from $5/50K, $15/175K, $40/500K with volume bonuses to $5/$10/$15 dollar-for-dollar with volume-based descriptions. (3) `signup_grant_credits` → `signup_grant_cents` (10 = $0.10 default). (4) Display strings changed from "50,000 credits" to "$5.00". (5) Column renames cancelled — `balance_usd` and `amount_usd` are correct as-is. (6) Dependencies updated: backlog #19 now provides corrected seed data and config key (REQ-023), not `credits_per_dollar` and formatting utility. (7) Resolved question #4 changed from "Abstract credits" to "USD-direct." (8) Added errata notice to §1. See REQ-023 §6.1 for full change map. |
+| 2026-03-02 | 0.5 | **Naming alignment with REQ-023.** All table/column/metadata references updated to match REQ-023's rename migration (§4.1, §2.3): (1) `credit_packs` → `funding_packs` throughout (§2.2, §3.1, §3.3, §4.3, §5.2, §6.2, §10.1, §15). (2) `credit_amount` → `grant_cents` throughout (§4.3 CREATE TABLE, §5.1 pack definitions, §6.2 service pseudocode, §6.3 metadata, §6.7 SQL, §7.1 JSON responses, §11.4). (3) §4.3 section header renamed "Credit Packs Table" → "Funding Packs Table" with naming history note. (4) Updated errata notice to cover both v0.4 and v0.5. (5) §3.3 prerequisite order now notes REQ-023 handles the rename migration. (6) §5 section header renamed "Credit Packs" → "Funding Packs". |
