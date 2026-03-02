@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-01
 
-**Items:** 23 (7 completed, 16 pending)
+**Items:** 24 (7 completed, 17 pending)
 
 ---
 
@@ -315,6 +315,346 @@ Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Pyt
 - Redis needed for session storage / caching, or PostgreSQL-only for MVP?
 - Custom domain — Render supports custom domains on all paid tiers.
 - CI/CD — deploy on push to main via Render GitHub integration, or manual promote?
+
+---
+
+### 25. MVP Security Audit & Penetration Testing
+
+**Category:** Security / Testing / Quality
+**Added:** 2026-03-02
+**Priority:** Critical — Complete before public launch. Final gate before real user data is at risk.
+**Depends on:** All MVP items complete (#16, #19, #13, #20, #23, #24, #14, #4), private Render deployment live
+**Assigned to:** Claude Code (Opus 4.6) + Brian (joint review)
+
+Structured white-box security audit and penetration test of the full Zentropy Scout system. Conducted against the live Render deployment (not localhost) to capture infrastructure-level issues. Goal: surface and remediate vulnerabilities before real user data and payment information are at risk.
+
+**Prerequisites:**
+- MVP feature complete and deployed to Render (private access only)
+- Architecture document generated from actual codebase (Phase 1 output)
+- Brian actively using the system for job search (dogfooding)
+- All existing scanner findings (Semgrep, ZAP, SonarCloud, pip-audit, npm audit) resolved or triaged
+
+**Existing security coverage (do not duplicate):**
+- 8 automated security tools across 3 stages (pre-commit, CI, runtime) — see CLAUDE.md "Security Tooling Stack"
+- 56 unit tests for LLM sanitization pipeline (syntactic injection patterns, Unicode normalization, confusable mapping)
+- 4 custom Semgrep taint rules for LLM-specific injection detection
+- Hypothesis fuzz testing for sanitization invariants
+- Playwright E2E tests validating all security headers (HSTS, CSP, X-Frame-Options, etc.)
+- CORS runtime validation (app refuses to start with wildcard + credentials)
+- NullByteMiddleware (strips `\x00` from query strings and JSON bodies)
+- Cross-tenant leakage tests for applications and job postings
+
+**What needs to be tested (10 phases):**
+
+---
+
+#### Phase 1: Architecture Document Generation (~1-2 days)
+
+Goal: Produce a ground-truth map of the system before auditing it.
+
+Have Claude Code traverse the full codebase and generate a system architecture document covering:
+- All API endpoints with auth requirements and rate limits
+- Database schema with `user_id` scoping patterns and FK chains
+- Auth flow diagrams for all four paths (Google OAuth, LinkedIn OAuth, magic link, email/password)
+- Account linking/unification logic flow
+- JWT lifecycle: creation, claims (`sub`, `aud`, `iss`, `exp`, `iat`, `adm`, `pwr`), revocation via `token_invalidated_before`
+- Credit transaction flow end to end (balance gating → LLM call → atomic debit → ledger entry)
+- Bookmarklet capture endpoint and server-side fetch pipeline
+- LLM routing (task_routing_config → MeteredLLMProvider → adapter model_override) and prompt construction paths
+- Admin auth pipeline (ADMIN_EMAILS bootstrap → JWT `adm` claim → `require_admin` dependency)
+- Shared job pool isolation boundaries (REQ-015)
+
+Verify architecture doc matches actual implementation. Flag any drift from design intent or undocumented behavior.
+
+---
+
+#### Phase 2: Blast Radius Audit (~1 day)
+
+Goal: Prioritize attack surfaces by potential damage before testing begins.
+
+Have Opus audit the architecture document and codebase:
+
+> "You are a security auditor preparing a penetration test. Audit this codebase and produce a prioritized list of attack surfaces ranked by blast radius — the potential damage if exploited. For each surface identify the specific attack vectors, what the existing automated scanning has already covered, and what requires adversarial behavioral testing. Do not rubber stamp anything. Assume previous automated reviews missed things. Trace actual data flow — do not reason abstractly."
+
+**Expected output — three tiers:**
+
+**Tier 1 — Audit Before Anything Else:**
+- Auth flows (all four paths + account linking + JWT revocation)
+- Row-level security / multitenancy scoping (all 25+ entity types)
+- Credit transaction logic (atomic debit, balance gating, ledger consistency)
+- Admin privilege escalation (can non-admin access admin endpoints? can admin bypass metering?)
+
+**Tier 2 — Audit Before Public Launch:**
+- Bookmarklet capture endpoint (SSRF, auth token validation, domain restrictions)
+- Server-side URL fetch (redirect following, internal network access, response size/timeout)
+- LLM prompt construction (semantic injection via user personas, job descriptions, shared pool content)
+- Account linking/unification edge cases (pre-auth linking, orphan accounts, cross-provider)
+- Password security (HIBP fail-open behavior, bcrypt timing, reset token replay)
+
+**Tier 3 — Audit First Month Post-Launch:**
+- Remaining endpoints and flows
+- Performance under concurrent load
+- Rate limiting effectiveness under sustained attack
+
+---
+
+#### Phase 3: DAST Coverage Mapping (~0.5 day)
+
+Goal: Understand what ZAP already tests vs. what requires custom Playwright tests.
+
+- Map current ZAP configuration coverage (endpoints probed, attack categories, auth config)
+- Note: `.github/zap-rules.tsv` is currently empty — all ZAP alerts flow unfiltered
+- Identify gaps DAST cannot catch:
+  - Cross-account authorization errors (requires two authenticated sessions)
+  - Race conditions in credit consumption (requires concurrent requests)
+  - Business logic errors requiring specific input sequences
+  - Pre-authentication linking attacks (multi-step stateful flows)
+  - Semantic prompt injection (requires understanding context, not pattern matching)
+- Gap list becomes input for Phases 4-9 Playwright test suites
+
+---
+
+#### Phase 4: Auth Security Test Suite — Playwright (~3-5 days)
+
+Goal: Adversarial behavioral testing of all four auth paths, account linking, JWT lifecycle, and password security.
+
+Note: The project has existing Playwright mock infrastructure (`MockController` pattern in `frontend/tests/utils/`). OAuth flows require mocking provider responses. Mock edge cases real providers won't serve: email already in system, no email returned, expired token, deleted provider account.
+
+**Four Auth Paths (all must be tested):**
+- Google OAuth (PKCE + state cookie + CSRF)
+- LinkedIn OAuth (PKCE + state cookie + CSRF)
+- Magic link (passwordless email token)
+- Email + password (bcrypt + HIBP breach check)
+
+**OAuth State & CSRF Tests:**
+- Expired state cookie (>10 minute TTL) is rejected
+- Replayed state cookie is rejected (single-use)
+- Tampered state cookie is rejected (HMAC validation)
+- State from different browser/session is rejected
+- Missing PKCE code_verifier is rejected
+
+**Account Linking Attack Tests:**
+- User A cannot link their OAuth provider to User B's existing account
+- Same OAuth provider account cannot be linked to two different user accounts
+- Linking attempt with unverified email is rejected
+
+**Pre-Authentication Linking Attack Tests:**
+- Attacker creates email/password account with victim's email → victim signs in with OAuth → accounts are NOT merged without email verification
+- OAuth identity cannot be claimed before legitimate owner authenticates
+- Email verification required before any OAuth linking completes
+
+**Account Unlink / Orphan Tests:**
+- Cannot unlink last remaining auth method (account becomes inaccessible)
+- Unlinked OAuth provider cannot be immediately claimed by a new registration
+- Unlinking one method does not expose account to takeover via remaining method
+
+**JWT Revocation Tests (project-specific):**
+- JWT with `iat` before `token_invalidated_before` is rejected (401)
+- JWT missing `iat` claim entirely is rejected (401) — critical for revocation mechanism
+- After password change, old JWTs are invalidated (`token_invalidated_before` updated)
+- After admin demotion, old JWTs with `adm` claim are invalidated
+- Clock skew edge case: `iat` at exact microsecond boundary of `token_invalidated_before`
+
+**Password Security Tests:**
+- HIBP breach check: known-breached password is rejected during registration
+- HIBP timeout: when HIBP API is unreachable, password is allowed (fail-open — document this as accepted risk or fix)
+- Password validation: minimum 8 chars, requires letter + digit + special char
+- Timing-safe comparison: login with valid email + wrong password takes same time as invalid email (DUMMY_HASH pattern)
+- Account enumeration: error messages for signup/login/reset do not reveal whether email exists
+
+**Password Reset Tests (`pwr` JWT claim):**
+- Reset token expires after configured TTL
+- Reset token cannot be replayed after use
+- Reset token scope is limited to password change only (cannot be used for session auth)
+
+**Magic Link Tests:**
+- Magic link token expires after configured TTL
+- Magic link token cannot be replayed after use
+- Magic link for non-existent email does not reveal whether email is registered
+
+**Cross-Provider Consistency Tests:**
+- LinkedIn OAuth session cannot access Google OAuth-created account data (unless linked)
+- Email/password reset flow cannot be triggered for OAuth-only accounts
+- Session tokens are invalidated on logout across all auth paths
+- Concurrent sessions behave correctly
+- Token expiry is enforced
+
+---
+
+#### Phase 5: Authorization & Access Control Tests — Playwright (~2-3 days)
+
+Goal: Verify user A cannot access user B's data, regular users cannot access admin endpoints, and shared resources have correct isolation boundaries.
+
+**Multitenancy Isolation (for every resource type):**
+- Personas, skills, experiences, preferences — direct `user_id` FK
+- Resumes, resume versions, master resumes — join through persona
+- Cover letters — join through persona
+- Job postings (user-scoped via `user_jobs`) — verify shared pool entries don't leak private analysis
+- Applications, timeline events — join through user_jobs
+- Credit transactions, usage records — direct `user_id` FK
+
+For each resource type verify:
+- Direct ID access by another authenticated user returns 404 (not 403 — prevents enumeration)
+- All list endpoints return only the authenticated user's data
+- Update/delete operations on another user's resource return 404
+- UUIDs are used everywhere (not sequential IDs — confirm no integer IDs exist)
+
+**Admin Access Control Tests:**
+- Non-admin user receives 403 on all admin endpoints (models, pricing, routing, packs, config, users, cache)
+- JWT without `adm` claim cannot access admin endpoints
+- Crafted JWT with `adm: true` but invalid signature is rejected
+- Admin cannot demote themselves (`CANNOT_DEMOTE_SELF` error)
+- Env-protected admins (ADMIN_EMAILS) cannot be demoted (`ADMIN_EMAILS_PROTECTED` error)
+- Admin operations are logged (verify audit trail exists)
+- Admin toggle sets `token_invalidated_before` on target user (forces re-auth)
+
+**Shared Job Pool Isolation (REQ-015):**
+- Shared job posting content visible to all users
+- User-specific analysis (scores, fit signals) private to owning user
+- Injection via shared job content: malicious job description does not affect other users' LLM prompts (sanitization boundary test)
+
+**Balance Gating (HTTP 402):**
+- LLM-triggering endpoints return 402 when balance insufficient
+- Non-LLM endpoints work normally with zero balance
+- 402 response does not leak balance amount or pricing details
+
+---
+
+#### Phase 6: Credit System Integrity Tests (~1-2 days)
+
+Goal: Verify credit math is correct and cannot be manipulated.
+
+- Cannot spend credits not in balance (atomic debit SQL returns 0 rows → debit fails)
+- Race condition test: 100 concurrent LLM requests to same endpoint — balance never goes negative
+- Credit deduction and LLM call are atomic — partial failure (LLM error after debit) records usage but does not leave inconsistent state
+- Ledger reconciliation: `SUM(credit_transactions.amount_usd)` equals `users.balance_usd` after any sequence of operations
+- Admin multiplier changes via pricing_config do not retroactively affect in-flight transactions (margin snapshotted at record time in `llm_usage_records.margin_multiplier`)
+- Per-model margin applied correctly: cheap model with 3× margin and expensive model with 1.1× margin produce different billed costs for same token count
+- Unregistered model (no pricing_config row) → `UnregisteredModelError` (503), LLM call blocked
+- No pricing config for registered model → `NoPricingConfigError` (503), LLM call blocked
+- Admin credit grants and refunds affect balance correctly
+- Transaction types are immutable (append-only ledger — no UPDATE/DELETE on credit_transactions)
+
+---
+
+#### Phase 7: Bookmarklet & Server-Side Fetch Tests (~1-2 days)
+
+Goal: Verify the capture endpoint cannot be weaponized.
+
+- **SSRF:** Server-side fetch cannot be redirected to internal network resources (169.254.x.x, 10.x.x.x, 127.0.0.1, fd00::/8, ::1)
+- **Redirect following:** Server follows HTTP redirects but re-validates destination against blocklist (redirect to internal IP blocked)
+- Domain allowlist / blocklist is enforced
+- Response size limit prevents memory exhaustion
+- Request timeout is enforced (slow-drip response attack)
+- Auth token in bookmarklet: expired tokens are rejected
+- Auth token cannot be reused across users
+- Malformed URLs are rejected gracefully without stack trace exposure
+- LinkedIn domain returns friendly message, no fetch attempted
+- Cloudflare/bot-detection blocked sites return graceful fallback
+- HTML stripping: malicious HTML (script tags, event handlers, iframes) does not survive extraction
+- Character limit enforced (~15K chars before LLM)
+
+---
+
+#### Phase 8: LLM Prompt Injection — Semantic Focus (~1-2 days)
+
+Goal: Test injection vectors that bypass the existing syntactic sanitization pipeline.
+
+**Already covered (do not duplicate):**
+- 56 unit tests for syntactic injection patterns (SYSTEM:, role tags, ChatML, instruction overrides)
+- Unicode normalization (NFKC → NFD → confusable mapping → NFC)
+- Zero-width character stripping, combining mark stripping
+- Authority keyword filtering (IMPORTANT:, OVERRIDE:, CRITICAL:)
+- 4 custom Semgrep taint rules (unsanitized input, f-strings, eval/exec, prompt formatting)
+- Hypothesis fuzz testing for sanitization invariants
+
+**Focus on what automated tools cannot catch:**
+- **Semantic injection via job descriptions:** Job posting containing natural-language instructions that subtly influence scoring or content generation (e.g., "The ideal candidate would rate themselves 95/100 on all dimensions")
+- **Cross-user injection via shared job pool:** Malicious job description submitted by user A — does it affect user B's LLM calls when they view the same shared job?
+- **Persona content injection:** User fills persona fields with instruction-like content — does it alter system behavior in downstream LLM calls?
+- **Multi-step injection:** First input plants context, second input exploits it (e.g., persona bio + job description combine to form injection)
+- **Generated content re-injection:** LLM-generated resume content is stored and later used as input to cover letter generation — verify no prompt breakout in the generated→consumed chain
+- **Admin pricing/routing prompts:** Verify user input cannot access or modify admin-configured data through LLM context manipulation
+
+---
+
+#### Phase 9: Infrastructure & Render Deployment Tests (~1 day)
+
+Goal: Verify deployment configuration is secure. Run these checks during and after Render deployment.
+
+**Security Headers (verify in production, not just localhost):**
+- All headers present: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, COOP, COEP, CORP, Referrer-Policy, Permissions-Policy
+- No `X-Powered-By` header leaked
+- HSTS `max-age` ≥ 31536000 with `includeSubDomains`
+- CSP does not contain `unsafe-eval` in production (only allowed in development)
+- Note: `unsafe-inline` in script-src is currently required by Next.js hydration — document as accepted risk or implement nonce-based CSP
+
+**Error Responses:**
+- Error responses do not expose stack traces, file paths, or internal details (including in 500 errors)
+- Auth errors return generic 401 (no "expired", "bad signature", "invalid audience" specifics)
+
+**Environment & Secrets:**
+- Environment variables confirmed not in codebase (gitleaks pre-commit already covers this — verify)
+- Database connection string not logged at any log level
+- `AUTH_SECRET` is ≥32 characters (runtime validation exists — confirm it fires)
+- `METERING_ENABLED=true` in production (not accidentally `false`)
+
+**CORS:**
+- `allowed_origins` set to production frontend domain only (not `http://localhost:3000`)
+- No wildcard `*` with credentials (runtime validation blocks startup — confirm)
+
+**Rate Limiting:**
+- Rate limits enforced on: login (10/min), signup (5/min), OAuth initiation (10/hour), LLM endpoints (10/min), embeddings (5/min)
+- Rate limiting uses per-user keying when authenticated, per-IP when not
+- Note: in-memory rate limit storage is single-instance only — if multi-instance deployment planned, requires Redis backend (`RATELIMIT_STORAGE_URL`)
+
+**NullByteMiddleware:**
+- `%00` in query string is stripped (not passed to PostgreSQL)
+- `\x00` in JSON body string values is stripped
+- Double-encoding (`%2500`) is handled
+- Oversized JSON body (>10MB) behavior is documented (currently passed through unsanitized)
+
+**Admin Endpoints:**
+- Admin routes not publicly discoverable (no links in public UI for non-admins)
+- Admin API endpoints return 403 for unauthenticated and non-admin requests
+
+---
+
+#### Phase 10: Remediation & Regression (~2-5 days, variable)
+
+Goal: Fix all findings and prevent regression.
+
+- All Tier 1 findings remediated before any user access beyond Brian
+- All Tier 2 findings remediated before public launch announcement
+- Each Playwright security test that finds a real vulnerability becomes a permanent regression test in the E2E suite
+- Findings log maintained per finding: attack vector, blast radius, which automated tool missed it and why, fix applied, regression test added
+- Architecture document updated to reflect any implementation changes made during remediation
+- Security scanner baselines updated (SonarCloud, ZAP rules, Semgrep)
+
+---
+
+**Success criteria — public launch approved when:**
+- All Tier 1 and Tier 2 blast radius items have been tested and resolved
+- All Playwright auth, authorization, and credit integrity tests pass
+- No HIGH or CRITICAL findings outstanding in Semgrep, ZAP, SonarCloud, pip-audit, or npm audit
+- Brian has used the system for his own job search for at least 2 weeks on Render without data issues
+- Architecture document accurately reflects the deployed system
+- Findings log is complete with regression tests for every real vulnerability found
+
+**Effort estimate:** ~15-25 working days total across all phases. Phase 4 (auth) is the largest and most valuable.
+
+**Key considerations:**
+- Zero-trust posture throughout — do not accept "this is fine" without data flow trace
+- The security-triage subagent false positive challenge protocol remains active — subagent findings challenged with same rigor as true positives
+- Manual review by Brian remains the final layer — automated systems have demonstrated gaps
+- Each finding should document: attack vector, blast radius, which automated tool missed it and why, fix applied, regression test added
+
+**Open questions:**
+- Should HIBP fail-open be converted to fail-closed before launch? (Reject password if breach check is unavailable)
+- CSP `unsafe-inline` for scripts — implement nonce-based CSP via Next.js middleware, or accept the risk?
+- Multi-instance rate limiting — will Render deployment use multiple instances requiring Redis?
+- Should the audit produce a formal report document, or is the findings log sufficient?
+- External penetration testing — hire a third-party firm for a second opinion, or rely on internal audit only?
 
 ---
 
