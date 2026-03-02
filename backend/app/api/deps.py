@@ -28,6 +28,7 @@ from app.providers.embedding.base import EmbeddingProvider
 from app.providers.factory import get_embedding_provider, get_llm_provider
 from app.providers.llm.base import LLMProvider
 from app.providers.metered_provider import MeteredEmbeddingProvider, MeteredLLMProvider
+from app.services.admin_config_service import AdminConfigService
 from app.services.metering_service import MeteringService
 
 # Generic 401 detail — intentionally vague to prevent information leakage.
@@ -206,6 +207,17 @@ async def require_admin(
 
 
 AdminUser = Annotated[uuid.UUID, Depends(require_admin)]
+
+
+def get_admin_config_service(db: DbSession) -> AdminConfigService:
+    """Create an AdminConfigService for the current request.
+
+    REQ-022 §6.3: Dependency injection for read-side config lookups.
+    """
+    return AdminConfigService(db)
+
+
+AdminConfig = Annotated[AdminConfigService, Depends(get_admin_config_service)]
 
 
 def get_metered_provider(
