@@ -1,12 +1,12 @@
 """Integration tests for the full metering pipeline.
 
-REQ-020 §12.2: End-to-end metering, concurrent request safety,
-and reconciliation — all with real DB and MockLLMProvider.
+REQ-020 §12.2, REQ-022 §7: End-to-end metering with DB-backed pricing,
+concurrent request safety, and reconciliation — real DB and MockLLMProvider.
 """
 
 import asyncio
-import logging
 import uuid
+from datetime import date
 from decimal import Decimal
 
 import pytest
@@ -17,12 +17,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import require_sufficient_balance
 from app.core.config import settings
 from app.core.errors import InsufficientBalanceError
+from app.models.admin_config import ModelRegistry, PricingConfig
 from app.models.usage import CreditTransaction, LLMUsageRecord
 from app.models.user import User
 from app.providers.errors import ProviderError
 from app.providers.llm.base import LLMMessage, LLMResponse, TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
 from app.providers.metered_provider import MeteredLLMProvider
+from app.services.admin_config_service import AdminConfigService
 from app.services.metering_service import MeteringService
 
 # =============================================================================
@@ -40,7 +42,7 @@ _CLAUDE_PROVIDER = "claude"
 _HAIKU_MODEL = "claude-3-5-haiku-20241022"
 _TEST_RESPONSE_CONTENT = "Test response"
 
-# Claude Haiku pricing (from MeteringService._LLM_PRICING)
+# Claude Haiku pricing (seeded in pricing_config table)
 _HAIKU_INPUT_PER_1K = Decimal("0.0008")
 _HAIKU_OUTPUT_PER_1K = Decimal("0.004")
 
@@ -109,30 +111,6 @@ class _FailingMockProvider(MockLLMProvider):
         raise ProviderError("Simulated API failure")
 
 
-class _UnknownModelProvider(MockLLMProvider):
-    """MockLLMProvider that returns an unknown model for fallback pricing tests."""
-
-    @property
-    def provider_name(self) -> str:
-        return "openai"
-
-    async def complete(
-        self,
-        _messages: list[LLMMessage],
-        _task: TaskType,
-        **_kwargs: object,
-    ) -> LLMResponse:
-        """Return a response with a model not in the pricing table."""
-        return LLMResponse(
-            content="Response",
-            model="gpt-5-turbo",
-            input_tokens=200,
-            output_tokens=100,
-            finish_reason="stop",
-            latency_ms=10,
-        )
-
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -152,6 +130,29 @@ async def metering_user(db_session: AsyncSession) -> User:
     return user
 
 
+@pytest_asyncio.fixture
+async def seed_pricing_data(db_session: AsyncSession) -> None:
+    """Seed model_registry and pricing_config for Haiku pricing tests."""
+    registry = ModelRegistry(
+        provider=_CLAUDE_PROVIDER,
+        model=_HAIKU_MODEL,
+        display_name="Claude 3.5 Haiku",
+        model_type="llm",
+        is_active=True,
+    )
+    pricing = PricingConfig(
+        provider=_CLAUDE_PROVIDER,
+        model=_HAIKU_MODEL,
+        input_cost_per_1k=_HAIKU_INPUT_PER_1K,
+        output_cost_per_1k=_HAIKU_OUTPUT_PER_1K,
+        margin_multiplier=_MARGIN,
+        effective_date=date(2020, 1, 1),
+    )
+    db_session.add(registry)
+    db_session.add(pricing)
+    await db_session.flush()
+
+
 @pytest.fixture
 def inner_provider() -> _HaikuMockProvider:
     """Inner LLM provider that returns Haiku pricing."""
@@ -159,18 +160,33 @@ def inner_provider() -> _HaikuMockProvider:
 
 
 @pytest.fixture
-def metering_service(db_session: AsyncSession) -> MeteringService:
-    """MeteringService with real DB and known margin."""
-    return MeteringService(db_session, margin_multiplier=_MARGIN)
+def admin_config(
+    db_session: AsyncSession,
+    seed_pricing_data: None,  # noqa: ARG001
+) -> AdminConfigService:
+    """AdminConfigService with real DB and seeded pricing data."""
+    return AdminConfigService(db_session)
+
+
+@pytest.fixture
+def metering_service(
+    db_session: AsyncSession,
+    admin_config: AdminConfigService,
+) -> MeteringService:
+    """MeteringService with real DB and DB-backed pricing."""
+    return MeteringService(db_session, admin_config)
 
 
 @pytest.fixture
 def metered_provider(
     inner_provider: _HaikuMockProvider,
     metering_service: MeteringService,
+    admin_config: AdminConfigService,
 ) -> MeteredLLMProvider:
     """MeteredLLMProvider wrapping the Haiku mock."""
-    return MeteredLLMProvider(inner_provider, metering_service, _METERING_USER_ID)
+    return MeteredLLMProvider(
+        inner_provider, metering_service, admin_config, _METERING_USER_ID
+    )
 
 
 @pytest.fixture
@@ -396,7 +412,12 @@ class TestConcurrentRequests:
     """Concurrent LLM calls must not overdraft via race condition."""
 
     @pytest.mark.asyncio
-    async def test_concurrent_calls_no_overdraft(self, db_session, metering_user):  # noqa: ARG002
+    async def test_concurrent_calls_no_overdraft(
+        self,
+        db_session,
+        metering_user,  # noqa: ARG002
+        seed_pricing_data,  # noqa: ARG002
+    ):
         """asyncio.gather() with many calls never drives balance below zero.
 
         User has $10.00. Each call costs ~$0.000364. Even hundreds of
@@ -411,8 +432,9 @@ class TestConcurrentRequests:
 
         async def _make_one_call(_idx: int) -> LLMResponse:
             inner = _HaikuMockProvider()
-            service = MeteringService(db_session, margin_multiplier=_MARGIN)
-            provider = MeteredLLMProvider(inner, service, _METERING_USER_ID)
+            config = AdminConfigService(db_session)
+            service = MeteringService(db_session, config)
+            provider = MeteredLLMProvider(inner, service, config, _METERING_USER_ID)
             return await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
 
         results = await asyncio.gather(
@@ -432,7 +454,11 @@ class TestConcurrentRequests:
         assert usage_count == n_concurrent
 
     @pytest.mark.asyncio
-    async def test_concurrent_calls_with_low_balance_no_overdraft(self, db_session):
+    async def test_concurrent_calls_with_low_balance_no_overdraft(
+        self,
+        db_session,
+        seed_pricing_data,  # noqa: ARG002
+    ):
         """With a balance that can only cover 2 calls, concurrent calls
         must not overdraft even if 10 run simultaneously.
 
@@ -455,8 +481,9 @@ class TestConcurrentRequests:
 
         async def _make_one_call() -> LLMResponse:
             inner = _HaikuMockProvider()
-            service = MeteringService(db_session, margin_multiplier=_MARGIN)
-            provider = MeteredLLMProvider(inner, service, low_balance_user_id)
+            config = AdminConfigService(db_session)
+            service = MeteringService(db_session, config)
+            provider = MeteredLLMProvider(inner, service, config, low_balance_user_id)
             return await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
 
         # All calls should complete (metering never blocks the LLM response)
@@ -651,11 +678,17 @@ class TestProviderError:
     """When the inner provider raises, no usage is recorded."""
 
     @pytest.mark.asyncio
-    async def test_provider_error_no_usage_recorded(self, db_session, metering_user):  # noqa: ARG002
+    async def test_provider_error_no_usage_recorded(
+        self,
+        db_session,
+        metering_user,  # noqa: ARG002
+        seed_pricing_data,  # noqa: ARG002
+    ):
         """If inner.complete() raises ProviderError, no records are created."""
         inner = _FailingMockProvider()
-        service = MeteringService(db_session, margin_multiplier=_MARGIN)
-        provider = MeteredLLMProvider(inner, service, _METERING_USER_ID)
+        config = AdminConfigService(db_session)
+        service = MeteringService(db_session, config)
+        provider = MeteredLLMProvider(inner, service, config, _METERING_USER_ID)
 
         with pytest.raises(ProviderError):
             await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
@@ -669,99 +702,6 @@ class TestProviderError:
         assert usage_count == 0
         assert txn_count == 0
         assert balance == _INITIAL_BALANCE
-
-
-# =============================================================================
-# Tests — Unknown model fallback pricing (REQ-020 §5.3)
-# =============================================================================
-
-
-class TestUnknownModelFallback:
-    """Unknown models use fallback pricing and log a warning."""
-
-    @pytest.mark.asyncio
-    async def test_unknown_model_uses_fallback_pricing(
-        self,
-        db_session,
-        caplog,
-    ):
-        """An unknown model for a known provider uses fallback pricing."""
-        service = MeteringService(db_session, margin_multiplier=_MARGIN)
-
-        unknown_model = "claude-future-model"
-        with caplog.at_level(logging.WARNING, logger="app.services.metering_service"):
-            raw_cost, billed_cost = service.calculate_cost(
-                _CLAUDE_PROVIDER, unknown_model, 1000, 1000
-            )
-
-        # Fallback for claude: input=0.003, output=0.015 per 1K
-        expected_raw = Decimal("0.003") + Decimal("0.015")  # 1000 tokens each / 1K
-        assert raw_cost == expected_raw
-        assert billed_cost == expected_raw * _MARGIN
-
-        # Warning should be logged
-        assert "Unknown model" in caplog.text
-        assert unknown_model in caplog.text
-        assert "fallback" in caplog.text.lower()
-
-    @pytest.mark.asyncio
-    async def test_unknown_provider_returns_zero_cost(
-        self,
-        db_session,
-        caplog,
-    ):
-        """An unknown provider returns zero cost and logs a warning."""
-        service = MeteringService(db_session, margin_multiplier=_MARGIN)
-
-        with caplog.at_level(logging.WARNING, logger="app.services.metering_service"):
-            raw_cost, billed_cost = service.calculate_cost(
-                "unknown_provider", "some-model", 1000, 1000
-            )
-
-        assert raw_cost == Decimal("0")
-        assert billed_cost == Decimal("0")
-
-        assert "No pricing available" in caplog.text
-        assert "unknown_provider" in caplog.text
-
-    @pytest.mark.asyncio
-    async def test_unknown_model_records_with_fallback_cost(
-        self,
-        db_session,
-        metering_user,  # noqa: ARG002
-        caplog,
-    ):
-        """Full pipeline with unknown model: records created with fallback pricing."""
-        inner = _UnknownModelProvider()
-        service = MeteringService(db_session, margin_multiplier=_MARGIN)
-        provider = MeteredLLMProvider(inner, service, _METERING_USER_ID)
-
-        with caplog.at_level(logging.WARNING, logger="app.services.metering_service"):
-            await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
-
-        await db_session.flush()
-
-        # Record should exist with fallback pricing
-        record = (
-            await db_session.execute(
-                select(LLMUsageRecord).where(
-                    LLMUsageRecord.user_id == _METERING_USER_ID
-                )
-            )
-        ).scalar_one()
-
-        assert record.model == "gpt-5-turbo"
-        assert record.provider == "openai"
-
-        # OpenAI fallback: input=0.0025, output=0.01 per 1K
-        expected_raw = (
-            Decimal(200) * Decimal("0.0025") + Decimal(100) * Decimal("0.01")
-        ) / Decimal(1000)
-        assert record.raw_cost_usd == expected_raw
-        assert record.billed_cost_usd == expected_raw * _MARGIN
-
-        assert "Unknown model" in caplog.text
-        assert "gpt-5-turbo" in caplog.text
 
 
 # =============================================================================

@@ -16,7 +16,6 @@ from app.providers.llm.claude_adapter import ClaudeAdapter
 from app.providers.llm.gemini_adapter import GeminiAdapter
 from app.providers.llm.mock_adapter import MockLLMProvider
 from app.providers.llm.openai_adapter import OpenAIAdapter
-from app.services.metering_service import _LLM_PRICING
 
 
 def _make_config(**overrides: Any) -> ProviderConfig:
@@ -28,11 +27,6 @@ def _make_config(**overrides: Any) -> ProviderConfig:
     }
     defaults.update(overrides)
     return ProviderConfig(**defaults)
-
-
-def _pricing_keys_for(provider_name: str) -> list[tuple[str, str]]:
-    """Return pricing table entries that match a provider name."""
-    return [k for k in _LLM_PRICING if k[0] == provider_name]
 
 
 # =============================================================================
@@ -132,27 +126,3 @@ class TestAbstractEnforcement:
 
         with pytest.raises(TypeError, match="provider_name"):
             IncompleteEmbedding(_make_config())  # type: ignore[abstract]
-
-
-# =============================================================================
-# Pricing table key alignment
-# =============================================================================
-
-
-class TestPricingTableKeyAlignment:
-    """provider_name values match metering service pricing table keys."""
-
-    def test_claude_matches_pricing_key(self) -> None:
-        """ClaudeAdapter.provider_name matches pricing table key."""
-        adapter = ClaudeAdapter(_make_config())
-        assert len(_pricing_keys_for(adapter.provider_name)) > 0
-
-    def test_openai_matches_pricing_key(self) -> None:
-        """OpenAIAdapter.provider_name matches pricing table key."""
-        adapter = OpenAIAdapter(_make_config())
-        assert len(_pricing_keys_for(adapter.provider_name)) > 0
-
-    def test_gemini_matches_pricing_key(self) -> None:
-        """GeminiAdapter.provider_name matches pricing table key."""
-        adapter = GeminiAdapter(_make_config())
-        assert len(_pricing_keys_for(adapter.provider_name)) > 0
