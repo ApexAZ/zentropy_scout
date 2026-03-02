@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-01
 
-**Items:** 21 (7 completed, 14 pending)
+**Items:** 22 (7 completed, 15 pending)
 
 ---
 
@@ -182,6 +182,52 @@ Elevate the visual design from functional-but-generic shadcn/ui defaults to a po
 - Illustrations: use an icon library (Lucide already included) or custom illustrations?
 - Dark mode: primary mode or secondary? (Affects design priority)
 - Scope: full redesign or targeted polish of highest-traffic pages first?
+
+---
+
+### 23. Job Capture Bookmarklet
+
+**Category:** Backend / Frontend / API
+**Added:** 2026-03-02
+**Priority:** P2 — Core job capture workflow. Lightweight alternative to Chrome Extension (#4.1, postponed).
+**Depends on:** Nothing (can start anytime)
+
+Personalized bookmarklet that lets users capture job postings from any browser with one click. Replaces the postponed Chrome Extension (Phase 4.1) with a zero-install, cross-browser solution. The bookmarklet sends the page URL + title to the backend, which fetches the page server-side, strips it to clean text, and feeds it to the existing job analysis pipeline.
+
+**What needs to be built:**
+
+- **Bookmarklet generator** — personalized `javascript:` snippet with user auth token baked in at generation time. Served from a settings or onboarding page with drag-to-bookmarks-bar instructions.
+- **Backend capture endpoint** — `POST /api/v1/jobs/capture` — accepts `{ url, title }`, fetches the page server-side, returns job data or status.
+- **HTML stripping** — BeautifulSoup to remove nav, footer, scripts, ads, sidebars. Extract clean text from the main content area. Cap at ~15,000 characters before sending to LLM.
+- **LinkedIn detection** — detect LinkedIn domain and return a friendly message: "LinkedIn pages can't be captured automatically. Paste the job description text instead." (LinkedIn blocks server-side fetches.)
+- **ATS apply URL detection** — scan fetched HTML for apply links matching known ATS platforms: Workday, Greenhouse, Lever, iCIMS, Taleo, SmartRecruiters, Jobvite, and generic `apply` href patterns.
+- **Apply type classification** — categorize as `ats_external`, `linkedin_easy_apply`, `company_direct`, or `indeed_apply`.
+- **Job record fields** — store `job_page_url`, `ats_apply_url`, `ats_platform`, `apply_type` per job posting.
+- **Visual confirmation** — bookmarklet injects a toast notification into the page after firing (success/error/LinkedIn message).
+- **CORS configuration** — API endpoint must accept cross-origin requests from bookmarklet (runs in the context of the job posting page).
+- **Setup UI** — bookmarklet installation instructions on the settings page (or onboarding). Show the bookmarklet link, drag-to-toolbar instructions, and a test button.
+
+**Key considerations:**
+- Auth token in the bookmarklet means regeneration is needed if the token is rotated. Include a "Regenerate bookmarklet" button.
+- Server-side fetch avoids CORS issues with job sites but means the backend needs `httpx` or similar for async HTTP requests.
+- Some job sites may block server-side fetches (Cloudflare, bot detection). Graceful fallback: "Couldn't fetch this page. Paste the job description text instead."
+- Bookmarklet code size is limited (~2KB practical limit for `javascript:` URLs). Keep the bookmarklet thin — just collect URL/title, POST to API, show toast.
+
+**Key files (new):**
+- `backend/app/api/v1/job_capture.py` — capture endpoint
+- `backend/app/services/page_fetch_service.py` — server-side fetch + HTML stripping
+- `backend/app/services/ats_detection_service.py` — ATS URL and apply type detection
+- `frontend/src/app/(main)/settings/bookmarklet/` — setup UI and generator
+
+**Dependencies (Python):**
+- `beautifulsoup4` — HTML parsing and content extraction
+- `httpx` — async HTTP client for server-side page fetching (already in project or similar)
+
+**Open questions:**
+- Should the bookmarklet auto-trigger job analysis, or just capture and let the user trigger analysis?
+- Rate limiting on the capture endpoint? (Prevent abuse if token leaks)
+- Should fetched HTML be stored temporarily for debugging, or discarded after extraction?
+- Mobile browser support — bookmarklets work poorly on mobile. Offer a "paste URL" fallback?
 
 ---
 
