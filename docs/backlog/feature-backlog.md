@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-02
 
-**Items:** 24 (8 completed, 16 pending)
+**Items:** 25 (8 completed, 17 pending)
 
 ---
 
@@ -900,14 +900,17 @@ Separate portal for recruiters to discover and connect with job seekers. Flips t
 
 ---
 
-### 15. Async/Sync Performance Audit
+### 15. Performance Audit, Stress Testing & CI/CD Workflow Automation
 
-**Category:** Backend / Performance
+**Category:** Backend / Frontend / DevOps / Performance
 **Added:** 2026-02-28
-**Priority:** Post-MVP — No user-facing impact until high concurrency.
-**Depends on:** Nothing
+**Updated:** 2026-03-02 (expanded scope — stress testing, profiling, CI/CD integration)
+**Priority:** Post-MVP — No user-facing impact until high concurrency, but should be addressed before scaling.
+**Depends on:** #4 (Render Deployment) for production profiling; can start local stress testing anytime
 
-Deep audit of the entire backend for async/sync correctness under high concurrency. Ensure all FastAPI dependency functions, service methods, and provider calls use the optimal async/sync pattern to avoid unnecessary thread pool dispatch overhead at scale.
+Comprehensive performance audit and workflow automation to prepare for scaling. Covers async/sync correctness, load testing, profiling, database query optimization, and CI/CD pipeline improvements.
+
+#### Part 1: Async/Sync Correctness Audit
 
 **Motivation:** During REQ-020 implementation, SonarCloud S7503 findings revealed that `async def` without `await` is an intentional FastAPI optimization (avoids `run_in_threadpool()` overhead). This raised the question: are there other places where sync functions unnecessarily use the thread pool when they could be async, or vice versa?
 
@@ -921,10 +924,231 @@ Deep audit of the entire backend for async/sync correctness under high concurren
 
 **Expected outcome:** Documentation of which functions are intentionally async-without-await (with rationale), identification of any functions that should be converted for better scalability, and SonarCloud baseline updates.
 
-**Open questions:**
-- Is `run_in_threadpool()` overhead measurable at expected user scale (hundreds to low thousands)?
-- Should this be a formal load testing exercise or code-review-only audit?
-- Profile tools: `py-spy`, `viztracer`, or FastAPI's built-in timing middleware?
+#### Part 2: Load Testing & Stress Testing
+
+Stress test the system under realistic and adversarial loads to identify bottlenecks before real users hit them.
+
+**Tools to explore:**
+- **Locust** — Python-native load testing (familiar stack, scriptable user scenarios)
+- **k6** — JavaScript-based load testing (Grafana ecosystem, good CI integration)
+- **Artillery** — YAML-defined load scenarios (quick setup, good for API testing)
+- **vegeta** — HTTP load testing CLI (simple, good for targeted endpoint stress)
+
+**Scenarios to test:**
+- Concurrent LLM-triggering requests (metering + balance gating under contention)
+- Database connection pool exhaustion under sustained load
+- Concurrent resume/cover letter generation (PDF + LLM pipeline)
+- Rate limiter behavior under burst traffic (in-memory vs Redis-backed)
+- Cold start latency (first request after idle — relevant for Render deployment)
+- Sustained API throughput (CRUD operations without LLM calls)
+- WebSocket/SSE streaming under concurrent connections (if applicable)
+
+**Key metrics to capture:**
+- p50/p95/p99 response times per endpoint
+- Throughput ceiling (requests/sec before degradation)
+- Database connection pool utilization
+- Memory usage under sustained load
+- Error rate under stress (5xx, timeouts, connection refused)
+
+#### Part 3: Profiling & Query Optimization
+
+**Backend profiling tools:**
+- `py-spy` — sampling profiler (low overhead, attach to running process)
+- `viztracer` — trace-based profiler (detailed call graphs)
+- FastAPI timing middleware (per-request latency logging)
+- SQLAlchemy query logging + `EXPLAIN ANALYZE` for slow queries
+
+**Database optimization targets:**
+- Missing indexes on frequently filtered columns
+- N+1 query patterns in list endpoints
+- Connection pool sizing (`pool_size`, `max_overflow`, `pool_timeout`)
+- Query plan analysis for vector similarity searches (pgvector `ivfflat` vs `hnsw` index performance)
+
+**Frontend profiling:**
+- React DevTools Profiler (component render frequency)
+- Lighthouse performance scores
+- Bundle size analysis (`next/bundle-analyzer`)
+- Core Web Vitals baseline measurement
+
+#### Part 4: CI/CD Workflow Automation
+
+Improve the development and deployment pipeline for reliability and speed.
+
+**Current CI state:**
+- Pre-commit: ruff, bandit, gitleaks, mypy, ESLint, Prettier, TypeScript check
+- Pre-push: full pytest + Vitest (~90-135s)
+- GitHub Actions: Semgrep, SonarCloud, ZAP DAST, pip-audit, npm audit, Dependabot
+
+**Potential improvements to explore:**
+- **Performance regression testing in CI** — run a lightweight load test on every PR to catch regressions (e.g., k6 with threshold assertions)
+- **Parallel test execution** — split pytest across workers (`pytest-xdist`) to reduce pre-push time
+- **Test result caching** — skip unchanged test files on pre-push (e.g., `pytest --lf` or hash-based caching)
+- **Deployment automation** — Render deploy-on-merge pipeline (when #4 is complete)
+- **Database migration safety** — automated migration dry-run in CI before merge
+- **Dependency update automation** — Dependabot PR auto-merge for patch versions with passing CI
+- **Performance budget enforcement** — Lighthouse CI or bundle size checks that block PRs exceeding thresholds
+- **Canary/staged deployments** — gradual rollout strategy for Render (if multi-instance)
+
+#### Open Questions
+
+- Which load testing tool best fits the stack? (Locust feels natural for Python, k6 has better CI integration)
+- What's the target scale? (hundreds? low thousands? tens of thousands concurrent?)
+- Should performance baselines be enforced in CI (fail PR if p95 regresses) or advisory-only?
+- Is Render's free/starter tier sufficient for load testing, or do we need a dedicated staging environment?
+- Should database connection pooling use PgBouncer on Render, or rely on SQLAlchemy pool alone?
+- Pre-push hooks take ~90-135s — is `pytest-xdist` parallelization worth the setup complexity?
+
+---
+
+### 26. Terms of Service & Privacy Policy
+
+**Category:** Legal / Frontend
+**Added:** 2026-03-02
+**Priority:** Post-MVP — Required before public launch with real users and payment processing.
+**Depends on:** #13 (Stripe Credits Integration), #4 (Render Deployment) — ToS must reflect the final billing model and hosting setup
+
+Draft and implement Terms of Service and Privacy Policy for Zentropy Scout. Both documents must be drafted together since they cross-reference each other (ToS §7 and §10 reference the Privacy Policy directly). These are legal requirements before accepting real user data and payments.
+
+**Note:** This outline is a starting point, not legal advice. Consider professional legal review before publishing.
+
+#### Terms of Service — Outline
+
+**§1. Acceptance of Terms**
+- Agreement by using the service
+- Age requirement (13+ or 18+)
+- Updates to terms and notification method
+
+**§2. Description of Service**
+- What Zentropy is (AI-assisted job search tool)
+- Free tier vs paid features
+- AI-generated content is assistive, not guaranteed accurate
+- Service provided "as is"
+
+**§3. Account Registration**
+- Accurate information requirement
+- Account security responsibility
+- One account per user
+- Account termination rights (user's and Zentropy's)
+
+**§4. Acceptable Use**
+- No scraping or automated abuse
+- No impersonation
+- No illegal activity
+- No attempts to circumvent credit system
+- No uploading malicious content
+- No reselling access
+
+**§5. Credits and Payment**
+- How credits work (USD-direct, pay as you go)
+- No refunds on consumed credits
+- Unused balance policy
+- What happens to balance on account termination
+- Stripe as payment processor
+- Price change notice
+
+**§6. AI-Generated Content**
+- Content is AI-assisted, not professional advice
+- Not a substitute for professional career counseling
+- User responsible for verifying accuracy before submitting to employers
+- No guarantee of job search outcomes
+- User owns their generated resumes and cover letters
+
+**§7. User Data and Privacy** *(references Privacy Policy)*
+- Reference to Privacy Policy (separate document)
+- What data is collected
+- How job data works (shared pool vs personal data)
+- Job posting data contributed to shared database is not deleted on account termination
+- Personal profile, resume, and application data deleted on request
+
+**§8. Intellectual Property**
+- Zentropy owns the platform, brand, and underlying technology
+- User owns content they create (resumes, cover letters)
+- User grants Zentropy license to process their data to provide the service
+- No license to use Zentropy branding
+
+**§9. Third Party Services**
+- Stripe (payments)
+- Anthropic (AI)
+- Google (OAuth, AI)
+- Render (hosting)
+- Not responsible for third party terms or outages
+
+**§10. Job Data and Crowdsourcing** *(references Privacy Policy)*
+- How the shared job database works
+- User contributions to shared pool
+- No guarantee of job posting accuracy or freshness
+- Zentropy not responsible for job posting content
+- Not an employer or recruiter
+
+**§11. Limitation of Liability**
+- No guarantee of service availability
+- Not liable for job search outcomes
+- Not liable for AI content accuracy
+- Cap on liability (typically limited to amount paid in last 12 months)
+- No consequential damages
+
+**§12. Disclaimers and Warranties**
+- No warranty of fitness for particular purpose
+- No warranty of uninterrupted service
+- AI outputs may contain errors
+
+**§13. Indemnification**
+- User indemnifies Zentropy for misuse
+- User responsible for their own job applications
+
+**§14. Termination**
+- How users can close their account
+- How Zentropy can terminate accounts (ToS violations)
+- What happens to data on termination
+- What happens to unused credits on termination
+
+**§15. Dispute Resolution**
+- Governing law (Arizona)
+- Informal resolution first
+- Arbitration clause (optional but common for SaaS)
+- Class action waiver (optional)
+
+**§16. Changes to Terms**
+- Right to modify terms
+- Notice period
+- Continued use constitutes acceptance
+
+**§17. Contact Information**
+- How to reach Zentropy for ToS questions
+- DMCA contact if applicable
+
+#### Privacy Policy — Outline (Separate Document, Draft Together)
+
+Must be consistent with ToS §7 and §10. Detailed outline to be expanded when scoping begins. Key areas:
+- What personal data is collected (persona, work history, skills, preferences)
+- What job data is collected and how it enters the shared pool
+- How AI providers process user data (Anthropic, Google, OpenAI)
+- Data retention and deletion policies
+- Cookie and session token usage
+- Third-party data sharing (Stripe, auth providers, hosting)
+- User rights (access, correction, deletion, export)
+- CCPA/GDPR considerations based on user base geography
+- Children's privacy (COPPA if age threshold is 13+)
+
+#### Implementation Notes
+
+**What needs to be built:**
+- **Frontend pages** — `/terms` and `/privacy` routes with rendered legal content
+- **Consent capture** — checkbox or banner during registration/first login ("By continuing, you agree to our Terms of Service and Privacy Policy")
+- **Version tracking** — store ToS version accepted by each user + timestamp, re-prompt on major updates
+- **Footer links** — ToS and Privacy Policy links in site footer (visible on all pages including login)
+- **Account deletion flow** — must align with ToS §14 and Privacy Policy deletion commitments
+- **Data export** — consider "download my data" feature to support user rights (Privacy Policy)
+
+#### Open Questions
+
+- Professional legal review — hire a lawyer or use a template service (Termly, Iubenda, etc.)?
+- Age requirement — 13+ (broader reach, COPPA implications) vs 18+ (simpler compliance)?
+- Arbitration clause — include or skip? (Common in SaaS but user-hostile)
+- Class action waiver — include or skip?
+- GDPR scope — will Zentropy have EU users? If so, need DPA and EU-specific provisions
+- Data export format — JSON dump? PDF? Both?
+- Cookie consent banner — needed for EU visitors even if not targeting EU market?
 
 ---
 
