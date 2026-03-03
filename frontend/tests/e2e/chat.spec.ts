@@ -37,7 +37,7 @@ const AGENT_BUBBLE = '[data-slot="message-bubble"][data-role="agent"]';
 test.describe("Chat Panel Toggle", () => {
 	test("opens and closes chat panel", async ({ page }) => {
 		await setupChatMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Panel should not be visible initially (desktop: w-0 overflow-hidden)
 		const messageList = page.locator('[data-slot="chat-message-list"]');
@@ -61,7 +61,7 @@ test.describe("Chat Panel Toggle", () => {
 test.describe("Send Message", () => {
 	test("sends message via POST and shows user bubble", async ({ page }) => {
 		await setupChatMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open chat panel
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
@@ -96,7 +96,7 @@ test.describe("Send Message", () => {
 test.describe("Streaming Response", () => {
 	test("displays agent bubble with streamed tokens", async ({ page }) => {
 		await setupChatMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open panel and send message
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
@@ -131,7 +131,7 @@ test.describe("Streaming Response", () => {
 test.describe("Tool Execution", () => {
 	test("shows spinner then success badge", async ({ page }) => {
 		await setupChatMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open panel and send message
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
@@ -170,7 +170,7 @@ test.describe("Tool Execution", () => {
 test.describe("Typing Indicator", () => {
 	test("appears during streaming, disappears after done", async ({ page }) => {
 		await setupChatMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open panel and send message
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
@@ -201,7 +201,7 @@ test.describe("Typing Indicator", () => {
 test.describe("Chat History", () => {
 	test("loads and displays persisted messages", async ({ page }) => {
 		await setupChatWithHistoryMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open chat panel
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
@@ -221,7 +221,7 @@ test.describe("Chat History", () => {
 test.describe("Structured Cards", () => {
 	test("renders job card and score card", async ({ page }) => {
 		await setupChatWithCardsMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open chat panel
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
@@ -239,7 +239,7 @@ test.describe("Structured Cards", () => {
 
 	test("renders option list with clickable items", async ({ page }) => {
 		await setupChatWithOptionsMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open chat panel
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
@@ -266,7 +266,7 @@ test.describe("Input Disabled During Streaming", () => {
 		page,
 	}) => {
 		await setupChatMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open panel and send message
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();

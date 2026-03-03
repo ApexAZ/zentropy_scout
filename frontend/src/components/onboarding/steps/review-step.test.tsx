@@ -586,7 +586,7 @@ describe("ReviewStep", () => {
 			await user.click(screen.getByTestId(CONFIRM_BUTTON_TESTID));
 
 			await waitFor(() => {
-				expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/");
+				expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/dashboard");
 			});
 		});
 

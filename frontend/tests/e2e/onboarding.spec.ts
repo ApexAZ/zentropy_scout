@@ -29,7 +29,7 @@ const SKIP_MANUAL_ENTRY = "Skip — I'll enter manually";
 test.describe("Onboarding Gate", () => {
 	test("redirects to /onboarding when no persona exists", async ({ page }) => {
 		await setupFreshUserMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 		await expect(page).toHaveURL(/\/onboarding/);
 	});
 
@@ -41,7 +41,7 @@ test.describe("Onboarding Gate", () => {
 			onboardingComplete: false,
 		});
 		await controller.setupRoutes(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 		await expect(page).toHaveURL(/\/onboarding/);
 	});
 
@@ -49,10 +49,10 @@ test.describe("Onboarding Gate", () => {
 		page,
 	}) => {
 		await setupOnboardedUserMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 		// Should NOT redirect — should stay on dashboard
 		await expect(page).not.toHaveURL(/\/onboarding/);
-		await expect(page).toHaveURL("/");
+		await expect(page).toHaveURL("/dashboard");
 	});
 });
 
@@ -223,7 +223,7 @@ test.describe("Happy Path", () => {
 		await page.getByTestId("confirm-button").click();
 
 		// Should redirect to dashboard after completing onboarding
-		await expect(page).toHaveURL("/");
+		await expect(page).toHaveURL("/dashboard");
 	});
 });
 
@@ -405,7 +405,7 @@ test.describe("Review Completion", () => {
 		await page.getByTestId("confirm-button").click();
 
 		// Should redirect to dashboard
-		await expect(page).toHaveURL("/");
+		await expect(page).toHaveURL("/dashboard");
 	});
 });
 

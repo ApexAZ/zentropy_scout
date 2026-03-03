@@ -57,7 +57,7 @@ export function DashboardTabs() {
 			}
 
 			const query = params.toString();
-			router.replace(query ? `/?${query}` : "/");
+			router.replace(query ? `/dashboard?${query}` : "/dashboard");
 		},
 		[searchParams, router],
 	);

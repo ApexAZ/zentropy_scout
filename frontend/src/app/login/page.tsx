@@ -89,7 +89,7 @@ export default function LoginPage() {
 	// the link opens in a new tab, so this tab should stay put)
 	useEffect(() => {
 		if (status === "authenticated" && view !== "magic-link-sent") {
-			router.replace("/");
+			router.replace("/dashboard");
 		}
 	}, [status, router, view]);
 
@@ -112,7 +112,7 @@ export default function LoginPage() {
 			});
 			// Full page load (not client-side nav) so AuthProvider remounts
 			// and calls /auth/me with the new cookie
-			globalThis.location.assign("/");
+			globalThis.location.assign("/dashboard");
 		} catch (err) {
 			if (!(err instanceof ApiError)) {
 				setError(GENERIC_ERROR);

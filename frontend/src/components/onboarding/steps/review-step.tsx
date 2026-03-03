@@ -393,7 +393,7 @@ export function ReviewStep() {
 	const handleConfirm = useCallback(async () => {
 		try {
 			await completeOnboarding();
-			router.replace("/");
+			router.replace("/dashboard");
 		} catch (err) {
 			setSubmitError(toFriendlyError(err));
 		}

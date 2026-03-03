@@ -333,7 +333,10 @@ describe("JobDetailHeader", () => {
 			await waitFor(() => {
 				expect(screen.getByTestId(BACK_LINK_TESTID)).toBeInTheDocument();
 			});
-			expect(screen.getByTestId(BACK_LINK_TESTID)).toHaveAttribute("href", "/");
+			expect(screen.getByTestId(BACK_LINK_TESTID)).toHaveAttribute(
+				"href",
+				"/dashboard",
+			);
 		});
 
 		it("renders job title", async () => {

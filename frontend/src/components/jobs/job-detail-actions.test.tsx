@@ -278,7 +278,7 @@ describe("JobDetailActions", () => {
 			await user.click(screen.getByRole("button", { name: DISMISS_LABEL }));
 
 			await waitFor(() => {
-				expect(mocks.mockPush).toHaveBeenCalledWith("/");
+				expect(mocks.mockPush).toHaveBeenCalledWith("/dashboard");
 			});
 		});
 
@@ -317,7 +317,7 @@ describe("JobDetailActions", () => {
 			resolvePatch!(undefined);
 
 			await waitFor(() => {
-				expect(mocks.mockPush).toHaveBeenCalledWith("/");
+				expect(mocks.mockPush).toHaveBeenCalledWith("/dashboard");
 			});
 		});
 	});

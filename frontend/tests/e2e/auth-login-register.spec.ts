@@ -54,7 +54,7 @@ test.describe("Login Page", () => {
 			password: "SecurePass123!",
 		});
 
-		await expect(page).toHaveURL("/", { timeout: 10_000 });
+		await expect(page).toHaveURL("/dashboard", { timeout: 10_000 });
 		expect(controller.state.authenticated).toBe(true);
 	});
 

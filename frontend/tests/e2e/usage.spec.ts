@@ -34,7 +34,7 @@ const PAGE_2_OF_2 = "Page 2 of 2";
 test.describe("Balance Indicator — Navigation Bar", () => {
 	test("displays balance in green when balance >= $1.00", async ({ page }) => {
 		await setupUsageMocksWithBalance(page, "10.500000");
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		const indicator = page.getByTestId(BALANCE_INDICATOR);
 		await expect(indicator).toBeVisible();
@@ -46,7 +46,7 @@ test.describe("Balance Indicator — Navigation Bar", () => {
 		page,
 	}) => {
 		await setupUsageMocksWithBalance(page, "0.500000");
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		const indicator = page.getByTestId(BALANCE_INDICATOR);
 		await expect(indicator).toBeVisible();
@@ -56,7 +56,7 @@ test.describe("Balance Indicator — Navigation Bar", () => {
 
 	test("displays balance in red when balance < $0.10", async ({ page }) => {
 		await setupUsageMocksWithBalance(page, "0.050000");
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		const indicator = page.getByTestId(BALANCE_INDICATOR);
 		await expect(indicator).toBeVisible();
@@ -66,7 +66,7 @@ test.describe("Balance Indicator — Navigation Bar", () => {
 
 	test("clicking balance indicator navigates to /usage", async ({ page }) => {
 		await setupUsageMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		const indicator = page.getByTestId(BALANCE_INDICATOR);
 		await expect(indicator).toBeVisible();
@@ -330,7 +330,7 @@ test.describe("402 Insufficient Balance", () => {
 			});
 		});
 
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Error toast should appear from the useBalance hook's failed fetch
 		await expect(

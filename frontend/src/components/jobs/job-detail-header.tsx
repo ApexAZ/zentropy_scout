@@ -124,7 +124,12 @@ function JobDetailHeader({ jobId }: Readonly<JobDetailHeaderProps>) {
 	// Error states
 	if (error) {
 		if (error instanceof ApiError && error.status === 404) {
-			return <NotFoundState itemType="job" onBack={() => router.push("/")} />;
+			return (
+				<NotFoundState
+					itemType="job"
+					onBack={() => router.push("/dashboard")}
+				/>
+			);
 		}
 		return <FailedState onRetry={() => refetch()} />;
 	}
@@ -145,7 +150,7 @@ function JobDetailHeader({ jobId }: Readonly<JobDetailHeaderProps>) {
 		<div data-testid="job-detail-header" className="space-y-6">
 			{/* Back link */}
 			<Link
-				href="/"
+				href="/dashboard"
 				data-testid="back-to-jobs"
 				className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
 			>

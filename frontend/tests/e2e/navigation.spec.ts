@@ -48,7 +48,7 @@ async function overridePatchToFail(page: Page): Promise<void> {
 test.describe("Nav Link Rendering", () => {
 	test("displays all primary nav links and settings link", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		const nav = page.getByRole("navigation", { name: "Main navigation" });
 		await expect(nav).toBeVisible();
@@ -84,7 +84,7 @@ test.describe("Nav Link Rendering", () => {
 			});
 		});
 
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		const indicator = page.getByTestId("balance-indicator");
 		await expect(indicator).toBeVisible();
@@ -93,7 +93,7 @@ test.describe("Nav Link Rendering", () => {
 
 	test("displays Admin link when user is admin", async ({ page }) => {
 		await setupAdminMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await expect(page.getByRole("link", { name: "Admin" })).toBeVisible();
 	});
@@ -106,7 +106,7 @@ test.describe("Nav Link Rendering", () => {
 test.describe("Active Link Highlight", () => {
 	test("marks the current page link with aria-current", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Dashboard link should be active on "/"
 		const dashboardLink = page.getByRole("link", { name: "Dashboard" });
@@ -136,7 +136,7 @@ test.describe("Badge Counts", () => {
 			});
 		});
 
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Badge should be visible with count "3"
 		const badge = page.getByTestId("pending-flags-badge");
@@ -146,7 +146,7 @@ test.describe("Badge Counts", () => {
 
 	test("hides persona badge when no pending flags exist", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Dashboard mocks return empty change flags list → no badge
 		await expect(page.getByTestId("pending-flags-badge")).not.toBeAttached();

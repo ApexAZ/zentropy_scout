@@ -115,7 +115,7 @@ function sessionState(
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mocks.mockUsePathname.mockReturnValue("/");
+	mocks.mockUsePathname.mockReturnValue("/dashboard");
 	mocks.mockUseBalance.mockReturnValue(balanceState());
 	mocks.mockUseSession.mockReturnValue(sessionState());
 });
@@ -143,10 +143,10 @@ describe("TopNav", () => {
 	// Navigation links
 	// -------------------------------------------------------------------
 
-	it("renders Dashboard link pointing to /", () => {
+	it("renders Dashboard link pointing to /dashboard", () => {
 		render(<TopNav />);
 		const link = screen.getByRole("link", { name: /dashboard/i });
-		expect(link).toHaveAttribute("href", "/");
+		expect(link).toHaveAttribute("href", "/dashboard");
 	});
 
 	it("renders Persona link pointing to /persona", () => {

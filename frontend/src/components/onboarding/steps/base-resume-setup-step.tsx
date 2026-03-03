@@ -440,7 +440,7 @@ export function BaseResumeSetupStep() {
 				});
 				await completeOnboarding();
 				addSystemMessage(WELCOME_MESSAGE);
-				router.replace("/");
+				router.replace("/dashboard");
 			} catch (err) {
 				setIsSubmitting(false);
 				setSubmitError(toFriendlyError(err));

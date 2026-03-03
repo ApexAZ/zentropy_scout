@@ -15,7 +15,7 @@ test.describe("Security Headers", () => {
 	let headers: Record<string, string>;
 
 	test.beforeEach(async ({ page }) => {
-		const response = await page.goto("/");
+		const response = await page.goto("/dashboard");
 		expect(response).not.toBeNull();
 		headers = response!.headers();
 	});

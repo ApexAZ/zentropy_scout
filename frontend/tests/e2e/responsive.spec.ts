@@ -37,7 +37,7 @@ test.describe("Mobile viewport (375×667)", () => {
 
 	test("hides primary navigation links", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Nav links should be hidden on mobile (hidden md:flex)
 		await expect(
@@ -55,7 +55,7 @@ test.describe("Mobile viewport (375×667)", () => {
 		page,
 	}) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
 
@@ -96,7 +96,7 @@ test.describe("Tablet viewport (768×1024)", () => {
 
 	test("shows primary navigation links", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await expect(
 			page.getByRole("link", { name: NAV_APPLICATIONS }),
@@ -106,7 +106,7 @@ test.describe("Tablet viewport (768×1024)", () => {
 
 	test("opens chat as constrained sheet overlay", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
 
@@ -132,7 +132,7 @@ test.describe("Desktop viewport (1280×720)", () => {
 
 	test("shows primary navigation links", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await expect(
 			page.getByRole("link", { name: NAV_APPLICATIONS }),
@@ -142,7 +142,7 @@ test.describe("Desktop viewport (1280×720)", () => {
 
 	test("opens chat as persistent inline sidebar", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
 

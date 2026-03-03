@@ -68,7 +68,7 @@ export function JobDetailActions({
 			});
 			showToast.success("Job dismissed.");
 			await queryClient.invalidateQueries({ queryKey: queryKeys.jobs });
-			router.push("/");
+			router.push("/dashboard");
 		} catch {
 			showToast.error("Failed to dismiss job.");
 		} finally {

@@ -119,7 +119,7 @@ export default function RegisterPage() {
 	// Redirect if already authenticated
 	useEffect(() => {
 		if (status === "authenticated") {
-			router.replace("/");
+			router.replace("/dashboard");
 		}
 	}, [status, router]);
 

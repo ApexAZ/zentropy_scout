@@ -40,7 +40,7 @@ test.describe("Admin Auth Gate", () => {
 		await page.goto("/admin/config");
 
 		// Should be redirected to home (proxy gate)
-		await expect(page).toHaveURL("/");
+		await expect(page).toHaveURL("/dashboard");
 	});
 
 	test("admin page loads when user has admin JWT", async ({ page }) => {
@@ -419,7 +419,7 @@ test.describe("Nav — Admin Link", () => {
 	test("hides Admin link for non-admin users", async ({ page }) => {
 		await setupNonAdminMocks(page);
 
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Admin link should NOT be visible
 		await expect(page.getByRole("link", { name: "Admin" })).not.toBeAttached();

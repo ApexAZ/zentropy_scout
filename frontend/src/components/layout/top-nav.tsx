@@ -53,7 +53,7 @@ interface NavItem {
 }
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-	{ href: "/", label: "Dashboard", icon: LayoutDashboard },
+	{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 	{
 		href: "/persona",
 		label: "Persona",
@@ -79,7 +79,6 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 // ---------------------------------------------------------------------------
 
 function isActive(pathname: string, href: string): boolean {
-	if (href === "/") return pathname === "/";
 	return pathname.startsWith(href);
 }
 
@@ -125,7 +124,7 @@ export function TopNav({
 			<nav aria-label="Main navigation" className="flex h-14 items-center px-4">
 				{/* Brand */}
 				<Link
-					href="/"
+					href="/dashboard"
 					className="mr-6 flex items-center"
 					aria-label="Zentropy Scout home"
 				>

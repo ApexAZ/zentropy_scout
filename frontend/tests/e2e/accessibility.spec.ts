@@ -8,7 +8,7 @@ test.describe("Reduced Motion", () => {
 	}) => {
 		await page.emulateMedia({ reducedMotion: "reduce" });
 		await setupOnboardedUserMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Wait for the page to be fully loaded
 		await page.waitForLoadState("networkidle");

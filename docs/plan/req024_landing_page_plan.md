@@ -83,7 +83,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1 | **Dashboard move + public route group + redirect/E2E updates** | | ⬜ |
+| 1 | **Dashboard move + public route group + redirect/E2E updates** | | ✅ 2026-03-03 |
 | | **Read:** REQ-024 §5.1 (route structure), §5.3 (dashboard move), §6.3 (existing test updates). | `req-reader, plan` | |
 | | | | |
 | | **Create:** | | |

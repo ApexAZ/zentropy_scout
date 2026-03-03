@@ -76,7 +76,7 @@ test.describe("Job Detail — Cross-Tenant 404", () => {
 		const goBack = page.getByRole("button", { name: "Go back" });
 		await expect(goBack).toBeVisible();
 		await goBack.click();
-		await expect(page).toHaveURL("/");
+		await expect(page).toHaveURL("/dashboard");
 	});
 });
 
@@ -164,7 +164,7 @@ test.describe("Dashboard — Empty List (No Data Leakage)", () => {
 		// Mock applications list to return empty
 		await mockEmptyList(page, /\/api\/v1\/applications/);
 
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Dashboard should be visible with no data — empty state shown
 		await expect(page.getByTestId("dashboard-tabs")).toBeVisible();

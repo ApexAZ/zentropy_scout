@@ -34,7 +34,7 @@ const PJ_005_ID = PERSONA_JOB_IDS[4]; // Persona-job wrapper for job-005
 test.describe("Dashboard Loading", () => {
 	test("dashboard loads with Opportunities tab active", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await expect(page.getByTestId("dashboard-tabs")).toBeVisible();
 		await expect(page.getByTestId("tab-content-opportunities")).toBeVisible();
@@ -45,7 +45,7 @@ test.describe("Dashboard Loading", () => {
 
 	test("tab navigation persists in URL", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Click "In Progress" tab
 		await page.getByRole("tab", { name: "In Progress" }).click();
@@ -61,7 +61,7 @@ test.describe("Dashboard Loading", () => {
 	test("empty state when no jobs", async ({ page }) => {
 		const controller = new JobDiscoveryMockController({ jobCount: 0 });
 		await controller.setupRoutes(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await expect(page.getByText("No opportunities found.")).toBeVisible();
 	});
@@ -74,7 +74,7 @@ test.describe("Dashboard Loading", () => {
 test.describe("Opportunities Table", () => {
 	test("displays job list with titles and scores", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Verify job titles visible (job-004 is filtered, hidden by default)
 		await expect(page.getByText("Senior Software Engineer")).toBeVisible();
@@ -88,7 +88,7 @@ test.describe("Opportunities Table", () => {
 
 	test("clicking job row navigates to detail", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Click the row containing the first job title — URL uses persona job ID
 		await page.getByText("Senior Software Engineer").click();
@@ -98,7 +98,7 @@ test.describe("Opportunities Table", () => {
 
 	test("favorite toggle sends PATCH", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Wait for table to be visible
 		await expect(page.getByTestId("opportunities-table")).toBeVisible();
@@ -118,7 +118,7 @@ test.describe("Opportunities Table", () => {
 		page,
 	}) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// job-004 (Backend Developer at LowPay Inc) should be hidden by default
 		await expect(page.getByText("Backend Developer")).not.toBeVisible();
@@ -132,7 +132,7 @@ test.describe("Opportunities Table", () => {
 
 	test("bulk select and dismiss", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Enter select mode
 		await page.getByTestId("select-mode-button").click();
@@ -324,12 +324,12 @@ test.describe("Navigation & Tabs", () => {
 
 		await expect(page.getByTestId("back-to-jobs")).toBeVisible();
 		await page.getByTestId("back-to-jobs").click();
-		await expect(page).toHaveURL("/");
+		await expect(page).toHaveURL("/dashboard");
 	});
 
 	test("in progress tab shows applications table", async ({ page }) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await page.getByRole("tab", { name: "In Progress" }).click();
 		await expect(page.getByTestId("tab-content-in-progress")).toBeVisible();
@@ -374,7 +374,7 @@ test.describe("Shared Pool & Actions", () => {
 		expect(response.status()).toBe(200);
 
 		// Component redirects to dashboard after dismissing
-		await expect(page).toHaveURL("/");
+		await expect(page).toHaveURL("/dashboard");
 	});
 
 	test("undismiss button restores job to Discovered", async ({ page }) => {
@@ -402,7 +402,7 @@ test.describe("Shared Pool & Actions", () => {
 		page,
 	}) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// job-005 (Junior Developer at SmallCo) has discovery_method="pool"
 		// It should appear in the table with no distinction from scouter jobs
@@ -447,7 +447,7 @@ test.describe("Shared Pool & Actions", () => {
 		page,
 	}) => {
 		await setupDashboardMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Verify job-001 is initially visible
 		await expect(page.getByText("Senior Software Engineer")).toBeVisible();
@@ -465,7 +465,7 @@ test.describe("Shared Pool & Actions", () => {
 		await patchPromise;
 
 		// Should redirect to dashboard
-		await expect(page).toHaveURL("/");
+		await expect(page).toHaveURL("/dashboard");
 
 		// Job should no longer appear in the table
 		await expect(page.getByText("Senior Software Engineer")).not.toBeVisible();

@@ -693,7 +693,7 @@ describe("BaseResumeSetupStep", () => {
 			await user.click(screen.getByTestId(SUBMIT_BUTTON_TESTID));
 
 			await waitFor(() => {
-				expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/");
+				expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/dashboard");
 			});
 		});
 

@@ -100,10 +100,22 @@ async function submitMagicLink(
 // ---------------------------------------------------------------------------
 
 describe("LoginPage", () => {
+	const mockLocationAssign = vi.fn();
+	const originalLocation = globalThis.location;
+
 	beforeEach(() => {
 		mocks.mockApiPost.mockReset();
 		mocks.mockRouterReplace.mockReset();
 		mocks.mockUseSession.mockReset();
+		mockLocationAssign.mockReset();
+
+		// Replace location with a mock so we can assert on assign() calls.
+		// jsdom's location.assign is read-only and non-configurable.
+		Object.defineProperty(globalThis, "location", {
+			value: { ...originalLocation, assign: mockLocationAssign },
+			writable: true,
+			configurable: true,
+		});
 
 		// Default: unauthenticated
 		mocks.mockUseSession.mockReturnValue({
@@ -115,6 +127,12 @@ describe("LoginPage", () => {
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
+		// Restore original location
+		Object.defineProperty(globalThis, "location", {
+			value: originalLocation,
+			writable: true,
+			configurable: true,
+		});
 	});
 
 	// -----------------------------------------------------------------------
@@ -278,7 +296,7 @@ describe("LoginPage", () => {
 			});
 		});
 
-		it("redirects to / after successful login", async () => {
+		it("redirects to /dashboard after successful login", async () => {
 			mocks.mockApiPost.mockResolvedValueOnce({ data: {} });
 			const user = renderLogin();
 
@@ -286,7 +304,7 @@ describe("LoginPage", () => {
 
 			await waitFor(() => {
 				// Full page load (not client-side nav) so AuthProvider remounts
-				expect(globalThis.location.pathname).toBe("/");
+				expect(mockLocationAssign).toHaveBeenCalledWith("/dashboard");
 			});
 		});
 
@@ -461,7 +479,7 @@ describe("LoginPage", () => {
 	// -----------------------------------------------------------------------
 
 	describe("auth redirect", () => {
-		it("redirects to / when already authenticated", () => {
+		it("redirects to /dashboard when already authenticated", () => {
 			mocks.mockUseSession.mockReturnValue({
 				session: {
 					id: "u-1",
@@ -476,7 +494,7 @@ describe("LoginPage", () => {
 
 			renderLogin();
 
-			expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/");
+			expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/dashboard");
 		});
 
 		it("does not redirect when loading", () => {

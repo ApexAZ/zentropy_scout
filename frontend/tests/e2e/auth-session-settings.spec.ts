@@ -29,7 +29,7 @@ test.describe("Route Protection", () => {
 	}) => {
 		await page.context().clearCookies();
 
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
 	});

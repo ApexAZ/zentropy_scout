@@ -191,7 +191,9 @@ describe("DashboardTabs", () => {
 
 			await user.click(screen.getByRole("tab", { name: LABEL_IN_PROGRESS }));
 
-			expect(mocks.mockReplace).toHaveBeenCalledWith("/?tab=in-progress");
+			expect(mocks.mockReplace).toHaveBeenCalledWith(
+				"/dashboard?tab=in-progress",
+			);
 		});
 
 		it("calls router.replace with tab=history when clicking History", async () => {
@@ -201,7 +203,7 @@ describe("DashboardTabs", () => {
 
 			await user.click(screen.getByRole("tab", { name: LABEL_HISTORY }));
 
-			expect(mocks.mockReplace).toHaveBeenCalledWith("/?tab=history");
+			expect(mocks.mockReplace).toHaveBeenCalledWith("/dashboard?tab=history");
 		});
 
 		it("calls router.replace with clean URL when clicking Opportunities from another tab", async () => {
@@ -213,7 +215,7 @@ describe("DashboardTabs", () => {
 
 			await user.click(screen.getByRole("tab", { name: LABEL_OPPORTUNITIES }));
 
-			expect(mocks.mockReplace).toHaveBeenCalledWith("/");
+			expect(mocks.mockReplace).toHaveBeenCalledWith("/dashboard");
 		});
 
 		it("does not call router.replace when clicking the already-active tab", async () => {

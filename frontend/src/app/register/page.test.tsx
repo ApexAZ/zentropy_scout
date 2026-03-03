@@ -509,7 +509,7 @@ describe("RegisterPage", () => {
 	// -----------------------------------------------------------------------
 
 	describe("auth redirect", () => {
-		it("redirects to / when already authenticated", () => {
+		it("redirects to /dashboard when already authenticated", () => {
 			mocks.mockUseSession.mockReturnValue({
 				session: {
 					id: "u-1",
@@ -524,7 +524,7 @@ describe("RegisterPage", () => {
 
 			renderRegister();
 
-			expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/");
+			expect(mocks.mockRouterReplace).toHaveBeenCalledWith("/dashboard");
 		});
 
 		it("does not redirect when loading", () => {

@@ -46,7 +46,7 @@ async function advanceToPreview(page: Page) {
 test.describe("Add Job Modal — Form", () => {
 	test("opens modal with form fields and buttons", async ({ page }) => {
 		await setupAddJobMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 
 		// Open modal via toolbar button
 		await page.getByTestId("add-job-button").click();
@@ -70,7 +70,7 @@ test.describe("Add Job Modal — Form", () => {
 
 	test("validates required fields on empty submit", async ({ page }) => {
 		await setupAddJobMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 		await page.getByTestId("add-job-button").click();
 
 		// Submit without filling anything
@@ -91,7 +91,7 @@ test.describe("Add Job Modal — Extract & Preview", () => {
 		page,
 	}) => {
 		await setupAddJobMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 		await page.getByTestId("add-job-button").click();
 
 		await fillIngestForm(page);
@@ -133,7 +133,7 @@ test.describe("Add Job Modal — Extract & Preview", () => {
 
 	test("countdown timer displays remaining time", async ({ page }) => {
 		await setupAddJobMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 		await page.getByTestId("add-job-button").click();
 		await advanceToPreview(page);
 
@@ -153,7 +153,7 @@ test.describe("Add Job Modal — Confirm & Errors", () => {
 		page,
 	}) => {
 		await setupAddJobMocks(page);
-		await page.goto("/");
+		await page.goto("/dashboard");
 		await page.getByTestId("add-job-button").click();
 		await advanceToPreview(page);
 
@@ -191,7 +191,7 @@ test.describe("Add Job Modal — Confirm & Errors", () => {
 			}
 		});
 
-		await page.goto("/");
+		await page.goto("/dashboard");
 		await page.getByTestId("add-job-button").click();
 		await advanceToPreview(page);
 
