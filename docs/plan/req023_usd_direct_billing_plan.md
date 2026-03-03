@@ -71,7 +71,7 @@ Phase 5: Documentation Errata (REQ-023 §6.1, §8.3)
 
 ## Phase 1: Database Migration (REQ-023 §4.1, §7.6)
 
-**Status:** ⬜
+**Status:** ✅ Complete
 
 *Alembic migration to rename table/column/constraints/index, update seed data, rename system config key. Fix raw SQL tests. Write integration tests for config key rename.*
 
@@ -128,7 +128,7 @@ Phase 5: Documentation Errata (REQ-023 §6.1, §8.3)
 | | **Verify:** `SELECT key, value FROM system_config WHERE key = 'signup_grant_cents';` — returns `10`. | | |
 | | **Run:** `pytest tests/unit/test_admin_config_models.py -v` | | |
 | | **Done when:** Migration runs cleanly in both directions. No `credit_packs` table exists after upgrade. `funding_packs` has correct data. Raw SQL tests pass. Integration tests pass. | | |
-| 2 | **Phase 1 Gate** — Full backend test suite + push | `phase-gate` | ⬜ |
+| 2 | **Phase 1 Gate** — Full backend test suite + push | `phase-gate` | ✅ |
 | | **Run:** `cd backend && python -m pytest tests/ -v`. Run pre-push hooks. Push with SSH keep-alive: `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push`. | | |
 | | **Note:** Some tests still reference old model/table names (ORM tests use `CreditPack` class which still has `__tablename__ = "credit_packs"` until Phase 2). The migration renamed the DB table but the ORM model isn't updated yet — **this works** because SQLAlchemy resolves via the model class, and the raw SQL tests were already fixed in §1. | | |
 | | **Done when:** All backend tests pass. Pushed to remote. | | |
