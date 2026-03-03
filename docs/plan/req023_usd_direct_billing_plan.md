@@ -2,7 +2,7 @@
 
 **Created:** 2026-03-02
 **Last Updated:** 2026-03-02
-**Status:** ⬜ Not Started
+**Status:** 🟡 In Progress
 **Destination:** `docs/plan/req023_usd_direct_billing_plan.md`
 
 ---
@@ -90,7 +90,7 @@ Phase 5: Documentation Errata (REQ-023 §6.1, §8.3)
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1 | **Write Alembic migration + fix raw SQL tests + integration tests** | | ⬜ |
+| 1 | **Write Alembic migration + fix raw SQL tests + integration tests** | | ✅ |
 | | **Read:** REQ-023 §4.1 (full SQL for upgrade + downgrade), §7.6 (integration test scenarios). Reference: `backend/migrations/versions/021_admin_pricing.py` (revision chain, format). `backend/tests/unit/test_admin_config_models.py` lines 350–381 (raw SQL tests). `backend/app/services/admin_config_service.py` lines 148–163 (docstring referencing `signup_grant_credits`). | `req-reader, db` | |
 | | | | |
 | | **Create:** `backend/migrations/versions/022_usd_direct_billing.py` | | |
