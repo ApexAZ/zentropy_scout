@@ -146,7 +146,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 
 ## Phase 2: Backend Renames (REQ-023 §4.2–§4.5, §7.2)
 
-**Status:** 🟡
+**Status:** ✅
 
 *Rename CreditPack → FundingPack, credit_amount → grant_cents, /credit-packs → /funding-packs across all backend source and test files.*
 
@@ -230,7 +230,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 | | | | |
 | | **Run:** `cd backend && python -m pytest tests/ -v` — all tests must pass. | `commands` | |
 | | **Done when:** Zero references to `CreditPack`, `credit_amount` (in pack context), or `/credit-packs` in backend source or test files. All tests pass. | | |
-| 4 | **Phase 2 Gate** — Full backend + frontend tests, push | `phase-gate` | ⬜ |
+| 4 | **Phase 2 Gate** — Full backend + frontend tests, push | `phase-gate` | ✅ |
 | | **Run:** `cd backend && python -m pytest tests/ -v`. Then `cd frontend && npm test -- --run && npm run typecheck`. Frontend should still pass (hasn't changed yet — it hits mocked routes, not real backend). Push with SSH keep-alive: `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push`. | | |
 | | **Done when:** All backend + frontend tests pass. Pushed to remote. | | |
 
