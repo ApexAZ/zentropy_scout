@@ -1,7 +1,7 @@
 # REQ-023: USD-Direct Billing & Pack Configuration
 
 **Status:** Not Started
-**Version:** 0.1
+**Version:** 0.3
 **PRD Reference:** §6 Technical Architecture
 **Backlog Item:** #19
 **Last Updated:** 2026-03-02
@@ -29,6 +29,7 @@ This document specifies the transition from abstract credit-based billing to USD
 | Seed descriptions | Generic ("Get started with Zentropy Scout") | Volume-based ("Analyze ~250 jobs...") |
 | Seed pricing | $5 / $15 / $40 | $5 / $10 / $15 |
 | `system_config` key | `signup_grant_credits` (abstract credits) | `signup_grant_cents` (USD cents) |
+| API route paths | `/admin/credit-packs` | `/admin/funding-packs` |
 | Frontend balance display | Number only (`$X.XX`) | Number + visual usage bar |
 
 ### 1.2 What Does NOT Change
@@ -95,6 +96,26 @@ Full decision rationale is documented in the backlog PBI (`docs/backlog/feature-
 **Decision:** `signup_grant_cents` defaults to `10` ($0.10). Enough for approximately 5 job extractions or 2 complete workflows (extract + score + resume + cover letter). Gives users a meaningful taste of the service before requiring payment.
 
 Admin-adjustable from the admin System Config tab. Set to `0` to disable.
+
+### 2.5 API Route Rename
+
+**Decision:** Rename `/admin/credit-packs` → `/admin/funding-packs` for consistency with the table/model rename.
+
+| Method | Old Route | New Route |
+|--------|-----------|-----------|
+| GET | `/api/v1/admin/credit-packs` | `/api/v1/admin/funding-packs` |
+| POST | `/api/v1/admin/credit-packs` | `/api/v1/admin/funding-packs` |
+| PATCH | `/api/v1/admin/credit-packs/{pack_id}` | `/api/v1/admin/funding-packs/{pack_id}` |
+| DELETE | `/api/v1/admin/credit-packs/{pack_id}` | `/api/v1/admin/funding-packs/{pack_id}` |
+
+**Why rename:** The application is pre-launch with no external consumers. Route paths should match their underlying resource name. Leaving the old path would create a permanent naming inconsistency between the URL (`credit-packs`), the table (`funding_packs`), and the model (`FundingPack`).
+
+**Affected code:**
+- Backend: route decorators in `backend/app/api/v1/admin.py`
+- Frontend API client: URL strings in `frontend/src/lib/api/admin.ts`
+- Frontend API tests: URL assertions in `frontend/src/lib/api/admin.test.ts`
+- E2E mock routes: regex patterns in `frontend/tests/utils/admin-api-mocks.ts`
+- E2E spec: any pack-related test assertions in `frontend/tests/e2e/admin.spec.ts`
 
 ---
 
@@ -244,7 +265,16 @@ grant_cents = await admin_config_service.get_system_config_int("signup_grant_cen
 grant_usd = Decimal(grant_cents) / Decimal(100)  # 10 cents → 0.100000
 ```
 
-### 4.4 Column Semantics
+### 4.4 API Route Renames
+
+**`backend/app/api/v1/admin.py`:**
+- `@router.get("/credit-packs")` → `@router.get("/funding-packs")`
+- `@router.post("/credit-packs", ...)` → `@router.post("/funding-packs", ...)`
+- `@router.patch("/credit-packs/{pack_id}")` → `@router.patch("/funding-packs/{pack_id}")`
+- `@router.delete("/credit-packs/{pack_id}", ...)` → `@router.delete("/funding-packs/{pack_id}", ...)`
+- Update docstrings referencing `credit-packs` path
+
+### 4.5 Column Semantics
 
 The renamed `funding_packs.grant_cents` column (BIGINT):
 
@@ -285,7 +315,15 @@ Balance: $0.03
 
 **Implementation note:** The bar reference point ($15.00) can be hardcoded for now. If we need it to be dynamic (e.g., match the largest active pack), it can be derived from the packs API response in a future iteration.
 
-### 5.2 Nav Bar (No Changes)
+### 5.2 Frontend API Client Route Updates
+
+**`frontend/src/lib/api/admin.ts`:**
+- `apiGet("/admin/credit-packs")` → `apiGet("/admin/funding-packs")`
+- `apiPost("/admin/credit-packs", body)` → `apiPost("/admin/funding-packs", body)`
+- `apiPatch("/admin/credit-packs/${id}", body)` → `apiPatch("/admin/funding-packs/${id}", body)`
+- `apiDelete("/admin/credit-packs/${id}")` → `apiDelete("/admin/funding-packs/${id}")`
+
+### 5.3 Nav Bar (No Changes)
 
 The existing nav bar balance indicator (`frontend/src/components/layout/top-nav.tsx`) already displays `$X.XX` with green/amber/red color coding. No changes needed from this REQ.
 
@@ -352,15 +390,22 @@ All existing tests for packs must be updated to use the new names and pass:
 | `test_admin_management_service.py` | `CreditPack` → `FundingPack`, `credit_amount` → `grant_cents` |
 | `test_admin_api.py` | `credit_amount` → `grant_cents` in request/response bodies |
 
-### 7.3 Frontend Tests
+### 7.3 Frontend Unit Tests
 
 | Test File | Key Updates |
 |-----------|------------|
-| `packs-tab.test.tsx` | `CreditPackItem` → `FundingPackItem`, `credit_amount` → `grant_cents` |
-| `admin-mock-data.ts` | `CreditPackItem` → `FundingPackItem`, `credit_amount` → `grant_cents` |
-| `admin.test.ts` | `credit_amount` → `grant_cents` in request bodies |
+| `frontend/src/components/admin/packs-tab.test.tsx` | `CreditPackItem` → `FundingPackItem`, `credit_amount` → `grant_cents` |
+| `frontend/src/lib/api/admin.test.ts` | `credit_amount` → `grant_cents` in request bodies, `/admin/credit-packs` → `/admin/funding-packs` in URL assertions |
 
-### 7.4 Usage Bar Tests
+### 7.4 E2E Test Infrastructure
+
+| Test File | Key Updates |
+|-----------|------------|
+| `frontend/tests/fixtures/admin-mock-data.ts` | `CreditPackItem` → `FundingPackItem`, `credit_amount` → `grant_cents` in mock data, update JSDoc comment referencing `/admin/credit-packs` |
+| `frontend/tests/utils/admin-api-mocks.ts` | Route regex patterns: `/admin\/credit-packs$/` → `/admin\/funding-packs$/`, `/admin\/credit-packs\/[^/]+$/` → `/admin\/funding-packs\/[^/]+$/` |
+| `frontend/tests/e2e/admin.spec.ts` | Verify any pack-related assertions still pass with renamed routes and field names |
+
+### 7.5 Usage Bar Tests
 
 | Test | Scenario |
 |------|----------|
@@ -371,7 +416,7 @@ All existing tests for packs must be updated to use the new names and pass:
 | Bar width scales | Bar width is proportional to balance (capped at $15.00 = 100%) |
 | Bar accessible | `aria-label` includes the balance amount |
 
-### 7.5 Integration Tests
+### 7.6 Integration Tests
 
 | Test | Scenario |
 |------|----------|
@@ -386,12 +431,12 @@ All existing tests for packs must be updated to use the new names and pass:
 
 | File | Change |
 |------|--------|
-| `backend/migrations/versions/023_usd_direct_billing.py` | **New.** Rename table/column/constraints/index, update seed data, rename config key |
+| `backend/migrations/versions/022_usd_direct_billing.py` | **New.** Rename table/column/constraints/index, update seed data, rename config key |
 | `backend/app/models/admin_config.py` | `CreditPack` → `FundingPack`, `credit_amount` → `grant_cents`, update `__tablename__`, constraints, docstring |
 | `backend/app/models/__init__.py` | Update import/export: `CreditPack` → `FundingPack` |
 | `backend/app/schemas/admin.py` | `CreditPackCreate/Update/Response` → `FundingPackCreate/Update/Response`, `credit_amount` → `grant_cents`, rename validator |
 | `backend/app/services/admin_management_service.py` | `CreditPack` → `FundingPack`, `credit_amount` → `grant_cents` throughout |
-| `backend/app/api/v1/admin.py` | Update imports and all `CreditPack*` / `credit_amount` references |
+| `backend/app/api/v1/admin.py` | Update imports, all `CreditPack*` / `credit_amount` references, AND route paths (`/credit-packs` → `/funding-packs`) |
 | `backend/tests/unit/test_admin_config_models.py` | Update model refs, table name in SQL, column name |
 | `backend/tests/unit/test_admin_schemas.py` | Update schema class names and field names |
 | `backend/tests/unit/test_admin_management_service.py` | Update model refs and field names |
@@ -402,13 +447,15 @@ All existing tests for packs must be updated to use the new names and pass:
 | File | Change |
 |------|--------|
 | `frontend/src/types/admin.ts` | `CreditPackItem/CreateRequest/UpdateRequest` → `FundingPackItem/CreateRequest/UpdateRequest`, `credit_amount` → `grant_cents` |
-| `frontend/src/types/index.ts` | Update re-exports |
-| `frontend/src/lib/api/admin.ts` | Update type imports and function signatures |
-| `frontend/src/lib/api/admin.test.ts` | Update `credit_amount` → `grant_cents` in test data |
+| `frontend/src/types/index.ts` | Update re-exports: `CreditPackItem/CreateRequest/UpdateRequest` → `FundingPackItem/CreateRequest/UpdateRequest` |
+| `frontend/src/lib/api/admin.ts` | Update type imports, function signatures, AND URL paths (`/admin/credit-packs` → `/admin/funding-packs`) |
+| `frontend/src/lib/api/admin.test.ts` | Update `credit_amount` → `grant_cents` in test data, `/admin/credit-packs` → `/admin/funding-packs` in URL assertions |
 | `frontend/src/components/admin/packs-tab.tsx` | Update type imports and `credit_amount` → `grant_cents` references |
 | `frontend/src/components/admin/packs-tab.test.tsx` | Update type imports and mock data |
-| `frontend/src/components/admin/add-pack-dialog.tsx` | Update `creditAmount` state/props and `credit_amount` field name |
-| `frontend/tests/fixtures/admin-mock-data.ts` | Update type import and `credit_amount` → `grant_cents` in fixtures |
+| `frontend/src/components/admin/add-pack-dialog.tsx` | Rename state var `creditAmount` → `grantCents`, update `credit_amount` field name in submit payload |
+| `frontend/tests/fixtures/admin-mock-data.ts` | Update type import, `credit_amount` → `grant_cents` in fixtures, JSDoc route comment |
+| `frontend/tests/utils/admin-api-mocks.ts` | Update route regex patterns: `/credit-packs` → `/funding-packs` |
+| `frontend/tests/e2e/admin.spec.ts` | Verify pack-related assertions pass with renamed routes and fields |
 | `frontend/src/components/usage/balance-card.tsx` | **Modified.** Add usage bar component |
 
 ### 8.3 Documentation
@@ -425,3 +472,4 @@ All existing tests for packs must be updated to use the new names and pass:
 |------|---------|---------|
 | 2026-03-02 | 0.1 | Initial version. Documents USD-direct billing decision, seed data migration, config key rename, usage bar, and REQ-021 errata. Decision rationale references backlog PBI #19. |
 | 2026-03-02 | 0.2 | Added table/column/constraint rename: `credit_packs` → `funding_packs`, `credit_amount` → `grant_cents`. Added comprehensive file inventory for all backend and frontend renames. Added §2.3 (Naming Clean-Up) design decision with rationale for what IS and IS NOT renamed. |
+| 2026-03-02 | 0.3 | Gap review: (1) Added §2.5 API Route Rename decision (`/admin/credit-packs` → `/admin/funding-packs`). (2) Added §4.4 backend route rename details. (3) Added §5.2 frontend API client route updates. (4) Fixed migration filename from `023_` to `022_` (next after `021_admin_pricing`). (5) Expanded §7.3–7.4 to include E2E test infrastructure (`admin-api-mocks.ts`, `admin-mock-data.ts`, `admin.spec.ts`). (6) Added `admin-api-mocks.ts`, `admin.spec.ts`, and `types/index.ts` to §8.2 file inventory. (7) Clarified `add-pack-dialog.tsx` state var rename (`creditAmount` → `grantCents`). |

@@ -45,6 +45,20 @@ Plans without requirements lead to scope creep. Always have a REQ to reference.
 
 Use EnterPlanMode when adding new features, phases, or multi-task work. Every plan should follow the format below. Reference existing plans in `docs/plan/` for examples.
 
+### Plan File Requirement (CRITICAL)
+
+**Every plan MUST be persisted to `docs/plan/<name>_plan.md` BEFORE any implementation begins.** This is non-negotiable because:
+1. The session start checklist (Step 3) discovers active plans via `Glob "docs/plan/*_plan.md"`
+2. After context compaction, the plan file is the ONLY way to find the current task
+3. The Claude Code task list (`TaskCreate`/`TaskUpdate`) is supplementary tracking — NOT a replacement
+
+**If the user provides a plan inline (in a message, JSONL transcript, or other non-file format):**
+1. Write it to `docs/plan/<name>_plan.md` first
+2. Audit it against the REQ (via `req-reader`) and prior plan patterns before starting
+3. Only then begin implementation
+
+**Never start implementation without a plan file on disk.**
+
 ### Plan Format
 
 Every phase in a plan must include these sections:

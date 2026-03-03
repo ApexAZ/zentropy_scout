@@ -431,6 +431,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 - `[security]` Always spawn the security-triage subagent as the VERY FIRST action at session start and after compaction — before reading implementation files, before resuming tasks, before any other work — because the SessionStart hook is advisory-only and skipping the gate defeats the entire security scanning pipeline.
 - `[security]` Never filter or suppress security scanner alerts from reporting output (SARIF, Security tab) because DAST/SAST findings are meant for manual human review — the protocol is: review each alert, determine if genuine or false positive, then dismiss via `gh api` with reason and comment if false positive.
 - `[git]` Always use SSH keep-alive when pushing: `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push` because pre-push hooks (pytest+vitest ~5min) cause GitHub's SSH connection to timeout before the actual push occurs.
+- `[planning]` Every implementation plan MUST be persisted to a `.md` file in `docs/plan/` following the established template BEFORE starting implementation. Never accept an inline plan or use only the TaskCreate tool — the plan file is the single source of truth for resuming work after compaction. Without it, Step 3 of the session start checklist (`Glob "docs/plan/*_plan.md"`) cannot discover the active plan.
 
 <!-- Add new lessons above this line -->
 
