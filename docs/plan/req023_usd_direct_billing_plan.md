@@ -435,7 +435,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 | | **Update `docs/backlog/feature-backlog.md`:** PBI #19 → completed | | |
 | | | | |
 | | **Done when:** REQ-021 reflects USD-direct billing terminology. Plan, CLAUDE.md, and backlog updated. | | |
-| 10 | **Phase 5 Gate (Final)** — Full suite verification + push | `phase-gate` | ⬜  |
+| 10 | **Phase 5 Gate (Final)** — Full suite verification + push | `phase-gate` | ✅ |
 | | **Run:** `cd backend && python -m pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. `cd frontend && npx playwright test`. Push with SSH keep-alive (docs-only changes can use `--no-verify` per memory lesson). | | |
 | | **Done when:** All tests still pass (no regressions from doc changes). Pushed to remote. | | |
 
