@@ -14,11 +14,6 @@
 
 import type { Page, Route } from "@playwright/test";
 
-import {
-	authMeResponse,
-	onboardedPersonaList,
-} from "../fixtures/auth-mock-data";
-
 // Re-export so spec files import from a single source
 export { AUTH_USER_ID } from "../fixtures/auth-mock-data";
 
@@ -33,69 +28,23 @@ export const CROSS_TENANT_ID = "00000000-0000-4000-b000-000000000099";
 // Controller
 // ---------------------------------------------------------------------------
 
-export class CrossTenantMockController {
-	async setupRoutes(page: Page): Promise<void> {
-		// Abort SSE / events endpoints to prevent hanging connections
-		await page.route("**/api/v1/events/**", (route) => route.abort());
-		await page.route("**/api/v1/events", (route) => route.abort());
-
-		// Auth — authenticated user
-		await page.route(/\/api\/v1\/auth\/me/, async (route) =>
-			this.json(route, authMeResponse()),
-		);
-
-		// Personas — onboarded (required for OnboardingGate)
-		await page.route(/\/api\/v1\/personas/, async (route) =>
-			this.json(route, onboardedPersonaList()),
-		);
-
-		// Persona change flags — empty (for main layout badge)
-		await page.route(/\/api\/v1\/persona-change-flags/, async (route) =>
-			this.json(route, this.emptyList()),
-		);
-
-		// Chat messages — empty
-		await page.route(/\/api\/v1\/chat/, async (route) =>
-			this.json(route, this.emptyList()),
-		);
-	}
-
-	// -----------------------------------------------------------------------
-	// Helpers
-	// -----------------------------------------------------------------------
-
-	private async json(route: Route, body: unknown, status = 200): Promise<void> {
-		await route.fulfill({
-			status,
-			contentType: "application/json",
-			body: JSON.stringify(body),
-		});
-	}
-
-	private emptyList() {
-		return {
-			data: [],
-			meta: { total: 0, page: 1, per_page: 100, total_pages: 1 },
-		};
-	}
-}
+// ---------------------------------------------------------------------------
+// No-op controller — shared mocks (auth, personas, change-flags, chat, SSE)
+// are now provided by the base-test fixture (tests/e2e/base-test.ts).
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Convenience factories
 // ---------------------------------------------------------------------------
 
 /**
- * Set up routes for an authenticated, onboarded user.
+ * No-op — shared mocks are now provided by the base-test fixture.
  *
- * Base routes (auth/me, personas, events, change-flags) are always mocked.
- * Callers add per-test 404 overrides via mock404ForRoute() after calling this.
+ * Kept for backward compatibility with spec files that call it. Callers
+ * add per-test 404 overrides via mock404ForRoute() after calling this.
  */
-export async function setupCrossTenantBaseMocks(
-	page: Page,
-): Promise<CrossTenantMockController> {
-	const controller = new CrossTenantMockController();
-	await controller.setupRoutes(page);
-	return controller;
+export async function setupCrossTenantBaseMocks(_page: Page): Promise<void> {
+	// Base-test fixture handles auth/me, personas, change-flags, chat, SSE.
 }
 
 /**

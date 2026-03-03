@@ -88,10 +88,6 @@ export class OnboardingMockController {
 	}
 
 	async setupRoutes(page: Page): Promise<void> {
-		// Abort SSE / events endpoints to prevent hanging connections
-		await page.route("**/api/v1/events/**", (route) => route.abort());
-		await page.route("**/api/v1/events", (route) => route.abort());
-
 		// Chat messages — always empty
 		await page.route("**/api/v1/chat/**", (route) =>
 			this.json(route, emptyChatMessages()),

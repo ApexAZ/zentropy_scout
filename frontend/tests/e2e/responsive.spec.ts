@@ -9,7 +9,7 @@
  * All API calls are mocked via Playwright's page.route() — no real backend.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./base-test";
 
 import { setupDashboardMocks } from "../utils/job-discovery-api-mocks";
 import { setupBasicInfoEditorMocks } from "../utils/persona-update-api-mocks";

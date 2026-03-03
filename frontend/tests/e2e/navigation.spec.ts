@@ -7,7 +7,7 @@
  * All API calls are mocked via Playwright's page.route() — no real backend.
  */
 
-import { expect, type Page, type Route, test } from "@playwright/test";
+import { expect, type Page, type Route, test } from "./base-test";
 
 import { changeFlagsList } from "../fixtures/persona-update-mock-data";
 import { balanceResponse } from "../fixtures/usage-mock-data";

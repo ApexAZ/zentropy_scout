@@ -7,7 +7,7 @@
  * SSE is mocked via page.addInitScript() replacing EventSource.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./base-test";
 
 import {
 	sendChatDone,

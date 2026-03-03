@@ -151,9 +151,6 @@ export class ChatMockController {
 		// Install MockEventSource before any page code runs
 		await page.addInitScript(MOCK_EVENT_SOURCE_SCRIPT);
 
-		// Abort SSE / events endpoints to prevent hanging connections
-		await page.route("**/api/v1/events/**", (route) => route.abort());
-		await page.route("**/api/v1/events", (route) => route.abort());
 		await page.route("**/api/v1/chat/stream", (route) => route.abort());
 
 		// Single regex intercepts all /api/v1/ endpoints we need to mock

@@ -73,10 +73,6 @@ export class CoverLetterMockController {
 	}
 
 	async setupRoutes(page: Page): Promise<void> {
-		// Abort SSE / events endpoints to prevent hanging connections
-		await page.route("**/api/v1/events/**", (route) => route.abort());
-		await page.route("**/api/v1/events", (route) => route.abort());
-
 		// Single regex intercepts all /api/v1/ endpoints we need to mock.
 		await page.route(
 			/\/api\/v1\/(chat|persona-change-flags|personas|job-postings|cover-letters|variants|applications|submitted-cover-letter-pdfs)/,

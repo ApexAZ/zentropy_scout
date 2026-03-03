@@ -9,7 +9,7 @@
  * Playwright mocks API routes via page.route() and cannot observe
  * actual backend CORS headers.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./base-test";
 
 test.describe("Security Headers", () => {
 	let headers: Record<string, string>;

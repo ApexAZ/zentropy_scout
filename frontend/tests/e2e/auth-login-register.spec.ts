@@ -8,7 +8,7 @@
  * All API calls are mocked via Playwright's page.route() — no real backend.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./base-test";
 
 import { setupUnauthMocks } from "../utils/auth-api-mocks";
 

@@ -10,7 +10,7 @@
  * NotFoundState or FailedState — never the resource's actual data.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./base-test";
 
 import {
 	CROSS_TENANT_ID,

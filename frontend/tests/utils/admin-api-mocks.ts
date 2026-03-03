@@ -69,10 +69,6 @@ export class AdminMockController {
 		// Set admin JWT cookie (overrides the default mock-e2e-session)
 		await page.context().addCookies([ADMIN_COOKIE]);
 
-		// Abort SSE / events endpoints to prevent hanging connections
-		await page.route("**/api/v1/events/**", (route) => route.abort());
-		await page.route("**/api/v1/events", (route) => route.abort());
-
 		// Admin endpoints
 		await page.route(/\/api\/v1\/admin\//, async (route) =>
 			this.handleAdminRoute(route),
@@ -254,10 +250,6 @@ export async function setupAdminMocks(
  * admin UI elements. Provides minimal shared endpoint mocking.
  */
 export async function setupNonAdminMocks(page: Page): Promise<void> {
-	// Abort SSE to prevent hanging
-	await page.route("**/api/v1/events/**", (route) => route.abort());
-	await page.route("**/api/v1/events", (route) => route.abort());
-
 	// /auth/me — non-admin user
 	await page.route(/\/api\/v1\/auth\/me/, async (route) => {
 		await route.fulfill({
