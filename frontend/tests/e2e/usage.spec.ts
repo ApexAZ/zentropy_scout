@@ -39,7 +39,7 @@ test.describe("Balance Indicator — Navigation Bar", () => {
 		const indicator = page.getByTestId(BALANCE_INDICATOR);
 		await expect(indicator).toBeVisible();
 		await expect(indicator).toHaveText("$10.50");
-		await expect(indicator).toHaveClass(/text-green-600/);
+		await expect(indicator).toHaveClass(/text-success/);
 	});
 
 	test("displays balance in amber when balance is $0.10–$1.00", async ({
@@ -51,7 +51,7 @@ test.describe("Balance Indicator — Navigation Bar", () => {
 		const indicator = page.getByTestId(BALANCE_INDICATOR);
 		await expect(indicator).toBeVisible();
 		await expect(indicator).toHaveText("$0.50");
-		await expect(indicator).toHaveClass(/text-amber-500/);
+		await expect(indicator).toHaveClass(/text-primary/);
 	});
 
 	test("displays balance in red when balance < $0.10", async ({ page }) => {
@@ -61,7 +61,7 @@ test.describe("Balance Indicator — Navigation Bar", () => {
 		const indicator = page.getByTestId(BALANCE_INDICATOR);
 		await expect(indicator).toBeVisible();
 		await expect(indicator).toHaveText("$0.05");
-		await expect(indicator).toHaveClass(/text-red-500/);
+		await expect(indicator).toHaveClass(/text-destructive/);
 	});
 
 	test("clicking balance indicator navigates to /usage", async ({ page }) => {
@@ -149,7 +149,7 @@ test.describe("Balance Card — Color Coding", () => {
 
 		const amount = page.getByTestId(BALANCE_AMOUNT);
 		await expect(amount).toHaveText("$5.00");
-		await expect(amount).toHaveClass(/text-green-600/);
+		await expect(amount).toHaveClass(/text-success/);
 	});
 
 	test("balance card shows amber for medium balance", async ({ page }) => {
@@ -158,7 +158,7 @@ test.describe("Balance Card — Color Coding", () => {
 
 		const amount = page.getByTestId(BALANCE_AMOUNT);
 		await expect(amount).toHaveText("$0.75");
-		await expect(amount).toHaveClass(/text-amber-500/);
+		await expect(amount).toHaveClass(/text-primary/);
 	});
 
 	test("balance card shows red for low balance", async ({ page }) => {
@@ -167,7 +167,7 @@ test.describe("Balance Card — Color Coding", () => {
 
 		const amount = page.getByTestId(BALANCE_AMOUNT);
 		await expect(amount).toHaveText("$0.03");
-		await expect(amount).toHaveClass(/text-red-500/);
+		await expect(amount).toHaveClass(/text-destructive/);
 	});
 });
 
@@ -224,7 +224,7 @@ test.describe("Transaction Amount Colors", () => {
 		const creditAmount = page.getByTestId(`tx-amount-${TRANSACTION_IDS[0]}`);
 		await expect(creditAmount).toBeVisible();
 		await expect(creditAmount).toHaveText("+$10.00");
-		await expect(creditAmount).toHaveClass(/text-green-600/);
+		await expect(creditAmount).toHaveClass(/text-success/);
 	});
 
 	test("debit amounts display in red", async ({ page }) => {
@@ -234,7 +234,7 @@ test.describe("Transaction Amount Colors", () => {
 		// tx-002 is a -$0.01 usage debit (negative = red)
 		const debitAmount = page.getByTestId(`tx-amount-${TRANSACTION_IDS[1]}`);
 		await expect(debitAmount).toBeVisible();
-		await expect(debitAmount).toHaveClass(/text-red-500/);
+		await expect(debitAmount).toHaveClass(/text-destructive/);
 	});
 });
 

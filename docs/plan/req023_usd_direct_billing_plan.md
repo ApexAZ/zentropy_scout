@@ -380,7 +380,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 | | | | |
 | | **Run:** `cd frontend && npm test -- --run balance-card && npm run typecheck` | `commands` | |
 | | **Done when:** All 14 tests pass (8 existing + 6 new). Bar renders with correct colors and width scaling. TypeScript clean. | | |
-| 7b | **Fix stale E2E color class assertions in `usage.spec.ts`** — qa-reviewer found 8 assertions using old Tailwind utility classes (`text-green-600`, `text-amber-500`, `text-red-500`) instead of semantic tokens (`text-success`, `text-primary`, `text-destructive`). Introduced by commit `93a9022`. Fix: update regex patterns on lines 42, 54, 64, 152, 161, 170, 227, 237. | `playwright, e2e, plan` | ⬜ |
+| 7b | **Fix stale E2E color class assertions in `usage.spec.ts`** — qa-reviewer found 8 assertions using old Tailwind utility classes (`text-green-600`, `text-amber-500`, `text-red-500`) instead of semantic tokens (`text-success`, `text-primary`, `text-destructive`). Introduced by commit `93a9022`. Fix: update regex patterns on lines 42, 54, 64, 152, 161, 170, 227, 237. | `playwright, e2e, plan` | ✅ |
 | 8 | **Phase 4 Gate** — Full backend + frontend + E2E tests, push | `phase-gate` | ⬜ |
 | | **Run:** `cd backend && python -m pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. `cd frontend && npx playwright test`. Push with SSH keep-alive: `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push`. | | |
 | | **Done when:** All tests pass. Pushed to remote. | | |
