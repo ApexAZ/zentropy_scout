@@ -1,7 +1,7 @@
 """Admin configuration ORM models.
 
 REQ-022 §4.1–§4.6: Models for the admin pricing dashboard and model registry.
-Five tables: ModelRegistry, PricingConfig, TaskRoutingConfig, CreditPack,
+Five tables: ModelRegistry, PricingConfig, TaskRoutingConfig, FundingPack,
 SystemConfig. These replace hardcoded pricing dicts and routing tables with
 admin-configurable database records.
 """
@@ -193,8 +193,8 @@ class TaskRoutingConfig(Base, TimestampMixin):
     )
 
 
-class CreditPack(Base, TimestampMixin):
-    """Admin-configurable credit pack definitions.
+class FundingPack(Base, TimestampMixin):
+    """Admin-configurable funding pack definitions.
 
     Consumed by Stripe integration (REQ-021) for checkout sessions.
 
@@ -202,7 +202,7 @@ class CreditPack(Base, TimestampMixin):
         id: UUID primary key.
         name: Pack display name (e.g. Starter, Standard, Pro).
         price_cents: USD price in cents (500 = $5.00).
-        credit_amount: Abstract credits granted.
+        grant_cents: USD cents granted to user's balance.
         stripe_price_id: Stripe Price ID. Nullable until REQ-021.
         display_order: Sort order in frontend purchase UI.
         is_active: Soft-disable without deleting.
@@ -210,15 +210,15 @@ class CreditPack(Base, TimestampMixin):
         highlight_label: Optional badge (e.g. Most Popular, Best Value).
     """
 
-    __tablename__ = "credit_packs"
+    __tablename__ = "funding_packs"
     __table_args__ = (
         CheckConstraint(
             "price_cents > 0",
-            name="ck_credit_packs_price_positive",
+            name="ck_funding_packs_price_positive",
         ),
         CheckConstraint(
-            "credit_amount > 0",
-            name="ck_credit_packs_amount_positive",
+            "grant_cents > 0",
+            name="ck_funding_packs_amount_positive",
         ),
     )
 
@@ -235,7 +235,7 @@ class CreditPack(Base, TimestampMixin):
         Integer,
         nullable=False,
     )
-    credit_amount: Mapped[int] = mapped_column(
+    grant_cents: Mapped[int] = mapped_column(
         BigInteger,
         nullable=False,
     )

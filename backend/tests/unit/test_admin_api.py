@@ -198,15 +198,15 @@ async def _seed_pack(
     *,
     name: str = _TEST_PACK_NAME,
     price_cents: int = 500,
-    credit_amount: int = 100_000,
+    grant_cents: int = 100_000,
 ) -> dict:
-    """Create a credit pack via API and return the response data."""
+    """Create a funding pack via API and return the response data."""
     resp = await client.post(
-        f"{_PREFIX}/credit-packs",
+        f"{_PREFIX}/funding-packs",
         json={
             "name": name,
             "price_cents": price_cents,
-            "credit_amount": credit_amount,
+            "grant_cents": grant_cents,
         },
     )
     assert resp.status_code == 201
@@ -238,8 +238,8 @@ class TestAdminAuthGate:
         assert resp.status_code == 403
 
     async def test_packs_get_403(self, non_admin_client: AsyncClient) -> None:
-        """GET /admin/credit-packs returns 403 for non-admin."""
-        resp = await non_admin_client.get(f"{_PREFIX}/credit-packs")
+        """GET /admin/funding-packs returns 403 for non-admin."""
+        resp = await non_admin_client.get(f"{_PREFIX}/funding-packs")
         assert resp.status_code == 403
 
     async def test_config_get_403(self, non_admin_client: AsyncClient) -> None:
@@ -488,42 +488,42 @@ class TestRoutingEndpoints:
 
 
 # =============================================================================
-# Credit Pack endpoints
+# Funding Pack endpoints
 # =============================================================================
 
 
 @pytest.mark.asyncio
-class TestCreditPackEndpoints:
-    """CRUD operations for /admin/credit-packs."""
+class TestFundingPackEndpoints:
+    """CRUD operations for /admin/funding-packs."""
 
     async def test_create_pack_201(self, admin_client: AsyncClient) -> None:
-        """POST /admin/credit-packs returns 201 with price_display."""
+        """POST /admin/funding-packs returns 201 with price_display."""
         data = await _seed_pack(admin_client)
         assert data["name"] == _TEST_PACK_NAME
         assert data["price_display"] == "$5.00"
         assert data["price_cents"] == 500
 
     async def test_list_packs(self, admin_client: AsyncClient) -> None:
-        """GET /admin/credit-packs returns data envelope."""
+        """GET /admin/funding-packs returns data envelope."""
         await _seed_pack(admin_client)
-        resp = await admin_client.get(f"{_PREFIX}/credit-packs")
+        resp = await admin_client.get(f"{_PREFIX}/funding-packs")
         assert resp.status_code == 200
         assert "data" in resp.json()
 
     async def test_update_pack(self, admin_client: AsyncClient) -> None:
-        """PATCH /admin/credit-packs/:id updates pack properties."""
+        """PATCH /admin/funding-packs/:id updates pack properties."""
         pack = await _seed_pack(admin_client)
         resp = await admin_client.patch(
-            f"{_PREFIX}/credit-packs/{pack['id']}",
+            f"{_PREFIX}/funding-packs/{pack['id']}",
             json={"name": "Pro"},
         )
         assert resp.status_code == 200
         assert resp.json()["data"]["name"] == "Pro"
 
     async def test_delete_pack_204(self, admin_client: AsyncClient) -> None:
-        """DELETE /admin/credit-packs/:id returns 204."""
+        """DELETE /admin/funding-packs/:id returns 204."""
         pack = await _seed_pack(admin_client)
-        resp = await admin_client.delete(f"{_PREFIX}/credit-packs/{pack['id']}")
+        resp = await admin_client.delete(f"{_PREFIX}/funding-packs/{pack['id']}")
         assert resp.status_code == 204
 
 
@@ -539,13 +539,13 @@ class TestSystemConfigEndpoints:
     async def test_upsert_config_200(self, admin_client: AsyncClient) -> None:
         """PUT /admin/config/:key creates or updates a config entry."""
         resp = await admin_client.put(
-            f"{_PREFIX}/config/signup_grant_credits",
-            json={"value": "5000", "description": "Credits on signup"},
+            f"{_PREFIX}/config/signup_grant_cents",
+            json={"value": "10", "description": "USD cents on signup"},
         )
         assert resp.status_code == 200
         data = resp.json()["data"]
-        assert data["key"] == "signup_grant_credits"
-        assert data["value"] == "5000"
+        assert data["key"] == "signup_grant_cents"
+        assert data["value"] == "10"
 
     async def test_list_config(self, admin_client: AsyncClient) -> None:
         """GET /admin/config returns data envelope."""

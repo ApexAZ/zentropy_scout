@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.errors import ConflictError, NotFoundError
 from app.models.admin_config import (
-    CreditPack,
+    FundingPack,
     ModelRegistry,
     PricingConfig,
     SystemConfig,
@@ -33,7 +33,7 @@ class AdminManagementService:
     """CRUD operations for admin-managed configuration.
 
     REQ-022 §10: Provides create/read/update/delete for model registry,
-    pricing config, task routing, credit packs, system config, and admin users.
+    pricing config, task routing, funding packs, system config, and admin users.
 
     Args:
         db: Async database session.
@@ -563,16 +563,16 @@ class AdminManagementService:
         await self._db.flush()
 
     # -----------------------------------------------------------------------
-    # Credit Packs
+    # Funding Packs
     # -----------------------------------------------------------------------
 
-    async def list_packs(self) -> list[CreditPack]:
-        """List all credit packs ordered by display_order.
+    async def list_packs(self) -> list[FundingPack]:
+        """List all funding packs ordered by display_order.
 
         Returns:
-            List of CreditPack rows.
+            List of FundingPack rows.
         """
-        stmt = select(CreditPack).order_by(CreditPack.display_order, CreditPack.name)
+        stmt = select(FundingPack).order_by(FundingPack.display_order, FundingPack.name)
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
 
@@ -581,12 +581,12 @@ class AdminManagementService:
         *,
         name: str,
         price_cents: int,
-        credit_amount: int,
+        grant_cents: int,
         display_order: int = 0,
         description: str | None = None,
         highlight_label: str | None = None,
-    ) -> CreditPack:
-        """Create a credit pack.
+    ) -> FundingPack:
+        """Create a funding pack.
 
         stripe_price_id is intentionally excluded — it is set via
         update_pack after the Stripe price object is created externally.
@@ -594,18 +594,18 @@ class AdminManagementService:
         Args:
             name: Pack display name.
             price_cents: Price in cents.
-            credit_amount: Credits granted.
+            grant_cents: USD cents granted to balance.
             display_order: Sort order.
             description: Short description.
             highlight_label: Optional badge text.
 
         Returns:
-            Created CreditPack row.
+            Created FundingPack row.
         """
-        row = CreditPack(
+        row = FundingPack(
             name=name,
             price_cents=price_cents,
-            credit_amount=credit_amount,
+            grant_cents=grant_cents,
             display_order=display_order,
             description=description,
             highlight_label=highlight_label,
@@ -621,20 +621,20 @@ class AdminManagementService:
         *,
         name: str | None = None,
         price_cents: int | None = None,
-        credit_amount: int | None = None,
+        grant_cents: int | None = None,
         display_order: int | None = None,
         is_active: bool | None = None,
         description: str | None = ...,  # type: ignore[assignment]
         highlight_label: str | None = ...,  # type: ignore[assignment]
         stripe_price_id: str | None = ...,  # type: ignore[assignment]
-    ) -> CreditPack:
-        """Update a credit pack.
+    ) -> FundingPack:
+        """Update a funding pack.
 
         Args:
             pack_id: UUID of pack.
             name: New name.
             price_cents: New price.
-            credit_amount: New credit amount.
+            grant_cents: New grant amount in USD cents.
             display_order: New sort order.
             is_active: New active status.
             description: New description (None clears).
@@ -642,21 +642,21 @@ class AdminManagementService:
             stripe_price_id: New Stripe ID (None clears).
 
         Returns:
-            Updated CreditPack row.
+            Updated FundingPack row.
 
         Raises:
             NotFoundError: If pack not found.
         """
-        row = await self._db.get(CreditPack, pack_id)
+        row = await self._db.get(FundingPack, pack_id)
         if row is None:
-            raise NotFoundError("Credit pack", str(pack_id))
+            raise NotFoundError("Funding pack", str(pack_id))
 
         if name is not None:
             row.name = name
         if price_cents is not None:
             row.price_cents = price_cents
-        if credit_amount is not None:
-            row.credit_amount = credit_amount
+        if grant_cents is not None:
+            row.grant_cents = grant_cents
         if display_order is not None:
             row.display_order = display_order
         if is_active is not None:
@@ -674,7 +674,7 @@ class AdminManagementService:
         return row
 
     async def delete_pack(self, pack_id: uuid.UUID) -> None:
-        """Delete a credit pack.
+        """Delete a funding pack.
 
         Args:
             pack_id: UUID of pack.
@@ -682,9 +682,9 @@ class AdminManagementService:
         Raises:
             NotFoundError: If pack not found.
         """
-        row = await self._db.get(CreditPack, pack_id)
+        row = await self._db.get(FundingPack, pack_id)
         if row is None:
-            raise NotFoundError("Credit pack", str(pack_id))
+            raise NotFoundError("Funding pack", str(pack_id))
 
         await self._db.delete(row)
         await self._db.flush()

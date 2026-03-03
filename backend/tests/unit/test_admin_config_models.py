@@ -1,7 +1,7 @@
 """Tests for admin config ORM models.
 
 REQ-022 §4.1–§4.6: Verifies ModelRegistry, PricingConfig, TaskRoutingConfig,
-CreditPack, and SystemConfig models have correct attributes, defaults,
+FundingPack, and SystemConfig models have correct attributes, defaults,
 constraints, and table names. Also verifies User.is_admin extension.
 """
 
@@ -14,7 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from app.models.admin_config import (
-    CreditPack,
+    FundingPack,
     ModelRegistry,
     PricingConfig,
     SystemConfig,
@@ -62,14 +62,14 @@ def _make_pricing_config(**overrides: object) -> PricingConfig:
     return PricingConfig(**defaults)
 
 
-def _make_credit_pack(**overrides: object) -> CreditPack:
+def _make_funding_pack(**overrides: object) -> FundingPack:
     defaults: dict[str, object] = {
         "name": "Starter",
         "price_cents": 500,
-        "credit_amount": 50000,
+        "grant_cents": 50000,
     }
     defaults.update(overrides)
-    return CreditPack(**defaults)
+    return FundingPack(**defaults)
 
 
 # ---------------------------------------------------------------------------
@@ -173,37 +173,37 @@ class TestTaskRoutingConfig:
 
 
 # ---------------------------------------------------------------------------
-# CreditPack (§4.5)
+# FundingPack (§4.5)
 # ---------------------------------------------------------------------------
 
 
-class TestCreditPack:
-    """CreditPack stores admin-configurable credit pack definitions."""
+class TestFundingPack:
+    """FundingPack stores admin-configurable funding pack definitions."""
 
     def test_attributes_set_when_constructed_with_valid_data(self) -> None:
-        pack = CreditPack(
+        pack = FundingPack(
             id=uuid.uuid4(),
             name="Starter",
             price_cents=500,
-            credit_amount=50000,
+            grant_cents=50000,
             display_order=1,
             is_active=True,
             description="Get started with Zentropy Scout",
         )
         assert pack.name == "Starter"
         assert pack.price_cents == 500
-        assert pack.credit_amount == 50000
+        assert pack.grant_cents == 50000
 
     def test_stripe_price_id_nullable(self) -> None:
-        pack = _make_credit_pack()
+        pack = _make_funding_pack()
         assert pack.stripe_price_id is None
 
     def test_highlight_label_set_when_provided(self) -> None:
-        pack = _make_credit_pack(highlight_label="Most Popular")
+        pack = _make_funding_pack(highlight_label="Most Popular")
         assert pack.highlight_label == "Most Popular"
 
     def test_description_nullable(self) -> None:
-        pack = _make_credit_pack()
+        pack = _make_funding_pack()
         assert pack.description is None
 
 
@@ -217,13 +217,15 @@ class TestSystemConfig:
 
     def test_attributes_set_when_constructed_with_valid_data(self) -> None:
         cfg = SystemConfig(
-            key="signup_grant_credits",
-            value="0",
-            description="Credits granted to new users on signup",
+            key="signup_grant_cents",
+            value="10",
+            description="USD cents granted to new users on signup (0 = disabled)",
         )
-        assert cfg.key == "signup_grant_credits"
-        assert cfg.value == "0"
-        assert cfg.description == "Credits granted to new users on signup"
+        assert cfg.key == "signup_grant_cents"
+        assert cfg.value == "10"
+        assert (
+            cfg.description == "USD cents granted to new users on signup (0 = disabled)"
+        )
 
     def test_description_nullable(self) -> None:
         cfg = SystemConfig(key="test_key", value="test_val")
@@ -349,33 +351,33 @@ class TestAdminConfigModelsDB:
         with pytest.raises(IntegrityError):
             await db_session.flush()
 
-    async def test_credit_pack_server_defaults(self, db_session) -> None:
+    async def test_funding_pack_server_defaults(self, db_session) -> None:
         """display_order defaults to 0, is_active defaults to True via server."""
-        pack = _make_credit_pack()
+        pack = _make_funding_pack()
         db_session.add(pack)
         await db_session.flush()
         await db_session.refresh(pack)
         assert pack.display_order == 0
         assert pack.is_active is True
 
-    async def test_credit_pack_rejects_zero_price(self, db_session) -> None:
+    async def test_funding_pack_rejects_zero_price(self, db_session) -> None:
         """price_cents must be > 0."""
         with pytest.raises(IntegrityError):
             await db_session.execute(
                 text(
-                    "INSERT INTO credit_packs "
-                    "(id, name, price_cents, credit_amount) "
+                    "INSERT INTO funding_packs "
+                    "(id, name, price_cents, grant_cents) "
                     "VALUES (gen_random_uuid(), 'Free', 0, 1000)"
                 )
             )
 
-    async def test_credit_pack_rejects_zero_credit_amount(self, db_session) -> None:
-        """credit_amount must be > 0."""
+    async def test_funding_pack_rejects_zero_grant_cents(self, db_session) -> None:
+        """grant_cents must be > 0."""
         with pytest.raises(IntegrityError):
             await db_session.execute(
                 text(
-                    "INSERT INTO credit_packs "
-                    "(id, name, price_cents, credit_amount) "
+                    "INSERT INTO funding_packs "
+                    "(id, name, price_cents, grant_cents) "
                     "VALUES (gen_random_uuid(), 'Empty', 500, 0)"
                 )
             )

@@ -1,7 +1,7 @@
 """Admin API router.
 
 REQ-022 §10.1–§10.7: CRUD endpoints for model registry, pricing config,
-task routing, credit packs, system config, admin users, and cache refresh.
+task routing, funding packs, system config, admin users, and cache refresh.
 
 All endpoints require the AdminUser dependency (§5.3).
 Response envelopes follow REQ-006 §7.2.
@@ -17,15 +17,15 @@ from fastapi import APIRouter, Path, Query, Response, status
 from app.api.deps import AdminUser, DbSession
 from app.core.config import settings
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
-from app.models.admin_config import CreditPack, ModelRegistry, PricingConfig
+from app.models.admin_config import FundingPack, ModelRegistry, PricingConfig
 from app.models.user import User
 from app.schemas.admin import (
     AdminUserResponse,
     AdminUserUpdate,
     CacheRefreshResponse,
-    CreditPackCreate,
-    CreditPackResponse,
-    CreditPackUpdate,
+    FundingPackCreate,
+    FundingPackResponse,
+    FundingPackUpdate,
     ModelRegistryCreate,
     ModelRegistryResponse,
     ModelRegistryUpdate,
@@ -108,14 +108,14 @@ def _pricing_response(row: PricingConfig, *, is_current: bool) -> PricingConfigR
     )
 
 
-def _pack_response(row: CreditPack) -> CreditPackResponse:
-    """Build CreditPackResponse from ORM row with computed price_display."""
-    return CreditPackResponse(
+def _pack_response(row: FundingPack) -> FundingPackResponse:
+    """Build FundingPackResponse from ORM row with computed price_display."""
+    return FundingPackResponse(
         id=str(row.id),
         name=row.name,
         price_cents=row.price_cents,
         price_display=f"${row.price_cents / 100:.2f}",
-        credit_amount=row.credit_amount,
+        grant_cents=row.grant_cents,
         stripe_price_id=row.stripe_price_id,
         display_order=row.display_order,
         is_active=row.is_active,
@@ -448,39 +448,39 @@ async def delete_routing(
 
 
 # =============================================================================
-# Credit Packs (§10.4)
+# Funding Packs (§10.4)
 # =============================================================================
 
 
-@router.get("/credit-packs")
+@router.get("/funding-packs")
 async def list_packs(
     _admin: AdminUser,
     db: DbSession,
-) -> DataResponse[list[CreditPackResponse]]:
-    """List all credit packs.
+) -> DataResponse[list[FundingPackResponse]]:
+    """List all funding packs.
 
-    REQ-022 §10.4: GET /admin/credit-packs.
+    REQ-022 §10.4: GET /admin/funding-packs.
     """
     svc = AdminManagementService(db)
     rows = await svc.list_packs()
     return DataResponse(data=[_pack_response(row) for row in rows])
 
 
-@router.post("/credit-packs", status_code=status.HTTP_201_CREATED)
+@router.post("/funding-packs", status_code=status.HTTP_201_CREATED)
 async def create_pack(
     _admin: AdminUser,
     db: DbSession,
-    body: CreditPackCreate,
-) -> DataResponse[CreditPackResponse]:
-    """Create a credit pack.
+    body: FundingPackCreate,
+) -> DataResponse[FundingPackResponse]:
+    """Create a funding pack.
 
-    REQ-022 §10.4: POST /admin/credit-packs.
+    REQ-022 §10.4: POST /admin/funding-packs.
     """
     svc = AdminManagementService(db)
     row = await svc.create_pack(
         name=body.name,
         price_cents=body.price_cents,
-        credit_amount=body.credit_amount,
+        grant_cents=body.grant_cents,
         display_order=body.display_order,
         description=body.description,
         highlight_label=body.highlight_label,
@@ -489,16 +489,16 @@ async def create_pack(
     return DataResponse(data=_pack_response(row))
 
 
-@router.patch("/credit-packs/{pack_id}")
+@router.patch("/funding-packs/{pack_id}")
 async def update_pack(
     _admin: AdminUser,
     db: DbSession,
     pack_id: uuid.UUID,
-    body: CreditPackUpdate,
-) -> DataResponse[CreditPackResponse]:
-    """Update a credit pack.
+    body: FundingPackUpdate,
+) -> DataResponse[FundingPackResponse]:
+    """Update a funding pack.
 
-    REQ-022 §10.4: PATCH /admin/credit-packs/:id.
+    REQ-022 §10.4: PATCH /admin/funding-packs/:id.
     """
     svc = AdminManagementService(db)
     kwargs = {field: getattr(body, field) for field in body.model_fields_set}
@@ -507,15 +507,15 @@ async def update_pack(
     return DataResponse(data=_pack_response(row))
 
 
-@router.delete("/credit-packs/{pack_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/funding-packs/{pack_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_pack(
     _admin: AdminUser,
     db: DbSession,
     pack_id: uuid.UUID,
 ) -> Response:
-    """Delete a credit pack.
+    """Delete a funding pack.
 
-    REQ-022 §10.4: DELETE /admin/credit-packs/:id.
+    REQ-022 §10.4: DELETE /admin/funding-packs/:id.
     """
     svc = AdminManagementService(db)
     await svc.delete_pack(pack_id)

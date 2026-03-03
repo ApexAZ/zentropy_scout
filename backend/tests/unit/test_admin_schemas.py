@@ -1,7 +1,7 @@
 """Tests for admin Pydantic schemas.
 
 REQ-022 §10.1–§10.7: Validates request/response schemas for all admin
-API resources — model registry, pricing config, task routing, credit packs,
+API resources — model registry, pricing config, task routing, funding packs,
 system config, admin users, and cache refresh.
 """
 
@@ -14,9 +14,9 @@ from app.schemas.admin import (
     AdminUserResponse,
     AdminUserUpdate,
     CacheRefreshResponse,
-    CreditPackCreate,
-    CreditPackResponse,
-    CreditPackUpdate,
+    FundingPackCreate,
+    FundingPackResponse,
+    FundingPackUpdate,
     ModelRegistryCreate,
     ModelRegistryResponse,
     ModelRegistryUpdate,
@@ -426,108 +426,108 @@ class TestTaskRoutingResponse:
 
 
 # =============================================================================
-# Credit Pack schemas
+# Funding Pack schemas
 # =============================================================================
 
 
-class TestCreditPackCreate:
-    """CreditPackCreate validates price and credit amounts."""
+class TestFundingPackCreate:
+    """FundingPackCreate validates price and grant amounts."""
 
     def test_valid_pack_creation(self) -> None:
-        schema = CreditPackCreate(
+        schema = FundingPackCreate(
             name="Starter",
             price_cents=500,
-            credit_amount=1000,
+            grant_cents=1000,
             display_order=1,
             description="Basic starter pack",
             highlight_label="Popular",
         )
         assert schema.name == "Starter"
         assert schema.price_cents == 500
-        assert schema.credit_amount == 1000
+        assert schema.grant_cents == 1000
 
     def test_rejects_zero_price_cents(self) -> None:
         with pytest.raises(ValidationError, match="price_cents"):
-            CreditPackCreate(
+            FundingPackCreate(
                 name="Free",
                 price_cents=0,
-                credit_amount=100,
+                grant_cents=100,
             )
 
     def test_rejects_negative_price_cents(self) -> None:
         with pytest.raises(ValidationError, match="price_cents"):
-            CreditPackCreate(
+            FundingPackCreate(
                 name="Bad",
                 price_cents=-100,
-                credit_amount=100,
+                grant_cents=100,
             )
 
-    def test_rejects_zero_credit_amount(self) -> None:
-        with pytest.raises(ValidationError, match="credit_amount"):
-            CreditPackCreate(
+    def test_rejects_zero_grant_cents(self) -> None:
+        with pytest.raises(ValidationError, match="grant_cents"):
+            FundingPackCreate(
                 name="Empty",
                 price_cents=500,
-                credit_amount=0,
+                grant_cents=0,
             )
 
     def test_rejects_name_over_50_chars(self) -> None:
         with pytest.raises(ValidationError, match="name"):
-            CreditPackCreate(
+            FundingPackCreate(
                 name="x" * 51,
                 price_cents=500,
-                credit_amount=1000,
+                grant_cents=1000,
             )
 
     def test_default_display_order(self) -> None:
-        schema = CreditPackCreate(
+        schema = FundingPackCreate(
             name="Basic",
             price_cents=500,
-            credit_amount=1000,
+            grant_cents=1000,
         )
         assert schema.display_order == 0
 
     def test_rejects_extra_fields(self) -> None:
         with pytest.raises(ValidationError, match="extra"):
-            CreditPackCreate(
+            FundingPackCreate(
                 name="Test",
                 price_cents=500,
-                credit_amount=1000,
+                grant_cents=1000,
                 sneaky_field="nope",  # type: ignore[call-arg]
             )
 
 
-class TestCreditPackUpdate:
-    """CreditPackUpdate accepts partial updates."""
+class TestFundingPackUpdate:
+    """FundingPackUpdate accepts partial updates."""
 
     def test_partial_update_name(self) -> None:
-        schema = CreditPackUpdate(name="New Name")
+        schema = FundingPackUpdate(name="New Name")
         assert schema.name == "New Name"
         assert schema.price_cents is None
 
     def test_rejects_zero_price_on_update(self) -> None:
         with pytest.raises(ValidationError, match="price_cents"):
-            CreditPackUpdate(price_cents=0)
+            FundingPackUpdate(price_cents=0)
 
     def test_rejects_description_over_255_chars(self) -> None:
         with pytest.raises(ValidationError, match="description"):
-            CreditPackUpdate(description="x" * 256)
+            FundingPackUpdate(description="x" * 256)
 
     def test_rejects_highlight_label_over_50_chars(self) -> None:
         with pytest.raises(ValidationError, match="highlight_label"):
-            CreditPackUpdate(highlight_label="x" * 51)
+            FundingPackUpdate(highlight_label="x" * 51)
 
 
-class TestCreditPackResponse:
-    """CreditPackResponse includes price_display computed value."""
+class TestFundingPackResponse:
+    """FundingPackResponse includes price_display computed value."""
 
     def test_price_display_formatting(self) -> None:
         now = datetime(2026, 3, 1, 12, 0, 0)
-        schema = CreditPackResponse(
+        schema = FundingPackResponse(
             id="550e8400-e29b-41d4-a716-446655440000",
             name="Starter",
             price_cents=500,
             price_display="$5.00",
-            credit_amount=1000,
+            grant_cents=1000,
             stripe_price_id=None,
             display_order=1,
             is_active=True,
@@ -586,13 +586,13 @@ class TestSystemConfigResponse:
     def test_full_response(self) -> None:
         now = datetime(2026, 3, 1, 12, 0, 0)
         schema = SystemConfigResponse(
-            key="signup_grant_credits",
-            value="0",
-            description="Credits on signup",
+            key="signup_grant_cents",
+            value="10",
+            description="USD cents on signup",
             updated_at=now,
         )
-        assert schema.key == "signup_grant_credits"
-        assert schema.value == "0"
+        assert schema.key == "signup_grant_cents"
+        assert schema.value == "10"
 
 
 # =============================================================================

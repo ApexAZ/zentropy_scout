@@ -33,7 +33,7 @@ _PROVIDER_CLAUDE = "claude"
 _MODEL_HAIKU = "claude-3-5-haiku-20241022"
 _MODEL_SONNET = "claude-3-5-sonnet-20241022"
 _TASK_EXTRACTION = "extraction"
-_CONFIG_KEY_SIGNUP = "signup_grant_credits"
+_CONFIG_KEY_SIGNUP = "signup_grant_cents"
 _MISSING_KEY = "nonexistent_key"
 
 

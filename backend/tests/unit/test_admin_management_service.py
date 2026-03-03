@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError, NotFoundError
 from app.models.admin_config import (
-    CreditPack,
+    FundingPack,
     ModelRegistry,
     PricingConfig,
     SystemConfig,
@@ -95,15 +95,15 @@ def _make_routing(
 def _make_pack(
     name: str = "Starter",
     price_cents: int = 500,
-    credit_amount: int = 50000,
+    grant_cents: int = 50000,
     display_order: int = 0,
     is_active: bool = True,
-) -> CreditPack:
-    """Create a CreditPack row for testing."""
-    return CreditPack(
+) -> FundingPack:
+    """Create a FundingPack row for testing."""
+    return FundingPack(
         name=name,
         price_cents=price_cents,
-        credit_amount=credit_amount,
+        grant_cents=grant_cents,
         display_order=display_order,
         is_active=is_active,
     )
@@ -628,17 +628,17 @@ class TestDeleteRouting:
 
 
 # ===========================================================================
-# Credit Packs CRUD
+# Funding Packs CRUD
 # ===========================================================================
 
 
 @pytest.mark.asyncio
-class TestCreditPacks:
-    """AdminManagementService credit pack operations."""
+class TestFundingPacks:
+    """AdminManagementService funding pack operations."""
 
     async def test_list_packs_returns_all(self, db_session: AsyncSession) -> None:
         db_session.add(_make_pack(name="Starter"))
-        db_session.add(_make_pack(name="Pro", price_cents=2000, credit_amount=250000))
+        db_session.add(_make_pack(name="Pro", price_cents=2000, grant_cents=250000))
         await db_session.flush()
 
         svc = AdminManagementService(db_session)
@@ -651,13 +651,13 @@ class TestCreditPacks:
         result = await svc.create_pack(
             name="Standard",
             price_cents=1000,
-            credit_amount=125000,
+            grant_cents=125000,
             display_order=1,
         )
 
         assert result.name == "Standard"
         assert result.price_cents == 1000
-        assert result.credit_amount == 125000
+        assert result.grant_cents == 125000
         assert result.is_active is True
 
     async def test_update_pack(self, db_session: AsyncSession) -> None:
@@ -732,14 +732,14 @@ class TestSystemConfig:
     """AdminManagementService system config operations."""
 
     async def test_list_config(self, db_session: AsyncSession) -> None:
-        db_session.add(SystemConfig(key="signup_grant_credits", value="0"))
+        db_session.add(SystemConfig(key="signup_grant_cents", value="10"))
         await db_session.flush()
 
         svc = AdminManagementService(db_session)
         results = await svc.list_config()
 
         assert len(results) == 1
-        assert results[0].key == "signup_grant_credits"
+        assert results[0].key == "signup_grant_cents"
 
     async def test_upsert_creates_new_key(self, db_session: AsyncSession) -> None:
         svc = AdminManagementService(db_session)

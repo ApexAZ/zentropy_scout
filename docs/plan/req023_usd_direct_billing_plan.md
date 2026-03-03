@@ -146,7 +146,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 
 ## Phase 2: Backend Renames (REQ-023 §4.2–§4.5, §7.2)
 
-**Status:** ⬜
+**Status:** 🟡
 
 *Rename CreditPack → FundingPack, credit_amount → grant_cents, /credit-packs → /funding-packs across all backend source and test files.*
 
@@ -165,7 +165,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 3 | **Backend source + test renames (10 files)** | | ⬜ |
+| 3 | **Backend source + test renames (10 files)** | | ✅ |
 | | **Read:** REQ-023 §4.2–§4.4, §7.2. Read relevant sections of all files below. | `req-reader` | |
 | | | | |
 | | **Source file 1: `backend/app/models/admin_config.py`** (~293 lines) | `rename` | |

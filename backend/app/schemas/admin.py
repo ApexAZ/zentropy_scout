@@ -1,7 +1,7 @@
 """Admin API request/response schemas.
 
 REQ-022 §10.1–§10.7: Pydantic models for all admin endpoint resources —
-model registry, pricing config, task routing, credit packs, system config,
+model registry, pricing config, task routing, funding packs, system config,
 admin users, and cache refresh.
 
 All monetary values are serialized as strings to preserve decimal precision.
@@ -394,7 +394,7 @@ class TaskRoutingResponse(BaseModel):
 
 
 # =============================================================================
-# Credit Packs — shared validation helpers
+# Funding Packs — shared validation helpers
 # =============================================================================
 
 
@@ -413,12 +413,12 @@ def _check_price_cents(v: int) -> None:
         raise ValueError(msg)
 
 
-def _check_credit_amount(v: int) -> None:
+def _check_grant_cents(v: int) -> None:
     if v <= 0:
-        msg = "credit_amount must be > 0"
+        msg = "grant_cents must be > 0"
         raise ValueError(msg)
     if v > 1_000_000_000:
-        msg = "credit_amount must be <= 1000000000"
+        msg = "grant_cents must be <= 1000000000"
         raise ValueError(msg)
 
 
@@ -435,17 +435,17 @@ def _check_highlight_label(v: str) -> None:
 
 
 # =============================================================================
-# Credit Packs
+# Funding Packs
 # =============================================================================
 
 
-class CreditPackCreate(BaseModel):
-    """Request schema for POST /admin/credit-packs.
+class FundingPackCreate(BaseModel):
+    """Request schema for POST /admin/funding-packs.
 
     Attributes:
         name: Pack name, max 50 chars.
         price_cents: Price in USD cents (> 0).
-        credit_amount: Credits granted (> 0).
+        grant_cents: USD cents granted to user's balance (> 0).
         display_order: Sort order in UI. Defaults to 0.
         description: Short description, max 255 chars.
         highlight_label: Optional badge text, max 50 chars.
@@ -455,7 +455,7 @@ class CreditPackCreate(BaseModel):
 
     name: str
     price_cents: int
-    credit_amount: int
+    grant_cents: int
     display_order: int = 0
     description: str | None = None
     highlight_label: str | None = None
@@ -472,10 +472,10 @@ class CreditPackCreate(BaseModel):
         _check_price_cents(v)
         return v
 
-    @field_validator("credit_amount")
+    @field_validator("grant_cents")
     @classmethod
-    def check_credit_positive(cls, v: int) -> int:
-        _check_credit_amount(v)
+    def check_grant_positive(cls, v: int) -> int:
+        _check_grant_cents(v)
         return v
 
     @field_validator("display_order")
@@ -499,15 +499,15 @@ class CreditPackCreate(BaseModel):
         return v
 
 
-class CreditPackUpdate(BaseModel):
-    """Request schema for PATCH /admin/credit-packs/:id.
+class FundingPackUpdate(BaseModel):
+    """Request schema for PATCH /admin/funding-packs/:id.
 
     All fields optional — only provided fields are updated.
 
     Attributes:
         name: New pack name.
         price_cents: New price in cents.
-        credit_amount: New credit amount.
+        grant_cents: New grant amount in USD cents.
         display_order: New sort order.
         is_active: Toggle active status.
         description: New description.
@@ -518,7 +518,7 @@ class CreditPackUpdate(BaseModel):
 
     name: str | None = None
     price_cents: int | None = None
-    credit_amount: int | None = None
+    grant_cents: int | None = None
     display_order: int | None = None
     is_active: bool | None = None
     description: str | None = None
@@ -538,11 +538,11 @@ class CreditPackUpdate(BaseModel):
             _check_price_cents(v)
         return v
 
-    @field_validator("credit_amount")
+    @field_validator("grant_cents")
     @classmethod
-    def check_credit_positive(cls, v: int | None) -> int | None:
+    def check_grant_positive(cls, v: int | None) -> int | None:
         if v is not None:
-            _check_credit_amount(v)
+            _check_grant_cents(v)
         return v
 
     @field_validator("display_order")
@@ -567,15 +567,15 @@ class CreditPackUpdate(BaseModel):
         return v
 
 
-class CreditPackResponse(BaseModel):
-    """Response schema for credit pack items.
+class FundingPackResponse(BaseModel):
+    """Response schema for funding pack items.
 
     Attributes:
         id: UUID as string.
         name: Pack name.
         price_cents: Price in USD cents.
         price_display: Formatted price (e.g. '$5.00').
-        credit_amount: Credits granted.
+        grant_cents: USD cents granted to user's balance.
         stripe_price_id: Stripe Price ID or None.
         display_order: Sort order.
         is_active: Whether the pack is active.
@@ -591,7 +591,7 @@ class CreditPackResponse(BaseModel):
     name: str
     price_cents: int
     price_display: str
-    credit_amount: int
+    grant_cents: int
     stripe_price_id: str | None = None
     display_order: int
     is_active: bool

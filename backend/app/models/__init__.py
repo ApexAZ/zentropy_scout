@@ -18,12 +18,12 @@ Models are organized by domain:
 - cover_letter.py: CoverLetter, SubmittedCoverLetterPDF
 - application.py: Application, TimelineEvent
 - usage.py: LLMUsageRecord, CreditTransaction (Tier 2 - metering)
-- admin_config.py: ModelRegistry, PricingConfig, TaskRoutingConfig, CreditPack, SystemConfig
+- admin_config.py: ModelRegistry, PricingConfig, TaskRoutingConfig, FundingPack, SystemConfig
 """
 
 from app.models.account import Account
 from app.models.admin_config import (
-    CreditPack,
+    FundingPack,
     ModelRegistry,
     PricingConfig,
     SystemConfig,
@@ -99,7 +99,7 @@ __all__ = [
     "ModelRegistry",
     "PricingConfig",
     "TaskRoutingConfig",
-    "CreditPack",
+    "FundingPack",
     "SystemConfig",
     # Tier 3
     "Bullet",

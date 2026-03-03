@@ -151,7 +151,7 @@ class AdminConfigService:
         """Get a system config value by key.
 
         Args:
-            key: Config key (e.g. 'signup_grant_credits').
+            key: Config key (e.g. 'signup_grant_cents').
             default: Value to return if key not found.
 
         Returns:
