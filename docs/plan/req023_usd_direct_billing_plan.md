@@ -2,7 +2,7 @@
 
 **Created:** 2026-03-02
 **Last Updated:** 2026-03-02
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 **Destination:** `docs/plan/req023_usd_direct_billing_plan.md`
 
 ---
@@ -395,7 +395,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 
 ## Phase 5: Documentation Errata (REQ-023 §6.1, §8.3)
 
-**Status:** ⬜
+**Status:** ✅ (REQ-021 already at v0.5 with all errata pre-applied)
 
 *Apply v0.4 errata to REQ-021 per REQ-023 §6.1 table. Update plan status, CLAUDE.md, and backlog PBI #19.*
 
@@ -412,7 +412,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 9 | **Apply REQ-021 v0.4 errata + update plan/backlog** | | ⬜ |
+| 9 | **Apply REQ-021 v0.4 errata + update plan/backlog** | | ✅ |
 | | **Read:** REQ-023 §6.1 (errata table — 12 section-level changes). `docs/requirements/REQ-021_credits_billing.md`. | `req-reader` | |
 | | | | |
 | | **Edit `docs/requirements/REQ-021_credits_billing.md`:** | | |
@@ -435,7 +435,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 | | **Update `docs/backlog/feature-backlog.md`:** PBI #19 → completed | | |
 | | | | |
 | | **Done when:** REQ-021 reflects USD-direct billing terminology. Plan, CLAUDE.md, and backlog updated. | | |
-| 10 | **Phase 5 Gate (Final)** — Full suite verification + push | `phase-gate` | ⬜ |
+| 10 | **Phase 5 Gate (Final)** — Full suite verification + push | `phase-gate` | ⬜  |
 | | **Run:** `cd backend && python -m pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. `cd frontend && npx playwright test`. Push with SSH keep-alive (docs-only changes can use `--no-verify` per memory lesson). | | |
 | | **Done when:** All tests still pass (no regressions from doc changes). Pushed to remote. | | |
 

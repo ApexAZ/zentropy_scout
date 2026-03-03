@@ -25,11 +25,12 @@ These items are required to launch Zentropy Scout as a production SaaS tool on R
 
 ---
 
-### 19. USD-Direct Billing & Pack Configuration
+### 19. USD-Direct Billing & Pack Configuration ✅
 
 **Category:** Backend / Frontend / Admin
 **Added:** 2026-03-01
-**Updated:** 2026-03-02 (scope redefined — abstract credits replaced with USD-direct billing)
+**Updated:** 2026-03-03 (completed — REQ-023 implemented)
+**Completed:** 2026-03-03
 **Priority:** P1 — Needed to launch credit packs. Closely tied to #16.
 **Depends on:** ~~#16 (Admin Pricing Dashboard)~~ ✅
 
@@ -146,7 +147,7 @@ Exact descriptions are set by admin from the Packs tab. Names, descriptions, and
 **Added:** 2026-02-27
 **Updated:** 2026-03-02 (reordered after #16/#19, narrowed scope to payment rail, updated for USD-direct billing)
 **Priority:** P2 — Monetization. Users purchase balance packs to use the tool.
-**Depends on:** ~~#12 (Token Metering)~~ ✅, ~~#16 (Admin Pricing Dashboard)~~ ✅, #19 (USD-Direct Billing)
+**Depends on:** ~~#12 (Token Metering)~~ ✅, ~~#16 (Admin Pricing Dashboard)~~ ✅, ~~#19 (USD-Direct Billing)~~ ✅
 
 Integrate Stripe as the payment rail for "Add Funds" purchases. Users select a quick-select amount ($5/$10/$15 — admin-configurable), Stripe Checkout processes the payment, webhook confirms and credits the user's dollar balance. Pricing intelligence and margin configuration live in #16 — Stripe just processes the payment and triggers the balance grant.
 
@@ -397,7 +398,7 @@ Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Pyt
 **Category:** Security / Testing / Quality
 **Added:** 2026-03-02
 **Priority:** Critical — Complete before public launch. Final gate before real user data is at risk.
-**Depends on:** All MVP items complete (~~#16~~ ✅, #19, #13, #20, #23, #24, #14, #4), private Render deployment live
+**Depends on:** All MVP items complete (~~#16~~ ✅, ~~#19~~ ✅, #13, #20, #23, #24, #14, #4), private Render deployment live
 **Assigned to:** Claude Code (Opus 4.6) + Brian (joint review)
 
 Structured white-box security audit and penetration test of the full Zentropy Scout system. Conducted against the live Render deployment (not localhost) to capture infrastructure-level issues. Goal: surface and remediate vulnerabilities before real user data and payment information are at risk.

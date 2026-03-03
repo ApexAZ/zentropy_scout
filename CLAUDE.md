@@ -443,12 +443,13 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 **Backend:** All phases complete (1.1–3.2). Chrome Extension (4.1) postponed.
 **Frontend:** Phases 1–15 complete.
 **LLM Redesign:** All phases complete (REQ-016 through REQ-019). Scouter, Strategist, Ghostwriter, and Onboarding agents replaced with plain async services. ~3,130 lines of LangGraph boilerplate removed.
-**Code quality:** SonarCloud at 1 issue (known S7503 on chat.py), 0 duplication, 0 hotspots.
+**REQ-023 (USD-Direct Billing):** Complete. `credit_packs` → `funding_packs`, `credit_amount` → `grant_cents`, seed data updated to USD cents, usage bar added to balance card. REQ-021 updated to v0.5 with all errata.
+**Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
 
 **IMPORTANT:** After completing ANY subtask, update the active plan file status (⬜ → ✅). See `zentropy-planner` skill. Discover plan files via `Glob "docs/plan/*_plan.md"` or ask the user which plan is in scope.
 
-**Feature backlog:** `docs/backlog/feature-backlog.md` — 5 pending items (content TTL, Render deployment, Socket.dev, Testcontainers, Chat Agent/Insight Engine redesign).
+**Feature backlog:** `docs/backlog/feature-backlog.md` — 4 pending items (content TTL, Render deployment, Socket.dev, Testcontainers).
 
 ---
 
-*Last updated: 2026-02-27*
+*Last updated: 2026-03-03*
