@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * Credit packs management tab.
+ * Funding packs management tab.
  *
- * REQ-022 §11.2, §10.4: Credit pack definitions with price formatting,
- * credit amounts, and highlight labels.
+ * REQ-022 §11.2, §10.4: Funding pack definitions with price formatting,
+ * grant amounts, and highlight labels.
  */
 
 import { useState } from "react";
@@ -24,7 +24,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import type { CreditPackCreateRequest, CreditPackItem } from "@/types/admin";
+import type { FundingPackCreateRequest, FundingPackItem } from "@/types/admin";
 
 import { AddPackDialog } from "./add-pack-dialog";
 
@@ -32,11 +32,13 @@ import { AddPackDialog } from "./add-pack-dialog";
 // Component
 // ---------------------------------------------------------------------------
 
-/** Credit packs management — list, add, delete. */
+/** Funding packs management — list, add, delete. */
 export function PacksTab() {
 	const queryClient = useQueryClient();
 	const [addOpen, setAddOpen] = useState(false);
-	const [deleteTarget, setDeleteTarget] = useState<CreditPackItem | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<FundingPackItem | null>(
+		null,
+	);
 
 	// -----------------------------------------------------------------------
 	// Queries
@@ -52,7 +54,7 @@ export function PacksTab() {
 	// -----------------------------------------------------------------------
 
 	const createMut = useMutation({
-		mutationFn: (body: CreditPackCreateRequest) => createPack(body),
+		mutationFn: (body: FundingPackCreateRequest) => createPack(body),
 		onSuccess: () => {
 			void queryClient.invalidateQueries({
 				queryKey: queryKeys.adminPacks,
@@ -130,7 +132,7 @@ export function PacksTab() {
 						<TableRow>
 							<TableHead>Name</TableHead>
 							<TableHead>Price</TableHead>
-							<TableHead>Credits</TableHead>
+							<TableHead>Grant (¢)</TableHead>
 							<TableHead>Highlight</TableHead>
 							<TableHead>Active</TableHead>
 							<TableHead className="text-right">Actions</TableHead>
@@ -141,7 +143,7 @@ export function PacksTab() {
 							<TableRow key={item.id}>
 								<TableCell className="font-medium">{item.name}</TableCell>
 								<TableCell>{item.price_display}</TableCell>
-								<TableCell>{item.credit_amount.toLocaleString()}</TableCell>
+								<TableCell>{item.grant_cents.toLocaleString()}</TableCell>
 								<TableCell>
 									{item.highlight_label ? (
 										<span className="bg-warning/20 text-warning rounded px-2 py-0.5 text-xs font-medium">

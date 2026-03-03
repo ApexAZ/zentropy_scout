@@ -90,15 +90,15 @@ export interface TaskRoutingUpdateRequest {
 }
 
 // =============================================================================
-// Credit Packs
+// Funding Packs
 // =============================================================================
 
-export interface CreditPackItem {
+export interface FundingPackItem {
 	id: string;
 	name: string;
 	price_cents: number;
 	price_display: string;
-	credit_amount: number;
+	grant_cents: number;
 	stripe_price_id: string | null;
 	display_order: number;
 	is_active: boolean;
@@ -108,19 +108,19 @@ export interface CreditPackItem {
 	updated_at: string;
 }
 
-export interface CreditPackCreateRequest {
+export interface FundingPackCreateRequest {
 	name: string;
 	price_cents: number;
-	credit_amount: number;
+	grant_cents: number;
 	display_order?: number;
 	description?: string | null;
 	highlight_label?: string | null;
 }
 
-export interface CreditPackUpdateRequest {
+export interface FundingPackUpdateRequest {
 	name?: string;
 	price_cents?: number;
-	credit_amount?: number;
+	grant_cents?: number;
 	display_order?: number;
 	is_active?: boolean;
 	description?: string | null;

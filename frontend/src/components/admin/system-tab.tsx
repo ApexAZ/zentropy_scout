@@ -220,7 +220,7 @@ export function SystemTab() {
 								id="add-config-key"
 								value={key}
 								onChange={(e) => setKey(e.target.value)}
-								placeholder="e.g. signup_grant_credits"
+								placeholder="e.g. signup_grant_cents"
 								maxLength={100}
 							/>
 						</div>

@@ -127,12 +127,12 @@ export class AdminMockController {
 			if (method === "DELETE") return this.empty(route, 204);
 		}
 
-		// --- Credit Packs ---
-		if (path.match(/\/admin\/credit-packs$/)) {
+		// --- Funding Packs ---
+		if (path.match(/\/admin\/funding-packs$/)) {
 			if (method === "GET") return this.json(route, packsListResponse());
 			if (method === "POST") return this.json(route, packsListResponse(), 201);
 		}
-		if (path.match(/\/admin\/credit-packs\/[^/]+$/)) {
+		if (path.match(/\/admin\/funding-packs\/[^/]+$/)) {
 			if (method === "PATCH") return this.json(route, packsListResponse());
 			if (method === "DELETE") return this.empty(route, 204);
 		}

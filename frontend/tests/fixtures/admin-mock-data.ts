@@ -10,7 +10,7 @@
 import type { PaginationMeta } from "@/types/api";
 import type {
 	AdminUserItem,
-	CreditPackItem,
+	FundingPackItem,
 	ModelRegistryItem,
 	PricingConfigItem,
 	SystemConfigItem,
@@ -168,16 +168,16 @@ export function routingListResponse() {
 }
 
 // ---------------------------------------------------------------------------
-// Credit Packs
+// Funding Packs
 // ---------------------------------------------------------------------------
 
-const PACKS: CreditPackItem[] = [
+const PACKS: FundingPackItem[] = [
 	{
 		id: ADMIN_PACK_IDS[0],
 		name: "Starter",
 		price_cents: 500,
 		price_display: "$5.00",
-		credit_amount: 500,
+		grant_cents: 500,
 		stripe_price_id: null,
 		display_order: 1,
 		is_active: true,
@@ -191,7 +191,7 @@ const PACKS: CreditPackItem[] = [
 		name: "Pro",
 		price_cents: 2000,
 		price_display: "$20.00",
-		credit_amount: 2500,
+		grant_cents: 2500,
 		stripe_price_id: null,
 		display_order: 2,
 		is_active: true,
@@ -202,7 +202,7 @@ const PACKS: CreditPackItem[] = [
 	},
 ];
 
-/** GET /admin/credit-packs — list of credit packs. */
+/** GET /admin/funding-packs — list of funding packs. */
 export function packsListResponse() {
 	return { data: [...PACKS] };
 }
@@ -213,9 +213,9 @@ export function packsListResponse() {
 
 const SYSTEM_CONFIG: SystemConfigItem[] = [
 	{
-		key: "signup_grant_credits",
-		value: "0",
-		description: "Credits granted on signup",
+		key: "signup_grant_cents",
+		value: "10",
+		description: "USD cents granted on signup",
 		updated_at: NOW,
 	},
 ];

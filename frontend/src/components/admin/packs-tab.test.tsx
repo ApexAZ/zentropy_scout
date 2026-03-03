@@ -1,7 +1,7 @@
 /**
  * Tests for the Packs tab component.
  *
- * REQ-022 §11.2, §10.4: Credit pack management — table display,
+ * REQ-022 §11.2, §10.4: Funding pack management — table display,
  * price formatting, add form, delete confirmation.
  */
 
@@ -11,7 +11,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { CreditPackItem } from "@/types/admin";
+import type { FundingPackItem } from "@/types/admin";
 
 import { PacksTab } from "./packs-tab";
 
@@ -50,13 +50,13 @@ const MOCK_TIMESTAMP = "2026-03-01T00:00:00Z";
 const MOCK_PACK_NAME = "Starter Pack";
 const MOCK_PRICE_DISPLAY = "$5.00";
 
-const MOCK_PACKS: CreditPackItem[] = [
+const MOCK_PACKS: FundingPackItem[] = [
 	{
 		id: "pk-1",
 		name: MOCK_PACK_NAME,
 		price_cents: 500,
 		price_display: MOCK_PRICE_DISPLAY,
-		credit_amount: 10000,
+		grant_cents: 10000,
 		stripe_price_id: null,
 		display_order: 0,
 		is_active: true,
@@ -70,7 +70,7 @@ const MOCK_PACKS: CreditPackItem[] = [
 		name: "Pro Pack",
 		price_cents: 2000,
 		price_display: "$20.00",
-		credit_amount: 50000,
+		grant_cents: 50000,
 		stripe_price_id: "price_abc123",
 		display_order: 1,
 		is_active: true,
@@ -144,7 +144,7 @@ describe("PacksTab", () => {
 		expect(screen.getByText("$20.00")).toBeInTheDocument();
 	});
 
-	it("shows credit amounts", async () => {
+	it("shows grant amounts", async () => {
 		render(<PacksTab />, { wrapper: Wrapper });
 		await waitForDataLoaded();
 		expect(screen.getByText("10,000")).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe("PacksTab", () => {
 
 		await user.type(screen.getByLabelText(/^name$/i), "Enterprise");
 		await user.type(screen.getByLabelText(/price.*cents/i), "5000");
-		await user.type(screen.getByLabelText(/credit amount/i), "100000");
+		await user.type(screen.getByLabelText(/grant amount/i), "100000");
 		await user.click(screen.getByRole("button", { name: /^create$/i }));
 
 		await waitFor(() => {

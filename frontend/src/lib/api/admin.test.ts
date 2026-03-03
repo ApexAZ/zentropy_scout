@@ -197,40 +197,40 @@ describe("Admin API Client", () => {
 	});
 
 	// -----------------------------------------------------------------
-	// Credit Packs
+	// Funding Packs
 	// -----------------------------------------------------------------
 
-	describe("Credit Packs", () => {
-		it("fetchPacks calls GET /admin/credit-packs", async () => {
+	describe("Funding Packs", () => {
+		it("fetchPacks calls GET /admin/funding-packs", async () => {
 			mocks.mockApiGet.mockResolvedValue({ data: [] });
 			await fetchPacks();
-			expect(mocks.mockApiGet).toHaveBeenCalledWith("/admin/credit-packs");
+			expect(mocks.mockApiGet).toHaveBeenCalledWith("/admin/funding-packs");
 		});
 
-		it("createPack calls POST /admin/credit-packs with body", async () => {
-			const body = { name: "Starter", price_cents: 500, credit_amount: 100000 };
+		it("createPack calls POST /admin/funding-packs with body", async () => {
+			const body = { name: "Starter", price_cents: 500, grant_cents: 100000 };
 			mocks.mockApiPost.mockResolvedValue({ data: { id: "1", ...body } });
 			await createPack(body);
 			expect(mocks.mockApiPost).toHaveBeenCalledWith(
-				"/admin/credit-packs",
+				"/admin/funding-packs",
 				body,
 			);
 		});
 
-		it("updatePack calls PATCH /admin/credit-packs/:id", async () => {
+		it("updatePack calls PATCH /admin/funding-packs/:id", async () => {
 			mocks.mockApiPatch.mockResolvedValue({ data: {} });
 			await updatePack("pk-123", { price_cents: 999 });
 			expect(mocks.mockApiPatch).toHaveBeenCalledWith(
-				"/admin/credit-packs/pk-123",
+				"/admin/funding-packs/pk-123",
 				{ price_cents: 999 },
 			);
 		});
 
-		it("deletePack calls DELETE /admin/credit-packs/:id", async () => {
+		it("deletePack calls DELETE /admin/funding-packs/:id", async () => {
 			mocks.mockApiDelete.mockResolvedValue(undefined);
 			await deletePack("pk-123");
 			expect(mocks.mockApiDelete).toHaveBeenCalledWith(
-				"/admin/credit-packs/pk-123",
+				"/admin/funding-packs/pk-123",
 			);
 		});
 	});
@@ -248,24 +248,24 @@ describe("Admin API Client", () => {
 
 		it("upsertConfig calls PUT /admin/config/:key with body", async () => {
 			mocks.mockApiPut.mockResolvedValue({ data: {} });
-			await upsertConfig("signup_grant_credits", {
-				value: "1000",
-				description: "Credits for new signups",
+			await upsertConfig("signup_grant_cents", {
+				value: "10",
+				description: "USD cents granted on signup",
 			});
 			expect(mocks.mockApiPut).toHaveBeenCalledWith(
-				"/admin/config/signup_grant_credits",
+				"/admin/config/signup_grant_cents",
 				{
-					value: "1000",
-					description: "Credits for new signups",
+					value: "10",
+					description: "USD cents granted on signup",
 				},
 			);
 		});
 
 		it("deleteConfig calls DELETE /admin/config/:key", async () => {
 			mocks.mockApiDelete.mockResolvedValue(undefined);
-			await deleteConfig("signup_grant_credits");
+			await deleteConfig("signup_grant_cents");
 			expect(mocks.mockApiDelete).toHaveBeenCalledWith(
-				"/admin/config/signup_grant_credits",
+				"/admin/config/signup_grant_cents",
 			);
 		});
 	});

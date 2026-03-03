@@ -11,9 +11,9 @@ import type {
 	AdminUserItem,
 	AdminUserUpdateRequest,
 	CacheRefreshResult,
-	CreditPackCreateRequest,
-	CreditPackItem,
-	CreditPackUpdateRequest,
+	FundingPackCreateRequest,
+	FundingPackItem,
+	FundingPackUpdateRequest,
 	ModelRegistryCreateRequest,
 	ModelRegistryItem,
 	ModelRegistryUpdateRequest,
@@ -112,28 +112,28 @@ export async function deleteRouting(id: string): Promise<void> {
 }
 
 // =============================================================================
-// Credit Packs
+// Funding Packs
 // =============================================================================
 
-export async function fetchPacks(): Promise<ApiResponse<CreditPackItem[]>> {
-	return apiGet("/admin/credit-packs");
+export async function fetchPacks(): Promise<ApiResponse<FundingPackItem[]>> {
+	return apiGet("/admin/funding-packs");
 }
 
 export async function createPack(
-	body: CreditPackCreateRequest,
-): Promise<ApiResponse<CreditPackItem>> {
-	return apiPost("/admin/credit-packs", body);
+	body: FundingPackCreateRequest,
+): Promise<ApiResponse<FundingPackItem>> {
+	return apiPost("/admin/funding-packs", body);
 }
 
 export async function updatePack(
 	id: string,
-	body: CreditPackUpdateRequest,
-): Promise<ApiResponse<CreditPackItem>> {
-	return apiPatch(`/admin/credit-packs/${encodeURIComponent(id)}`, body);
+	body: FundingPackUpdateRequest,
+): Promise<ApiResponse<FundingPackItem>> {
+	return apiPatch(`/admin/funding-packs/${encodeURIComponent(id)}`, body);
 }
 
 export async function deletePack(id: string): Promise<void> {
-	return apiDelete(`/admin/credit-packs/${encodeURIComponent(id)}`);
+	return apiDelete(`/admin/funding-packs/${encodeURIComponent(id)}`);
 }
 
 // =============================================================================

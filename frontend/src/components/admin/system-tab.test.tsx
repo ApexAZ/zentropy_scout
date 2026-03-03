@@ -47,7 +47,7 @@ vi.mock("@/lib/toast", () => ({
 // ---------------------------------------------------------------------------
 
 const MOCK_TIMESTAMP = "2026-03-01T00:00:00Z";
-const MOCK_KEY = "signup_grant_credits";
+const MOCK_KEY = "signup_grant_cents";
 const MOCK_VALUE = "0";
 
 const MOCK_CONFIG: SystemConfigItem[] = [

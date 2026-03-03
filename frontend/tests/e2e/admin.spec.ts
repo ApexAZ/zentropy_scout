@@ -297,7 +297,7 @@ test.describe("Admin — Routing Tab", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Admin — Packs Tab", () => {
-	test("renders credit pack table", async ({ page }) => {
+	test("renders funding pack table", async ({ page }) => {
 		await setupAdminMocks(page);
 		await page.goto("/admin/config");
 
@@ -325,7 +325,7 @@ test.describe("Admin — System Tab", () => {
 
 		// Table should show config entries
 		await expect(
-			page.getByRole("cell", { name: "signup_grant_credits" }),
+			page.getByRole("cell", { name: "signup_grant_cents" }),
 		).toBeVisible();
 	});
 });

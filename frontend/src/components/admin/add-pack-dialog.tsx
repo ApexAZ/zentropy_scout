@@ -1,7 +1,7 @@
 /**
  * Add Pack dialog form.
  *
- * REQ-022 §11.2, §10.4: Form with name, price (cents), credit amount,
+ * REQ-022 §11.2, §10.4: Form with name, price (cents), grant amount,
  * and optional description. Validates numeric fields before submit.
  */
 
@@ -29,7 +29,7 @@ interface AddPackDialogProps {
 	onSubmit: (data: {
 		name: string;
 		price_cents: number;
-		credit_amount: number;
+		grant_cents: number;
 		description?: string;
 	}) => void;
 }
@@ -38,7 +38,7 @@ interface AddPackDialogProps {
 // Component
 // ---------------------------------------------------------------------------
 
-/** Dialog form for adding a new credit pack. */
+/** Dialog form for adding a new funding pack. */
 export function AddPackDialog({
 	open,
 	onOpenChange,
@@ -47,19 +47,19 @@ export function AddPackDialog({
 }: Readonly<AddPackDialogProps>) {
 	const [name, setName] = useState("");
 	const [priceCents, setPriceCents] = useState("");
-	const [creditAmount, setCreditAmount] = useState("");
+	const [grantCents, setGrantCents] = useState("");
 	const [description, setDescription] = useState("");
 
 	function resetForm() {
 		setName("");
 		setPriceCents("");
-		setCreditAmount("");
+		setGrantCents("");
 		setDescription("");
 	}
 
 	const handleCreate = useCallback(() => {
 		const cents = Number.parseInt(priceCents, 10);
-		const credits = Number.parseInt(creditAmount, 10);
+		const credits = Number.parseInt(grantCents, 10);
 		if (
 			Number.isNaN(cents) ||
 			cents <= 0 ||
@@ -70,10 +70,10 @@ export function AddPackDialog({
 		onSubmit({
 			name,
 			price_cents: cents,
-			credit_amount: credits,
+			grant_cents: credits,
 			description: description || undefined,
 		});
-	}, [onSubmit, name, priceCents, creditAmount, description]);
+	}, [onSubmit, name, priceCents, grantCents, description]);
 
 	const handleOpenChange = useCallback(
 		(nextOpen: boolean) => {
@@ -84,7 +84,7 @@ export function AddPackDialog({
 	);
 
 	const cents = Number.parseInt(priceCents, 10);
-	const credits = Number.parseInt(creditAmount, 10);
+	const credits = Number.parseInt(grantCents, 10);
 	const numericValid =
 		!Number.isNaN(cents) && cents > 0 && !Number.isNaN(credits) && credits > 0;
 
@@ -117,11 +117,11 @@ export function AddPackDialog({
 						/>
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="add-pack-credits">Credit Amount</Label>
+						<Label htmlFor="add-pack-grant-cents">Grant Amount (cents)</Label>
 						<Input
-							id="add-pack-credits"
-							value={creditAmount}
-							onChange={(e) => setCreditAmount(e.target.value)}
+							id="add-pack-grant-cents"
+							value={grantCents}
+							onChange={(e) => setGrantCents(e.target.value)}
 							placeholder="e.g. 10000"
 							inputMode="numeric"
 							maxLength={15}
