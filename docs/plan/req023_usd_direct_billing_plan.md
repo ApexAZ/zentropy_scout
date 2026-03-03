@@ -244,7 +244,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 
 ## Phase 3: Frontend Renames (REQ-023 §2.5, §5.2, §7.3–§7.4)
 
-**Status:** ⬜
+**Status:** ✅ Complete
 
 *Rename CreditPack* → FundingPack*, credit_amount → grant_cents, /credit-packs → /funding-packs across all frontend source, test, and E2E files.*
 
@@ -263,7 +263,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 5 | **Frontend source + test renames (10 files)** | | ⬜ |
+| 5 | **Frontend source + test renames (10 files)** | | ✅ |
 | | **Read:** REQ-023 §2.5, §5.2, §7.3–§7.4. Read relevant sections of all files below. | `req-reader` | |
 | | | | |
 | | **Source file 1: `frontend/src/types/admin.ts`** (~171 lines) | `rename` | |
@@ -324,7 +324,7 @@ The integration tests (§7.6) verify the migration's config key rename is consum
 | | | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` — all tests pass, no type errors. | `commands` | |
 | | **Done when:** Zero references to `CreditPack`, `credit_amount` (in pack context), or `credit-packs` in frontend source or test files. All tests + typecheck pass. | | |
-| 6 | **Phase 3 Gate** — Full backend + frontend + E2E tests, push | `phase-gate` | ⬜ |
+| 6 | **Phase 3 Gate** — Full backend + frontend + E2E tests, push | `phase-gate` | ✅ |
 | | **Run:** `cd backend && python -m pytest tests/ -v`. Then `cd frontend && npm test -- --run && npm run typecheck`. Then E2E: `cd frontend && npx playwright test tests/e2e/admin.spec.ts`. Push with SSH keep-alive: `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push`. | | |
 | | **Done when:** All backend + frontend + E2E tests pass. Pushed to remote. | | |
 
