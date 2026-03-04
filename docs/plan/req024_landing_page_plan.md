@@ -114,7 +114,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 | | | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` then `npx playwright test` | | |
 | | **Done when:** Dashboard renders at `/dashboard`. `/` shows placeholder. All unit + E2E tests pass. Login/register/nav/onboarding all redirect to `/dashboard`. | | |
-| 2 | **Create Next.js middleware** | | ⬜ |
+| 2 | **Create Next.js middleware** | | ✅ 2026-03-03 |
 | | **Read:** REQ-024 §5.2 (middleware spec). `frontend/tests/e2e/base-test.ts` (need to add auth cookie for E2E). | `req-reader, plan` | |
 | | | | |
 | | **Create:** `frontend/src/middleware.ts` | | |

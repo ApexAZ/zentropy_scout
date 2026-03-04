@@ -41,6 +41,18 @@ const EMPTY_LIST = {
 
 export const test = base.extend({
 	page: async ({ page }, use) => {
+		// Auth cookie — middleware requires this to access /dashboard
+		// and other authenticated routes. Presence-only check, any
+		// non-empty value works (no JWT validation in middleware).
+		await page.context().addCookies([
+			{
+				name: "zentropy.session-token",
+				value: "test-session-token",
+				domain: "localhost",
+				path: "/",
+			},
+		]);
+
 		// SSE events — abort to prevent hanging connections
 		await page.route("**/api/v1/events/**", (route) => route.abort());
 		await page.route("**/api/v1/events", (route) => route.abort());
