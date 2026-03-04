@@ -159,7 +159,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 
 ## Phase 2: Landing Page Components + Settings (REQ-024 §4.1–§4.5, §5.4–§5.5, §6.1)
 
-**Status:** ⬜
+**Status:** ✅ Complete
 
 *Build all 5 landing page components with unit tests. Compose the full landing page. Add Legal section to Settings page.*
 
@@ -233,7 +233,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 | | | | |
 | | **Run:** `cd frontend && npm test -- --run settings-page && npm run typecheck` | | |
 | | **Done when:** Settings page renders 5 cards (4 existing + Legal). Test passes. TypeScript clean. | | |
-| 6 | **Phase 2 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 6 | **Phase 2 Gate** — Full test suite + push | `phase-gate` | ✅ 2026-03-03 |
 | | Run: `cd backend && python -m pytest tests/ -v`. Then `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. Then `npx playwright test`. Push with SSH keep-alive. | | |
 
 #### Phase 2 Notes
