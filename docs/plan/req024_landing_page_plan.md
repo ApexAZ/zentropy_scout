@@ -178,7 +178,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4 | **Landing page components + unit tests** | | ⬜ |
+| 4 | **Landing page components + unit tests** | | ✅ 2026-03-03 |
 | | **Read:** REQ-024 §4.1–§4.5 (page structure), §5.5 (components table), §5.6 (test IDs), §5.7 (assets), §5.8 (responsive breakpoints), §6.1 (unit test specs). Read an existing component for Tailwind/shadcn patterns (e.g., `frontend/src/components/usage/balance-card.tsx`). | `req-reader, tdd, plan` | |
 | | | | |
 | | **TDD — write tests first, then implement each component:** | | |
