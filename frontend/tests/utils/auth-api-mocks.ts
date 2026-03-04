@@ -125,7 +125,10 @@ export class AuthMockController {
 				);
 			}
 			this.state.authenticated = true;
-			return this.json(route, verifyPasswordResponse());
+			return this.json(route, verifyPasswordResponse(), 200, {
+				"set-cookie":
+					"zentropy.session-token=mock-session-token; Path=/; SameSite=Lax",
+			});
 		}
 
 		// POST /auth/register
@@ -148,7 +151,10 @@ export class AuthMockController {
 		// POST /auth/logout
 		if (path.endsWith("/auth/logout") && method === "POST") {
 			this.state.authenticated = false;
-			return this.json(route, logoutResponse());
+			return this.json(route, logoutResponse(), 200, {
+				"set-cookie":
+					"zentropy.session-token=; Path=/; Max-Age=0; SameSite=Lax",
+			});
 		}
 
 		// POST /auth/change-password
@@ -174,7 +180,10 @@ export class AuthMockController {
 
 		// POST /auth/invalidate-sessions
 		if (path.endsWith("/auth/invalidate-sessions") && method === "POST") {
-			return this.json(route, invalidateSessionsResponse());
+			return this.json(route, invalidateSessionsResponse(), 200, {
+				"set-cookie":
+					"zentropy.session-token=; Path=/; Max-Age=0; SameSite=Lax",
+			});
 		}
 
 		return route.continue();
@@ -192,11 +201,19 @@ export class AuthMockController {
 	// Helpers
 	// -----------------------------------------------------------------------
 
-	private async json(route: Route, body: unknown, status = 200): Promise<void> {
+	private async json(
+		route: Route,
+		body: unknown,
+		status = 200,
+		extraHeaders?: Record<string, string>,
+	): Promise<void> {
 		await route.fulfill({
 			status,
-			contentType: "application/json",
 			body: JSON.stringify(body),
+			headers: {
+				"content-type": "application/json",
+				...extraHeaders,
+			},
 		});
 	}
 }

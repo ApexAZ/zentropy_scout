@@ -33,7 +33,7 @@ const APP_005_ID = APP_IDS[4]; // Rejected
 test.describe("In Progress Tab", () => {
 	test("displays active applications", async ({ page }) => {
 		await setupInProgressTabMocks(page);
-		await page.goto("/?tab=in-progress");
+		await page.goto("/dashboard?tab=in-progress");
 
 		await expect(page.getByTestId("applications-table")).toBeVisible();
 
@@ -53,7 +53,7 @@ test.describe("In Progress Tab", () => {
 
 	test("status filter narrows results", async ({ page }) => {
 		await setupInProgressTabMocks(page);
-		await page.goto("/?tab=in-progress");
+		await page.goto("/dashboard?tab=in-progress");
 
 		await expect(page.getByTestId("applications-table")).toBeVisible();
 
@@ -69,7 +69,7 @@ test.describe("In Progress Tab", () => {
 
 	test("clicking row navigates to detail", async ({ page }) => {
 		await setupInProgressTabMocks(page);
-		await page.goto("/?tab=in-progress");
+		await page.goto("/dashboard?tab=in-progress");
 
 		await expect(page.getByTestId("applications-table")).toBeVisible();
 
@@ -87,7 +87,7 @@ test.describe("In Progress Tab", () => {
 test.describe("History Tab", () => {
 	test("displays terminal applications", async ({ page }) => {
 		await setupInProgressTabMocks(page);
-		await page.goto("/?tab=history");
+		await page.goto("/dashboard?tab=history");
 
 		await expect(page.getByTestId("applications-table")).toBeVisible();
 
@@ -105,7 +105,7 @@ test.describe("History Tab", () => {
 		page,
 	}) => {
 		await setupInProgressTabMocks(page);
-		await page.goto("/?tab=history");
+		await page.goto("/dashboard?tab=history");
 
 		await expect(page.getByTestId("applications-table")).toBeVisible();
 
