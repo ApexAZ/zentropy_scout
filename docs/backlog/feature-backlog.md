@@ -184,31 +184,38 @@ Integrate Stripe as the payment rail for "Add Funds" purchases. Users select a q
 
 ---
 
-### 20. Landing Page & Home Dashboard
+### 20. Customizable Activity Dashboard
 
 **Category:** Frontend
 **Added:** 2026-03-01
-**Priority:** P2 — Needed before public launch. First thing users see.
-**Depends on:** Nothing (can start anytime, parallelizes with backend items)
+**Updated:** 2026-03-04 (scoped down — landing page complete via REQ-024, skip onboarding and starter credits won't do)
+**Priority:** P3 — Deferred until frontend UI/UX is more crystallized.
+**Depends on:** Nothing (can start anytime)
 
-Public landing page for unauthenticated visitors (marketing, value prop, sign-up CTA) and an authenticated home dashboard for logged-in users. New users get the option to skip onboarding and start with free credits to explore the tool immediately.
+Customizable authenticated home dashboard at `/dashboard` for logged-in users. Activity summary with recent jobs, application pipeline status, credit balance, and quick actions. Users should be able to customize which widgets/cards are visible and their layout order.
+
+#### Decision Record (2026-03-04)
+
+| Original Scope | Decision | Rationale |
+|----------------|----------|-----------|
+| Public landing page | ✅ Complete | Implemented as REQ-024 (landing page at `/`, auth routing, middleware). |
+| Skip onboarding flow | Won't Do | Onboarding LLM cost is trivial (~$0.001/user with Gemini 2.0 Flash). Better UX to give everyone the full onboarding experience at our expense than to drop them on an empty dashboard. |
+| Starter credit grant | Won't Do | Users will purchase credits when ready. No free tier — onboarding itself is free but ongoing LLM features (job scoring, ghostwriting) require purchased credits. |
+| Activity dashboard | Deferred | Wait until frontend UI/UX is more refined before investing in dashboard widgets. |
 
 **What needs to be built:**
-- **Public landing page** (`/`) — value proposition, feature highlights, sign-up/sign-in CTAs. Unauthenticated visitors see this. Clean, professional first impression.
-- **Authenticated home dashboard** (`/dashboard` or `/`) — logged-in users see their activity summary: recent jobs, application pipeline status, credit balance, quick actions. Future home for insight engine cards (#11).
-- **Skip onboarding flow** — new users can bypass the 11-step onboarding wizard and go straight to the dashboard with a starter credit grant. Onboarding is available later from settings/profile. "Get started free" path lowers friction.
-- **Starter credit grant** — on account creation, automatically grant free credits (amount configurable in `system_config` via #16). Lets users try the tool before purchasing.
+- **Activity dashboard** (`/dashboard`) — logged-in users see their activity summary: recent jobs, application pipeline status, credit balance, quick actions. Future home for insight engine cards (#11).
+- **User customization** — users can choose which widgets/cards to display and reorder them. Persist preferences per user (e.g., `dashboard_layout` JSON column or `user_preferences` table).
 
 **Key files (existing):**
-- `frontend/src/app/(main)/page.tsx` — current home page (placeholder)
+- `frontend/src/app/(main)/dashboard/page.tsx` — current dashboard page
 - `frontend/src/app/(main)/layout.tsx` — authenticated layout
-- `frontend/src/app/(auth)/` — login/register pages
 
 **Open questions:**
-- Landing page content: what's the core value prop headline?
-- How many free starter credits? Enough for 2-3 job analyses + 1 ghostwriter run?
-- Should the landing page be a separate Next.js route group (static, no auth layout)?
-- SEO considerations: meta tags, Open Graph, structured data?
+- Widget set: which cards are available? (Recent jobs, pipeline status, credit balance, quick actions, insight engine cards)
+- Persistence: JSON column on users table vs separate preferences table?
+- Default layout for new users?
+- Drag-and-drop reordering or simpler toggle-based customization?
 
 ---
 
