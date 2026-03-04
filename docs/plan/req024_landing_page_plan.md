@@ -219,7 +219,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 | | | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** All 5 component unit tests pass. Landing page at `/` renders all sections. TypeScript clean. | | |
-| 5 | **Settings legal section + unit test update** | | ⬜ |
+| 5 | **Settings legal section + unit test update** | | ✅ 2026-03-03 |
 | | **Read:** REQ-024 §5.4 (settings legal spec), §5.6 (test IDs). Read `frontend/src/components/settings/settings-page.tsx` and `settings-page.test.tsx`. | `req-reader, tdd, plan` | |
 | | | | |
 | | **TDD:** Add test to existing `settings-page.test.tsx`: | | |

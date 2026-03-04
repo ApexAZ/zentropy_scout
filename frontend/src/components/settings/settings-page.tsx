@@ -1,10 +1,8 @@
 /**
  * Settings page layout component.
  *
- * REQ-012 §12.1: Settings page with three sections —
- * Job Sources, Agent Configuration, and About.
- * Child sections filled by §11.2 (JobSourcesSection), §11.3 (AgentConfigurationSection),
- * and §11.4 (About — inline, see comment below).
+ * REQ-012 §12.1: Settings page with Account, Job Sources, Agent Configuration, and About.
+ * REQ-024 §5.4: Legal section with ToS and Privacy placeholder links.
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,6 +70,29 @@ export function SettingsPage({ personaId }: Readonly<SettingsPageProps>) {
 					<p className="text-muted-foreground text-sm">
 						AI-Powered Job Application Assistant
 					</p>
+				</CardContent>
+			</Card>
+
+			{/* Legal (REQ-024 §5.4): ToS and Privacy placeholder links until PBI #26 */}
+			<Card data-testid="settings-legal">
+				<CardHeader>
+					<CardTitle>Legal</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-2">
+					<span
+						className="text-primary block cursor-pointer text-sm hover:underline"
+						role="link"
+						tabIndex={0}
+					>
+						Terms of Service
+					</span>
+					<span
+						className="text-primary block cursor-pointer text-sm hover:underline"
+						role="link"
+						tabIndex={0}
+					>
+						Privacy Policy
+					</span>
 				</CardContent>
 			</Card>
 		</div>

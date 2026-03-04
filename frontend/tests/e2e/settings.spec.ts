@@ -19,26 +19,31 @@ import {
 // ---------------------------------------------------------------------------
 
 test.describe("Settings Page Layout", () => {
-	test("displays all four settings sections", async ({ page }) => {
+	test("displays all five settings sections", async ({ page }) => {
 		await setupSettingsMocks(page);
 		await page.goto("/settings");
 
 		await expect(page.getByTestId("settings-page")).toBeVisible();
 		await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
-		// Four section cards
+		// Five section cards
 		await expect(page.getByTestId("settings-account")).toBeVisible();
 		await expect(page.getByTestId("settings-job-sources")).toBeVisible();
 		await expect(
 			page.getByTestId("settings-agent-configuration"),
 		).toBeVisible();
 		await expect(page.getByTestId("settings-about")).toBeVisible();
+		await expect(page.getByTestId("settings-legal")).toBeVisible();
 
 		// About section static content
 		await expect(page.getByText("Zentropy Scout v0.1.0")).toBeVisible();
 		await expect(
 			page.getByText("AI-Powered Job Application Assistant"),
 		).toBeVisible();
+
+		// Legal section links
+		await expect(page.getByText("Terms of Service")).toBeVisible();
+		await expect(page.getByText("Privacy Policy")).toBeVisible();
 	});
 });
 

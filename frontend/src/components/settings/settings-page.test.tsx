@@ -1,8 +1,9 @@
 /**
  * Tests for the SettingsPage component (§11.1).
  *
- * REQ-012 §12.1: Settings page layout with Job Sources,
+ * REQ-012 §12.1: Settings page layout with Account, Job Sources,
  * Agent Configuration, and About sections.
+ * REQ-024 §5.4: Legal section with ToS and Privacy links.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -39,6 +40,7 @@ const ACCOUNT_TESTID = "settings-account";
 const JOB_SOURCES_TESTID = "settings-job-sources";
 const AGENT_CONFIG_TESTID = "settings-agent-configuration";
 const ABOUT_TESTID = "settings-about";
+const LEGAL_TESTID = "settings-legal";
 const PERSONA_ID = "p-1";
 
 // ---------------------------------------------------------------------------
@@ -119,5 +121,24 @@ describe("SettingsPage", () => {
 	it("renders AccountSection in the Account card", () => {
 		render(<SettingsPage personaId={PERSONA_ID} />);
 		expect(screen.getByTestId("mock-account-section")).toBeInTheDocument();
+	});
+
+	it("renders Legal section with title", () => {
+		render(<SettingsPage personaId={PERSONA_ID} />);
+		const section = screen.getByTestId(LEGAL_TESTID);
+		expect(section).toBeInTheDocument();
+		expect(section).toHaveTextContent("Legal");
+	});
+
+	it("shows Terms of Service link in Legal section", () => {
+		render(<SettingsPage personaId={PERSONA_ID} />);
+		const section = screen.getByTestId(LEGAL_TESTID);
+		expect(section).toHaveTextContent("Terms of Service");
+	});
+
+	it("shows Privacy Policy link in Legal section", () => {
+		render(<SettingsPage personaId={PERSONA_ID} />);
+		const section = screen.getByTestId(LEGAL_TESTID);
+		expect(section).toHaveTextContent("Privacy Policy");
 	});
 });
