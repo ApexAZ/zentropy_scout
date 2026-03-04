@@ -313,12 +313,14 @@ Personalized bookmarklet that lets users capture job postings from any browser w
 
 ---
 
-### 24. Resume Editor — TipTap Rich Text
+### 24. Resume Editor — TipTap Rich Text (Promoted to REQ)
 
 **Category:** Frontend / Backend / LLM
 **Added:** 2026-03-02
+**Updated:** 2026-03-04 (promoted to REQ-025, REQ-026, REQ-027)
 **Priority:** P2 — Core resume workflow upgrade. Replaces current static resume view with an interactive editor.
 **Depends on:** Nothing (can start anytime)
+**Status:** Promoted to requirements — REQ-025 (TipTap Editor Foundation), REQ-026 (Resume Editing Workflow), REQ-027 (Resume Collaboration & AI-Assisted Editing)
 
 Replace the current resume management flow with a TipTap rich text editor that supports real-time AI-assisted writing. Users pick a starter template, Claude streams tailored content directly into the editor, and users can edit, tweak, then export to PDF or DOCX.
 
