@@ -101,8 +101,8 @@ function calculateBackoff(
  * Handle 401 Unauthorized responses (REQ-013 §8.8).
  *
  * Clears the TanStack Query cache and redirects to /login. Skips redirect
- * when already on an auth page (/login, /register) to prevent infinite loops
- * — the AuthProvider handles session state on those pages.
+ * on public pages (/, /login, /register) where unauthenticated access is
+ * expected — the AuthProvider handles session state on those pages.
  */
 function handleUnauthorized(status: number): void {
 	if (status !== 401) return;
@@ -112,6 +112,7 @@ function handleUnauthorized(status: number): void {
 
 	if (
 		globalThis.window !== undefined &&
+		globalThis.location.pathname !== "/" &&
 		!globalThis.location.pathname.startsWith("/login") &&
 		!globalThis.location.pathname.startsWith("/register")
 	) {

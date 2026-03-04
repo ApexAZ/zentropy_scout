@@ -814,6 +814,15 @@ describe("API Client", () => {
 			expect((error as ApiError).status).toBe(401);
 		});
 
+		it("does not redirect when on landing page /", async () => {
+			mockWindowLocation("/");
+			fetchMock.mockResolvedValueOnce(mock401Response());
+
+			await expect(apiFetch(PERSONAS_PATH)).rejects.toThrow(ApiError);
+
+			expect(window.location.href).toBe(`${TEST_ORIGIN}/`);
+		});
+
 		it("does not redirect when already on /login", async () => {
 			mockWindowLocation("/login");
 			fetchMock.mockResolvedValueOnce(mock401Response());
