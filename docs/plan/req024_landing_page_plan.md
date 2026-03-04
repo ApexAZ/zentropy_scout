@@ -268,7 +268,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 7 | **Landing page + auth routing E2E tests** | | ⬜ |
+| 7 | **Landing page + auth routing E2E tests** | | ✅ 2026-03-03 |
 | | **Read:** REQ-024 §6.2 (8 test scenarios), §5.6 (test IDs). `frontend/tests/e2e/base-test.ts` (fixture pattern). An existing spec (e.g., `smoke.spec.ts`) for structure reference. | `req-reader, playwright, e2e, plan` | |
 | | | | |
 | | **Create:** `frontend/tests/e2e/landing.spec.ts` | | |

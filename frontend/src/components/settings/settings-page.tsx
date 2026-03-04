@@ -5,6 +5,8 @@
  * REQ-024 §5.4: Legal section with ToS and Privacy placeholder links.
  */
 
+import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountSection } from "./account-section";
 import { AgentConfigurationSection } from "./agent-configuration-section";
@@ -79,20 +81,12 @@ export function SettingsPage({ personaId }: Readonly<SettingsPageProps>) {
 					<CardTitle>Legal</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-2">
-					<span
-						className="text-primary block cursor-pointer text-sm hover:underline"
-						role="link"
-						tabIndex={0}
-					>
+					<Link href="#" className="text-primary block text-sm hover:underline">
 						Terms of Service
-					</span>
-					<span
-						className="text-primary block cursor-pointer text-sm hover:underline"
-						role="link"
-						tabIndex={0}
-					>
+					</Link>
+					<Link href="#" className="text-primary block text-sm hover:underline">
 						Privacy Policy
-					</span>
+					</Link>
 				</CardContent>
 			</Card>
 		</div>

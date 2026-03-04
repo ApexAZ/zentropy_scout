@@ -2,7 +2,7 @@
  * Landing page footer.
  *
  * REQ-024 §4.5: Copyright, Sign In, ToS, and Privacy links.
- * ToS and Privacy are placeholder spans until PBI #26 adds real routes.
+ * ToS and Privacy are placeholder links (#) until PBI #26 adds real routes.
  */
 
 import Link from "next/link";
@@ -24,22 +24,12 @@ export function LandingFooter() {
 					<Link href="/login" className={MUTED_LINK}>
 						Sign In
 					</Link>
-					<span
-						data-testid="footer-tos"
-						className={`${MUTED_LINK} cursor-pointer`}
-						role="link"
-						tabIndex={0}
-					>
+					<Link href="#" data-testid="footer-tos" className={MUTED_LINK}>
 						Terms of Service
-					</span>
-					<span
-						data-testid="footer-privacy"
-						className={`${MUTED_LINK} cursor-pointer`}
-						role="link"
-						tabIndex={0}
-					>
+					</Link>
+					<Link href="#" data-testid="footer-privacy" className={MUTED_LINK}>
 						Privacy Policy
-					</span>
+					</Link>
 				</nav>
 			</div>
 		</footer>

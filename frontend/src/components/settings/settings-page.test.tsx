@@ -7,11 +7,30 @@
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
+
+vi.mock("next/link", () => ({
+	default: function MockLink({
+		children,
+		href,
+		...props
+	}: {
+		children: ReactNode;
+		href: string;
+		[key: string]: unknown;
+	}) {
+		return (
+			<a href={href} {...props}>
+				{children}
+			</a>
+		);
+	},
+}));
 
 vi.mock("./account-section", () => ({
 	AccountSection: () => <div data-testid="mock-account-section" />,
