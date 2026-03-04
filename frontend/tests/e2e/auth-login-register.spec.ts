@@ -23,7 +23,7 @@ const TID_MAGIC_LINK_SUBMIT = "magic-link-submit";
 const DATA_MET = "data-met";
 
 // ---------------------------------------------------------------------------
-// Cookie cleanup — clear auth cookie so middleware allows /login and /register
+// Cookie cleanup — clear auth cookie so proxy allows /login and /register
 // ---------------------------------------------------------------------------
 
 test.beforeEach(async ({ page }) => {

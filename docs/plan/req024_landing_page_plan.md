@@ -64,9 +64,9 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 
 ## Phase 1: Route Infrastructure (REQ-024 §5.1–§5.3, §6.3)
 
-**Status:** ⬜
+**Status:** ✅ Complete
 
-*Move Dashboard to `/dashboard`, create `(public)` route group with placeholder, update all redirect targets (7 source files / 11 references, 14 E2E test files / 61 changes), create auth-based middleware.*
+*Move Dashboard to `/dashboard`, create `(public)` route group with placeholder, update all redirect targets (7 source files / 11 references, 14 E2E test files / 61 changes), create auth-based routing in proxy.*
 
 #### Workflow
 
@@ -114,7 +114,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 | | | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` then `npx playwright test` | | |
 | | **Done when:** Dashboard renders at `/dashboard`. `/` shows placeholder. All unit + E2E tests pass. Login/register/nav/onboarding all redirect to `/dashboard`. | | |
-| 2 | **Create Next.js middleware** | | ✅ 2026-03-03 |
+| 2 | **Create Next.js middleware** *(implemented in proxy.ts — Next.js 16 uses proxy convention, not middleware)* | | ✅ 2026-03-03 |
 | | **Read:** REQ-024 §5.2 (middleware spec). `frontend/tests/e2e/base-test.ts` (need to add auth cookie for E2E). | `req-reader, plan` | |
 | | | | |
 | | **Create:** `frontend/src/middleware.ts` | | |
@@ -136,7 +136,7 @@ Phase 3: E2E Tests (REQ-024 §6.2)
 | | | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` then `npx playwright test` (full E2E to verify middleware doesn't break existing tests). | | |
 | | **Done when:** Middleware routes correctly per REQ-024 §5.2 table. All existing E2E tests pass with the auth cookie in base-test. | | |
-| 3 | **Phase 1 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 3 | **Phase 1 Gate** — Full test suite + push | `phase-gate` | ✅ 2026-03-03 |
 | | Run: `cd backend && python -m pytest tests/ -v`. Then `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. Then `npx playwright test`. Push with SSH keep-alive. | | |
 
 #### Phase 1 Notes

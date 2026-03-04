@@ -2,7 +2,7 @@
  * E2E tests for the admin configuration page, nav link, and auth gate.
  *
  * REQ-022 §11: Admin frontend — 6 tabs (Models, Pricing, Routing, Packs,
- * System, Users), nav bar admin link, middleware route guard.
+ * System, Users), nav bar admin link, proxy route guard.
  * REQ-022 §15.4: Frontend test scenarios.
  *
  * All API calls are mocked via Playwright's page.route() — no real backend.

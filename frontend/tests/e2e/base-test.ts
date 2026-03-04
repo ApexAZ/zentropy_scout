@@ -41,9 +41,9 @@ const EMPTY_LIST = {
 
 export const test = base.extend({
 	page: async ({ page }, use) => {
-		// Auth cookie — middleware requires this to access /dashboard
+		// Auth cookie — proxy requires this to access /dashboard
 		// and other authenticated routes. Presence-only check, any
-		// non-empty value works (no JWT validation in middleware).
+		// non-empty value works (no JWT validation in proxy).
 		await page.context().addCookies([
 			{
 				name: "zentropy.session-token",
