@@ -12,6 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.resume_template import ResumeTemplate
 
+
+class SystemTemplateError(ValueError):
+    """Raised when attempting to modify or delete a system template."""
+
+
+_MAX_LIST_RESULTS = 100
+"""Safety bound on list query results (defense-in-depth)."""
+
 # Fields that may be updated via ResumeTemplateRepository.update().
 # Security: Never add 'id', 'is_system', 'user_id', 'created_at'.
 # - id: primary key, immutable
@@ -64,6 +72,7 @@ class ResumeTemplateRepository:
                 )
             )
             .order_by(ResumeTemplate.display_order, ResumeTemplate.name)
+            .limit(_MAX_LIST_RESULTS)
         )
         result = await db.execute(stmt)
         return list(result.scalars().all())
@@ -174,8 +183,7 @@ class ResumeTemplateRepository:
             return None
 
         if template.is_system:
-            msg = "Cannot modify system templates."
-            raise ValueError(msg)
+            raise SystemTemplateError("Cannot modify system templates.")
 
         if template.user_id != user_id:
             return None
@@ -214,8 +222,7 @@ class ResumeTemplateRepository:
             return False
 
         if template.is_system:
-            msg = "Cannot delete system templates."
-            raise ValueError(msg)
+            raise SystemTemplateError("Cannot delete system templates.")
 
         if template.user_id != user_id:
             return False

@@ -150,7 +150,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4 | **Template service + API endpoints** | | ⬜ |
+| 4 | **Template service + API endpoints** | | ✅ |
 | | **Read:** REQ-025 §6.2–§6.4 (template metadata, API endpoints), §8 (validation rules). Existing patterns: `backend/app/services/persona_service.py`, `backend/app/api/v1/base_resumes.py`. | `req-reader, api, tdd, security, plan` | |
 | | | | |
 | | **Create service:** `backend/app/services/resume_template_service.py` | | |

@@ -24,6 +24,7 @@ from app.api.v1 import (
     persona_change_flags,
     personas,
     refresh,
+    resume_templates,
     usage,
     user_source_preferences,
 )
@@ -59,6 +60,11 @@ router.include_router(
 )
 router.include_router(
     cover_letters.router, prefix="/cover-letters", tags=["cover-letters"]
+)
+router.include_router(
+    resume_templates.router,
+    prefix="/resume-templates",
+    tags=["resume-templates"],
 )
 
 # =============================================================================
