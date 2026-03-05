@@ -145,22 +145,28 @@ Buttons show active state when the cursor is inside a formatted block (e.g., Bol
 
 ### 4.1 BaseResume — New Fields
 
-Add markdown content storage alongside existing JSONB selection fields. The JSONB fields remain for structured resume creation (onboarding). Once a user edits in TipTap, the markdown content becomes the source of truth for that resume.
+Add markdown content storage alongside existing JSONB selection fields. The JSONB selection fields serve as the **persona data picker** — the user selects which jobs, bullets, education, certifications, and skills to include. The `markdown_content` field is always the actual resume document. Every resume is a markdown document; the JSONB fields are input to generation, not an alternative content mode.
 
 | Field | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
-| `markdown_content` | Text | Optional | NULL | Markdown source when using TipTap editor |
-| `content_mode` | String(20) | Required | `'structured'` | `'structured'` (JSONB selections) or `'markdown'` (TipTap) |
+| `markdown_content` | Text | Optional | NULL | Markdown resume document (always the source of truth when populated) |
 | `template_id` | UUID | Optional | NULL | FK to resume_templates (NULL = default template) |
 
-**`content_mode` Behavior:**
+**Content Pipeline:**
 
-| Mode | Content Source | Editing Surface | Rendering |
-|------|---------------|-----------------|-----------|
-| `structured` | JSONB fields (`included_jobs`, `job_bullet_selections`, etc.) | Checkbox/drag-and-drop UI (existing) | Gather persona data → ReportLab PDF |
-| `markdown` | `markdown_content` field | TipTap editor | Parse markdown → PDF/DOCX export |
+```
+JSONB selection fields (persona data picker)
+    → Generation (LLM-assisted or deterministic template fill)
+        → markdown_content (the actual resume document)
+            → TipTap editor (viewing and editing)
+            → PDF/DOCX export
+```
 
-**Transition:** When a user opens a structured resume in TipTap for the first time, the system converts the current selections into markdown, saves to `markdown_content`, and sets `content_mode = 'markdown'`. This is a one-way conversion — once in markdown mode, the JSONB fields are no longer the source of truth.
+**Two generation paths:**
+- **LLM-assisted (paid):** Selected persona data + template → LLM generates polished, tailored markdown. Requires credits.
+- **Deterministic template fill (free):** Selected persona data + template → system mechanically slots data into template sections. No LLM, no credits. Produces a functional but unpolished starting point.
+
+Both paths produce `markdown_content` that the user edits in TipTap.
 
 ### 4.2 JobVariant — New Fields
 
@@ -182,7 +188,7 @@ Add markdown content storage alongside existing JSONB selection fields. The JSON
 | `description` | Text | Optional | Brief description for template picker |
 | `markdown_content` | Text | Yes | Template skeleton with placeholder sections |
 | `is_system` | Boolean | Yes | `true` for built-in templates; `false` for user-uploaded |
-| `persona_id` | UUID | Optional | NULL for system templates; FK to Persona for user templates |
+| `user_id` | UUID | Optional | NULL for system templates; FK to Users for user templates |
 | `display_order` | Integer | Yes | Ordering in template picker |
 | `created_at` | Timestamp | Yes | |
 | `updated_at` | Timestamp | Yes | |
@@ -193,12 +199,12 @@ Add markdown content storage alongside existing JSONB selection fields. The JSON
 
 | Step | Action | Reversible |
 |------|--------|------------|
-| 1 | Add `markdown_content`, `content_mode`, `template_id` to `base_resumes` | Yes (drop columns) |
+| 1 | Add `markdown_content`, `template_id` to `base_resumes` | Yes (drop columns) |
 | 2 | Add `markdown_content`, `snapshot_markdown_content` to `job_variants` | Yes (drop columns) |
 | 3 | Create `resume_templates` table | Yes (drop table) |
 | 4 | Seed default "Clean & Minimal" template | Yes (delete row) |
 
-**No data migration required.** Existing resumes keep `content_mode = 'structured'` (the default). Users opt into TipTap editing per resume.
+**No data migration required.** Existing resumes have `markdown_content = NULL`. When a resume is generated (LLM or template fill), `markdown_content` is populated.
 
 ---
 
@@ -224,7 +230,7 @@ Both export paths receive markdown as input and produce binary output stored as 
 | 3. Apply template styles | Template-specific `ParagraphStyle` definitions | Font, size, spacing, margins from template |
 | 4. Render PDF | `SimpleDocTemplate.build()` | Returns PDF bytes |
 
-**Relationship to existing `pdf_generation.py`:** The existing service gathers persona data from JSONB selections and renders it. The new `MarkdownPdfRenderer` takes pre-composed markdown instead. Both produce PDF bytes via ReportLab. They coexist — `content_mode` determines which path is used.
+**Relationship to existing `pdf_generation.py`:** The existing service gathers persona data from JSONB selections and renders it. The new `MarkdownPdfRenderer` takes pre-composed markdown instead. Both produce PDF bytes via ReportLab. They coexist — whether a resume has `markdown_content` determines which path is used.
 
 ### 5.3 DOCX Export
 
@@ -248,7 +254,7 @@ Both export paths receive markdown as input and produce binary output stored as 
 
 **Response:** Binary file download with appropriate `Content-Type` and `Content-Disposition` headers.
 
-**Note:** Existing download endpoints (`/base-resumes/{id}/download`, `/submitted-resume-pdfs/{id}/download`) continue to work for `content_mode = 'structured'` resumes. The new export endpoints handle `content_mode = 'markdown'` resumes and add DOCX support for both modes.
+**Note:** Existing download endpoints (`/base-resumes/{id}/download`, `/submitted-resume-pdfs/{id}/download`) continue to work for legacy resumes without `markdown_content`. The new export endpoints handle resumes with `markdown_content` and add DOCX support.
 
 ### 5.5 Markdown Feature → Export Mapping
 
@@ -341,7 +347,7 @@ When creating a new resume, the user selects a template:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**"Upload Your Own"** allows users to upload a markdown file as a custom template. The file is validated (must parse as valid markdown, must contain at least one heading) and stored in `resume_templates` with `is_system = false` and the user's `persona_id`.
+**"Upload Your Own"** allows users to upload a markdown file as a custom template. The file is validated (must parse as valid markdown, must contain at least one heading) and stored in `resume_templates` with `is_system = false` and the user's `user_id`.
 
 ### 6.4 Template API Endpoints
 
@@ -350,6 +356,7 @@ When creating a new resume, the user selects a template:
 | `GET` | `/resume-templates` | List available templates (system + user's own) |
 | `GET` | `/resume-templates/{id}` | Get template details |
 | `POST` | `/resume-templates` | Create user template (upload markdown) |
+| `PATCH` | `/resume-templates/{id}` | Update user template (system templates cannot be modified) |
 | `DELETE` | `/resume-templates/{id}` | Delete user template (system templates cannot be deleted) |
 
 ---
@@ -382,10 +389,9 @@ If markdown content contains unsupported features (e.g., tables from a user-uplo
 
 | Rule | Description |
 |------|-------------|
-| Template name unique per scope | System templates: globally unique. User templates: unique per persona. |
+| Template name unique per scope | System templates: globally unique. User templates: unique per user. |
 | Template markdown valid | Must parse without errors; must contain at least one heading |
-| Content mode consistency | Cannot save `markdown_content` when `content_mode = 'structured'` (enforced at API level) |
-| Export requires content | Cannot export PDF/DOCX if `markdown_content` is NULL and `content_mode = 'markdown'` |
+| Export requires content | Cannot export PDF/DOCX if `markdown_content` is NULL |
 | Variant snapshot complete | On approval, `snapshot_markdown_content` must be set if variant has `markdown_content` |
 
 ---
@@ -435,8 +441,7 @@ If markdown content contains unsupported features (e.g., tables from a user-uplo
 |---|----------|--------|
 | 1 | Should template switching after content exists attempt content migration or warn-and-replace? | **DECIDED: Warn-and-replace** — template defines structure; migrating content between structures is fragile and error-prone. User sees confirmation dialog. |
 | 2 | Should we store HTML alongside markdown for faster rendering? | **DECIDED: No** — TipTap converts on load; caching adds complexity without meaningful performance benefit for resume-length documents. |
-| 3 | Max markdown content size? | TBD — suggest 50KB (ample for multi-page resumes) |
-| 4 | Should the structured → markdown conversion be reversible? | **DECIDED: No** — one-way conversion keeps the system simple. Users who prefer structured mode continue using it. |
+| 3 | Max markdown content size? | **DECIDED: 50KB** — ample for multi-page resumes. Referenced in REQ-026 §8 and REQ-027 §3.6. |
 
 ---
 
@@ -470,8 +475,9 @@ If markdown content contains unsupported features (e.g., tables from a user-uplo
 
 | Decision | Options Considered | Chosen | Rationale |
 |----------|-------------------|--------|-----------|
-| Dual content mode | Replace JSONB with markdown / Add markdown alongside / Separate table | Add markdown alongside (dual mode) | Preserves existing onboarding flow (structured creation). Users can start structured, upgrade to TipTap later. No data migration needed. Clean separation via `content_mode` field. |
-| Content mode transition | Bidirectional / One-way (structured → markdown) | One-way | Markdown → structured would require parsing markdown back into persona references (which bullets, which jobs). This is lossy and error-prone. Simple: once you go TipTap, you stay TipTap. |
+| Content architecture | Dual content modes (structured vs markdown) / Markdown-only with JSONB as input | Markdown-only | All resumes are markdown documents. The JSONB selection fields are a persona data picker that informs generation — not an alternative editing mode. This eliminates dual pipelines, dual export paths, and `content_mode` branching throughout the stack. The existing checkbox/drag-and-drop UI is reframed as "select what goes into this resume" rather than "this IS the resume." |
+| Generation tiers | LLM-only / Deterministic-only / Both | Both (paid + free) | LLM generation (paid) produces polished, tailored content. Deterministic template fill (free) mechanically slots persona data into template sections — functional but unpolished. Both produce markdown for TipTap editing. Free tier ensures every user can create a real document without credits. |
+| Template ownership | Scope to persona_id / Scope to user_id | user_id | Templates are a user asset, not persona content. Using `user_id` is consistent with the multitenancy isolation pattern used throughout the codebase and prevents orphaned templates if a persona is recreated. |
 
 ---
 
@@ -480,3 +486,4 @@ If markdown content contains unsupported features (e.g., tables from a user-uplo
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-03-04 | 0.1 | Initial draft. TipTap editor component, markdown storage, PDF + DOCX export, template system. |
+| 2026-03-05 | 0.2 | Audit review: Eliminated `content_mode` dual pipeline — all resumes are markdown documents, JSONB fields are persona data picker input. Changed `resume_templates` ownership from `persona_id` to `user_id` for multitenancy consistency. Added `PATCH` endpoint for template updates. Added deterministic template fill (free tier) alongside LLM generation (paid). Resolved max content size as 50KB. |

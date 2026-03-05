@@ -42,8 +42,10 @@ pip install -e ".[dev]"
 # Run migrations
 alembic upgrade head
 
-# Start dev server
-uvicorn app.main:app --reload --port 8000
+# Start dev server (MUST run from project root, not backend/, so .env is found)
+cd /home/brianhusk/repos/zentropy_scout
+source backend/.venv/bin/activate
+uvicorn backend.app.main:app --reload --port 8000
 
 # Run tests
 pytest -v
@@ -149,7 +151,7 @@ gh api repos/ApexAZ/zentropy_scout/pulls/<pr-number>/comments
 | Stop DB | `docker compose down` |
 | Reset DB | `docker compose down -v && docker compose up -d` |
 | Migrate | `cd backend && alembic upgrade head` |
-| Backend | `cd backend && uvicorn app.main:app --reload` |
+| Backend | `cd /home/brianhusk/repos/zentropy_scout && source backend/.venv/bin/activate && uvicorn backend.app.main:app --reload --port 8000` |
 | Frontend | `cd frontend && npm run dev` |
 | Tests | `cd backend && pytest -v` |
 | Lint | `cd backend && ruff check . && ruff format .` |

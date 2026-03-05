@@ -63,15 +63,18 @@ This document specifies how users create and edit resumes using the TipTap edito
 ```
 User clicks [+ New Resume]
     │
-    ├── Select template (REQ-025 §6.3)
+    ├── Name, target role, template selection
+    │
+    ├── Persona data picker (§3.4) — select which jobs, bullets, education,
+    │   certifications, skills to include
     │
     ├── Choose creation method:
     │       │
-    │       ├── [Generate with AI] ──→ §4 (LLM-Assisted)
+    │       ├── [Generate with AI] ──→ §4 (LLM-Assisted, requires credits)
     │       │
-    │       └── [Write Manually]   ──→ §5 (Manual Editing)
+    │       └── [Start from Template] ──→ §3.5 (Deterministic template fill, free)
     │
-    └── Resume created with content_mode = 'markdown'
+    └── markdown_content populated → TipTap editor opens → §5 (Manual Editing)
 ```
 
 ### 3.2 New Resume Dialog
@@ -90,32 +93,52 @@ User clicks [+ New Resume]
 │                                                               │
 │ ┌────────────────────────┐  ┌────────────────────────┐       │
 │ │                        │  │                        │       │
-│ │   Generate with AI     │  │   Write Manually       │       │
+│ │   Generate with AI     │  │   Start from Template  │       │
 │ │                        │  │                        │       │
-│ │   AI composes a resume │  │   Start with template  │       │
-│ │   from your profile    │  │   and write your own   │       │
-│ │   data                 │  │   content              │       │
+│ │   AI composes a        │  │   Your selected data   │       │
+│ │   polished resume from │  │   filled into template │       │
+│ │   your profile data    │  │   — edit from there    │       │
+│ │   (requires credits)   │  │   (free)               │       │
 │ │                        │  │                        │       │
 │ └────────────────────────┘  └────────────────────────┘       │
 │                                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 3.3 Structured Resume Conversion
+### 3.3 Persona Data Picker
 
-When a user opens an existing structured resume (`content_mode = 'structured'`) and clicks "Edit in TipTap":
+Before generation, the user selects which persona data to include. This uses the existing checkbox/drag-and-drop UI (currently the "structured resume" editing surface), reframed as a pre-generation step:
+
+| Selection | UI | Existing Component |
+|-----------|----|--------------------|
+| Which jobs to include | Checkboxes | `ResumeContentCheckboxes` |
+| Which bullets per job | Checkboxes + drag-and-drop reorder | `ReorderableList` |
+| Education entries | Checkboxes | `ResumeContentCheckboxes` |
+| Certifications | Checkboxes | `ResumeContentCheckboxes` |
+| Skills emphasis | Checkboxes | `ResumeContentCheckboxes` |
+
+These selections are saved to the existing JSONB fields on `BaseResume` (`included_jobs`, `job_bullet_selections`, `job_bullet_order`, `included_education`, `included_certifications`, `skills_emphasis`). They inform the generation step — both LLM and deterministic paths read these selections to determine what content goes into the resume.
+
+**Note:** The persona data picker is optional for "Generate with AI" — the LLM can select appropriate content from the full persona. It is required for "Start from Template" since the deterministic fill needs explicit selections.
+
+### 3.4 Deterministic Template Fill (Free Path)
+
+When the user selects "Start from Template" (or has no credits for LLM generation):
 
 | Step | Action | Notes |
 |------|--------|-------|
-| 1 | Show confirmation dialog | "Converting to rich text editor. This cannot be undone. Continue?" |
-| 2 | Gather persona data using existing `gather_base_resume_content()` | Same logic as current PDF rendering |
-| 3 | Compose markdown from gathered content + selected template | Backend endpoint returns markdown string |
-| 4 | Save `markdown_content` and set `content_mode = 'markdown'` | One-way conversion |
-| 5 | Load TipTap editor with the markdown | User can now edit freely |
+| 1 | Gather selected persona data via `gather_base_resume_content()` | Same logic as current PDF rendering |
+| 2 | Mechanically slot data into template sections | No LLM — string concatenation from persona fields |
+| 3 | Save result to `markdown_content` | Resume now has a complete first draft |
+| 4 | Open TipTap editor with the markdown | User edits and polishes from there |
 
-**API endpoint:** `POST /base-resumes/{id}/convert-to-markdown`
+**API endpoint:** `POST /base-resumes/{id}/generate`
 
-Returns: `{ "markdown_content": "# John Smith\n\n..." }`
+Uses the same endpoint as LLM generation (§4.6) with `"method": "template_fill"`. The backend forks based on the method parameter.
+
+Returns: `{ "markdown_content": "# John Smith\n\n...", "word_count": 342, "method": "template_fill" }`
+
+**What the deterministic fill produces:** A complete, correctly formatted resume document with all selected persona data placed in the appropriate template sections. Contact info in the header, job entries with dates and bullets, education with degrees and dates, skills as a list. Functional and complete — just without the LLM polish (no tailored summary, no rephrased bullets, no strategic emphasis).
 
 ---
 
@@ -323,47 +346,53 @@ When the user selects "Write Manually":
 
 ## 6. Resume Detail Page (Updated)
 
-### 6.1 Updated Layout
+### 6.1 Updated Layout — Toggle View
 
-The existing resume detail page (REQ-012 §9.2) is updated to accommodate both content modes:
+The resume detail page (`/resumes/[id]`) supports two views toggled within the same page. The user never navigates away — they switch between Preview and Edit mode via a toggle control.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Scrum Master Resume                       Active  ★ Primary │
+│ Scrum Master Resume            [Preview] [Edit]   ★ Primary │
 ├─────────────────────────────────────────────────────────────┤
 │                                                               │
-│ [Edit in TipTap]  [Generate with AI]  [Export PDF ▾]         │
-│                                                               │
+│ PREVIEW MODE (default):                                       │
 │ ┌─────────────────────────────────────────────────────────┐  │
-│ │                                                         │  │
-│ │   Resume content preview (rendered markdown)            │  │
-│ │                                                         │  │
+│ │   Resume content preview (read-only TipTap)             │  │
 │ │   # John Smith                                         │  │
 │ │   john@email.com | (555) 123-4567                      │  │
 │ │   ...                                                  │  │
-│ │                                                         │  │
 │ └─────────────────────────────────────────────────────────┘  │
+│ [Edit]  [Generate with AI]  [Export PDF ▾]  [Edit Selections]│
 │                                                               │
+│ EDIT MODE (toggled):                                          │
+│ ┌──────────────────────┬──────────────────────────────────┐  │
+│ │ Persona Reference    │ TipTap Editor (editable)         │  │
+│ │ Panel (§5)           │ with toolbar + status bar        │  │
+│ └──────────────────────┴──────────────────────────────────┘  │
+│ [Done Editing]  [Export PDF ▾]                                │
+│                                                               │
+├─────────────────────────────────────────────────────────────┤
 │ ── Job Variants ──────────────────────────────────────────── │
-│                                                               │
 │ (variant list — same as REQ-012 §9.2)                        │
-│                                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 6.2 Action Buttons by Content Mode
+### 6.2 Action Buttons
 
-| Button | `content_mode = 'structured'` | `content_mode = 'markdown'` |
-|--------|-------------------------------|----------------------------|
-| Edit in TipTap | Shows conversion dialog (§3.3) | Opens TipTap editor |
-| Generate with AI | Opens generation options (§4.2) | Opens generation options (warns: replaces current content) |
-| Export PDF | Existing download (ReportLab from selections) | New export (markdown → PDF) |
-| Export DOCX | Not available | New export (markdown → DOCX) |
-| Edit Selections | Opens existing checkbox/drag-drop UI | Not available (markdown mode) |
+| Button | Behavior |
+|--------|----------|
+| Edit | Toggles to Edit mode (TipTap editor with persona reference panel) |
+| Done Editing | Toggles back to Preview mode |
+| Generate with AI | Opens generation options (§4.2). If `markdown_content` exists, warns: replaces current content. Requires credits. |
+| Export PDF | Exports `markdown_content` → PDF (REQ-025 §5.2) |
+| Export DOCX | Exports `markdown_content` → DOCX (REQ-025 §5.3) |
+| Edit Selections | Opens persona data picker (§3.3) to change which data is included |
+
+**No content state:** If `markdown_content` is NULL (resume just created, not yet generated), Preview mode shows a prompt: "Generate your resume or start from a template to get started." with [Generate with AI] and [Start from Template] buttons.
 
 ### 6.3 Content Preview
 
-For `content_mode = 'markdown'` resumes, the detail page shows a rendered preview of the markdown content (read-only TipTap with `editable: false`). This replaces the "summary + bullet selections" view used for structured resumes.
+The preview shows rendered markdown content via read-only TipTap (`editable: false`). This provides a WYSIWYG view of the resume as the user would see it in the editor, without the toolbar or editing capabilities.
 
 ---
 
@@ -411,8 +440,9 @@ At MVP, no concurrent editing support. The `updated_at` field on the base resume
 | Markdown content max size | 50KB (ample for multi-page resumes) |
 | Page limit range | 1-3 pages for LLM generation |
 | Template required for new resume | Must select a template (default pre-selected) |
-| Content mode immutable after conversion | Cannot revert from 'markdown' to 'structured' |
-| Generation requires persona data | At least one work history entry and summary must exist in persona |
+| LLM generation requires credits | If insufficient balance, endpoint returns 402. Frontend falls back to offering template fill. |
+| Template fill requires selections | At least one job with bullets selected in persona data picker |
+| LLM generation requires persona data | At least one work history entry and summary must exist in persona |
 
 ---
 
@@ -449,14 +479,20 @@ At MVP, no concurrent editing support. The `updated_at` field on the base resume
 | LLM output loading | Streaming into editor / Generate-then-load | Generate-then-load | Streaming requires batching TipTap transactions at sentence boundaries to avoid jitter. Generate-then-load is simpler, provides complete undo, and the generation time (~3-5s) is acceptable with a loading indicator. Streaming deferred to post-MVP. |
 | Generation scope | Full resume / Section-by-section | Full resume | Section-by-section adds complexity (multiple LLM calls, partial state management). Full resume generation gives the LLM context across sections for better coherence. User can edit individual sections after generation. |
 
-### 11.2 Content Mode Transition
+### 11.2 Generation Tiers (Free vs Paid)
 
 | Decision | Options Considered | Chosen | Rationale |
 |----------|-------------------|--------|-----------|
-| Transition direction | Bidirectional / One-way (structured → markdown) | One-way | Markdown → structured requires re-mapping free text back to persona bullet IDs, which is lossy and unreliable. Users who prefer structured mode keep it. Users who upgrade to TipTap get the full editing experience. |
-| Transition trigger | Automatic / User-initiated | User-initiated with confirmation | Irreversible change should be explicit. Users see a confirmation dialog explaining the change. Prevents accidental conversion. |
+| Free tier experience | Block resume creation / Empty template only / Deterministic template fill | Deterministic template fill | Blocking is too restrictive — users need to create resumes to see value. Empty template means retyping data the system already has (15-30 min of busywork). Template fill mechanically slots selected persona data into the template — functional, complete, and instant. User edits from there. LLM generation adds polish for paying users. |
+| Generation endpoint | Separate endpoints for LLM vs template fill / Single endpoint with method parameter | Single endpoint | `POST /base-resumes/{id}/generate` with `method: "ai" | "template_fill"`. Backend forks on the parameter. Same response shape. Frontend doesn't need to know which backend path ran. |
 
-### 11.3 Reference Panel
+### 11.3 Resume Detail Page — View Toggle
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| Editor location | Separate route (`/resumes/[id]/edit`) / Modal overlay / Toggle within detail page | Toggle within detail page | Separate route causes disorientation — user navigates away from their resume context. Modal is too constrained for a full editor with toolbar, status bar, and side panel. Toggle keeps the user on the same page, switching between Preview and Edit views. Back button returns to the resume list, not to a previous view state. |
+
+### 11.4 Reference Panel
 
 | Decision | Options Considered | Chosen | Rationale |
 |----------|-------------------|--------|-----------|
@@ -470,3 +506,4 @@ At MVP, no concurrent editing support. The `updated_at` field on the base resume
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-03-04 | 0.1 | Initial draft. LLM generation, manual editing, reference panel, page limit control. |
+| 2026-03-05 | 0.2 | Audit review: Eliminated `content_mode` — all resumes are markdown. Added persona data picker as pre-generation step (§3.3). Added deterministic template fill as free-tier path (§3.4). Replaced dual-mode action buttons with single set. Updated detail page to toggle between Preview/Edit views within same page (§6.1). Added free/paid generation tier decision. |

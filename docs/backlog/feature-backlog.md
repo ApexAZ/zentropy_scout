@@ -802,7 +802,9 @@ Scout observes situation in tracker data
 
 **Open-ended chat is explicitly deferred to post-MVP.** When added, it lives as a text input at the bottom of the insight feed, scoped to insight-related actions first, using the preserved intent classification logic from `chat.py`.
 
-**Requirements references:** REQ-007 §4 (superseded by this item), REQ-012 (frontend home screen)
+**Chat-driven resume editing (deferred from REQ-027):** The chat agent should have tool access to resume editing — the user can modify resumes through natural language conversation (e.g., "Make the summary more concise", "Emphasize my SAFe experience"). This was originally specified in REQ-027 §3 (v0.1) but deferred here because it requires the same chat infrastructure, conversation persistence, and agentic tool-use patterns that the broader chat agent needs. Building it as part of the chat agent avoids duplicating chat infrastructure. The chat agent's tool set should include resume operations alongside the existing 8 tools: `edit_resume_section`, `rewrite_resume`, `tailor_variant_for_job`, etc. When editing variants, the chat context should include job posting requirements for job-aware conversational editing.
+
+**Requirements references:** REQ-007 §4 (superseded by this item), REQ-012 (frontend home screen), REQ-027 §3 v0.1 (chat-driven resume editing, deferred here)
 
 ---
 
