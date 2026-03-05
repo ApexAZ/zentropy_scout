@@ -432,6 +432,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 - `[security]` Never filter or suppress security scanner alerts from reporting output (SARIF, Security tab) because DAST/SAST findings are meant for manual human review — the protocol is: review each alert, determine if genuine or false positive, then dismiss via `gh api` with reason and comment if false positive.
 - `[git]` Always use SSH keep-alive when pushing: `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10" git push` because pre-push hooks (pytest+vitest ~5min) cause GitHub's SSH connection to timeout before the actual push occurs.
 - `[planning]` Every implementation plan MUST be persisted to a `.md` file in `docs/plan/` following the established template BEFORE starting implementation. Never accept an inline plan or use only the TaskCreate tool — the plan file is the single source of truth for resuming work after compaction. Without it, Step 3 of the session start checklist (`Glob "docs/plan/*_plan.md"`) cannot discover the active plan.
+- `[planning]` KNOWN FAILURE POINT — Plan mode exit transition: When a plan arrives via "implement this plan" after ExitPlanMode, the plan text exists ONLY in conversation context — NOT on disk. The VERY FIRST action (before session checklist, Docker, security gate) must be `Write` to `docs/plan/<name>_plan.md`. This has failed repeatedly because the plan "feels ready" in context, but compaction or new sessions lose it.
 
 <!-- Add new lessons above this line -->
 

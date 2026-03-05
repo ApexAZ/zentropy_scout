@@ -57,6 +57,14 @@ Use EnterPlanMode when adding new features, phases, or multi-task work. Every pl
 2. Audit it against the REQ (via `req-reader`) and prior plan patterns before starting
 3. Only then begin implementation
 
+**CRITICAL — Plan Mode Exit Transition:**
+When a plan is delivered via an "implement this plan" message after exiting plan mode, the plan text exists ONLY in the conversation context — it is NOT on disk yet. The VERY FIRST action (before session checklist, before Docker checks, before security gate, before any implementation) must be:
+1. `Glob "docs/plan/*_plan.md"` to confirm the plan file does NOT already exist
+2. `Write` the full plan content to `docs/plan/<name>_plan.md`
+3. Only THEN proceed with the session start checklist and implementation
+
+This transition is a known failure point — the plan text "feels" ready to use because it's in context, but without the file on disk, context compaction or a new session will lose all plan state.
+
 **Never start implementation without a plan file on disk.**
 
 ### Plan Format
