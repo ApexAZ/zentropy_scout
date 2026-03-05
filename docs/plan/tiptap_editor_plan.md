@@ -133,7 +133,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 2: Template System Backend (REQ-025 §6)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Template service layer and API endpoints for CRUD operations on resume templates.*
 
@@ -172,7 +172,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Service + endpoint tests (CRUD, ownership checks, system template protection, markdown validation) | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** All 5 endpoints work, system templates protected, validation enforced. | | |
-| 5 | **Phase 2 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 5 | **Phase 2 Gate** — Full test suite + push | `phase-gate` | ✅ |
 | | Run: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. Push with SSH keep-alive. | | |
 
 ---
