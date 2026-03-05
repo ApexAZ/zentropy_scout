@@ -37,7 +37,7 @@ _MARGIN_BOTTOM = 0.5 * inch
 
 _LINK_COLOR_HEX = "#0000EE"
 
-_SAFE_URL_SCHEMES = frozenset({"http", "https", "mailto", ""})
+_SAFE_URL_SCHEMES = frozenset({"http", "https", "mailto"})
 
 # =============================================================================
 # Styles (REQ-025 §5.5)
@@ -157,6 +157,9 @@ def _is_safe_url(url: str) -> bool:
     """
     if not url:
         return False
+    # Allow fragment-only URLs (anchor links)
+    if url.startswith("#"):
+        return True
     parsed = urlparse(url)
     return parsed.scheme in _SAFE_URL_SCHEMES
 

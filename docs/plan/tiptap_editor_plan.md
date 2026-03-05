@@ -210,7 +210,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Unit tests — render each supported markdown feature, verify PDF bytes are valid (check `%PDF` header), test edge cases (empty content, headings only, nested lists) | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** All supported markdown features render to valid PDF. Tests pass. | | |
-| 7 | **MarkdownDocxRenderer service** | | ⬜ |
+| 7 | **MarkdownDocxRenderer service** | | ✅ |
 | | **Read:** REQ-025 §5.3 (DOCX export), §5.5 (feature mapping). | `req-reader, tdd, plan` | |
 | | | | |
 | | **Create:** `backend/app/services/markdown_docx_renderer.py` | | |
