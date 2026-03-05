@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from app.models.application import Application
     from app.models.job_posting import JobPosting
     from app.models.persona import Persona
+    from app.models.resume_template import ResumeTemplate
 
 
 class ResumeFile(Base):
@@ -172,6 +173,17 @@ class BaseResume(Base):
         nullable=True,
     )
 
+    # Markdown content (REQ-025 §4.1)
+    markdown_content: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    template_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("resume_templates.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     # Status
     is_primary: Mapped[bool] = mapped_column(
         Boolean,
@@ -215,6 +227,10 @@ class BaseResume(Base):
     persona: Mapped["Persona"] = relationship(
         "Persona",
         back_populates="base_resumes",
+    )
+    template: Mapped["ResumeTemplate | None"] = relationship(
+        "ResumeTemplate",
+        foreign_keys=[template_id],
     )
     job_variants: Mapped[list["JobVariant"]] = relationship(
         "JobVariant",
@@ -286,6 +302,16 @@ class JobVariant(Base, TimestampMixin, SoftDeleteMixin):
     )
     snapshot_skills_emphasis: Mapped[list | None] = mapped_column(
         JSONB,
+        nullable=True,
+    )
+
+    # Markdown content (REQ-025 §4.2)
+    markdown_content: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    snapshot_markdown_content: Mapped[str | None] = mapped_column(
+        Text,
         nullable=True,
     )
 

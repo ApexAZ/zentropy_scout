@@ -13,6 +13,7 @@ Models are organized by domain:
 - persona_content.py: WorkHistory, Bullet, Skill, Education, Certification, AchievementStory
 - persona_settings.py: VoiceProfile, CustomNonNegotiable, PersonaEmbedding, PersonaChangeFlag
 - persona_job.py: PersonaJob (Tier 2 - per-user job relationship)
+- resume_template.py: ResumeTemplate (Tier 1 - templates)
 - resume.py: ResumeFile, BaseResume, JobVariant, SubmittedResumePDF
 - job_posting.py: JobPosting, ExtractedSkill
 - cover_letter.py: CoverLetter, SubmittedCoverLetterPDF
@@ -51,6 +52,7 @@ from app.models.persona_settings import (
     VoiceProfile,
 )
 from app.models.resume import BaseResume, JobVariant, ResumeFile, SubmittedResumePDF
+from app.models.resume_template import ResumeTemplate
 from app.models.session import Session
 from app.models.usage import CreditTransaction, LLMUsageRecord
 from app.models.user import User
@@ -82,6 +84,8 @@ __all__ = [
     "CustomNonNegotiable",
     "PersonaEmbedding",
     "PersonaChangeFlag",
+    # Tier 1 - Resume templates
+    "ResumeTemplate",
     # Tier 2 - Resume domain
     "ResumeFile",
     "BaseResume",

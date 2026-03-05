@@ -82,7 +82,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1 | **Alembic migration — add markdown columns + resume_templates table** | | ⬜ |
+| 1 | **Alembic migration — add markdown columns + resume_templates table** | | ✅ |
 | | **Read:** REQ-025 §4.1 (BaseResume fields), §4.2 (JobVariant fields), §4.3 (resume_templates table), §4.4 (migration plan). | `req-reader, db, plan` | |
 | | | | |
 | | **Create migration:** Single Alembic revision with 4 steps: | | |
