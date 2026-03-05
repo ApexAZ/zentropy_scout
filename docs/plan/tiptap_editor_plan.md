@@ -66,7 +66,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 1: Database Schema & Models (REQ-025 §4)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add markdown content columns to base_resumes and job_variants, create resume_templates table with seed data, update SQLAlchemy models and Pydantic schemas.*
 
@@ -118,7 +118,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Unit tests for repository CRUD + schema validation | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** Templates can be created/read/updated/deleted. Schemas serialize correctly. All tests pass. | | |
-| 3 | **Phase 1 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 3 | **Phase 1 Gate** — Full test suite + push | `phase-gate` | ✅ |
 | | Run: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. Push with SSH keep-alive. | | |
 
 #### Phase 1 Notes
