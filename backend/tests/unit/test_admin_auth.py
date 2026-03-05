@@ -377,11 +377,15 @@ class TestAdminEmailsBootstrap:
 class TestAdminEmailsConfig:
     """Settings.admin_emails field exists and defaults to empty string."""
 
-    def test_admin_emails_defaults_to_empty_string(self) -> None:
+    def test_admin_emails_defaults_to_empty_string(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """admin_emails has an empty string default."""
         from app.core.config import Settings
 
+        monkeypatch.delenv("ADMIN_EMAILS", raising=False)
         s = Settings(
+            _env_file=None,
             database_password="test_password",  # nosec B106  # gitleaks:allow
         )
         assert s.admin_emails == ""

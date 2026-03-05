@@ -8,6 +8,7 @@ verification_tokens tables.
 import asyncio
 import uuid
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -73,7 +74,8 @@ def _create_alembic_config():
     from alembic.config import Config
 
     cfg = Config()
-    cfg.set_main_option("script_location", "migrations")
+    migrations_dir = str(Path(__file__).resolve().parents[2] / "migrations")
+    cfg.set_main_option("script_location", migrations_dir)
     return cfg
 
 

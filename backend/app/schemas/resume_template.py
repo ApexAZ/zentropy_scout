@@ -28,10 +28,10 @@ class ResumeTemplateResponse(BaseModel):
 
     id: uuid.UUID
     name: str
-    description: str | None = None
+    description: str | None = Field(default=None)
     markdown_content: str
     is_system: bool
-    user_id: uuid.UUID | None = None
+    user_id: uuid.UUID | None = Field(default=None)
     display_order: int
     created_at: datetime
     updated_at: datetime

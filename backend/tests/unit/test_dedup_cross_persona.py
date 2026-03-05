@@ -17,6 +17,7 @@ import json
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, date, datetime
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -107,7 +108,8 @@ def _patch_settings_for_test_db() -> str:
 def _create_alembic_config() -> Config:
     """Create alembic Config without ini file."""
     cfg = Config()
-    cfg.set_main_option("script_location", "migrations")
+    migrations_dir = str(Path(__file__).resolve().parents[2] / "migrations")
+    cfg.set_main_option("script_location", migrations_dir)
     return cfg
 
 

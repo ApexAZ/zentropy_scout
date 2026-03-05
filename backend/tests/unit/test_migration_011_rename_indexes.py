@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -230,7 +231,8 @@ def _create_alembic_config() -> Config:
     from alembic.config import Config
 
     cfg = Config()
-    cfg.set_main_option("script_location", "migrations")
+    migrations_dir = str(Path(__file__).resolve().parents[2] / "migrations")
+    cfg.set_main_option("script_location", migrations_dir)
     return cfg
 
 

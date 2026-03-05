@@ -61,83 +61,112 @@ class TestProductionSecurityValidation:
 class TestAuthConfigDefaults:
     """REQ-013 §7.2: Auth settings have correct defaults."""
 
-    def test_auth_enabled_defaults_to_false(self):
+    def test_auth_enabled_defaults_to_false(self, monkeypatch: pytest.MonkeyPatch):
         """Auth is disabled by default for local development."""
-        s = Settings()
+        monkeypatch.delenv("AUTH_ENABLED", raising=False)
+        s = Settings(_env_file=None)
         assert s.auth_enabled is False
 
-    def test_auth_secret_defaults_to_empty(self):
+    def test_auth_secret_defaults_to_empty(self, monkeypatch: pytest.MonkeyPatch):
         """Auth secret is empty by default (not required in local mode)."""
-        s = Settings()
+        monkeypatch.delenv("AUTH_SECRET", raising=False)
+        s = Settings(_env_file=None)
         assert s.auth_secret.get_secret_value() == ""
 
-    def test_auth_issuer_defaults_to_zentropy_scout(self):
+    def test_auth_issuer_defaults_to_zentropy_scout(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         """JWT issuer claim defaults to 'zentropy-scout'."""
-        s = Settings()
+        monkeypatch.delenv("AUTH_ISSUER", raising=False)
+        s = Settings(_env_file=None)
         assert s.auth_issuer == "zentropy-scout"
 
-    def test_auth_cookie_name_defaults_to_zentropy_session_token(self):
+    def test_auth_cookie_name_defaults_to_zentropy_session_token(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         """Cookie name defaults to 'zentropy.session-token'."""
-        s = Settings()
+        monkeypatch.delenv("AUTH_COOKIE_NAME", raising=False)
+        s = Settings(_env_file=None)
         assert s.auth_cookie_name == "zentropy.session-token"
 
-    def test_auth_cookie_secure_defaults_to_true(self):
+    def test_auth_cookie_secure_defaults_to_true(self, monkeypatch: pytest.MonkeyPatch):
         """Cookie Secure flag defaults to True (HTTPS only)."""
-        s = Settings()
+        monkeypatch.delenv("AUTH_COOKIE_SECURE", raising=False)
+        s = Settings(_env_file=None)
         assert s.auth_cookie_secure is True
 
-    def test_auth_cookie_samesite_defaults_to_lax(self):
+    def test_auth_cookie_samesite_defaults_to_lax(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         """Cookie SameSite defaults to 'lax' (CSRF protection)."""
-        s = Settings()
+        monkeypatch.delenv("AUTH_COOKIE_SAMESITE", raising=False)
+        s = Settings(_env_file=None)
         assert s.auth_cookie_samesite == "lax"
 
-    def test_auth_cookie_domain_defaults_to_empty_string(self):
+    def test_auth_cookie_domain_defaults_to_empty_string(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         """Cookie domain defaults to empty (request origin)."""
-        s = Settings()
+        monkeypatch.delenv("AUTH_COOKIE_DOMAIN", raising=False)
+        s = Settings(_env_file=None)
         assert s.auth_cookie_domain == ""
 
-    def test_default_user_id_defaults_to_none(self):
+    def test_default_user_id_defaults_to_none(self, monkeypatch: pytest.MonkeyPatch):
         """Default user ID is None when not set."""
-        s = Settings()
+        monkeypatch.delenv("DEFAULT_USER_ID", raising=False)
+        s = Settings(_env_file=None)
         assert s.default_user_id is None
 
 
 class TestOAuthAndEmailDefaults:
     """REQ-013 §7.2, §11: OAuth and email settings have correct defaults."""
 
-    def test_google_client_id_defaults_to_empty(self):
+    def test_google_client_id_defaults_to_empty(self, monkeypatch: pytest.MonkeyPatch):
         """Google OAuth client ID defaults to empty."""
-        s = Settings()
+        monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+        s = Settings(_env_file=None)
         assert s.google_client_id == ""
 
-    def test_google_client_secret_defaults_to_empty(self):
+    def test_google_client_secret_defaults_to_empty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         """Google OAuth client secret defaults to empty (SecretStr)."""
-        s = Settings()
+        monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+        s = Settings(_env_file=None)
         assert s.google_client_secret.get_secret_value() == ""
 
-    def test_linkedin_client_id_defaults_to_empty(self):
+    def test_linkedin_client_id_defaults_to_empty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         """LinkedIn OAuth client ID defaults to empty."""
-        s = Settings()
+        monkeypatch.delenv("LINKEDIN_CLIENT_ID", raising=False)
+        s = Settings(_env_file=None)
         assert s.linkedin_client_id == ""
 
-    def test_linkedin_client_secret_defaults_to_empty(self):
+    def test_linkedin_client_secret_defaults_to_empty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
         """LinkedIn OAuth client secret defaults to empty (SecretStr)."""
-        s = Settings()
+        monkeypatch.delenv("LINKEDIN_CLIENT_SECRET", raising=False)
+        s = Settings(_env_file=None)
         assert s.linkedin_client_secret.get_secret_value() == ""
 
-    def test_email_from_defaults_to_noreply(self):
+    def test_email_from_defaults_to_noreply(self, monkeypatch: pytest.MonkeyPatch):
         """Email sender defaults to noreply@zentropyscout.com."""
-        s = Settings()
+        monkeypatch.delenv("EMAIL_FROM", raising=False)
+        s = Settings(_env_file=None)
         assert s.email_from == "noreply@zentropyscout.com"
 
-    def test_resend_api_key_defaults_to_empty(self):
+    def test_resend_api_key_defaults_to_empty(self, monkeypatch: pytest.MonkeyPatch):
         """Resend API key defaults to empty (SecretStr)."""
-        s = Settings()
+        monkeypatch.delenv("RESEND_API_KEY", raising=False)
+        s = Settings(_env_file=None)
         assert s.resend_api_key.get_secret_value() == ""
 
-    def test_frontend_url_defaults_to_localhost(self):
+    def test_frontend_url_defaults_to_localhost(self, monkeypatch: pytest.MonkeyPatch):
         """Frontend URL defaults to http://localhost:3000."""
-        s = Settings()
+        monkeypatch.delenv("FRONTEND_URL", raising=False)
+        s = Settings(_env_file=None)
         assert s.frontend_url == "http://localhost:3000"
 
 
