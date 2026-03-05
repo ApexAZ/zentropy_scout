@@ -18,6 +18,8 @@ from app.core.errors import ConflictError, InvalidStateError, NotFoundError
 from app.core.file_validation import sanitize_filename_for_header
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
+from app.services.markdown_docx_renderer import render_docx
+from app.services.markdown_pdf_renderer import render_pdf
 from app.services.pdf_generation import render_base_resume_pdf
 
 _MAX_JSONB_LIST_LENGTH = 200
@@ -454,5 +456,92 @@ async def download_base_resume(
     return StreamingResponse(
         iter([resume.rendered_document]),
         media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+    )
+
+
+_DOCX_MEDIA_TYPE = (
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+)
+
+
+@router.get("/{resume_id}/export/pdf")
+async def export_base_resume_pdf(
+    resume_id: uuid.UUID,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> Response:
+    """Export base resume markdown as PDF download.
+
+    REQ-025 §5.4: Renders markdown_content to PDF via ReportLab.
+
+    Args:
+        resume_id: The base resume ID to export.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+
+    Returns:
+        Response with PDF binary and Content-Disposition header.
+
+    Raises:
+        NotFoundError: If resume not found or not owned by user.
+        InvalidStateError: If markdown_content is NULL.
+    """
+    resume = await _get_owned_resume(resume_id, user_id, db)
+
+    if not resume.markdown_content:
+        raise InvalidStateError(
+            "Cannot export: resume has no markdown content. "
+            "Generate or write content first."
+        )
+
+    pdf_bytes = render_pdf(resume.markdown_content)
+    safe_filename = sanitize_filename_for_header(f"{resume.name.replace(' ', '_')}.pdf")
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+    )
+
+
+@router.get("/{resume_id}/export/docx")
+async def export_base_resume_docx(
+    resume_id: uuid.UUID,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> Response:
+    """Export base resume markdown as DOCX download.
+
+    REQ-025 §5.4: Renders markdown_content to DOCX via python-docx.
+
+    Args:
+        resume_id: The base resume ID to export.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+
+    Returns:
+        Response with DOCX binary and Content-Disposition header.
+
+    Raises:
+        NotFoundError: If resume not found or not owned by user.
+        InvalidStateError: If markdown_content is NULL.
+    """
+    resume = await _get_owned_resume(resume_id, user_id, db)
+
+    if not resume.markdown_content:
+        raise InvalidStateError(
+            "Cannot export: resume has no markdown content. "
+            "Generate or write content first."
+        )
+
+    docx_bytes = render_docx(resume.markdown_content)
+    safe_filename = sanitize_filename_for_header(
+        f"{resume.name.replace(' ', '_')}.docx"
+    )
+
+    return Response(
+        content=docx_bytes,
+        media_type=_DOCX_MEDIA_TYPE,
         headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )

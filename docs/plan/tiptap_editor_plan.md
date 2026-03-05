@@ -221,7 +221,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Unit tests — render each supported feature, verify DOCX bytes are valid (check PK zip header), test edge cases | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** All supported markdown features render to valid DOCX. Tests pass. | | |
-| 8 | **Export API endpoints** | | ⬜ |
+| 8 | **Export API endpoints** | | ✅ |
 | | **Read:** REQ-025 §5.4 (export endpoints), §8 (validation: export requires content). Existing: `backend/app/api/v1/base_resumes.py` download endpoint for patterns. | `req-reader, api, tdd, security, plan` | |
 | | | | |
 | | **Add to** `backend/app/api/v1/base_resumes.py`: | | |

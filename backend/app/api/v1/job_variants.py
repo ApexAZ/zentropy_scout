@@ -13,11 +13,14 @@ from sqlalchemy import select
 
 from app.api.deps import CurrentUserId, DbSession
 from app.core.errors import InvalidStateError, NotFoundError
+from app.core.file_validation import sanitize_filename_for_header
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
 from app.models.job_posting import JobPosting
 from app.models.persona_job import PersonaJob
 from app.models.resume import JobVariant
+from app.services.markdown_docx_renderer import render_docx
+from app.services.markdown_pdf_renderer import render_pdf
 
 _MAX_SUMMARY_LENGTH = 5000
 """Safety bound on summary text length."""
@@ -458,3 +461,92 @@ async def restore_job_variant(
     await db.refresh(variant)
 
     return DataResponse(data=_variant_to_dict(variant))
+
+
+# =============================================================================
+# Export Endpoints (REQ-025 §5.4)
+# =============================================================================
+
+_DOCX_MEDIA_TYPE = (
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+)
+
+
+@router.get("/{variant_id}/export/pdf")
+async def export_job_variant_pdf(
+    variant_id: uuid.UUID,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> Response:
+    """Export job variant markdown as PDF download.
+
+    REQ-025 §5.4: Renders variant markdown_content to PDF via ReportLab.
+
+    Args:
+        variant_id: The job variant ID to export.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+
+    Returns:
+        Response with PDF binary and Content-Disposition header.
+
+    Raises:
+        NotFoundError: If variant not found or not owned by user.
+        InvalidStateError: If markdown_content is NULL.
+    """
+    variant = await _get_owned_variant(variant_id, user_id, db)
+
+    if not variant.markdown_content:
+        raise InvalidStateError(
+            "Cannot export: variant has no markdown content. "
+            "Generate or write content first."
+        )
+
+    pdf_bytes = render_pdf(variant.markdown_content)
+    safe_filename = sanitize_filename_for_header(f"variant_{str(variant_id)[:8]}.pdf")
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+    )
+
+
+@router.get("/{variant_id}/export/docx")
+async def export_job_variant_docx(
+    variant_id: uuid.UUID,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> Response:
+    """Export job variant markdown as DOCX download.
+
+    REQ-025 §5.4: Renders variant markdown_content to DOCX via python-docx.
+
+    Args:
+        variant_id: The job variant ID to export.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+
+    Returns:
+        Response with DOCX binary and Content-Disposition header.
+
+    Raises:
+        NotFoundError: If variant not found or not owned by user.
+        InvalidStateError: If markdown_content is NULL.
+    """
+    variant = await _get_owned_variant(variant_id, user_id, db)
+
+    if not variant.markdown_content:
+        raise InvalidStateError(
+            "Cannot export: variant has no markdown content. "
+            "Generate or write content first."
+        )
+
+    docx_bytes = render_docx(variant.markdown_content)
+    safe_filename = sanitize_filename_for_header(f"variant_{str(variant_id)[:8]}.docx")
+
+    return Response(
+        content=docx_bytes,
+        media_type=_DOCX_MEDIA_TYPE,
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+    )

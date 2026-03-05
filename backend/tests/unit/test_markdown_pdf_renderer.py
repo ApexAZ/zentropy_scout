@@ -89,6 +89,12 @@ class TestRenderPdfEdgeCases:
         with pytest.raises(ValueError, match="[Ee]mpty"):
             render_pdf("   \n\n  ")
 
+    def test_exceeds_max_length_raises_value_error(self) -> None:
+        """Content exceeding max length is rejected."""
+        md = "# H\n\n" + "x" * 100_001
+        with pytest.raises(ValueError, match="maximum length"):
+            render_pdf(md)
+
     def test_heading_only(self) -> None:
         """A single heading with no body still produces valid PDF."""
         result = render_pdf("# Just a Heading")

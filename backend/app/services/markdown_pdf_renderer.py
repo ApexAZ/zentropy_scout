@@ -39,6 +39,8 @@ _LINK_COLOR_HEX = "#0000EE"
 
 _SAFE_URL_SCHEMES = frozenset({"http", "https", "mailto"})
 
+_MAX_MARKDOWN_LENGTH = 100_000  # ~100KB, sufficient for a resume
+
 # =============================================================================
 # Styles (REQ-025 §5.5)
 # =============================================================================
@@ -400,6 +402,11 @@ def render_pdf(markdown_content: str) -> bytes:
     """
     if not markdown_content or not markdown_content.strip():
         raise ValueError("Markdown content cannot be empty.")
+
+    if len(markdown_content) > _MAX_MARKDOWN_LENGTH:
+        raise ValueError(
+            f"Markdown content exceeds maximum length of {_MAX_MARKDOWN_LENGTH} characters."
+        )
 
     md = MarkdownIt("commonmark")
     tokens = md.parse(markdown_content)
