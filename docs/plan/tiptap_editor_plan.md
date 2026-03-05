@@ -268,7 +268,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 10 | **Deterministic template fill service** | | ⬜ |
+| 10 | **Deterministic template fill service** | | ✅ |
 | | **Read:** REQ-026 §3.4 (deterministic fill), §3.3 (persona data picker). Existing: `backend/app/services/pdf_generation.py:gather_base_resume_content()` for data gathering pattern. | `req-reader, tdd, plan` | |
 | | | | |
 | | **Create:** `backend/app/services/resume_generation_service.py` | | |
