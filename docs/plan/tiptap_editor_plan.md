@@ -179,7 +179,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 3: Export Pipeline Backend (REQ-025 §5)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Markdown-to-PDF and markdown-to-DOCX export services, plus new API endpoints for exporting resumes with markdown content.*
 
@@ -238,7 +238,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Endpoint tests (happy path, missing content → 422, ownership check) | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** All 4 export endpoints return valid files. Validation works. Tests pass. | | |
-| 9 | **Phase 3 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 9 | **Phase 3 Gate** — Full test suite + push | `phase-gate` | ✅ |
 | | Run: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. Push with SSH keep-alive. | | |
 
 #### Phase 3 Notes
