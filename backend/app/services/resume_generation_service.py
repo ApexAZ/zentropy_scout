@@ -1,22 +1,41 @@
-"""Resume generation service — deterministic template fill.
+"""Resume generation service — deterministic + LLM-assisted resume generation.
 
-REQ-026 §3.4: Gathers persona data via gather_base_resume_content()
-and mechanically slots it into template {placeholder} markers.
-No LLM involved — pure string substitution from persona fields.
+REQ-026 §3.4: Deterministic template fill — gathers persona data via
+gather_base_resume_content() and mechanically slots it into template
+{placeholder} markers. No LLM involved.
+
+REQ-026 §4.4: LLM-assisted generation — gathers persona data, builds prompt
+with template structure + persona + voice profile + generation options, calls
+LLM via MeteredLLMProvider, returns (markdown, metadata).
 """
 
+import logging
 import re
+import uuid
+from dataclasses import dataclass
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import APIError
+from app.models.persona_settings import VoiceProfile
 from app.models.resume import BaseResume
 from app.models.resume_template import ResumeTemplate
+from app.prompts.resume_generation import (
+    RESUME_GENERATION_SYSTEM_PROMPT,
+    build_resume_generation_prompt,
+)
+from app.providers.errors import ProviderError
+from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 from app.services.pdf_generation import (
     ResumeContent,
     ResumeJobEntry,
     gather_base_resume_content,
 )
+from app.services.voice_prompt_block import build_voice_profile_block
+
+logger = logging.getLogger(__name__)
 
 # Month names for date formatting (shared with pdf_generation.py)
 _MONTH_NAMES = [
@@ -205,3 +224,179 @@ async def template_fill(
     )
 
     return markdown
+
+
+# =============================================================================
+# LLM-Assisted Generation (REQ-026 §4.4)
+# =============================================================================
+
+
+class ResumeGenerationError(APIError):
+    """Raised when LLM resume generation fails."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            code="RESUME_GENERATION_ERROR",
+            message=message,
+            status_code=500,
+        )
+
+
+@dataclass(frozen=True)
+class _VoiceProfileSnapshot:
+    """Lightweight snapshot of voice profile fields for prompt building."""
+
+    tone: str
+    sentence_style: str
+    vocabulary_level: str
+    personality_markers: str | None
+    sample_phrases: tuple[str, ...] | None
+    things_to_avoid: tuple[str, ...] | None
+    writing_sample_text: str | None
+
+
+async def _get_voice_profile(
+    session: AsyncSession, persona_id: uuid.UUID
+) -> _VoiceProfileSnapshot | None:
+    """Fetch the voice profile for a persona.
+
+    Args:
+        session: Database session.
+        persona_id: UUID of the persona.
+
+    Returns:
+        VoiceProfileSnapshot if found, None otherwise.
+    """
+    result = await session.execute(
+        select(VoiceProfile).where(VoiceProfile.persona_id == persona_id)
+    )
+    vp = result.scalar_one_or_none()
+    if vp is None:
+        return None
+    return _VoiceProfileSnapshot(
+        tone=vp.tone,
+        sentence_style=vp.sentence_style,
+        vocabulary_level=vp.vocabulary_level,
+        personality_markers=vp.personality_markers,
+        sample_phrases=tuple(vp.sample_phrases) if vp.sample_phrases else None,
+        things_to_avoid=tuple(vp.things_to_avoid) if vp.things_to_avoid else None,
+        writing_sample_text=vp.writing_sample_text,
+    )
+
+
+async def llm_generate(
+    *,
+    resume: BaseResume,
+    template: ResumeTemplate,
+    session: AsyncSession,
+    provider: LLMProvider,
+    page_limit: int = 1,
+    emphasis: str = "balanced",
+    include_sections: list[str] | None = None,
+) -> tuple[str, dict]:
+    """Generate a resume using an LLM provider.
+
+    REQ-026 §4.4: Gathers persona data, builds prompt with template
+    structure + persona + voice profile + generation options, calls LLM
+    via MeteredLLMProvider, returns (markdown, metadata).
+
+    Args:
+        resume: BaseResume ORM instance.
+        template: ResumeTemplate with markdown_content.
+        session: Database session.
+        provider: LLM provider (typically MeteredLLMProvider).
+        page_limit: Target page count (1-3). Defaults to 1.
+        emphasis: Emphasis preference. Defaults to "balanced".
+        include_sections: Section identifiers to include. Defaults to all.
+
+    Returns:
+        Tuple of (markdown_content, metadata_dict).
+
+    Raises:
+        ResumeGenerationError: If the LLM fails or returns empty.
+    """
+    if include_sections is None:
+        include_sections = [
+            "summary",
+            "experience",
+            "education",
+            "skills",
+            "certifications",
+        ]
+
+    # 1. Gather persona data
+    content = await gather_base_resume_content(session, resume.id)
+
+    # 2. Build voice profile block
+    voice = await _get_voice_profile(session, resume.persona_id)
+    if voice is not None:
+        voice_block = build_voice_profile_block(
+            persona_name=content.contact.full_name,
+            tone=voice.tone,
+            sentence_style=voice.sentence_style,
+            vocabulary_level=voice.vocabulary_level,
+            personality_markers=voice.personality_markers,
+            sample_phrases=list(voice.sample_phrases) if voice.sample_phrases else None,
+            things_to_avoid=list(voice.things_to_avoid)
+            if voice.things_to_avoid
+            else None,
+            writing_sample_text=voice.writing_sample_text,
+        )
+    else:
+        voice_block = ""
+
+    # 3. Pre-render persona sections for the prompt
+    persona_jobs_text = _render_experience(content)
+    persona_education_text = _render_education(content)
+    persona_skills_text = _render_skills(content)
+    persona_certifications_text = _render_certifications(content)
+
+    # 4. Build the prompt
+    user_prompt = build_resume_generation_prompt(
+        template_markdown=template.markdown_content,
+        persona_summary=content.summary or "",
+        persona_name=content.contact.full_name,
+        persona_jobs_text=persona_jobs_text,
+        persona_education_text=persona_education_text,
+        persona_skills_text=persona_skills_text,
+        persona_certifications_text=persona_certifications_text,
+        page_limit=page_limit,
+        emphasis=emphasis,
+        include_sections=include_sections,
+        voice_profile_block=voice_block,
+    )
+
+    # 5. Call the LLM
+    messages = [
+        LLMMessage(role="system", content=RESUME_GENERATION_SYSTEM_PROMPT),
+        LLMMessage(  # nosemgrep: zentropy.llm-unsanitized-input  # sanitized inside build_resume_generation_prompt()
+            role="user", content=user_prompt
+        ),
+    ]
+
+    try:
+        response = await provider.complete(
+            messages=messages,
+            task=TaskType.RESUME_TAILORING,
+        )
+    except ProviderError as e:
+        logger.error("Resume generation failed: %s", e)
+        raise ResumeGenerationError(
+            "Resume generation failed. Please try again."
+        ) from e
+
+    raw_content = response.content
+    if not raw_content:
+        raise ResumeGenerationError(
+            "LLM returned empty response for resume generation."
+        )
+
+    # 6. Build metadata
+    metadata = {
+        "model": response.model,
+        "input_tokens": response.input_tokens,
+        "output_tokens": response.output_tokens,
+        "word_count": len(raw_content.split()),
+    }
+
+    return raw_content, metadata

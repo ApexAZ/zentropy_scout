@@ -280,7 +280,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Unit tests with mock persona data — verify all placeholders replaced, empty sections handled gracefully, skills formatted as list | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** Template fill produces complete markdown from persona data. Tests pass. | | |
-| 11 | **LLM resume generation prompt + service** | | ⬜ |
+| 11 | **LLM resume generation prompt + service** | | ✅ |
 | | **Read:** REQ-026 §4.2–§4.5 (generation options, page limit, prompt, constraints). REQ-010 for modification limits. Existing prompts: `backend/app/prompts/ghostwriter.py` for pattern. | `req-reader, provider, tdd, security, plan` | |
 | | | | |
 | | **Create prompt:** `backend/app/prompts/resume_generation.py` | | |
