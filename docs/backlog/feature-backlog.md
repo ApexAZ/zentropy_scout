@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-02
 
-**Items:** 25 (8 completed, 17 pending)
+**Items:** 27 (8 completed, 19 pending)
 
 ---
 
@@ -258,6 +258,11 @@ Elevate the visual design from functional-but-generic shadcn/ui defaults to a po
 - `frontend/src/app/(main)/page.tsx` — home/dashboard page
 - `frontend/src/app/(main)/layout.tsx` — main layout with navigation
 
+**Admin UI improvements (routing table — REQ-022 §10.3):**
+- Task type field should be a dropdown populated from `TaskType` enum (REQ-009 §4.3), not freeform text
+- Clarify provider column — currently unclear which row maps to which provider
+- Clean up vestigial multi-provider rows (BYOK from REQ-009 replaced by centralized billing in REQ-023). Single-provider mode only needs one row per task type; consider preventing duplicate task_type entries or at minimum making it obvious which entry is active. See also PBI #27 (Remove BYOK).
+
 **Open questions:**
 - Design reference: which existing product should we visually aspire to?
 - Custom font: worth the web font loading cost?
@@ -359,6 +364,43 @@ Replace the current resume management flow with a TipTap rich text editor that s
 - Version history in the editor — show diffs between AI-generated versions?
 - How to handle template switching after content exists — warn and replace, or attempt content migration?
 - Should markdown be the source of truth with HTML as a render format, or store both?
+
+---
+
+### 27. Remove BYOK Multi-Provider Architecture
+
+**Category:** Backend / Refactor
+**Added:** 2026-03-04
+**Priority:** P1 — Simplify before building new features on top of vestigial complexity.
+**Depends on:** #24 (TipTap Resume Editor) — do this right after the TipTap implementation
+
+The original architecture (REQ-009 §4 Provider Abstraction Layer) supported Bring Your Own Key (BYOK) where each user could configure their own LLM provider (Claude, OpenAI, Gemini). REQ-023 (USD-Direct Billing) replaced this with centralized billing where the platform pays for LLM calls and bills users via funding packs. The admin routing table (REQ-022 §10.3) was designed for multi-provider routing but now only needs single-provider support. BYOK is no longer part of the product model.
+
+**Decision context:** During REQ-025/026/027 audit (2026-03-04), reviewing gap #12 (LLM model selection for resume generation) revealed the admin routing table has vestigial multi-provider rows per task type. Since REQ-023 moved to centralized billing, the multi-provider architecture adds complexity without value.
+
+**What remains from BYOK that should be removed:**
+- **Three provider adapters** — `claude_adapter.py`, `openai_adapter.py`, `gemini_adapter.py` each with their own routing tables. Only one provider is used at a time; the others are dead code.
+- **Per-provider routing rows in admin table** — each task type has 3 rows (one per provider). Single-provider mode only needs one row per task type.
+- **`LLM_PROVIDER` env var** — selects active provider at startup. Should be replaced with direct configuration.
+- **Provider factory/selection logic** — `get_llm_provider()` in deps.py dynamically picks the adapter. Can be simplified to a single adapter.
+- **User-facing API key settings** — any endpoints or UI for users to input their own API keys (if they exist).
+
+**Approach:**
+1. Pick the production provider (likely Claude or Gemini based on cost/quality testing)
+2. Collapse the three adapters into one, or keep only the chosen adapter
+3. Simplify routing table to one row per task type (remove provider column or make it implicit)
+4. Remove provider selection logic from DI container
+5. Clean up unused env vars, schemas, and tests for removed providers
+6. Keep the `LLMProvider` interface — good abstraction even with one implementation (testability, future flexibility)
+
+**Estimated scope:** Medium — touches provider layer, DI, admin routing, tests. No user-facing behavior change.
+
+**Key files:**
+- `backend/app/providers/llm/` — all three adapters + base
+- `backend/app/providers/metered_provider.py` — MeteredLLMProvider
+- `backend/app/api/deps.py` — provider DI wiring
+- `backend/app/models/admin_config.py` — routing table model
+- `backend/app/services/admin_config_service.py` — routing lookup
 
 ---
 
