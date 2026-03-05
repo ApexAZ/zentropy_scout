@@ -196,7 +196,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 6 | **Install markdown-it-py + python-docx, create MarkdownPdfRenderer** | | ⬜ |
+| 6 | **Install markdown-it-py + python-docx, create MarkdownPdfRenderer** | | ✅ |
 | | **Read:** REQ-025 §5.1 (architecture), §5.2 (PDF export), §5.5 (feature mapping). Existing: `backend/app/services/pdf_generation.py` for ReportLab patterns. | `req-reader, tdd, plan` | |
 | | | | |
 | | **Install:** Add `markdown-it-py>=3.0.0` and `python-docx>=1.0.0` to `backend/pyproject.toml` | | |
