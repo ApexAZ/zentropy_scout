@@ -375,6 +375,8 @@ const APPROVED_VARIANT: JobVariant = {
 	job_bullet_order: {},
 	modifications_description:
 		"Reordered bullets to emphasize TypeScript experience",
+	markdown_content: null,
+	snapshot_markdown_content: null,
 	status: "Approved",
 	snapshot_included_jobs: ["wh-001", "wh-002"],
 	snapshot_job_bullet_selections: {},

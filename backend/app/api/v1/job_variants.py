@@ -94,6 +94,8 @@ class UpdateJobVariantRequest(BaseModel):
     modifications_description: str | None = Field(
         default=None, max_length=_MAX_MODIFICATIONS_LENGTH
     )
+    # REQ-025 §4.2: Markdown content for variant
+    markdown_content: str | None = None
 
     @field_validator("job_bullet_order")
     @classmethod
@@ -140,6 +142,8 @@ def _variant_to_dict(variant: JobVariant) -> dict:
         "snapshot_included_education": variant.snapshot_included_education,
         "snapshot_included_certifications": variant.snapshot_included_certifications,
         "snapshot_skills_emphasis": variant.snapshot_skills_emphasis,
+        "markdown_content": variant.markdown_content,
+        "snapshot_markdown_content": variant.snapshot_markdown_content,
         "approved_at": (
             variant.approved_at.isoformat() if variant.approved_at else None
         ),

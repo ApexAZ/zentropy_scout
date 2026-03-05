@@ -101,7 +101,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Test migration:** `alembic upgrade head` + `alembic downgrade -1` + `alembic upgrade head` | | |
 | | **Run:** `cd backend && pytest tests/ -v` (regression check) | | |
 | | **Done when:** Migration applies cleanly, downgrade works, existing tests pass. | | |
-| 2 | **Pydantic schemas + ResumeTemplate repository** | | ⬜ |
+| 2 | **Pydantic schemas + ResumeTemplate repository** | | ✅ |
 | | **Read:** REQ-025 §4.3 (template table), §6.4 (template API shapes). Existing patterns: `backend/app/schemas/resume.py`, `backend/app/repositories/base_resume_repository.py`. | `req-reader, db, tdd, plan` | |
 | | | | |
 | | **Update schemas:** `backend/app/schemas/resume.py` | | |

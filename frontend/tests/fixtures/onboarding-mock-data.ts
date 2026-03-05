@@ -563,6 +563,8 @@ export function postBaseResumeResponse(
 				[WORK_HISTORY_IDS[0]]: [BULLET_IDS[0], BULLET_IDS[1]],
 				[WORK_HISTORY_IDS[1]]: [BULLET_IDS[2], BULLET_IDS[3]],
 			},
+			markdown_content: null,
+			template_id: null,
 			rendered_at: null,
 			is_primary: true,
 			status: "Active",

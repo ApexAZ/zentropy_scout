@@ -62,6 +62,9 @@ class CreateBaseResumeRequest(BaseModel):
     job_bullet_order: dict[str, list[str]] = Field(default={})
     is_primary: bool = False
     display_order: int = Field(default=0, ge=0, le=10000)
+    # REQ-025 §4.1: Markdown content and template reference
+    markdown_content: str | None = None
+    template_id: uuid.UUID | None = None
 
 
 class UpdateBaseResumeRequest(BaseModel):
@@ -93,6 +96,9 @@ class UpdateBaseResumeRequest(BaseModel):
     job_bullet_order: dict[str, list[str]] | None = None
     is_primary: bool | None = None
     display_order: int | None = Field(default=None, ge=0, le=10000)
+    # REQ-025 §4.1: Markdown content and template reference
+    markdown_content: str | None = None
+    template_id: uuid.UUID | None = None
 
 
 # =============================================================================
@@ -123,6 +129,8 @@ def _resume_to_dict(resume: BaseResume) -> dict:
         "skills_emphasis": resume.skills_emphasis,
         "job_bullet_selections": resume.job_bullet_selections,
         "job_bullet_order": resume.job_bullet_order,
+        "markdown_content": resume.markdown_content,
+        "template_id": str(resume.template_id) if resume.template_id else None,
         "rendered_at": resume.rendered_at.isoformat() if resume.rendered_at else None,
         "is_primary": resume.is_primary,
         "status": resume.status,

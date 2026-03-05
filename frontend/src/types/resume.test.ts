@@ -95,6 +95,8 @@ function makeBaseResume(overrides: Partial<BaseResume> = {}): BaseResume {
 			[IDS.job1]: [IDS.bullet2, IDS.bullet1],
 			[IDS.job2]: [IDS.bullet3],
 		},
+		markdown_content: null,
+		template_id: null,
 		rendered_at: TIMESTAMPS.rendered,
 		is_primary: true,
 		status: "Active",
@@ -117,6 +119,8 @@ function makeJobVariant(overrides: Partial<JobVariant> = {}): JobVariant {
 		},
 		modifications_description:
 			"Reordered bullets to emphasize leadership experience",
+		markdown_content: null,
+		snapshot_markdown_content: null,
 		agent_reasoning: null,
 		guardrail_result: null,
 		status: "Draft",

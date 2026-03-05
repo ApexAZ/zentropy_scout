@@ -141,6 +141,12 @@ export interface BaseResume {
 	/** Display order of bullets per job. */
 	job_bullet_order: Record<string, string[]>;
 
+	// Markdown content (REQ-025 §4.1)
+	/** Markdown content for TipTap editor. Null if not yet generated. */
+	markdown_content: string | null;
+	/** UUID of the resume template used. Null if none. */
+	template_id: string | null;
+
 	// Render state
 	/** ISO 8601 datetime when PDF was last rendered. Null if never rendered. */
 	rendered_at: string | null;
@@ -180,6 +186,12 @@ export interface JobVariant {
 
 	// Status
 	status: JobVariantStatus;
+
+	// Markdown content (REQ-025 §4.2)
+	/** Markdown content for variant. Null if not yet generated. */
+	markdown_content: string | null;
+	/** Frozen markdown snapshot taken on approval. */
+	snapshot_markdown_content: string | null;
 
 	// Approval snapshots (populated on approval, null while Draft)
 	snapshot_included_jobs: string[] | null;
