@@ -363,6 +363,26 @@ vi.mock("@/hooks/use-auto-save", () => ({
 	useAutoSave: (opts: Record<string, unknown>) => mocks.mockUseAutoSave(opts),
 }));
 
+vi.mock("@/components/editor/persona-reference-panel", () => ({
+	PersonaReferencePanel: ({ personaId }: { personaId: string }) => (
+		<div data-testid="persona-reference-panel" data-persona-id={personaId} />
+	),
+}));
+
+vi.mock("@/components/ui/sheet", () => {
+	const Passthrough = ({ children }: { children: React.ReactNode }) => (
+		<div>{children}</div>
+	);
+	return {
+		Sheet: Passthrough,
+		SheetContent: Passthrough,
+		SheetDescription: Passthrough,
+		SheetHeader: Passthrough,
+		SheetTitle: Passthrough,
+		SheetTrigger: Passthrough,
+	};
+});
+
 import { ResumeDetail } from "./resume-detail";
 
 // ---------------------------------------------------------------------------

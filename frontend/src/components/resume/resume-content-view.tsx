@@ -62,6 +62,7 @@ function ExportButtons({ resumeId }: Readonly<{ resumeId: string }>) {
 					window.open(
 						buildUrl(`/base-resumes/${resumeId}/export/pdf`),
 						"_blank",
+						"noopener,noreferrer",
 					)
 				}
 			>
@@ -74,6 +75,7 @@ function ExportButtons({ resumeId }: Readonly<{ resumeId: string }>) {
 					window.open(
 						buildUrl(`/base-resumes/${resumeId}/export/docx`),
 						"_blank",
+						"noopener,noreferrer",
 					)
 				}
 			>
@@ -149,7 +151,7 @@ export function ResumeContentView({
 					<div className="flex gap-4">
 						{/* Desktop: inline persona panel */}
 						<aside
-							className="hidden w-72 shrink-0 overflow-y-auto rounded-md border p-3 md:block"
+							className="bg-card hidden w-72 shrink-0 overflow-y-auto rounded-md border p-3 md:block"
 							data-testid="persona-panel-desktop"
 						>
 							<PersonaReferencePanel personaId={personaId} />
@@ -164,7 +166,7 @@ export function ResumeContentView({
 										size="sm"
 										data-testid="persona-panel-toggle"
 									>
-										<User className="mr-1 h-4 w-4" />
+										<User className={ICON_CLASS} />
 										Persona
 									</Button>
 								</SheetTrigger>

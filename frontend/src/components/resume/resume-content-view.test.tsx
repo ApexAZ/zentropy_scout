@@ -315,6 +315,7 @@ describe("ResumeContentView", () => {
 			expect(windowOpen).toHaveBeenCalledWith(
 				`http://localhost:8000/api/v1/base-resumes/${RESUME_ID}/export/pdf`,
 				"_blank",
+				"noopener,noreferrer",
 			);
 			windowOpen.mockRestore();
 		});
@@ -331,6 +332,7 @@ describe("ResumeContentView", () => {
 			expect(windowOpen).toHaveBeenCalledWith(
 				`http://localhost:8000/api/v1/base-resumes/${RESUME_ID}/export/docx`,
 				"_blank",
+				"noopener,noreferrer",
 			);
 			windowOpen.mockRestore();
 		});
@@ -438,6 +440,28 @@ describe("ResumeContentView", () => {
 			expect(mocks.mockUseAutoSave).toHaveBeenCalledWith(
 				expect.objectContaining({ content: "updated content" }),
 			);
+		});
+	});
+
+	describe("persona reference panel", () => {
+		it("renders PersonaReferencePanel with personaId in edit mode", async () => {
+			const user = userEvent.setup();
+			renderWithContent();
+			await switchToEditMode(user);
+
+			const panels = screen.getAllByTestId("persona-reference-panel");
+			expect(panels.length).toBeGreaterThanOrEqual(1);
+			expect(panels[0]).toHaveAttribute("data-persona-id", PERSONA_ID);
+		});
+
+		it("renders persona toggle button for mobile in edit mode", async () => {
+			const user = userEvent.setup();
+			renderWithContent();
+			await switchToEditMode(user);
+
+			expect(
+				screen.getByRole("button", { name: /persona/i }),
+			).toBeInTheDocument();
 		});
 	});
 });

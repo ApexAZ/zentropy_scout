@@ -55,7 +55,7 @@ function CollapsibleSection({
 				type="button"
 				onClick={() => setIsOpen((prev) => !prev)}
 				aria-expanded={isOpen}
-				className="hover:bg-muted focus-visible:ring-ring/50 flex w-full items-center gap-1 rounded px-1 py-1.5 text-left text-sm font-semibold focus-visible:ring-[3px] focus-visible:outline-none"
+				className="hover:bg-muted focus-visible:ring-ring/50 flex w-full items-center gap-1 rounded-md px-1 py-1.5 text-left text-sm font-semibold focus-visible:ring-[3px] focus-visible:outline-none"
 			>
 				{isOpen ? (
 					<ChevronDown className="h-4 w-4 shrink-0" />
@@ -93,7 +93,7 @@ function CopyableItem({
 			type="button"
 			onClick={handleCopy}
 			aria-label={`Copy ${text}`}
-			className="text-muted-foreground hover:bg-muted hover:text-foreground group focus-visible:ring-ring/50 flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left text-sm focus-visible:ring-[3px] focus-visible:outline-none"
+			className="text-muted-foreground hover:bg-muted hover:text-foreground group focus-visible:ring-ring/50 flex w-full items-center gap-1.5 rounded-md px-1 py-0.5 text-left text-sm focus-visible:ring-[3px] focus-visible:outline-none"
 		>
 			<Copy className="h-3 w-3 shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100" />
 			<span className="truncate">{displayLabel}</span>
@@ -119,7 +119,7 @@ function JobEntry({ job }: Readonly<{ job: WorkHistory }>) {
 				onClick={() => setIsOpen((prev) => !prev)}
 				aria-expanded={isOpen}
 				aria-label={label}
-				className="hover:bg-muted focus-visible:ring-ring/50 flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-sm focus-visible:ring-[3px] focus-visible:outline-none"
+				className="hover:bg-muted focus-visible:ring-ring/50 flex w-full items-center gap-1 rounded-md px-1 py-0.5 text-left text-sm focus-visible:ring-[3px] focus-visible:outline-none"
 			>
 				{isOpen ? (
 					<ChevronDown className="h-3 w-3 shrink-0" />
