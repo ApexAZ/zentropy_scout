@@ -125,10 +125,12 @@ describe("ResumeEditor", () => {
 			});
 
 			const boldBtn = screen.getByTestId("toolbar-bold");
-			await user.click(boldBtn);
 
-			// After clicking bold, the button should reflect active state
-			// (the exact state depends on cursor position, but the click should not throw)
+			// Button renders with aria-pressed reflecting editor state
+			expect(boldBtn).toHaveAttribute("aria-pressed", "false");
+
+			// Clicking the button should not throw
+			await user.click(boldBtn);
 			expect(boldBtn).toBeInTheDocument();
 		});
 	});

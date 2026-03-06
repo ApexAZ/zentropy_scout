@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { isSafeUrl } from "@/lib/url-utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,6 +69,7 @@ function LinkDialog({
 				value={url}
 				onChange={(e) => setUrl(e.target.value)}
 				placeholder="https://example.com"
+				maxLength={2048}
 				className="border-input bg-background rounded-md border px-2 py-1 text-sm"
 				data-testid="link-url-input"
 			/>
@@ -135,6 +137,10 @@ export function EditorToolbar({ editor }: Readonly<EditorToolbarProps>) {
 		(url: string) => {
 			if (!editor) return;
 			if (url) {
+				if (!isSafeUrl(url)) {
+					setShowLinkDialog(false);
+					return;
+				}
 				editor
 					.chain()
 					.focus()

@@ -13,6 +13,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
 
 import { EditorToolbar } from "@/components/editor/editor-toolbar";
+import { isSafeUrl } from "@/lib/url-utils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,6 +54,7 @@ export function ResumeEditor({
 				code: false,
 				link: {
 					openOnClick: false,
+					isAllowedUri: (url: string) => isSafeUrl(url),
 					HTMLAttributes: {
 						rel: "noopener noreferrer nofollow",
 						target: "_blank",
