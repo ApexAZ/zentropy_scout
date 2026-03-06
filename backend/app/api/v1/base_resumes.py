@@ -10,17 +10,25 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import CurrentUserId, DbSession
-from app.core.errors import ConflictError, InvalidStateError, NotFoundError
+from app.api.deps import BalanceCheck, CurrentUserId, DbSession, MeteredProvider
+from app.core.errors import (
+    ConflictError,
+    InvalidStateError,
+    NotFoundError,
+    ValidationError,
+)
 from app.core.file_validation import sanitize_filename_for_header
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
+from app.models.resume_template import ResumeTemplate
+from app.schemas.resume import GenerateResumeRequest, GenerateResumeResponse
 from app.services.markdown_docx_renderer import render_docx
 from app.services.markdown_pdf_renderer import render_pdf
 from app.services.pdf_generation import render_base_resume_pdf
+from app.services.resume_generation_service import llm_generate, template_fill
 
 _MAX_JSONB_LIST_LENGTH = 200
 """Safety bound on JSONB list field lengths (defense-in-depth)."""
@@ -545,3 +553,96 @@ async def export_base_resume_docx(
         media_type=_DOCX_MEDIA_TYPE,
         headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )
+
+
+@router.post("/{resume_id}/generate")
+async def generate_resume(
+    resume_id: uuid.UUID,
+    request: GenerateResumeRequest,
+    user_id: CurrentUserId,
+    db: DbSession,
+    provider: MeteredProvider,
+    _balance: BalanceCheck,
+) -> DataResponse[dict]:
+    """Generate resume content via LLM or deterministic template fill.
+
+    REQ-026 §4.6, §3.4: Forks on ``method`` parameter.
+    - ``"ai"``: LLM-assisted generation (requires credits).
+    - ``"template_fill"``: Deterministic fill (free, no LLM).
+
+    Both paths save the result to ``resume.markdown_content``.
+
+    Args:
+        resume_id: The base resume ID.
+        request: Generation request with method, options.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+        provider: Metered LLM provider (injected via DI).
+        _balance: Balance gate (injected, raises 402 if insufficient).
+
+    Returns:
+        DataResponse with GenerateResumeResponse fields.
+
+    Raises:
+        NotFoundError: If resume not found or not owned by user.
+        ValidationError: If template not found or not resolvable.
+        InsufficientBalanceError: If balance too low for AI method (402).
+    """
+    resume = await _get_owned_resume(resume_id, user_id, db)
+
+    # Resolve template: request > resume's template_id
+    template_id = request.template_id or resume.template_id
+    if template_id is None:
+        raise ValidationError(
+            "A template is required for generation. "
+            "Provide template_id in the request or set it on the resume."
+        )
+
+    # Access control: only system templates or user's own templates
+    result = await db.execute(
+        select(ResumeTemplate).where(
+            ResumeTemplate.id == template_id,
+            or_(
+                ResumeTemplate.is_system.is_(True),
+                ResumeTemplate.user_id == user_id,
+            ),
+        )
+    )
+    template = result.scalar_one_or_none()
+    if template is None:
+        raise NotFoundError("ResumeTemplate", str(template_id))
+
+    if request.method == "template_fill":
+        markdown = await template_fill(resume, template, db)
+        model_used = None
+        cost_cents = 0
+    else:
+        markdown, metadata = await llm_generate(
+            resume=resume,
+            template=template,
+            session=db,
+            provider=provider,
+            page_limit=request.page_limit,
+            emphasis=request.emphasis,
+            include_sections=request.include_sections,
+        )
+        model_used = metadata.get("model")
+        cost_cents = 0  # Metering handles billing; endpoint reports 0
+
+    # Save generated content to resume
+    resume.markdown_content = markdown
+    resume.updated_at = datetime.now(UTC)
+    await db.commit()
+    await db.refresh(resume)
+
+    word_count = len(markdown.split())
+
+    response_data = GenerateResumeResponse(
+        markdown_content=markdown,
+        word_count=word_count,
+        method=request.method,
+        model_used=model_used,
+        generation_cost_cents=cost_cents,
+    )
+
+    return DataResponse(data=response_data.model_dump())

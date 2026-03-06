@@ -296,7 +296,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Unit tests with mocked LLM — verify prompt contains all expected sections, sanitization applied, metering called | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** Prompt builder produces correct prompt. LLM service calls provider correctly. Tests pass. | | |
-| 12 | **Generation API endpoint** | | ⬜ |
+| 12 | **Generation API endpoint** | | ✅ |
 | | **Read:** REQ-026 §4.6 (generation API), §3.4 (template fill endpoint), §8 (validation). | `req-reader, api, tdd, security, plan` | |
 | | | | |
 | | **Create schema:** Add `GenerateResumeRequest` and `GenerateResumeResponse` to `backend/app/schemas/resume.py` | | |
