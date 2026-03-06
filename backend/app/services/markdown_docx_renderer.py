@@ -122,7 +122,7 @@ def _add_hyperlink_to_run(paragraph, run, url: str) -> None:
     part = paragraph.part
     r_id = part.relate_to(
         url,
-        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",  # nosonar — OOXML namespace URI (ECMA-376), not a network URL
         is_external=True,
     )
 
