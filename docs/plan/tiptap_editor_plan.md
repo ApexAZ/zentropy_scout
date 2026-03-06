@@ -396,7 +396,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 6: Resume Detail Page Update (REQ-026 §5-6)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Update the resume detail page with toggle view (Preview/Edit), integrate TipTap editor in edit mode with persona reference panel.*
 
@@ -443,7 +443,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Panel renders persona data, sections expand/collapse, click-to-copy works, responsive collapse | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** Reference panel shows persona data alongside editor. Copy works. Tests pass. | | |
-| 19 | **Phase 6 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 19 | **Phase 6 Gate** — Full test suite + push | `phase-gate` | ✅ 2026-03-06 |
 | | Run: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. `npx playwright test`. Push with SSH keep-alive. | | |
 
 ---
