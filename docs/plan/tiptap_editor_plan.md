@@ -364,7 +364,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Unit tests — editor renders, toolbar buttons toggle formatting, markdown round-trip (§7.2 test categories: headings, inline, lists, links, HR, mixed content, edge cases) | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** Editor renders markdown, toolbar works, round-trip preserves content. Tests pass. | | |
-| 15 | **EditorStatusBar + auto-save hook** | | ⬜ |
+| 15 | **EditorStatusBar + auto-save hook** | | ✅ |
 | | **Read:** REQ-025 §3.5 (status bar). REQ-026 §7.1–§7.2 (save strategy, status indicator). | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Create:** `frontend/src/components/editor/editor-status-bar.tsx` | | |
