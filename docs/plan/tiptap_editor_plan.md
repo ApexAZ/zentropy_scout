@@ -251,7 +251,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 4: Resume Generation Backend (REQ-026 §3-4)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Deterministic template fill (free path) and LLM-assisted generation (paid path) services, plus the generation API endpoint.*
 
@@ -312,7 +312,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Endpoint tests (both methods, credit check, validation, missing persona data) | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** Both generation paths work via single endpoint. Credit gating works. Tests pass. | | |
-| 13 | **Phase 4 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 13 | **Phase 4 Gate** — Full test suite + push | `phase-gate` | ✅ |
 | | Run: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. Push with SSH keep-alive. | | |
 
 #### Phase 4 Notes
@@ -344,7 +344,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 14 | **Install TipTap packages + ResumeEditor component** | | ⬜ |
+| 14 | **Install TipTap packages + ResumeEditor component** | | ✅ |
 | | **Read:** REQ-025 §3.1 (packages), §3.2 (architecture), §3.3 (supported features), §3.4 (toolbar). | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Install:** `npm install @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/markdown @tiptap/extension-link` | | |
