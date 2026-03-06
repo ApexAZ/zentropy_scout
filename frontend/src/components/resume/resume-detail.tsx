@@ -119,6 +119,7 @@ export function ResumeDetail({
 			{/* Toggle view: Preview/Edit or No-content prompt */}
 			<ResumeContentView
 				resumeId={resumeId}
+				personaId={personaId}
 				markdownContent={resume.markdown_content ?? null}
 			/>
 

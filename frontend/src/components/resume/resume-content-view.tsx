@@ -9,13 +9,22 @@
  */
 
 import { useMemo, useState } from "react";
-import { Download, FileText, Pencil, Sparkles } from "lucide-react";
+import { Download, FileText, Pencil, Sparkles, User } from "lucide-react";
 
 import { buildUrl } from "@/lib/api-client";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { EditorStatusBar } from "@/components/editor/editor-status-bar";
+import { PersonaReferencePanel } from "@/components/editor/persona-reference-panel";
 import { ResumeEditor } from "@/components/editor/resume-editor";
 import { Button } from "@/components/ui/button";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ---------------------------------------------------------------------------
@@ -24,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ResumeContentViewProps {
 	resumeId: string;
+	personaId: string;
 	markdownContent: string | null;
 }
 
@@ -80,6 +90,7 @@ function ExportButtons({ resumeId }: Readonly<{ resumeId: string }>) {
 
 export function ResumeContentView({
 	resumeId,
+	personaId,
 	markdownContent,
 }: Readonly<ResumeContentViewProps>) {
 	const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
@@ -135,13 +146,51 @@ export function ResumeContentView({
 					</div>
 				</TabsContent>
 				<TabsContent value="edit">
-					<div className="rounded-md border">
-						<ResumeEditor
-							initialContent={markdownContent}
-							editable={true}
-							onChange={setEditorContent}
-						/>
-						<EditorStatusBar wordCount={wordCount} saveStatus={saveStatus} />
+					<div className="flex gap-4">
+						{/* Desktop: inline persona panel */}
+						<aside
+							className="hidden w-72 shrink-0 overflow-y-auto rounded-md border p-3 md:block"
+							data-testid="persona-panel-desktop"
+						>
+							<PersonaReferencePanel personaId={personaId} />
+						</aside>
+
+						{/* Mobile: Sheet toggle */}
+						<div className="mb-2 md:hidden">
+							<Sheet>
+								<SheetTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										data-testid="persona-panel-toggle"
+									>
+										<User className="mr-1 h-4 w-4" />
+										Persona
+									</Button>
+								</SheetTrigger>
+								<SheetContent side="left" className="w-72">
+									<SheetHeader>
+										<SheetTitle>Persona Reference</SheetTitle>
+										<SheetDescription>
+											Click items to copy to clipboard
+										</SheetDescription>
+									</SheetHeader>
+									<div className="overflow-y-auto px-4 pb-4">
+										<PersonaReferencePanel personaId={personaId} />
+									</div>
+								</SheetContent>
+							</Sheet>
+						</div>
+
+						{/* Editor */}
+						<div className="min-w-0 flex-1 rounded-md border">
+							<ResumeEditor
+								initialContent={markdownContent}
+								editable={true}
+								onChange={setEditorContent}
+							/>
+							<EditorStatusBar wordCount={wordCount} saveStatus={saveStatus} />
+						</div>
 					</div>
 				</TabsContent>
 			</Tabs>

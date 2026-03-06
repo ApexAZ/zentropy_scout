@@ -427,7 +427,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Toggle between Preview/Edit, no-content state renders prompt, action buttons shown per mode | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** Resume detail page toggles between Preview and Edit. Read-only TipTap renders markdown. Tests pass. | | |
-| 18 | **Persona reference panel** | | ⬜ |
+| 18 | **Persona reference panel** | | ✅ 2026-03-06 |
 | | **Read:** REQ-026 §5.1–§5.2 (panel layout, behavior). Existing persona API: `frontend/src/lib/api/personas.ts`. | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Create:** `frontend/src/components/editor/persona-reference-panel.tsx` | | |

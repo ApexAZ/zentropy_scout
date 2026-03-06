@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ---------------------------------------------------------------------------
 
 const RESUME_ID = "r-1";
+const PERSONA_ID = "p-1";
 const MARKDOWN_CONTENT = "# Hello World\n\nSome resume content here.";
 
 // ---------------------------------------------------------------------------
@@ -77,6 +78,31 @@ vi.mock("@/hooks/use-auto-save", () => ({
 	useAutoSave: (opts: Record<string, unknown>) => mocks.mockUseAutoSave(opts),
 }));
 
+vi.mock("@/components/editor/persona-reference-panel", () => ({
+	PersonaReferencePanel: ({ personaId }: { personaId: string }) => (
+		<div data-testid="persona-reference-panel" data-persona-id={personaId} />
+	),
+}));
+
+vi.mock("@/components/ui/sheet", () => ({
+	Sheet: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	SheetContent: ({ children }: { children: React.ReactNode }) => (
+		<div>{children}</div>
+	),
+	SheetDescription: ({ children }: { children: React.ReactNode }) => (
+		<div>{children}</div>
+	),
+	SheetHeader: ({ children }: { children: React.ReactNode }) => (
+		<div>{children}</div>
+	),
+	SheetTitle: ({ children }: { children: React.ReactNode }) => (
+		<div>{children}</div>
+	),
+	SheetTrigger: ({ children }: { children: React.ReactNode }) => (
+		<div>{children}</div>
+	),
+}));
+
 import { ResumeContentView } from "./resume-content-view";
 
 // ---------------------------------------------------------------------------
@@ -87,6 +113,7 @@ function renderWithContent(markdownContent: string = MARKDOWN_CONTENT) {
 	return render(
 		<ResumeContentView
 			resumeId={RESUME_ID}
+			personaId={PERSONA_ID}
 			markdownContent={markdownContent}
 		/>,
 	);
@@ -94,7 +121,11 @@ function renderWithContent(markdownContent: string = MARKDOWN_CONTENT) {
 
 function renderWithoutContent() {
 	return render(
-		<ResumeContentView resumeId={RESUME_ID} markdownContent={null} />,
+		<ResumeContentView
+			resumeId={RESUME_ID}
+			personaId={PERSONA_ID}
+			markdownContent={null}
+		/>,
 	);
 }
 
