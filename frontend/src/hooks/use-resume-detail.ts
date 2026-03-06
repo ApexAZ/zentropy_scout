@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { ApiError, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
 import { useResumeContentSelection } from "@/hooks/use-resume-content-selection";
@@ -21,6 +21,11 @@ import type {
 	WorkHistory,
 } from "@/types/persona";
 import type { BaseResume } from "@/types/resume";
+import type {
+	GenerateResumeResponse,
+	GenerationMethod,
+	GenerationOptions,
+} from "@/types/resume-generation";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,9 +50,14 @@ interface UseResumeDetailReturn {
 	selection: UseResumeContentSelectionReturn;
 	isSaving: boolean;
 	isRendering: boolean;
+	isGenerating: boolean;
 	handleSave: () => Promise<void>;
 	handleRenderPdf: () => Promise<void>;
 	handleReorderBullets: (jobId: string, reorderedBullets: Bullet[]) => void;
+	handleGenerate: (
+		method: GenerationMethod,
+		options?: GenerationOptions,
+	) => Promise<GenerateResumeResponse | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +135,7 @@ export function useResumeDetail({
 	const [isInitialized, setIsInitialized] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [isRendering, setIsRendering] = useState(false);
+	const [isGenerating, setIsGenerating] = useState(false);
 
 	const {
 		setIncludedJobs,
@@ -215,6 +226,41 @@ export function useResumeDetail({
 		}
 	}, [resumeId, queryClient]);
 
+	const handleGenerate = useCallback(
+		async (
+			method: GenerationMethod,
+			options?: GenerationOptions,
+		): Promise<GenerateResumeResponse | null> => {
+			setIsGenerating(true);
+			try {
+				const body: Record<string, unknown> = { method };
+				if (options) {
+					body.page_limit = options.pageLimit;
+					body.emphasis = options.emphasis;
+					body.include_sections = options.includeSections;
+				}
+				const result = await apiPost<ApiResponse<GenerateResumeResponse>>(
+					`/base-resumes/${resumeId}/generate`,
+					body,
+				);
+				showToast.success("Resume generated.");
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.baseResume(resumeId),
+				});
+				return result.data;
+			} catch (err) {
+				// 402 toast is handled by api-client; surface other errors
+				if (!(err instanceof ApiError && err.status === 402)) {
+					showToast.error("Failed to generate resume.");
+				}
+				return null;
+			} finally {
+				setIsGenerating(false);
+			}
+		},
+		[resumeId, queryClient],
+	);
+
 	// -----------------------------------------------------------------------
 	// Aggregate loading state
 	// -----------------------------------------------------------------------
@@ -240,8 +286,10 @@ export function useResumeDetail({
 		selection,
 		isSaving,
 		isRendering,
+		isGenerating,
 		handleSave,
 		handleRenderPdf,
 		handleReorderBullets,
+		handleGenerate,
 	};
 }

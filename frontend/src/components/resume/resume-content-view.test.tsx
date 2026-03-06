@@ -4,9 +4,11 @@
  * REQ-026 §6.1: Toggle view (Preview/Edit) with TipTap editor.
  * REQ-026 §6.2: Action buttons per mode.
  * REQ-026 §6.3: Content preview via read-only TipTap.
+ * REQ-026 §4.2: Generation options panel integration.
+ * REQ-026 §4.7: Regeneration.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -27,10 +29,19 @@ const mocks = vi.hoisted(() => ({
 		saveStatus: "saved" as const,
 		hasConflict: false,
 	}),
+	mockShowToast: {
+		success: vi.fn(),
+		error: vi.fn(),
+		info: vi.fn(),
+	},
 }));
 
 vi.mock("@/lib/api-client", () => ({
 	buildUrl: (path: string) => `http://localhost:8000/api/v1${path}`,
+}));
+
+vi.mock("@/lib/toast", () => ({
+	showToast: mocks.mockShowToast,
 }));
 
 vi.mock("@/components/editor/resume-editor", () => ({
@@ -84,6 +95,39 @@ vi.mock("@/components/editor/persona-reference-panel", () => ({
 	),
 }));
 
+vi.mock("@/components/editor/generation-options-panel", () => ({
+	GenerationOptionsPanel: ({
+		onGenerate,
+		onCancel,
+		isGenerating,
+	}: {
+		onGenerate: (opts: Record<string, unknown>) => void;
+		onCancel: () => void;
+		isGenerating: boolean;
+	}) => (
+		<div
+			data-testid="generation-options-panel"
+			data-generating={String(isGenerating)}
+		>
+			<button
+				data-testid="mock-generate-btn"
+				onClick={() =>
+					onGenerate({
+						pageLimit: 1,
+						emphasis: "balanced",
+						includeSections: ["summary", "experience"],
+					})
+				}
+			>
+				Generate
+			</button>
+			<button data-testid="mock-cancel-btn" onClick={onCancel}>
+				Cancel
+			</button>
+		</div>
+	),
+}));
+
 vi.mock("@/components/ui/sheet", () => ({
 	Sheet: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 	SheetContent: ({ children }: { children: React.ReactNode }) => (
@@ -103,30 +147,65 @@ vi.mock("@/components/ui/sheet", () => ({
 	),
 }));
 
+import type { GenerateResumeResponse } from "@/types/resume-generation";
+
 import { ResumeContentView } from "./resume-content-view";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function renderWithContent(markdownContent: string = MARKDOWN_CONTENT) {
-	return render(
-		<ResumeContentView
-			resumeId={RESUME_ID}
-			personaId={PERSONA_ID}
-			markdownContent={markdownContent}
-		/>,
-	);
+function makeOnGenerate() {
+	return vi.fn().mockResolvedValue({
+		markdown_content: "# Generated",
+		word_count: 1,
+		method: "ai",
+		model_used: "claude",
+		generation_cost_cents: 5,
+	} satisfies GenerateResumeResponse);
 }
 
-function renderWithoutContent() {
-	return render(
-		<ResumeContentView
-			resumeId={RESUME_ID}
-			personaId={PERSONA_ID}
-			markdownContent={null}
-		/>,
-	);
+function renderWithContent(
+	markdownContent: string = MARKDOWN_CONTENT,
+	overrides?: Partial<{
+		isGenerating: boolean;
+		onGenerate: ReturnType<typeof makeOnGenerate>;
+	}>,
+) {
+	const onGenerate = overrides?.onGenerate ?? makeOnGenerate();
+	return {
+		...render(
+			<ResumeContentView
+				resumeId={RESUME_ID}
+				personaId={PERSONA_ID}
+				markdownContent={markdownContent}
+				isGenerating={overrides?.isGenerating ?? false}
+				onGenerate={onGenerate}
+			/>,
+		),
+		onGenerate,
+	};
+}
+
+function renderWithoutContent(
+	overrides?: Partial<{
+		isGenerating: boolean;
+		onGenerate: ReturnType<typeof makeOnGenerate>;
+	}>,
+) {
+	const onGenerate = overrides?.onGenerate ?? makeOnGenerate();
+	return {
+		...render(
+			<ResumeContentView
+				resumeId={RESUME_ID}
+				personaId={PERSONA_ID}
+				markdownContent={null}
+				isGenerating={overrides?.isGenerating ?? false}
+				onGenerate={onGenerate}
+			/>,
+		),
+		onGenerate,
+	};
 }
 
 async function switchToEditMode(user: ReturnType<typeof userEvent.setup>) {
@@ -143,6 +222,9 @@ beforeEach(() => {
 		saveStatus: "saved" as const,
 		hasConflict: false,
 	});
+	mocks.mockShowToast.success.mockReset();
+	mocks.mockShowToast.error.mockReset();
+	mocks.mockShowToast.info.mockReset();
 });
 
 afterEach(() => {
@@ -207,18 +289,18 @@ describe("ResumeContentView", () => {
 			expect(svg).toBeInTheDocument();
 		});
 
-		it("renders disabled Generate with AI button", () => {
+		it("renders enabled Generate with AI button", () => {
 			renderWithoutContent();
 			expect(
 				screen.getByRole("button", { name: /generate with ai/i }),
-			).toBeDisabled();
+			).toBeEnabled();
 		});
 
-		it("renders disabled Start from Template button", () => {
+		it("renders enabled Start from Template button", () => {
 			renderWithoutContent();
 			expect(
 				screen.getByRole("button", { name: /start from template/i }),
-			).toBeDisabled();
+			).toBeEnabled();
 		});
 
 		it("does not render toggle tabs", () => {
@@ -231,6 +313,178 @@ describe("ResumeContentView", () => {
 		it("does not render TipTap editor", () => {
 			renderWithoutContent();
 			expect(screen.queryByTestId("resume-editor")).not.toBeInTheDocument();
+		});
+	});
+
+	describe("generation flow — AI path", () => {
+		it("shows options panel when Generate with AI is clicked", async () => {
+			const user = userEvent.setup();
+			renderWithoutContent();
+
+			await user.click(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			);
+
+			expect(
+				screen.getByTestId("generation-options-panel"),
+			).toBeInTheDocument();
+			expect(screen.queryByTestId("no-content-prompt")).not.toBeInTheDocument();
+		});
+
+		it("calls onGenerate with 'ai' method when panel Generate is clicked", async () => {
+			const user = userEvent.setup();
+			const { onGenerate } = renderWithoutContent();
+
+			await user.click(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			);
+			await user.click(screen.getByTestId("mock-generate-btn"));
+
+			expect(onGenerate).toHaveBeenCalledWith("ai", {
+				pageLimit: 1,
+				emphasis: "balanced",
+				includeSections: ["summary", "experience"],
+			});
+		});
+
+		it("hides options panel after successful generation", async () => {
+			const user = userEvent.setup();
+			renderWithoutContent();
+
+			await user.click(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			);
+			await user.click(screen.getByTestId("mock-generate-btn"));
+
+			await waitFor(() => {
+				expect(
+					screen.queryByTestId("generation-options-panel"),
+				).not.toBeInTheDocument();
+			});
+		});
+
+		it("returns to no-content prompt when Cancel is clicked", async () => {
+			const user = userEvent.setup();
+			renderWithoutContent();
+
+			await user.click(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			);
+			expect(
+				screen.getByTestId("generation-options-panel"),
+			).toBeInTheDocument();
+
+			await user.click(screen.getByTestId("mock-cancel-btn"));
+
+			expect(
+				screen.queryByTestId("generation-options-panel"),
+			).not.toBeInTheDocument();
+			expect(screen.getByTestId("no-content-prompt")).toBeInTheDocument();
+		});
+	});
+
+	describe("generation flow — template fill path", () => {
+		it("calls onGenerate with template_fill when Start from Template is clicked", async () => {
+			const user = userEvent.setup();
+			const { onGenerate } = renderWithoutContent();
+
+			await user.click(
+				screen.getByRole("button", { name: /start from template/i }),
+			);
+
+			expect(onGenerate).toHaveBeenCalledWith("template_fill");
+		});
+	});
+
+	describe("generation flow — credit fallback", () => {
+		it("shows credit fallback toast when AI generation returns null", async () => {
+			const user = userEvent.setup();
+			const onGenerate = vi.fn().mockResolvedValue(null);
+			renderWithoutContent({ onGenerate });
+
+			await user.click(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			);
+			await user.click(screen.getByTestId("mock-generate-btn"));
+
+			await waitFor(() => {
+				expect(mocks.mockShowToast.info).toHaveBeenCalledWith(
+					expect.stringContaining("Start from Template"),
+					expect.any(Object),
+				);
+			});
+		});
+
+		it("keeps options panel open when generation fails", async () => {
+			const user = userEvent.setup();
+			const onGenerate = vi.fn().mockResolvedValue(null);
+			renderWithoutContent({ onGenerate });
+
+			await user.click(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			);
+			await user.click(screen.getByTestId("mock-generate-btn"));
+
+			await waitFor(() => {
+				expect(
+					screen.getByTestId("generation-options-panel"),
+				).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe("generating state", () => {
+		it("shows generating overlay when isGenerating and no content", () => {
+			renderWithoutContent({ isGenerating: true });
+			expect(screen.getByTestId("generating-state")).toBeInTheDocument();
+			expect(screen.getByText(/generating your resume/i)).toBeInTheDocument();
+		});
+	});
+
+	describe("regeneration", () => {
+		it("shows Regenerate button in preview mode when content exists", () => {
+			renderWithContent();
+			expect(
+				screen.getByRole("button", { name: /regenerate/i }),
+			).toBeInTheDocument();
+		});
+
+		it("opens options panel when Regenerate is clicked", async () => {
+			const user = userEvent.setup();
+			renderWithContent();
+
+			await user.click(screen.getByRole("button", { name: /regenerate/i }));
+
+			expect(
+				screen.getByTestId("generation-options-panel"),
+			).toBeInTheDocument();
+		});
+
+		it("hides editor and shows options panel during regeneration", async () => {
+			const user = userEvent.setup();
+			renderWithContent();
+
+			await user.click(screen.getByRole("button", { name: /regenerate/i }));
+
+			expect(
+				screen.queryByRole("tab", { name: /preview/i }),
+			).not.toBeInTheDocument();
+			expect(
+				screen.getByTestId("generation-options-panel"),
+			).toBeInTheDocument();
+		});
+
+		it("returns to content view when Cancel is clicked during regeneration", async () => {
+			const user = userEvent.setup();
+			renderWithContent();
+
+			await user.click(screen.getByRole("button", { name: /regenerate/i }));
+			await user.click(screen.getByTestId("mock-cancel-btn"));
+
+			expect(
+				screen.queryByTestId("generation-options-panel"),
+			).not.toBeInTheDocument();
+			expect(screen.getByRole("tab", { name: /preview/i })).toBeInTheDocument();
 		});
 	});
 
@@ -369,10 +623,10 @@ describe("ResumeContentView", () => {
 			).toBeInTheDocument();
 		});
 
-		it("shows Generate with AI button in Preview mode", () => {
+		it("shows Regenerate button in Preview mode", () => {
 			renderWithContent();
 			expect(
-				screen.getByRole("button", { name: /generate with ai/i }),
+				screen.getByRole("button", { name: /regenerate/i }),
 			).toBeInTheDocument();
 		});
 

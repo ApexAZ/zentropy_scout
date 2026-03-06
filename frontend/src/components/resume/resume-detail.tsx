@@ -60,9 +60,11 @@ export function ResumeDetail({
 		selection,
 		isSaving,
 		isRendering,
+		isGenerating,
 		handleSave,
 		handleRenderPdf,
 		handleReorderBullets,
+		handleGenerate,
 	} = useResumeDetail({ resumeId, personaId });
 
 	// -----------------------------------------------------------------------
@@ -121,6 +123,8 @@ export function ResumeDetail({
 				resumeId={resumeId}
 				personaId={personaId}
 				markdownContent={resume.markdown_content ?? null}
+				isGenerating={isGenerating}
+				onGenerate={handleGenerate}
 			/>
 
 			{/* Summary editor */}

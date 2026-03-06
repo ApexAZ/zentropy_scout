@@ -6,16 +6,32 @@
  * REQ-026 §6.1: Toggle view (Preview/Edit) with TipTap editor.
  * REQ-026 §6.2: Action buttons per mode.
  * REQ-026 §6.3: Content preview via read-only TipTap.
+ * REQ-026 §4.2: Generation options panel integration.
+ * REQ-026 §4.7: Regeneration via options panel.
  */
 
-import { useMemo, useState } from "react";
-import { Download, FileText, Pencil, Sparkles, User } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import {
+	FileText,
+	Loader2,
+	Pencil,
+	RefreshCw,
+	Sparkles,
+	User,
+} from "lucide-react";
 
-import { buildUrl } from "@/lib/api-client";
+import { showToast } from "@/lib/toast";
+import type {
+	GenerateResumeResponse,
+	GenerationMethod,
+	GenerationOptions,
+} from "@/types/resume-generation";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { GenerationOptionsPanel } from "@/components/editor/generation-options-panel";
 import { EditorStatusBar } from "@/components/editor/editor-status-bar";
 import { PersonaReferencePanel } from "@/components/editor/persona-reference-panel";
 import { ResumeEditor } from "@/components/editor/resume-editor";
+import { ExportButtons } from "@/components/resume/export-buttons";
 import { Button } from "@/components/ui/button";
 import {
 	Sheet,
@@ -35,6 +51,11 @@ interface ResumeContentViewProps {
 	resumeId: string;
 	personaId: string;
 	markdownContent: string | null;
+	isGenerating: boolean;
+	onGenerate: (
+		method: GenerationMethod,
+		options?: GenerationOptions,
+	) => Promise<GenerateResumeResponse | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -53,39 +74,6 @@ function countWords(text: string): number {
 	return trimmed.split(/\s+/).length;
 }
 
-function ExportButtons({ resumeId }: Readonly<{ resumeId: string }>) {
-	return (
-		<>
-			<Button
-				variant="outline"
-				onClick={() =>
-					window.open(
-						buildUrl(`/base-resumes/${resumeId}/export/pdf`),
-						"_blank",
-						"noopener,noreferrer",
-					)
-				}
-			>
-				<Download className={ICON_CLASS} />
-				Export PDF
-			</Button>
-			<Button
-				variant="outline"
-				onClick={() =>
-					window.open(
-						buildUrl(`/base-resumes/${resumeId}/export/docx`),
-						"_blank",
-						"noopener,noreferrer",
-					)
-				}
-			>
-				<FileText className={ICON_CLASS} />
-				Export DOCX
-			</Button>
-		</>
-	);
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -94,9 +82,15 @@ export function ResumeContentView({
 	resumeId,
 	personaId,
 	markdownContent,
+	isGenerating,
+	onGenerate,
 }: Readonly<ResumeContentViewProps>) {
 	const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
 	const [editorContent, setEditorContent] = useState(markdownContent ?? "");
+	const [showOptionsPanel, setShowOptionsPanel] = useState(false);
+	const [lastOptions, setLastOptions] = useState<GenerationOptions | undefined>(
+		undefined,
+	);
 
 	const { saveStatus } = useAutoSave({
 		content: editorContent,
@@ -106,8 +100,75 @@ export function ResumeContentView({
 
 	const wordCount = useMemo(() => countWords(editorContent), [editorContent]);
 
+	const handleAiGenerate = useCallback(() => {
+		setShowOptionsPanel(true);
+	}, []);
+
+	const handleTemplateFill = useCallback(async () => {
+		await onGenerate("template_fill");
+	}, [onGenerate]);
+
+	const handleGenerateFromPanel = useCallback(
+		async (options: GenerationOptions) => {
+			setLastOptions(options);
+			const result = await onGenerate("ai", options);
+			if (result) {
+				setShowOptionsPanel(false);
+			} else {
+				// 402 credit failure — offer template fill as fallback
+				showToast.info(
+					'Tip: "Start from Template" is free and doesn\'t require credits.',
+					{ id: "credit-fallback-hint" },
+				);
+			}
+		},
+		[onGenerate],
+	);
+
+	const handleCancelPanel = useCallback(() => {
+		setShowOptionsPanel(false);
+	}, []);
+
+	const handleRegenerate = useCallback(() => {
+		setShowOptionsPanel(true);
+	}, []);
+
+	// -----------------------------------------------------------------------
+	// Options panel (initial generation or regeneration)
+	// -----------------------------------------------------------------------
+
+	if (showOptionsPanel) {
+		return (
+			<div className="mb-8" data-testid="generation-panel-container">
+				<GenerationOptionsPanel
+					onGenerate={handleGenerateFromPanel}
+					onCancel={handleCancelPanel}
+					isGenerating={isGenerating}
+					defaultOptions={lastOptions}
+				/>
+			</div>
+		);
+	}
+
+	// -----------------------------------------------------------------------
 	// No-content state
+	// -----------------------------------------------------------------------
+
 	if (!markdownContent) {
+		if (isGenerating) {
+			return (
+				<div
+					data-testid="generating-state"
+					className="mb-8 flex flex-col items-center justify-center rounded-md border border-dashed py-12"
+				>
+					<Loader2 className="text-muted-foreground mb-2 h-10 w-10 animate-spin" />
+					<p className="text-muted-foreground text-center">
+						Generating your resume...
+					</p>
+				</div>
+			);
+		}
+
 		return (
 			<div
 				data-testid="no-content-prompt"
@@ -118,11 +179,11 @@ export function ResumeContentView({
 					Generate your resume or start from a template to get started.
 				</p>
 				<div className="flex gap-2">
-					<Button variant="outline" disabled>
+					<Button variant="outline" onClick={handleAiGenerate}>
 						<Sparkles className={ICON_CLASS} />
 						Generate with AI
 					</Button>
-					<Button variant="outline" disabled>
+					<Button variant="outline" onClick={handleTemplateFill}>
 						<FileText className={ICON_CLASS} />
 						Start from Template
 					</Button>
@@ -131,7 +192,10 @@ export function ResumeContentView({
 		);
 	}
 
+	// -----------------------------------------------------------------------
 	// Content view with toggle
+	// -----------------------------------------------------------------------
+
 	return (
 		<div className="mb-8">
 			<Tabs
@@ -151,7 +215,7 @@ export function ResumeContentView({
 					<div className="flex gap-4">
 						{/* Desktop: inline persona panel */}
 						<aside
-							className="bg-card hidden w-72 shrink-0 overflow-y-auto rounded-md border p-3 md:block"
+							className="bg-card hidden w-72 shrink-0 overflow-y-auto rounded-lg border p-3 md:block"
 							data-testid="persona-panel-desktop"
 						>
 							<PersonaReferencePanel personaId={personaId} />
@@ -205,9 +269,9 @@ export function ResumeContentView({
 							<Pencil className={ICON_CLASS} />
 							Edit
 						</Button>
-						<Button variant="outline" disabled>
-							<Sparkles className={ICON_CLASS} />
-							Generate with AI
+						<Button variant="outline" onClick={handleRegenerate}>
+							<RefreshCw className={ICON_CLASS} />
+							Regenerate
 						</Button>
 					</>
 				) : (

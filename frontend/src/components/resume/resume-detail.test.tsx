@@ -369,6 +369,10 @@ vi.mock("@/components/editor/persona-reference-panel", () => ({
 	),
 }));
 
+vi.mock("@/components/editor/generation-options-panel", () => ({
+	GenerationOptionsPanel: () => <div data-testid="generation-options-panel" />,
+}));
+
 vi.mock("@/components/ui/sheet", () => {
 	const Passthrough = ({ children }: { children: React.ReactNode }) => (
 		<div>{children}</div>
@@ -1375,18 +1379,18 @@ describe("ResumeDetail", () => {
 			expect(screen.getByText(/generate your resume/i)).toBeInTheDocument();
 		});
 
-		it("shows disabled Generate with AI button", async () => {
+		it("shows enabled Generate with AI button", async () => {
 			await renderWithoutContent();
 			expect(
 				screen.getByRole("button", { name: /generate with ai/i }),
-			).toBeDisabled();
+			).toBeEnabled();
 		});
 
-		it("shows disabled Start from Template button", async () => {
+		it("shows enabled Start from Template button", async () => {
 			await renderWithoutContent();
 			expect(
 				screen.getByRole("button", { name: /start from template/i }),
-			).toBeDisabled();
+			).toBeEnabled();
 		});
 
 		it("does not show TipTap editor when no content", async () => {

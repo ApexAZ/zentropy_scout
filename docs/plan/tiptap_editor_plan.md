@@ -483,7 +483,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Template picker renders templates, selection works, dialog shows both creation paths | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** Template picker works. New resume dialog offers both paths. Tests pass. | | |
-| 21 | **Generation options panel + wire creation flow** | | ⬜ |
+| 21 | **Generation options panel + wire creation flow** | | ✅ |
 | | **Read:** REQ-026 §4.2 (generation options panel), §4.3 (page limit), §4.7 (regeneration). | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Create:** `frontend/src/components/editor/generation-options-panel.tsx` | | |
