@@ -100,6 +100,7 @@ export function ResumeContentView({
 				data-testid="no-content-prompt"
 				className="mb-8 flex flex-col items-center justify-center rounded-md border border-dashed py-12"
 			>
+				<FileText className="text-muted-foreground mb-2 h-10 w-10" />
 				<p className="text-muted-foreground mb-4 text-center">
 					Generate your resume or start from a template to get started.
 				</p>

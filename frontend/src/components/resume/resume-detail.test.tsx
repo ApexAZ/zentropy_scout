@@ -389,6 +389,26 @@ function renderDetail(resumeId = "r-1", personaId = "p-1") {
 	);
 }
 
+async function renderWithContent() {
+	setupMockApi({ data: makeResume({ markdown_content: MARKDOWN_CONTENT }) });
+	renderDetail();
+	await waitFor(() => {
+		expect(screen.getByRole("tab", { name: /preview/i })).toBeInTheDocument();
+	});
+}
+
+async function renderWithoutContent() {
+	setupMockApi({ data: makeResume({ markdown_content: null }) });
+	renderDetail();
+	await waitFor(() => {
+		expect(screen.getByText(/generate your resume/i)).toBeInTheDocument();
+	});
+}
+
+async function switchToEditMode(user: ReturnType<typeof userEvent.setup>) {
+	await user.click(screen.getByRole("tab", { name: /edit/i }));
+}
+
 /**
  * Configure mockApiGet to return different responses based on path.
  * GET /base-resumes/r-1 → resume response,
@@ -1269,40 +1289,23 @@ describe("ResumeDetail", () => {
 
 	describe("toggle view", () => {
 		it("defaults to Preview mode when markdown_content exists", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByRole("tab", { name: /preview/i })).toHaveAttribute(
-					"data-state",
-					"active",
-				);
-			});
+			await renderWithContent();
+			expect(screen.getByRole("tab", { name: /preview/i })).toHaveAttribute(
+				"data-state",
+				"active",
+			);
 		});
 
 		it("renders read-only ResumeEditor in Preview mode", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				const editor = screen.getByTestId("resume-editor");
-				expect(editor).toHaveAttribute("data-editable", "false");
-			});
+			await renderWithContent();
+			const editor = screen.getByTestId("resume-editor");
+			expect(editor).toHaveAttribute("data-editable", "false");
 		});
 
 		it("switches to Edit mode when Edit tab is clicked", async () => {
 			const user = userEvent.setup();
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByRole("tab", { name: /edit/i })).toBeInTheDocument();
-			});
-
-			await user.click(screen.getByRole("tab", { name: /edit/i }));
+			await renderWithContent();
+			await switchToEditMode(user);
 
 			expect(screen.getByRole("tab", { name: /edit/i })).toHaveAttribute(
 				"data-state",
@@ -1312,15 +1315,8 @@ describe("ResumeDetail", () => {
 
 		it("renders editable ResumeEditor in Edit mode", async () => {
 			const user = userEvent.setup();
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByRole("tab", { name: /edit/i })).toBeInTheDocument();
-			});
-
-			await user.click(screen.getByRole("tab", { name: /edit/i }));
+			await renderWithContent();
+			await switchToEditMode(user);
 
 			const editor = screen.getByTestId("resume-editor");
 			expect(editor).toHaveAttribute("data-editable", "true");
@@ -1328,42 +1324,22 @@ describe("ResumeDetail", () => {
 
 		it("shows EditorStatusBar in Edit mode", async () => {
 			const user = userEvent.setup();
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByRole("tab", { name: /edit/i })).toBeInTheDocument();
-			});
-
-			await user.click(screen.getByRole("tab", { name: /edit/i }));
+			await renderWithContent();
+			await switchToEditMode(user);
 
 			expect(screen.getByTestId("editor-status-bar")).toBeInTheDocument();
 		});
 
 		it("does not show EditorStatusBar in Preview mode", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId("resume-editor")).toBeInTheDocument();
-			});
-
+			await renderWithContent();
 			expect(screen.queryByTestId("editor-status-bar")).not.toBeInTheDocument();
 		});
 
 		it("switches back to Preview via Done Editing button", async () => {
 			const user = userEvent.setup();
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByRole("tab", { name: /edit/i })).toBeInTheDocument();
-			});
+			await renderWithContent();
+			await switchToEditMode(user);
 
-			await user.click(screen.getByRole("tab", { name: /edit/i }));
 			await user.click(screen.getByRole("button", { name: /done editing/i }));
 
 			expect(screen.getByRole("tab", { name: /preview/i })).toHaveAttribute(
@@ -1375,60 +1351,31 @@ describe("ResumeDetail", () => {
 
 	describe("no-content state", () => {
 		it("shows prompt when markdown_content is null", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: null }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByText(/generate your resume/i)).toBeInTheDocument();
-			});
+			await renderWithoutContent();
+			expect(screen.getByText(/generate your resume/i)).toBeInTheDocument();
 		});
 
-		it("shows Generate with AI button", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: null }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /generate with ai/i }),
-				).toBeInTheDocument();
-			});
+		it("shows disabled Generate with AI button", async () => {
+			await renderWithoutContent();
+			expect(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			).toBeDisabled();
 		});
 
-		it("shows Start from Template button", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: null }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /start from template/i }),
-				).toBeInTheDocument();
-			});
+		it("shows disabled Start from Template button", async () => {
+			await renderWithoutContent();
+			expect(
+				screen.getByRole("button", { name: /start from template/i }),
+			).toBeDisabled();
 		});
 
 		it("does not show TipTap editor when no content", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: null }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByText(/generate your resume/i)).toBeInTheDocument();
-			});
-
+			await renderWithoutContent();
 			expect(screen.queryByTestId("resume-editor")).not.toBeInTheDocument();
 		});
 
 		it("does not show toggle tabs when no content", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: null }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByText(/generate your resume/i)).toBeInTheDocument();
-			});
-
+			await renderWithoutContent();
 			expect(
 				screen.queryByRole("tab", { name: /preview/i }),
 			).not.toBeInTheDocument();
@@ -1437,52 +1384,30 @@ describe("ResumeDetail", () => {
 
 	describe("action buttons per mode", () => {
 		it("shows Edit button in Preview mode", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /^edit$/i }),
-				).toBeInTheDocument();
-			});
+			await renderWithContent();
+			expect(
+				screen.getByRole("button", { name: /^edit$/i }),
+			).toBeInTheDocument();
 		});
 
 		it("shows Export PDF button in Preview mode", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /export pdf/i }),
-				).toBeInTheDocument();
-			});
+			await renderWithContent();
+			expect(
+				screen.getByRole("button", { name: /export pdf/i }),
+			).toBeInTheDocument();
 		});
 
 		it("shows Export DOCX button in Preview mode", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /export docx/i }),
-				).toBeInTheDocument();
-			});
+			await renderWithContent();
+			expect(
+				screen.getByRole("button", { name: /export docx/i }),
+			).toBeInTheDocument();
 		});
 
 		it("shows Done Editing button in Edit mode", async () => {
 			const user = userEvent.setup();
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByRole("tab", { name: /edit/i })).toBeInTheDocument();
-			});
-
-			await user.click(screen.getByRole("tab", { name: /edit/i }));
+			await renderWithContent();
+			await switchToEditMode(user);
 
 			expect(
 				screen.getByRole("button", { name: /done editing/i }),
@@ -1491,15 +1416,7 @@ describe("ResumeDetail", () => {
 
 		it("clicking Edit action button switches to Edit mode", async () => {
 			const user = userEvent.setup();
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /^edit$/i }),
-				).toBeInTheDocument();
-			});
+			await renderWithContent();
 
 			await user.click(screen.getByRole("button", { name: /^edit$/i }));
 
@@ -1512,32 +1429,17 @@ describe("ResumeDetail", () => {
 
 	describe("auto-save integration", () => {
 		it("calls useAutoSave with editor content and resumeId", async () => {
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(mocks.mockUseAutoSave).toHaveBeenCalledWith(
-					expect.objectContaining({
-						resumeId: "r-1",
-					}),
-				);
-			});
+			await renderWithContent();
+			expect(mocks.mockUseAutoSave).toHaveBeenCalledWith(
+				expect.objectContaining({
+					resumeId: "r-1",
+				}),
+			);
 		});
 
 		it("enables auto-save only in Edit mode", async () => {
 			const user = userEvent.setup();
-			setupMockApi({
-				data: makeResume({ markdown_content: MARKDOWN_CONTENT }),
-			});
-			renderDetail();
-
-			// Wait for data to load and tabs to appear
-			await waitFor(() => {
-				expect(
-					screen.getByRole("tab", { name: /preview/i }),
-				).toBeInTheDocument();
-			});
+			await renderWithContent();
 
 			// Initially in Preview — auto-save disabled
 			expect(mocks.mockUseAutoSave).toHaveBeenCalledWith(
@@ -1545,7 +1447,7 @@ describe("ResumeDetail", () => {
 			);
 
 			// Switch to Edit — auto-save enabled
-			await user.click(screen.getByRole("tab", { name: /edit/i }));
+			await switchToEditMode(user);
 
 			expect(mocks.mockUseAutoSave).toHaveBeenCalledWith(
 				expect.objectContaining({ enabled: true }),
