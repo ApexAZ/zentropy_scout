@@ -127,7 +127,7 @@ export function ChatInput({
 					disabled={!canSend}
 					className={cn(
 						"bg-primary text-primary-foreground inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors",
-						"hover:bg-primary/90",
+						"hover:bg-primary-hover",
 						"disabled:pointer-events-none disabled:opacity-50",
 					)}
 				>

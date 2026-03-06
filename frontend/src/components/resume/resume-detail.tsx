@@ -8,16 +8,12 @@
  * REQ-026 §6.1–§6.3: Toggle view delegated to ResumeContentView.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-import { apiGet, apiPatch, apiPost, buildUrl } from "@/lib/api-client";
-import { queryKeys } from "@/lib/query-keys";
+import { buildUrl } from "@/lib/api-client";
 import { orderBullets } from "@/lib/resume-helpers";
-import { showToast } from "@/lib/toast";
-import { useResumeContentSelection } from "@/hooks/use-resume-content-selection";
+import { useResumeDetail } from "@/hooks/use-resume-detail";
 import { ResumeContentCheckboxes } from "@/components/resume/resume-content-checkboxes";
 import { ResumeContentView } from "@/components/resume/resume-content-view";
 import { VariantsList } from "@/components/resume/variants-list";
@@ -26,21 +22,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FailedState } from "@/components/ui/error-states";
 import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { ReorderableList } from "@/components/ui/reorderable-list";
-import type { ApiListResponse, ApiResponse } from "@/types/api";
-import type {
-	Bullet,
-	Certification,
-	Education,
-	Skill,
-	WorkHistory,
-} from "@/types/persona";
-import type { BaseResume } from "@/types/resume";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const MAX_SUMMARY_LENGTH = 5000;
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-const MAX_SUMMARY_LENGTH = 5000;
 
 interface ResumeDetailProps {
 	resumeId: string;
@@ -55,153 +46,28 @@ export function ResumeDetail({
 	resumeId,
 	personaId,
 }: Readonly<ResumeDetailProps>) {
-	const queryClient = useQueryClient();
-
-	// -----------------------------------------------------------------------
-	// Data fetching
-	// -----------------------------------------------------------------------
-
 	const {
-		data: resumeData,
-		isLoading: resumeLoading,
-		error: resumeError,
-		refetch: refetchResume,
-	} = useQuery({
-		queryKey: queryKeys.baseResume(resumeId),
-		queryFn: () => apiGet<ApiResponse<BaseResume>>(`/base-resumes/${resumeId}`),
-	});
-
-	const { data: workHistoryData, isLoading: workHistoryLoading } = useQuery({
-		queryKey: queryKeys.workHistory(personaId),
-		queryFn: () =>
-			apiGet<ApiListResponse<WorkHistory>>(
-				`/personas/${personaId}/work-history`,
-			),
-	});
-
-	const { data: educationData, isLoading: educationLoading } = useQuery({
-		queryKey: queryKeys.education(personaId),
-		queryFn: () =>
-			apiGet<ApiListResponse<Education>>(`/personas/${personaId}/education`),
-	});
-
-	const { data: certificationData, isLoading: certificationLoading } = useQuery(
-		{
-			queryKey: queryKeys.certifications(personaId),
-			queryFn: () =>
-				apiGet<ApiListResponse<Certification>>(
-					`/personas/${personaId}/certifications`,
-				),
-		},
-	);
-
-	const { data: skillData, isLoading: skillLoading } = useQuery({
-		queryKey: queryKeys.skills(personaId),
-		queryFn: () =>
-			apiGet<ApiListResponse<Skill>>(`/personas/${personaId}/skills`),
-	});
-
-	const resume = resumeData?.data;
-	const jobs = workHistoryData?.data ?? [];
-	const educations = useMemo(
-		() => educationData?.data ?? [],
-		[educationData?.data],
-	);
-	const certifications = useMemo(
-		() => certificationData?.data ?? [],
-		[certificationData?.data],
-	);
-	const skills = useMemo(() => skillData?.data ?? [], [skillData?.data]);
-
-	// -----------------------------------------------------------------------
-	// Local editable state (initialized from server data)
-	// -----------------------------------------------------------------------
-
-	const [summary, setSummary] = useState("");
-	const selection = useResumeContentSelection();
-	const [isInitialized, setIsInitialized] = useState(false);
-	const [isSaving, setIsSaving] = useState(false);
-	const [isRendering, setIsRendering] = useState(false);
-
-	useEffect(() => {
-		if (resume && !isInitialized) {
-			setSummary(resume.summary);
-			selection.setIncludedJobs(resume.included_jobs);
-			selection.setBulletSelections(resume.job_bullet_selections);
-			selection.setBulletOrder(resume.job_bullet_order);
-			selection.setIncludedEducation(
-				resume.included_education ?? educations.map((e) => e.id),
-			);
-			selection.setIncludedCertifications(
-				resume.included_certifications ?? certifications.map((c) => c.id),
-			);
-			selection.setSkillsEmphasis(resume.skills_emphasis ?? []);
-			setIsInitialized(true);
-		}
-	}, [resume, isInitialized, educations, certifications, selection]);
-
-	// -----------------------------------------------------------------------
-	// Handlers
-	// -----------------------------------------------------------------------
-
-	const handleReorderBullets = useCallback(
-		(jobId: string, reorderedBullets: Bullet[]) => {
-			selection.setBulletOrder((prev) => ({
-				...prev,
-				[jobId]: reorderedBullets.map((b) => b.id),
-			}));
-		},
-		[selection],
-	);
-
-	const handleSave = useCallback(async () => {
-		setIsSaving(true);
-		try {
-			await apiPatch(`/base-resumes/${resumeId}`, {
-				summary,
-				included_jobs: selection.includedJobs,
-				job_bullet_selections: selection.bulletSelections,
-				job_bullet_order: selection.bulletOrder,
-				included_education: selection.includedEducation,
-				included_certifications: selection.includedCertifications,
-				skills_emphasis: selection.skillsEmphasis,
-			});
-			showToast.success("Resume saved.");
-			await queryClient.invalidateQueries({
-				queryKey: queryKeys.baseResume(resumeId),
-			});
-		} catch {
-			showToast.error("Failed to save resume.");
-		} finally {
-			setIsSaving(false);
-		}
-	}, [resumeId, summary, selection, queryClient]);
-
-	const handleRenderPdf = useCallback(async () => {
-		setIsRendering(true);
-		try {
-			await apiPost(`/base-resumes/${resumeId}/render`);
-			showToast.success("PDF rendered.");
-			await queryClient.invalidateQueries({
-				queryKey: queryKeys.baseResume(resumeId),
-			});
-		} catch {
-			showToast.error("Failed to render PDF.");
-		} finally {
-			setIsRendering(false);
-		}
-	}, [resumeId, queryClient]);
+		isLoading,
+		resumeError,
+		refetchResume,
+		resume,
+		jobs,
+		educations,
+		certifications,
+		skills,
+		summary,
+		setSummary,
+		selection,
+		isSaving,
+		isRendering,
+		handleSave,
+		handleRenderPdf,
+		handleReorderBullets,
+	} = useResumeDetail({ resumeId, personaId });
 
 	// -----------------------------------------------------------------------
 	// Render states
 	// -----------------------------------------------------------------------
-
-	const isLoading =
-		resumeLoading ||
-		workHistoryLoading ||
-		educationLoading ||
-		certificationLoading ||
-		skillLoading;
 
 	if (isLoading) {
 		return (
