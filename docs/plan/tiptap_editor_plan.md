@@ -381,7 +381,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** StatusBar unit tests (word count, page estimate, status states). Auto-save hook tests (debounce, save call, conflict handling). | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** Status bar shows live stats. Auto-save debounces and persists. Conflict detection works. Tests pass. | | |
-| 16 | **Phase 5 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 16 | **Phase 5 Gate** — Full test suite + push | `phase-gate` | ✅ |
 | | Run: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. Push with SSH keep-alive. | | |
 
 #### Phase 5 Notes
@@ -412,7 +412,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 17 | **Resume detail page — toggle view (Preview/Edit)** | | ⬜ |
+| 17 | **Resume detail page — toggle view (Preview/Edit)** | | ✅ |
 | | **Read:** REQ-026 §6.1 (toggle view layout), §6.2 (action buttons), §6.3 (content preview). Existing: `frontend/src/components/resume/resume-detail.tsx`. | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Modify:** `frontend/src/components/resume/resume-detail.tsx` (or create wrapper) | | |
