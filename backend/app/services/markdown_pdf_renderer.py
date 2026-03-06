@@ -166,6 +166,22 @@ def _is_safe_url(url: str) -> bool:
     return parsed.scheme in _SAFE_URL_SCHEMES
 
 
+def _render_link_open_tag(token) -> str:
+    """Render a link_open token as ReportLab XML markup.
+
+    Args:
+        token: A markdown-it link_open token.
+
+    Returns:
+        Opening tag(s) for the link.
+    """
+    href = token.attrGet("href") or ""
+    if _is_safe_url(href):
+        href_escaped = _html_escape(href, quote=True)
+        return f'<a href="{href_escaped}" color="{_LINK_COLOR_HEX}"><u>'
+    return "<u>"
+
+
 def _render_inline_tokens(tokens: list) -> str:
     """Convert inline markdown-it tokens to ReportLab XML markup.
 
@@ -192,13 +208,7 @@ def _render_inline_tokens(tokens: list) -> str:
         elif token.type == "em_close":
             parts.append("</i>")
         elif token.type == "link_open":
-            href = token.attrGet("href") or ""
-            if _is_safe_url(href):
-                href_escaped = _html_escape(href, quote=True)
-                parts.append(f'<a href="{href_escaped}" color="{_LINK_COLOR_HEX}"><u>')
-            else:
-                # Unsafe protocol (javascript:, data:, etc.) — render as plain text
-                parts.append("<u>")
+            parts.append(_render_link_open_tag(token))
         elif token.type == "link_close":
             parts.append(
                 "</u></a>"
@@ -223,15 +233,142 @@ def _extract_inline_text(token) -> str:
 
 
 # =============================================================================
+# Block Token Handlers
+# =============================================================================
+
+
+def _handle_heading_pdf(
+    tokens: list,
+    i: int,
+    styles: dict[str, ParagraphStyle],
+) -> tuple[int, list] | None:
+    """Handle a heading_open token: create heading paragraph."""
+    if i + 1 >= len(tokens) or tokens[i + 1].type != "inline":
+        return None
+    level = int(tokens[i].tag[1])
+    style_key = f"heading_{min(level, 4)}"
+    text = _extract_inline_text(tokens[i + 1])
+    return i + 3, [Paragraph(text, styles[style_key])]
+
+
+def _handle_paragraph_pdf(
+    tokens: list,
+    i: int,
+    styles: dict[str, ParagraphStyle],
+) -> tuple[int, list] | None:
+    """Handle a paragraph_open token: create body paragraph."""
+    if i + 1 >= len(tokens) or tokens[i + 1].type != "inline":
+        return None
+    text = _extract_inline_text(tokens[i + 1])
+    return i + 3, [Paragraph(text, styles["body"])]
+
+
+def _handle_list_item_pdf(
+    tokens: list,
+    i: int,
+    styles: dict[str, ParagraphStyle],
+    ordered_counter: list[int],
+) -> tuple[int, list]:
+    """Handle a list_item_open token: create bullet or numbered paragraph(s)."""
+    is_ordered = _is_inside_ordered_list(tokens, i)
+    if is_ordered:
+        ordered_counter[0] += 1
+    result_flowables: list = []
+    j = i + 1
+    while j < len(tokens) and tokens[j].type != "list_item_close":
+        if tokens[j].type == "inline":
+            text = _extract_inline_text(tokens[j])
+            if is_ordered:
+                result_flowables.append(
+                    Paragraph(
+                        text,
+                        styles["ordered"],
+                        bulletText=f"{ordered_counter[0]}.",
+                    )
+                )
+            else:
+                result_flowables.append(
+                    Paragraph(text, styles["bullet"], bulletText="\u2022")
+                )
+        j += 1
+    return j + 1, result_flowables
+
+
+def _handle_blockquote_pdf(
+    tokens: list,
+    i: int,
+    styles: dict[str, ParagraphStyle],
+) -> tuple[int, list]:
+    """Handle a blockquote_open token: collect content into styled paragraph."""
+    j = i + 1
+    bq_text_parts: list[str] = []
+    depth = 1
+    while j < len(tokens) and depth > 0:
+        if tokens[j].type == "blockquote_open":
+            depth += 1
+        elif tokens[j].type == "blockquote_close":
+            depth -= 1
+        elif tokens[j].type == "inline":
+            bq_text_parts.append(_extract_inline_text(tokens[j]))
+        j += 1
+    if bq_text_parts:
+        return j, [Paragraph(" ".join(bq_text_parts), styles["blockquote"])]
+    return j, []
+
+
+def _handle_code_block_pdf(
+    tokens: list,
+    i: int,
+    styles: dict[str, ParagraphStyle],
+) -> tuple[int, list]:
+    """Handle a fence or code_block token: create monospaced paragraph."""
+    text = _xml_escape(tokens[i].content.rstrip("\n"))
+    return i + 1, [Paragraph(text.replace("\n", "<br/>"), styles["code"])]
+
+
+def _dispatch_block_pdf(
+    tokens: list,
+    i: int,
+    styles: dict[str, ParagraphStyle],
+    ordered_counter: list[int],
+) -> tuple[int, list] | None:
+    """Route a block token to its handler.
+
+    Returns:
+        (next_index, flowables) if handled, None otherwise.
+    """
+    tok = tokens[i]
+    if tok.type == "heading_open":
+        return _handle_heading_pdf(tokens, i, styles)
+    if tok.type == "paragraph_open":
+        return _handle_paragraph_pdf(tokens, i, styles)
+    if tok.type == "hr":
+        return i + 1, [
+            Spacer(1, 4),
+            HRFlowable(width="100%", thickness=0.5, color="black"),
+            Spacer(1, 4),
+        ]
+    if tok.type in ("bullet_list_open", "bullet_list_close"):
+        return i + 1, []
+    if tok.type in ("ordered_list_open", "ordered_list_close"):
+        ordered_counter[0] = 0
+        return i + 1, []
+    if tok.type == "list_item_open":
+        return _handle_list_item_pdf(tokens, i, styles, ordered_counter)
+    if tok.type == "blockquote_open":
+        return _handle_blockquote_pdf(tokens, i, styles)
+    if tok.type in ("fence", "code_block"):
+        return _handle_code_block_pdf(tokens, i, styles)
+    return None
+
+
+# =============================================================================
 # Block Token → Flowable Conversion
 # =============================================================================
 
 
 def _tokens_to_flowables(tokens: list, styles: dict[str, ParagraphStyle]) -> list:
     """Convert markdown-it block tokens to ReportLab flowables.
-
-    Walks the flat token list and emits Paragraph, HRFlowable, and Spacer
-    flowables based on token types.
 
     Args:
         tokens: List of block-level tokens from markdown-it.
@@ -242,113 +379,14 @@ def _tokens_to_flowables(tokens: list, styles: dict[str, ParagraphStyle]) -> lis
     """
     flowables: list = []
     i = 0
-    ordered_counter = 0
-
+    ordered_counter: list[int] = [0]
     while i < len(tokens):
-        token = tokens[i]
-
-        # --- Headings ---
-        if token.type == "heading_open":
-            level = int(token.tag[1])  # h1→1, h2→2, etc.
-            style_key = f"heading_{min(level, 4)}"
-            # Next token is the inline content
-            if i + 1 < len(tokens) and tokens[i + 1].type == "inline":
-                text = _extract_inline_text(tokens[i + 1])
-                flowables.append(Paragraph(text, styles[style_key]))
-                i += 3  # heading_open, inline, heading_close
-                continue
-
-        # --- Paragraphs ---
-        elif token.type == "paragraph_open":
-            if i + 1 < len(tokens) and tokens[i + 1].type == "inline":
-                text = _extract_inline_text(tokens[i + 1])
-                flowables.append(Paragraph(text, styles["body"]))
-                i += 3  # paragraph_open, inline, paragraph_close
-                continue
-
-        # --- Horizontal Rule ---
-        elif token.type == "hr":
-            flowables.append(Spacer(1, 4))
-            flowables.append(HRFlowable(width="100%", thickness=0.5, color="black"))
-            flowables.append(Spacer(1, 4))
+        result = _dispatch_block_pdf(tokens, i, styles, ordered_counter)
+        if result is not None:
+            i, new_flowables = result
+            flowables.extend(new_flowables)
+        else:
             i += 1
-            continue
-
-        # --- Unordered List ---
-        elif token.type in ("bullet_list_open", "bullet_list_close"):
-            i += 1
-            continue
-
-        # --- Ordered List ---
-        elif token.type in ("ordered_list_open", "ordered_list_close"):
-            ordered_counter = 0
-            i += 1
-            continue
-
-        # --- List Items ---
-        elif token.type == "list_item_open":
-            # Determine if inside ordered or unordered list
-            # Look backwards for the list open token
-            is_ordered = _is_inside_ordered_list(tokens, i)
-            if is_ordered:
-                ordered_counter += 1
-
-            # Find the inline content within this list item
-            j = i + 1
-            while j < len(tokens) and tokens[j].type != "list_item_close":
-                if tokens[j].type == "inline":
-                    text = _extract_inline_text(tokens[j])
-                    if is_ordered:
-                        bullet_text = f"{ordered_counter}."
-                        flowables.append(
-                            Paragraph(
-                                text,
-                                styles["ordered"],
-                                bulletText=bullet_text,
-                            )
-                        )
-                    else:
-                        flowables.append(
-                            Paragraph(
-                                text,
-                                styles["bullet"],
-                                bulletText="\u2022",
-                            )
-                        )
-                j += 1
-            i = j + 1  # Skip past list_item_close
-            continue
-
-        # --- Blockquote ---
-        elif token.type == "blockquote_open":
-            # Collect content until blockquote_close
-            j = i + 1
-            bq_text_parts: list[str] = []
-            depth = 1
-            while j < len(tokens) and depth > 0:
-                if tokens[j].type == "blockquote_open":
-                    depth += 1
-                elif tokens[j].type == "blockquote_close":
-                    depth -= 1
-                elif tokens[j].type == "inline":
-                    bq_text_parts.append(_extract_inline_text(tokens[j]))
-                j += 1
-            if bq_text_parts:
-                flowables.append(
-                    Paragraph(" ".join(bq_text_parts), styles["blockquote"])
-                )
-            i = j
-            continue
-
-        # --- Code Block / Fence ---
-        elif token.type == "fence" or token.type == "code_block":
-            text = _xml_escape(token.content.rstrip("\n"))
-            flowables.append(Paragraph(text.replace("\n", "<br/>"), styles["code"]))
-            i += 1
-            continue
-
-        i += 1
-
     return flowables
 
 

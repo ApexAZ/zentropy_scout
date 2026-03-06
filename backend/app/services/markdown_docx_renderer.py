@@ -51,6 +51,19 @@ def _is_safe_url(url: str) -> bool:
     return parsed.scheme in _SAFE_URL_SCHEMES
 
 
+def _resolve_safe_href(token) -> str | None:
+    """Extract href from a link_open token if the URL scheme is safe.
+
+    Args:
+        token: A markdown-it link_open token.
+
+    Returns:
+        The href string if safe, None otherwise.
+    """
+    href = token.attrGet("href") or ""
+    return href if _is_safe_url(href) else None
+
+
 # =============================================================================
 # Inline Token Processing
 # =============================================================================
@@ -91,9 +104,7 @@ def _add_inline_tokens_to_paragraph(paragraph, tokens: list) -> None:
         elif token.type == "em_close":
             italic = False
         elif token.type == "link_open":
-            href = token.attrGet("href") or ""
-            if _is_safe_url(href):
-                link_href = href
+            link_href = _resolve_safe_href(token)
         elif token.type == "link_close":
             link_href = None
         elif token.type in ("softbreak", "hardbreak"):
@@ -154,6 +165,135 @@ def _add_horizontal_rule(document: Document) -> None:
 
 
 # =============================================================================
+# Block Token Handlers
+# =============================================================================
+
+
+def _handle_heading_docx(
+    tokens: list,
+    i: int,
+    document: Document,
+) -> tuple[int, bool] | None:
+    """Handle a heading_open token: create heading with inline content."""
+    if i + 1 >= len(tokens) or tokens[i + 1].type != "inline":
+        return None
+    level = min(int(tokens[i].tag[1]), 4)
+    heading = document.add_heading(level=level)
+    heading.clear()
+    _add_inline_tokens_to_paragraph(heading, tokens[i + 1].children or [])
+    if level == 1:
+        heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    return i + 3, True
+
+
+def _handle_paragraph_docx(
+    tokens: list,
+    i: int,
+    document: Document,
+) -> tuple[int, bool] | None:
+    """Handle a paragraph_open token: create paragraph with inline content."""
+    if i + 1 >= len(tokens) or tokens[i + 1].type != "inline":
+        return None
+    para = document.add_paragraph()
+    _add_inline_tokens_to_paragraph(para, tokens[i + 1].children or [])
+    return i + 3, True
+
+
+def _handle_list_item_docx(
+    tokens: list,
+    i: int,
+    document: Document,
+) -> tuple[int, bool]:
+    """Handle a list_item_open token: create styled list paragraph(s)."""
+    is_ordered = _is_inside_ordered_list(tokens, i)
+    added = False
+    j = i + 1
+    while j < len(tokens) and tokens[j].type != "list_item_close":
+        if tokens[j].type == "inline":
+            style = "List Number" if is_ordered else "List Bullet"
+            para = document.add_paragraph(style=style)
+            _add_inline_tokens_to_paragraph(para, tokens[j].children or [])
+            added = True
+        j += 1
+    return j + 1, added
+
+
+def _handle_blockquote_docx(
+    tokens: list,
+    i: int,
+    document: Document,
+) -> tuple[int, bool]:
+    """Handle a blockquote_open token: collect content into italic paragraph."""
+    j = i + 1
+    bq_tokens: list = []
+    depth = 1
+    while j < len(tokens) and depth > 0:
+        if tokens[j].type == "blockquote_open":
+            depth += 1
+        elif tokens[j].type == "blockquote_close":
+            depth -= 1
+        elif tokens[j].type == "inline":
+            bq_tokens.extend(tokens[j].children or [])
+        j += 1
+    if not bq_tokens:
+        return j, False
+    para = document.add_paragraph()
+    para.paragraph_format.left_indent = Pt(36)
+    _add_inline_tokens_to_paragraph(para, bq_tokens)
+    for run in para.runs:
+        run.italic = True
+    return j, True
+
+
+def _handle_code_block_docx(
+    tokens: list,
+    i: int,
+    document: Document,
+) -> tuple[int, bool]:
+    """Handle a fence or code_block token: create monospaced paragraph."""
+    text = tokens[i].content.rstrip("\n")
+    para = document.add_paragraph(text)
+    for run in para.runs:
+        run.font.name = "Courier New"
+        run.font.size = Pt(8)
+    return i + 1, True
+
+
+def _dispatch_block_docx(
+    tokens: list,
+    i: int,
+    document: Document,
+) -> tuple[int, bool] | None:
+    """Route a block token to its handler.
+
+    Returns:
+        (next_index, element_added) if handled, None otherwise.
+    """
+    tok = tokens[i]
+    if tok.type == "heading_open":
+        return _handle_heading_docx(tokens, i, document)
+    if tok.type == "paragraph_open":
+        return _handle_paragraph_docx(tokens, i, document)
+    if tok.type == "hr":
+        _add_horizontal_rule(document)
+        return i + 1, True
+    if tok.type in (
+        "bullet_list_open",
+        "bullet_list_close",
+        "ordered_list_open",
+        "ordered_list_close",
+    ):
+        return i + 1, False
+    if tok.type == "list_item_open":
+        return _handle_list_item_docx(tokens, i, document)
+    if tok.type == "blockquote_open":
+        return _handle_blockquote_docx(tokens, i, document)
+    if tok.type in ("fence", "code_block"):
+        return _handle_code_block_docx(tokens, i, document)
+    return None
+
+
+# =============================================================================
 # Block Token → DOCX Element Conversion
 # =============================================================================
 
@@ -170,106 +310,13 @@ def _tokens_to_docx(tokens: list, document: Document) -> bool:
     """
     added_elements = False
     i = 0
-    ordered_counter = 0
-
     while i < len(tokens):
-        token = tokens[i]
-
-        # --- Headings ---
-        if token.type == "heading_open":
-            level = int(token.tag[1])  # h1→1, h2→2, etc.
-            level = min(level, 4)
-            if i + 1 < len(tokens) and tokens[i + 1].type == "inline":
-                heading = document.add_heading(level=level)
-                heading.clear()
-                _add_inline_tokens_to_paragraph(heading, tokens[i + 1].children or [])
-                if level == 1:
-                    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                added_elements = True
-                i += 3  # heading_open, inline, heading_close
-                continue
-
-        # --- Paragraphs ---
-        elif token.type == "paragraph_open":
-            if i + 1 < len(tokens) and tokens[i + 1].type == "inline":
-                para = document.add_paragraph()
-                _add_inline_tokens_to_paragraph(para, tokens[i + 1].children or [])
-                added_elements = True
-                i += 3  # paragraph_open, inline, paragraph_close
-                continue
-
-        # --- Horizontal Rule ---
-        elif token.type == "hr":
-            _add_horizontal_rule(document)
-            added_elements = True
+        result = _dispatch_block_docx(tokens, i, document)
+        if result is not None:
+            i, added = result
+            added_elements = added_elements or added
+        else:
             i += 1
-            continue
-
-        # --- Unordered List ---
-        elif token.type in ("bullet_list_open", "bullet_list_close"):
-            i += 1
-            continue
-
-        # --- Ordered List ---
-        elif token.type in ("ordered_list_open", "ordered_list_close"):
-            ordered_counter = 0
-            i += 1
-            continue
-
-        # --- List Items ---
-        elif token.type == "list_item_open":
-            is_ordered = _is_inside_ordered_list(tokens, i)
-            if is_ordered:
-                ordered_counter += 1
-
-            j = i + 1
-            while j < len(tokens) and tokens[j].type != "list_item_close":
-                if tokens[j].type == "inline":
-                    style = "List Number" if is_ordered else "List Bullet"
-                    para = document.add_paragraph(style=style)
-                    _add_inline_tokens_to_paragraph(para, tokens[j].children or [])
-                    added_elements = True
-                j += 1
-            i = j + 1
-            continue
-
-        # --- Blockquote ---
-        elif token.type == "blockquote_open":
-            j = i + 1
-            bq_tokens: list = []
-            depth = 1
-            while j < len(tokens) and depth > 0:
-                if tokens[j].type == "blockquote_open":
-                    depth += 1
-                elif tokens[j].type == "blockquote_close":
-                    depth -= 1
-                elif tokens[j].type == "inline":
-                    bq_tokens.extend(tokens[j].children or [])
-                j += 1
-            if bq_tokens:
-                para = document.add_paragraph()
-                para.paragraph_format.left_indent = Pt(36)
-                _add_inline_tokens_to_paragraph(para, bq_tokens)
-                # Set italic for blockquote
-                for run in para.runs:
-                    run.italic = True
-                added_elements = True
-            i = j
-            continue
-
-        # --- Code Block / Fence ---
-        elif token.type in ("fence", "code_block"):
-            text = token.content.rstrip("\n")
-            para = document.add_paragraph(text)
-            for run in para.runs:
-                run.font.name = "Courier New"
-                run.font.size = Pt(8)
-            added_elements = True
-            i += 1
-            continue
-
-        i += 1
-
     return added_elements
 
 
