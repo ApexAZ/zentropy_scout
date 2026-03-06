@@ -29,6 +29,14 @@ const TID_SETTINGS_LEGAL = "settings-legal";
 test.describe("Landing Page — Unauthenticated", () => {
 	test.beforeEach(async ({ page }) => {
 		await page.context().clearCookies();
+
+		// Override the base-test /auth/me mock to return 401 so
+		// AuthProvider sets status="unauthenticated". Without this,
+		// the mock returns 200 (authenticated) even with cleared cookies,
+		// causing client-side redirects on /register and /login pages.
+		await page.route(/\/api\/v1\/auth\/me/, async (route) => {
+			await route.fulfill({ status: 401, body: "Unauthorized" });
+		});
 	});
 
 	test("unauthenticated user sees landing page at /", async ({ page }) => {
