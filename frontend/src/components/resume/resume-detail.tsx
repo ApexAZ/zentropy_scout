@@ -1,12 +1,11 @@
 "use client";
 
 /**
- * Resume detail page: summary editor, job/bullet reordering,
- * and education/certification/skill checkboxes.
+ * Resume detail page with toggle view (Preview/Edit) and content
+ * selection checkboxes.
  *
- * REQ-012 §9.2: Base resume editor with editable summary textarea,
- * hierarchical job/bullet inclusion checkboxes, bullet drag-and-drop
- * reordering, education/certification/skill selection, and save via PATCH.
+ * REQ-012 §9.2: Base resume editor with content selection.
+ * REQ-026 §6.1–§6.3: Toggle view delegated to ResumeContentView.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -20,12 +19,13 @@ import { orderBullets } from "@/lib/resume-helpers";
 import { showToast } from "@/lib/toast";
 import { useResumeContentSelection } from "@/hooks/use-resume-content-selection";
 import { ResumeContentCheckboxes } from "@/components/resume/resume-content-checkboxes";
+import { ResumeContentView } from "@/components/resume/resume-content-view";
+import { VariantsList } from "@/components/resume/variants-list";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FailedState } from "@/components/ui/error-states";
 import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { ReorderableList } from "@/components/ui/reorderable-list";
-import { VariantsList } from "@/components/resume/variants-list";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type {
 	Bullet,
@@ -249,6 +249,12 @@ export function ResumeDetail({
 				</div>
 				<p className="text-muted-foreground text-sm">{resume.role_type}</p>
 			</div>
+
+			{/* Toggle view: Preview/Edit or No-content prompt */}
+			<ResumeContentView
+				resumeId={resumeId}
+				markdownContent={resume.markdown_content ?? null}
+			/>
 
 			{/* Summary editor */}
 			<div className="mb-8">

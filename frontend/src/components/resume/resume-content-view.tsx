@@ -1,0 +1,168 @@
+"use client";
+
+/**
+ * Resume content toggle view: Preview, Edit, and no-content states.
+ *
+ * REQ-026 §6.1: Toggle view (Preview/Edit) with TipTap editor.
+ * REQ-026 §6.2: Action buttons per mode.
+ * REQ-026 §6.3: Content preview via read-only TipTap.
+ */
+
+import { useMemo, useState } from "react";
+import { Download, FileText, Pencil, Sparkles } from "lucide-react";
+
+import { buildUrl } from "@/lib/api-client";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { EditorStatusBar } from "@/components/editor/editor-status-bar";
+import { ResumeEditor } from "@/components/editor/resume-editor";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface ResumeContentViewProps {
+	resumeId: string;
+	markdownContent: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const ICON_CLASS = "mr-1 h-4 w-4";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function countWords(text: string): number {
+	const trimmed = text.trim();
+	if (!trimmed) return 0;
+	return trimmed.split(/\s+/).length;
+}
+
+function ExportButtons({ resumeId }: Readonly<{ resumeId: string }>) {
+	return (
+		<>
+			<Button
+				variant="outline"
+				onClick={() =>
+					window.open(
+						buildUrl(`/base-resumes/${resumeId}/export/pdf`),
+						"_blank",
+					)
+				}
+			>
+				<Download className={ICON_CLASS} />
+				Export PDF
+			</Button>
+			<Button
+				variant="outline"
+				onClick={() =>
+					window.open(
+						buildUrl(`/base-resumes/${resumeId}/export/docx`),
+						"_blank",
+					)
+				}
+			>
+				<FileText className={ICON_CLASS} />
+				Export DOCX
+			</Button>
+		</>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export function ResumeContentView({
+	resumeId,
+	markdownContent,
+}: Readonly<ResumeContentViewProps>) {
+	const [viewMode, setViewMode] = useState<"preview" | "edit">("preview");
+	const [editorContent, setEditorContent] = useState(markdownContent ?? "");
+
+	const { saveStatus } = useAutoSave({
+		content: editorContent,
+		resumeId,
+		enabled: viewMode === "edit",
+	});
+
+	const wordCount = useMemo(() => countWords(editorContent), [editorContent]);
+
+	// No-content state
+	if (!markdownContent) {
+		return (
+			<div
+				data-testid="no-content-prompt"
+				className="mb-8 flex flex-col items-center justify-center rounded-md border border-dashed py-12"
+			>
+				<p className="text-muted-foreground mb-4 text-center">
+					Generate your resume or start from a template to get started.
+				</p>
+				<div className="flex gap-2">
+					<Button variant="outline" disabled>
+						<Sparkles className={ICON_CLASS} />
+						Generate with AI
+					</Button>
+					<Button variant="outline" disabled>
+						<FileText className={ICON_CLASS} />
+						Start from Template
+					</Button>
+				</div>
+			</div>
+		);
+	}
+
+	// Content view with toggle
+	return (
+		<div className="mb-8">
+			<Tabs
+				value={viewMode}
+				onValueChange={(v) => setViewMode(v as "preview" | "edit")}
+			>
+				<TabsList>
+					<TabsTrigger value="preview">Preview</TabsTrigger>
+					<TabsTrigger value="edit">Edit</TabsTrigger>
+				</TabsList>
+				<TabsContent value="preview">
+					<div className="rounded-md border">
+						<ResumeEditor initialContent={markdownContent} editable={false} />
+					</div>
+				</TabsContent>
+				<TabsContent value="edit">
+					<div className="rounded-md border">
+						<ResumeEditor
+							initialContent={markdownContent}
+							editable={true}
+							onChange={setEditorContent}
+						/>
+						<EditorStatusBar wordCount={wordCount} saveStatus={saveStatus} />
+					</div>
+				</TabsContent>
+			</Tabs>
+
+			{/* Action buttons per mode */}
+			<div className="mt-4 flex items-center gap-2">
+				{viewMode === "preview" ? (
+					<>
+						<Button variant="outline" onClick={() => setViewMode("edit")}>
+							<Pencil className={ICON_CLASS} />
+							Edit
+						</Button>
+						<Button variant="outline" disabled>
+							<Sparkles className={ICON_CLASS} />
+							Generate with AI
+						</Button>
+					</>
+				) : (
+					<Button onClick={() => setViewMode("preview")}>Done Editing</Button>
+				)}
+				<ExportButtons resumeId={resumeId} />
+			</div>
+		</div>
+	);
+}
