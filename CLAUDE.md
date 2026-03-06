@@ -188,7 +188,7 @@ Run these checks at the start of every session AND after every compaction (befor
 **CRITICAL: Steps 1-2 are MANDATORY before ANY Read, Edit, Write, Bash, or Task calls related to implementation. This applies to fresh sessions AND post-compaction resumes. Do NOT skip ahead to "resume where we left off" — run the checklist FIRST.**
 
 1. **Docker/PostgreSQL** — Run `docker compose ps` to verify the database container is running and healthy. If not running, start it with `docker compose up -d` and wait for the healthcheck to pass.
-2. **Security gate** — Spawn the `security-triage` subagent (`general-purpose` type, model: `opus`) IMMEDIATELY — before reading any implementation files. The subagent autonomously queries all 5 scanner groups (GitHub code scanning, Dependabot, Semgrep CI, pip-audit + npm audit, SonarCloud), compares against known baselines, and investigates any new findings with zero-trust adversarial analysis. Two outcomes: (a) **CLEAR** — proceed to step 3. (b) **NEW FINDINGS** — the subagent returns structured verdicts. For **VULNERABLE**: fix immediately. For **FALSE POSITIVE**: the subagent's report includes a PROSECUTION PROTOCOL block per finding — you MUST complete every item in that protocol before dismissing. Do NOT rubber-stamp the subagent's verdict or just confirm the lines it cites. Do your own independent data flow traces as the protocol instructs. If you cannot complete the full protocol, revert the verdict to NEEDS INVESTIGATION. For **NEEDS INVESTIGATION**: escalate to user. Do NOT skip this step. Do NOT proceed to implementation until all findings are resolved.
+2. **Security gate** — Spawn the `security-triage` subagent (`general-purpose` type, model: `opus`, **foreground** — `run_in_background: false`) IMMEDIATELY — before reading any implementation files. The subagent autonomously queries all 5 scanner groups (GitHub code scanning, Dependabot, Semgrep CI, pip-audit + npm audit, SonarCloud), compares against known baselines, and investigates any new findings with zero-trust adversarial analysis. Two outcomes: (a) **CLEAR** — proceed to step 3. (b) **NEW FINDINGS** — the subagent returns structured verdicts. For **VULNERABLE**: fix immediately. For **FALSE POSITIVE**: the subagent's report includes a PROSECUTION PROTOCOL block per finding — you MUST complete every item in that protocol before dismissing. Do NOT rubber-stamp the subagent's verdict or just confirm the lines it cites. Do your own independent data flow traces as the protocol instructs. If you cannot complete the full protocol, revert the verdict to NEEDS INVESTIGATION. For **NEEDS INVESTIGATION**: escalate to user. Do NOT skip this step. Do NOT proceed to implementation until all findings are resolved.
 3. **Implementation plan** — Discover the active plan: `Glob "docs/plan/*_plan.md"`, read each to find plans with 🟡 or ⬜ tasks, or ask the user which plan is in scope. The plan references the relevant REQ documents per task.
 4. **Announce** — Tell the user: "Resuming at Phase X.Y, Task §Z" and confirm Docker + security gate status.
 
@@ -400,10 +400,11 @@ These skills auto-load when relevant. Ask about specific topics to trigger them:
 - **`req-reader`**: Always read the relevant REQ section first to get full spec context
 - **`Explore`**: If unfamiliar with the code area, explore the codebase first
 
-**AFTER completing code (run in parallel):**
+**AFTER completing code (run as foreground parallel):**
 - **`code-reviewer`** + **`security-reviewer`** + **`qa-reviewer`** + **`ui-reviewer`** (for UI subtasks): Launch simultaneously before commit
 - All are read-only — parallel execution is safe and faster
 - **`ui-reviewer`** should be included whenever the subtask touches frontend component files (`.tsx`)
+- **CRITICAL:** Use foreground calls (`run_in_background: false`), NOT background agents. Multiple foreground Agent calls in a single message run concurrently and return all results before you proceed. Background agents require unreliable polling via TaskOutput.
 
 **For open-ended questions:**
 - **`Explore`**: Use for "Where is X?", "How does Y work?", "Find all Z" queries instead of manual Glob/Grep

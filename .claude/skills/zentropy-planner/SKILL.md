@@ -208,7 +208,10 @@ This is non-negotiable because:
    → Run affected tests only (files listed in task description)
 
 4. REVIEW — PHASE 1: DISCOVERY
-   → Run in parallel:
+   → Run as **foreground parallel** calls (multiple Agent tool calls in a
+     single message, all with `run_in_background: false`). This ensures
+     all results are returned before you proceed — do NOT use background
+     agents for reviews:
      - `bandit <modified_files> -f txt`
      - `gitleaks detect`
      - `code-reviewer` subagent — list modified file paths in prompt

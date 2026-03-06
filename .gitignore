@@ -12,6 +12,9 @@ docs/secrets/
 # Database
 postgres_data/
 
+# Testing
+.hypothesis/
+
 # Python
 __pycache__/
 *.py[cod]
