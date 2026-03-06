@@ -51,7 +51,7 @@ function LinkDialog({
 	const [url, setUrl] = useState(initialUrl);
 
 	const handleSubmit = useCallback(
-		(e: React.FormEvent) => {
+		(e: React.FormEvent<HTMLFormElement>) => {
 			e.preventDefault();
 			onSubmit(url);
 		},
@@ -182,7 +182,7 @@ export function EditorToolbar({ editor }: Readonly<EditorToolbarProps>) {
 				/>
 			</div>
 
-			<div className="bg-border mx-1 h-6 w-px" role="separator" />
+			<hr className="bg-border mx-1 h-6 w-px border-none" />
 
 			{/* Headings */}
 			<div className="flex items-center gap-0.5">
@@ -224,7 +224,7 @@ export function EditorToolbar({ editor }: Readonly<EditorToolbarProps>) {
 				/>
 			</div>
 
-			<div className="bg-border mx-1 h-6 w-px" role="separator" />
+			<hr className="bg-border mx-1 h-6 w-px border-none" />
 
 			{/* Lists */}
 			<div className="flex items-center gap-0.5">
@@ -244,7 +244,7 @@ export function EditorToolbar({ editor }: Readonly<EditorToolbarProps>) {
 				/>
 			</div>
 
-			<div className="bg-border mx-1 h-6 w-px" role="separator" />
+			<hr className="bg-border mx-1 h-6 w-px border-none" />
 
 			{/* Insert */}
 			<div className="flex items-center gap-0.5">
@@ -266,7 +266,7 @@ export function EditorToolbar({ editor }: Readonly<EditorToolbarProps>) {
 				/>
 			</div>
 
-			<div className="bg-border mx-1 h-6 w-px" role="separator" />
+			<hr className="bg-border mx-1 h-6 w-px border-none" />
 
 			{/* History */}
 			<div className="flex items-center gap-0.5">
