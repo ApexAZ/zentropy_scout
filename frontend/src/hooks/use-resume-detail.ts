@@ -34,7 +34,7 @@ interface UseResumeDetailOptions {
 interface UseResumeDetailReturn {
 	isLoading: boolean;
 	resumeError: Error | null;
-	refetchResume: () => void;
+	refetchResume: () => Promise<unknown>;
 	resume: BaseResume | undefined;
 	jobs: WorkHistory[];
 	educations: Education[];
@@ -228,7 +228,7 @@ export function useResumeDetail({
 
 	return {
 		isLoading,
-		resumeError: resumeError as Error | null,
+		resumeError,
 		refetchResume,
 		resume,
 		jobs,

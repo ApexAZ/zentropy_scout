@@ -51,7 +51,7 @@ function LinkDialog({
 	const [url, setUrl] = useState(initialUrl);
 
 	const handleSubmit = useCallback(
-		(e: React.FormEvent<HTMLFormElement>) => {
+		(e: React.SyntheticEvent<HTMLFormElement>) => {
 			e.preventDefault();
 			onSubmit(url);
 		},
