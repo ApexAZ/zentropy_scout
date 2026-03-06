@@ -466,7 +466,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 20 | **Template picker + new resume dialog update** | | ⬜ |
+| 20 | **Template picker + new resume dialog update** | | ✅ 2026-03-06 |
 | | **Read:** REQ-025 §6.3 (template picker UI), REQ-026 §3.2 (new resume dialog). Existing: `frontend/src/components/resume/new-resume-wizard.tsx`. | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Create:** `frontend/src/components/editor/template-picker.tsx` | | |

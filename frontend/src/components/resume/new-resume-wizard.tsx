@@ -1,11 +1,13 @@
 "use client";
 
 /**
- * New resume creation wizard with persona item selection.
+ * New resume creation wizard with persona item selection and template picker.
  *
  * REQ-012 §9.2, §6.3.12: Form for creating a base resume —
  * name, role type, summary, hierarchical job/bullet checkboxes,
  * education/certification/skill selection, POST to /base-resumes.
+ * REQ-025 §6.3: Template selection during resume creation.
+ * REQ-026 §3.1–§3.2: Two creation paths — "Generate with AI" vs "Start from Template".
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -19,8 +21,12 @@ import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
 import { toFriendlyError } from "@/lib/form-errors";
 import { useResumeContentSelection } from "@/hooks/use-resume-content-selection";
+import {
+	CreationMethodButtons,
+	type CreationMethod,
+} from "@/components/resume/creation-method-buttons";
 import { ResumeContentCheckboxes } from "@/components/resume/resume-content-checkboxes";
-import { Button } from "@/components/ui/button";
+import { TemplatePicker } from "@/components/editor/template-picker";
 import { FailedState } from "@/components/ui/error-states";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type {
@@ -38,6 +44,9 @@ import type { BaseResume } from "@/types/resume";
 const MAX_NAME_LENGTH = 100;
 const MAX_ROLE_TYPE_LENGTH = 255;
 const MAX_SUMMARY_LENGTH = 5000;
+const LABEL_CLASSES = "mb-2 block text-sm font-medium";
+const INPUT_CLASSES =
+	"border-input bg-background w-full rounded-md border px-3 py-2 text-sm";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -121,6 +130,9 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 	const [name, setName] = useState("");
 	const [roleType, setRoleType] = useState("");
 	const [summary, setSummary] = useState("");
+	const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+		null,
+	);
 	const selection = useResumeContentSelection();
 	const [isCreating, setIsCreating] = useState(false);
 	const [defaultsInitialized, setDefaultsInitialized] = useState(false);
@@ -159,42 +171,50 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 		summary.trim().length > 0 &&
 		!isCreating;
 
-	const handleCreate = useCallback(async () => {
-		if (!canSubmit) return;
-		setIsCreating(true);
-		try {
-			const response = await apiPost<ApiResponse<BaseResume>>("/base-resumes", {
-				persona_id: personaId,
-				name: name.trim(),
-				role_type: roleType.trim(),
-				summary: summary.trim(),
-				included_jobs: selection.includedJobs,
-				included_education: selection.includedEducation,
-				included_certifications: selection.includedCertifications,
-				skills_emphasis: selection.skillsEmphasis,
-				job_bullet_selections: selection.bulletSelections,
-				job_bullet_order: selection.bulletOrder,
-			});
-			showToast.success("Resume created.");
-			await queryClient.invalidateQueries({
-				queryKey: queryKeys.baseResumes,
-			});
-			router.push(`/resumes/${response.data.id}`);
-		} catch (err) {
-			showToast.error(toFriendlyError(err));
-		} finally {
-			setIsCreating(false);
-		}
-	}, [
-		canSubmit,
-		personaId,
-		name,
-		roleType,
-		summary,
-		selection,
-		queryClient,
-		router,
-	]);
+	const handleCreate = useCallback(
+		async (method: CreationMethod) => {
+			if (!canSubmit) return;
+			setIsCreating(true);
+			try {
+				const response = await apiPost<ApiResponse<BaseResume>>(
+					"/base-resumes",
+					{
+						persona_id: personaId,
+						name: name.trim(),
+						role_type: roleType.trim(),
+						summary: summary.trim(),
+						template_id: selectedTemplateId,
+						included_jobs: selection.includedJobs,
+						included_education: selection.includedEducation,
+						included_certifications: selection.includedCertifications,
+						skills_emphasis: selection.skillsEmphasis,
+						job_bullet_selections: selection.bulletSelections,
+						job_bullet_order: selection.bulletOrder,
+					},
+				);
+				showToast.success("Resume created.");
+				await queryClient.invalidateQueries({
+					queryKey: queryKeys.baseResumes,
+				});
+				router.push(`/resumes/${response.data.id}?method=${method}`);
+			} catch (err) {
+				showToast.error(toFriendlyError(err));
+			} finally {
+				setIsCreating(false);
+			}
+		},
+		[
+			canSubmit,
+			personaId,
+			name,
+			roleType,
+			summary,
+			selectedTemplateId,
+			selection,
+			queryClient,
+			router,
+		],
+	);
 
 	// -----------------------------------------------------------------------
 	// Loading / Error states
@@ -242,7 +262,7 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 
 			{/* Name */}
 			<div className="mb-6">
-				<label htmlFor="resume-name" className="mb-2 block text-sm font-medium">
+				<label htmlFor="resume-name" className={LABEL_CLASSES}>
 					Name
 				</label>
 				<input
@@ -252,16 +272,13 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 					onChange={(e) => setName(e.target.value)}
 					maxLength={MAX_NAME_LENGTH}
 					placeholder="e.g. Scrum Master"
-					className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+					className={INPUT_CLASSES}
 				/>
 			</div>
 
 			{/* Role Type */}
 			<div className="mb-6">
-				<label
-					htmlFor="resume-role-type"
-					className="mb-2 block text-sm font-medium"
-				>
+				<label htmlFor="resume-role-type" className={LABEL_CLASSES}>
 					Role Type
 				</label>
 				<input
@@ -271,16 +288,13 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 					onChange={(e) => setRoleType(e.target.value)}
 					maxLength={MAX_ROLE_TYPE_LENGTH}
 					placeholder="e.g. Scrum Master roles"
-					className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+					className={INPUT_CLASSES}
 				/>
 			</div>
 
 			{/* Summary */}
 			<div className="mb-8">
-				<label
-					htmlFor="resume-summary"
-					className="mb-2 block text-sm font-medium"
-				>
+				<label htmlFor="resume-summary" className={LABEL_CLASSES}>
 					Summary
 				</label>
 				<textarea
@@ -290,7 +304,16 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 					rows={5}
 					maxLength={MAX_SUMMARY_LENGTH}
 					placeholder="Professional summary for this resume..."
-					className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+					className={INPUT_CLASSES}
+				/>
+			</div>
+
+			{/* Template picker */}
+			<div className="mb-8">
+				<h2 className="mb-3 text-sm font-medium">Template</h2>
+				<TemplatePicker
+					selectedId={selectedTemplateId}
+					onSelect={setSelectedTemplateId}
 				/>
 			</div>
 
@@ -303,19 +326,12 @@ export function NewResumeWizard({ personaId }: Readonly<NewResumeWizardProps>) {
 				selection={selection}
 			/>
 
-			{/* Submit */}
-			<div className="flex items-center gap-2">
-				<Button onClick={handleCreate} disabled={!canSubmit}>
-					{isCreating ? (
-						<>
-							<Loader2 className="mr-1 h-4 w-4 animate-spin" />
-							Creating...
-						</>
-					) : (
-						"Create Resume"
-					)}
-				</Button>
-			</div>
+			{/* Creation method */}
+			<CreationMethodButtons
+				isCreating={isCreating}
+				canSubmit={canSubmit}
+				onCreate={handleCreate}
+			/>
 		</div>
 	);
 }

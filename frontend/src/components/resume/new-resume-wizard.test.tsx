@@ -43,6 +43,9 @@ const SKILL_2_LABEL = "Python";
 const BULLET_TEXT_AGILE = "Led agile transformation";
 const BULLET_TEXT_BACKLOG = "Managed backlog refinement";
 const CREATED_RESUME_ID = "r-new-1";
+const TEMPLATE_ID_1 = "tmpl-1";
+const TEMPLATE_ID_2 = "tmpl-2";
+const TEMPLATES_API_PATH = "/resume-templates";
 
 // ---------------------------------------------------------------------------
 // Factories
@@ -190,6 +193,33 @@ const MOCK_SKILLS_RESPONSE = {
 	meta: { total: 2, page: 1, per_page: 20, total_pages: 1 },
 };
 
+const MOCK_TEMPLATES_RESPONSE = {
+	templates: [
+		{
+			id: TEMPLATE_ID_1,
+			name: "Clean & Minimal",
+			description: "A clean layout",
+			markdown_content: "# Template 1",
+			is_system: true,
+			user_id: null,
+			display_order: 0,
+			created_at: "2026-01-01T00:00:00Z",
+			updated_at: "2026-01-01T00:00:00Z",
+		},
+		{
+			id: TEMPLATE_ID_2,
+			name: "Professional",
+			description: "A professional layout",
+			markdown_content: "# Template 2",
+			is_system: true,
+			user_id: null,
+			display_order: 1,
+			created_at: "2026-01-01T00:00:00Z",
+			updated_at: "2026-01-01T00:00:00Z",
+		},
+	],
+};
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -265,6 +295,7 @@ function setupMockApi(
 	educationResponse: unknown = MOCK_EDUCATION_RESPONSE,
 	certificationsResponse: unknown = MOCK_CERTIFICATIONS_RESPONSE,
 	skillsResponse: unknown = MOCK_SKILLS_RESPONSE,
+	templatesResponse: unknown = MOCK_TEMPLATES_RESPONSE,
 ) {
 	mocks.mockApiGet.mockImplementation((path: string) => {
 		if (path === WORK_HISTORY_API_PATH)
@@ -273,6 +304,7 @@ function setupMockApi(
 		if (path === CERTIFICATIONS_API_PATH)
 			return Promise.resolve(certificationsResponse);
 		if (path === SKILLS_API_PATH) return Promise.resolve(skillsResponse);
+		if (path === TEMPLATES_API_PATH) return Promise.resolve(templatesResponse);
 		return Promise.resolve({ data: [] });
 	});
 }
@@ -540,7 +572,9 @@ describe("NewResumeWizard", () => {
 				screen.getByRole("textbox", { name: /summary/i }),
 				"Professional summary.",
 			);
-			await user.click(screen.getByRole("button", { name: /create resume/i }));
+			await user.click(
+				screen.getByRole("button", { name: /start from template/i }),
+			);
 		}
 
 		it("sends POST with form data on submit", async () => {
@@ -613,7 +647,7 @@ describe("NewResumeWizard", () => {
 				expect(mocks.mockShowToast.success).toHaveBeenCalled();
 			});
 			expect(mocks.mockPush).toHaveBeenCalledWith(
-				`/resumes/${CREATED_RESUME_ID}`,
+				`/resumes/${CREATED_RESUME_ID}?method=template_fill`,
 			);
 		});
 
@@ -635,7 +669,7 @@ describe("NewResumeWizard", () => {
 			});
 		});
 
-		it("disables submit button while creating", async () => {
+		it("disables creation buttons while creating", async () => {
 			const user = userEvent.setup();
 			mocks.mockApiPost.mockReturnValue(new Promise(() => {}));
 			setupMockApi();
@@ -647,22 +681,159 @@ describe("NewResumeWizard", () => {
 			await fillAndSubmit(user);
 
 			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /creating/i }),
-				).toBeDisabled();
+				const creatingButtons = screen.getAllByRole("button", {
+					name: /creating/i,
+				});
+				for (const btn of creatingButtons) {
+					expect(btn).toBeDisabled();
+				}
+			});
+		});
+	});
+
+	describe("template picker", () => {
+		it("renders the template picker", async () => {
+			setupMockApi();
+			renderWizard();
+			await waitFor(() => {
+				expect(screen.getByText("Clean & Minimal")).toBeInTheDocument();
 			});
 		});
 
-		it("disables submit when required fields are empty", async () => {
+		it("pre-selects the first template by default", async () => {
+			setupMockApi();
+			renderWizard();
+			await waitFor(() => {
+				expect(screen.getByText("Clean & Minimal")).toBeInTheDocument();
+			});
+			const firstCard = screen.getByTestId(`template-card-${TEMPLATE_ID_1}`);
+			expect(firstCard).toHaveAttribute("aria-selected", "true");
+		});
+
+		it("allows selecting a different template", async () => {
+			const user = userEvent.setup();
+			setupMockApi();
+			renderWizard();
+			await waitFor(() => {
+				expect(screen.getByText("Professional")).toBeInTheDocument();
+			});
+			await user.click(screen.getByTestId(`template-card-${TEMPLATE_ID_2}`));
+			expect(
+				screen.getByTestId(`template-card-${TEMPLATE_ID_2}`),
+			).toHaveAttribute("aria-selected", "true");
+			expect(
+				screen.getByTestId(`template-card-${TEMPLATE_ID_1}`),
+			).toHaveAttribute("aria-selected", "false");
+		});
+	});
+
+	describe("creation method", () => {
+		it("renders both creation method cards", async () => {
 			setupMockApi();
 			renderWizard();
 			await waitFor(() => {
 				expect(
-					screen.getByRole("button", { name: /create resume/i }),
+					screen.getByRole("button", { name: /generate with ai/i }),
 				).toBeInTheDocument();
 			});
 			expect(
-				screen.getByRole("button", { name: /create resume/i }),
+				screen.getByRole("button", { name: /start from template/i }),
+			).toBeInTheDocument();
+		});
+
+		async function setupAndFillForm() {
+			const user = userEvent.setup();
+			mocks.mockApiPost.mockResolvedValue({
+				data: { id: CREATED_RESUME_ID },
+			});
+			setupMockApi();
+			renderWizard();
+			await waitFor(() => {
+				expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+			});
+			await user.type(screen.getByLabelText(/name/i), "Scrum Master");
+			await user.type(
+				screen.getByLabelText(/role type/i),
+				"Scrum Master roles",
+			);
+			await user.type(
+				screen.getByRole("textbox", { name: /summary/i }),
+				"Professional summary.",
+			);
+			return user;
+		}
+
+		it("includes template_id in POST for 'Start from Template'", async () => {
+			const user = await setupAndFillForm();
+			await user.click(
+				screen.getByRole("button", { name: /start from template/i }),
+			);
+
+			await waitFor(() => {
+				expect(mocks.mockApiPost).toHaveBeenCalledWith(
+					CREATE_API_PATH,
+					expect.objectContaining({
+						template_id: TEMPLATE_ID_1,
+					}),
+				);
+			});
+		});
+
+		it("includes template_id in POST for 'Generate with AI'", async () => {
+			const user = await setupAndFillForm();
+			await user.click(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			);
+
+			await waitFor(() => {
+				expect(mocks.mockApiPost).toHaveBeenCalledWith(
+					CREATE_API_PATH,
+					expect.objectContaining({
+						template_id: TEMPLATE_ID_1,
+					}),
+				);
+			});
+		});
+
+		it("navigates to resume page with generation method after 'Start from Template'", async () => {
+			const user = await setupAndFillForm();
+			await user.click(
+				screen.getByRole("button", { name: /start from template/i }),
+			);
+
+			await waitFor(() => {
+				expect(mocks.mockPush).toHaveBeenCalledWith(
+					`/resumes/${CREATED_RESUME_ID}?method=template_fill`,
+				);
+			});
+		});
+
+		it("navigates to resume page with generation method after 'Generate with AI'", async () => {
+			const user = await setupAndFillForm();
+			await user.click(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			);
+
+			await waitFor(() => {
+				expect(mocks.mockPush).toHaveBeenCalledWith(
+					`/resumes/${CREATED_RESUME_ID}?method=ai`,
+				);
+			});
+		});
+
+		it("disables both creation buttons when required fields are empty", async () => {
+			setupMockApi();
+			renderWizard();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /generate with ai/i }),
+				).toBeInTheDocument();
+			});
+			expect(
+				screen.getByRole("button", { name: /generate with ai/i }),
+			).toBeDisabled();
+			expect(
+				screen.getByRole("button", { name: /start from template/i }),
 			).toBeDisabled();
 		});
 	});

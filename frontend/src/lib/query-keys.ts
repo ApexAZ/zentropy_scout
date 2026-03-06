@@ -24,6 +24,7 @@ export const queryKeys = {
 	changeFlags: ["change-flags"] as const,
 	baseResumes: [BASE_RESUMES] as const,
 	jobSources: ["job-sources"] as const,
+	resumeTemplates: ["resume-templates"] as const,
 
 	// Detail keys
 	persona: (id: string) => [PERSONAS, id] as const,

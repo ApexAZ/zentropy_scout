@@ -57,6 +57,28 @@ export const GUARDRAIL_SEVERITIES: readonly GuardrailSeverity[] = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// Resume template
+// ---------------------------------------------------------------------------
+
+/**
+ * Resume template for the template picker.
+ *
+ * Backend: ResumeTemplate model (resume_template.py).
+ * REQ-025 §4.3, §6.3: Template selection during resume creation.
+ */
+export interface ResumeTemplate {
+	id: string;
+	name: string;
+	description: string | null;
+	markdown_content: string;
+	is_system: boolean;
+	user_id: string | null;
+	display_order: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
 // Sub-entity interfaces
 // ---------------------------------------------------------------------------
 
