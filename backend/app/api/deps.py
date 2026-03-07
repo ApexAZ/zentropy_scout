@@ -25,7 +25,11 @@ from app.core.database import get_db
 from app.core.errors import AdminRequiredError, InsufficientBalanceError
 from app.models import User
 from app.providers.embedding.base import EmbeddingProvider
-from app.providers.factory import get_embedding_provider, get_llm_provider
+from app.providers.factory import (
+    get_embedding_provider,
+    get_llm_provider,
+    get_llm_registry,
+)
 from app.providers.llm.base import LLMProvider
 from app.providers.metered_provider import MeteredEmbeddingProvider, MeteredLLMProvider
 from app.services.admin_config_service import AdminConfigService
@@ -241,9 +245,10 @@ def get_metered_provider(
     if not settings.metering_enabled:
         return get_llm_provider()
     inner = get_llm_provider()
+    registry = get_llm_registry()
     admin_config = AdminConfigService(db)
     metering_service = MeteringService(db, admin_config)
-    return MeteredLLMProvider(inner, metering_service, admin_config, user_id)
+    return MeteredLLMProvider(inner, registry, metering_service, admin_config, user_id)
 
 
 def get_metered_embedding_provider(

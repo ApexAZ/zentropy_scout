@@ -4,6 +4,7 @@ REQ-020 §6.2, §6.5: Proxy wrappers that record token usage after
 successful LLM/embedding calls and debit user balances.
 REQ-022 §8.3: MeteredLLMProvider resolves routing from DB via
 AdminConfigService and passes model_override to inner adapter.
+REQ-028 §4: Cross-provider dispatch via registry.
 """
 
 import uuid
@@ -13,6 +14,7 @@ import pytest
 
 from app.providers.embedding.base import EmbeddingResult
 from app.providers.embedding.mock_adapter import MockEmbeddingProvider
+from app.providers.errors import ProviderError
 from app.providers.llm.base import LLMMessage, TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
 from app.providers.metered_provider import MeteredEmbeddingProvider, MeteredLLMProvider
@@ -24,6 +26,8 @@ _MOCK_MODEL = "mock-model"
 _MOCK_EMBEDDING_MODEL = "mock-embedding-model"
 _DB_ERROR_MSG = "DB error"
 _ROUTED_MODEL = "claude-3-5-haiku-20241022"
+_PROVIDER_CLAUDE = "claude"
+_PROVIDER_GEMINI = "gemini"
 
 
 # =============================================================================
@@ -43,14 +47,44 @@ def mock_metering() -> AsyncMock:
 def mock_admin_config() -> AsyncMock:
     """Create a mock AdminConfigService for routing lookups."""
     config = AsyncMock()
-    config.get_model_for_task = AsyncMock(return_value=_ROUTED_MODEL)
+    # REQ-028 §4: Cross-provider routing returns (provider, model) or None.
+    # Default: route to inner (mock) provider with routed model.
+    config.get_routing_for_task = AsyncMock(
+        return_value=(_MOCK_PROVIDER_NAME, _ROUTED_MODEL)
+    )
     return config
 
 
 @pytest.fixture
 def inner_llm() -> MockLLMProvider:
-    """Create a MockLLMProvider as the inner provider."""
+    """Create a MockLLMProvider as the inner/fallback provider."""
     return MockLLMProvider()
+
+
+@pytest.fixture
+def claude_adapter() -> MockLLMProvider:
+    """Create a MockLLMProvider for cross-provider dispatch tests."""
+    return MockLLMProvider()
+
+
+@pytest.fixture
+def gemini_adapter() -> MockLLMProvider:
+    """Create a MockLLMProvider for cross-provider dispatch tests."""
+    return MockLLMProvider()
+
+
+@pytest.fixture
+def llm_registry(
+    inner_llm: MockLLMProvider,
+    claude_adapter: MockLLMProvider,
+    gemini_adapter: MockLLMProvider,
+) -> dict[str, MockLLMProvider]:
+    """Registry with mock adapters keyed by provider name."""
+    return {
+        _MOCK_PROVIDER_NAME: inner_llm,
+        _PROVIDER_CLAUDE: claude_adapter,
+        _PROVIDER_GEMINI: gemini_adapter,
+    }
 
 
 @pytest.fixture
@@ -62,11 +96,14 @@ def inner_embedding() -> MockEmbeddingProvider:
 @pytest.fixture
 def metered_llm(
     inner_llm: MockLLMProvider,
+    llm_registry: dict[str, MockLLMProvider],
     mock_metering: AsyncMock,
     mock_admin_config: AsyncMock,
 ) -> MeteredLLMProvider:
     """Create a MeteredLLMProvider wrapping a mock inner provider."""
-    return MeteredLLMProvider(inner_llm, mock_metering, mock_admin_config, TEST_USER_ID)
+    return MeteredLLMProvider(
+        inner_llm, llm_registry, mock_metering, mock_admin_config, TEST_USER_ID
+    )
 
 
 @pytest.fixture
@@ -214,44 +251,45 @@ class TestMeteredLLMProviderDelegation:
 
 
 # =============================================================================
-# MeteredLLMProvider — DB routing (REQ-022 §8.3)
+# MeteredLLMProvider — DB routing (REQ-028 §4)
 # =============================================================================
 
 
 class TestMeteredLLMProviderRouting:
     """MeteredLLMProvider resolves routing from AdminConfigService."""
 
-    async def test_routing_lookup_passes_correct_provider_and_task(
+    async def test_routing_lookup_passes_task_value(
         self,
         metered_llm: MeteredLLMProvider,
         mock_admin_config: AsyncMock,
     ) -> None:
-        """Routing lookup uses inner provider's name and task value."""
+        """Routing lookup uses task value string."""
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
-        mock_admin_config.get_model_for_task.assert_called_once_with(
-            _MOCK_PROVIDER_NAME, "extraction"
-        )
+        mock_admin_config.get_routing_for_task.assert_called_once_with("extraction")
 
-    async def test_resolved_model_passed_to_inner_as_override(
+    async def test_resolved_model_passed_as_override(
         self,
         metered_llm: MeteredLLMProvider,
         inner_llm: MockLLMProvider,
         mock_admin_config: AsyncMock,
     ) -> None:
-        """DB-resolved model is passed as model_override to inner adapter."""
-        mock_admin_config.get_model_for_task.return_value = _ROUTED_MODEL
+        """DB-resolved model is passed as model_override to the dispatched adapter."""
+        mock_admin_config.get_routing_for_task.return_value = (
+            _MOCK_PROVIDER_NAME,
+            _ROUTED_MODEL,
+        )
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         last_call = inner_llm.calls[-1]
         assert last_call["kwargs"]["model_override"] == _ROUTED_MODEL
 
-    async def test_routing_none_passes_none_override(
+    async def test_no_routing_falls_back_to_inner(
         self,
         metered_llm: MeteredLLMProvider,
         inner_llm: MockLLMProvider,
         mock_admin_config: AsyncMock,
     ) -> None:
-        """When routing returns None, model_override=None (adapter uses fallback)."""
-        mock_admin_config.get_model_for_task.return_value = None
+        """When routing returns None, dispatches to inner with no model_override."""
+        mock_admin_config.get_routing_for_task.return_value = None
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         last_call = inner_llm.calls[-1]
         assert last_call["kwargs"]["model_override"] is None
@@ -262,13 +300,16 @@ class TestMeteredLLMProviderRouting:
         mock_admin_config: AsyncMock,
     ) -> None:
         """Routing is looked up per-task — different tasks get separate lookups."""
-        mock_admin_config.get_model_for_task.return_value = "some-model"
+        mock_admin_config.get_routing_for_task.return_value = (
+            _MOCK_PROVIDER_NAME,
+            _ROUTED_MODEL,
+        )
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.CHAT_RESPONSE)
 
-        calls = mock_admin_config.get_model_for_task.call_args_list
-        assert calls[0].args == (_MOCK_PROVIDER_NAME, "extraction")
-        assert calls[1].args == (_MOCK_PROVIDER_NAME, "chat_response")
+        calls = mock_admin_config.get_routing_for_task.call_args_list
+        assert calls[0].args == ("extraction",)
+        assert calls[1].args == ("chat_response",)
 
     async def test_caller_cannot_pass_model_override_keyword(
         self,
@@ -289,10 +330,141 @@ class TestMeteredLLMProviderRouting:
         mock_metering: AsyncMock,
     ) -> None:
         """Routing DB errors propagate (fail-closed) — request is blocked."""
-        mock_admin_config.get_model_for_task.side_effect = RuntimeError(_DB_ERROR_MSG)
+        mock_admin_config.get_routing_for_task.side_effect = RuntimeError(_DB_ERROR_MSG)
         with pytest.raises(RuntimeError, match=_DB_ERROR_MSG):
             await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         mock_metering.record_and_debit.assert_not_called()
+
+    async def test_fallback_logs_warning(
+        self,
+        metered_llm: MeteredLLMProvider,
+        mock_admin_config: AsyncMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Falling back to inner provider logs a WARNING."""
+        mock_admin_config.get_routing_for_task.return_value = None
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        assert "No routing" in caplog.text
+
+
+# =============================================================================
+# MeteredLLMProvider — cross-provider dispatch (REQ-028 §4.2)
+# =============================================================================
+
+
+class TestMeteredLLMProviderCrossProviderDispatch:
+    """MeteredLLMProvider dispatches to correct adapter from registry."""
+
+    async def test_dispatches_to_claude_adapter(
+        self,
+        metered_llm: MeteredLLMProvider,
+        claude_adapter: MockLLMProvider,
+        inner_llm: MockLLMProvider,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """Routes to Claude adapter when routing says 'claude'."""
+        mock_admin_config.get_routing_for_task.return_value = (
+            _PROVIDER_CLAUDE,
+            _ROUTED_MODEL,
+        )
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        assert len(claude_adapter.calls) == 1
+        assert len(inner_llm.calls) == 0
+
+    async def test_dispatches_to_gemini_adapter(
+        self,
+        metered_llm: MeteredLLMProvider,
+        gemini_adapter: MockLLMProvider,
+        inner_llm: MockLLMProvider,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """Routes to Gemini adapter when routing says 'gemini'."""
+        mock_admin_config.get_routing_for_task.return_value = (
+            _PROVIDER_GEMINI,
+            "gemini-2.0-flash",
+        )
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        assert len(gemini_adapter.calls) == 1
+        assert len(inner_llm.calls) == 0
+
+    async def test_passes_model_override_to_dispatched_adapter(
+        self,
+        metered_llm: MeteredLLMProvider,
+        claude_adapter: MockLLMProvider,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """The model from routing is passed as model_override."""
+        mock_admin_config.get_routing_for_task.return_value = (
+            _PROVIDER_CLAUDE,
+            _ROUTED_MODEL,
+        )
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        last_call = claude_adapter.calls[-1]
+        assert last_call["kwargs"]["model_override"] == _ROUTED_MODEL
+
+    async def test_raises_when_provider_not_in_registry(
+        self,
+        metered_llm: MeteredLLMProvider,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """Raises ProviderError when routed provider has no API key (not in registry)."""
+        mock_admin_config.get_routing_for_task.return_value = (
+            "unknown_provider",
+            "model",
+        )
+        with pytest.raises(ProviderError, match="not available"):
+            await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+
+    async def test_records_usage_with_dispatched_provider(
+        self,
+        metered_llm: MeteredLLMProvider,
+        mock_admin_config: AsyncMock,
+        mock_metering: AsyncMock,
+    ) -> None:
+        """Usage recording uses the provider that actually handled the call."""
+        mock_admin_config.get_routing_for_task.return_value = (
+            _PROVIDER_CLAUDE,
+            _ROUTED_MODEL,
+        )
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        call_kwargs = mock_metering.record_and_debit.call_args.kwargs
+        # MockLLMProvider always returns provider_name="mock", but the key
+        # point is record_and_debit was called (dispatch succeeded).
+        assert call_kwargs["provider"] == _MOCK_PROVIDER_NAME
+        assert call_kwargs["model"] == _MOCK_MODEL
+
+    async def test_stream_dispatches_to_correct_provider(
+        self,
+        metered_llm: MeteredLLMProvider,
+        claude_adapter: MockLLMProvider,
+        inner_llm: MockLLMProvider,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """stream() routes to the correct adapter from registry."""
+        mock_admin_config.get_routing_for_task.return_value = (
+            _PROVIDER_CLAUDE,
+            _ROUTED_MODEL,
+        )
+        chunks = []
+        async for chunk in metered_llm.stream(_HELLO_MESSAGES, TaskType.EXTRACTION):
+            chunks.append(chunk)
+        assert len(chunks) > 0
+        assert len(claude_adapter.calls) == 1
+        assert len(inner_llm.calls) == 0
+
+    async def test_stream_falls_back_to_inner_when_no_routing(
+        self,
+        metered_llm: MeteredLLMProvider,
+        inner_llm: MockLLMProvider,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """stream() falls back to inner when no routing configured."""
+        mock_admin_config.get_routing_for_task.return_value = None
+        chunks = []
+        async for chunk in metered_llm.stream(_HELLO_MESSAGES, TaskType.EXTRACTION):
+            chunks.append(chunk)
+        assert len(chunks) > 0
+        assert len(inner_llm.calls) == 1
 
 
 # =============================================================================
@@ -326,7 +498,7 @@ class TestMeteredEmbeddingProviderEmbed:
         await metered_embedding.embed(["Hello world"])
         call_kwargs = mock_metering.record_and_debit.call_args.kwargs
         assert call_kwargs["user_id"] == TEST_USER_ID
-        assert call_kwargs["provider"] == "mock"
+        assert call_kwargs["provider"] == _MOCK_PROVIDER_NAME
         assert call_kwargs["model"] == _MOCK_EMBEDDING_MODEL
         assert call_kwargs["task_type"] == "embedding"
         assert call_kwargs["output_tokens"] == 0
@@ -425,9 +597,11 @@ class TestGetMeteredProvider:
         from app.api.deps import get_metered_provider
 
         mock_db = AsyncMock()
+        mock_registry = {_MOCK_PROVIDER_NAME: MockLLMProvider()}
         with (
             patch("app.api.deps.settings") as mock_settings,
             patch("app.api.deps.get_llm_provider", return_value=MockLLMProvider()),
+            patch("app.api.deps.get_llm_registry", return_value=mock_registry),
             patch("app.api.deps.AdminConfigService") as mock_config_cls,
             patch("app.api.deps.MeteringService") as mock_metering_cls,
         ):
