@@ -277,7 +277,7 @@ export function ResumeContentView({
 				) : (
 					<Button onClick={() => setViewMode("preview")}>Done Editing</Button>
 				)}
-				<ExportButtons resumeId={resumeId} />
+				<ExportButtons exportBasePath={`/base-resumes/${resumeId}`} />
 			</div>
 		</div>
 	);

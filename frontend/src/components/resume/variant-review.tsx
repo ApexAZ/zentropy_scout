@@ -13,27 +13,27 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { apiDelete, apiGet, apiPost } from "@/lib/api-client";
 import { computeBulletMoves, computeWordDiff } from "@/lib/diff-utils";
-import type { DiffToken } from "@/lib/diff-utils";
 import { queryKeys } from "@/lib/query-keys";
 import { orderBullets } from "@/lib/resume-helpers";
 import { showToast } from "@/lib/toast";
+import { DiffView } from "@/components/editor/diff-view";
+import { DiffText } from "@/components/resume/diff-text";
+import { ExportButtons } from "@/components/resume/export-buttons";
+import { GuardrailViolationBanner } from "@/components/resume/guardrail-violation-banner";
 import { AgentReasoning } from "@/components/ui/agent-reasoning";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { FailedState } from "@/components/ui/error-states";
+import { StatusBadge } from "@/components/ui/status-badge";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type { PersonaJobResponse } from "@/types/job";
 import type { WorkHistory } from "@/types/persona";
-import type {
-	BaseResume,
-	GuardrailViolation,
-	JobVariant,
-} from "@/types/resume";
+import type { BaseResume, JobVariant } from "@/types/resume";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,88 +44,6 @@ interface VariantReviewProps {
 	variantId: string;
 	personaId: string;
 	hideActions?: boolean;
-}
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** CSS classes for diff token highlighting keyed by token type. */
-const DIFF_CLASS_MAP: Readonly<Record<string, string | undefined>> = {
-	same: undefined,
-	added: "bg-success/20 text-success",
-	removed: "bg-destructive/20 text-destructive line-through",
-};
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function DiffText({
-	tokens,
-	side,
-}: Readonly<{
-	tokens: DiffToken[];
-	side: "base" | "variant";
-}>) {
-	const filtered =
-		side === "base"
-			? tokens.filter((t) => t.type !== "added")
-			: tokens.filter((t) => t.type !== "removed");
-
-	return (
-		<p className="text-sm leading-relaxed">
-			{filtered.map((token, idx) => {
-				const diffType = token.type === "same" ? undefined : token.type;
-
-				const className = DIFF_CLASS_MAP[token.type];
-
-				return (
-					<span key={`${token.type}-${idx}`}>
-						{idx > 0 ? " " : ""}
-						<span data-diff={diffType} className={className}>
-							{token.text}
-						</span>
-					</span>
-				);
-			})}
-		</p>
-	);
-}
-
-function GuardrailViolationBanner({
-	violations,
-}: Readonly<{
-	violations: GuardrailViolation[];
-}>) {
-	return (
-		<div
-			data-testid="guardrail-violations"
-			role="alert"
-			className="border-destructive/20 bg-destructive/10 mt-4 rounded-lg border p-4"
-		>
-			<div className="mb-2 flex items-center gap-2">
-				<AlertTriangle className="text-destructive h-4 w-4" />
-				<span className="text-destructive text-sm font-semibold">
-					Guardrail Violation
-				</span>
-			</div>
-			<ul className="text-destructive mb-3 list-disc space-y-1 pl-5 text-sm">
-				{violations.map((v) => (
-					<li key={v.rule}>{v.message}</li>
-				))}
-			</ul>
-			<div className="flex items-center gap-2">
-				<Link
-					href="/persona"
-					data-testid="go-to-persona-link"
-					className="text-destructive hover:text-destructive/80 text-sm font-medium underline"
-				>
-					Go to Persona
-				</Link>
-			</div>
-		</div>
-	);
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +58,7 @@ export function VariantReview({
 }: Readonly<VariantReviewProps>) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
+	const [showApproveDialog, setShowApproveDialog] = useState(false);
 	const [isApproving, setIsApproving] = useState(false);
 	const [showArchiveDialog, setShowArchiveDialog] = useState(false);
 	const [isArchiving, setIsArchiving] = useState(false);
@@ -226,11 +145,18 @@ export function VariantReview({
 		(v) => v.severity === "error",
 	);
 
+	const isDraft = variant?.status === "Draft";
+
+	const hasMarkdownDiff =
+		!!resume?.markdown_content &&
+		!!variant?.markdown_content &&
+		resume.markdown_content !== variant.markdown_content;
+
 	// -----------------------------------------------------------------------
 	// Handlers
 	// -----------------------------------------------------------------------
 
-	const handleApprove = useCallback(async () => {
+	const handleApproveConfirm = useCallback(async () => {
 		setIsApproving(true);
 		try {
 			await apiPost(`/job-variants/${variantId}/approve`);
@@ -243,6 +169,7 @@ export function VariantReview({
 			showToast.error("Failed to approve variant.");
 		} finally {
 			setIsApproving(false);
+			setShowApproveDialog(false);
 		}
 	}, [variantId, baseResumeId, queryClient, router]);
 
@@ -302,13 +229,14 @@ export function VariantReview({
 						<ArrowLeft className="h-5 w-5" />
 					</Link>
 					<h1 className="text-xl font-semibold">{headerTitle}</h1>
+					<StatusBadge status={variant.status} />
 				</div>
 			)}
 
 			{/* Side-by-side comparison */}
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 				{/* Base panel */}
-				<div data-testid="base-panel" className="rounded-lg border p-4">
+				<div data-testid="base-panel" className="bg-card rounded-lg border p-4">
 					<h2 className="mb-3 font-semibold">Base Resume</h2>
 
 					{/* Summary diff (base side) */}
@@ -347,7 +275,10 @@ export function VariantReview({
 				</div>
 
 				{/* Variant panel */}
-				<div data-testid="variant-panel" className="rounded-lg border p-4">
+				<div
+					data-testid="variant-panel"
+					className="bg-card rounded-lg border p-4"
+				>
 					<h2 className="mb-3 font-semibold">Tailored Variant</h2>
 
 					{/* Summary diff (variant side) */}
@@ -399,6 +330,16 @@ export function VariantReview({
 				</div>
 			</div>
 
+			{/* Markdown diff (REQ-027 §4.1–§4.4) — LLM-generated variants only */}
+			{hasMarkdownDiff && (
+				<div className="mt-6">
+					<DiffView
+						masterMarkdown={resume.markdown_content ?? ""}
+						variantMarkdown={variant.markdown_content ?? ""}
+					/>
+				</div>
+			)}
+
 			{/* Agent Reasoning (§8.7) */}
 			{variant.agent_reasoning && (
 				<AgentReasoning reasoning={variant.agent_reasoning} />
@@ -412,16 +353,28 @@ export function VariantReview({
 			{/* Actions (hidden when embedded in unified review) */}
 			{!hideActions && (
 				<>
-					<div className="mt-6 flex items-center gap-3">
-						<Button
-							onClick={handleApprove}
-							disabled={isApproving || hasGuardrailErrors}
-						>
-							{isApproving ? "Approving..." : "Approve"}
-						</Button>
-						<Button variant="outline" disabled={!hasGuardrailErrors}>
-							Regenerate
-						</Button>
+					<div className="mt-6 flex flex-wrap items-center gap-3">
+						{isDraft && (
+							<>
+								<Button
+									onClick={() => setShowApproveDialog(true)}
+									disabled={isApproving || hasGuardrailErrors}
+								>
+									Approve
+								</Button>
+								<Button variant="outline" disabled={!hasGuardrailErrors}>
+									Regenerate
+								</Button>
+								<Button variant="outline" asChild>
+									<Link
+										href={`/resumes/${baseResumeId}/variants/${variantId}/edit`}
+										aria-label="Edit"
+									>
+										Edit
+									</Link>
+								</Button>
+							</>
+						)}
 						<Button
 							variant="ghost"
 							onClick={() => setShowArchiveDialog(true)}
@@ -429,7 +382,20 @@ export function VariantReview({
 						>
 							Archive
 						</Button>
+						<ExportButtons exportBasePath={`/job-variants/${variantId}`} />
 					</div>
+
+					<ConfirmationDialog
+						open={showApproveDialog}
+						onOpenChange={(open) => {
+							if (!open) setShowApproveDialog(false);
+						}}
+						title="Approve Variant"
+						description="Approve this variant? It will be locked for editing."
+						confirmLabel="Approve"
+						loading={isApproving}
+						onConfirm={handleApproveConfirm}
+					/>
 
 					<ConfirmationDialog
 						open={showArchiveDialog}

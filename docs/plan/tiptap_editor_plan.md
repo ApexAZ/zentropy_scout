@@ -591,7 +591,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 26 | **Install diff package + DiffView component** | | ⬜ |
+| 26 | **Install diff package + DiffView component** | | ✅ 2026-03-06 |
 | | **Read:** REQ-027 §4.1–§4.4 (when to show diff, layout, highlighting, implementation). | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Install:** `npm install diff` (by kpdecker, standard word-level diff library) | | |
@@ -606,7 +606,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Diff highlights additions/removals/modifications, handles empty docs, fallback on error | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** DiffView renders word-level diff with color highlighting. Tests pass. | | |
-| 27 | **Variant review page + approval actions** | | ⬜ |
+| 27 | **Variant review page + approval actions** | | ✅ |
 | | **Read:** REQ-027 §4.5 (diff actions), §5.1–§5.3 (approval flow, post-approval, state machine). Existing: `frontend/src/app/(main)/resumes/[id]/variants/[variantId]/review/page.tsx`. | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Create/update:** Variant review page | | |

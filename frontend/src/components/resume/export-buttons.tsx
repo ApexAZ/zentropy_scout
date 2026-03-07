@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Export buttons for downloading resume as PDF or DOCX.
+ * Export buttons for downloading resume or variant as PDF or DOCX.
  *
- * REQ-026 §6.2: Action buttons per mode include export options.
+ * REQ-026 §6.2, REQ-027 §4.5: Action buttons include export options.
  */
 
 import { Download, FileText } from "lucide-react";
@@ -15,14 +15,16 @@ import { Button } from "@/components/ui/button";
 // Component
 // ---------------------------------------------------------------------------
 
-export function ExportButtons({ resumeId }: Readonly<{ resumeId: string }>) {
+export function ExportButtons({
+	exportBasePath,
+}: Readonly<{ exportBasePath: string }>) {
 	return (
 		<>
 			<Button
 				variant="outline"
 				onClick={() =>
 					window.open(
-						buildUrl(`/base-resumes/${resumeId}/export/pdf`),
+						buildUrl(`${exportBasePath}/export/pdf`),
 						"_blank",
 						"noopener,noreferrer",
 					)
@@ -35,7 +37,7 @@ export function ExportButtons({ resumeId }: Readonly<{ resumeId: string }>) {
 				variant="outline"
 				onClick={() =>
 					window.open(
-						buildUrl(`/base-resumes/${resumeId}/export/docx`),
+						buildUrl(`${exportBasePath}/export/docx`),
 						"_blank",
 						"noopener,noreferrer",
 					)

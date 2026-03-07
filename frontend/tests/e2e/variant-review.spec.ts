@@ -98,7 +98,9 @@ test.describe("Variant Review — Agent Reasoning", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Variant Review — Actions", () => {
-	test("Approve button sends POST and navigates back", async ({ page }) => {
+	test("Approve button sends POST after confirmation and navigates back", async ({
+		page,
+	}) => {
 		await setupResumeListMocks(page);
 		await page.goto(REVIEW_URL);
 
@@ -111,8 +113,15 @@ test.describe("Variant Review — Actions", () => {
 				res.request().method() === "POST",
 		);
 
-		// Click Approve
+		// Click Approve → opens confirmation dialog
 		await page.getByRole("button", { name: "Approve" }).click();
+
+		// Confirm the dialog (scoped to dialog footer to avoid ambiguity)
+		await expect(page.getByText("Approve Variant")).toBeVisible();
+		await page
+			.locator("[data-slot='confirmation-dialog-footer']")
+			.getByRole("button", { name: "Approve" })
+			.click();
 
 		// Verify POST sent
 		const response = await approvePromise;

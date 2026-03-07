@@ -36,6 +36,10 @@ const REASONING_TESTID = "agent-reasoning";
 const REASONING_TOGGLE_TESTID = "agent-reasoning-toggle";
 const GUARDRAIL_BANNER_TESTID = "guardrail-violations";
 const GO_TO_PERSONA_TESTID = "go-to-persona-link";
+const MARKDOWN_DIFF_TESTID = "markdown-diff-view";
+const EDIT_LABEL = /edit/i;
+const EXPORT_PDF_LABEL = /export pdf/i;
+const EXPORT_DOCX_LABEL = /export docx/i;
 
 const MOCK_TIMESTAMP = "2024-01-15T10:00:00Z";
 const MOCK_VARIANT_TIMESTAMP = "2024-02-01T14:30:00Z";
@@ -91,6 +95,9 @@ const BASE_SUMMARY =
 const VARIANT_SUMMARY =
 	"Experienced Scrum Master with 8 years of scaled Agile leadership";
 
+const BASE_MARKDOWN = "# Base Resume\n\nExperienced Scrum Master summary";
+const VARIANT_MARKDOWN = "# Tailored Resume\n\nTailored Scrum Master for Acme";
+
 // ---------------------------------------------------------------------------
 // Mock data factories
 // ---------------------------------------------------------------------------
@@ -108,6 +115,8 @@ function makeBaseResume(overrides?: Record<string, unknown>) {
 		skills_emphasis: null,
 		job_bullet_selections: { [JOB_ID]: ["b-1", "b-2", "b-3"] },
 		job_bullet_order: { [JOB_ID]: ["b-1", "b-2", "b-3"] },
+		markdown_content: BASE_MARKDOWN,
+		template_id: null,
 		rendered_at: null,
 		is_primary: true,
 		status: "Active",
@@ -126,6 +135,8 @@ function makeVariant(overrides?: Record<string, unknown>) {
 		job_posting_id: JOB_POSTING_ID,
 		summary: VARIANT_SUMMARY,
 		job_bullet_order: { [JOB_ID]: ["b-3", "b-1", "b-2"] },
+		markdown_content: null,
+		snapshot_markdown_content: null,
 		modifications_description: null,
 		agent_reasoning: null,
 		guardrail_result: null,
@@ -279,6 +290,7 @@ vi.mock("@/lib/api-client", () => ({
 	apiPost: mocks.mockApiPost,
 	apiDelete: mocks.mockApiDelete,
 	ApiError: mocks.MockApiError,
+	buildUrl: (path: string) => `http://localhost:8000/api/v1${path}`,
 }));
 
 vi.mock("@/lib/toast", () => ({
@@ -287,6 +299,16 @@ vi.mock("@/lib/toast", () => ({
 
 vi.mock("next/navigation", () => ({
 	useRouter: () => ({ push: mocks.mockPush }),
+}));
+
+vi.mock("@/components/editor/diff-view", () => ({
+	DiffView: (props: { masterMarkdown: string; variantMarkdown: string }) => (
+		<div
+			data-testid="markdown-diff-view"
+			data-master={props.masterMarkdown}
+			data-variant={props.variantMarkdown}
+		/>
+	),
 }));
 
 import { VariantReview } from "./variant-review";
@@ -506,7 +528,22 @@ describe("VariantReview", () => {
 	});
 
 	describe("approve action", () => {
-		it("calls POST /approve and shows success toast", async () => {
+		it("shows confirmation dialog before approving", async () => {
+			setupMockApi();
+			const user = userEvent.setup();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: APPROVE_LABEL }),
+				).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+			await waitFor(() => {
+				expect(screen.getByText(/locked for editing/i)).toBeInTheDocument();
+			});
+		});
+
+		it("calls POST /approve after confirming in dialog", async () => {
 			setupMockApi();
 			mocks.mockApiPost.mockResolvedValueOnce({
 				data: makeVariant({ status: "Approved" }),
@@ -517,6 +554,10 @@ describe("VariantReview", () => {
 				expect(
 					screen.getByRole("button", { name: APPROVE_LABEL }),
 				).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+			await waitFor(() => {
+				expect(screen.getByText("Approve Variant")).toBeInTheDocument();
 			});
 			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
 			await waitFor(() => {
@@ -543,6 +584,10 @@ describe("VariantReview", () => {
 			});
 			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
 			await waitFor(() => {
+				expect(screen.getByText("Approve Variant")).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+			await waitFor(() => {
 				expect(mocks.mockShowToast.error).toHaveBeenCalledWith(
 					"Failed to approve variant.",
 				);
@@ -560,6 +605,10 @@ describe("VariantReview", () => {
 				expect(
 					screen.getByRole("button", { name: APPROVE_LABEL }),
 				).toBeInTheDocument();
+			});
+			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
+			await waitFor(() => {
+				expect(screen.getByText("Approve Variant")).toBeInTheDocument();
 			});
 			await user.click(screen.getByRole("button", { name: APPROVE_LABEL }));
 			await waitFor(() => {
@@ -844,6 +893,213 @@ describe("VariantReview", () => {
 			await waitFor(() => {
 				const link = screen.getByTestId(GO_TO_PERSONA_TESTID);
 				expect(link).toHaveAttribute("href", `/persona`);
+			});
+		});
+	});
+
+	describe("markdown diff", () => {
+		it("renders DiffView when variant has different markdown_content", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ markdown_content: VARIANT_MARKDOWN }),
+				},
+				baseResume: {
+					data: makeBaseResume({ markdown_content: BASE_MARKDOWN }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				const diffView = screen.getByTestId(MARKDOWN_DIFF_TESTID);
+				expect(diffView).toBeInTheDocument();
+				expect(diffView).toHaveAttribute("data-master", BASE_MARKDOWN);
+				expect(diffView).toHaveAttribute("data-variant", VARIANT_MARKDOWN);
+			});
+		});
+
+		it("does not render DiffView when markdown_content is the same (manual variant)", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ markdown_content: BASE_MARKDOWN }),
+				},
+				baseResume: {
+					data: makeBaseResume({ markdown_content: BASE_MARKDOWN }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(MARKDOWN_DIFF_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render DiffView when variant markdown_content is null", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ markdown_content: null }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(MARKDOWN_DIFF_TESTID),
+			).not.toBeInTheDocument();
+		});
+
+		it("does not render DiffView when base resume markdown_content is null", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ markdown_content: VARIANT_MARKDOWN }),
+				},
+				baseResume: {
+					data: makeBaseResume({ markdown_content: null }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByTestId(MARKDOWN_DIFF_TESTID),
+			).not.toBeInTheDocument();
+		});
+	});
+
+	describe("status badge", () => {
+		it("shows Draft status badge", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByText("Draft")).toBeInTheDocument();
+			});
+		});
+
+		it("shows Approved status badge", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ status: "Approved" }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByText("Approved")).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe("edit button", () => {
+		it("shows Edit link to edit page for Draft variant", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				const editLink = screen.getByRole("link", { name: EDIT_LABEL });
+				expect(editLink).toHaveAttribute(
+					"href",
+					`/resumes/${BASE_RESUME_ID}/variants/${VARIANT_ID}/edit`,
+				);
+			});
+		});
+
+		it("hides Edit link for Approved variant", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ status: "Approved" }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByRole("link", { name: EDIT_LABEL }),
+			).not.toBeInTheDocument();
+		});
+	});
+
+	describe("export buttons", () => {
+		it("renders Export PDF button for Draft variant", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: EXPORT_PDF_LABEL }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("renders Export DOCX button for Draft variant", async () => {
+			setupMockApi();
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: EXPORT_DOCX_LABEL }),
+				).toBeInTheDocument();
+			});
+		});
+
+		it("renders Export buttons for Approved variant", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ status: "Approved" }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: EXPORT_PDF_LABEL }),
+				).toBeInTheDocument();
+				expect(
+					screen.getByRole("button", { name: EXPORT_DOCX_LABEL }),
+				).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe("approved variant (read-only)", () => {
+		it("hides Approve button for Approved variant", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ status: "Approved" }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByRole("button", { name: APPROVE_LABEL }),
+			).not.toBeInTheDocument();
+		});
+
+		it("hides Regenerate button for Approved variant", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ status: "Approved" }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(screen.getByTestId(VARIANT_REVIEW_TESTID)).toBeInTheDocument();
+			});
+			expect(
+				screen.queryByRole("button", { name: REGENERATE_LABEL }),
+			).not.toBeInTheDocument();
+		});
+
+		it("still shows Archive button for Approved variant", async () => {
+			setupMockApi({
+				variant: {
+					data: makeVariant({ status: "Approved" }),
+				},
+			});
+			renderVariantReview();
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: ARCHIVE_LABEL }),
+				).toBeInTheDocument();
 			});
 		});
 	});
