@@ -34,19 +34,30 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 ## Phase 1: Provider Registry & Cross-Provider Dispatch
 
+**Status:** 🟡 In Progress
 **Focus:** Backend foundation — registry factory, routing lookup, cross-provider dispatch, test endpoint
-**Workflow:** `zentropy-tdd`, `zentropy-api`, `zentropy-provider`
 
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read REQ-028 §3 (registry), §4 (dispatch), §5 (test endpoint) |
+| 🧪 **TDD** | Write tests first — follow `zentropy-tdd` |
+| 🗃️ **Patterns** | Use `zentropy-api` for endpoints, `zentropy-provider` for adapter patterns |
+| ✅ **Verify** | `pytest -v`, `ruff check .`, `pyright` |
+| 🔍 **Review** | Run `code-reviewer` + `security-reviewer` + `qa-reviewer` as foreground parallel agents |
+| 📝 **Commit** | Follow `zentropy-git` — one commit per subtask, no push until phase gate |
+
+#### Tasks
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | `security-triage` subagent | ✅ |
-| 1 | Write REQ-028 to disk | Must be FIRST action per learned lesson | ✅ |
-| 2 | Provider registry factory — `get_llm_registry()` in `factory.py` | Creates all adapters with valid API keys, dict return | ✅ |
-| 3 | New `get_routing_for_task()` in `admin_config_service.py` | Returns `(provider, model)` tuple, no provider param | ✅ |
-| 4 | MeteredLLMProvider cross-provider dispatch | Accept registry, look up routing, dispatch to correct adapter | ⬜ |
-| 5 | DI wiring update in `deps.py` | Pass registry to MeteredLLMProvider | ⬜ |
-| 6 | Routing test endpoint `POST /admin/routing/test` | Admin-only, no user metering, rate limited | ⬜ |
-| 7 | Phase 1 quality gate — full test suite + push | `test-runner` Full mode | ⬜ |
+| 0 | Security triage gate | `plan, security` | ✅ |
+| 1 | Write REQ-028 to disk | `plan` | ✅ |
+| 2 | Provider registry factory — `get_llm_registry()` in `factory.py` | `plan, tdd, provider` | ✅ |
+| 3 | New `get_routing_for_task()` in `admin_config_service.py` | `plan, tdd, api` | ✅ |
+| 4 | MeteredLLMProvider cross-provider dispatch | `plan, tdd, provider` | ✅ |
+| 5 | DI wiring update in `deps.py` | `plan, tdd, api` | ✅ |
+| 6 | Routing test endpoint `POST /admin/routing/test` | `plan, tdd, api, security` | ⬜ |
+| 7 | Phase 1 quality gate — full test suite + push | `plan, commands` | ⬜ |
 
 **Notes:**
 - `get_llm_registry()` should create all adapters whose API keys are present, skipping providers without keys
@@ -59,17 +70,28 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 ## Phase 2: Admin UI Routing Tab Redesign
 
+**Status:** ⬜ Incomplete
 **Focus:** Frontend — fixed editable routing table, test button, validation
-**Workflow:** `zentropy-tdd`, `zentropy-playwright`
 
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read REQ-028 §6 (admin UI routing tab) |
+| 🧪 **TDD** | Write tests first — follow `zentropy-tdd` |
+| 🗃️ **Patterns** | Use `zentropy-playwright` for E2E, `zentropy-tdd` for Vitest |
+| ✅ **Verify** | `npm run test:run`, `npm run lint`, `npm run typecheck` |
+| 🔍 **Review** | Run `code-reviewer` + `security-reviewer` + `qa-reviewer` + `ui-reviewer` as foreground parallel agents |
+| 📝 **Commit** | Follow `zentropy-git` — one commit per subtask, no push until phase gate |
+
+#### Tasks
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | `security-triage` subagent | ⬜ |
-| 1 | Update routing types + add TASK_TYPES constant | `types/admin.ts`, new constants file | ⬜ |
-| 2 | Rewrite RoutingTab as fixed editable table | 10 rows, inline dropdowns, delete add-routing-dialog | ⬜ |
-| 3 | Add test button + API client function | Per-row test, inline result display | ⬜ |
-| 4 | Validation — warn if provider has no API key | Test button failure = visual warning | ⬜ |
-| 5 | Phase 2 quality gate — vitest + lint + push | `test-runner` Full mode | ⬜ |
+| 0 | Security triage gate | `plan, security` | ⬜ |
+| 1 | Update routing types + add TASK_TYPES constant | `plan, tdd` | ⬜ |
+| 2 | Rewrite RoutingTab as fixed editable table | `plan, tdd, ui` | ⬜ |
+| 3 | Add test button + API client function | `plan, tdd, api, ui` | ⬜ |
+| 4 | Validation — warn if provider has no API key | `plan, tdd, ui` | ⬜ |
+| 5 | Phase 2 quality gate — vitest + lint + push | `plan, commands` | ⬜ |
 
 **Notes:**
 - Fixed 10-row table (one per task type), all pre-populated, editable inline (no add/delete)
@@ -82,13 +104,24 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 ## Phase 3: BYOK Removal
 
+**Status:** ⬜ Incomplete
 **Focus:** Documentation only — mark BYOK as superseded
-**Workflow:** Docs-only, no code changes
 
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read REQ-009 §10 (BYOK), REQ-028 §9 (BYOK removal) |
+| 🧪 **TDD** | N/A — docs-only phase |
+| 🗃️ **Patterns** | N/A |
+| ✅ **Verify** | Review updated REQ for consistency |
+| 🔍 **Review** | Run `code-reviewer` as foreground agent (docs review) |
+| 📝 **Commit** | Follow `zentropy-git` — one commit per subtask, no push until phase gate |
+
+#### Tasks
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | Can combine with 3.1 (docs-only phase) | ⬜ |
-| 1 | Update REQ-009 section 10 + section 1.3 + changelog | Mark BYOK "Not Planned — Superseded by REQ-028" | ⬜ |
+| 0 | Security triage gate (combine with 3.1 — docs-only phase) | `plan, security` | ⬜ |
+| 1 | Update REQ-009 section 10 + section 1.3 + changelog | `plan` | ⬜ |
 
 **Notes:**
 - REQ-009 section 10 covers BYOK — mark as "Not Planned"
@@ -99,19 +132,30 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 ## Phase 4: Gemini Embedding Adapter
 
+**Status:** ⬜ Incomplete
 **Focus:** Backend — Gemini embedding adapter, vector dimension migration, re-embedding script
-**Workflow:** `zentropy-tdd`, `zentropy-db`, `zentropy-provider`
 
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read REQ-028 §7 (Gemini embedding), §8 (vector migration) |
+| 🧪 **TDD** | Write tests first — follow `zentropy-tdd` |
+| 🗃️ **Patterns** | Use `zentropy-db` for migrations, `zentropy-provider` for adapter patterns |
+| ✅ **Verify** | `pytest -v`, `ruff check .`, `pyright` |
+| 🔍 **Review** | Run `code-reviewer` + `security-reviewer` + `qa-reviewer` as foreground parallel agents |
+| 📝 **Commit** | Follow `zentropy-git` — one commit per subtask, no push until phase gate |
+
+#### Tasks
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | `security-triage` subagent | ⬜ |
-| 1 | GeminiEmbeddingAdapter implementation | `google.genai` SDK, `text-embedding-004`, 768 dims | ⬜ |
-| 2 | Update embedding factory — add `"gemini"` case | `factory.py`, `__init__.py` exports | ⬜ |
-| 3 | Update ProviderConfig defaults + `.env.example` | `openai` to `gemini`, `1536` to `768` | ⬜ |
-| 4 | Alembic migration — truncate + alter vector columns | `persona_embeddings`, `job_embeddings` to Vector(768) | ⬜ |
-| 5 | Update EmbeddingColumnsMixin + MockEmbeddingProvider | `base.py` Vector(1536) to 768, mock dims | ⬜ |
-| 6 | Re-embedding script `backend/scripts/reembed_all.py` | One-time script, not migration step | ⬜ |
-| 7 | Phase 4 quality gate — full test suite + push | `test-runner` Full mode | ⬜ |
+| 0 | Security triage gate | `plan, security` | ⬜ |
+| 1 | GeminiEmbeddingAdapter implementation | `plan, tdd, provider` | ⬜ |
+| 2 | Update embedding factory — add `"gemini"` case | `plan, tdd, provider` | ⬜ |
+| 3 | Update ProviderConfig defaults + `.env.example` | `plan, tdd` | ⬜ |
+| 4 | Alembic migration — truncate + alter vector columns | `plan, tdd, db` | ⬜ |
+| 5 | Update EmbeddingColumnsMixin + MockEmbeddingProvider | `plan, tdd, provider` | ⬜ |
+| 6 | Re-embedding script `backend/scripts/reembed_all.py` | `plan, tdd, provider, db` | ⬜ |
+| 7 | Phase 4 quality gate — full test suite + push | `plan, commands` | ⬜ |
 
 **Notes:**
 - `google.genai` SDK for Gemini embeddings (same SDK as LLM adapter)
@@ -127,11 +171,11 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 | Phase | Tasks | Status |
 |-------|-------|--------|
-| Phase 1 | 8 (0-7) | 4/8 ✅ |
+| Phase 1 | 8 (0-7) | 6/8 ✅ |
 | Phase 2 | 6 (0-5) | ⬜ |
 | Phase 3 | 2 (0-1) | ⬜ |
 | Phase 4 | 8 (0-7) | ⬜ |
-| **Total** | **24** | **4/24 complete** |
+| **Total** | **24** | **6/24 complete** |
 
 ---
 
