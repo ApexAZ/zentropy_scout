@@ -2,6 +2,7 @@
 
 REQ-022 §6.1–§6.3: Pricing lookup with effective dates, routing
 lookup with fallback, model registration check, system config.
+REQ-028 §4.1: Cross-provider routing lookup.
 
 Integration tests using real DB (db_session fixture).
 """
@@ -273,6 +274,71 @@ class TestGetModelForTask:
 
         svc = AdminConfigService(db_session)
         result = await svc.get_model_for_task(_PROVIDER_CLAUDE, _TASK_EXTRACTION)
+
+        assert result is None
+
+
+# ===========================================================================
+# Cross-provider routing lookup — REQ-028 §4.1
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+class TestGetRoutingForTask:
+    """AdminConfigService.get_routing_for_task cross-provider routing."""
+
+    async def test_returns_provider_and_model(self, db_session: AsyncSession) -> None:
+        """Returns (provider, model) tuple for a configured task type."""
+        db_session.add(
+            _make_routing(
+                provider=_PROVIDER_CLAUDE,
+                task_type=_TASK_EXTRACTION,
+                model=_MODEL_HAIKU,
+            )
+        )
+        await db_session.flush()
+
+        svc = AdminConfigService(db_session)
+        result = await svc.get_routing_for_task(_TASK_EXTRACTION)
+
+        assert result == (_PROVIDER_CLAUDE, _MODEL_HAIKU)
+
+    async def test_returns_different_provider(self, db_session: AsyncSession) -> None:
+        """Routes to a non-default provider when configured."""
+        db_session.add(
+            _make_routing(
+                provider="gemini",
+                task_type=_TASK_EXTRACTION,
+                model="gemini-2.0-flash",
+            )
+        )
+        await db_session.flush()
+
+        svc = AdminConfigService(db_session)
+        result = await svc.get_routing_for_task(_TASK_EXTRACTION)
+
+        assert result == ("gemini", "gemini-2.0-flash")
+
+    async def test_no_routing_returns_none(self, db_session: AsyncSession) -> None:
+        """Returns None when no routing exists for the task type."""
+        svc = AdminConfigService(db_session)
+        result = await svc.get_routing_for_task(_TASK_EXTRACTION)
+
+        assert result is None
+
+    async def test_different_task_not_matched(self, db_session: AsyncSession) -> None:
+        """Routing for a different task type is not returned."""
+        db_session.add(
+            _make_routing(
+                provider=_PROVIDER_CLAUDE,
+                task_type="cover_letter",
+                model=_MODEL_SONNET,
+            )
+        )
+        await db_session.flush()
+
+        svc = AdminConfigService(db_session)
+        result = await svc.get_routing_for_task(_TASK_EXTRACTION)
 
         assert result is None
 

@@ -42,7 +42,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | 0 | Security triage gate | `security-triage` subagent | done 2026-03-07 |
 | 1 | Write REQ-028 to disk | Must be FIRST action per learned lesson | done 2026-03-07 |
 | 2 | Provider registry factory — `get_llm_registry()` in `factory.py` | Creates all adapters with valid API keys, dict return | done 2026-03-07 |
-| 3 | New `get_routing_for_task()` in `admin_config_service.py` | Returns `(provider, model)` tuple, no provider param | pending |
+| 3 | New `get_routing_for_task()` in `admin_config_service.py` | Returns `(provider, model)` tuple, no provider param | done 2026-03-07 |
 | 4 | MeteredLLMProvider cross-provider dispatch | Accept registry, look up routing, dispatch to correct adapter | pending |
 | 5 | DI wiring update in `deps.py` | Pass registry to MeteredLLMProvider | pending |
 | 6 | Routing test endpoint `POST /admin/routing/test` | Admin-only, no user metering, rate limited | pending |

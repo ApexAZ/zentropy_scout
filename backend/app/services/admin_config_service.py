@@ -92,6 +92,28 @@ class AdminConfigService:
             effective_date=row.effective_date,
         )
 
+    async def get_routing_for_task(self, task_type: str) -> tuple[str, str] | None:
+        """Get (provider, model) for a task type.
+
+        REQ-028 §4.1: Cross-provider routing lookup. Unlike get_model_for_task(),
+        this does not filter by provider — it returns whichever provider is
+        configured for the task type, enabling cross-provider dispatch.
+
+        Args:
+            task_type: TaskType enum value.
+
+        Returns:
+            (provider, model) tuple, or None if no routing configured.
+        """
+        stmt = select(TaskRoutingConfig.provider, TaskRoutingConfig.model).where(
+            TaskRoutingConfig.task_type == task_type,
+        )
+        result = await self._db.execute(stmt)
+        row = result.one_or_none()
+        if row is None:
+            return None
+        return (row.provider, row.model)
+
     async def get_model_for_task(self, provider: str, task_type: str) -> str | None:
         """Get the routed model for a task type.
 
