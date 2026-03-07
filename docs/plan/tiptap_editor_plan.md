@@ -551,7 +551,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Both creation paths, credit gating, approval snapshots markdown, validation (requires job posting + base resume) | | |
 | | **Run:** `cd backend && pytest tests/ -v` | | |
 | | **Done when:** Both variant creation paths work. Approval snapshots markdown. Tests pass. | | |
-| 24 | **Variant creation UI + job requirements panel** | | ⬜ |
+| 24 | **Variant creation UI + job requirements panel** | | ✅ |
 | | **Read:** REQ-027 §3 (§4.3 manual flow, §4.4 job requirements panel, §3.5 variant editing). Existing variant UI: `frontend/src/components/resume/variants-list.tsx`. | `req-reader, tdd, ui, plan` | |
 | | | | |
 | | **Create:** `frontend/src/components/editor/job-requirements-panel.tsx` | | |
