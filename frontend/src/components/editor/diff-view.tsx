@@ -86,10 +86,9 @@ function MasterPanel({
 	readonly changes: readonly ProcessedChange[];
 }) {
 	return (
-		<div
+		<section
 			data-testid="diff-master-panel"
 			className={PANEL_CLASSES}
-			role="region"
 			aria-label="Master resume content"
 		>
 			<div className="mb-2 flex items-center gap-2">
@@ -102,7 +101,7 @@ function MasterPanel({
 					if (change.type === "removed") {
 						return (
 							<span
-								key={i}
+								key={`${change.type}-${i}`}
 								className="bg-destructive/10 text-destructive line-through"
 							>
 								{change.value}
@@ -111,15 +110,18 @@ function MasterPanel({
 					}
 					if (change.type === "modified") {
 						return (
-							<span key={i} className="bg-warning/10 text-warning">
+							<span
+								key={`${change.type}-${i}`}
+								className="bg-warning/10 text-warning"
+							>
 								{change.oldValue}
 							</span>
 						);
 					}
-					return <span key={i}>{change.value}</span>;
+					return <span key={`${change.type}-${i}`}>{change.value}</span>;
 				})}
 			</div>
-		</div>
+		</section>
 	);
 }
 
@@ -129,10 +131,9 @@ function VariantPanel({
 	readonly changes: readonly ProcessedChange[];
 }) {
 	return (
-		<div
+		<section
 			data-testid="diff-variant-panel"
 			className={PANEL_CLASSES}
-			role="region"
 			aria-label="Tailored variant content"
 		>
 			<div className="mb-2 flex items-center gap-2">
@@ -143,22 +144,28 @@ function VariantPanel({
 					if (change.type === "removed") return null;
 					if (change.type === "added") {
 						return (
-							<span key={i} className="bg-success/10 text-success">
+							<span
+								key={`${change.type}-${i}`}
+								className="bg-success/10 text-success"
+							>
 								{change.value}
 							</span>
 						);
 					}
 					if (change.type === "modified") {
 						return (
-							<span key={i} className="bg-warning/10 text-warning">
+							<span
+								key={`${change.type}-${i}`}
+								className="bg-warning/10 text-warning"
+							>
 								{change.value}
 							</span>
 						);
 					}
-					return <span key={i}>{change.value}</span>;
+					return <span key={`${change.type}-${i}`}>{change.value}</span>;
 				})}
 			</div>
-		</div>
+		</section>
 	);
 }
 
