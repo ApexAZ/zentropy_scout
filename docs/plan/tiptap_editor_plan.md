@@ -1,8 +1,8 @@
 # Zentropy Scout — TipTap Editor Implementation Plan (REQ-025, REQ-026, REQ-027)
 
 **Created:** 2026-03-05
-**Last Updated:** 2026-03-05
-**Status:** ⬜ Incomplete
+**Last Updated:** 2026-03-06
+**Status:** ✅ Complete
 
 ---
 
@@ -327,7 +327,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 5: TipTap Editor Component (REQ-025 §3)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Install TipTap npm packages, create the ResumeEditor component with toolbar, status bar, and markdown round-trip tests.*
 
@@ -450,7 +450,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 7: Resume Creation Flow (REQ-026 §3)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Update the new resume wizard with template picker, generation options, and wire the creation flow through to the TipTap editor.*
 
@@ -575,7 +575,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 9: Diff View & Variant Review (REQ-027 §4, §5)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Word-level diff component comparing master and variant markdown, variant review page with approval actions, and final regression gate.*
 
@@ -620,7 +620,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Review page renders diff (LLM variants), no diff for manual variants, approval flow, read-only after approval, action buttons per status | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** Full variant review workflow works. Diff shows for LLM variants. Approval locks variant. Tests pass. | | |
-| 28 | **Phase 9 Gate (Final)** — Full regression + push | `phase-gate` | ⬜ |
+| 28 | **Phase 9 Gate (Final)** — Full regression + push | `phase-gate` | ✅ |
 | | Run full suite: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. `npx playwright test`. Push with SSH keep-alive. Update this plan status to ✅ Complete. Update `CLAUDE.md` Current Status section. Update backlog PBI #24 status. | | |
 
 #### Phase 9 Notes
