@@ -502,7 +502,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Options panel renders, generation flow calls API, loading state, credit fallback | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** Both creation paths work end-to-end (frontend → API → editor). Tests pass. | | |
-| 22 | **Phase 7 Gate** — Full test suite + E2E + push | `phase-gate` | ⬜ |
+| 22 | **Phase 7 Gate** — Full test suite + E2E + push | `phase-gate` | ✅ |
 | | Run: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. `npx playwright test`. Push with SSH keep-alive. | | |
 
 #### Phase 7 Notes
