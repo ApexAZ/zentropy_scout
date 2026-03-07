@@ -1,6 +1,7 @@
 """Provider factory functions.
 
 REQ-009 §6.3: Singleton pattern for provider instances.
+REQ-028 §3: Registry factory for cross-provider dispatch.
 """
 
 from app.providers.config import ProviderConfig
@@ -12,6 +13,7 @@ from app.providers.llm.gemini_adapter import GeminiAdapter
 from app.providers.llm.openai_adapter import OpenAIAdapter
 
 _llm_provider: LLMProvider | None = None
+_llm_registry: dict[str, LLMProvider] | None = None
 _embedding_provider: EmbeddingProvider | None = None
 
 
@@ -55,6 +57,37 @@ def get_llm_provider(config: ProviderConfig | None = None) -> LLMProvider:
     return _llm_provider
 
 
+def get_llm_registry(config: ProviderConfig | None = None) -> dict[str, LLMProvider]:
+    """Get or create the LLM provider registry.
+
+    REQ-028 §3.1: Creates adapters for all providers with valid API keys.
+    Used by MeteredLLMProvider for cross-provider dispatch.
+
+    Args:
+        config: Optional provider configuration. If None and no registry
+            exists, loads from environment.
+
+    Returns:
+        Dict mapping provider name to LLMProvider instance.
+        Only providers with non-None API keys are included.
+    """
+    global _llm_registry
+
+    if _llm_registry is None:
+        if config is None:
+            config = ProviderConfig.from_env()
+
+        _llm_registry = {}
+        if config.anthropic_api_key:
+            _llm_registry["claude"] = ClaudeAdapter(config)
+        if config.openai_api_key:
+            _llm_registry["openai"] = OpenAIAdapter(config)
+        if config.google_api_key:
+            _llm_registry["gemini"] = GeminiAdapter(config)
+
+    return _llm_registry
+
+
 def get_embedding_provider(
     config: ProviderConfig | None = None,
 ) -> EmbeddingProvider:
@@ -92,6 +125,7 @@ def reset_providers() -> None:
 
     Used in tests to ensure isolation between test cases.
     """
-    global _llm_provider, _embedding_provider
+    global _llm_provider, _llm_registry, _embedding_provider
     _llm_provider = None
+    _llm_registry = None
     _embedding_provider = None

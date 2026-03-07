@@ -16,7 +16,11 @@ from app.providers.errors import (
     RateLimitError,
     TransientError,
 )
-from app.providers.factory import get_embedding_provider, get_llm_provider
+from app.providers.factory import (
+    get_embedding_provider,
+    get_llm_provider,
+    get_llm_registry,
+)
 
 __all__ = [
     # Config
@@ -31,5 +35,6 @@ __all__ = [
     "TransientError",
     # Factory
     "get_llm_provider",
+    "get_llm_registry",
     "get_embedding_provider",
 ]
