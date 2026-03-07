@@ -143,9 +143,20 @@ Hints trigger skill auto-loading during implementation. **Before finalizing any 
 
 ### Phase-Level Considerations
 
+- **Every phase MUST begin with a security triage subtask** — spawns the `security-triage` subagent to query all remote scanners against baselines. Since pushes only happen at phase gates, remote scanners only update between phases — running triage at phase start ensures fresh scan results instead of wasting time investigating already-fixed issues.
 - **Every major phase MUST end with a test-runner task** — runs full backend + frontend + E2E suite as a gate before the next phase
 - Add an E2E/Playwright task at phase boundaries when UI behavior changes
 - Reference the specific REQ document section each task implements
+
+#### Phase-Start Security Gate Example
+
+The first task in every phase should be a **security triage gate**:
+```markdown
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 1 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Verdicts: CLEAR → mark complete, proceed. VULNERABLE → fix immediately. FALSE POSITIVE → complete full PROSECUTION PROTOCOL before dismissing. NEEDS INVESTIGATION → escalate to user via AskUserQuestion. | `plan, security` | ⬜ |
+```
+This task spawns the `security-triage` subagent (general-purpose type, model: opus, foreground). No feature code is written — it's a security gate that checks remote scanners are clear before implementation begins. If findings require code fixes, those fixes follow the normal TDD + review cycle within this subtask.
 
 #### Phase-End Test Gate Example
 

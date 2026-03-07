@@ -1,9 +1,10 @@
 ---
 name: security-triage
 description: |
-  Autonomous security gate agent. Spawned automatically at every session start
-  and after compaction. Queries all security scanners, compares against known
-  baselines, and performs adversarial investigation of any new findings.
+  Autonomous security gate agent. Spawned as the first subtask of each plan
+  phase (after a phase gate push ensures remote scanners have fresh data).
+  Queries all security scanners, compares against known baselines, and
+  performs adversarial investigation of any new findings.
   Also delegate when:
   - Someone says "run security gate", "check security", or "triage alerts"
   - Manually reviewing GitHub Security tab findings

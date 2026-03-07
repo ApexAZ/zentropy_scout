@@ -1,25 +1,5 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo 'REQUIRED FIRST ACTION — Your next tool call MUST be Task to spawn the security-triage subagent (general-purpose, model: opus). No Read, Edit, Write, or Bash calls until triage completes. Verdicts: CLEAR → proceed. VULNERABLE → fix first. FALSE POSITIVE → complete full PROSECUTION PROTOCOL. NEEDS INVESTIGATION → AskUserQuestion.'"
-          }
-        ]
-      },
-      {
-        "matcher": "compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo 'REQUIRED FIRST ACTION (post-compact) — Your next tool call MUST be Task to spawn the security-triage subagent (general-purpose, model: opus). No Read, Edit, Write, or Bash calls until triage completes. Verdicts: CLEAR → proceed. VULNERABLE → fix first. FALSE POSITIVE → complete full PROSECUTION PROTOCOL. NEEDS INVESTIGATION → AskUserQuestion.'"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit",
