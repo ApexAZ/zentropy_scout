@@ -180,8 +180,8 @@ test.describe("New Resume Wizard", () => {
 				res.request().method() === "POST",
 		);
 
-		// Click Create Resume
-		await page.getByRole("button", { name: "Create Resume" }).click();
+		// Click Start from Template (free path — no credits needed)
+		await page.getByRole("button", { name: /Start from Template/ }).click();
 
 		// Verify POST sent with form data
 		const response = await postPromise;
@@ -193,7 +193,9 @@ test.describe("New Resume Wizard", () => {
 		expect(body.persona_id).toBe(PERSONA_ID);
 
 		// Should redirect to the new resume's detail page
-		await expect(page).toHaveURL(/\/resumes\/br-e2e-new-001/);
+		await expect(page).toHaveURL(
+			/\/resumes\/00000000-0000-4000-a000-000000000099/,
+		);
 	});
 
 	test("back link navigates to resume list", async ({ page }) => {

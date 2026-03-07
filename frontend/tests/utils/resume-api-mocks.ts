@@ -28,6 +28,7 @@ import {
 	onboardedPersonaList,
 	postBaseResumeResponse,
 	PERSONA_ID,
+	resumeTemplatesList,
 	skillsList,
 	workHistoryList,
 } from "../fixtures/resume-mock-data";
@@ -85,7 +86,7 @@ export class ResumeMockController {
 	async setupRoutes(page: Page): Promise<void> {
 		// Single regex intercepts all /api/v1/ endpoints we need to mock.
 		await page.route(
-			/\/api\/v1\/(chat|persona-change-flags|personas|base-resumes|job-variants|job-postings)/,
+			/\/api\/v1\/(chat|persona-change-flags|personas|base-resumes|job-variants|job-postings|resume-templates)/,
 			async (route) => this.handleRoute(route),
 		);
 	}
@@ -118,6 +119,11 @@ export class ResumeMockController {
 		// ---- Persona sub-entities ----
 		if (path.includes("/personas/")) {
 			return this.handlePersonaSubEntities(route, path);
+		}
+
+		// ---- Resume templates ----
+		if (path.endsWith("/resume-templates")) {
+			return this.json(route, resumeTemplatesList());
 		}
 
 		// ---- Base resumes ----

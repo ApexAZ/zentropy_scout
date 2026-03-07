@@ -56,12 +56,18 @@ export {
 // ---------------------------------------------------------------------------
 
 export const BASE_RESUME_IDS = [
-	"br-e2e-001",
-	"br-e2e-002",
-	"br-e2e-003",
+	"00000000-0000-4000-a000-000000000001",
+	"00000000-0000-4000-a000-000000000002",
+	"00000000-0000-4000-a000-000000000003",
 ] as const;
-export const JOB_VARIANT_IDS = ["jv-e2e-001", "jv-e2e-002"] as const;
-export const JOB_POSTING_IDS = ["jp-e2e-001", "jp-e2e-002"] as const;
+export const JOB_VARIANT_IDS = [
+	"00000000-0000-4000-a000-000000000011",
+	"00000000-0000-4000-a000-000000000012",
+] as const;
+export const JOB_POSTING_IDS = [
+	"00000000-0000-4000-a000-000000000021",
+	"00000000-0000-4000-a000-000000000022",
+] as const;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -190,7 +196,7 @@ export function postBaseResumeResponse(
 ): ApiResponse<BaseResume> {
 	return {
 		data: {
-			id: "br-e2e-new-001",
+			id: "00000000-0000-4000-a000-000000000099",
 			persona_id: PERSONA_ID,
 			name: "New Resume",
 			role_type: "Software Engineer",
@@ -254,7 +260,7 @@ const BASE_JOB_POSTING_DATA: JobPostingResponse = {
 
 const PERSONA_JOBS: PersonaJobResponse[] = [
 	{
-		id: "pj-res-e2e-001",
+		id: "00000000-0000-4000-a000-000000000031",
 		job: BASE_JOB_POSTING_DATA,
 		status: "Discovered",
 		is_favorite: false,
@@ -268,7 +274,7 @@ const PERSONA_JOBS: PersonaJobResponse[] = [
 		dismissed_at: null,
 	},
 	{
-		id: "pj-res-e2e-002",
+		id: "00000000-0000-4000-a000-000000000032",
 		job: {
 			...BASE_JOB_POSTING_DATA,
 			id: JOB_POSTING_IDS[1],
@@ -380,6 +386,40 @@ export function jobPostingDetail(
 /** Empty variants list. */
 export function emptyJobVariantsList(): ApiListResponse<JobVariant> {
 	return { data: [], meta: listMeta(0) };
+}
+
+// ---------------------------------------------------------------------------
+// ResumeTemplate fixtures
+// ---------------------------------------------------------------------------
+
+export const TEMPLATE_IDS = ["tmpl-e2e-001", "tmpl-e2e-002"] as const;
+
+const RESUME_TEMPLATES = [
+	{
+		id: TEMPLATE_IDS[0],
+		name: "Professional",
+		description: "Clean professional layout",
+		markdown_content: "# {name}\n\n{summary}",
+		is_system: true,
+		user_id: null,
+		display_order: 0,
+		created_at: NOW,
+	},
+	{
+		id: TEMPLATE_IDS[1],
+		name: "Modern",
+		description: "Modern design with sidebar",
+		markdown_content: "# {name}\n\n{summary}",
+		is_system: true,
+		user_id: null,
+		display_order: 1,
+		created_at: NOW,
+	},
+];
+
+/** 2 system resume templates for template picker. */
+export function resumeTemplatesList(): { templates: typeof RESUME_TEMPLATES } {
+	return { templates: [...RESUME_TEMPLATES] };
 }
 
 // ---------------------------------------------------------------------------
