@@ -28,6 +28,8 @@ _DB_ERROR_MSG = "DB error"
 _ROUTED_MODEL = "claude-3-5-haiku-20241022"
 _PROVIDER_CLAUDE = "claude"
 _PROVIDER_GEMINI = "gemini"
+_KEY_KWARGS = "kwargs"
+_KEY_MODEL_OVERRIDE = "model_override"
 
 
 # =============================================================================
@@ -180,8 +182,8 @@ class TestMeteredLLMProviderComplete:
             max_tokens=500,
             temperature=0.5,
         )
-        assert inner_llm.calls[-1]["kwargs"]["max_tokens"] == 500
-        assert inner_llm.calls[-1]["kwargs"]["temperature"] == 0.5
+        assert inner_llm.calls[-1][_KEY_KWARGS]["max_tokens"] == 500
+        assert inner_llm.calls[-1][_KEY_KWARGS]["temperature"] == 0.5
 
     async def test_returns_response_when_recording_fails(
         self, metered_llm: MeteredLLMProvider, mock_metering: AsyncMock
@@ -280,7 +282,7 @@ class TestMeteredLLMProviderRouting:
         )
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         last_call = inner_llm.calls[-1]
-        assert last_call["kwargs"]["model_override"] == _ROUTED_MODEL
+        assert last_call[_KEY_KWARGS][_KEY_MODEL_OVERRIDE] == _ROUTED_MODEL
 
     async def test_no_routing_falls_back_to_inner(
         self,
@@ -292,7 +294,7 @@ class TestMeteredLLMProviderRouting:
         mock_admin_config.get_routing_for_task.return_value = None
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         last_call = inner_llm.calls[-1]
-        assert last_call["kwargs"]["model_override"] is None
+        assert last_call[_KEY_KWARGS][_KEY_MODEL_OVERRIDE] is None
 
     async def test_routing_used_for_different_task_types(
         self,
@@ -400,7 +402,7 @@ class TestMeteredLLMProviderCrossProviderDispatch:
         )
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         last_call = claude_adapter.calls[-1]
-        assert last_call["kwargs"]["model_override"] == _ROUTED_MODEL
+        assert last_call[_KEY_KWARGS][_KEY_MODEL_OVERRIDE] == _ROUTED_MODEL
 
     async def test_raises_when_provider_not_in_registry(
         self,
