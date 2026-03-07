@@ -13,7 +13,7 @@ The admin needs to experiment with different LLM models across providers (Claude
 
 ## How to Use This Plan
 
-1. Find the first task with status marker unfilled
+1. Find the first ⬜ task — that's where to start
 2. Load relevant skill(s) listed in Hints
 3. Read the referenced REQ section(s)
 4. Implement using TDD (zentropy-tdd skill)
@@ -39,14 +39,14 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | `security-triage` subagent | done 2026-03-07 |
-| 1 | Write REQ-028 to disk | Must be FIRST action per learned lesson | done 2026-03-07 |
-| 2 | Provider registry factory — `get_llm_registry()` in `factory.py` | Creates all adapters with valid API keys, dict return | done 2026-03-07 |
-| 3 | New `get_routing_for_task()` in `admin_config_service.py` | Returns `(provider, model)` tuple, no provider param | done 2026-03-07 |
-| 4 | MeteredLLMProvider cross-provider dispatch | Accept registry, look up routing, dispatch to correct adapter | pending |
-| 5 | DI wiring update in `deps.py` | Pass registry to MeteredLLMProvider | pending |
-| 6 | Routing test endpoint `POST /admin/routing/test` | Admin-only, no user metering, rate limited | pending |
-| 7 | Phase 1 quality gate — full test suite + push | `test-runner` Full mode | pending |
+| 0 | Security triage gate | `security-triage` subagent | ✅ |
+| 1 | Write REQ-028 to disk | Must be FIRST action per learned lesson | ✅ |
+| 2 | Provider registry factory — `get_llm_registry()` in `factory.py` | Creates all adapters with valid API keys, dict return | ✅ |
+| 3 | New `get_routing_for_task()` in `admin_config_service.py` | Returns `(provider, model)` tuple, no provider param | ✅ |
+| 4 | MeteredLLMProvider cross-provider dispatch | Accept registry, look up routing, dispatch to correct adapter | ⬜ |
+| 5 | DI wiring update in `deps.py` | Pass registry to MeteredLLMProvider | ⬜ |
+| 6 | Routing test endpoint `POST /admin/routing/test` | Admin-only, no user metering, rate limited | ⬜ |
+| 7 | Phase 1 quality gate — full test suite + push | `test-runner` Full mode | ⬜ |
 
 **Notes:**
 - `get_llm_registry()` should create all adapters whose API keys are present, skipping providers without keys
@@ -64,12 +64,12 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | `security-triage` subagent | pending |
-| 1 | Update routing types + add TASK_TYPES constant | `types/admin.ts`, new constants file | pending |
-| 2 | Rewrite RoutingTab as fixed editable table | 10 rows, inline dropdowns, delete add-routing-dialog | pending |
-| 3 | Add test button + API client function | Per-row test, inline result display | pending |
-| 4 | Validation — warn if provider has no API key | Test button failure = visual warning | pending |
-| 5 | Phase 2 quality gate — vitest + lint + push | `test-runner` Full mode | pending |
+| 0 | Security triage gate | `security-triage` subagent | ⬜ |
+| 1 | Update routing types + add TASK_TYPES constant | `types/admin.ts`, new constants file | ⬜ |
+| 2 | Rewrite RoutingTab as fixed editable table | 10 rows, inline dropdowns, delete add-routing-dialog | ⬜ |
+| 3 | Add test button + API client function | Per-row test, inline result display | ⬜ |
+| 4 | Validation — warn if provider has no API key | Test button failure = visual warning | ⬜ |
+| 5 | Phase 2 quality gate — vitest + lint + push | `test-runner` Full mode | ⬜ |
 
 **Notes:**
 - Fixed 10-row table (one per task type), all pre-populated, editable inline (no add/delete)
@@ -87,8 +87,8 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | Can combine with 3.1 (docs-only phase) | pending |
-| 1 | Update REQ-009 section 10 + section 1.3 + changelog | Mark BYOK "Not Planned — Superseded by REQ-028" | pending |
+| 0 | Security triage gate | Can combine with 3.1 (docs-only phase) | ⬜ |
+| 1 | Update REQ-009 section 10 + section 1.3 + changelog | Mark BYOK "Not Planned — Superseded by REQ-028" | ⬜ |
 
 **Notes:**
 - REQ-009 section 10 covers BYOK — mark as "Not Planned"
@@ -104,14 +104,14 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | `security-triage` subagent | pending |
-| 1 | GeminiEmbeddingAdapter implementation | `google.genai` SDK, `text-embedding-004`, 768 dims | pending |
-| 2 | Update embedding factory — add `"gemini"` case | `factory.py`, `__init__.py` exports | pending |
-| 3 | Update ProviderConfig defaults + `.env.example` | `openai` to `gemini`, `1536` to `768` | pending |
-| 4 | Alembic migration — truncate + alter vector columns | `persona_embeddings`, `job_embeddings` to Vector(768) | pending |
-| 5 | Update EmbeddingColumnsMixin + MockEmbeddingProvider | `base.py` Vector(1536) to 768, mock dims | pending |
-| 6 | Re-embedding script `backend/scripts/reembed_all.py` | One-time script, not migration step | pending |
-| 7 | Phase 4 quality gate — full test suite + push | `test-runner` Full mode | pending |
+| 0 | Security triage gate | `security-triage` subagent | ⬜ |
+| 1 | GeminiEmbeddingAdapter implementation | `google.genai` SDK, `text-embedding-004`, 768 dims | ⬜ |
+| 2 | Update embedding factory — add `"gemini"` case | `factory.py`, `__init__.py` exports | ⬜ |
+| 3 | Update ProviderConfig defaults + `.env.example` | `openai` to `gemini`, `1536` to `768` | ⬜ |
+| 4 | Alembic migration — truncate + alter vector columns | `persona_embeddings`, `job_embeddings` to Vector(768) | ⬜ |
+| 5 | Update EmbeddingColumnsMixin + MockEmbeddingProvider | `base.py` Vector(1536) to 768, mock dims | ⬜ |
+| 6 | Re-embedding script `backend/scripts/reembed_all.py` | One-time script, not migration step | ⬜ |
+| 7 | Phase 4 quality gate — full test suite + push | `test-runner` Full mode | ⬜ |
 
 **Notes:**
 - `google.genai` SDK for Gemini embeddings (same SDK as LLM adapter)
@@ -127,11 +127,11 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 | Phase | Tasks | Status |
 |-------|-------|--------|
-| Phase 1 | 8 (0-7) | pending |
-| Phase 2 | 6 (0-5) | pending |
-| Phase 3 | 2 (0-1) | pending |
-| Phase 4 | 8 (0-7) | pending |
-| **Total** | **24** | **0/24 complete** |
+| Phase 1 | 8 (0-7) | 4/8 ✅ |
+| Phase 2 | 6 (0-5) | ⬜ |
+| Phase 3 | 2 (0-1) | ⬜ |
+| Phase 4 | 8 (0-7) | ⬜ |
+| **Total** | **24** | **4/24 complete** |
 
 ---
 

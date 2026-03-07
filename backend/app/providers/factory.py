@@ -85,7 +85,7 @@ def get_llm_registry(config: ProviderConfig | None = None) -> dict[str, LLMProvi
         if config.google_api_key:
             _llm_registry["gemini"] = GeminiAdapter(config)
 
-    return _llm_registry
+    return dict(_llm_registry)
 
 
 def get_embedding_provider(
