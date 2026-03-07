@@ -532,7 +532,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 23 | **Variant creation endpoints — manual + LLM tailoring** | | ⬜ |
+| 23 | **Variant creation endpoints — manual + LLM tailoring** | | ✅ |
 | | **Read:** REQ-027 §3 (variant creation, §4.1 two paths, §4.2 LLM flow, §4.3 manual flow), §6 (ghostwriter integration, §6.1–§6.3). Existing: `backend/app/api/v1/job_variants.py`, `backend/app/prompts/ghostwriter.py`. | `req-reader, api, provider, tdd, security, plan` | |
 | | | | |
 | | **Create prompt:** Add to `backend/app/prompts/ghostwriter.py` (or new file `resume_tailoring.py`): | | |
