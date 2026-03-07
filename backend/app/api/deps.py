@@ -281,6 +281,28 @@ MeteredProvider = Annotated[LLMProvider, Depends(get_metered_provider)]
 MeteredEmbedding = Annotated[EmbeddingProvider, Depends(get_metered_embedding_provider)]
 
 
+def get_llm_provider_dep() -> LLMProvider:
+    """Get the default LLM provider singleton.
+
+    REQ-028 §5: Thin DI wrapper for testability. Used by the routing
+    test endpoint as fallback when no DB routing is configured.
+    """
+    return get_llm_provider()
+
+
+def get_llm_registry_dep() -> dict[str, LLMProvider]:
+    """Get the LLM provider registry for cross-provider dispatch.
+
+    REQ-028 §5: Thin DI wrapper for testability. Used by the routing
+    test endpoint to dispatch to the correct provider.
+    """
+    return get_llm_registry()
+
+
+FallbackProvider = Annotated[LLMProvider, Depends(get_llm_provider_dep)]
+LLMRegistry = Annotated[dict[str, LLMProvider], Depends(get_llm_registry_dep)]
+
+
 async def require_sufficient_balance(
     user_id: CurrentUserId,
     db: DbSession,

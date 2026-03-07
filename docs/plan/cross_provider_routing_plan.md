@@ -56,7 +56,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | 3 | New `get_routing_for_task()` in `admin_config_service.py` | `plan, tdd, api` | ✅ |
 | 4 | MeteredLLMProvider cross-provider dispatch | `plan, tdd, provider` | ✅ |
 | 5 | DI wiring update in `deps.py` | `plan, tdd, api` | ✅ |
-| 6 | Routing test endpoint `POST /admin/routing/test` | `plan, tdd, api, security` | ⬜ |
+| 6 | Routing test endpoint `POST /admin/routing/test` | `plan, tdd, api, security` | ✅ |
 | 7 | Phase 1 quality gate — full test suite + push | `plan, commands` | ⬜ |
 
 **Notes:**
@@ -171,11 +171,11 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 | Phase | Tasks | Status |
 |-------|-------|--------|
-| Phase 1 | 8 (0-7) | 6/8 ✅ |
+| Phase 1 | 8 (0-7) | 7/8 ✅ |
 | Phase 2 | 6 (0-5) | ⬜ |
 | Phase 3 | 2 (0-1) | ⬜ |
 | Phase 4 | 8 (0-7) | ⬜ |
-| **Total** | **24** | **6/24 complete** |
+| **Total** | **24** | **7/24 complete** |
 
 ---
 

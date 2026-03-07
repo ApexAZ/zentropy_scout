@@ -2,23 +2,31 @@
 
 REQ-022 §10.1–§10.7: CRUD endpoints for model registry, pricing config,
 task routing, funding packs, system config, admin users, and cache refresh.
+REQ-028 §5: Routing test endpoint for cross-provider dispatch verification.
 
 All endpoints require the AdminUser dependency (§5.3).
 Response envelopes follow REQ-006 §7.2.
 """
 
+import asyncio
+import logging
 import uuid
 from datetime import date
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Path, Query, Response, status
+from fastapi import APIRouter, Path, Query, Request, Response, status
 
-from app.api.deps import AdminUser, DbSession
+from app.api.deps import AdminUser, DbSession, FallbackProvider, LLMRegistry
 from app.core.config import settings
+from app.core.errors import LLMProviderError, LLMTimeoutError, ProviderUnavailableError
+from app.core.llm_sanitization import sanitize_llm_input
+from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models.admin_config import FundingPack, ModelRegistry, PricingConfig
 from app.models.user import User
+from app.providers.errors import ProviderError
+from app.providers.llm.base import LLMMessage, TaskType
 from app.schemas.admin import (
     AdminUserResponse,
     AdminUserUpdate,
@@ -32,13 +40,18 @@ from app.schemas.admin import (
     PricingConfigCreate,
     PricingConfigResponse,
     PricingConfigUpdate,
+    RoutingTestRequest,
+    RoutingTestResponse,
     SystemConfigResponse,
     SystemConfigUpsert,
     TaskRoutingCreate,
     TaskRoutingResponse,
     TaskRoutingUpdate,
 )
+from app.services.admin_config_service import AdminConfigService
 from app.services.admin_management_service import AdminManagementService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -660,5 +673,78 @@ async def refresh_cache(
         data=CacheRefreshResponse(
             message="Cache refresh triggered",
             caching_enabled=False,
+        )
+    )
+
+
+# =============================================================================
+# Routing Test (REQ-028 §5)
+# =============================================================================
+
+# Timeout for LLM test calls (seconds). REQ-028 §5.2.
+_ROUTING_TEST_TIMEOUT = 30.0
+
+
+@router.post("/routing/test")
+@limiter.limit("5/minute")
+async def test_routing(
+    request: Request,  # noqa: ARG001 — required by slowapi
+    _admin: AdminUser,
+    db: DbSession,
+    body: RoutingTestRequest,
+    registry: LLMRegistry,
+    fallback: FallbackProvider,
+) -> DataResponse[RoutingTestResponse]:
+    """Test LLM routing for a task type without metering.
+
+    REQ-028 §5: Sends a test prompt to the provider+model configured
+    for the given task type. Does NOT debit user balance.
+
+    Args:
+        request: HTTP request (required by slowapi rate limiter).
+        _admin: Admin user ID (auth gate).
+        db: Database session for routing lookup.
+        body: Task type and test prompt.
+        registry: All available LLM provider adapters.
+        fallback: Default LLM provider (used when no routing configured).
+
+    Returns:
+        Provider, model, response text, latency, and token counts.
+    """
+    admin_config = AdminConfigService(db)
+    routing = await admin_config.get_routing_for_task(body.task_type)
+
+    if routing is not None:
+        provider_name, model_override = routing
+        adapter = registry.get(provider_name)
+        if adapter is None:
+            raise ProviderUnavailableError(provider_name)
+    else:
+        adapter = fallback
+        model_override = None
+
+    task = TaskType(body.task_type)
+    sanitized_prompt = sanitize_llm_input(body.prompt)
+    messages = [LLMMessage(role="user", content=sanitized_prompt)]
+
+    try:
+        response = await asyncio.wait_for(
+            adapter.complete(messages, task, model_override=model_override),
+            timeout=_ROUTING_TEST_TIMEOUT,
+        )
+    except TimeoutError as exc:
+        raise LLMTimeoutError() from exc
+    except ProviderError as exc:
+        logger.warning("Routing test provider error: %s", exc)
+        raise LLMProviderError() from exc
+
+    return DataResponse(
+        data=RoutingTestResponse(
+            provider=adapter.provider_name,
+            model=response.model,
+            response=response.content or "",
+            latency_ms=response.latency_ms,
+            input_tokens=response.input_tokens,
+            output_tokens=response.output_tokens,
         )
     )

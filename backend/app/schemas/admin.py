@@ -711,3 +711,74 @@ class CacheRefreshResponse(BaseModel):
 
     message: str
     caching_enabled: bool
+
+
+# =============================================================================
+# Routing Test (REQ-028 §5)
+# =============================================================================
+
+# Task types valid for LLM execution (excludes '_default' routing placeholder).
+_VALID_LLM_TASK_TYPES = frozenset({t.value for t in TaskType})
+
+
+class RoutingTestRequest(BaseModel):
+    """Request schema for POST /admin/routing/test.
+
+    REQ-028 §5.1: Admin sends a task type and test prompt to verify
+    which provider+model handles the request.
+
+    Attributes:
+        task_type: TaskType enum value (e.g. 'extraction').
+        prompt: Test prompt to send to the LLM.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_type: str
+    prompt: str
+
+    @field_validator("task_type")
+    @classmethod
+    def check_task_type(cls, v: str) -> str:
+        if v not in _VALID_LLM_TASK_TYPES:
+            msg = (
+                f"task_type must be one of: {', '.join(sorted(_VALID_LLM_TASK_TYPES))}"
+            )
+            raise ValueError(msg)
+        return v
+
+    @field_validator("prompt")
+    @classmethod
+    def check_prompt(cls, v: str) -> str:
+        if not v.strip():
+            msg = "prompt must not be empty or whitespace-only"
+            raise ValueError(msg)
+        if len(v) > 1000:
+            msg = "prompt must be at most 1000 characters"
+            raise ValueError(msg)
+        return v
+
+
+class RoutingTestResponse(BaseModel):
+    """Response schema for POST /admin/routing/test.
+
+    REQ-028 §5.1: Returns the provider, model, response text,
+    latency, and token counts from the test call.
+
+    Attributes:
+        provider: Provider that handled the request.
+        model: Actual model used.
+        response: LLM response text.
+        latency_ms: Response time in milliseconds.
+        input_tokens: Number of input tokens consumed.
+        output_tokens: Number of output tokens generated.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str
+    model: str
+    response: str
+    latency_ms: float
+    input_tokens: int
+    output_tokens: int

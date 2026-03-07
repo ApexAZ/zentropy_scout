@@ -251,6 +251,53 @@ class NoPricingConfigError(APIError):
         )
 
 
+class ProviderUnavailableError(APIError):
+    """Routed provider not configured (422).
+
+    REQ-028 §5: Raised when the routing table points to a provider
+    whose API key is not configured in the environment.
+
+    Args:
+        provider: Provider name that is not available.
+    """
+
+    def __init__(self, provider: str) -> None:
+        super().__init__(
+            code="PROVIDER_UNAVAILABLE",
+            message=f"Provider '{provider}' is not configured (missing API key)",
+            status_code=422,
+        )
+
+
+class LLMTimeoutError(APIError):
+    """LLM request timed out (504).
+
+    REQ-028 §5.2: Raised when an LLM call exceeds the timeout limit.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="LLM_TIMEOUT",
+            message="LLM request timed out after 30 seconds",
+            status_code=504,
+        )
+
+
+class LLMProviderError(APIError):
+    """LLM provider returned an error (502).
+
+    REQ-028 §5: Raised when the LLM provider returns an error during
+    a routing test. Uses a generic message to avoid leaking provider details.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="PROVIDER_ERROR",
+            message="LLM provider returned an error",
+            status_code=502,
+        )
+
+
 class InternalError(APIError):
     """Unexpected server error (500).
 
