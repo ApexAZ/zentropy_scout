@@ -515,7 +515,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 
 ## Phase 8: Job Variant Backend & UI (REQ-027 §3, §5)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Backend endpoints for variant creation (manual + LLM tailoring) and frontend variant creation UI. Extends existing job variant infrastructure.*
 
@@ -568,7 +568,7 @@ Phase 1: Database Schema & Models (REQ-025 §4)
 | | **Tests:** Variant creation UI, job requirements panel renders, both creation paths trigger correct API calls | | |
 | | **Run:** `cd frontend && npm test -- --run && npm run typecheck` | | |
 | | **Done when:** Users can create variants via both paths. Job requirements panel shows. Tests pass. | | |
-| 25 | **Phase 8 Gate** — Full test suite + push | `phase-gate` | ⬜ |
+| 25 | **Phase 8 Gate** — Full test suite + push | `phase-gate` | ✅ |
 | | Run: `cd backend && pytest tests/ -v`. `cd frontend && npm test -- --run && npm run typecheck && npm run lint`. `npx playwright test`. Push with SSH keep-alive. | | |
 
 ---
