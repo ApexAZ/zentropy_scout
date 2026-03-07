@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import { CoverLetterSection } from "@/components/jobs/cover-letter-section";
+import { CreateVariantCard } from "@/components/jobs/create-variant-card";
 import { DraftMaterialsCard } from "@/components/jobs/draft-materials-card";
 import { ReviewMaterialsLink } from "@/components/jobs/review-materials-link";
 import { CultureSignals } from "@/components/jobs/culture-signals";
@@ -87,6 +88,9 @@ export default function JobDetailPage() {
 					/>
 					<div className="mt-6">
 						<CoverLetterSection jobId={params.id} />
+					</div>
+					<div className="mt-6">
+						<CreateVariantCard jobPostingId={personaJob.job.id} />
 					</div>
 					<div className="mt-6">
 						<DraftMaterialsCard jobId={params.id} />

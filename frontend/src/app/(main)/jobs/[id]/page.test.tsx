@@ -33,6 +33,7 @@ const SKILLS_TESTID = "extracted-skills-stub";
 const DESCRIPTION_TESTID = "job-description-stub";
 const CULTURE_TESTID = "culture-signals-stub";
 const COVER_LETTER_SECTION_TESTID = "cover-letter-section-stub";
+const CREATE_VARIANT_TESTID = "create-variant-stub";
 const DRAFT_MATERIALS_TESTID = "draft-materials-stub";
 const REVIEW_MATERIALS_TESTID = "review-materials-stub";
 const MARK_AS_APPLIED_TESTID = "mark-as-applied-stub";
@@ -177,6 +178,11 @@ function MockCoverLetterSection({ jobId }: { jobId: string }) {
 }
 MockCoverLetterSection.displayName = "MockCoverLetterSection";
 
+function MockCreateVariantCard({ jobPostingId }: { jobPostingId: string }) {
+	return <div data-testid={CREATE_VARIANT_TESTID}>{jobPostingId}</div>;
+}
+MockCreateVariantCard.displayName = "MockCreateVariantCard";
+
 function MockDraftMaterialsCard({ jobId }: { jobId: string }) {
 	return <div data-testid={DRAFT_MATERIALS_TESTID}>{jobId}</div>;
 }
@@ -189,6 +195,10 @@ MockReviewMaterialsLink.displayName = "MockReviewMaterialsLink";
 
 vi.mock("@/components/jobs/cover-letter-section", () => ({
 	CoverLetterSection: MockCoverLetterSection,
+}));
+
+vi.mock("@/components/jobs/create-variant-card", () => ({
+	CreateVariantCard: MockCreateVariantCard,
 }));
 
 vi.mock("@/components/jobs/draft-materials-card", () => ({
@@ -259,6 +269,7 @@ function makeJobData(
 				status: "Discovered",
 				score_details: scoreDetails ?? null,
 				job: {
+					id: "job-posting-id",
 					description: "We are hiring a senior engineer.",
 					culture_text: "Fast-paced and collaborative.",
 					apply_url: "https://example.com/apply",
