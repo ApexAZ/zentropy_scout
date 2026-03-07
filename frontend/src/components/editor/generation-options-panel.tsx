@@ -145,10 +145,8 @@ export function GenerationOptionsPanel({
 			</div>
 
 			{/* Section Checkboxes */}
-			<div className="mb-6" role="group" aria-labelledby="include-label">
-				<span id="include-label" className="mb-2 block text-sm font-medium">
-					Include
-				</span>
+			<fieldset className="m-0 mb-6 border-0 p-0">
+				<legend className="mb-2 text-sm font-medium">Include</legend>
 				<div className="space-y-2">
 					{ALL_RESUME_SECTIONS.map((section) => (
 						<div key={section} className="flex items-center gap-2">
@@ -167,7 +165,7 @@ export function GenerationOptionsPanel({
 						</div>
 					))}
 				</div>
-			</div>
+			</fieldset>
 
 			{/* Action Buttons */}
 			<div className="flex items-center gap-2">

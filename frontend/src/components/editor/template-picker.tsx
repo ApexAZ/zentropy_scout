@@ -73,7 +73,6 @@ export function TemplatePicker({
 	return (
 		<div
 			className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-			role="listbox"
 			aria-label="Resume templates"
 			data-testid="template-picker"
 		>
@@ -83,8 +82,7 @@ export function TemplatePicker({
 					<button
 						key={template.id}
 						type="button"
-						role="option"
-						aria-selected={isSelected}
+						aria-pressed={isSelected}
 						onClick={() => onSelect(template.id)}
 						data-testid={`template-card-${template.id}`}
 						className={`rounded-lg border p-4 text-left transition-colors ${

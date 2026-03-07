@@ -707,7 +707,7 @@ describe("NewResumeWizard", () => {
 				expect(screen.getByText("Clean & Minimal")).toBeInTheDocument();
 			});
 			const firstCard = screen.getByTestId(`template-card-${TEMPLATE_ID_1}`);
-			expect(firstCard).toHaveAttribute("aria-selected", "true");
+			expect(firstCard).toHaveAttribute("aria-pressed", "true");
 		});
 
 		it("allows selecting a different template", async () => {
@@ -720,10 +720,10 @@ describe("NewResumeWizard", () => {
 			await user.click(screen.getByTestId(`template-card-${TEMPLATE_ID_2}`));
 			expect(
 				screen.getByTestId(`template-card-${TEMPLATE_ID_2}`),
-			).toHaveAttribute("aria-selected", "true");
+			).toHaveAttribute("aria-pressed", "true");
 			expect(
 				screen.getByTestId(`template-card-${TEMPLATE_ID_1}`),
-			).toHaveAttribute("aria-selected", "false");
+			).toHaveAttribute("aria-pressed", "false");
 		});
 	});
 

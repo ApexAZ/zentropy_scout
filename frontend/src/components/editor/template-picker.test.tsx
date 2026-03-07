@@ -163,7 +163,7 @@ describe("TemplatePicker", () => {
 				expect(screen.getByText("Clean & Minimal")).toBeInTheDocument();
 			});
 			const selectedCard = screen.getByTestId(`template-card-${TEMPLATE_ID_1}`);
-			expect(selectedCard).toHaveAttribute("aria-selected", "true");
+			expect(selectedCard).toHaveAttribute("aria-pressed", "true");
 		});
 
 		it("does not highlight unselected template cards", async () => {
@@ -175,7 +175,7 @@ describe("TemplatePicker", () => {
 			const unselectedCard = screen.getByTestId(
 				`template-card-${TEMPLATE_ID_2}`,
 			);
-			expect(unselectedCard).toHaveAttribute("aria-selected", "false");
+			expect(unselectedCard).toHaveAttribute("aria-pressed", "false");
 		});
 
 		it("calls onSelect when a template card is clicked", async () => {
