@@ -2,17 +2,25 @@
 
 REQ-006 §5.2: Job-specific resume variants.
 REQ-002 §4.3: Job Variant — Snapshot Logic.
+REQ-027 §3: Job variant creation (manual + AI tailoring).
 """
 
+import logging
 import uuid
 from datetime import UTC, datetime
+from typing import Literal
 
 from fastapi import APIRouter, Response, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import select
 
-from app.api.deps import CurrentUserId, DbSession
-from app.core.errors import InvalidStateError, NotFoundError
+from app.api.deps import (
+    CurrentUserId,
+    DbSession,
+    MeteredProvider,
+    require_sufficient_balance,
+)
+from app.core.errors import InvalidStateError, NotFoundError, ValidationError
 from app.core.file_validation import sanitize_filename_for_header
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
@@ -21,6 +29,9 @@ from app.models.persona_job import PersonaJob
 from app.models.resume import JobVariant
 from app.services.markdown_docx_renderer import render_docx
 from app.services.markdown_pdf_renderer import render_pdf
+from app.services.resume_tailoring_service import tailor_resume_markdown
+
+logger = logging.getLogger(__name__)
 
 _MAX_SUMMARY_LENGTH = 5000
 """Safety bound on summary text length."""
@@ -116,6 +127,19 @@ class UpdateJobVariantRequest(BaseModel):
                 msg = f"List too long (max {_MAX_JSONB_LIST_LENGTH})"
                 raise ValueError(msg)
         return v
+
+
+class CreateVariantForJobRequest(BaseModel):
+    """Request body for creating a job variant via manual or AI tailoring.
+
+    REQ-027 §3: Two creation paths — manual copies markdown, AI tailors it.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_resume_id: uuid.UUID
+    job_posting_id: uuid.UUID
+    method: Literal["manual", "ai"]
 
 
 # =============================================================================
@@ -278,6 +302,93 @@ async def create_job_variant(
     return DataResponse(data=_variant_to_dict(variant))
 
 
+@router.post("/create-for-job", status_code=status.HTTP_201_CREATED)
+async def create_variant_for_job(
+    request: CreateVariantForJobRequest,
+    user_id: CurrentUserId,
+    db: DbSession,
+    provider: MeteredProvider,
+) -> DataResponse[dict]:
+    """Create a job variant via manual copy or AI tailoring.
+
+    REQ-027 §3: Two creation paths.
+    - ``manual``: Copies base resume's markdown_content to variant (free).
+    - ``ai``: LLM tailors base resume markdown for job fit (requires credits).
+
+    Args:
+        request: Creation request with method, base_resume_id, job_posting_id.
+        user_id: Current authenticated user (injected).
+        db: Database session (injected).
+        provider: Metered LLM provider (injected via DI).
+
+    Returns:
+        DataResponse with created job variant.
+
+    Raises:
+        NotFoundError: If base resume or job posting not found or not owned.
+        ValidationError: If AI method used but base resume has no markdown.
+        InsufficientBalanceError: If AI method and balance too low (402).
+    """
+    # Verify base resume ownership and load it
+    resume_result = await db.execute(
+        select(BaseResume)
+        .join(Persona, BaseResume.persona_id == Persona.id)
+        .where(BaseResume.id == request.base_resume_id, Persona.user_id == user_id)
+    )
+    base_resume = resume_result.scalar_one_or_none()
+    if not base_resume:
+        raise NotFoundError("base resume", str(request.base_resume_id))
+
+    # Verify job posting ownership via persona_jobs link
+    posting_result = await db.execute(
+        select(JobPosting)
+        .join(PersonaJob, PersonaJob.job_posting_id == JobPosting.id)
+        .join(Persona, PersonaJob.persona_id == Persona.id)
+        .where(JobPosting.id == request.job_posting_id, Persona.user_id == user_id)
+    )
+    job_posting = posting_result.scalar_one_or_none()
+    if not job_posting:
+        raise NotFoundError("job posting", str(request.job_posting_id))
+
+    # Auto-generate summary from resume name + job title
+    summary = f"Variant of {base_resume.name} for {job_posting.job_title}"
+
+    if request.method == "manual":
+        markdown_content = base_resume.markdown_content
+    else:
+        # AI path: check credits before calling LLM (REQ-027 §7)
+        await require_sufficient_balance(user_id, db)
+
+        # AI path: requires base resume to have markdown
+        if not base_resume.markdown_content:
+            raise ValidationError(
+                "AI tailoring requires the base resume to have markdown content. "
+                "Generate content for the base resume first, or use manual method."
+            )
+
+        tailored_markdown, _metadata = await tailor_resume_markdown(
+            resume_markdown=base_resume.markdown_content,
+            job_title=job_posting.job_title,
+            company_name=job_posting.company_name,
+            description=job_posting.description or "",
+            requirements=job_posting.requirements or "",
+            provider=provider,
+        )
+        markdown_content = tailored_markdown
+
+    variant = JobVariant(
+        base_resume_id=request.base_resume_id,
+        job_posting_id=request.job_posting_id,
+        summary=summary,
+        markdown_content=markdown_content,
+    )
+    db.add(variant)
+    await db.commit()
+    await db.refresh(variant)
+
+    return DataResponse(data=_variant_to_dict(variant))
+
+
 @router.get("/{variant_id}")
 async def get_job_variant(
     variant_id: uuid.UUID,
@@ -415,6 +526,9 @@ async def approve_job_variant(
     variant.snapshot_included_education = base.included_education
     variant.snapshot_included_certifications = base.included_certifications
     variant.snapshot_skills_emphasis = base.skills_emphasis
+
+    # REQ-027 §6.3: Snapshot variant's own markdown_content
+    variant.snapshot_markdown_content = variant.markdown_content
 
     variant.status = _STATUS_APPROVED
     variant.approved_at = datetime.now(UTC)

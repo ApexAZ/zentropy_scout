@@ -5,12 +5,14 @@ REQ-010 §5.3: Cover Letter Generation Prompts.
 REQ-010 §7.3: Regeneration Context Builder.
 REQ-007 §8.5: Cover Letter Generation.
 REQ-018 §5.2: Relocated from agents/ghostwriter_prompts.py.
+REQ-027 §6.2: Resume Tailoring Prompt.
 
 Contains:
 1. System prompt constants with writing rules and XML output format
 2. User prompt templates with XML-tagged sections
 3. Builder functions with sanitization and truncation
 4. Regeneration context builder for feedback-based re-generation
+5. Resume tailoring prompt for job variant creation
 
 Pattern: module-level constants + builder functions with sanitize_llm_input().
 """
@@ -403,3 +405,108 @@ def build_regeneration_context(
     parts.append("</regeneration_context>")
 
     return original_prompt + "\n\n" + "\n".join(parts)
+
+
+# =============================================================================
+# Resume Tailoring Prompts (REQ-027 §6.2)
+# =============================================================================
+
+# WHY: The system prompt establishes tailoring rules — preserve voice, maintain
+# factual accuracy, only adjust emphasis and keyword alignment. Modification
+# limits prevent the LLM from fabricating or removing content.
+
+_MAX_RESUME_MARKDOWN_LENGTH = 10000
+"""Maximum characters for resume markdown in tailoring prompt."""
+
+_MAX_TAILORING_DESCRIPTION_LENGTH = 2000
+"""Maximum characters for job description in tailoring prompt."""
+
+_MAX_TAILORING_REQUIREMENTS_LENGTH = 1000
+"""Maximum characters for job requirements in tailoring prompt."""
+
+RESUME_TAILORING_SYSTEM_PROMPT = """You are a resume tailoring expert. Your job \
+is to modify a resume's markdown to better fit a specific job posting.
+
+RULES:
+1. Preserve the person's authentic voice — do NOT change their writing style
+2. Maintain factual accuracy — NEVER fabricate, invent, or embellish accomplishments
+3. Do NOT add new content that doesn't exist in the original resume
+4. Do NOT remove or delete entire sections from the resume
+
+ALLOWED MODIFICATIONS:
+- Reorder sections or bullet points to emphasize relevant experience first
+- Rephrase emphasis to highlight skills matching the job requirements
+- Adjust keyword usage to naturally incorporate terms from the job posting
+- Strengthen alignment between resume content and job requirements
+
+FORBIDDEN MODIFICATIONS:
+- Adding new experiences, skills, or accomplishments not in the original
+- Fabricating metrics, numbers, or outcomes
+- Removing sections entirely
+- Changing factual information (dates, titles, companies)
+
+OUTPUT FORMAT:
+<tailored_resume>
+[The complete tailored resume markdown — preserve all markdown formatting]
+</tailored_resume>
+
+<tailoring_reasoning>
+[2-3 sentences explaining what you changed and why]
+</tailoring_reasoning>"""
+
+_RESUME_TAILORING_USER_TEMPLATE = """<original_resume>
+{resume_markdown}
+</original_resume>
+
+<job_posting>
+Title: {job_title}
+Company: {company_name}
+
+Requirements:
+{requirements}
+
+Description:
+{description_excerpt}
+</job_posting>
+
+Tailor the resume to better align with this job posting while preserving \
+the person's voice and all factual content."""
+
+
+def build_resume_tailoring_prompt(
+    *,
+    resume_markdown: str,
+    job_title: str,
+    company_name: str,
+    description_excerpt: str,
+    requirements: str,
+) -> str:
+    """Build the resume tailoring user prompt with resume and job data.
+
+    REQ-027 §6.2: Resume Tailoring Prompt.
+
+    Formats the user prompt template with the original resume markdown and
+    job posting data for the LLM to tailor. All string parameters are
+    sanitized to mitigate prompt injection.
+
+    Args:
+        resume_markdown: The base resume's markdown content to tailor.
+        job_title: Title of the target job posting.
+        company_name: Company offering the position.
+        description_excerpt: Raw job description text.
+        requirements: Formatted string of required skills.
+
+    Returns:
+        Formatted user prompt string for LLM completion.
+    """
+    truncated_markdown = resume_markdown[:_MAX_RESUME_MARKDOWN_LENGTH]
+    truncated_description = description_excerpt[:_MAX_TAILORING_DESCRIPTION_LENGTH]
+    truncated_requirements = requirements[:_MAX_TAILORING_REQUIREMENTS_LENGTH]
+
+    return _RESUME_TAILORING_USER_TEMPLATE.format(
+        resume_markdown=sanitize_llm_input(truncated_markdown),
+        job_title=sanitize_llm_input(job_title[:_MAX_FIELD_LENGTH]),
+        company_name=sanitize_llm_input(company_name[:_MAX_FIELD_LENGTH]),
+        description_excerpt=sanitize_llm_input(truncated_description),
+        requirements=sanitize_llm_input(truncated_requirements),
+    )
