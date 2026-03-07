@@ -17,9 +17,7 @@ from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 
 logger = logging.getLogger(__name__)
 
-_TAILORED_RESUME_RE = re.compile(
-    r"<tailored_resume>\s*(.*?)\s*</tailored_resume>", re.DOTALL
-)
+_TAILORED_RESUME_RE = re.compile(r"<tailored_resume>(.*?)</tailored_resume>", re.DOTALL)
 
 
 class ResumeTailoringError(APIError):
@@ -91,7 +89,7 @@ async def tailor_resume_markdown(
 
     # Extract tailored resume from XML tags
     match = _TAILORED_RESUME_RE.search(raw_content)
-    tailored_markdown = match.group(1) if match else raw_content
+    tailored_markdown = match.group(1).strip() if match else raw_content
 
     metadata = {
         "model": response.model,
