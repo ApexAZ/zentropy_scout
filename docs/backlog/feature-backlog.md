@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-02
 
-**Items:** 27 (8 completed, 19 pending)
+**Items:** 28 (8 completed, 20 pending)
 
 ---
 
@@ -1270,6 +1270,31 @@ Add a user-facing dark mode toggle in the settings page. The frontend already ha
 - `frontend/src/app/globals.css` — theme CSS variables (already has dark mode definitions)
 - `frontend/src/app/(main)/settings/page.tsx` — settings page (add toggle here)
 - `backend/app/models/user.py` — add `theme_preference` column
+
+---
+
+### 28. Test Suite Audit & Cleanup
+
+**Category:** Testing / DX
+**Added:** 2026-03-08
+**Priority:** Post-MVP — Technical debt. Suite passes but has quality issues.
+**Depends on:** Nothing (can start anytime)
+
+Audit the full backend test suite for consistency, isolation, and pytest-asyncio best practices. A fixture decorator mismatch (`@pytest.fixture` on `async def` instead of `@pytest_asyncio.fixture`) and a missing root `pytest.ini` caused 570 false failures in full-suite runs — fixed in commit `7b0d3e4`, but a broader audit is warranted.
+
+**What needs to be done:**
+- **Fixture decorator audit** — scan for any remaining `@pytest.fixture` on `async def` functions (the batch fix in 7b0d3e4 caught 12 files; verify no new ones appear)
+- **Test isolation verification** — confirm no test relies on execution order or shared mutable state
+- **Antipattern hook review** — the conftest AST scanner reports `isinstance` usage in ~15 tests; evaluate whether these are genuine antipatterns or false positives
+- **pytest-asyncio configuration** — evaluate `asyncio_default_fixture_loop_scope` setting; ensure consistency between root `pytest.ini` and `backend/pyproject.toml`
+- **Test runtime profiling** — the full suite takes ~8 minutes; identify slow tests and consider parallelization (`pytest-xdist`)
+- **CI alignment** — ensure CI runs `pytest` the same way local dev does (same config, same CWD)
+
+**Key files:**
+- `pytest.ini` — root-level pytest config (added in 7b0d3e4)
+- `backend/pyproject.toml` — `[tool.pytest.ini_options]` section
+- `backend/tests/conftest.py` — top-level test fixtures
+- `backend/tests/unit/conftest.py` — unit test fixtures
 
 ---
 
