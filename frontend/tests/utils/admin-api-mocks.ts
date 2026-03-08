@@ -16,6 +16,7 @@ import {
 } from "../fixtures/auth-mock-data";
 import { balanceResponse } from "../fixtures/usage-mock-data";
 import {
+	availableProvidersResponse,
 	cacheRefreshResponse,
 	modelCreatedResponse,
 	modelsListResponse,
@@ -113,6 +114,10 @@ export class AdminMockController {
 		}
 
 		// --- Routing ---
+		if (path.match(/\/admin\/available-providers$/)) {
+			if (method === "GET")
+				return this.json(route, availableProvidersResponse());
+		}
 		if (path.match(/\/admin\/routing$/)) {
 			if (method === "GET") return this.json(route, routingListResponse());
 			if (method === "POST")

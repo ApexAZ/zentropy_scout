@@ -120,6 +120,13 @@ export async function testRouting(
 	return apiPost("/admin/routing/test", body);
 }
 
+/** REQ-028 §6.1: Fetch providers that have API keys configured. */
+export async function fetchAvailableProviders(): Promise<
+	ApiResponse<string[]>
+> {
+	return apiGet("/admin/available-providers");
+}
+
 // =============================================================================
 // Funding Packs
 // =============================================================================

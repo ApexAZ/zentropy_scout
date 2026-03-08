@@ -167,6 +167,11 @@ export function routingListResponse() {
 	return { data: [...ROUTING] };
 }
 
+/** GET /admin/available-providers — providers with API keys configured. */
+export function availableProvidersResponse() {
+	return { data: ["claude", "openai"] };
+}
+
 // ---------------------------------------------------------------------------
 // Funding Packs
 // ---------------------------------------------------------------------------

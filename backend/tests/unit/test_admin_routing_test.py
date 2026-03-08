@@ -520,3 +520,44 @@ class TestRoutingTestResponseEnvelope:
         )
         count = result.scalar()
         assert count == 0
+
+
+# =============================================================================
+# Available providers (REQ-028 §6.1 — API key validation)
+# =============================================================================
+
+_PROVIDERS_ENDPOINT = "/api/v1/admin/available-providers"
+
+
+@pytest.mark.asyncio
+class TestAvailableProviders:
+    """GET /admin/available-providers returns providers with API keys."""
+
+    async def test_returns_all_registered_providers(
+        self, routing_client: AsyncClient
+    ) -> None:
+        """All three providers in mock registry are returned."""
+        resp = await routing_client.get(_PROVIDERS_ENDPOINT)
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert sorted(data) == ["claude", "gemini", "openai"]
+
+    async def test_returns_subset_when_provider_missing(
+        self, routing_client: AsyncClient
+    ) -> None:
+        """Only providers with API keys are returned."""
+        from app.api.deps import get_llm_registry_dep
+        from app.main import app
+
+        claude_only = {"claude": _make_mock_adapter("claude")}
+        app.dependency_overrides[get_llm_registry_dep] = lambda: claude_only
+
+        resp = await routing_client.get(_PROVIDERS_ENDPOINT)
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data == ["claude"]
+
+    async def test_non_admin_gets_403(self, non_admin_client: AsyncClient) -> None:
+        """Non-admin user cannot access available providers."""
+        resp = await non_admin_client.get(_PROVIDERS_ENDPOINT)
+        assert resp.status_code == 403

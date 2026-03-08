@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => {
 	const mockUpdateRouting = vi.fn();
 	const mockDeleteRouting = vi.fn();
 	const mockTestRouting = vi.fn();
+	const mockFetchAvailableProviders = vi.fn();
 	return {
 		mockFetchRouting,
 		mockFetchModels,
@@ -33,6 +34,7 @@ const mocks = vi.hoisted(() => {
 		mockUpdateRouting,
 		mockDeleteRouting,
 		mockTestRouting,
+		mockFetchAvailableProviders,
 	};
 });
 
@@ -43,6 +45,7 @@ vi.mock("@/lib/api/admin", () => ({
 	updateRouting: mocks.mockUpdateRouting,
 	deleteRouting: mocks.mockDeleteRouting,
 	testRouting: mocks.mockTestRouting,
+	fetchAvailableProviders: mocks.mockFetchAvailableProviders,
 }));
 
 vi.mock("@/lib/toast", () => ({
@@ -169,6 +172,9 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.mockFetchRouting.mockResolvedValue({ data: MOCK_ROUTING });
 	mocks.mockFetchModels.mockResolvedValue({ data: MOCK_MODELS });
+	mocks.mockFetchAvailableProviders.mockResolvedValue({
+		data: ["claude", "openai", "gemini"],
+	});
 });
 
 afterEach(() => {
@@ -407,5 +413,46 @@ describe("RoutingTab", () => {
 		await waitFor(() => {
 			expect(screen.getByTestId("test-loading-extraction")).toBeInTheDocument();
 		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Provider validation warnings (REQ-028 §6.1)
+	// -----------------------------------------------------------------------
+
+	it("shows no warning when all configured providers have API keys", async () => {
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		expect(
+			screen.queryByTestId("provider-warning-extraction"),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByTestId("provider-warning-chat_response"),
+		).not.toBeInTheDocument();
+	});
+
+	it("shows warning icon when configured provider has no API key", async () => {
+		mocks.mockFetchAvailableProviders.mockResolvedValue({
+			data: ["openai", "gemini"],
+		});
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		// Both MOCK_ROUTING entries use "claude" which is NOT available
+		const warning = screen.getByTestId("provider-warning-extraction");
+		expect(warning).toBeInTheDocument();
+		expect(
+			screen.getByTestId("provider-warning-chat_response"),
+		).toBeInTheDocument();
+	});
+
+	it("does not show warning for unconfigured rows", async () => {
+		mocks.mockFetchAvailableProviders.mockResolvedValue({
+			data: ["claude"],
+		});
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		// skill_extraction has no routing entry — no warning needed
+		expect(
+			screen.queryByTestId("provider-warning-skill_extraction"),
+		).not.toBeInTheDocument();
 	});
 });

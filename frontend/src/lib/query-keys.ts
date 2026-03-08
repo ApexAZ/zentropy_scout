@@ -71,6 +71,7 @@ export const queryKeys = {
 	adminModels: [ADMIN, "models"] as const,
 	adminPricing: [ADMIN, "pricing"] as const,
 	adminRouting: [ADMIN, "routing"] as const,
+	adminAvailableProviders: [ADMIN, "available-providers"] as const,
 	adminPacks: [ADMIN, "packs"] as const,
 	adminConfig: [ADMIN, "config"] as const,
 	adminUsers: [ADMIN, "users"] as const,

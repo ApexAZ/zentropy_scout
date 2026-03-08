@@ -678,6 +678,31 @@ async def refresh_cache(
 
 
 # =============================================================================
+# Available Providers (REQ-028 §6.1 — API key validation)
+# =============================================================================
+
+
+@router.get("/available-providers")
+async def list_available_providers(
+    _admin: AdminUser,
+    registry: LLMRegistry,
+) -> DataResponse[list[str]]:
+    """Return provider names that have API keys configured.
+
+    REQ-028 §6.1: Used by admin UI to warn on routing rows that
+    reference providers without API keys.
+
+    Args:
+        _admin: Admin user ID (auth gate).
+        registry: All available LLM provider adapters.
+
+    Returns:
+        Sorted list of provider name strings.
+    """
+    return DataResponse(data=sorted(registry.keys()))
+
+
+# =============================================================================
 # Routing Test (REQ-028 §5)
 # =============================================================================
 

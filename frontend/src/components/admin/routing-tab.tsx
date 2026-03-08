@@ -10,11 +10,12 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 import {
 	createRouting,
 	deleteRouting,
+	fetchAvailableProviders,
 	fetchModels,
 	fetchRouting,
 	updateRouting,
@@ -83,6 +84,11 @@ export function RoutingTab() {
 		queryFn: () => fetchModels({ model_type: "llm", is_active: true }),
 	});
 
+	const providersQuery = useQuery({
+		queryKey: queryKeys.adminAvailableProviders,
+		queryFn: () => fetchAvailableProviders(),
+	});
+
 	// -----------------------------------------------------------------------
 	// Derived data
 	// -----------------------------------------------------------------------
@@ -94,6 +100,11 @@ export function RoutingTab() {
 		}
 		return map;
 	}, [routingQuery.data]);
+
+	const availableProviders = useMemo(
+		() => new Set(providersQuery.data?.data ?? []),
+		[providersQuery.data],
+	);
 
 	const modelsByProvider = useMemo(() => {
 		const map = new Map<string, ModelRegistryItem[]>();
@@ -186,7 +197,11 @@ export function RoutingTab() {
 	// Loading / Error
 	// -----------------------------------------------------------------------
 
-	if (routingQuery.isLoading || modelsQuery.isLoading) {
+	if (
+		routingQuery.isLoading ||
+		modelsQuery.isLoading ||
+		providersQuery.isLoading
+	) {
 		return (
 			<div data-testid="routing-loading" className="flex justify-center py-12">
 				<Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
@@ -194,7 +209,7 @@ export function RoutingTab() {
 		);
 	}
 
-	if (routingQuery.error || modelsQuery.error) {
+	if (routingQuery.error || modelsQuery.error || providersQuery.error) {
 		return (
 			<div className="py-8 text-center">
 				<p className="text-destructive mb-2">Failed to load routing.</p>
@@ -204,6 +219,7 @@ export function RoutingTab() {
 					onClick={() => {
 						void routingQuery.refetch();
 						void modelsQuery.refetch();
+						void providersQuery.refetch();
 					}}
 				>
 					Retry
@@ -239,31 +255,42 @@ export function RoutingTab() {
 						const currentModel = pendingProviders[value]
 							? ""
 							: (routing?.model ?? "");
+						const providerUnavailable =
+							!!currentProvider && !availableProviders.has(currentProvider);
 						const availableModels = modelsByProvider.get(currentProvider) ?? [];
 
 						return (
 							<TableRow key={value}>
 								<TableCell className="font-medium">{label}</TableCell>
 								<TableCell>
-									<Select
-										value={currentProvider}
-										onValueChange={(p) => handleProviderChange(value, p)}
-									>
-										<SelectTrigger
-											data-testid={`provider-select-${value}`}
-											aria-label={`Provider for ${label}`}
-											className="w-[140px]"
+									<div className="flex items-center gap-1.5">
+										<Select
+											value={currentProvider}
+											onValueChange={(p) => handleProviderChange(value, p)}
 										>
-											<SelectValue placeholder="Select provider" />
-										</SelectTrigger>
-										<SelectContent>
-											{PROVIDERS.map((p) => (
-												<SelectItem key={p} value={p}>
-													{p}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+											<SelectTrigger
+												data-testid={`provider-select-${value}`}
+												aria-label={`Provider for ${label}`}
+												className="w-[140px]"
+											>
+												<SelectValue placeholder="Select provider" />
+											</SelectTrigger>
+											<SelectContent>
+												{PROVIDERS.map((p) => (
+													<SelectItem key={p} value={p}>
+														{p}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										{providerUnavailable && (
+											<AlertTriangle
+												data-testid={`provider-warning-${value}`}
+												className="text-warning h-4 w-4 shrink-0"
+												aria-label={`API key not configured for ${currentProvider}`}
+											/>
+										)}
+									</div>
 								</TableCell>
 								<TableCell>
 									<Select
