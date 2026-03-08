@@ -7,7 +7,7 @@ run_surfacing_pass, UNIQUE dedup, rate limiting.
 import hashlib
 from datetime import UTC, date, datetime, timedelta
 
-import pytest
+import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -38,7 +38,7 @@ _HASH_C = hashlib.sha256(b"React frontend at StartupX").hexdigest()
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def source(db_session: AsyncSession) -> JobSource:
     """Create a job source."""
     s = JobSource(
@@ -50,7 +50,7 @@ async def source(db_session: AsyncSession) -> JobSource:
     return s
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def user_a(db_session: AsyncSession) -> User:
     """Create User A."""
     u = User(email="surf_a@test.com")
@@ -60,7 +60,7 @@ async def user_a(db_session: AsyncSession) -> User:
     return u
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def user_b(db_session: AsyncSession) -> User:
     """Create User B."""
     u = User(email="surf_b@test.com")
@@ -70,7 +70,7 @@ async def user_b(db_session: AsyncSession) -> User:
     return u
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def persona_a(db_session: AsyncSession, user_a: User) -> Persona:
     """Create persona with Python/FastAPI skills, 5 years, Remote Only."""
     p = Persona(
@@ -112,7 +112,7 @@ async def persona_a(db_session: AsyncSession, user_a: User) -> Persona:
     return p
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def persona_b(db_session: AsyncSession, user_b: User) -> Persona:
     """Create persona with React/TypeScript skills, 2 years, No Preference."""
     p = Persona(
@@ -149,7 +149,7 @@ async def persona_b(db_session: AsyncSession, user_b: User) -> Persona:
     return p
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def persona_not_onboarded(db_session: AsyncSession, user_a: User) -> Persona:
     """Create persona that has NOT completed onboarding."""
     p = Persona(
@@ -168,7 +168,7 @@ async def persona_not_onboarded(db_session: AsyncSession, user_a: User) -> Perso
     return p
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def python_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
     """Create a Python backend job posting."""
     jp = JobPosting(
@@ -189,7 +189,7 @@ async def python_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
     return jp
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def react_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
     """Create a React frontend job posting."""
     jp = JobPosting(
@@ -210,7 +210,7 @@ async def react_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
     return jp
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def data_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
     """Create a Data Analyst job (no skill match for test personas)."""
     jp = JobPosting(

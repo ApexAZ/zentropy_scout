@@ -7,7 +7,7 @@ work model alignment, seniority alignment, keyword overlap, lightweight fit.
 import hashlib
 from datetime import date
 
-import pytest
+import pytest_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -36,7 +36,7 @@ _HASH_B = hashlib.sha256(b"Data analyst at DataCo").hexdigest()
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def source(db_session: AsyncSession) -> JobSource:
     """Create a job source."""
     s = JobSource(
@@ -48,7 +48,7 @@ async def source(db_session: AsyncSession) -> JobSource:
     return s
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def user_a(db_session: AsyncSession) -> User:
     """Create User A."""
     u = User(email="score_a@test.com")
@@ -58,7 +58,7 @@ async def user_a(db_session: AsyncSession) -> User:
     return u
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def persona_with_skills(db_session: AsyncSession, user_a: User) -> Persona:
     """Create persona with Python/FastAPI skills, 5 years, Remote Only."""
     p = Persona(
@@ -99,7 +99,7 @@ async def persona_with_skills(db_session: AsyncSession, user_a: User) -> Persona
     return p
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def python_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
     """Create a Python backend job posting."""
     jp = JobPosting(
@@ -120,7 +120,7 @@ async def python_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
     return jp
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def data_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
     """Create a Data Analyst job (no skill match for test persona)."""
     jp = JobPosting(

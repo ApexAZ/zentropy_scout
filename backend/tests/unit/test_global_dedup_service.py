@@ -11,7 +11,7 @@ import uuid
 from datetime import date
 from unittest.mock import AsyncMock, patch
 
-import pytest
+import pytest_asyncio
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +35,7 @@ _EXT_ID_IND = "IND-99999"
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def source_linkedin(db_session: AsyncSession) -> JobSource:
     """Create LinkedIn job source."""
     s = JobSource(
@@ -47,7 +47,7 @@ async def source_linkedin(db_session: AsyncSession) -> JobSource:
     return s
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def source_indeed(db_session: AsyncSession) -> JobSource:
     """Create Indeed job source."""
     s = JobSource(source_name="Indeed", source_type="Extension", description="Indeed")
@@ -57,7 +57,7 @@ async def source_indeed(db_session: AsyncSession) -> JobSource:
     return s
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def user_a(db_session: AsyncSession) -> User:
     """Create User A."""
     u = User(email="dedup_a@test.com")
@@ -67,7 +67,7 @@ async def user_a(db_session: AsyncSession) -> User:
     return u
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def user_b(db_session: AsyncSession) -> User:
     """Create User B (cross-user tests)."""
     u = User(email="dedup_b@test.com")
@@ -77,7 +77,7 @@ async def user_b(db_session: AsyncSession) -> User:
     return u
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def persona_a(db_session: AsyncSession, user_a: User) -> Persona:
     """Create Persona for User A."""
     p = Persona(
@@ -95,7 +95,7 @@ async def persona_a(db_session: AsyncSession, user_a: User) -> Persona:
     return p
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def persona_b(db_session: AsyncSession, user_b: User) -> Persona:
     """Create Persona for User B."""
     p = Persona(
@@ -113,7 +113,7 @@ async def persona_b(db_session: AsyncSession, user_b: User) -> Persona:
     return p
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def existing_job(
     db_session: AsyncSession, source_linkedin: JobSource
 ) -> JobPosting:

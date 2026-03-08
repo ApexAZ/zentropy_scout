@@ -6,6 +6,7 @@ REQ-006 §2.1, §8.1: REST API with consistent error handling.
 from unittest.mock import patch
 
 import pytest
+import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from app.core.errors import (
@@ -26,7 +27,7 @@ def app():
     return create_app()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(app):
     """Create async HTTP client for testing."""
     transport = ASGITransport(app=app)

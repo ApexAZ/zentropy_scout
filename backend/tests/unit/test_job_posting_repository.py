@@ -7,6 +7,7 @@ import uuid
 from datetime import date
 
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job_posting import JobPosting
@@ -21,7 +22,7 @@ _HASH_B = "b" * 64
 # job_source fixture provided by tests/unit/conftest.py
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def job_posting(db_session: AsyncSession, job_source: JobSource) -> JobPosting:
     """Create a test job posting in the shared pool."""
     jp = JobPosting(

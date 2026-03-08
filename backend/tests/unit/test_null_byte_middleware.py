@@ -8,6 +8,7 @@ level before they reach any handler.
 from collections.abc import AsyncGenerator
 
 import pytest
+import pytest_asyncio
 from fastapi import FastAPI, UploadFile
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel
@@ -21,7 +22,7 @@ def app() -> FastAPI:
     return create_app()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Create async HTTP client for testing."""
     transport = ASGITransport(app=app)

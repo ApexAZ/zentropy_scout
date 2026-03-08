@@ -7,7 +7,7 @@ Names chosen to avoid shadowing top-level conftest fixtures
 
 from datetime import date
 
-import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job_posting import JobPosting
@@ -19,7 +19,7 @@ from app.models.user import User
 _TODAY = date.today()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def user_a(db_session: AsyncSession) -> User:
     """Create User A for repository tests."""
     user = User(email="usera@test.com")
@@ -29,7 +29,7 @@ async def user_a(db_session: AsyncSession) -> User:
     return user
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def other_user(db_session: AsyncSession) -> User:
     """Create a second user for cross-tenant repository tests.
 
@@ -43,7 +43,7 @@ async def other_user(db_session: AsyncSession) -> User:
     return user
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def persona_a(db_session: AsyncSession, user_a: User) -> Persona:
     """Create Persona for User A."""
     persona = Persona(
@@ -61,7 +61,7 @@ async def persona_a(db_session: AsyncSession, user_a: User) -> Persona:
     return persona
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def other_persona(db_session: AsyncSession, other_user: User) -> Persona:
     """Create Persona for the other user (cross-tenant tests)."""
     persona = Persona(
@@ -79,7 +79,7 @@ async def other_persona(db_session: AsyncSession, other_user: User) -> Persona:
     return persona
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def job_source(db_session: AsyncSession) -> JobSource:
     """Create a job source for shared pool tests."""
     source = JobSource(
@@ -93,7 +93,7 @@ async def job_source(db_session: AsyncSession) -> JobSource:
     return source
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def shared_job(db_session: AsyncSession, job_source: JobSource) -> JobPosting:
     """Create a shared pool job posting."""
     jp = JobPosting(
@@ -110,7 +110,7 @@ async def shared_job(db_session: AsyncSession, job_source: JobSource) -> JobPost
     return jp
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def shared_job_2(db_session: AsyncSession, job_source: JobSource) -> JobPosting:
     """Create a second shared pool job posting."""
     jp = JobPosting(
@@ -127,7 +127,7 @@ async def shared_job_2(db_session: AsyncSession, job_source: JobSource) -> JobPo
     return jp
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def pj_a(
     db_session: AsyncSession, persona_a: Persona, shared_job: JobPosting
 ) -> PersonaJob:
@@ -144,7 +144,7 @@ async def pj_a(
     return pj
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def pj_other(
     db_session: AsyncSession, other_persona: Persona, shared_job: JobPosting
 ) -> PersonaJob:

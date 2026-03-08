@@ -16,6 +16,7 @@ import uuid
 from collections.abc import AsyncGenerator
 
 import pytest
+import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
@@ -32,7 +33,7 @@ def app() -> FastAPI:
     return create_app()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Create authenticated async HTTP client for testing.
 
@@ -53,7 +54,7 @@ async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides.pop(get_current_user_id, None)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def unauthenticated_client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Create unauthenticated async HTTP client for testing.
 
