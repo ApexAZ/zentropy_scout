@@ -85,6 +85,28 @@ class TestGetEmbeddingProvider:
             provider2 = get_embedding_provider()  # No config, uses cached
             assert provider1 is provider2
 
+    def test_returns_gemini_embedding_provider(self) -> None:
+        """Factory should return GeminiEmbeddingAdapter when 'gemini' is configured."""
+        config = ProviderConfig(
+            embedding_provider=_PROVIDER_GEMINI,
+            google_api_key=_TEST_API_KEY,
+        )
+        with patch("app.providers.embedding.gemini_adapter.genai.Client"):
+            provider = get_embedding_provider(config)
+            assert provider is not None
+            assert provider.provider_name == _PROVIDER_GEMINI
+
+    def test_gemini_embedding_singleton_returns_same_instance(self) -> None:
+        """Subsequent calls with 'gemini' should return the same instance."""
+        config = ProviderConfig(
+            embedding_provider=_PROVIDER_GEMINI,
+            google_api_key=_TEST_API_KEY,
+        )
+        with patch("app.providers.embedding.gemini_adapter.genai.Client"):
+            provider1 = get_embedding_provider(config)
+            provider2 = get_embedding_provider()
+            assert provider1 is provider2
+
     def test_raises_for_unknown_provider(self) -> None:
         """Should raise ValueError for unknown provider."""
         config = ProviderConfig(embedding_provider="unknown_provider")

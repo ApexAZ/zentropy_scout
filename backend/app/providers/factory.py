@@ -6,6 +6,7 @@ REQ-028 §3: Registry factory for cross-provider dispatch.
 
 from app.providers.config import ProviderConfig
 from app.providers.embedding.base import EmbeddingProvider
+from app.providers.embedding.gemini_adapter import GeminiEmbeddingAdapter
 from app.providers.embedding.openai_adapter import OpenAIEmbeddingAdapter
 from app.providers.llm.base import LLMProvider
 from app.providers.llm.claude_adapter import ClaudeAdapter
@@ -111,9 +112,8 @@ def get_embedding_provider(
 
         if config.embedding_provider == "openai":
             _embedding_provider = OpenAIEmbeddingAdapter(config)
-        elif config.embedding_provider == "cohere":
-            # Cohere adapter will be added in future
-            raise NotImplementedError("Cohere embedding adapter not yet implemented")
+        elif config.embedding_provider == "gemini":
+            _embedding_provider = GeminiEmbeddingAdapter(config)
         else:
             raise ValueError(f"Unknown embedding provider: {config.embedding_provider}")
 
