@@ -45,6 +45,7 @@ import type {
 } from "@/types/admin";
 
 import { PROVIDERS, TASK_TYPES } from "./constants";
+import { RoutingTestCell } from "./routing-test-cell";
 
 // ---------------------------------------------------------------------------
 // Mutation action types
@@ -227,6 +228,7 @@ export function RoutingTab() {
 						<TableHead>Task Type</TableHead>
 						<TableHead>Provider</TableHead>
 						<TableHead>Model</TableHead>
+						<TableHead>Test</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
@@ -284,6 +286,12 @@ export function RoutingTab() {
 											))}
 										</SelectContent>
 									</Select>
+								</TableCell>
+								<TableCell>
+									<RoutingTestCell
+										taskType={value}
+										disabled={!currentProvider || !currentModel}
+									/>
 								</TableCell>
 							</TableRow>
 						);

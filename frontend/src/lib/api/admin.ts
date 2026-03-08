@@ -20,6 +20,8 @@ import type {
 	PricingConfigCreateRequest,
 	PricingConfigItem,
 	PricingConfigUpdateRequest,
+	RoutingTestRequest,
+	RoutingTestResponse,
 	SystemConfigItem,
 	SystemConfigUpsertRequest,
 	TaskRoutingCreateRequest,
@@ -109,6 +111,13 @@ export async function updateRouting(
 
 export async function deleteRouting(id: string): Promise<void> {
 	return apiDelete(`/admin/routing/${encodeURIComponent(id)}`);
+}
+
+/** REQ-028 §5.1: Test a routing configuration by sending a prompt to the configured provider. */
+export async function testRouting(
+	body: RoutingTestRequest,
+): Promise<ApiResponse<RoutingTestResponse>> {
+	return apiPost("/admin/routing/test", body);
 }
 
 // =============================================================================

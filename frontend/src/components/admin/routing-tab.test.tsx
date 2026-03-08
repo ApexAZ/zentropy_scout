@@ -25,12 +25,14 @@ const mocks = vi.hoisted(() => {
 	const mockCreateRouting = vi.fn();
 	const mockUpdateRouting = vi.fn();
 	const mockDeleteRouting = vi.fn();
+	const mockTestRouting = vi.fn();
 	return {
 		mockFetchRouting,
 		mockFetchModels,
 		mockCreateRouting,
 		mockUpdateRouting,
 		mockDeleteRouting,
+		mockTestRouting,
 	};
 });
 
@@ -40,6 +42,7 @@ vi.mock("@/lib/api/admin", () => ({
 	createRouting: mocks.mockCreateRouting,
 	updateRouting: mocks.mockUpdateRouting,
 	deleteRouting: mocks.mockDeleteRouting,
+	testRouting: mocks.mockTestRouting,
 }));
 
 vi.mock("@/lib/toast", () => ({
@@ -61,6 +64,9 @@ const MODEL_SONNET = "claude-sonnet-4-20250514";
 const MODEL_HAIKU = "claude-3-5-haiku-20241022";
 const MODEL_GPT4O = "gpt-4o";
 const EXTRACTION_ROUTING_ID = "r-1";
+const EXTRACTION_TASK_TYPE = "extraction";
+const TEST_BTN_EXTRACTION = "test-btn-extraction";
+const TEST_RESULT_EXTRACTION = "test-result-extraction";
 
 function mockModel(
 	id: string,
@@ -78,6 +84,19 @@ function mockModel(
 		is_active: true,
 		created_at: MOCK_TIMESTAMP,
 		updated_at: MOCK_TIMESTAMP,
+	};
+}
+
+function mockTestResponse(latencyMs = 250) {
+	return {
+		data: {
+			provider: "claude",
+			model: MODEL_HAIKU,
+			response: "Hello",
+			latency_ms: latencyMs,
+			input_tokens: 10,
+			output_tokens: 5,
+		},
 	};
 }
 
@@ -99,7 +118,7 @@ const MOCK_ROUTING: TaskRoutingItem[] = [
 	{
 		id: EXTRACTION_ROUTING_ID,
 		provider: "claude",
-		task_type: "extraction",
+		task_type: EXTRACTION_TASK_TYPE,
 		model: MODEL_HAIKU,
 		model_display_name: "Claude 3.5 Haiku",
 		created_at: MOCK_TIMESTAMP,
@@ -298,7 +317,7 @@ describe("RoutingTab", () => {
 			);
 			expect(mocks.mockCreateRouting).toHaveBeenCalledWith({
 				provider: "openai",
-				task_type: "extraction",
+				task_type: EXTRACTION_TASK_TYPE,
 				model: MODEL_GPT4O,
 			});
 		});
@@ -313,5 +332,80 @@ describe("RoutingTab", () => {
 		expect(
 			screen.queryByRole("button", { name: /delete/i }),
 		).not.toBeInTheDocument();
+	});
+
+	// -----------------------------------------------------------------------
+	// Test button (REQ-028 §6.2)
+	// -----------------------------------------------------------------------
+
+	it("renders a Test column header and test buttons for configured rows", async () => {
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		expect(
+			screen.getByRole("columnheader", { name: "Test" }),
+		).toBeInTheDocument();
+		// Configured rows (extraction, chat_response) should have enabled test buttons
+		expect(screen.getByTestId(TEST_BTN_EXTRACTION)).toBeEnabled();
+		expect(screen.getByTestId("test-btn-chat_response")).toBeEnabled();
+	});
+
+	it("disables test button for rows with no provider configured", async () => {
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		// skill_extraction has no routing entry
+		expect(screen.getByTestId("test-btn-skill_extraction")).toBeDisabled();
+	});
+
+	it("calls testRouting with task_type on test button click", async () => {
+		const user = userEvent.setup();
+		mocks.mockTestRouting.mockResolvedValue(mockTestResponse());
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		await user.click(screen.getByTestId(TEST_BTN_EXTRACTION));
+		await waitFor(() => {
+			expect(mocks.mockTestRouting).toHaveBeenCalledWith({
+				task_type: EXTRACTION_TASK_TYPE,
+				prompt: "Hello, this is a routing test.",
+			});
+		});
+	});
+
+	it("shows success badge with latency on successful test", async () => {
+		const user = userEvent.setup();
+		mocks.mockTestRouting.mockResolvedValue(mockTestResponse(342.5));
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		await user.click(screen.getByTestId(TEST_BTN_EXTRACTION));
+		await waitFor(() => {
+			const badge = screen.getByTestId(TEST_RESULT_EXTRACTION);
+			expect(badge).toHaveTextContent("343ms");
+			expect(badge.className).toMatch(/success/);
+		});
+	});
+
+	it("shows error badge with message on failed test", async () => {
+		const user = userEvent.setup();
+		mocks.mockTestRouting.mockRejectedValue(
+			new Error("Provider not configured"),
+		);
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		await user.click(screen.getByTestId(TEST_BTN_EXTRACTION));
+		await waitFor(() => {
+			const badge = screen.getByTestId(TEST_RESULT_EXTRACTION);
+			expect(badge).toHaveTextContent("Provider not configured");
+			expect(badge.className).toMatch(/destructive/);
+		});
+	});
+
+	it("shows loading spinner while test is in progress", async () => {
+		const user = userEvent.setup();
+		mocks.mockTestRouting.mockReturnValue(new Promise(() => {}));
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		await user.click(screen.getByTestId(TEST_BTN_EXTRACTION));
+		await waitFor(() => {
+			expect(screen.getByTestId("test-loading-extraction")).toBeInTheDocument();
+		});
 	});
 });
