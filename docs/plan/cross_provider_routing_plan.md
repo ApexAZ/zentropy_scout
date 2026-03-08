@@ -34,7 +34,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 ## Phase 1: Provider Registry & Cross-Provider Dispatch
 
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 **Focus:** Backend foundation — registry factory, routing lookup, cross-provider dispatch, test endpoint
 
 #### Workflow
@@ -57,7 +57,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | 4 | MeteredLLMProvider cross-provider dispatch | `plan, tdd, provider` | ✅ |
 | 5 | DI wiring update in `deps.py` | `plan, tdd, api` | ✅ |
 | 6 | Routing test endpoint `POST /admin/routing/test` | `plan, tdd, api, security` | ✅ |
-| 7 | Phase 1 quality gate — full test suite + push | `plan, commands` | ⬜ |
+| 7 | Phase 1 quality gate — full test suite + push | `plan, commands` | ✅ |
 
 **Notes:**
 - `get_llm_registry()` should create all adapters whose API keys are present, skipping providers without keys
@@ -171,11 +171,11 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 | Phase | Tasks | Status |
 |-------|-------|--------|
-| Phase 1 | 8 (0-7) | 7/8 ✅ |
+| Phase 1 | 8 (0-7) | 8/8 ✅ |
 | Phase 2 | 6 (0-5) | ⬜ |
 | Phase 3 | 2 (0-1) | ⬜ |
 | Phase 4 | 8 (0-7) | ⬜ |
-| **Total** | **24** | **7/24 complete** |
+| **Total** | **24** | **8/24 complete** |
 
 ---
 
