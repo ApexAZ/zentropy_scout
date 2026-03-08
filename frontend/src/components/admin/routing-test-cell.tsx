@@ -24,8 +24,8 @@ interface TestResult {
 }
 
 interface RoutingTestCellProps {
-	taskType: string;
-	disabled: boolean;
+	readonly taskType: string;
+	readonly disabled: boolean;
 }
 
 /** Test button + inline result badge for a single routing table row. */

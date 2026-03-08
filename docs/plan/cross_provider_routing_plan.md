@@ -104,7 +104,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 ## Phase 3: BYOK Removal
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 **Focus:** Documentation only — mark BYOK as superseded
 
 #### Workflow
@@ -120,8 +120,8 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 #### Tasks
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate (combine with 3.1 — docs-only phase) | `plan, security` | ⬜ |
-| 1 | Update REQ-009 section 10 + section 1.3 + changelog | `plan` | ⬜ |
+| 0 | Security triage gate (combine with 3.1 — docs-only phase) | `plan, security` | ✅ |
+| 1 | Update REQ-009 section 10 + section 1.3 + changelog | `plan` | ✅ |
 
 **Notes:**
 - REQ-009 section 10 covers BYOK — mark as "Not Planned"
@@ -172,10 +172,10 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | Phase | Tasks | Status |
 |-------|-------|--------|
 | Phase 1 | 8 (0-7) | 8/8 ✅ |
-| Phase 2 | 6 (0-5) | ⬜ |
-| Phase 3 | 2 (0-1) | ⬜ |
+| Phase 2 | 6 (0-5) | 6/6 ✅ |
+| Phase 3 | 2 (0-1) | 2/2 ✅ |
 | Phase 4 | 8 (0-7) | ⬜ |
-| **Total** | **24** | **8/24 complete** |
+| **Total** | **24** | **16/24 complete** |
 
 ---
 
@@ -210,3 +210,4 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | Date | Change |
 |------|--------|
 | 2026-03-07 | Plan created |
+| 2026-03-08 | Phase 3 complete — BYOK removal docs, security triage (5 FP dismissed), readonly props fix |

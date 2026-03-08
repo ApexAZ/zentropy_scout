@@ -59,7 +59,7 @@ vectors = await embedder.embed(["text1", "text2"])
 |------|-------------|----------|
 | **Provider agnostic** | Switch Claude ↔ OpenAI ↔ Gemini without code changes | P0 |
 | **Task-based routing** | Different models for different tasks (Haiku for extraction, Sonnet for writing) | P0 |
-| **BYOK ready** | Users can provide their own API keys (future hosted version) | P1 |
+| ~~**BYOK ready**~~ | ~~Users can provide their own API keys (future hosted version)~~ — **Not Planned.** Superseded by REQ-023 (centralized USD-direct billing) and REQ-028 (admin-managed cross-provider routing). | — |
 | **Testable** | Easy to mock for unit tests | P0 |
 | **Observable** | Centralized logging, cost tracking, latency metrics | P1 |
 | **Resilient** | Automatic retries, fallbacks on failure | P1 |
@@ -1653,7 +1653,15 @@ async def test_skill_extraction(mock_llm):
 
 ---
 
-## 10. BYOK Support (Future)
+## 10. BYOK Support (Not Planned — Superseded by REQ-028)
+
+> **Superseded:** BYOK is no longer planned. REQ-023 introduced centralized
+> USD-direct billing where the admin manages all API keys and users pay for
+> usage through funding packs. REQ-028 added admin-configured cross-provider
+> task routing, giving the admin full control over which provider and model
+> handles each task type. Together, these changes make per-user API keys
+> unnecessary and architecturally contradictory. The original design below
+> is preserved for historical context.
 
 ### 10.1 Design Overview
 
@@ -1745,3 +1753,4 @@ def get_llm_provider_for_user(user_id: str) -> LLMProvider:
 |------|---------|---------|
 | 2026-01-25 | 0.1 | Initial draft. LLM and Embedding provider interfaces, Claude/OpenAI adapters, model routing tables, configuration management, error handling, testing support, BYOK design. |
 | 2026-01-25 | 0.2 | **Critical additions for REQ-007 agent support:** (1) Added native tool calling support — `ToolDefinition`, `ToolCall`, `ToolResult` dataclasses, `tools` parameter in `complete()`, full tool call flow documentation (§4.5). (2) Added JSON mode — `json_mode` parameter for structured extraction tasks, provider-specific implementations (§4.6). (3) Updated `LLMMessage` to support `tool_calls` and `tool_result` fields. (4) Updated `LLMResponse` to include `tool_calls`. (5) Updated Claude and OpenAI adapter implementations to handle tools and JSON mode. |
+| 2026-03-08 | 0.3 | **BYOK removal:** Section 1.3 — "BYOK ready" goal marked "Not Planned." Section 10 — title updated to "Not Planned — Superseded by REQ-028", supersession notice added. Original design preserved for historical context. Rationale: REQ-023 centralized billing and REQ-028 admin routing make per-user API keys unnecessary. |
