@@ -286,9 +286,11 @@ test.describe("Admin — Routing Tab", () => {
 		await page.getByRole("tab", { name: "Routing" }).click();
 		await expect(page.getByTestId(ROUTING_TAB)).toBeVisible();
 
-		// Table should show routing data
-		await expect(page.getByRole("cell", { name: "extraction" })).toBeVisible();
-		await expect(page.getByRole("cell", { name: "_default" })).toBeVisible();
+		// Fixed table should show task type labels
+		await expect(page.getByRole("cell", { name: "Extraction" })).toBeVisible();
+		await expect(
+			page.getByRole("cell", { name: "Chat Response" }),
+		).toBeVisible();
 	});
 });
 

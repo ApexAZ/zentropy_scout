@@ -154,9 +154,9 @@ const ROUTING: TaskRoutingItem[] = [
 	{
 		id: ADMIN_ROUTING_IDS[1],
 		provider: "claude",
-		task_type: "_default",
-		model: "claude-3-5-sonnet-20241022",
-		model_display_name: "Claude 3.5 Sonnet",
+		task_type: "chat_response",
+		model: "claude-sonnet-4-20250514",
+		model_display_name: "Claude Sonnet 4",
 		created_at: NOW,
 		updated_at: NOW,
 	},

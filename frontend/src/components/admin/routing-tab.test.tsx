@@ -1,8 +1,8 @@
 /**
  * Tests for the Routing tab component.
  *
- * REQ-022 §11.2, §10.3: Task routing management — table display,
- * add form with provider/task_type/model, delete confirmation.
+ * REQ-028 §6.1: Fixed 10-row editable routing table — one row per TaskType,
+ * inline provider/model dropdowns, no add/delete buttons.
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,7 +11,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TaskRoutingItem } from "@/types/admin";
+import type { ModelRegistryItem, TaskRoutingItem } from "@/types/admin";
 
 import { RoutingTab } from "./routing-tab";
 
@@ -21,14 +21,24 @@ import { RoutingTab } from "./routing-tab";
 
 const mocks = vi.hoisted(() => {
 	const mockFetchRouting = vi.fn();
+	const mockFetchModels = vi.fn();
 	const mockCreateRouting = vi.fn();
+	const mockUpdateRouting = vi.fn();
 	const mockDeleteRouting = vi.fn();
-	return { mockFetchRouting, mockCreateRouting, mockDeleteRouting };
+	return {
+		mockFetchRouting,
+		mockFetchModels,
+		mockCreateRouting,
+		mockUpdateRouting,
+		mockDeleteRouting,
+	};
 });
 
 vi.mock("@/lib/api/admin", () => ({
 	fetchRouting: mocks.mockFetchRouting,
+	fetchModels: mocks.mockFetchModels,
 	createRouting: mocks.mockCreateRouting,
+	updateRouting: mocks.mockUpdateRouting,
 	deleteRouting: mocks.mockDeleteRouting,
 }));
 
@@ -47,25 +57,59 @@ vi.mock("@/lib/toast", () => ({
 // ---------------------------------------------------------------------------
 
 const MOCK_TIMESTAMP = "2026-03-01T00:00:00Z";
-const MOCK_TASK_TYPE = "extraction";
-const MOCK_MODEL = "claude-3-5-haiku-20241022";
-const MOCK_DISPLAY_NAME = "Claude 3.5 Haiku";
+const MODEL_SONNET = "claude-sonnet-4-20250514";
+const MODEL_HAIKU = "claude-3-5-haiku-20241022";
+const MODEL_GPT4O = "gpt-4o";
+const EXTRACTION_ROUTING_ID = "r-1";
+
+function mockModel(
+	id: string,
+	provider: string,
+	model: string,
+	displayName: string,
+	modelType = "llm",
+): ModelRegistryItem {
+	return {
+		id,
+		provider,
+		model,
+		display_name: displayName,
+		model_type: modelType,
+		is_active: true,
+		created_at: MOCK_TIMESTAMP,
+		updated_at: MOCK_TIMESTAMP,
+	};
+}
+
+const MOCK_MODELS: ModelRegistryItem[] = [
+	mockModel("m-1", "claude", MODEL_SONNET, "Claude Sonnet 4"),
+	mockModel("m-2", "claude", MODEL_HAIKU, "Claude 3.5 Haiku"),
+	mockModel("m-3", "openai", MODEL_GPT4O, "GPT-4o"),
+	mockModel(
+		"m-4",
+		"openai",
+		"text-embedding-3-small",
+		"Text Embedding 3 Small",
+		"embedding",
+	),
+	mockModel("m-5", "gemini", "gemini-2.0-flash", "Gemini 2.0 Flash"),
+];
 
 const MOCK_ROUTING: TaskRoutingItem[] = [
 	{
-		id: "r-1",
+		id: EXTRACTION_ROUTING_ID,
 		provider: "claude",
-		task_type: MOCK_TASK_TYPE,
-		model: MOCK_MODEL,
-		model_display_name: MOCK_DISPLAY_NAME,
+		task_type: "extraction",
+		model: MODEL_HAIKU,
+		model_display_name: "Claude 3.5 Haiku",
 		created_at: MOCK_TIMESTAMP,
 		updated_at: MOCK_TIMESTAMP,
 	},
 	{
 		id: "r-2",
 		provider: "claude",
-		task_type: "_default",
-		model: "claude-sonnet-4-20250514",
+		task_type: "chat_response",
+		model: MODEL_SONNET,
 		model_display_name: "Claude Sonnet 4",
 		created_at: MOCK_TIMESTAMP,
 		updated_at: MOCK_TIMESTAMP,
@@ -92,9 +136,9 @@ function Wrapper({ children }: Readonly<{ children: ReactNode }>) {
 	);
 }
 
-async function waitForDataLoaded() {
+async function waitForTableLoaded() {
 	await waitFor(() => {
-		expect(screen.getByText(MOCK_TASK_TYPE)).toBeInTheDocument();
+		expect(screen.getByText("Extraction")).toBeInTheDocument();
 	});
 }
 
@@ -105,6 +149,7 @@ async function waitForDataLoaded() {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.mockFetchRouting.mockResolvedValue({ data: MOCK_ROUTING });
+	mocks.mockFetchModels.mockResolvedValue({ data: MOCK_MODELS });
 });
 
 afterEach(() => {
@@ -122,92 +167,151 @@ describe("RoutingTab", () => {
 		expect(screen.getByTestId("routing-loading")).toBeInTheDocument();
 	});
 
-	it("renders routing table with data", async () => {
-		render(<RoutingTab />, { wrapper: Wrapper });
-		await waitForDataLoaded();
-		expect(screen.getByText(MOCK_MODEL)).toBeInTheDocument();
-		expect(screen.getByText("_default")).toBeInTheDocument();
-	});
-
-	it("displays provider column", async () => {
-		render(<RoutingTab />, { wrapper: Wrapper });
-		await waitForDataLoaded();
-		expect(screen.getAllByText("claude")).toHaveLength(2);
-	});
-
-	it("shows model display name", async () => {
-		render(<RoutingTab />, { wrapper: Wrapper });
-		await waitForDataLoaded();
-		expect(screen.getByText(MOCK_DISPLAY_NAME)).toBeInTheDocument();
-	});
-
-	it("renders Add Routing button", async () => {
-		render(<RoutingTab />, { wrapper: Wrapper });
-		await waitForDataLoaded();
-		expect(
-			screen.getByRole("button", { name: /add routing/i }),
-		).toBeInTheDocument();
-	});
-
-	it("opens add routing dialog on button click", async () => {
-		const user = userEvent.setup();
-		render(<RoutingTab />, { wrapper: Wrapper });
-		await waitForDataLoaded();
-		await user.click(screen.getByRole("button", { name: /add routing/i }));
-		expect(
-			screen.getByRole("heading", { name: /add routing/i }),
-		).toBeInTheDocument();
-	});
-
-	it("submits add routing form", async () => {
-		const user = userEvent.setup();
-		mocks.mockCreateRouting.mockResolvedValue({
-			data: { ...MOCK_ROUTING[0], id: "r-3" },
-		});
-		render(<RoutingTab />, { wrapper: Wrapper });
-		await waitForDataLoaded();
-		await user.click(screen.getByRole("button", { name: /add routing/i }));
-
-		await user.click(screen.getByLabelText(/provider/i));
-		await user.click(screen.getByRole("option", { name: /claude/i }));
-		await waitFor(() => {
-			expect(screen.getByLabelText(/provider/i)).toHaveTextContent("claude");
-		});
-		await user.type(screen.getByLabelText(/task type/i), "summarization");
-		await user.type(screen.getByLabelText(/^model$/i), MOCK_MODEL);
-		await user.click(screen.getByRole("button", { name: /^create$/i }));
-
-		await waitFor(() => {
-			expect(mocks.mockCreateRouting).toHaveBeenCalled();
-		});
-	});
-
-	it("deletes routing entry on confirmation", async () => {
-		const user = userEvent.setup();
-		mocks.mockDeleteRouting.mockResolvedValue(undefined);
-		render(<RoutingTab />, { wrapper: Wrapper });
-		await waitForDataLoaded();
-		const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
-		await user.click(deleteButtons[0]);
-		await user.click(screen.getByRole("button", { name: /^confirm$/i }));
-		await waitFor(() => {
-			expect(mocks.mockDeleteRouting).toHaveBeenCalledWith("r-1");
-		});
-	});
-
-	it("renders empty state when no routing entries", async () => {
-		mocks.mockFetchRouting.mockResolvedValue({ data: [] });
-		render(<RoutingTab />, { wrapper: Wrapper });
-		await waitFor(() => {
-			expect(screen.getByText(/no routing/i)).toBeInTheDocument();
-		});
-	});
-
 	it("renders error state on fetch failure", async () => {
 		mocks.mockFetchRouting.mockRejectedValue(new Error("Network error"));
 		render(<RoutingTab />, { wrapper: Wrapper });
 		await waitFor(() => {
 			expect(screen.getByText(/failed/i)).toBeInTheDocument();
 		});
+	});
+
+	it("renders all 10 task type rows", async () => {
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		const expectedLabels = [
+			"Chat Response",
+			"Onboarding",
+			"Skill Extraction",
+			"Extraction",
+			"Ghost Detection",
+			"Score Rationale",
+			"Cover Letter",
+			"Resume Tailoring",
+			"Story Selection",
+			"Resume Parsing",
+		];
+		for (const label of expectedLabels) {
+			expect(screen.getByText(label)).toBeInTheDocument();
+		}
+	});
+
+	it("shows configured provider and model for existing routing entries", async () => {
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		const providerTrigger = screen.getByTestId("provider-select-extraction");
+		expect(providerTrigger).toHaveTextContent("claude");
+		const modelTrigger = screen.getByTestId("model-select-extraction");
+		expect(modelTrigger).toHaveTextContent("Claude 3.5 Haiku");
+	});
+
+	it("shows placeholder for unconfigured rows", async () => {
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		const providerTrigger = screen.getByTestId(
+			"provider-select-skill_extraction",
+		);
+		expect(providerTrigger).toHaveTextContent("Select provider");
+	});
+
+	it("disables model dropdown when no provider selected", async () => {
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		const modelTrigger = screen.getByTestId("model-select-skill_extraction");
+		expect(modelTrigger).toBeDisabled();
+	});
+
+	it("shows models filtered by provider in model dropdown", async () => {
+		const user = userEvent.setup();
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		// Extraction is configured with claude — model dropdown shows claude models
+		await user.click(screen.getByTestId("model-select-extraction"));
+		expect(
+			screen.getByRole("option", { name: /Claude Sonnet 4/i }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("option", { name: /Claude 3.5 Haiku/i }),
+		).toBeInTheDocument();
+		// Should NOT show openai or gemini models
+		expect(
+			screen.queryByRole("option", { name: /GPT-4o/i }),
+		).not.toBeInTheDocument();
+		// Should NOT show embedding models
+		expect(
+			screen.queryByRole("option", { name: /Text Embedding/i }),
+		).not.toBeInTheDocument();
+	});
+
+	it("updates routing via PATCH when model changes on configured row", async () => {
+		const user = userEvent.setup();
+		mocks.mockUpdateRouting.mockResolvedValue({
+			data: { ...MOCK_ROUTING[0], model: MODEL_SONNET },
+		});
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		// Change model for extraction row (currently haiku -> sonnet)
+		await user.click(screen.getByTestId("model-select-extraction"));
+		await user.click(screen.getByRole("option", { name: /Claude Sonnet 4/i }));
+		await waitFor(() => {
+			expect(mocks.mockUpdateRouting).toHaveBeenCalledWith(
+				EXTRACTION_ROUTING_ID,
+				{ model: MODEL_SONNET },
+			);
+		});
+	});
+
+	it("creates routing when selecting provider and model on unconfigured row", async () => {
+		const user = userEvent.setup();
+		mocks.mockCreateRouting.mockResolvedValue({ data: {} });
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		// Select provider for unconfigured row
+		await user.click(screen.getByTestId("provider-select-skill_extraction"));
+		await user.click(screen.getByRole("option", { name: /openai/i }));
+		// Now select model
+		await user.click(screen.getByTestId("model-select-skill_extraction"));
+		await user.click(screen.getByRole("option", { name: /GPT-4o/i }));
+		await waitFor(() => {
+			expect(mocks.mockCreateRouting).toHaveBeenCalledWith({
+				provider: "openai",
+				task_type: "skill_extraction",
+				model: MODEL_GPT4O,
+			});
+		});
+	});
+
+	it("deletes and recreates routing when provider changes on configured row", async () => {
+		const user = userEvent.setup();
+		mocks.mockDeleteRouting.mockResolvedValue(undefined);
+		mocks.mockCreateRouting.mockResolvedValue({ data: {} });
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		// Change provider for extraction (currently claude -> openai)
+		await user.click(screen.getByTestId("provider-select-extraction"));
+		await user.click(screen.getByRole("option", { name: /openai/i }));
+		// Select new model
+		await user.click(screen.getByTestId("model-select-extraction"));
+		await user.click(screen.getByRole("option", { name: /GPT-4o/i }));
+		await waitFor(() => {
+			expect(mocks.mockDeleteRouting).toHaveBeenCalledWith(
+				EXTRACTION_ROUTING_ID,
+			);
+			expect(mocks.mockCreateRouting).toHaveBeenCalledWith({
+				provider: "openai",
+				task_type: "extraction",
+				model: MODEL_GPT4O,
+			});
+		});
+	});
+
+	it("does not show Add Routing or delete buttons", async () => {
+		render(<RoutingTab />, { wrapper: Wrapper });
+		await waitForTableLoaded();
+		expect(
+			screen.queryByRole("button", { name: /add routing/i }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /delete/i }),
+		).not.toBeInTheDocument();
 	});
 });

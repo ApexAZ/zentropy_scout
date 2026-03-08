@@ -1,21 +1,34 @@
 "use client";
 
 /**
- * Task routing management tab.
+ * Task routing management tab — fixed editable table.
  *
- * REQ-022 §11.2, §10.3: Per-provider routing table with task type to model
- * mapping. Add form with provider/task_type/model fields.
+ * REQ-028 §6.1: Fixed 10-row table (one per TaskType), inline provider/model
+ * dropdowns, no add/delete. Provider changes use delete+create; model changes
+ * use PATCH.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-import { createRouting, deleteRouting, fetchRouting } from "@/lib/api/admin";
+import {
+	createRouting,
+	deleteRouting,
+	fetchModels,
+	fetchRouting,
+	updateRouting,
+} from "@/lib/api/admin";
 import { queryKeys } from "@/lib/query-keys";
 import { showToast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	Table,
 	TableBody,
@@ -24,68 +37,155 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import type { TaskRoutingCreateRequest, TaskRoutingItem } from "@/types/admin";
+import type {
+	ModelRegistryItem,
+	TaskRoutingCreateRequest,
+	TaskRoutingItem,
+	TaskRoutingUpdateRequest,
+} from "@/types/admin";
 
-import { AddRoutingDialog } from "./add-routing-dialog";
+import { PROVIDERS, TASK_TYPES } from "./constants";
+
+// ---------------------------------------------------------------------------
+// Mutation action types
+// ---------------------------------------------------------------------------
+
+type SaveAction =
+	| { type: "create"; body: TaskRoutingCreateRequest }
+	| { type: "update"; id: string; body: TaskRoutingUpdateRequest }
+	| { type: "replace"; deleteId: string; body: TaskRoutingCreateRequest };
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-/** Task routing management — list, add, delete. */
+/** Task routing management — fixed 10-row editable table. */
 export function RoutingTab() {
 	const queryClient = useQueryClient();
-	const [addOpen, setAddOpen] = useState(false);
-	const [deleteTarget, setDeleteTarget] = useState<TaskRoutingItem | null>(
-		null,
-	);
+
+	/** Pending provider overrides (provider changed but model not yet selected). */
+	const [pendingProviders, setPendingProviders] = useState<
+		Record<string, string>
+	>({});
 
 	// -----------------------------------------------------------------------
 	// Queries
 	// -----------------------------------------------------------------------
 
-	const { data, isLoading, error, refetch } = useQuery({
+	const routingQuery = useQuery({
 		queryKey: queryKeys.adminRouting,
 		queryFn: () => fetchRouting(),
 	});
+
+	const modelsQuery = useQuery({
+		queryKey: queryKeys.adminModels,
+		queryFn: () => fetchModels({ model_type: "llm", is_active: true }),
+	});
+
+	// -----------------------------------------------------------------------
+	// Derived data
+	// -----------------------------------------------------------------------
+
+	const routingMap = useMemo(() => {
+		const map = new Map<string, TaskRoutingItem>();
+		for (const item of routingQuery.data?.data ?? []) {
+			map.set(item.task_type, item);
+		}
+		return map;
+	}, [routingQuery.data]);
+
+	const modelsByProvider = useMemo(() => {
+		const map = new Map<string, ModelRegistryItem[]>();
+		for (const model of modelsQuery.data?.data ?? []) {
+			if (model.model_type === "llm" && model.is_active) {
+				const list = map.get(model.provider) ?? [];
+				list.push(model);
+				map.set(model.provider, list);
+			}
+		}
+		return map;
+	}, [modelsQuery.data]);
 
 	// -----------------------------------------------------------------------
 	// Mutations
 	// -----------------------------------------------------------------------
 
-	const createMut = useMutation({
-		mutationFn: (body: TaskRoutingCreateRequest) => createRouting(body),
+	const saveMut = useMutation({
+		mutationFn: async (action: SaveAction) => {
+			switch (action.type) {
+				case "create":
+					return createRouting(action.body);
+				case "update":
+					return updateRouting(action.id, action.body);
+				case "replace":
+					await deleteRouting(action.deleteId);
+					return createRouting(action.body);
+			}
+		},
 		onSuccess: () => {
 			void queryClient.invalidateQueries({
 				queryKey: queryKeys.adminRouting,
 			});
-			showToast.success("Routing created");
-			setAddOpen(false);
+			showToast.success("Routing updated");
 		},
 		onError: () => {
-			showToast.error("Failed to create routing");
+			showToast.error("Failed to update routing");
+			void queryClient.invalidateQueries({
+				queryKey: queryKeys.adminRouting,
+			});
 		},
 	});
 
-	const deleteMut = useMutation({
-		mutationFn: (id: string) => deleteRouting(id),
-		onSuccess: () => {
-			void queryClient.invalidateQueries({
-				queryKey: queryKeys.adminRouting,
+	// -----------------------------------------------------------------------
+	// Handlers
+	// -----------------------------------------------------------------------
+
+	function handleProviderChange(taskType: string, newProvider: string) {
+		setPendingProviders((prev) => ({ ...prev, [taskType]: newProvider }));
+	}
+
+	function handleModelSelect(taskType: string, newModel: string) {
+		const existing = routingMap.get(taskType);
+		const pendingProvider = pendingProviders[taskType];
+		const provider = pendingProvider ?? existing?.provider;
+
+		if (!provider) return;
+
+		// Clear pending state
+		setPendingProviders((prev) => {
+			const next = { ...prev };
+			delete next[taskType];
+			return next;
+		});
+
+		if (existing && !pendingProvider) {
+			// Same provider — PATCH model
+			saveMut.mutate({
+				type: "update",
+				id: existing.id,
+				body: { model: newModel },
 			});
-			showToast.success("Routing deleted");
-			setDeleteTarget(null);
-		},
-		onError: () => {
-			showToast.error("Failed to delete routing");
-		},
-	});
+		} else if (existing && pendingProvider) {
+			// Provider changed — delete old + create new
+			saveMut.mutate({
+				type: "replace",
+				deleteId: existing.id,
+				body: { provider, task_type: taskType, model: newModel },
+			});
+		} else {
+			// New routing entry
+			saveMut.mutate({
+				type: "create",
+				body: { provider, task_type: taskType, model: newModel },
+			});
+		}
+	}
 
 	// -----------------------------------------------------------------------
 	// Loading / Error
 	// -----------------------------------------------------------------------
 
-	if (isLoading) {
+	if (routingQuery.isLoading || modelsQuery.isLoading) {
 		return (
 			<div data-testid="routing-loading" className="flex justify-center py-12">
 				<Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
@@ -93,18 +193,23 @@ export function RoutingTab() {
 		);
 	}
 
-	if (error) {
+	if (routingQuery.error || modelsQuery.error) {
 		return (
 			<div className="py-8 text-center">
 				<p className="text-destructive mb-2">Failed to load routing.</p>
-				<Button variant="outline" size="sm" onClick={() => void refetch()}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						void routingQuery.refetch();
+						void modelsQuery.refetch();
+					}}
+				>
 					Retry
 				</Button>
 			</div>
 		);
 	}
-
-	const items = data?.data ?? [];
 
 	// -----------------------------------------------------------------------
 	// Render
@@ -112,85 +217,79 @@ export function RoutingTab() {
 
 	return (
 		<div data-testid="routing-tab" className="space-y-4 pt-4">
-			<div className="flex items-center justify-between">
-				<p className="text-muted-foreground text-sm">
-					{items.length} routing entr{items.length === 1 ? "y" : "ies"}
-				</p>
-				<Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-					<Plus className="mr-1 h-4 w-4" />
-					Add Routing
-				</Button>
-			</div>
+			<p className="text-muted-foreground text-sm">
+				Configure which provider and model handles each task type.
+			</p>
 
-			{items.length === 0 ? (
-				<p className="text-muted-foreground py-8 text-center text-sm">
-					No routing entries yet.
-				</p>
-			) : (
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Provider</TableHead>
-							<TableHead>Task Type</TableHead>
-							<TableHead>Model</TableHead>
-							<TableHead>Display Name</TableHead>
-							<TableHead className="text-right">Actions</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{items.map((item) => (
-							<TableRow key={item.id}>
-								<TableCell>{item.provider}</TableCell>
-								<TableCell className="font-mono text-xs">
-									{item.task_type}
-								</TableCell>
-								<TableCell className="font-mono text-xs">
-									{item.model}
+			<Table>
+				<TableHeader>
+					<TableRow>
+						<TableHead>Task Type</TableHead>
+						<TableHead>Provider</TableHead>
+						<TableHead>Model</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{TASK_TYPES.map(({ value, label }) => {
+						const routing = routingMap.get(value);
+						const currentProvider =
+							pendingProviders[value] ?? routing?.provider ?? "";
+						const currentModel = pendingProviders[value]
+							? ""
+							: (routing?.model ?? "");
+						const availableModels = modelsByProvider.get(currentProvider) ?? [];
+
+						return (
+							<TableRow key={value}>
+								<TableCell className="font-medium">{label}</TableCell>
+								<TableCell>
+									<Select
+										value={currentProvider}
+										onValueChange={(p) => handleProviderChange(value, p)}
+									>
+										<SelectTrigger
+											data-testid={`provider-select-${value}`}
+											aria-label={`Provider for ${label}`}
+											className="w-[140px]"
+										>
+											<SelectValue placeholder="Select provider" />
+										</SelectTrigger>
+										<SelectContent>
+											{PROVIDERS.map((p) => (
+												<SelectItem key={p} value={p}>
+													{p}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								</TableCell>
 								<TableCell>
-									{item.model_display_name ?? (
-										<span className="text-muted-foreground">—</span>
-									)}
-								</TableCell>
-								<TableCell className="text-right">
-									<Button
-										variant="ghost"
-										size="sm"
-										aria-label="Delete"
-										onClick={() => setDeleteTarget(item)}
+									<Select
+										value={currentModel}
+										onValueChange={(m) => handleModelSelect(value, m)}
+										disabled={!currentProvider}
 									>
-										<Trash2 className="h-4 w-4" />
-									</Button>
+										<SelectTrigger
+											data-testid={`model-select-${value}`}
+											aria-label={`Model for ${label}`}
+											className="w-[260px]"
+										>
+											<SelectValue placeholder="Select model" />
+										</SelectTrigger>
+										<SelectContent>
+											{availableModels.map((m) => (
+												<SelectItem key={m.id} value={m.model}>
+													{m.display_name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								</TableCell>
 							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			)}
-
-			{/* Add Routing Dialog */}
-			<AddRoutingDialog
-				open={addOpen}
-				onOpenChange={setAddOpen}
-				isPending={createMut.isPending}
-				onSubmit={(data) => createMut.mutate(data)}
-			/>
-
-			{/* Delete Confirmation */}
-			<ConfirmationDialog
-				open={deleteTarget !== null}
-				onOpenChange={(open) => {
-					if (!open) setDeleteTarget(null);
-				}}
-				title="Delete Routing?"
-				description={`Are you sure you want to delete routing for ${deleteTarget?.provider}/${deleteTarget?.task_type}?`}
-				confirmLabel="Confirm"
-				variant="destructive"
-				loading={deleteMut.isPending}
-				onConfirm={() => {
-					if (deleteTarget) deleteMut.mutate(deleteTarget.id);
-				}}
-			/>
+						);
+					})}
+				</TableBody>
+			</Table>
 		</div>
 	);
 }
