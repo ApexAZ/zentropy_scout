@@ -464,7 +464,9 @@ class TestRoutingPipeline:
         inner = _mock_inner_adapter(model=_MODEL_HAIKU)
 
         metering, admin_config = _make_services(db_session)
-        provider = MeteredLLMProvider(inner, metering, admin_config, user.id)
+        provider = MeteredLLMProvider(
+            inner, {_PROVIDER: inner}, metering, admin_config, user.id
+        )
 
         await provider.complete([], TaskType.EXTRACTION)
 
@@ -481,7 +483,9 @@ class TestRoutingPipeline:
         inner = _mock_inner_adapter(model=_MODEL_SONNET)
 
         metering, admin_config = _make_services(db_session)
-        provider = MeteredLLMProvider(inner, metering, admin_config, user.id)
+        provider = MeteredLLMProvider(
+            inner, {_PROVIDER: inner}, metering, admin_config, user.id
+        )
 
         # cover_letter has no exact routing → falls back to _default
         await provider.complete([], TaskType.COVER_LETTER)
@@ -500,7 +504,9 @@ class TestRoutingPipeline:
         inner = _mock_inner_adapter(model=_MODEL_HAIKU)
 
         metering, admin_config = _make_services(db_session)
-        provider = MeteredLLMProvider(inner, metering, admin_config, user.id)
+        provider = MeteredLLMProvider(
+            inner, {_PROVIDER: inner}, metering, admin_config, user.id
+        )
 
         await provider.complete([], TaskType.EXTRACTION)
 
@@ -525,7 +531,9 @@ class TestRoutingPipeline:
         inner = _mock_inner_adapter(model=_MODEL_HAIKU)
 
         metering, admin_config = _make_services(db_session)
-        provider = MeteredLLMProvider(inner, metering, admin_config, user.id)
+        provider = MeteredLLMProvider(
+            inner, {_PROVIDER: inner}, metering, admin_config, user.id
+        )
 
         await provider.complete([], TaskType.EXTRACTION)
         assert inner.complete.call_args.kwargs[_MODEL_OVERRIDE_KEY] == _MODEL_HAIKU
@@ -639,7 +647,9 @@ class TestFullAdminPipeline:
         )
 
         metering, admin_config = _make_services(db_session)
-        provider = MeteredLLMProvider(inner, metering, admin_config, user.id)
+        provider = MeteredLLMProvider(
+            inner, {_PROVIDER: inner}, metering, admin_config, user.id
+        )
 
         response = await provider.complete([], TaskType.EXTRACTION)
         await db_session.flush()

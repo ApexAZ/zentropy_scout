@@ -99,6 +99,10 @@ class AdminConfigService:
         this does not filter by provider — it returns whichever provider is
         configured for the task type, enabling cross-provider dispatch.
 
+        Lookup order:
+        1. Exact match on task_type
+        2. Fallback to '_default' entry
+
         Args:
             task_type: TaskType enum value.
 
@@ -110,9 +114,19 @@ class AdminConfigService:
         )
         result = await self._db.execute(stmt)
         row = result.one_or_none()
-        if row is None:
-            return None
-        return (row.provider, row.model)
+        if row is not None:
+            return (row.provider, row.model)
+
+        if task_type != "_default":
+            fallback_stmt = select(
+                TaskRoutingConfig.provider, TaskRoutingConfig.model
+            ).where(TaskRoutingConfig.task_type == "_default")
+            fallback_result = await self._db.execute(fallback_stmt)
+            fallback_row = fallback_result.one_or_none()
+            if fallback_row is not None:
+                return (fallback_row.provider, fallback_row.model)
+
+        return None
 
     async def get_model_for_task(self, provider: str, task_type: str) -> str | None:
         """Get the routed model for a task type.

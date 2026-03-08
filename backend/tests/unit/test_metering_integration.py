@@ -185,7 +185,7 @@ def metered_provider(
 ) -> MeteredLLMProvider:
     """MeteredLLMProvider wrapping the Haiku mock."""
     return MeteredLLMProvider(
-        inner_provider, metering_service, admin_config, _METERING_USER_ID
+        inner_provider, None, metering_service, admin_config, _METERING_USER_ID
     )
 
 
@@ -434,7 +434,9 @@ class TestConcurrentRequests:
             inner = _HaikuMockProvider()
             config = AdminConfigService(db_session)
             service = MeteringService(db_session, config)
-            provider = MeteredLLMProvider(inner, service, config, _METERING_USER_ID)
+            provider = MeteredLLMProvider(
+                inner, None, service, config, _METERING_USER_ID
+            )
             return await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
 
         results = await asyncio.gather(
@@ -483,7 +485,9 @@ class TestConcurrentRequests:
             inner = _HaikuMockProvider()
             config = AdminConfigService(db_session)
             service = MeteringService(db_session, config)
-            provider = MeteredLLMProvider(inner, service, config, low_balance_user_id)
+            provider = MeteredLLMProvider(
+                inner, None, service, config, low_balance_user_id
+            )
             return await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
 
         # All calls should complete (metering never blocks the LLM response)
@@ -688,7 +692,7 @@ class TestProviderError:
         inner = _FailingMockProvider()
         config = AdminConfigService(db_session)
         service = MeteringService(db_session, config)
-        provider = MeteredLLMProvider(inner, service, config, _METERING_USER_ID)
+        provider = MeteredLLMProvider(inner, None, service, config, _METERING_USER_ID)
 
         with pytest.raises(ProviderError):
             await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
