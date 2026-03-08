@@ -148,7 +148,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 #### Tasks
 | # | Task | Hints | Status |
 |---|------|-------|--------|
-| 0 | Security triage gate | `plan, security` | ⬜ |
+| 0 | Security triage gate | `plan, security` | ✅ |
 | 1 | GeminiEmbeddingAdapter implementation | `plan, tdd, provider` | ⬜ |
 | 2 | Update embedding factory — add `"gemini"` case | `plan, tdd, provider` | ⬜ |
 | 3 | Update ProviderConfig defaults + `.env.example` | `plan, tdd` | ⬜ |
