@@ -18,14 +18,7 @@ import structlog
 from google import genai
 from google.genai import types
 
-from app.providers.errors import (
-    AuthenticationError,
-    ContentFilterError,
-    ContextLengthError,
-    ProviderError,
-    RateLimitError,
-    TransientError,
-)
+from app.providers.gemini_errors import classify_gemini_error
 from app.providers.llm.base import (
     LLMMessage,
     LLMProvider,
@@ -62,22 +55,6 @@ DEFAULT_GEMINI_ROUTING: dict[str, str] = {
     "story_selection": DEFAULT_GEMINI_MODEL,
     "resume_parsing": "gemini-2.5-flash",
 }
-
-
-def _classify_gemini_error(error: Exception) -> ProviderError:
-    """Map Gemini exceptions to internal error taxonomy."""
-    error_msg = str(error).lower()
-    if "resource" in error_msg and "exhausted" in error_msg:
-        return RateLimitError(str(error))
-    if "permission" in error_msg or "unauthenticated" in error_msg:
-        return AuthenticationError(str(error))
-    if "context" in error_msg or "token" in error_msg:
-        return ContextLengthError(str(error))
-    if "safety" in error_msg or "blocked" in error_msg:
-        return ContentFilterError(str(error))
-    if "unavailable" in error_msg or "503" in error_msg:
-        return TransientError(str(error))
-    return ProviderError(str(error))
 
 
 def _convert_gemini_messages(
@@ -279,7 +256,7 @@ class GeminiAdapter(LLMProvider):
                 error_type=type(e).__name__,
                 latency_ms=latency_ms,
             )
-            raise _classify_gemini_error(e) from e
+            raise classify_gemini_error(e) from e
 
         latency_ms = (time.monotonic() - start_time) * 1000
         content, tool_calls, finish_reason = _parse_gemini_response(response)
@@ -359,7 +336,7 @@ class GeminiAdapter(LLMProvider):
                 error_type=type(e).__name__,
                 latency_ms=latency_ms,
             )
-            raise _classify_gemini_error(e) from e
+            raise classify_gemini_error(e) from e
 
     def get_model_for_task(self, task: TaskType) -> str:
         """Get model for task using routing table.
