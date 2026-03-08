@@ -17,20 +17,20 @@ class TestProviderConfigDefaults:
         config = ProviderConfig()
         assert config.llm_provider == "claude"
 
-    def test_default_embedding_provider_is_openai(self):
-        """Default embedding provider should be OpenAI."""
+    def test_default_embedding_provider_is_gemini(self):
+        """Default embedding provider should be Gemini (REQ-028 §10)."""
         config = ProviderConfig()
-        assert config.embedding_provider == "openai"
+        assert config.embedding_provider == "gemini"
 
     def test_default_embedding_model(self):
-        """Default embedding model should be text-embedding-3-small."""
+        """Default embedding model should be text-embedding-004 (REQ-028 §7)."""
         config = ProviderConfig()
-        assert config.embedding_model == "text-embedding-3-small"
+        assert config.embedding_model == "text-embedding-004"
 
     def test_default_embedding_dimensions(self):
-        """Default embedding dimensions should be 1536 to match pgvector columns."""
+        """Default embedding dimensions should be 768 to match pgvector columns."""
         config = ProviderConfig()
-        assert config.embedding_dimensions == 1536
+        assert config.embedding_dimensions == 768
 
     def test_default_max_tokens(self):
         """Default max tokens should be 4096."""
@@ -152,8 +152,8 @@ class TestProviderConfigFromEnv:
         ):
             config = ProviderConfig.from_env()
             assert config.llm_provider == "claude"
-            assert config.embedding_provider == "openai"
-            assert config.embedding_model == "text-embedding-3-small"
+            assert config.embedding_provider == "gemini"
+            assert config.embedding_model == "text-embedding-004"
 
 
 class TestProviderConfigValidation:

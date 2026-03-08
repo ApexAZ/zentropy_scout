@@ -18,7 +18,7 @@ class ProviderConfig:
 
     Attributes:
         llm_provider: Which LLM provider to use ("claude", "openai", "gemini").
-        embedding_provider: Which embedding provider to use ("openai", "cohere").
+        embedding_provider: Which embedding provider to use ("gemini", "openai").
         anthropic_api_key: Anthropic API key (loaded from environment).
         openai_api_key: OpenAI API key (loaded from environment).
         google_api_key: Google AI API key (loaded from environment).
@@ -38,7 +38,7 @@ class ProviderConfig:
 
     # Provider selection
     llm_provider: str = "claude"
-    embedding_provider: str = "openai"
+    embedding_provider: str = "gemini"
 
     # API keys (loaded from environment)
     anthropic_api_key: str | None = None
@@ -51,8 +51,8 @@ class ProviderConfig:
     gemini_model_routing: dict[str, str] | None = None
 
     # Embedding config
-    embedding_model: str = "text-embedding-3-small"
-    embedding_dimensions: int = 1536
+    embedding_model: str = "text-embedding-004"
+    embedding_dimensions: int = 768
 
     # Defaults
     default_max_tokens: int = 4096
@@ -81,12 +81,12 @@ class ProviderConfig:
         """
         return cls(
             llm_provider=os.getenv("LLM_PROVIDER", "claude"),
-            embedding_provider=os.getenv("EMBEDDING_PROVIDER", "openai"),
+            embedding_provider=os.getenv("EMBEDDING_PROVIDER", "gemini"),
             anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
             openai_api_key=os.getenv("OPENAI_API_KEY"),
             google_api_key=os.getenv("GOOGLE_API_KEY"),
-            embedding_model=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"),
-            embedding_dimensions=int(os.getenv("EMBEDDING_DIMENSIONS", "1536")),
+            embedding_model=os.getenv("EMBEDDING_MODEL", "text-embedding-004"),
+            embedding_dimensions=int(os.getenv("EMBEDDING_DIMENSIONS", "768")),
             default_max_tokens=int(os.getenv("DEFAULT_MAX_TOKENS", "4096")),
             default_temperature=float(os.getenv("DEFAULT_TEMPERATURE", "0.7")),
             max_retries=int(os.getenv("LLM_MAX_RETRIES", "3")),
