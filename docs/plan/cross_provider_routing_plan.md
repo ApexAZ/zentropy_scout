@@ -87,7 +87,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | # | Task | Hints | Status |
 |---|------|-------|--------|
 | 0 | Security triage gate | `plan, security` | ✅ |
-| 1 | Update routing types + add TASK_TYPES constant | `plan, tdd` | ⬜ |
+| 1 | Update routing types + add TASK_TYPES constant | `plan, tdd` | ✅ |
 | 2 | Rewrite RoutingTab as fixed editable table | `plan, tdd, ui` | ⬜ |
 | 3 | Add test button + API client function | `plan, tdd, api, ui` | ⬜ |
 | 4 | Validation — warn if provider has no API key | `plan, tdd, ui` | ⬜ |

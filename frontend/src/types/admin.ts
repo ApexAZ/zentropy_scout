@@ -90,6 +90,30 @@ export interface TaskRoutingUpdateRequest {
 }
 
 // =============================================================================
+// Routing Test
+// =============================================================================
+
+/**
+ * REQ-028 §5.1: Request for POST /admin/routing/test.
+ */
+export interface RoutingTestRequest {
+	task_type: string;
+	prompt: string;
+}
+
+/**
+ * REQ-028 §5.1: Response from POST /admin/routing/test.
+ */
+export interface RoutingTestResponse {
+	provider: string;
+	model: string;
+	response: string;
+	latency_ms: number;
+	input_tokens: number;
+	output_tokens: number;
+}
+
+// =============================================================================
 // Funding Packs
 // =============================================================================
 
