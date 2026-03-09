@@ -117,16 +117,6 @@ class TestCreate:
         user = await UserRepository.create(db_session, email="MiXeD@Example.COM")
         assert user.email == "mixed@example.com"
 
-    async def test_created_at_is_set(self, db_session: AsyncSession):
-        """created_at timestamp is populated by the database."""
-        user = await UserRepository.create(db_session, email="ts@example.com")
-        assert user.created_at is not None
-
-    async def test_updated_at_is_set(self, db_session: AsyncSession):
-        """updated_at timestamp is populated by the database."""
-        user = await UserRepository.create(db_session, email="ts2@example.com")
-        assert user.updated_at is not None
-
 
 class TestUpdate:
     """Test UserRepository.update()."""

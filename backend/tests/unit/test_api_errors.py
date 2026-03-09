@@ -3,6 +3,8 @@
 REQ-006 §8.1-8.2: HTTP status codes and error codes.
 """
 
+import pytest
+
 from app.core.errors import (
     APIError,
     ConflictError,
@@ -47,18 +49,30 @@ class TestAPIError:
         assert str(error) == "Test"
 
 
+class TestErrorCodeAndStatus:
+    """Hardcoded code + status_code for each error subclass."""
+
+    @pytest.mark.parametrize(
+        ("error", "expected_code", "expected_status"),
+        [
+            (ValidationError("msg"), "VALIDATION_ERROR", 400),
+            (UnauthorizedError(), "UNAUTHORIZED", 401),
+            (ForbiddenError(), "FORBIDDEN", 403),
+            (NotFoundError("X"), "NOT_FOUND", 404),
+            (InvalidStateError("msg"), "INVALID_STATE_TRANSITION", 422),
+            (InternalError(), "INTERNAL_ERROR", 500),
+        ],
+    )
+    def test_error_has_correct_code_and_status(
+        self, error, expected_code, expected_status
+    ):
+        """Each error subclass has the correct code and status_code."""
+        assert error.code == expected_code
+        assert error.status_code == expected_status
+
+
 class TestValidationError:
     """Tests for ValidationError (400)."""
-
-    def test_validation_error_has_correct_code(self):
-        """ValidationError should have VALIDATION_ERROR code."""
-        error = ValidationError("Validation failed")
-        assert error.code == "VALIDATION_ERROR"
-
-    def test_validation_error_has_400_status(self):
-        """ValidationError should have 400 status code."""
-        error = ValidationError("Validation failed")
-        assert error.status_code == 400
 
     def test_validation_error_with_details(self):
         """ValidationError should pass through details."""
@@ -69,16 +83,6 @@ class TestValidationError:
 
 class TestUnauthorizedError:
     """Tests for UnauthorizedError (401)."""
-
-    def test_unauthorized_error_has_correct_code(self):
-        """UnauthorizedError should have UNAUTHORIZED code."""
-        error = UnauthorizedError()
-        assert error.code == "UNAUTHORIZED"
-
-    def test_unauthorized_error_has_401_status(self):
-        """UnauthorizedError should have 401 status code."""
-        error = UnauthorizedError()
-        assert error.status_code == 401
 
     def test_unauthorized_error_default_message(self):
         """UnauthorizedError should have default message."""
@@ -94,16 +98,6 @@ class TestUnauthorizedError:
 class TestForbiddenError:
     """Tests for ForbiddenError (403)."""
 
-    def test_forbidden_error_has_correct_code(self):
-        """ForbiddenError should have FORBIDDEN code."""
-        error = ForbiddenError()
-        assert error.code == "FORBIDDEN"
-
-    def test_forbidden_error_has_403_status(self):
-        """ForbiddenError should have 403 status code."""
-        error = ForbiddenError()
-        assert error.status_code == 403
-
     def test_forbidden_error_default_message(self):
         """ForbiddenError should have default message."""
         error = ForbiddenError()
@@ -117,16 +111,6 @@ class TestForbiddenError:
 
 class TestNotFoundError:
     """Tests for NotFoundError (404)."""
-
-    def test_not_found_error_has_correct_code(self):
-        """NotFoundError should have NOT_FOUND code."""
-        error = NotFoundError("Persona")
-        assert error.code == "NOT_FOUND"
-
-    def test_not_found_error_has_404_status(self):
-        """NotFoundError should have 404 status code."""
-        error = NotFoundError("Persona")
-        assert error.status_code == 404
 
     def test_not_found_with_resource_only(self):
         """NotFoundError should format message with resource name."""
@@ -171,32 +155,8 @@ class TestConflictError:
         assert error.details == details
 
 
-class TestInvalidStateError:
-    """Tests for InvalidStateError (422)."""
-
-    def test_invalid_state_error_has_correct_code(self):
-        """InvalidStateError should have INVALID_STATE_TRANSITION code."""
-        error = InvalidStateError("Cannot approve already approved")
-        assert error.code == "INVALID_STATE_TRANSITION"
-
-    def test_invalid_state_error_has_422_status(self):
-        """InvalidStateError should have 422 status code."""
-        error = InvalidStateError("Invalid transition")
-        assert error.status_code == 422
-
-
 class TestInternalError:
     """Tests for InternalError (500)."""
-
-    def test_internal_error_has_correct_code(self):
-        """InternalError should have INTERNAL_ERROR code."""
-        error = InternalError()
-        assert error.code == "INTERNAL_ERROR"
-
-    def test_internal_error_has_500_status(self):
-        """InternalError should have 500 status code."""
-        error = InternalError()
-        assert error.status_code == 500
 
     def test_internal_error_default_message(self):
         """InternalError should have default message."""

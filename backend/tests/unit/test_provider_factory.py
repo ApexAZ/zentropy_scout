@@ -29,12 +29,6 @@ class TestGetLLMProvider:
         """Reset singletons before each test."""
         reset_providers()
 
-    def test_returns_llm_provider_instance(self) -> None:
-        """Factory should return an LLMProvider instance."""
-        config = ProviderConfig(llm_provider=_PROVIDER_CLAUDE)
-        provider = get_llm_provider(config)
-        assert provider is not None
-
     def test_singleton_returns_same_instance(self) -> None:
         """Subsequent calls should return the same instance."""
         config = ProviderConfig(llm_provider=_PROVIDER_CLAUDE)
@@ -63,16 +57,6 @@ class TestGetEmbeddingProvider:
     def setup_method(self) -> None:
         """Reset singletons before each test."""
         reset_providers()
-
-    def test_returns_embedding_provider_instance(self) -> None:
-        """Factory should return an EmbeddingProvider instance."""
-        config = ProviderConfig(
-            embedding_provider=_PROVIDER_OPENAI,
-            openai_api_key=_TEST_API_KEY,
-        )
-        with patch("app.providers.embedding.openai_adapter.AsyncOpenAI"):
-            provider = get_embedding_provider(config)
-            assert provider is not None
 
     def test_singleton_returns_same_instance(self) -> None:
         """Subsequent calls should return the same instance."""

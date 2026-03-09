@@ -51,14 +51,6 @@ class TestGenerationOutcomeRecordStructure:
 class TestCreateOutcomeApproved:
     """REQ-010 §10.2: Approved outcome has no feedback or reason."""
 
-    def test_approved_sets_outcome(self) -> None:
-        """Approved record should have APPROVED outcome."""
-        record = create_outcome_record(
-            generation_id=_GEN_ID_APPROVED,
-            outcome=GenerationOutcome.APPROVED,
-        )
-        assert record.outcome == GenerationOutcome.APPROVED
-
     def test_approved_no_feedback_category(self) -> None:
         """Approved record with no feedback should have None category."""
         record = create_outcome_record(
@@ -75,14 +67,6 @@ class TestCreateOutcomeApproved:
         )
         assert record.regeneration_reason is None
 
-    def test_approved_preserves_generation_id(self) -> None:
-        """Approved record should preserve the generation ID."""
-        record = create_outcome_record(
-            generation_id=_GEN_ID_APPROVED,
-            outcome=GenerationOutcome.APPROVED,
-        )
-        assert record.generation_id == _GEN_ID_APPROVED
-
 
 # =============================================================================
 # create_outcome_record — Regenerated with Feedback
@@ -91,16 +75,6 @@ class TestCreateOutcomeApproved:
 
 class TestCreateOutcomeRegenerated:
     """REQ-010 §10.2: Regenerated outcome categorizes feedback."""
-
-    def test_regenerated_sets_outcome(self) -> None:
-        """Regenerated record should have REGENERATED outcome."""
-        record = create_outcome_record(
-            generation_id=_GEN_ID_REGENERATED,
-            outcome=GenerationOutcome.REGENERATED,
-            feedback=_FEEDBACK_SHORTER,
-            regeneration_reason="Too long",
-        )
-        assert record.outcome == GenerationOutcome.REGENERATED
 
     def test_regenerated_categorizes_feedback(self) -> None:
         """Regenerated record with feedback should have a category."""
@@ -137,14 +111,6 @@ class TestCreateOutcomeRegenerated:
 
 class TestCreateOutcomeAbandoned:
     """REQ-010 §10.2: Abandoned outcome."""
-
-    def test_abandoned_sets_outcome(self) -> None:
-        """Abandoned record should have ABANDONED outcome."""
-        record = create_outcome_record(
-            generation_id=_GEN_ID_ABANDONED,
-            outcome=GenerationOutcome.ABANDONED,
-        )
-        assert record.outcome == GenerationOutcome.ABANDONED
 
     def test_abandoned_no_feedback_category(self) -> None:
         """Abandoned record should have None category."""

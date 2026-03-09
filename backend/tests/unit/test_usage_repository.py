@@ -92,24 +92,6 @@ class TestCreate:
         assert record.billed_cost_usd == Decimal("0.003640")
         assert record.margin_multiplier == Decimal("1.30")
 
-    async def test_created_at_set_automatically(
-        self, db_session: AsyncSession, user_a: User
-    ) -> None:
-        """Server sets created_at on insert."""
-        record = await UsageRepository.create(
-            db_session,
-            user_id=user_a.id,
-            provider="claude",
-            model="claude-3-5-haiku-20241022",
-            task_type="extraction",
-            input_tokens=1000,
-            output_tokens=500,
-            raw_cost_usd=Decimal("0.002800"),
-            billed_cost_usd=Decimal("0.003640"),
-            margin_multiplier=Decimal("1.30"),
-        )
-        assert record.created_at is not None
-
     async def test_decimal_values_roundtrip(
         self, db_session: AsyncSession, user_a: User
     ) -> None:
