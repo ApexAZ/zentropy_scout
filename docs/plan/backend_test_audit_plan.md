@@ -1,7 +1,7 @@
 # Backend Test Suite Audit & Cleanup Plan
 
 **Created:** 2026-03-09
-**Status:** Ready for implementation
+**Status:** ✅ Complete
 
 ---
 
@@ -109,9 +109,9 @@ Phase 4: Quality Gate (verification + documentation)
 
 | # | Task | Scope | Status |
 |---|------|-------|--------|
-| 4.1 | **Full test suite + coverage comparison** — Run full pytest. Compare test count to baseline (4,614). No module should show >5% coverage drop. | Full suite | ⬜ |
-| 4.2 | **Verify hook detects patterns correctly** — Check terminal summary output for refined isinstance detection. Confirm no false positives on conditional isinstance usage. | pytest output review | ⬜ |
-| 4.3 | **Update CLAUDE.md** — Update "Automated detection" paragraph to document enhanced capabilities and which patterns are intentionally NOT detected. | CLAUDE.md | ⬜ |
+| 4.1 | **Full test suite + coverage comparison** — Run full pytest. Compare test count to baseline (4,614). No module should show >5% coverage drop. | Full suite | ✅ |
+| 4.2 | **Verify hook detects patterns correctly** — Check terminal summary output for refined isinstance detection. Confirm no false positives on conditional isinstance usage. | pytest output review | ✅ |
+| 4.3 | **Update CLAUDE.md** — Update "Automated detection" paragraph to document enhanced capabilities and which patterns are intentionally NOT detected. | CLAUDE.md | ✅ |
 
 ---
 
@@ -154,6 +154,10 @@ Phase 4: Quality Gate (verification + documentation)
 | 2026-03-09 | §2.2 complete — rewrote 4 ANTIPATTERN isinstance tests to behavioral assertions (3 in test_explanation_generation, 1 in test_pool_surfacing_service) + removed unused ScoreExplanation import |
 | 2026-03-09 | §2.3 complete — deleted 6 ANTIPATTERN constant test functions across 5 files (5 from triage + 1 caught by code review: test_current_weights_are_standard) + removed 5 unused imports |
 | 2026-03-09 | §3.1 + §3.2 complete — narrowed AST scanner to assert-context only + added isinstance-only-assertion detection. Both warning-only, separate terminal summary sections. |
+| 2026-03-09 | §4.1 complete — 4,608/4,608 tests pass (6 deleted = 4,614 baseline - 6 ANTIPATTERN deletions). Zero failures, zero skips. |
+| 2026-03-09 | §4.2 complete — hook correctly detects 2 assert-context isinstance warnings + 2 isinstance-only warnings (LEGITIMATE fuzz tests). Zero false positives on non-assert isinstance usage. |
+| 2026-03-09 | §4.3 complete — CLAUDE.md "Automated detection" updated with both detection categories + intentionally-not-detected patterns. |
+| 2026-03-09 | **Plan complete.** All 13 tasks across 4 phases done. |
 
 ---
 

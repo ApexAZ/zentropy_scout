@@ -298,7 +298,11 @@ These patterns test implementation details rather than behavior. They break on r
 
 **Decision criterion:** Ask "Would this test still pass if I rewrote the implementation using a completely different internal structure but preserved the same external behavior?" If yes, the test is behavioral (good). If no, the test is structural (bad).
 
-**Automated detection:** The conftest.py hook scans test functions via AST analysis and reports violations in the pytest terminal summary (warning-only, does not fail the build).
+**Automated detection:** The conftest.py hook scans test functions via AST analysis and reports two categories of warnings in the pytest terminal summary (warning-only, never fails the build):
+1. **Antipattern warnings** — Detects banned functions (`isinstance`, `issubclass`, `hasattr`, `get_type_hints`, `callable`) and banned attributes (`__abstractmethods__`, `dataclasses.fields`) used inside `assert` statements only. Non-assert usage (conditionals, helpers) is not flagged.
+2. **isinstance-only warnings** — Detects test functions where ALL assert statements use `isinstance()` as their sole assertion, indicating a structural test with no behavioral verification.
+
+Patterns intentionally NOT detected: `len()` assertions and constant/literal assertions. Both have a 95%+ legitimate rate (testing function return values), making automated detection impractical.
 
 **Frozen-test pattern (approved alternative for immutability):** When you need to verify a data structure hasn't changed (e.g., migration mappings), test the behavioral contract: "new names follow the naming convention" rather than "there are exactly 49 entries."
 
