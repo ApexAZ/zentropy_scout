@@ -14,6 +14,8 @@ services, which are called by the Strategist agent.
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
+import pytest
+
 from app.services.scoring_flow import (
     JobFilterResult,
     build_filtered_score_result,
@@ -245,292 +247,12 @@ class TestScoringFlowNonNegotiablesFilter:
 
 
 # =============================================================================
-# Scoring Flow Result Structure Tests (§7.2 Steps 3-5)
-# =============================================================================
-
-
-class TestScoringFlowResultStructure:
-    """Tests for scoring flow result structure."""
-
-    def test_filtered_job_result_structure(self) -> None:
-        """Filtered jobs should have None scores and a filter reason."""
-        # This tests the expected structure after filtering fails
-        persona = MockPersonaNonNegotiables(
-            remote_preference="Remote Only",
-            minimum_base_salary=None,
-            commutable_cities=[],
-            industry_exclusions=[],
-            visa_sponsorship_required=False,
-        )
-        job = MockJobForFilter(
-            id=uuid4(),
-            work_model="Onsite",
-            salary_max=None,
-            location=None,
-            industry=None,
-            visa_sponsorship=None,
-        )
-
-        filter_result = filter_job_non_negotiables(persona, job)
-
-        # The Strategist would create a ScoreResult like this:
-        assert filter_result.passed is False
-        # When creating ScoreResult for filtered job:
-        # - fit_score = None
-        # - stretch_score = None
-        # - filtered_reason = "|".join(filter_result.failed_reasons)
-        expected_filter_reason = "|".join(filter_result.failed_reasons)
-        assert len(expected_filter_reason) > 0
-
-    def test_passing_job_gets_scored(self) -> None:
-        """Jobs passing filter should proceed to scoring."""
-        persona = MockPersonaNonNegotiables(
-            remote_preference="No Preference",
-            minimum_base_salary=None,
-            commutable_cities=[],
-            industry_exclusions=[],
-            visa_sponsorship_required=False,
-        )
-        job = MockJobForFilter(
-            id=uuid4(),
-            work_model="Remote",
-            salary_max=150000,
-            location=None,
-            industry="Technology",
-            visa_sponsorship=True,
-        )
-
-        filter_result = filter_job_non_negotiables(persona, job)
-
-        assert filter_result.passed is True
-        # When creating ScoreResult for passing job:
-        # - fit_score = calculated value (0-100)
-        # - stretch_score = calculated value (0-100)
-        # - filtered_reason = None
-
-
-# =============================================================================
-# Mixed Jobs Processing Tests (§7.2 Complete Flow)
-# =============================================================================
-
-
-class TestScoringFlowMixedJobs:
-    """Tests for processing multiple jobs with mixed filter results."""
-
-    def test_batch_filters_correctly_separates_jobs(self) -> None:
-        """Batch processing should separate passing and filtered jobs."""
-        persona = MockPersonaNonNegotiables(
-            remote_preference="Remote Only",
-            minimum_base_salary=100000,
-            commutable_cities=[],
-            industry_exclusions=[],
-            visa_sponsorship_required=False,
-        )
-
-        jobs = [
-            # Job 1: Passes all filters
-            MockJobForFilter(
-                id=uuid4(),
-                work_model="Remote",
-                salary_max=150000,
-                location=None,
-                industry="Technology",
-                visa_sponsorship=None,
-            ),
-            # Job 2: Fails remote preference
-            MockJobForFilter(
-                id=uuid4(),
-                work_model="Onsite",
-                salary_max=200000,
-                location=None,
-                industry="Technology",
-                visa_sponsorship=None,
-            ),
-            # Job 3: Passes all filters
-            MockJobForFilter(
-                id=uuid4(),
-                work_model="Remote",
-                salary_max=120000,
-                location=None,
-                industry="Finance",
-                visa_sponsorship=None,
-            ),
-            # Job 4: Fails salary minimum
-            MockJobForFilter(
-                id=uuid4(),
-                work_model="Remote",
-                salary_max=80000,
-                location=None,
-                industry="Technology",
-                visa_sponsorship=None,
-            ),
-        ]
-
-        passing_jobs: list[MockJobForFilter] = []
-        filtered_jobs: list[tuple[MockJobForFilter, list[str]]] = []
-
-        for job in jobs:
-            result = filter_job_non_negotiables(persona, job)
-            if result.passed:
-                passing_jobs.append(job)
-            else:
-                filtered_jobs.append((job, result.failed_reasons))
-
-        # Job 1 and 3 pass, Job 2 and 4 fail
-        assert len(passing_jobs) == 2
-        assert len(filtered_jobs) == 2
-
-    def test_all_jobs_pass(self) -> None:
-        """All jobs passing should result in empty filtered list."""
-        persona = MockPersonaNonNegotiables(
-            remote_preference="No Preference",
-            minimum_base_salary=None,
-            commutable_cities=[],
-            industry_exclusions=[],
-            visa_sponsorship_required=False,
-        )
-
-        jobs = [
-            MockJobForFilter(
-                id=uuid4(),
-                work_model="Remote",
-                salary_max=100000,
-                location=None,
-                industry="Technology",
-                visa_sponsorship=None,
-            )
-            for _ in range(5)
-        ]
-
-        passing_jobs = []
-        filtered_jobs = []
-
-        for job in jobs:
-            result = filter_job_non_negotiables(persona, job)
-            if result.passed:
-                passing_jobs.append(job)
-            else:
-                filtered_jobs.append(job)
-
-        assert len(passing_jobs) == 5
-        assert len(filtered_jobs) == 0
-
-    def test_all_jobs_fail(self) -> None:
-        """All jobs failing should result in empty passing list."""
-        persona = MockPersonaNonNegotiables(
-            remote_preference="Remote Only",
-            minimum_base_salary=None,
-            commutable_cities=[],
-            industry_exclusions=[],
-            visa_sponsorship_required=False,
-        )
-
-        jobs = [
-            MockJobForFilter(
-                id=uuid4(),
-                work_model="Onsite",  # All fail remote
-                salary_max=100000,
-                location=None,
-                industry="Technology",
-                visa_sponsorship=None,
-            )
-            for _ in range(5)
-        ]
-
-        passing_jobs = []
-        filtered_jobs = []
-
-        for job in jobs:
-            result = filter_job_non_negotiables(persona, job)
-            if result.passed:
-                passing_jobs.append(job)
-            else:
-                filtered_jobs.append(job)
-
-        assert len(passing_jobs) == 0
-        assert len(filtered_jobs) == 5
-
-    def test_empty_jobs_list(self) -> None:
-        """Empty jobs list should return empty results."""
-        persona = MockPersonaNonNegotiables(
-            remote_preference="No Preference",
-            minimum_base_salary=None,
-            commutable_cities=[],
-            industry_exclusions=[],
-            visa_sponsorship_required=False,
-        )
-
-        jobs: list[MockJobForFilter] = []
-
-        passing_jobs = []
-        filtered_jobs = []
-
-        for job in jobs:
-            result = filter_job_non_negotiables(persona, job)
-            if result.passed:
-                passing_jobs.append(job)
-            else:
-                filtered_jobs.append(job)
-
-        assert len(passing_jobs) == 0
-        assert len(filtered_jobs) == 0
-
-
-# =============================================================================
 # Scoring Flow Service Tests
 # =============================================================================
 
 
 class TestScoringFlowService:
     """Tests for the scoring_flow service functions."""
-
-    def test_filter_job_non_negotiables_passes(self) -> None:
-        """filter_job_non_negotiables should return passed=True for valid job."""
-        persona = MockPersonaNonNegotiables(
-            remote_preference="No Preference",
-            minimum_base_salary=None,
-            commutable_cities=[],
-            industry_exclusions=[],
-            visa_sponsorship_required=False,
-        )
-        job = MockJobForFilter(
-            id=uuid4(),
-            work_model="Remote",
-            salary_max=150000,
-            location=None,
-            industry="Technology",
-            visa_sponsorship=None,
-        )
-
-        result = filter_job_non_negotiables(persona, job)
-
-        assert result.passed is True
-        assert result.job_id == job.id
-        assert len(result.failed_reasons) == 0
-
-    def test_filter_job_non_negotiables_fails(self) -> None:
-        """filter_job_non_negotiables should return passed=False for invalid job."""
-        persona = MockPersonaNonNegotiables(
-            remote_preference="Remote Only",
-            minimum_base_salary=None,
-            commutable_cities=[],
-            industry_exclusions=[],
-            visa_sponsorship_required=False,
-        )
-        job = MockJobForFilter(
-            id=uuid4(),
-            work_model="Onsite",
-            salary_max=None,
-            location=None,
-            industry=None,
-            visa_sponsorship=None,
-        )
-
-        result = filter_job_non_negotiables(persona, job)
-
-        assert result.passed is False
-        assert result.job_id == job.id
-        assert len(result.failed_reasons) > 0
 
     def test_filter_jobs_batch_separates_correctly(self) -> None:
         """filter_jobs_batch should separate passing and filtered jobs."""
@@ -618,49 +340,21 @@ class TestScoringFlowService:
         assert score_result["explanation"] is None
         assert score_result["filtered_reason"] is None
 
-    def test_build_scored_result_validates_fit_score_too_low(self) -> None:
-        """build_scored_result should reject fit_score below 0."""
-        import pytest
-
-        with pytest.raises(ValueError, match="fit_score must be 0-100"):
-            build_scored_result(
-                job_id=uuid4(),
-                fit_score=-5.0,
-                stretch_score=50.0,
-            )
-
-    def test_build_scored_result_validates_fit_score_too_high(self) -> None:
-        """build_scored_result should reject fit_score above 100."""
-        import pytest
-
-        with pytest.raises(ValueError, match="fit_score must be 0-100"):
-            build_scored_result(
-                job_id=uuid4(),
-                fit_score=150.0,
-                stretch_score=50.0,
-            )
-
-    def test_build_scored_result_validates_stretch_score_too_low(self) -> None:
-        """build_scored_result should reject stretch_score below 0."""
-        import pytest
-
-        with pytest.raises(ValueError, match="stretch_score must be 0-100"):
-            build_scored_result(
-                job_id=uuid4(),
-                fit_score=50.0,
-                stretch_score=-10.0,
-            )
-
-    def test_build_scored_result_validates_stretch_score_too_high(self) -> None:
-        """build_scored_result should reject stretch_score above 100."""
-        import pytest
-
-        with pytest.raises(ValueError, match="stretch_score must be 0-100"):
-            build_scored_result(
-                job_id=uuid4(),
-                fit_score=50.0,
-                stretch_score=105.0,
-            )
+    @pytest.mark.parametrize(
+        ("fit", "stretch", "match_msg"),
+        [
+            (-5.0, 50.0, "fit_score must be 0-100"),
+            (150.0, 50.0, "fit_score must be 0-100"),
+            (50.0, -10.0, "stretch_score must be 0-100"),
+            (50.0, 105.0, "stretch_score must be 0-100"),
+        ],
+    )
+    def test_build_scored_result_rejects_out_of_range(
+        self, fit: float, stretch: float, match_msg: str
+    ) -> None:
+        """build_scored_result rejects scores outside 0-100."""
+        with pytest.raises(ValueError, match=match_msg):
+            build_scored_result(job_id=uuid4(), fit_score=fit, stretch_score=stretch)
 
     def test_build_scored_result_accepts_boundary_values(self) -> None:
         """build_scored_result should accept scores at 0 and 100."""

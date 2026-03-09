@@ -10,7 +10,6 @@ import pytest
 from app.services.golden_set import GoldenSet, GoldenSetEntry, GoldenSetMetadata
 from app.services.score_correlation import (
     CorrelationResult,
-    ValidationResult,
     compute_pearson_correlation,
     validate_scores_against_golden_set,
 )
@@ -94,18 +93,6 @@ class TestComputePearsonCorrelation:
 class TestCorrelationResult:
     """Tests for CorrelationResult data class."""
 
-    def test_result_stores_correlations_when_initialized(self) -> None:
-        """Result should store fit and stretch correlations."""
-        result = CorrelationResult(
-            fit_correlation=0.85,
-            stretch_correlation=0.78,
-            sample_size=50,
-        )
-
-        assert result.fit_correlation == 0.85
-        assert result.stretch_correlation == 0.78
-        assert result.sample_size == 50
-
     def test_result_passes_threshold_when_both_high(self) -> None:
         """Result should pass when both correlations exceed threshold."""
         result = CorrelationResult(
@@ -135,36 +122,6 @@ class TestCorrelationResult:
         )
 
         assert result.passes_threshold(0.8) is False
-
-
-# =============================================================================
-# ValidationResult Tests
-# =============================================================================
-
-
-class TestValidationResult:
-    """Tests for ValidationResult data class."""
-
-    def test_validation_result_stores_fields_when_initialized(self) -> None:
-        """Validation result should store all fields."""
-        correlation = CorrelationResult(
-            fit_correlation=0.85,
-            stretch_correlation=0.82,
-            sample_size=50,
-        )
-        result = ValidationResult(
-            correlation=correlation,
-            target_threshold=0.8,
-            passed=True,
-            entry_results=[
-                {"id": "gs-001", "fit_error": 5, "stretch_error": 3},
-            ],
-        )
-
-        assert result.correlation.fit_correlation == 0.85
-        assert result.target_threshold == 0.8
-        assert result.passed is True
-        assert len(result.entry_results) == 1
 
 
 # =============================================================================
