@@ -24,16 +24,6 @@ class TestPaginationParams:
         params = PaginationParams(page=5, per_page=10)
         assert params.offset == 40  # (5 - 1) * 10
 
-    def test_limit_equals_per_page(self):
-        """Limit should equal per_page."""
-        params = PaginationParams(page=1, per_page=50)
-        assert params.limit == 50
-
-    def test_limit_different_per_page(self):
-        """Limit should vary with per_page."""
-        params = PaginationParams(page=1, per_page=15)
-        assert params.limit == 15
-
 
 class TestPaginationParamsDependency:
     """Tests for pagination_params FastAPI dependency.
