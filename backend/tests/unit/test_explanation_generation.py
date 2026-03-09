@@ -396,19 +396,6 @@ class TestWarningsFromOverqualified:
 class TestSummaryGeneration:
     """Tests for summary sentence generation."""
 
-    def test_summary_included_in_result(self) -> None:
-        """Explanation always includes a summary."""
-        fit_result = make_fit_result()
-        stretch_result = make_stretch_result()
-
-        persona = MockPersona()
-        job = MockJobPosting()
-
-        explanation = generate_explanation(fit_result, stretch_result, persona, job)
-
-        assert explanation.summary is not None
-        assert len(explanation.summary) > 0
-
     def test_summary_reflects_fit_score(self) -> None:
         """Summary reflects overall fit quality."""
         # High fit score

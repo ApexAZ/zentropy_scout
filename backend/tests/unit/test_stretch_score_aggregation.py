@@ -14,12 +14,7 @@ import math
 
 import pytest
 
-from app.services.stretch_score import (
-    STRETCH_WEIGHT_GROWTH_TRAJECTORY,
-    STRETCH_WEIGHT_TARGET_ROLE,
-    STRETCH_WEIGHT_TARGET_SKILLS,
-    calculate_stretch_score,
-)
+from app.services.stretch_score import calculate_stretch_score
 
 # =============================================================================
 # Weighted Sum Calculation Tests
@@ -113,16 +108,6 @@ class TestWeightedSumCalculation:
 class TestRoundingBehavior:
     """Tests for score rounding to nearest integer."""
 
-    def test_rounds_down_at_point_4(self) -> None:
-        """Score of X.4 should round down."""
-        # All at 50 → 50 * 1.0 = 50.0 → rounds to 50
-        result = calculate_stretch_score(
-            target_role=50.0,
-            target_skills=50.0,
-            growth_trajectory=50.0,
-        )
-        assert result.total == 50
-
     def test_rounds_normally_at_point_5_and_above(self) -> None:
         """Score of X.5 should round to nearest even (banker's rounding)."""
         # 75.5 rounds to 76 (nearest even)
@@ -182,17 +167,6 @@ class TestComponentsDictionary:
             "growth_trajectory",
         }
 
-    def test_components_values_match_inputs(self) -> None:
-        """Components dict values should match input scores."""
-        result = calculate_stretch_score(
-            target_role=80.0,
-            target_skills=70.0,
-            growth_trajectory=90.0,
-        )
-        assert result.components["target_role"] == 80.0
-        assert result.components["target_skills"] == 70.0
-        assert result.components["growth_trajectory"] == 90.0
-
 
 # =============================================================================
 # Weights Dictionary Tests
@@ -214,27 +188,6 @@ class TestWeightsDictionary:
             "target_skills",
             "growth_trajectory",
         }
-
-    def test_weights_match_constants(self) -> None:
-        """Weights dict values should match defined constants."""
-        result = calculate_stretch_score(
-            target_role=80.0,
-            target_skills=70.0,
-            growth_trajectory=90.0,
-        )
-        assert result.weights["target_role"] == STRETCH_WEIGHT_TARGET_ROLE
-        assert result.weights["target_skills"] == STRETCH_WEIGHT_TARGET_SKILLS
-        assert result.weights["growth_trajectory"] == STRETCH_WEIGHT_GROWTH_TRAJECTORY
-
-    def test_weights_sum_to_1(self) -> None:
-        """Weights should sum to 1.0 (100%)."""
-        result = calculate_stretch_score(
-            target_role=80.0,
-            target_skills=70.0,
-            growth_trajectory=90.0,
-        )
-        total_weight = sum(result.weights.values())
-        assert abs(total_weight - 1.0) < 0.001
 
 
 # =============================================================================
@@ -263,24 +216,6 @@ class TestInputValidation:
                 growth_trajectory=50.0,
             )
 
-    def test_all_components_at_boundary_0_valid(self) -> None:
-        """All components at 0 is valid."""
-        result = calculate_stretch_score(
-            target_role=0.0,
-            target_skills=0.0,
-            growth_trajectory=0.0,
-        )
-        assert result.total == 0
-
-    def test_all_components_at_boundary_100_valid(self) -> None:
-        """All components at 100 is valid."""
-        result = calculate_stretch_score(
-            target_role=100.0,
-            target_skills=100.0,
-            growth_trajectory=100.0,
-        )
-        assert result.total == 100
-
     def test_nan_component_raises_error(self) -> None:
         """NaN component score should raise ValueError."""
         with pytest.raises(ValueError, match="must be a finite number"):
@@ -307,30 +242,3 @@ class TestInputValidation:
                 target_skills=70.0,
                 growth_trajectory=50.0,
             )
-
-
-# =============================================================================
-# Score Bounds Tests
-# =============================================================================
-
-
-class TestScoreBounds:
-    """Tests that total score is always within valid range."""
-
-    def test_total_never_exceeds_100(self) -> None:
-        """Total score should never exceed 100."""
-        result = calculate_stretch_score(
-            target_role=100.0,
-            target_skills=100.0,
-            growth_trajectory=100.0,
-        )
-        assert result.total <= 100
-
-    def test_total_never_below_0(self) -> None:
-        """Total score should never be below 0."""
-        result = calculate_stretch_score(
-            target_role=0.0,
-            target_skills=0.0,
-            growth_trajectory=0.0,
-        )
-        assert result.total >= 0

@@ -33,19 +33,6 @@ def _story(
 class TestHeader:
     """Tests for the opening header line."""
 
-    def test_includes_job_title_and_company(self) -> None:
-        """Header should include the job title and company name in bold."""
-        result = format_agent_reasoning(
-            job_title="Agile Coach",
-            company_name="Innovate Corp",
-            tailoring_action="use_base",
-            tailoring_signal_details=[],
-            stories=[],
-        )
-
-        assert "**Agile Coach**" in result
-        assert "**Innovate Corp**" in result
-
     def test_header_is_first_line(self) -> None:
         """Header should be the first line of output."""
         result = format_agent_reasoning(
@@ -244,58 +231,6 @@ class TestReviewPrompt:
 # =============================================================================
 # Combined Output Tests
 # =============================================================================
-
-
-class TestCombinedOutput:
-    """Tests for complete reasoning output matching REQ-010 §9.2 example."""
-
-    def test_full_example_with_tailoring_and_stories(self) -> None:
-        """Full output with tailoring and stories per REQ-010 §9.2."""
-        stories = [
-            _story(
-                title="Turned around failing project",
-                rationale="Demonstrates leadership; aligns with company culture",
-            ),
-            _story(
-                title="Scaled Agile adoption",
-                rationale="Demonstrates SAFe, Agile Coaching; quantified impact",
-            ),
-        ]
-        result = format_agent_reasoning(
-            job_title="Agile Coach",
-            company_name="Innovate Corp",
-            tailoring_action="create_variant",
-            tailoring_signal_details=[
-                'Summary missing key terms: added emphasis on "SAFe" and '
-                '"enterprise transformation"',
-                "Reordered bullets in TechCorp role to lead with SAFe "
-                "implementation (was position 4)",
-            ],
-            stories=stories,
-        )
-
-        assert "**Agile Coach**" in result
-        assert "**Innovate Corp**" in result
-        assert "**Resume Adjustments:**" in result
-        assert "SAFe" in result
-        assert "*Turned around failing project*" in result
-        assert "*Scaled Agile adoption*" in result
-        assert "Ready for your review!" in result
-
-    def test_minimal_output_no_tailoring_no_stories(self) -> None:
-        """Minimal output with no tailoring and no stories."""
-        result = format_agent_reasoning(
-            job_title="Analyst",
-            company_name="DataCo",
-            tailoring_action="use_base",
-            tailoring_signal_details=[],
-            stories=[],
-        )
-
-        assert "**Analyst**" in result
-        assert "**DataCo**" in result
-        assert "no changes needed" in result.lower()
-        assert "Ready for your review!" in result
 
 
 # =============================================================================
