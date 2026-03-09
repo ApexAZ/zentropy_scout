@@ -79,7 +79,7 @@ Phase 4: Quality Gate (verification + documentation)
 | # | Task | Scope | Status |
 |---|------|-------|--------|
 | 2.1a | **Remove REDUNDANT isinstance assertions (batch 1)** — Delete `assert isinstance(X, T)` lines in first 15 files (findings 1–44). | 40 line removals + 13 unused import cleanups across 15 files | ✅ |
-| 2.1b | **Remove REDUNDANT isinstance assertions (batch 2)** — Delete `assert isinstance(X, T)` lines in remaining 14 files (findings 29–65). | 31 line removals across 14 files | ⬜ |
+| 2.1b | **Remove REDUNDANT isinstance assertions (batch 2)** — Delete `assert isinstance(X, T)` lines in remaining 14 files (findings 45–65). | 19 line removals + 6 unused import cleanups across 14 files | ✅ |
 | 2.2 | **Rewrite ANTIPATTERN isinstance tests** — Add behavioral assertions to 4 tests that have isinstance as sole assertion. | 4 tests across 2 files | ⬜ |
 | 2.3 | **Delete ANTIPATTERN constant assertion tests** — Remove 5 test functions that duplicate source-code literals (enum values, frozen constants). | 5 test functions across 5 files | ⬜ |
 
@@ -150,6 +150,7 @@ Phase 4: Quality Gate (verification + documentation)
 | 2026-03-09 | §1.3 complete — constant triage done (15 ANTIPATTERN in 5 test functions, 1 LEGITIMATE sync check) |
 | 2026-03-09 | §1.4 complete — triage report compiled, Phase 2 scope refined, isinstance counts corrected (59/4/2) |
 | 2026-03-09 | §2.1a complete — removed 40 REDUNDANT isinstance assertions + 13 unused imports across 15 files (493 tests pass) |
+| 2026-03-09 | §2.1b complete — removed 19 REDUNDANT isinstance assertions + 6 unused imports across 14 files (426 tests pass) |
 
 ---
 

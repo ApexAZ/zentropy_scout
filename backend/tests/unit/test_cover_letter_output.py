@@ -192,7 +192,6 @@ class TestToCoverLetterRecord:
         record = _make_output(validation=validation).to_cover_letter_record(
             persona_id=uuid4(), job_posting_id=uuid4()
         )
-        assert isinstance(record, dict)
         assert record["status"] == "Draft"
 
 

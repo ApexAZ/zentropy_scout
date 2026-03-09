@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.providers.config import ProviderConfig
-from app.providers.embedding.base import EmbeddingResult
 from app.providers.embedding.openai_adapter import OpenAIEmbeddingAdapter
 
 
@@ -86,7 +85,6 @@ class TestOpenAIEmbeddingAdapterEmbed:
         adapter = OpenAIEmbeddingAdapter(config)
         result = await adapter.embed(["Hello, world!"])
 
-        assert isinstance(result, EmbeddingResult)
         assert len(result.vectors) == 1
         assert len(result.vectors[0]) == 1536
         assert result.model == "text-embedding-3-small"

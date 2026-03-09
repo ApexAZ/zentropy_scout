@@ -234,7 +234,6 @@ class TestFormatForState:
                 content=f"Test content for {msg_type.value}",
             )
             result = format_for_state(msg)
-            assert isinstance(result, dict)
             assert result["role"] == _ROLE_ASSISTANT
             assert result["content"] == f"Test content for {msg_type.value}"
 

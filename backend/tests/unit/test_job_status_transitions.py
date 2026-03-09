@@ -9,8 +9,6 @@ Tests verify:
 4. Transition timestamps are set
 """
 
-from datetime import datetime
-
 import pytest
 
 from app.services.job_status import (
@@ -180,7 +178,6 @@ class TestTransitionStatus:
             target=JobPostingStatus.DISMISSED,
         )
         assert result.dismissed_at is not None
-        assert isinstance(result.dismissed_at, datetime)
         assert result.dismissed_at.tzinfo is not None  # timezone-aware
 
     def test_includes_timestamp_when_transitioning_to_expired(self) -> None:
@@ -190,7 +187,6 @@ class TestTransitionStatus:
             target=JobPostingStatus.EXPIRED,
         )
         assert result.expired_at is not None
-        assert isinstance(result.expired_at, datetime)
         assert result.expired_at.tzinfo is not None  # timezone-aware
 
     def test_no_dismissed_timestamp_when_transitioning_to_applied(self) -> None:

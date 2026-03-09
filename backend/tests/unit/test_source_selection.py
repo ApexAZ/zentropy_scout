@@ -11,7 +11,6 @@ Tests verify:
 
 from app.services.source_selection import (
     SourcePriority,
-    SourceSelectionResult,
     prioritize_sources,
 )
 
@@ -36,7 +35,6 @@ class TestPrioritizeSources:
             target_roles=[],
         )
 
-        assert isinstance(result, SourceSelectionResult)
         assert set(result.prioritized_sources) == set(enabled_sources)
 
     def test_prioritizes_remoteok_when_remote_only_preference(self) -> None:

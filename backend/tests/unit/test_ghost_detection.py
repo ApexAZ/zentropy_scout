@@ -504,12 +504,10 @@ class TestCalculateGhostScore:
 
         signals_dict = signals.to_dict()
 
-        assert isinstance(signals_dict, dict)
         assert "days_open" in signals_dict
         assert "ghost_score" in signals_dict
         assert "calculated_at" in signals_dict
         assert "missing_fields" in signals_dict
-        assert isinstance(signals_dict["missing_fields"], list)
 
 
 # =============================================================================

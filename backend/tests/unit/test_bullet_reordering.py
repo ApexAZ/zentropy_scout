@@ -325,7 +325,6 @@ class TestReorderBulletsForJob:
             job_skills=set(),
             job_keywords=set(),
         )
-        assert isinstance(result, dict)
         assert "job-1" in result
         assert result["job-1"] == ["b-1", "b-2"]
 

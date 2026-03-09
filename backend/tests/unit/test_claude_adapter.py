@@ -659,7 +659,6 @@ class TestClaudeAdapterMessageConversion:
 
             # Should have both text and tool_use blocks
             assert assistant_msg["role"] == "assistant"
-            assert isinstance(assistant_msg["content"], list)
 
             text_block = next(
                 b for b in assistant_msg["content"] if b["type"] == "text"

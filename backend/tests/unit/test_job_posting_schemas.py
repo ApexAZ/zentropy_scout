@@ -130,7 +130,6 @@ class TestPersonaJobResponse:
     def test_nested_job_data(self):
         """PersonaJobResponse nests JobPostingResponse."""
         resp = PersonaJobResponse(**_make_pj_data())
-        assert isinstance(resp.job, JobPostingResponse)
         assert resp.job.job_title == "Software Engineer"
         assert resp.job.company_name == "Acme Corp"
 

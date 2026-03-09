@@ -21,7 +21,6 @@ from app.models.persona import Persona
 from app.models.persona_content import Bullet, WorkHistory
 from app.models.resume import BaseResume
 from app.services.persona_sync import (
-    ResolveFlagResult,
     get_pending_flags,
     raise_change_flag,
     resolve_change_flag,
@@ -278,7 +277,6 @@ class TestResolveFlagSkipped:
             resolution="skipped",
         )
 
-        assert isinstance(result, ResolveFlagResult)
         assert result.resolution == "skipped"
         assert result.resumes_updated == 0
 

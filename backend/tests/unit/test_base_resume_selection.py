@@ -17,7 +17,6 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.services.base_resume_selection import (
-    BaseResumeSelectionResult,
     role_type_matches,
     select_base_resume,
 )
@@ -197,7 +196,6 @@ class TestSelectBaseResume:
         resume = _make_resume(role_type="Software Engineer", is_primary=True)
         result = select_base_resume([resume], "Software Engineer")
 
-        assert isinstance(result, BaseResumeSelectionResult)
         assert result.base_resume_id == resume.id
 
     def test_uses_normalized_matching_when_synonym_present(self) -> None:

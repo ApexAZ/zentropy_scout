@@ -16,15 +16,12 @@ import pytest
 
 from app.services.batch_scoring import (
     _MAX_BATCH_SIZE,
-    ScoredJob,
     batch_score_jobs,
 )
-from app.services.fit_score import FitScoreResult
 from app.services.persona_embedding_generator import (
     PersonaEmbeddingData,
     PersonaEmbeddingsResult,
 )
-from app.services.stretch_score import StretchScoreResult
 
 # =============================================================================
 # Mock Factories
@@ -259,10 +256,7 @@ class TestBatchScoringBasic:
         )
 
         assert len(results) == 1
-        assert isinstance(results[0], ScoredJob)
         assert results[0].job_id == job.id
-        assert isinstance(results[0].fit_score, FitScoreResult)
-        assert isinstance(results[0].stretch_score, StretchScoreResult)
 
     @pytest.mark.asyncio
     async def test_batch_score_multiple_jobs(self) -> None:

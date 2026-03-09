@@ -1283,7 +1283,6 @@ class TestPrepareSameSourceUpdate:
         result = prepare_same_source_update(existing, new_job)
 
         assert result["last_verified_at"] is not None
-        assert isinstance(result["last_verified_at"], datetime)
         assert result["last_verified_at"].tzinfo is not None
 
     def test_preserves_id_when_update_prepared(self) -> None:
@@ -1581,7 +1580,6 @@ class TestPrepareCrossSourceUpdate:
         assert "found_at" in result["also_found_on"]["sources"][0]
         # Should be ISO format timestamp
         found_at = result["also_found_on"]["sources"][0]["found_at"]
-        assert isinstance(found_at, str)
         assert "T" in found_at  # ISO format
 
     def test_merges_salary_when_new_source_has_it(self) -> None:
