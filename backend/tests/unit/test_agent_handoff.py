@@ -49,15 +49,6 @@ def _make_handoff(
 class TestAgentHandoffType:
     """AgentHandoffType has the 3 REQ-007 §9.2 communication patterns."""
 
-    def test_specific_values(self) -> None:
-        """Each member has the expected snake_case string value."""
-        assert AgentHandoffType.SCOUTER_TO_STRATEGIST.value == "scouter_to_strategist"
-        assert (
-            AgentHandoffType.STRATEGIST_TO_GHOSTWRITER.value
-            == "strategist_to_ghostwriter"
-        )
-        assert AgentHandoffType.CHAT_TO_AGENT.value == "chat_to_agent"
-
     def test_json_serializable(self) -> None:
         """Enum values serialize to JSON without custom encoder."""
         for member in AgentHandoffType:

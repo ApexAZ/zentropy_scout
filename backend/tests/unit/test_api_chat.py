@@ -16,8 +16,6 @@ import pytest
 from httpx import AsyncClient
 
 from app.api.v1.chat import (
-    _SSE_HEARTBEAT_INTERVAL_SECONDS,
-    _SSE_MAX_CONNECTION_SECONDS,
     event_generator,
 )
 from app.schemas.chat import (
@@ -326,18 +324,6 @@ class TestSSEConnectionTimeout:
             assert event.endswith("\n\n")
             parsed = json.loads(event[6:-2])
             assert parsed["type"] == "heartbeat"
-
-    def test_generator_default_constants_are_reasonable(self):
-        """Default timeout constants have expected values.
-
-        Frozen-test: guards against accidental changes to security-relevant
-        constants. If you intentionally change the timeout values, update
-        these assertions to match.
-        """
-        # Max connection: 30 minutes
-        assert _SSE_MAX_CONNECTION_SECONDS == 30 * 60
-        # Heartbeat interval: 30 seconds
-        assert _SSE_HEARTBEAT_INTERVAL_SECONDS == 30
 
     @pytest.mark.asyncio
     async def test_generator_rejects_non_positive_max_duration(self):

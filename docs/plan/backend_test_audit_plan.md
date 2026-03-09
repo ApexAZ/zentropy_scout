@@ -81,7 +81,7 @@ Phase 4: Quality Gate (verification + documentation)
 | 2.1a | **Remove REDUNDANT isinstance assertions (batch 1)** — Delete `assert isinstance(X, T)` lines in first 15 files (findings 1–44). | 40 line removals + 13 unused import cleanups across 15 files | ✅ |
 | 2.1b | **Remove REDUNDANT isinstance assertions (batch 2)** — Delete `assert isinstance(X, T)` lines in remaining 14 files (findings 45–65). | 19 line removals + 6 unused import cleanups across 14 files | ✅ |
 | 2.2 | **Rewrite ANTIPATTERN isinstance tests** — Add behavioral assertions to 4 tests that have isinstance as sole assertion. | 4 tests across 2 files | ✅ |
-| 2.3 | **Delete ANTIPATTERN constant assertion tests** — Remove 5 test functions that duplicate source-code literals (enum values, frozen constants). | 5 test functions across 5 files | ⬜ |
+| 2.3 | **Delete ANTIPATTERN constant assertion tests** — Remove 6 test functions that duplicate source-code literals (enum values, frozen constants). | 6 test functions across 5 files | ✅ |
 
 **Notes:**
 - Task 2.4 (ANTIPATTERN len()) = **zero work** — all 139 len() assertions are LEGITIMATE
@@ -152,6 +152,7 @@ Phase 4: Quality Gate (verification + documentation)
 | 2026-03-09 | §2.1a complete — removed 40 REDUNDANT isinstance assertions + 13 unused imports across 15 files (493 tests pass) |
 | 2026-03-09 | §2.1b complete — removed 19 REDUNDANT isinstance assertions + 6 unused imports across 14 files (426 tests pass) |
 | 2026-03-09 | §2.2 complete — rewrote 4 ANTIPATTERN isinstance tests to behavioral assertions (3 in test_explanation_generation, 1 in test_pool_surfacing_service) + removed unused ScoreExplanation import |
+| 2026-03-09 | §2.3 complete — deleted 6 ANTIPATTERN constant test functions across 5 files (5 from triage + 1 caught by code review: test_current_weights_are_standard) + removed 5 unused imports |
 
 ---
 

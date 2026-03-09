@@ -27,8 +27,6 @@ from app.services.experience_level import calculate_experience_score
 from app.services.explanation_generation import generate_explanation
 from app.services.fit_score import (
     FIT_NEUTRAL_SCORE,
-    FIT_WEIGHT_HARD_SKILLS,
-    FIT_WEIGHT_SOFT_SKILLS,
     FitScoreResult,
     calculate_fit_score,
     get_fit_component_weights,
@@ -731,30 +729,6 @@ class TestExecutiveWeightSystem:
     IMPORTANT: These weights are NOT YET IMPLEMENTED. The current system uses
     the same weights for all roles. These tests document that behavior.
     """
-
-    def test_current_weights_are_standard(self) -> None:
-        """Current implementation uses standard weights for all roles.
-
-        This test documents that executive-specific weights are NOT implemented.
-        """
-        weights = get_fit_component_weights()
-
-        # Standard weights (same for all roles currently)
-        assert weights["hard_skills"] == 0.40
-        assert weights["soft_skills"] == 0.15
-        assert weights["experience_level"] == 0.25
-        assert weights["role_title"] == 0.10
-        assert weights["location_logistics"] == 0.10
-
-    def test_weight_constants_reflect_standard_values(self) -> None:
-        """Weight constants are standard values.
-
-        Future: Executive roles should use:
-        - FIT_WEIGHT_HARD_SKILLS = 0.25 (currently 0.40)
-        - FIT_WEIGHT_SOFT_SKILLS = 0.30 (currently 0.15)
-        """
-        assert FIT_WEIGHT_HARD_SKILLS == 0.40  # Standard, not executive
-        assert FIT_WEIGHT_SOFT_SKILLS == 0.15  # Standard, not executive
 
     def test_executive_fit_score_uses_standard_weights(self) -> None:
         """Fit score for executive uses standard weights (not shifted).

@@ -10,7 +10,6 @@ Tests verify:
 """
 
 from app.services.source_selection import (
-    SourcePriority,
     prioritize_sources,
 )
 
@@ -128,20 +127,6 @@ class TestPrioritizeSources:
         # Should only return enabled sources
         assert set(result.prioritized_sources) == {"Adzuna", "TheMuse"}
         assert "USAJobs" not in result.prioritized_sources
-
-
-# =============================================================================
-# Source Priority Enum Tests
-# =============================================================================
-
-
-class TestSourcePriority:
-    """Tests for SourcePriority enum values."""
-
-    def test_serializes_enum_values_when_accessed(self) -> None:
-        """SourcePriority enum values serialize for logging/storage."""
-        assert SourcePriority.HIGH.value == "high"
-        assert SourcePriority.NORMAL.value == "normal"
 
 
 # =============================================================================

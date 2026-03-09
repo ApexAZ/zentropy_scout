@@ -29,15 +29,6 @@ _ROLE_ASSISTANT = "assistant"
 class TestAgentMessageType:
     """AgentMessageType has the 6 REQ-007 §9.1 communication patterns."""
 
-    def test_specific_values(self) -> None:
-        """Each member has the expected snake_case string value."""
-        assert AgentMessageType.PROGRESS_UPDATE.value == "progress_update"
-        assert AgentMessageType.RESULT_SUMMARY.value == "result_summary"
-        assert AgentMessageType.ACTION_CONFIRMATION.value == "action_confirmation"
-        assert AgentMessageType.CLARIFICATION_REQUEST.value == "clarification_request"
-        assert AgentMessageType.HITL_PAUSE.value == "hitl_pause"
-        assert AgentMessageType.ERROR_EXPLANATION.value == "error_explanation"
-
     def test_json_serializable(self) -> None:
         """Enum values serialize to JSON without custom encoder."""
         for member in AgentMessageType:
