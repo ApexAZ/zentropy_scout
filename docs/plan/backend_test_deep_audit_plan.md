@@ -37,7 +37,7 @@ Phase 3: Quality Gate (verify + document findings)
 
 ## Phase 1: Tier 1 Cleanup
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Delete or consolidate tests that provide no protection against real bugs. These are clear-cut — no judgment calls needed.*
 
@@ -56,9 +56,9 @@ Phase 3: Quality Gate (verify + document findings)
 | 1.3 | **Consolidate provider name tests** — Replace 8 one-test classes in `test_provider_name.py` (lines 37-89) with a single `@pytest.mark.parametrize` test covering all 6 adapters. **Keep** `TestAbstractEnforcement` (2 tests — behavioral: verifies ABC contract). Delete `test_gemini_embedding_adapter.py::TestGeminiEmbeddingAdapterInitialization::test_provider_name_returns_gemini` (line 72-75, duplicate — covered by parametrized test) and `test_dimensions_property_returns_configured_value` (line 77-80, pass-through of config value). Net: -8 tests, +1 parametrized test = -7 tests. | `plan, test` | ✅ |
 | 1.4 | **Delete constructor mirror tests in `test_admin_config_models.py`** — Delete: `TestModelRegistry::test_attributes_set_when_constructed_with_valid_data` (lines 83-96), `TestModelRegistry::test_embedding_model_type_accepted` (lines 98-106), `TestPricingConfig::test_attributes_set_when_constructed_with_valid_data` (lines 117-130), `TestPricingConfig::test_decimal_precision_preserved` (lines 132-143), `TestTaskRoutingConfig::test_attributes_set_when_constructed_with_valid_data` (lines 154-163), `TestTaskRoutingConfig::test_default_fallback_task_type_accepted` (lines 165-172), `TestFundingPack::test_attributes_set_when_constructed_with_valid_data` (lines 183-196), `TestSystemConfig::test_attributes_set_when_constructed_with_valid_data` (lines 218-228). All are mirror tests: construct ORM model with values, assert values == same values. DB integration tests in `TestAdminConfigModelsDB` already cover persistence, defaults, and constraints. **Keep:** `TestFundingPack::test_stripe_price_id_nullable`, `test_highlight_label_set_when_provided`, `test_description_nullable` (test nullable defaults — behavioral). **Keep:** `TestSystemConfig::test_description_nullable`. **Keep:** `TestUserIsAdmin` (2 tests). **Keep:** all `TestAdminConfigModelsDB` tests. Net: -8 tests. Clean up empty classes, unused imports. | `plan, test` | ✅ |
 | 1.5 | **Delete `test_api_pagination.py` mirror tests** — Delete: `test_limit_equals_per_page` (line 27-30, `limit` is literally `per_page`), `test_limit_different_per_page` (line 32-35, same pattern). **Keep:** `test_offset_page_one`, `test_offset_page_two`, `test_offset_calculation` (test computed property with non-trivial formula), `TestPaginationParamsDependency::test_offset_and_limit_work_on_result` (tests function return). Net: -2 tests. | `plan, test` | ✅ |
-| 1.6 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 1.6 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
-**Phase 1 Summary:** -48 tests estimated (-25 agent client, -6 weight, -7 provider name, -8 admin config, -2 pagination)
+**Phase 1 Actual:** -43 tests (4,608 → 4,565). -25 agent client, -6 weight, -2 provider name consolidation, -8 admin config, -2 pagination.
 
 ---
 
@@ -129,3 +129,4 @@ Phase 3: Quality Gate (verify + document findings)
 | Date | Change |
 |------|--------|
 | 2026-03-09 | Plan created |
+| 2026-03-09 | Phase 1 complete: -43 tests (4,608 → 4,565), 5 commits |
