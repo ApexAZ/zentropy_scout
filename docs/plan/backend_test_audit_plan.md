@@ -64,27 +64,27 @@ Phase 4: Quality Gate (verification + documentation)
 | 1.1 | **Triage isinstance assertions** — Read each of the ~30 files with `assert isinstance()`. Classify each using the table above. Record findings in a triage table appended to this plan. | 72 findings, ~30 files | ✅ |
 | 1.2 | **Triage len() assertions via sampling** — Read the 7 heaviest files (test_cover_letter_validation 26, test_content_utils 46, test_modification_limits 18, test_non_negotiables_filter 12, test_score_explanation 8, test_explanation_generation 14, test_scoring_flow 15). Classify each. Derive mechanical rule for remaining files. | ~139 findings, 7 files | ✅ |
 | 1.3 | **Triage constant assertions** — Search for `assert X == "literal"` and `assert CONSTANT == value` patterns. Classify each. | ~37 findings, ~15 files | ✅ |
-| 1.4 | **Compile triage report** — Summarize: total findings, counts by classification, files requiring changes. This becomes Phase 2 input. | Synthesis | ⬜ |
+| 1.4 | **Compile triage report** — Summarize: total findings, counts by classification, files requiring changes. This becomes Phase 2 input. | Synthesis | ✅ |
 
 **Notes:**
 - Triage is read-only — no code changes
-- Expected outcome: ~50 REDUNDANT isinstance (remove line), ~10 ANTIPATTERN isinstance (rewrite/delete), ~5 LEGITIMATE isinstance (keep). Nearly all len() expected LEGITIMATE. Constants TBD.
+- **Final counts:** 59 REDUNDANT isinstance (remove line), 4 ANTIPATTERN isinstance (rewrite), 2 LEGITIMATE isinstance (keep), 139/139 LEGITIMATE len(), 15 ANTIPATTERN constants (5 test functions to delete), 1 LEGITIMATE constant sync check.
 
 ---
 
 ## Phase 2: Refactor Antipattern Tests
 
-*Fix only ANTIPATTERN and REDUNDANT findings from triage. Exact tasks TBD after Phase 1.*
+*Fix only ANTIPATTERN and REDUNDANT findings from triage.*
 
 | # | Task | Scope | Status |
 |---|------|-------|--------|
-| 2.1 | **Remove REDUNDANT isinstance assertions** — Delete `assert isinstance(X, T)` lines where a behavioral assertion follows. Batch ~15 files per subtask. | ~50 line removals across ~25 files | ⬜ |
-| 2.2 | **Rewrite ANTIPATTERN isinstance tests** — Add behavioral assertions or delete if covered elsewhere. | ~10 tests | ⬜ |
-| 2.3 | **Fix ANTIPATTERN constant assertions** — Rewrite to test behavior dependent on the constant, not the constant's value. | TBD from triage | ⬜ |
-| 2.4 | **Fix any ANTIPATTERN len() findings** — If triage reveals genuine antipatterns in len() usage. May be zero work. | TBD from triage | ⬜ |
+| 2.1a | **Remove REDUNDANT isinstance assertions (batch 1)** — Delete `assert isinstance(X, T)` lines in first 15 files (findings 1–28). | 28 line removals across 15 files | ⬜ |
+| 2.1b | **Remove REDUNDANT isinstance assertions (batch 2)** — Delete `assert isinstance(X, T)` lines in remaining 14 files (findings 29–65). | 31 line removals across 14 files | ⬜ |
+| 2.2 | **Rewrite ANTIPATTERN isinstance tests** — Add behavioral assertions to 4 tests that have isinstance as sole assertion. | 4 tests across 2 files | ⬜ |
+| 2.3 | **Delete ANTIPATTERN constant assertion tests** — Remove 5 test functions that duplicate source-code literals (enum values, frozen constants). | 5 test functions across 5 files | ⬜ |
 
 **Notes:**
-- Task count may change based on triage results
+- Task 2.4 (ANTIPATTERN len()) = **zero work** — all 139 len() assertions are LEGITIMATE
 - Each subtask: run affected tests → full lint → commit
 - Reviews: `code-reviewer` + `qa-reviewer` before commit
 
@@ -119,11 +119,11 @@ Phase 4: Quality Gate (verification + documentation)
 
 | Phase | Tasks | Focus |
 |-------|-------|-------|
-| 1: Triage | 4 | Classify all findings (read-only) |
-| 2: Refactoring | 3-4 | Fix ANTIPATTERN + REDUNDANT |
+| 1: Triage | 4 | Classify all findings (read-only) — ✅ COMPLETE |
+| 2: Refactoring | 4 | Remove 59 REDUNDANT isinstance, rewrite 4 ANTIPATTERN isinstance, delete 5 constant tests |
 | 3: Hook Enhancement | 2 | Refine conftest scanner |
 | 4: Quality Gate | 3 | Verify + document |
-| **Total** | **12-13** | |
+| **Total** | **13** | |
 
 ---
 
@@ -145,17 +145,18 @@ Phase 4: Quality Gate (verification + documentation)
 | Date | Change |
 |------|--------|
 | 2026-03-09 | Plan created |
-| 2026-03-09 | §1.1 complete — isinstance triage done (57 REDUNDANT, 5 ANTIPATTERN, 2 LEGITIMATE) |
+| 2026-03-09 | §1.1 complete — isinstance triage done (59 REDUNDANT, 4 ANTIPATTERN, 2 LEGITIMATE) |
 | 2026-03-09 | §1.2 complete — len() triage done (139/139 LEGITIMATE, 0 ANTIPATTERN). No Phase 2 work needed for len(). |
 | 2026-03-09 | §1.3 complete — constant triage done (15 ANTIPATTERN in 5 test functions, 1 LEGITIMATE sync check) |
+| 2026-03-09 | §1.4 complete — triage report compiled, Phase 2 scope refined, isinstance counts corrected (59/4/2) |
 
 ---
 
 ## Appendix A: isinstance Triage Results (§1.1)
 
-**Summary:** 64 findings across 30 files. 57 REDUNDANT, 5 ANTIPATTERN, 2 LEGITIMATE.
+**Summary:** 65 findings across 30 files. 59 REDUNDANT, 4 ANTIPATTERN, 2 LEGITIMATE.
 
-### ANTIPATTERN (5) — Sole assertion, no behavioral verification
+### ANTIPATTERN (4) — Sole assertion, no behavioral verification
 
 | # | File:Line | Test Name | Action |
 |---|-----------|-----------|--------|
@@ -171,7 +172,7 @@ Phase 4: Quality Gate (verification + documentation)
 | 60 | test_llm_sanitization_fuzz.py:238 | test_returns_string | Fuzz invariant: sanitizer always returns str, never None |
 | 61 | test_llm_sanitization_fuzz.py:406 | test_single_character_no_crash | Fuzz invariant: single-char input always returns str |
 
-### REDUNDANT (57) — isinstance followed by behavioral assertions, remove isinstance line
+### REDUNDANT (59) — isinstance followed by behavioral assertions, remove isinstance line
 
 | # | File:Line | Behavioral assertion that follows |
 |---|-----------|-----------------------------------|
@@ -286,3 +287,41 @@ Every `assert len(X)` in the sampled files tests a **function return value or fi
 ### Phase 2 Impact
 
 Task 2.3 ("Fix ANTIPATTERN constant assertions") = **delete 5 test functions** (15 assertions). All have either existing behavioral equivalents or companion tests that already cover the behavior.
+
+---
+
+## Appendix D: Compiled Triage Report (§1.4)
+
+### Overall Summary
+
+| Category | Findings | Classification | Phase 2 Action |
+|----------|----------|----------------|----------------|
+| isinstance assertions | 65 across 30 files | 59 REDUNDANT, 4 ANTIPATTERN, 2 LEGITIMATE | Remove 59 lines, rewrite 4 tests, keep 2 |
+| len() assertions | 139 across 7 sampled files | 139 LEGITIMATE (100%) | No action needed |
+| Constant assertions | 16 across 6 files | 15 ANTIPATTERN (5 test functions), 1 LEGITIMATE sync | Delete 5 test functions, keep 1 |
+| **Total** | **220** | **59 REDUNDANT, 19 ANTIPATTERN, 142 LEGITIMATE** | |
+
+### Phase 2 Work Breakdown
+
+| Task | What | Files | Estimated Removals |
+|------|------|-------|-------------------|
+| 2.1a | Remove REDUNDANT isinstance (batch 1) | 15 files | 28 line deletions |
+| 2.1b | Remove REDUNDANT isinstance (batch 2) | 14 files | 31 line deletions |
+| 2.2 | Rewrite ANTIPATTERN isinstance tests | 2 files (test_explanation_generation, test_pool_surfacing_service) | 4 tests modified |
+| 2.3 | Delete ANTIPATTERN constant tests | 5 files | 5 test functions deleted |
+| ~~2.4~~ | ~~ANTIPATTERN len()~~ | — | **Zero work** |
+
+### Key Findings
+
+1. **Code quality is excellent.** 142 of 220 findings (65%) are legitimate behavioral assertions. The codebase already follows testing best practices.
+2. **isinstance is the primary issue.** 59 redundant lines can be mechanically removed (delete `assert isinstance(X, T)` where behavioral assertion follows on next line).
+3. **len() is clean.** 100% of sampled len() assertions test function return values — no structural antipatterns.
+4. **Constants are minor.** Only 5 test functions duplicate source-code literals; all have existing behavioral equivalents.
+
+### Files Requiring Changes (29 unique)
+
+**REDUNDANT isinstance removals (29 files):** test_content_utils, test_explanation_generation, test_source_adapters, test_application_workflow, test_pdf_generation, test_retention_cleanup, test_ghostwriter_prompts, test_cover_letter_validation, test_cover_letter_pdf_storage, test_cover_letter_pdf_generation, test_pool_surfacing_service, test_embedding_cost, test_oauth_helpers, test_agent_handoff, test_api_filtering, test_job_posting_schemas, test_job_deduplication, test_claude_adapter, test_job_status_transitions, test_api_errors, test_batch_scoring, test_bullet_reordering, test_base_resume_selection, test_persona_sync, test_source_selection, test_cover_letter_output, test_agent_message, test_ghost_detection, test_openai_embedding_adapter.
+
+**ANTIPATTERN isinstance rewrites (2 files):** test_explanation_generation (3 tests), test_pool_surfacing_service (1 test).
+
+**ANTIPATTERN constant deletions (5 files):** test_api_chat, test_agent_handoff, test_agent_message, test_source_selection, test_executive_role_edge_cases.
