@@ -153,8 +153,8 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1 | **Security triage gate** — Spawn `security-triage` subagent. Test-only changes expected → CLEAR verdict. | `plan, security` | ⬜ |
-| 2 | **Audit fit score weights & aggregation** — `test_fit_score_weights`, `test_fit_score_aggregation`, `test_hard_skills_match`, `test_soft_skills_match`, `test_experience_level` (5 files) | `plan, test` | ⬜ |
+| 1 | **Security triage gate** — Spawn `security-triage` subagent. Test-only changes expected → CLEAR verdict. | `plan, security` | ✅ |
+| 2 | **Audit fit score weights & aggregation** — `test_fit_score_weights`, `test_fit_score_aggregation`, `test_hard_skills_match`, `test_soft_skills_match`, `test_experience_level` (5 files) — removed 16 tests (10 subsumed/echo from aggregation + 6 exact-dup worked examples from experience_level); consolidated 5→1 parametrized weight isolation test | `plan, test` | ✅ |
 | 3 | **Audit location, role & target alignment** — `test_role_title_match`, `test_location_logistics`, `test_target_role_alignment`, `test_target_skills_exposure`, `test_score_details` (5 files) | `plan, test` | ⬜ |
 | 4 | **Audit score explanation & types** — `test_score_explanation`, `test_score_types`, `test_score_scenarios`, `test_scoring_flow`, `test_score_correlation` (5 files) | `plan, test` | ⬜ |
 | 5 | **Audit explanation generation & reasoning** — `test_explanation_generation`, `test_reasoning_explanation`, `test_stretch_score_aggregation`, `test_stretch_score_interpretation` (4 files) | `plan, test` | ⬜ |
