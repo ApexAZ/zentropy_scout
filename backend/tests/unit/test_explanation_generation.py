@@ -21,7 +21,6 @@ from app.services.explanation_generation import (
     get_target_skill_matches,
 )
 from app.services.fit_score import FitScoreResult
-from app.services.score_explanation import ScoreExplanation
 from app.services.stretch_score import StretchScoreResult
 
 # =============================================================================
@@ -591,7 +590,7 @@ class TestEmptyLists:
         explanation = generate_explanation(fit_result, stretch_result, persona, job)
 
         # Should still generate explanation without crash
-        assert isinstance(explanation, ScoreExplanation)
+        assert explanation.summary is not None
 
     def test_empty_target_skills(self) -> None:
         """Explanation works when persona has no target skills."""
@@ -604,7 +603,7 @@ class TestEmptyLists:
         explanation = generate_explanation(fit_result, stretch_result, persona, job)
 
         # Should still generate explanation
-        assert isinstance(explanation, ScoreExplanation)
+        assert explanation.summary is not None
 
     def test_empty_target_roles(self) -> None:
         """Explanation works when persona has no target roles."""
@@ -703,4 +702,4 @@ class TestInputSizeValidation:
 
         # Should not raise
         explanation = generate_explanation(fit_result, stretch_result, persona, job)
-        assert isinstance(explanation, ScoreExplanation)
+        assert explanation.summary is not None

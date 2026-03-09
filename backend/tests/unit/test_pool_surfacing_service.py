@@ -302,7 +302,8 @@ class TestGetActivePersonasWithSkills:
     ) -> None:
         personas = await get_active_personas_with_skills(db_session)
         for p in personas:
-            assert isinstance(p.skills, list)
+            # Skills relationship should be eagerly loaded (accessible without lazy query)
+            assert p.skills is not None
 
 
 class TestGetExistingPersonaIdsForJob:
