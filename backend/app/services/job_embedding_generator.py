@@ -207,7 +207,7 @@ def get_neutral_embedding() -> list[float]:
 async def generate_job_embeddings(
     job: JobPostingLike,
     embed_fn: EmbedFunction,
-    model_name: str = "text-embedding-3-small",
+    model_name: str = "text-embedding-004",
 ) -> JobEmbeddingsResult:
     """Generate all embeddings for a job posting.
 

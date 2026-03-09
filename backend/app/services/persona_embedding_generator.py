@@ -165,7 +165,7 @@ Industry exclusions: {exclusions}"""
 async def generate_persona_embeddings(
     persona: PersonaLike,
     embed_fn: EmbedFunction,
-    model_name: str = "text-embedding-3-small",
+    model_name: str = "text-embedding-004",
 ) -> PersonaEmbeddingsResult:
     """Generate all embeddings for a persona.
 
