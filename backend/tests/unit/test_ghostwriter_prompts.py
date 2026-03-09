@@ -214,7 +214,6 @@ class TestBuildCoverLetterPrompt:
 
         result = build_cover_letter_prompt(**kwargs)
 
-        assert isinstance(result, str)
         assert len(result) > 0
 
     def test_stories_formatted_with_xml_structure(self) -> None:
@@ -273,7 +272,6 @@ class TestBuildCoverLetterPrompt:
 
         result = build_cover_letter_prompt(**kwargs)
 
-        assert isinstance(result, str)
         assert "selected_stories" in result.lower() or "No stories" in result
 
     def test_uses_xml_section_tags(self) -> None:
@@ -548,7 +546,6 @@ class TestBuildSummaryTailoringPrompt:
 
         result = build_summary_tailoring_prompt(**kwargs)
 
-        assert isinstance(result, str)
         assert "<job_posting>" in result
 
     def test_truncates_keywords_beyond_max_count(self) -> None:

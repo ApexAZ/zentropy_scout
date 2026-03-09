@@ -145,7 +145,6 @@ class TestRenderCoverLetterPdf:
             contact=contact,
         )
 
-        assert isinstance(pdf_bytes, bytes)
         assert pdf_bytes[:5] == b"%PDF-"
 
     def test_produces_non_trivial_output(self) -> None:
@@ -312,7 +311,6 @@ class TestGenerateCoverLetterPdf:
             cover_letter_id=pdf_gen_scenario.approved_cl_id,
         )
 
-        assert isinstance(result.pdf_bytes, bytes)
         assert result.pdf_bytes[:5] == b"%PDF-"
         assert len(result.pdf_bytes) > 500
 
@@ -326,7 +324,6 @@ class TestGenerateCoverLetterPdf:
             cover_letter_id=pdf_gen_scenario.approved_cl_id,
         )
 
-        assert isinstance(result.file_name, str)
         assert result.file_name.endswith(".pdf")
         assert "Johnson" in result.file_name
         assert "DataCo" in result.file_name

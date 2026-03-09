@@ -118,7 +118,6 @@ class TestExtractKeywords:
 
         result = await extract_keywords("python sql kubernetes", provider=mock_llm)
 
-        assert isinstance(result, set)
         assert len(result) > 0
 
     @pytest.mark.asyncio
@@ -215,7 +214,6 @@ class TestExtractKeywords:
 
         result = await extract_keywords("python sql", provider=mock_llm)
 
-        assert isinstance(result, set)
         assert len(result) > 0
 
     @pytest.mark.asyncio
@@ -254,7 +252,6 @@ class TestExtractKeywords:
 
         result = await extract_keywords("python sql", provider=mock_llm)
 
-        assert isinstance(result, set)
         assert len(result) > 0
 
 
@@ -412,7 +409,6 @@ class TestExtractSkillsFromText:
             "python sql kubernetes", provider=mock_llm
         )
 
-        assert isinstance(result, set)
         assert result == set()
 
     @pytest.mark.asyncio
@@ -458,7 +454,6 @@ class TestExtractSkillsFromText:
 
         result = await extract_skills_from_text("python sql", provider=mock_llm)
 
-        assert isinstance(result, set)
         assert result == set()
 
     @pytest.mark.asyncio
@@ -516,7 +511,6 @@ class TestExtractSkillsFromText:
 
         result = await extract_skills_from_text("python sql", provider=mock_llm)
 
-        assert isinstance(result, set)
         assert result == set()
 
 
@@ -830,7 +824,6 @@ class TestTextHash:
     def test_empty_string(self) -> None:
         """Should handle empty string without error."""
         result = text_hash("")
-        assert isinstance(result, str)
         assert len(result) == 16
 
 

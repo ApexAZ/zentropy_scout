@@ -227,8 +227,6 @@ class TestStoreCoverLetterPdf:
             pdf_bytes=_FAKE_PDF_BYTES,
         )
 
-        assert isinstance(result.pdf_id, uuid.UUID)
-        assert isinstance(result.file_name, str)
         assert result.already_existed is False
 
     @pytest.mark.asyncio

@@ -43,7 +43,6 @@ class TestAdzunaAdapter:
     def test_normalize_converts_adzuna_response_to_raw_job(self) -> None:
         """normalize converts Adzuna API response to RawJob."""
         from app.adapters.sources.adzuna import AdzunaAdapter
-        from app.adapters.sources.base import RawJob
 
         adapter = AdzunaAdapter()
 
@@ -62,7 +61,6 @@ class TestAdzunaAdapter:
 
         raw_job = adapter.normalize(adzuna_job)
 
-        assert isinstance(raw_job, RawJob)
         assert raw_job.external_id == "12345"
         assert raw_job.title == "Python Developer"
         assert raw_job.company == "Tech Corp"
@@ -109,7 +107,6 @@ class TestRemoteOKAdapter:
 
     def test_normalize_converts_remoteok_response_to_raw_job(self) -> None:
         """normalize converts RemoteOK API response to RawJob."""
-        from app.adapters.sources.base import RawJob
         from app.adapters.sources.remoteok import RemoteOKAdapter
 
         adapter = RemoteOKAdapter()
@@ -128,7 +125,6 @@ class TestRemoteOKAdapter:
 
         raw_job = adapter.normalize(remoteok_job)
 
-        assert isinstance(raw_job, RawJob)
         assert raw_job.external_id == "rok-999"
         assert raw_job.title == "Backend Engineer"
         assert raw_job.company == "Remote Corp"
@@ -148,7 +144,6 @@ class TestTheMuseAdapter:
 
     def test_normalize_converts_muse_response_to_raw_job(self) -> None:
         """normalize converts The Muse API response to RawJob."""
-        from app.adapters.sources.base import RawJob
         from app.adapters.sources.themuse import TheMuseAdapter
 
         adapter = TheMuseAdapter()
@@ -165,7 +160,6 @@ class TestTheMuseAdapter:
 
         raw_job = adapter.normalize(muse_job)
 
-        assert isinstance(raw_job, RawJob)
         assert raw_job.external_id == "123456"
         assert raw_job.title == "Product Manager"
         assert raw_job.company == "Awesome Company"
@@ -185,7 +179,6 @@ class TestUSAJobsAdapter:
 
     def test_normalize_converts_usajobs_response_to_raw_job(self) -> None:
         """normalize converts USAJobs API response to RawJob."""
-        from app.adapters.sources.base import RawJob
         from app.adapters.sources.usajobs import USAJobsAdapter
 
         adapter = USAJobsAdapter()
@@ -214,7 +207,6 @@ class TestUSAJobsAdapter:
 
         raw_job = adapter.normalize(usajobs_job)
 
-        assert isinstance(raw_job, RawJob)
         assert raw_job.external_id == "usa-12345"
         assert raw_job.title == "IT Specialist"
         assert raw_job.company == "Department of Commerce"

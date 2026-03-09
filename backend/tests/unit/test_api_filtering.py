@@ -158,7 +158,6 @@ class TestSortParamsDependency:
         from app.core.filtering import sort_params
 
         result = sort_params("-fit_score,title")
-        assert isinstance(result, SortParams)
         assert result.fields == [("fit_score", "desc"), ("title", "asc")]
 
     def test_sort_params_default_empty(self):

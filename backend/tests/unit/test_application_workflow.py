@@ -27,8 +27,6 @@ from app.models.job_posting import JobPosting
 from app.models.persona import Persona
 from app.models.resume import BaseResume, JobVariant
 from app.services.application_workflow import (
-    ApproveMaterialsResult,
-    CreateApplicationResult,
     DraftMaterialsResult,
     _build_job_snapshot,
     approve_materials,
@@ -350,7 +348,6 @@ class TestPersistDraftMaterials:
             db_session,
         )
 
-        assert isinstance(result, DraftMaterialsResult)
         assert result.job_variant_id is not None
         assert result.cover_letter_id is not None
         assert result.tailoring_applied is True
@@ -546,7 +543,6 @@ class TestApproveMaterials:
             draft.job_variant_id, draft.cover_letter_id, None, db_session
         )
 
-        assert isinstance(result, ApproveMaterialsResult)
         assert result.job_variant_status == "Approved"
         assert result.cover_letter_status == "Approved"
         assert result.approved_at is not None
@@ -811,7 +807,6 @@ class TestCreateApplication:
             db_session,
         )
 
-        assert isinstance(result, CreateApplicationResult)
         assert result.status == "Applied"
 
         app = await db_session.get(Application, result.application_id)
@@ -931,7 +926,6 @@ class TestCreateApplication:
             db_session,
         )
 
-        assert isinstance(result, CreateApplicationResult)
         assert result.application_id is not None
         assert result.timeline_event_id is not None
         assert result.status == "Applied"

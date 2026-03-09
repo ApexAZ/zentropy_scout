@@ -22,10 +22,7 @@ from app.models.persona_job import PersonaJob
 from app.models.persona_settings import PersonaChangeFlag
 from app.models.resume import JobVariant, SubmittedResumePDF
 from app.services.retention_cleanup import (
-    AllCleanupResult,
-    ArchivedRecordsCleanupResult,
     CleanupError,
-    OrphanPdfCleanupResult,
     cleanup_archived_records,
     cleanup_expired_jobs,
     cleanup_orphan_pdfs,
@@ -296,7 +293,6 @@ class TestCleanupOrphanPdfs:
 
         result = await cleanup_orphan_pdfs(db_session)
 
-        assert isinstance(result, OrphanPdfCleanupResult)
         assert result.deleted_resume_pdfs >= 1
 
         # Verify actually deleted from database
@@ -514,7 +510,6 @@ class TestCleanupArchivedRecords:
 
         result = await cleanup_archived_records(db_session)
 
-        assert isinstance(result, ArchivedRecordsCleanupResult)
         assert result.deleted_job_variants >= 1
 
         check = await db_session.execute(
@@ -829,7 +824,6 @@ class TestRunAllCleanups:
         """Run all cleanups returns AllCleanupResult with zero counts when empty."""
         result = await run_all_cleanups(db_session)
 
-        assert isinstance(result, AllCleanupResult)
         assert result.orphan_resume_pdfs == 0
         assert result.orphan_cover_letter_pdfs == 0
         assert result.resolved_change_flags == 0

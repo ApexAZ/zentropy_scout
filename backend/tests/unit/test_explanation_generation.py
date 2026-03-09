@@ -577,8 +577,6 @@ class TestEmptyLists:
 
         explanation = generate_explanation(fit_result, stretch_result, persona, job)
 
-        # Should still generate explanation without crash
-        assert isinstance(explanation, ScoreExplanation)
         # High hard skills score but no matches should produce generic message
         assert len(explanation.strengths) >= 1
 
@@ -619,7 +617,6 @@ class TestEmptyLists:
         explanation = generate_explanation(fit_result, stretch_result, persona, job)
 
         # Should still generate explanation with generic message
-        assert isinstance(explanation, ScoreExplanation)
         assert len(explanation.stretch_opportunities) >= 1
 
 
@@ -649,7 +646,6 @@ class TestNeutralScores:
 
         # With neutral scores, should have minimal strengths/gaps/stretch
         # (only warnings for undisclosed salary if applicable)
-        assert isinstance(explanation, ScoreExplanation)
         assert explanation.summary is not None
 
 

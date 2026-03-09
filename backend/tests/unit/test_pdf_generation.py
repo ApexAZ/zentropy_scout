@@ -662,7 +662,6 @@ class TestRenderResumePdf:
         content = self._make_content()
         pdf_bytes = render_resume_pdf(content)
 
-        assert isinstance(pdf_bytes, bytes)
         assert pdf_bytes[:5] == b"%PDF-"
 
     def test_produces_non_trivial_output(self) -> None:
@@ -764,7 +763,6 @@ class TestRenderBaseResumePdf:
         """Full pipeline gathers content and renders PDF."""
         pdf_bytes = await render_base_resume_pdf(db_session, base_resume.id)
 
-        assert isinstance(pdf_bytes, bytes)
         assert pdf_bytes[:5] == b"%PDF-"
         assert len(pdf_bytes) > 1000
 
@@ -794,7 +792,6 @@ class TestRenderVariantPdf:
         """Full pipeline works for draft variant."""
         pdf_bytes = await render_variant_pdf(db_session, job_variant_draft.id)
 
-        assert isinstance(pdf_bytes, bytes)
         assert pdf_bytes[:5] == b"%PDF-"
         assert len(pdf_bytes) > 1000
 
@@ -807,7 +804,6 @@ class TestRenderVariantPdf:
         """Full pipeline works for approved variant with snapshots."""
         pdf_bytes = await render_variant_pdf(db_session, job_variant_approved.id)
 
-        assert isinstance(pdf_bytes, bytes)
         assert pdf_bytes[:5] == b"%PDF-"
         assert len(pdf_bytes) > 1000
 

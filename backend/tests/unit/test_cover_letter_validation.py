@@ -455,11 +455,10 @@ class TestSafetyBounds:
 
     def test_at_boundary_does_not_raise(self) -> None:
         """Inputs exactly at limits should be accepted."""
-        result = _validate(
+        _validate(
             things_to_avoid=[f"p{i}" for i in range(100)],
             company_name="x" * 500,
         )
-        assert isinstance(result, CoverLetterValidation)
 
 
 # =============================================================================

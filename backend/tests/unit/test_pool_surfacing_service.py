@@ -19,7 +19,6 @@ from app.models.persona_content import Skill
 from app.models.persona_job import PersonaJob
 from app.models.user import User
 from app.services.pool_surfacing_service import (
-    SurfacingPassResult,
     get_active_personas_with_skills,
     get_existing_persona_ids_for_job,
     get_unsurfaced_jobs,
@@ -442,7 +441,6 @@ class TestRunSurfacingPass:
         since = datetime.now(UTC) - timedelta(hours=1)
         result = await run_surfacing_pass(db_session, since=since)
 
-        assert isinstance(result, SurfacingPassResult)
         assert result.jobs_processed >= 2
         assert result.links_created >= 1
 

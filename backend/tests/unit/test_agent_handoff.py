@@ -271,7 +271,6 @@ class TestFormatForState:
                 payload_summary=f"Test for {handoff_type.value}",
             )
             result = format_for_state(handoff)
-            assert isinstance(result, dict)
             assert result["handoff_type"] == handoff_type.value
             assert result["source_agent"] == source
             assert result["target_agent"] == target

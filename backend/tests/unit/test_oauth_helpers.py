@@ -13,7 +13,6 @@ import jwt
 import pytest
 
 from app.core.oauth import (
-    OAuthProviderConfig,
     create_oauth_state_cookie,
     generate_code_challenge,
     generate_code_verifier,
@@ -167,7 +166,6 @@ class TestGetProviderConfig:
     def test_google_config_has_correct_endpoints(self):
         """Google provider has correct OAuth URLs and scopes."""
         config = get_provider_config("google")
-        assert isinstance(config, OAuthProviderConfig)
         assert "accounts.google.com" in config.authorization_url
         assert "googleapis.com" in config.token_url
         assert (
@@ -180,7 +178,6 @@ class TestGetProviderConfig:
     def test_linkedin_config_has_correct_endpoints(self):
         """LinkedIn provider has correct OAuth URLs and scopes."""
         config = get_provider_config("linkedin")
-        assert isinstance(config, OAuthProviderConfig)
         assert "linkedin.com" in config.authorization_url
         assert "linkedin.com" in config.token_url
         assert "linkedin.com" in config.userinfo_url

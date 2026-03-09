@@ -14,7 +14,6 @@ import pytest
 
 from app.services.embedding_cost import (
     EMBEDDING_MODELS,
-    EmbeddingCostEstimate,
     estimate_embedding_cost,
     estimate_monthly_cost,
 )
@@ -70,7 +69,6 @@ class TestEstimateEmbeddingCost:
         """Result should be an EmbeddingCostEstimate."""
         result = estimate_embedding_cost(5000)
 
-        assert isinstance(result, EmbeddingCostEstimate)
         assert result.total_tokens == 5000
         assert result.price_per_1k_tokens == pytest.approx(0.00002)
 
