@@ -62,7 +62,7 @@ Phase 4: Quality Gate (verification + documentation)
 | # | Task | Scope | Status |
 |---|------|-------|--------|
 | 1.1 | **Triage isinstance assertions** — Read each of the ~30 files with `assert isinstance()`. Classify each using the table above. Record findings in a triage table appended to this plan. | 72 findings, ~30 files | ✅ |
-| 1.2 | **Triage len() assertions via sampling** — Read the 7 heaviest files (test_cover_letter_validation 26, test_content_utils 46, test_modification_limits 18, test_non_negotiables_filter 12, test_score_explanation 8, test_explanation_generation 14, test_scoring_flow 15). Classify each. Derive mechanical rule for remaining files. | ~139 findings, 7 files | ⬜ |
+| 1.2 | **Triage len() assertions via sampling** — Read the 7 heaviest files (test_cover_letter_validation 26, test_content_utils 46, test_modification_limits 18, test_non_negotiables_filter 12, test_score_explanation 8, test_explanation_generation 14, test_scoring_flow 15). Classify each. Derive mechanical rule for remaining files. | ~139 findings, 7 files | ✅ |
 | 1.3 | **Triage constant assertions** — Search for `assert X == "literal"` and `assert CONSTANT == value` patterns. Classify each. | ~37 findings, ~15 files | ⬜ |
 | 1.4 | **Compile triage report** — Summarize: total findings, counts by classification, files requiring changes. This becomes Phase 2 input. | Synthesis | ⬜ |
 
@@ -146,6 +146,7 @@ Phase 4: Quality Gate (verification + documentation)
 |------|--------|
 | 2026-03-09 | Plan created |
 | 2026-03-09 | §1.1 complete — isinstance triage done (57 REDUNDANT, 5 ANTIPATTERN, 2 LEGITIMATE) |
+| 2026-03-09 | §1.2 complete — len() triage done (139/139 LEGITIMATE, 0 ANTIPATTERN). No Phase 2 work needed for len(). |
 
 ---
 
@@ -232,3 +233,29 @@ Phase 4: Quality Gate (verification + documentation)
 | 63 | test_ghost_detection.py:507 | Key presence + nested checks |
 | 64 | test_ghost_detection.py:512 | Implicit content assertions |
 | 65 | test_openai_embedding_adapter.py:89 | `len(result.vectors)`, `result.model`, `result.dimensions` |
+
+---
+
+## Appendix B: len() Triage Results (§1.2)
+
+**Summary:** 139 findings across 7 files. **139 LEGITIMATE, 0 ANTIPATTERN.** No Phase 2 work needed for `len()` assertions.
+
+### Results by File
+
+| File | Count | Classification | Pattern |
+|------|-------|----------------|---------|
+| test_cover_letter_validation.py | 26 | 100% LEGITIMATE | Validation error/warning list sizes |
+| test_content_utils.py | 46 | 100% LEGITIMATE | Return value sizes, mock call counts, cache behavior |
+| test_modification_limits.py | 18 | 100% LEGITIMATE | Violation list sizes from limit checks |
+| test_non_negotiables_filter.py | 12 | 100% LEGITIMATE | Failed reasons / warnings list sizes |
+| test_score_explanation.py | 8 | 100% LEGITIMATE | Explanation field list sizes |
+| test_explanation_generation.py | 14 | 100% LEGITIMATE | Generated explanation field counts |
+| test_scoring_flow.py | 15 | 100% LEGITIMATE | Passing/filtered job list sizes, failure reason counts |
+
+### Mechanical Rule for Remaining Files
+
+Every `assert len(X)` in the sampled files tests a **function return value or filtered result** — never an enum, type constant, or class attribute. The codebase has zero instances of `len()` on structural metadata.
+
+**Rule:** `len(X)` where X is assigned from a function/method call or filter → **LEGITIMATE**. `len(X)` where X is a class attribute, enum, or module constant → **ANTIPATTERN**. Apply this to classify remaining files without reading each one.
+
+**Phase 2 impact:** Task 2.4 ("Fix any ANTIPATTERN len() findings") = **zero work**.
