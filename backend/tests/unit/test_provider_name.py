@@ -11,6 +11,7 @@ import pytest
 from app.providers.config import ProviderConfig
 from app.providers.embedding.base import EmbeddingResult
 from app.providers.embedding.mock_adapter import MockEmbeddingProvider
+from app.providers.embedding.openai_adapter import OpenAIEmbeddingAdapter
 from app.providers.llm.base import LLMProvider, TaskType
 from app.providers.llm.claude_adapter import ClaudeAdapter
 from app.providers.llm.gemini_adapter import GeminiAdapter
@@ -30,63 +31,33 @@ def _make_config(**overrides: Any) -> ProviderConfig:
 
 
 # =============================================================================
-# LLM Adapters
+# Provider Name — Parametrized
 # =============================================================================
 
 
-class TestClaudeAdapterProviderName:
-    """ClaudeAdapter.provider_name returns 'claude'."""
-
-    def test_returns_claude(self) -> None:
-        adapter = ClaudeAdapter(_make_config())
-        assert adapter.provider_name == "claude"
-
-
-class TestOpenAIAdapterProviderName:
-    """OpenAIAdapter.provider_name returns 'openai'."""
-
-    def test_returns_openai(self) -> None:
-        adapter = OpenAIAdapter(_make_config())
-        assert adapter.provider_name == "openai"
-
-
-class TestGeminiAdapterProviderName:
-    """GeminiAdapter.provider_name returns 'gemini'."""
-
-    def test_returns_gemini(self) -> None:
-        adapter = GeminiAdapter(_make_config())
-        assert adapter.provider_name == "gemini"
-
-
-class TestMockLLMProviderName:
-    """MockLLMProvider.provider_name returns 'mock'."""
-
-    def test_returns_mock(self) -> None:
-        adapter = MockLLMProvider()
-        assert adapter.provider_name == "mock"
-
-
-# =============================================================================
-# Embedding Adapters
-# =============================================================================
-
-
-class TestOpenAIEmbeddingProviderName:
-    """OpenAIEmbeddingAdapter.provider_name returns 'openai'."""
-
-    def test_returns_openai(self) -> None:
-        from app.providers.embedding.openai_adapter import OpenAIEmbeddingAdapter
-
-        adapter = OpenAIEmbeddingAdapter(_make_config())
-        assert adapter.provider_name == "openai"
-
-
-class TestMockEmbeddingProviderName:
-    """MockEmbeddingProvider.provider_name returns 'mock'."""
-
-    def test_returns_mock(self) -> None:
-        adapter = MockEmbeddingProvider()
-        assert adapter.provider_name == "mock"
+@pytest.mark.parametrize(
+    ("adapter_factory", "expected_name"),
+    [
+        (lambda cfg: ClaudeAdapter(cfg), "claude"),
+        (lambda cfg: OpenAIAdapter(cfg), "openai"),
+        (lambda cfg: GeminiAdapter(cfg), "gemini"),
+        (lambda _cfg: MockLLMProvider(), "mock"),
+        (lambda cfg: OpenAIEmbeddingAdapter(cfg), "openai"),
+        (lambda _cfg: MockEmbeddingProvider(), "mock"),
+    ],
+    ids=[
+        "claude-llm",
+        "openai-llm",
+        "gemini-llm",
+        "mock-llm",
+        "openai-embedding",
+        "mock-embedding",
+    ],
+)
+def test_adapter_exposes_correct_provider_name(adapter_factory, expected_name) -> None:
+    """Each adapter's provider_name matches its provider for metering lookup."""
+    adapter = adapter_factory(_make_config())
+    assert adapter.provider_name == expected_name
 
 
 # =============================================================================

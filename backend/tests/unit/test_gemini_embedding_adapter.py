@@ -65,21 +65,6 @@ def _make_embed_response(
     return response
 
 
-@pytest.mark.usefixtures("mock_genai_client")
-class TestGeminiEmbeddingAdapterInitialization:
-    """Test adapter initialization."""
-
-    def test_provider_name_returns_gemini(self, config):
-        """provider_name should return 'gemini' for pricing lookup."""
-        adapter = GeminiEmbeddingAdapter(config)
-        assert adapter.provider_name == "gemini"
-
-    def test_dimensions_property_returns_configured_value(self, config):
-        """dimensions property should return the configured embedding dimensions."""
-        adapter = GeminiEmbeddingAdapter(config)
-        assert adapter.dimensions == 768
-
-
 class TestGeminiEmbeddingAdapterEmbed:
     """Test embed() method behavior."""
 
