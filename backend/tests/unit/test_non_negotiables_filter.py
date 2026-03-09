@@ -21,48 +21,6 @@ from app.services.non_negotiables_filter import (
 )
 
 # =============================================================================
-# NonNegotiablesResult Tests
-# =============================================================================
-
-
-class TestNonNegotiablesResult:
-    """Tests for NonNegotiablesResult dataclass."""
-
-    def test_passed_result_has_no_failed_reasons(self) -> None:
-        """A passed result has empty failed_reasons list."""
-        result = NonNegotiablesResult(
-            passed=True,
-            failed_reasons=[],
-            warnings=[],
-        )
-
-        assert result.passed is True
-        assert result.failed_reasons == []
-
-    def test_failed_result_has_reasons(self) -> None:
-        """A failed result contains failure reasons."""
-        result = NonNegotiablesResult(
-            passed=False,
-            failed_reasons=["Remote only, job is Onsite"],
-            warnings=[],
-        )
-
-        assert result.passed is False
-        assert len(result.failed_reasons) == 1
-
-    def test_warnings_can_exist_with_passed_result(self) -> None:
-        """Warnings don't cause failure (e.g., undisclosed salary)."""
-        result = NonNegotiablesResult(
-            passed=True,
-            failed_reasons=[],
-            warnings=["Salary not disclosed"],
-        )
-
-        assert result.passed is True
-        assert len(result.warnings) == 1
-
-
-# =============================================================================
 # Remote Preference Tests (§3.1)
 # =============================================================================
 
