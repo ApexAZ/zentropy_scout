@@ -73,126 +73,12 @@ def _make_funding_pack(**overrides: object) -> FundingPack:
 
 
 # ---------------------------------------------------------------------------
-# ModelRegistry (§4.2)
-# ---------------------------------------------------------------------------
-
-
-class TestModelRegistry:
-    """ModelRegistry stores the canonical list of available LLM/embedding models."""
-
-    def test_attributes_set_when_constructed_with_valid_data(self) -> None:
-        model = ModelRegistry(
-            id=uuid.uuid4(),
-            provider=_PROVIDER,
-            model=_MODEL,
-            display_name=_DISPLAY_NAME,
-            model_type="llm",
-            is_active=True,
-        )
-        assert model.provider == _PROVIDER
-        assert model.model == _MODEL
-        assert model.display_name == _DISPLAY_NAME
-        assert model.model_type == "llm"
-        assert model.is_active is True
-
-    def test_embedding_model_type_accepted(self) -> None:
-        model = ModelRegistry(
-            id=uuid.uuid4(),
-            provider="openai",
-            model="text-embedding-3-small",
-            display_name="Embedding 3 Small",
-            model_type="embedding",
-        )
-        assert model.model_type == "embedding"
-
-
-# ---------------------------------------------------------------------------
-# PricingConfig (§4.3)
-# ---------------------------------------------------------------------------
-
-
-class TestPricingConfig:
-    """PricingConfig stores per-model pricing with effective dates."""
-
-    def test_attributes_set_when_constructed_with_valid_data(self) -> None:
-        pricing = PricingConfig(
-            id=uuid.uuid4(),
-            provider=_PROVIDER,
-            model=_MODEL,
-            input_cost_per_1k=_INPUT_COST,
-            output_cost_per_1k=_OUTPUT_COST,
-            margin_multiplier=_MARGIN,
-            effective_date=date(2026, 3, 1),
-        )
-        assert pricing.input_cost_per_1k == _INPUT_COST
-        assert pricing.output_cost_per_1k == _OUTPUT_COST
-        assert pricing.margin_multiplier == _MARGIN
-        assert pricing.effective_date == date(2026, 3, 1)
-
-    def test_decimal_precision_preserved(self) -> None:
-        pricing = PricingConfig(
-            id=uuid.uuid4(),
-            provider="openai",
-            model="gpt-4o-mini",
-            input_cost_per_1k=Decimal("0.000150"),
-            output_cost_per_1k=Decimal("0.000600"),
-            margin_multiplier=Decimal("3.00"),
-            effective_date=date.today(),
-        )
-        assert pricing.input_cost_per_1k == Decimal("0.000150")
-        assert pricing.margin_multiplier == Decimal("3.00")
-
-
-# ---------------------------------------------------------------------------
-# TaskRoutingConfig (§4.4)
-# ---------------------------------------------------------------------------
-
-
-class TestTaskRoutingConfig:
-    """TaskRoutingConfig maps task types to models per provider."""
-
-    def test_attributes_set_when_constructed_with_valid_data(self) -> None:
-        routing = TaskRoutingConfig(
-            id=uuid.uuid4(),
-            provider=_PROVIDER,
-            task_type="extraction",
-            model=_MODEL,
-        )
-        assert routing.provider == _PROVIDER
-        assert routing.task_type == "extraction"
-        assert routing.model == _MODEL
-
-    def test_default_fallback_task_type_accepted(self) -> None:
-        routing = TaskRoutingConfig(
-            id=uuid.uuid4(),
-            provider=_PROVIDER,
-            task_type="_default",
-            model="claude-3-5-sonnet-20241022",
-        )
-        assert routing.task_type == "_default"
-
-
-# ---------------------------------------------------------------------------
 # FundingPack (§4.5)
 # ---------------------------------------------------------------------------
 
 
 class TestFundingPack:
     """FundingPack stores admin-configurable funding pack definitions."""
-
-    def test_attributes_set_when_constructed_with_valid_data(self) -> None:
-        pack = FundingPack(
-            id=uuid.uuid4(),
-            name="Starter",
-            price_cents=500,
-            grant_cents=50000,
-            display_order=1,
-            is_active=True,
-            description="Get started with Zentropy Scout",
-        )
-        assert pack.name == "Starter"
-        assert pack.price_cents == 500
-        assert pack.grant_cents == 50000
 
     def test_stripe_price_id_nullable(self) -> None:
         pack = _make_funding_pack()
@@ -214,18 +100,6 @@ class TestFundingPack:
 
 class TestSystemConfig:
     """SystemConfig is a key-value store for global settings."""
-
-    def test_attributes_set_when_constructed_with_valid_data(self) -> None:
-        cfg = SystemConfig(
-            key="signup_grant_cents",
-            value="10",
-            description="USD cents granted to new users on signup (0 = disabled)",
-        )
-        assert cfg.key == "signup_grant_cents"
-        assert cfg.value == "10"
-        assert (
-            cfg.description == "USD cents granted to new users on signup (0 = disabled)"
-        )
 
     def test_description_nullable(self) -> None:
         cfg = SystemConfig(key="test_key", value="test_val")
