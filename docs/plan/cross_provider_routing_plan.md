@@ -152,7 +152,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | 1 | GeminiEmbeddingAdapter implementation | `plan, tdd, provider` | ✅ |
 | 2 | Update embedding factory — add `"gemini"` case | `plan, tdd, provider` | ✅ |
 | 3 | Update ProviderConfig defaults + `.env.example` | `plan, tdd` | ✅ |
-| 4 | Alembic migration — truncate + alter vector columns | `plan, tdd, db` | ⬜ |
+| 4 | Alembic migration — truncate + alter vector columns | `plan, tdd, db` | ✅ |
 | 5 | Update EmbeddingColumnsMixin + MockEmbeddingProvider | `plan, tdd, provider` | ⬜ |
 | 6 | Re-embedding script `backend/scripts/reembed_all.py` | `plan, tdd, provider, db` | ⬜ |
 | 7 | Phase 4 quality gate — full test suite + push | `plan, commands` | ⬜ |
