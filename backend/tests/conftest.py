@@ -545,7 +545,11 @@ _BANNED_ATTRS = frozenset({"__abstractmethods__"})
 
 
 def _find_antipatterns_in_source(source: str) -> list[str]:
-    """Scan test function source for banned structural assertion patterns."""
+    """Scan assert statements for banned structural assertion patterns.
+
+    Only flags patterns inside ``assert`` statements — isinstance() used in
+    conditionals or helper logic is not flagged.
+    """
     try:
         tree = ast.parse(textwrap.dedent(source))
     except SyntaxError:
@@ -553,36 +557,76 @@ def _find_antipatterns_in_source(source: str) -> list[str]:
 
     findings: list[str] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            # isinstance(), issubclass(), hasattr(), get_type_hints(), callable()
-            if isinstance(node.func, ast.Name) and node.func.id in _BANNED_FUNCTIONS:
-                findings.append(node.func.id)
-            # bare fields() call (from dataclasses import fields)
-            if isinstance(node.func, ast.Name) and node.func.id == "fields":
-                findings.append("dataclasses.fields")
-            # dataclasses.fields() call
-            if (
-                isinstance(node.func, ast.Attribute)
-                and node.func.attr == "fields"
-                and isinstance(node.func.value, ast.Name)
-                and node.func.value.id == "dataclasses"
-            ):
-                findings.append("dataclasses.fields")
-            # __abstractmethods__ access via call
-            if isinstance(node.func, ast.Attribute) and node.func.attr in _BANNED_ATTRS:
-                findings.append(node.func.attr)
-        # "method" in Cls.__abstractmethods__ (ast.Compare with `in` operator)
-        if isinstance(node, ast.Compare):
-            for comparator in node.comparators:
+        if not isinstance(node, ast.Assert):
+            continue
+        for child in ast.walk(node.test):
+            if isinstance(child, ast.Call):
+                # isinstance(), issubclass(), hasattr(), get_type_hints(), callable()
                 if (
-                    isinstance(comparator, ast.Attribute)
-                    and comparator.attr in _BANNED_ATTRS
+                    isinstance(child.func, ast.Name)
+                    and child.func.id in _BANNED_FUNCTIONS
                 ):
-                    findings.append(comparator.attr)
+                    findings.append(child.func.id)
+                # bare fields() call (from dataclasses import fields)
+                if isinstance(child.func, ast.Name) and child.func.id == "fields":
+                    findings.append("dataclasses.fields")
+                # dataclasses.fields() call
+                if (
+                    isinstance(child.func, ast.Attribute)
+                    and child.func.attr == "fields"
+                    and isinstance(child.func.value, ast.Name)
+                    and child.func.value.id == "dataclasses"
+                ):
+                    findings.append("dataclasses.fields")
+                # __abstractmethods__ access via call
+                if (
+                    isinstance(child.func, ast.Attribute)
+                    and child.func.attr in _BANNED_ATTRS
+                ):
+                    findings.append(child.func.attr)
+            # "method" in Cls.__abstractmethods__ (ast.Compare with `in` operator)
+            if isinstance(child, ast.Compare):
+                for comparator in child.comparators:
+                    if (
+                        isinstance(comparator, ast.Attribute)
+                        and comparator.attr in _BANNED_ATTRS
+                    ):
+                        findings.append(comparator.attr)
     return findings
 
 
+def _is_isinstance_only_test(source: str) -> bool:
+    """Check if every assert in a test function uses only isinstance().
+
+    Returns True when all assert statements are ``assert isinstance(...)``
+    (optionally negated with ``not``). These tests verify type rather than
+    behavior and are almost always structural.
+    """
+    try:
+        tree = ast.parse(textwrap.dedent(source))
+    except SyntaxError:
+        return False
+
+    asserts = [node for node in ast.walk(tree) if isinstance(node, ast.Assert)]
+    if not asserts:
+        return False
+
+    for node in asserts:
+        test = node.test
+        # Unwrap ``assert not isinstance(...)``
+        if isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
+            test = test.operand
+        if not (
+            isinstance(test, ast.Call)
+            and isinstance(test.func, ast.Name)
+            and test.func.id == "isinstance"
+        ):
+            return False
+    return True
+
+
 _antipattern_warnings: list[str] = []
+_isinstance_only_warnings: list[str] = []
 
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:
@@ -597,6 +641,11 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     patterns = _find_antipatterns_in_source(source)
     if patterns:
         _antipattern_warnings.append(f"  {item.nodeid}: {', '.join(patterns)}")
+
+    if _is_isinstance_only_test(source):
+        _isinstance_only_warnings.append(
+            f"  {item.nodeid}: isinstance-only (no behavioral assertion)"
+        )
 
 
 def pytest_terminal_summary(
@@ -615,3 +664,15 @@ def pytest_terminal_summary(
         for w in _antipattern_warnings:
             terminalreporter.line(w)
         _antipattern_warnings.clear()
+    if _isinstance_only_warnings:
+        terminalreporter.section("isinstance-only test warnings")
+        terminalreporter.line(
+            "The following tests use isinstance() as their only assertion."
+        )
+        terminalreporter.line(
+            "Consider adding behavioral assertions or removing if covered elsewhere."
+        )
+        terminalreporter.line("")
+        for w in _isinstance_only_warnings:
+            terminalreporter.line(w)
+        _isinstance_only_warnings.clear()
