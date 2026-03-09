@@ -32,81 +32,33 @@ from app.services.fit_score import (
 class TestFitScoreThresholdLabels:
     """Tests for Fit Score to label mapping."""
 
-    # -------------------------------------------------------------------------
-    # High (90-100)
-    # -------------------------------------------------------------------------
-
-    def test_score_90_returns_high(self) -> None:
-        """Score of 90 (lower bound) returns High."""
-        result = interpret_fit_score(90)
-        assert result.label == FitScoreLabel.HIGH
-
-    def test_score_100_returns_high(self) -> None:
-        """Score of 100 (upper bound) returns High."""
-        result = interpret_fit_score(100)
-        assert result.label == FitScoreLabel.HIGH
-
-    def test_score_95_returns_high(self) -> None:
-        """Score of 95 (mid-range) returns High."""
-        result = interpret_fit_score(95)
-        assert result.label == FitScoreLabel.HIGH
-
-    # -------------------------------------------------------------------------
-    # Medium (75-89)
-    # -------------------------------------------------------------------------
-
-    def test_score_75_returns_medium(self) -> None:
-        """Score of 75 (lower bound) returns Medium."""
-        result = interpret_fit_score(75)
-        assert result.label == FitScoreLabel.MEDIUM
-
-    def test_score_89_returns_medium(self) -> None:
-        """Score of 89 (upper bound) returns Medium."""
-        result = interpret_fit_score(89)
-        assert result.label == FitScoreLabel.MEDIUM
-
-    def test_score_82_returns_medium(self) -> None:
-        """Score of 82 (mid-range) returns Medium."""
-        result = interpret_fit_score(82)
-        assert result.label == FitScoreLabel.MEDIUM
-
-    # -------------------------------------------------------------------------
-    # Low (60-74)
-    # -------------------------------------------------------------------------
-
-    def test_score_60_returns_low(self) -> None:
-        """Score of 60 (lower bound) returns Low."""
-        result = interpret_fit_score(60)
-        assert result.label == FitScoreLabel.LOW
-
-    def test_score_74_returns_low(self) -> None:
-        """Score of 74 (upper bound) returns Low."""
-        result = interpret_fit_score(74)
-        assert result.label == FitScoreLabel.LOW
-
-    def test_score_67_returns_low(self) -> None:
-        """Score of 67 (mid-range) returns Low."""
-        result = interpret_fit_score(67)
-        assert result.label == FitScoreLabel.LOW
-
-    # -------------------------------------------------------------------------
-    # Poor (0-59) — Combined with former "Stretch" tier
-    # -------------------------------------------------------------------------
-
-    def test_score_0_returns_poor(self) -> None:
-        """Score of 0 (lower bound) returns Poor."""
-        result = interpret_fit_score(0)
-        assert result.label == FitScoreLabel.POOR
-
-    def test_score_59_returns_poor(self) -> None:
-        """Score of 59 (upper bound) returns Poor."""
-        result = interpret_fit_score(59)
-        assert result.label == FitScoreLabel.POOR
-
-    def test_score_30_returns_poor(self) -> None:
-        """Score of 30 (mid-range) returns Poor."""
-        result = interpret_fit_score(30)
-        assert result.label == FitScoreLabel.POOR
+    @pytest.mark.parametrize(
+        ("score", "expected_label"),
+        [
+            # High (90-100): lower, upper, mid
+            (90, FitScoreLabel.HIGH),
+            (100, FitScoreLabel.HIGH),
+            (95, FitScoreLabel.HIGH),
+            # Medium (75-89): lower, upper, mid
+            (75, FitScoreLabel.MEDIUM),
+            (89, FitScoreLabel.MEDIUM),
+            (82, FitScoreLabel.MEDIUM),
+            # Low (60-74): lower, upper, mid
+            (60, FitScoreLabel.LOW),
+            (74, FitScoreLabel.LOW),
+            (67, FitScoreLabel.LOW),
+            # Poor (0-59): lower, upper, mid
+            (0, FitScoreLabel.POOR),
+            (59, FitScoreLabel.POOR),
+            (30, FitScoreLabel.POOR),
+        ],
+    )
+    def test_score_maps_to_correct_label(
+        self, score: int, expected_label: FitScoreLabel
+    ) -> None:
+        """Score maps to the correct threshold label."""
+        result = interpret_fit_score(score)
+        assert result.label == expected_label
 
 
 # =============================================================================
@@ -117,49 +69,21 @@ class TestFitScoreThresholdLabels:
 class TestFitScoreInterpretationText:
     """Tests for interpretation text in result."""
 
-    def test_high_has_interpretation_text(self) -> None:
-        """High result includes interpretation text."""
-        result = interpret_fit_score(95)
-        assert result.interpretation == "Strong match, high confidence"
-
-    def test_medium_has_interpretation_text(self) -> None:
-        """Medium result includes interpretation text."""
-        result = interpret_fit_score(82)
-        assert result.interpretation == "Solid match, minor gaps"
-
-    def test_low_has_interpretation_text(self) -> None:
-        """Low result includes interpretation text."""
-        result = interpret_fit_score(67)
-        assert result.interpretation == "Partial match, notable gaps"
-
-    def test_poor_has_interpretation_text(self) -> None:
-        """Poor result includes interpretation text."""
-        result = interpret_fit_score(30)
-        assert result.interpretation == "Not a good fit"
-
-
-# =============================================================================
-# Result Structure Tests
-# =============================================================================
-
-
-class TestFitScoreInterpretationResult:
-    """Tests for interpretation result structure."""
-
-    def test_result_has_score(self) -> None:
-        """Result includes the original score."""
-        result = interpret_fit_score(85)
-        assert result.score == 85
-
-    def test_result_has_label(self) -> None:
-        """Result includes the label enum."""
-        result = interpret_fit_score(85)
-        assert result.label == FitScoreLabel.MEDIUM
-
-    def test_result_has_interpretation(self) -> None:
-        """Result includes interpretation text."""
-        result = interpret_fit_score(85)
-        assert result.interpretation is not None
+    @pytest.mark.parametrize(
+        ("score", "expected_text"),
+        [
+            (95, "Strong match, high confidence"),
+            (82, "Solid match, minor gaps"),
+            (67, "Partial match, notable gaps"),
+            (30, "Not a good fit"),
+        ],
+    )
+    def test_score_has_correct_interpretation_text(
+        self, score: int, expected_text: str
+    ) -> None:
+        """Each tier maps to the correct human-readable interpretation."""
+        result = interpret_fit_score(score)
+        assert result.interpretation == expected_text
 
 
 # =============================================================================

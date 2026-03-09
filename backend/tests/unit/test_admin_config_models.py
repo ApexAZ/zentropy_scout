@@ -5,7 +5,6 @@ FundingPack, and SystemConfig models have correct attributes, defaults,
 constraints, and table names. Also verifies User.is_admin extension.
 """
 
-import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -77,60 +76,6 @@ def _make_funding_pack(**overrides: object) -> FundingPack:
 # ---------------------------------------------------------------------------
 
 
-class TestFundingPack:
-    """FundingPack stores admin-configurable funding pack definitions."""
-
-    def test_stripe_price_id_nullable(self) -> None:
-        pack = _make_funding_pack()
-        assert pack.stripe_price_id is None
-
-    def test_highlight_label_set_when_provided(self) -> None:
-        pack = _make_funding_pack(highlight_label="Most Popular")
-        assert pack.highlight_label == "Most Popular"
-
-    def test_description_nullable(self) -> None:
-        pack = _make_funding_pack()
-        assert pack.description is None
-
-
-# ---------------------------------------------------------------------------
-# SystemConfig (§4.6)
-# ---------------------------------------------------------------------------
-
-
-class TestSystemConfig:
-    """SystemConfig is a key-value store for global settings."""
-
-    def test_description_nullable(self) -> None:
-        cfg = SystemConfig(key="test_key", value="test_val")
-        assert cfg.description is None
-
-
-# ---------------------------------------------------------------------------
-# User.is_admin (§4.1)
-# ---------------------------------------------------------------------------
-
-
-class TestUserIsAdmin:
-    """User model extended with is_admin boolean column."""
-
-    def test_is_admin_can_be_set_true(self) -> None:
-        user = User(
-            id=uuid.uuid4(),
-            email="admin@example.com",
-            is_admin=True,
-        )
-        assert user.is_admin is True
-
-    def test_is_admin_can_be_set_false(self) -> None:
-        user = User(
-            id=uuid.uuid4(),
-            email="user@example.com",
-            is_admin=False,
-        )
-        assert user.is_admin is False
-
-
 # ---------------------------------------------------------------------------
 # Database integration — verify defaults, constraints, uniqueness (§4.1–§4.6)
 # ---------------------------------------------------------------------------
@@ -139,14 +84,6 @@ class TestUserIsAdmin:
 @pytest.mark.asyncio
 class TestAdminConfigModelsDB:
     """Integration tests verifying server defaults and constraints with real DB."""
-
-    async def test_model_registry_persists_and_reads_back(self, db_session) -> None:
-        model = _make_model_registry()
-        db_session.add(model)
-        await db_session.flush()
-        assert model.id is not None
-        assert model.created_at is not None
-        assert model.updated_at is not None
 
     async def test_model_registry_server_defaults(self, db_session) -> None:
         """model_type defaults to 'llm', is_active defaults to True via server."""

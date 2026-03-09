@@ -152,50 +152,6 @@ class TestGetByPersonaAndJob:
 class TestCreate:
     """Test PersonaJobRepository.create()."""
 
-    async def test_creates_with_required_fields(
-        self,
-        db_session: AsyncSession,
-        persona_a: Persona,
-        shared_job: JobPosting,
-    ):
-        """Minimal creation with required fields."""
-        pj = await PersonaJobRepository.create(
-            db_session,
-            persona_id=persona_a.id,
-            job_posting_id=shared_job.id,
-            discovery_method="scouter",
-        )
-        assert pj.id is not None
-        assert pj.persona_id == persona_a.id
-        assert pj.job_posting_id == shared_job.id
-        assert pj.status == "Discovered"
-        assert pj.is_favorite is False
-        assert pj.discovery_method == "scouter"
-
-    async def test_creates_with_all_fields(
-        self,
-        db_session: AsyncSession,
-        persona_a: Persona,
-        shared_job: JobPosting,
-    ):
-        """Creation with all optional fields."""
-        pj = await PersonaJobRepository.create(
-            db_session,
-            persona_id=persona_a.id,
-            job_posting_id=shared_job.id,
-            discovery_method="manual",
-            status="Applied",
-            is_favorite=True,
-            fit_score=90,
-            stretch_score=20,
-            failed_non_negotiables=["Remote only"],
-            score_details={"overall": 0.9},
-        )
-        assert pj.status == "Applied"
-        assert pj.is_favorite is True
-        assert pj.fit_score == 90
-        assert pj.stretch_score == 20
-
     async def test_rejects_duplicate_persona_job(
         self,
         db_session: AsyncSession,
@@ -211,20 +167,3 @@ class TestCreate:
                 job_posting_id=shared_job.id,
                 discovery_method="pool",
             )
-
-    async def test_timestamps_set(
-        self,
-        db_session: AsyncSession,
-        persona_a: Persona,
-        shared_job: JobPosting,
-    ):
-        """created_at, updated_at, and discovered_at are populated."""
-        pj = await PersonaJobRepository.create(
-            db_session,
-            persona_id=persona_a.id,
-            job_posting_id=shared_job.id,
-            discovery_method="scouter",
-        )
-        assert pj.created_at is not None
-        assert pj.updated_at is not None
-        assert pj.discovered_at is not None

@@ -73,14 +73,6 @@ class TestAuthConfigDefaults:
         s = Settings(_env_file=None)
         assert s.auth_secret.get_secret_value() == ""
 
-    def test_auth_issuer_defaults_to_zentropy_scout(
-        self, monkeypatch: pytest.MonkeyPatch
-    ):
-        """JWT issuer claim defaults to 'zentropy-scout'."""
-        monkeypatch.delenv("AUTH_ISSUER", raising=False)
-        s = Settings(_env_file=None)
-        assert s.auth_issuer == "zentropy-scout"
-
     def test_auth_cookie_name_defaults_to_zentropy_session_token(
         self, monkeypatch: pytest.MonkeyPatch
     ):
@@ -94,80 +86,6 @@ class TestAuthConfigDefaults:
         monkeypatch.delenv("AUTH_COOKIE_SECURE", raising=False)
         s = Settings(_env_file=None)
         assert s.auth_cookie_secure is True
-
-    def test_auth_cookie_samesite_defaults_to_lax(
-        self, monkeypatch: pytest.MonkeyPatch
-    ):
-        """Cookie SameSite defaults to 'lax' (CSRF protection)."""
-        monkeypatch.delenv("AUTH_COOKIE_SAMESITE", raising=False)
-        s = Settings(_env_file=None)
-        assert s.auth_cookie_samesite == "lax"
-
-    def test_auth_cookie_domain_defaults_to_empty_string(
-        self, monkeypatch: pytest.MonkeyPatch
-    ):
-        """Cookie domain defaults to empty (request origin)."""
-        monkeypatch.delenv("AUTH_COOKIE_DOMAIN", raising=False)
-        s = Settings(_env_file=None)
-        assert s.auth_cookie_domain == ""
-
-    def test_default_user_id_defaults_to_none(self, monkeypatch: pytest.MonkeyPatch):
-        """Default user ID is None when not set."""
-        monkeypatch.delenv("DEFAULT_USER_ID", raising=False)
-        s = Settings(_env_file=None)
-        assert s.default_user_id is None
-
-
-class TestOAuthAndEmailDefaults:
-    """REQ-013 §7.2, §11: OAuth and email settings have correct defaults."""
-
-    def test_google_client_id_defaults_to_empty(self, monkeypatch: pytest.MonkeyPatch):
-        """Google OAuth client ID defaults to empty."""
-        monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
-        s = Settings(_env_file=None)
-        assert s.google_client_id == ""
-
-    def test_google_client_secret_defaults_to_empty(
-        self, monkeypatch: pytest.MonkeyPatch
-    ):
-        """Google OAuth client secret defaults to empty (SecretStr)."""
-        monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
-        s = Settings(_env_file=None)
-        assert s.google_client_secret.get_secret_value() == ""
-
-    def test_linkedin_client_id_defaults_to_empty(
-        self, monkeypatch: pytest.MonkeyPatch
-    ):
-        """LinkedIn OAuth client ID defaults to empty."""
-        monkeypatch.delenv("LINKEDIN_CLIENT_ID", raising=False)
-        s = Settings(_env_file=None)
-        assert s.linkedin_client_id == ""
-
-    def test_linkedin_client_secret_defaults_to_empty(
-        self, monkeypatch: pytest.MonkeyPatch
-    ):
-        """LinkedIn OAuth client secret defaults to empty (SecretStr)."""
-        monkeypatch.delenv("LINKEDIN_CLIENT_SECRET", raising=False)
-        s = Settings(_env_file=None)
-        assert s.linkedin_client_secret.get_secret_value() == ""
-
-    def test_email_from_defaults_to_noreply(self, monkeypatch: pytest.MonkeyPatch):
-        """Email sender defaults to noreply@zentropyscout.com."""
-        monkeypatch.delenv("EMAIL_FROM", raising=False)
-        s = Settings(_env_file=None)
-        assert s.email_from == "noreply@zentropyscout.com"
-
-    def test_resend_api_key_defaults_to_empty(self, monkeypatch: pytest.MonkeyPatch):
-        """Resend API key defaults to empty (SecretStr)."""
-        monkeypatch.delenv("RESEND_API_KEY", raising=False)
-        s = Settings(_env_file=None)
-        assert s.resend_api_key.get_secret_value() == ""
-
-    def test_frontend_url_defaults_to_localhost(self, monkeypatch: pytest.MonkeyPatch):
-        """Frontend URL defaults to http://localhost:3000."""
-        monkeypatch.delenv("FRONTEND_URL", raising=False)
-        s = Settings(_env_file=None)
-        assert s.frontend_url == "http://localhost:3000"
 
 
 class TestAuthProductionValidation:

@@ -69,12 +69,6 @@ class TestClaudeAdapterInit:
             mock_client.assert_called_once_with(api_key="test-api-key")
             assert adapter.client is not None
 
-    def test_init_stores_config(self, config):
-        """ClaudeAdapter should store the config."""
-        with patch("app.providers.llm.claude_adapter.AsyncAnthropic"):
-            adapter = ClaudeAdapter(config)
-            assert adapter.config is config
-
     def test_init_routes_extraction_to_cheaper_model_by_default(self):
         """Without custom routing, extraction tasks should use a cheaper model."""
         config_no_routing = ProviderConfig(

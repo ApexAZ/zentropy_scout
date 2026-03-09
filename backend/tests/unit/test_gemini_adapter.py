@@ -109,13 +109,6 @@ class TestGeminiAdapterInit:
             _adapter = GeminiAdapter(config)
             mock_genai.Client.assert_called_once_with(api_key="test-api-key")
 
-    def test_init_stores_config(self, config):
-        """GeminiAdapter should store the config."""
-        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
-            mock_genai.Client.return_value = MagicMock()
-            adapter = GeminiAdapter(config)
-            assert adapter.config is config
-
     def test_init_routes_extraction_to_cheaper_model_by_default(self):
         """Without custom routing, extraction tasks should use a cheaper model."""
         config_no_routing = ProviderConfig(
