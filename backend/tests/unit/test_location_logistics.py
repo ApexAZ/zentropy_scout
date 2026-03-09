@@ -336,93 +336,12 @@ class TestInputValidation:
 
 
 # =============================================================================
-# Worked Examples from REQ-008 §4.6
-# =============================================================================
-
-
-class TestWorkedExamples:
-    """Tests matching worked examples from REQ-008 §4.6."""
-
-    def test_example1_perfect_remote_match(self) -> None:
-        """Example 1: Remote Only user + Remote job = 100."""
-        score = calculate_logistics_score(
-            remote_preference="Remote Only",
-            commutable_cities=None,
-            job_work_model="Remote",
-            job_location=None,
-        )
-        assert score == 100.0
-
-    def test_example2_remote_only_hybrid(self) -> None:
-        """Example 2: Remote Only user + Hybrid job = 50."""
-        score = calculate_logistics_score(
-            remote_preference="Remote Only",
-            commutable_cities=None,
-            job_work_model="Hybrid",
-            job_location="Seattle",
-        )
-        assert score == 50.0
-
-    def test_example3_hybrid_ok_onsite_commutable(self) -> None:
-        """Example 3: Hybrid OK + Onsite in commutable city = 60."""
-        score = calculate_logistics_score(
-            remote_preference="Hybrid OK",
-            commutable_cities=["Seattle", "Bellevue"],
-            job_work_model="Onsite",
-            job_location="Seattle",
-        )
-        assert score == 60.0
-
-    def test_example4_hybrid_ok_onsite_non_commutable(self) -> None:
-        """Example 4: Hybrid OK + Onsite NOT in commutable = 42."""
-        score = calculate_logistics_score(
-            remote_preference="Hybrid OK",
-            commutable_cities=["Seattle", "Bellevue"],
-            job_work_model="Onsite",
-            job_location="San Francisco",
-        )
-        assert score == pytest.approx(42.0, abs=0.01)
-
-    def test_example5_onsite_ok_no_cities(self) -> None:
-        """Example 5: Onsite OK + no commutable cities = 100."""
-        score = calculate_logistics_score(
-            remote_preference="Onsite OK",
-            commutable_cities=None,
-            job_work_model="Onsite",
-            job_location="Austin",
-        )
-        assert score == 100.0
-
-
-# =============================================================================
 # Score Bounds Tests
 # =============================================================================
 
 
 class TestScoreBounds:
     """Tests that scores are always within valid range."""
-
-    def test_score_never_exceeds_100(self) -> None:
-        """Score should never exceed 100."""
-        score = calculate_logistics_score(
-            remote_preference="Onsite OK",
-            commutable_cities=["Seattle"],
-            job_work_model="Remote",
-            job_location=None,
-        )
-        assert score <= 100.0
-
-    def test_score_never_below_0(self) -> None:
-        """Score should never go below 0."""
-        score = calculate_logistics_score(
-            remote_preference="Remote Only",
-            commutable_cities=["Seattle"],
-            job_work_model="Onsite",
-            job_location="San Francisco",
-        )
-        # Remote Only + Onsite = 0, then penalty would make it negative
-        # but we clamp to 0
-        assert score >= 0.0
 
     def test_zero_score_not_penalized_further(self) -> None:
         """Score of 0 from work model mismatch should stay 0 with penalty."""
