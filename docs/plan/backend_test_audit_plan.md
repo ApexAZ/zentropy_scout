@@ -63,7 +63,7 @@ Phase 4: Quality Gate (verification + documentation)
 |---|------|-------|--------|
 | 1.1 | **Triage isinstance assertions** — Read each of the ~30 files with `assert isinstance()`. Classify each using the table above. Record findings in a triage table appended to this plan. | 72 findings, ~30 files | ✅ |
 | 1.2 | **Triage len() assertions via sampling** — Read the 7 heaviest files (test_cover_letter_validation 26, test_content_utils 46, test_modification_limits 18, test_non_negotiables_filter 12, test_score_explanation 8, test_explanation_generation 14, test_scoring_flow 15). Classify each. Derive mechanical rule for remaining files. | ~139 findings, 7 files | ✅ |
-| 1.3 | **Triage constant assertions** — Search for `assert X == "literal"` and `assert CONSTANT == value` patterns. Classify each. | ~37 findings, ~15 files | ⬜ |
+| 1.3 | **Triage constant assertions** — Search for `assert X == "literal"` and `assert CONSTANT == value` patterns. Classify each. | ~37 findings, ~15 files | ✅ |
 | 1.4 | **Compile triage report** — Summarize: total findings, counts by classification, files requiring changes. This becomes Phase 2 input. | Synthesis | ⬜ |
 
 **Notes:**
@@ -147,6 +147,7 @@ Phase 4: Quality Gate (verification + documentation)
 | 2026-03-09 | Plan created |
 | 2026-03-09 | §1.1 complete — isinstance triage done (57 REDUNDANT, 5 ANTIPATTERN, 2 LEGITIMATE) |
 | 2026-03-09 | §1.2 complete — len() triage done (139/139 LEGITIMATE, 0 ANTIPATTERN). No Phase 2 work needed for len(). |
+| 2026-03-09 | §1.3 complete — constant triage done (15 ANTIPATTERN in 5 test functions, 1 LEGITIMATE sync check) |
 
 ---
 
@@ -259,3 +260,29 @@ Every `assert len(X)` in the sampled files tests a **function return value or fi
 **Rule:** `len(X)` where X is assigned from a function/method call or filter → **LEGITIMATE**. `len(X)` where X is a class attribute, enum, or module constant → **ANTIPATTERN**. Apply this to classify remaining files without reading each one.
 
 **Phase 2 impact:** Task 2.4 ("Fix any ANTIPATTERN len() findings") = **zero work**.
+
+---
+
+## Appendix C: Constant Assertion Triage Results (§1.3)
+
+**Summary:** 15 ANTIPATTERN assertions across 5 test functions in 5 files. 1 LEGITIMATE cross-module sync check. All other `assert X == "literal"` patterns are LEGITIMATE (testing function return values, not source-code literals).
+
+### ANTIPATTERN (5 test functions, 15 assertions) — Duplicate source-code literals
+
+| # | File | Test Function | Assertions | Pattern | Action |
+|---|------|--------------|------------|---------|--------|
+| 1 | test_api_chat.py:330 | test_generator_default_constants_are_reasonable | 2 | Frozen-test duplicating `_SSE_MAX_CONNECTION_SECONDS` and `_SSE_HEARTBEAT_INTERVAL_SECONDS` | Delete test — behavioral equivalent would test actual timeout/heartbeat behavior |
+| 2 | test_agent_handoff.py:52 | test_specific_values | 3 | Enum `.value` duplication (3 `AgentHandoffType` members) | Delete test — covered by `test_json_serializable` which tests serialization behavior |
+| 3 | test_agent_message.py:32 | test_specific_values | 6 | Enum `.value` duplication (6 `AgentMessageType` members) | Delete test — covered by `test_json_serializable` which tests serialization behavior |
+| 4 | test_source_selection.py:143 | test_serializes_enum_values_when_accessed | 2 | Enum `.value` duplication (`SourcePriority.HIGH`, `.NORMAL`) | Delete test — no behavioral value beyond restating source code |
+| 5 | test_executive_role_edge_cases.py:749 | test_weight_constants_reflect_standard_values | 2 | Module constant duplication (`FIT_WEIGHT_HARD_SKILLS`, `FIT_WEIGHT_SOFT_SKILLS`) | Delete test — behavioral equivalent `test_executive_fit_score_uses_standard_weights` already exists |
+
+### LEGITIMATE (1) — Cross-module synchronization contract
+
+| # | File | Test Function | Reason |
+|---|------|--------------|--------|
+| 1 | test_llm_sanitization.py:747 | test_max_length_matches_regeneration_constant | Verifies two independently-defined constants in different modules stay in sync (not duplicating a literal) |
+
+### Phase 2 Impact
+
+Task 2.3 ("Fix ANTIPATTERN constant assertions") = **delete 5 test functions** (15 assertions). All have either existing behavioral equivalents or companion tests that already cover the behavior.
