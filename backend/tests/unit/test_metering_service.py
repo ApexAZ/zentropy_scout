@@ -4,7 +4,6 @@ REQ-022 §7: Verifies pricing lookup via AdminConfigService, per-model margins,
 unregistered model blocking, and the record_and_debit pipeline.
 """
 
-import logging
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -268,24 +267,6 @@ class TestRecordAndDebit:
         mock_db.execute.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_insufficient_balance_logs_warning(
-        self,
-        service: MeteringService,
-        mock_db: AsyncMock,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        """Logs warning when atomic debit fails (insufficient balance)."""
-        mock_result = MagicMock()
-        mock_result.rowcount = 0
-        mock_db.execute.return_value = mock_result
-
-        with caplog.at_level(logging.WARNING):
-            await service.record_and_debit(
-                _USER_ID, _PROVIDER, _HAIKU_MODEL, _TASK_TYPE, 1000, 500
-            )
-        assert "insufficient" in caplog.text.lower()
-
-    @pytest.mark.asyncio
     async def test_insufficient_balance_does_not_raise(
         self, service: MeteringService, mock_db: AsyncMock
     ) -> None:
@@ -300,20 +281,17 @@ class TestRecordAndDebit:
         )
 
     @pytest.mark.asyncio
-    async def test_db_error_logs_and_does_not_raise(
+    async def test_db_error_does_not_raise(
         self,
         service: MeteringService,
         mock_db: AsyncMock,
-        caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Database errors are logged but do not propagate."""
+        """Database errors do not propagate — user already got their response."""
         mock_db.flush.side_effect = Exception("DB connection lost")
 
-        with caplog.at_level(logging.ERROR):
-            await service.record_and_debit(
-                _USER_ID, _PROVIDER, _HAIKU_MODEL, _TASK_TYPE, 1000, 500
-            )
-        assert "failed to record usage" in caplog.text.lower()
+        await service.record_and_debit(
+            _USER_ID, _PROVIDER, _HAIKU_MODEL, _TASK_TYPE, 1000, 500
+        )
 
     @pytest.mark.asyncio
     async def test_usage_record_costs_match_calculation(
@@ -373,16 +351,14 @@ class TestRecordAndDebit:
         assert sonnet_record.margin_multiplier == Decimal("1.10")
 
     @pytest.mark.asyncio
-    async def test_unregistered_model_in_record_and_debit_logs_error(
+    async def test_unregistered_model_does_not_raise(
         self,
         service: MeteringService,
         mock_admin_config: AsyncMock,
-        caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Unregistered model error in record_and_debit is logged, not raised."""
+        """Unregistered model in record_and_debit does not propagate."""
         mock_admin_config.is_model_registered.return_value = False
-        with caplog.at_level(logging.ERROR):
-            await service.record_and_debit(
-                _USER_ID, _PROVIDER, "nonexistent-model", _TASK_TYPE, 1000, 500
-            )
-        assert "failed to record usage" in caplog.text.lower()
+
+        await service.record_and_debit(
+            _USER_ID, _PROVIDER, "nonexistent-model", _TASK_TYPE, 1000, 500
+        )

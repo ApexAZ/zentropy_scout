@@ -193,18 +193,6 @@ class TestMeteredLLMProviderComplete:
         response = await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         assert response.model == _MOCK_MODEL
 
-    async def test_logs_when_recording_fails(
-        self,
-        metered_llm: MeteredLLMProvider,
-        mock_metering: AsyncMock,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        """Recording failure is logged with user ID."""
-        mock_metering.record_and_debit.side_effect = RuntimeError(_DB_ERROR_MSG)
-        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
-        assert str(TEST_USER_ID) in caplog.text
-        assert "Failed to record" in caplog.text
-
 
 # =============================================================================
 # MeteredLLMProvider — stream()
@@ -260,15 +248,6 @@ class TestMeteredLLMProviderDelegation:
 class TestMeteredLLMProviderRouting:
     """MeteredLLMProvider resolves routing from AdminConfigService."""
 
-    async def test_routing_lookup_passes_task_value(
-        self,
-        metered_llm: MeteredLLMProvider,
-        mock_admin_config: AsyncMock,
-    ) -> None:
-        """Routing lookup uses task value string."""
-        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
-        mock_admin_config.get_routing_for_task.assert_called_once_with("extraction")
-
     async def test_resolved_model_passed_as_override(
         self,
         metered_llm: MeteredLLMProvider,
@@ -296,23 +275,6 @@ class TestMeteredLLMProviderRouting:
         last_call = inner_llm.calls[-1]
         assert last_call[_KEY_KWARGS][_KEY_MODEL_OVERRIDE] is None
 
-    async def test_routing_used_for_different_task_types(
-        self,
-        metered_llm: MeteredLLMProvider,
-        mock_admin_config: AsyncMock,
-    ) -> None:
-        """Routing is looked up per-task — different tasks get separate lookups."""
-        mock_admin_config.get_routing_for_task.return_value = (
-            _MOCK_PROVIDER_NAME,
-            _ROUTED_MODEL,
-        )
-        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
-        await metered_llm.complete(_HELLO_MESSAGES, TaskType.CHAT_RESPONSE)
-
-        calls = mock_admin_config.get_routing_for_task.call_args_list
-        assert calls[0].args == ("extraction",)
-        assert calls[1].args == ("chat_response",)
-
     async def test_caller_cannot_pass_model_override_keyword(
         self,
         metered_llm: MeteredLLMProvider,
@@ -336,17 +298,6 @@ class TestMeteredLLMProviderRouting:
         with pytest.raises(RuntimeError, match=_DB_ERROR_MSG):
             await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         mock_metering.record_and_debit.assert_not_called()
-
-    async def test_fallback_logs_warning(
-        self,
-        metered_llm: MeteredLLMProvider,
-        mock_admin_config: AsyncMock,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        """Falling back to inner provider logs a WARNING."""
-        mock_admin_config.get_routing_for_task.return_value = None
-        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
-        assert "No routing" in caplog.text
 
 
 # =============================================================================

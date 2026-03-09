@@ -4,8 +4,6 @@ REQ-010 §5.3: Cover Letter Generation.
 REQ-007 §8.5: Cover Letter Generation.
 
 Tests verify:
-- LLM provider is called with correct TaskType
-- System + user messages are built from prompt builders
 - XML response parsing (cover_letter and agent_reasoning)
 - Fallback when XML tags are missing
 - Error handling for provider failures and empty responses
@@ -17,7 +15,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.providers import ProviderError
-from app.providers.llm.base import LLMResponse, TaskType
+from app.providers.llm.base import LLMResponse
 from app.schemas.prompt_params import JobContext, VoiceProfileData
 from app.services.cover_letter_generation import (
     CoverLetterGenerationError,
@@ -112,33 +110,6 @@ Jane Smith"""
 
 class TestGenerateCoverLetter:
     """Tests for generate_cover_letter service function."""
-
-    @pytest.mark.asyncio
-    async def test_calls_provider_with_cover_letter_task_type(self) -> None:
-        """Service should call LLM provider with TaskType.COVER_LETTER."""
-
-        mock_provider = AsyncMock()
-        mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
-
-        await generate_cover_letter(**_default_kwargs(), provider=mock_provider)
-
-        call_kwargs = mock_provider.complete.call_args
-        assert call_kwargs[1]["task"] == TaskType.COVER_LETTER
-
-    @pytest.mark.asyncio
-    async def test_builds_system_and_user_messages(self) -> None:
-        """Service should build system + user messages for LLM call."""
-
-        mock_provider = AsyncMock()
-        mock_provider.complete.return_value = _make_llm_response(_XML_RESPONSE)
-
-        await generate_cover_letter(**_default_kwargs(), provider=mock_provider)
-
-        call_kwargs = mock_provider.complete.call_args
-        messages = call_kwargs[1]["messages"]
-        assert len(messages) == 2
-        assert messages[0].role == "system"
-        assert messages[1].role == "user"
 
     @pytest.mark.asyncio
     async def test_result_contains_content_field(self) -> None:

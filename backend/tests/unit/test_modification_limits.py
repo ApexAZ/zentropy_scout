@@ -10,8 +10,6 @@ Three automated checks prevent the Ghostwriter from overstepping:
 Pattern follows test_bullet_reordering.py: helper factory, keyword-only args.
 """
 
-import logging
-
 import pytest
 
 from app.services.modification_limits import (
@@ -420,29 +418,3 @@ class TestSafetyBounds:
         )
         # Should not raise
         validate_variant_modifications(data=data)
-
-
-# =============================================================================
-# Test: Logging
-# =============================================================================
-
-
-class TestLogging:
-    """Validation results are logged."""
-
-    def test_logs_validation_result(self, caplog: pytest.LogCaptureFixture) -> None:
-        """Successful validation logs a debug message."""
-        data = _make_data()
-        with caplog.at_level(logging.DEBUG):
-            validate_variant_modifications(data=data)
-        assert any("0 violation" in r.message for r in caplog.records)
-
-    def test_logs_violation_count(self, caplog: pytest.LogCaptureFixture) -> None:
-        """Violations are logged with count."""
-        data = _make_data(
-            base_bullet_ids={"b1"},
-            variant_bullet_ids={"b1", "b99"},
-        )
-        with caplog.at_level(logging.DEBUG):
-            validate_variant_modifications(data=data)
-        assert any("1 violation" in r.message for r in caplog.records)

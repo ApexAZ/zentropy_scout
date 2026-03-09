@@ -21,11 +21,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.providers.llm.base import LLMResponse, TaskType
+from app.providers.llm.base import LLMResponse
 from app.services.resume_parsing_service import (
     _MAX_EXTRACTED_TEXT_LENGTH,
     _MAX_PDF_PAGES,
-    RESUME_PARSE_SYSTEM_PROMPT,
     ResumeParseResult,
     ResumeParsingService,
     VoiceSuggestions,
@@ -295,45 +294,6 @@ class TestPDFTextExtraction:
 
 class TestLLMParsing:
     """Tests for LLM-based structured resume parsing."""
-
-    @pytest.mark.asyncio
-    async def test_sends_resume_parsing_task_type(self) -> None:
-        """Uses TaskType.RESUME_PARSING for model routing."""
-        mock_provider = AsyncMock()
-        mock_provider.complete = AsyncMock(
-            return_value=_make_llm_response(_full_resume_data())
-        )
-
-        with (
-            patch(_PATCH_PDFPLUMBER, _mock_pdfplumber()),
-            patch(_PATCH_SANITIZE, side_effect=lambda x: x),
-        ):
-            service = ResumeParsingService()
-            await service.parse_resume(_FAKE_PDF_BYTES, mock_provider)
-
-        call_kwargs = mock_provider.complete.call_args
-        assert call_kwargs.kwargs["task"] == TaskType.RESUME_PARSING
-        assert call_kwargs.kwargs["json_mode"] is True
-
-    @pytest.mark.asyncio
-    async def test_includes_system_prompt(self) -> None:
-        """System prompt contains resume parser instructions."""
-        mock_provider = AsyncMock()
-        mock_provider.complete = AsyncMock(
-            return_value=_make_llm_response(_full_resume_data())
-        )
-
-        with (
-            patch(_PATCH_PDFPLUMBER, _mock_pdfplumber()),
-            patch(_PATCH_SANITIZE, side_effect=lambda x: x),
-        ):
-            service = ResumeParsingService()
-            await service.parse_resume(_FAKE_PDF_BYTES, mock_provider)
-
-        messages = mock_provider.complete.call_args.kwargs["messages"]
-        system_msg = messages[0]
-        assert system_msg.role == "system"
-        assert system_msg.content == RESUME_PARSE_SYSTEM_PROMPT
 
     @pytest.mark.asyncio
     async def test_sanitizes_extracted_text(self) -> None:

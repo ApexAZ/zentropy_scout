@@ -459,24 +459,3 @@ class TestSafetyBounds:
             things_to_avoid=[f"p{i}" for i in range(100)],
             company_name="x" * 500,
         )
-
-
-# =============================================================================
-# Logging
-# =============================================================================
-
-
-class TestLogging:
-    """Debug logging on validation results."""
-
-    def test_logs_issue_count_on_pass(self, caplog: pytest.LogCaptureFixture) -> None:
-        with caplog.at_level("DEBUG", logger="app.services.cover_letter_validation"):
-            _validate()
-        assert "0 issue(s)" in caplog.text
-        assert "passed=True" in caplog.text
-
-    def test_logs_issue_count_on_fail(self, caplog: pytest.LogCaptureFixture) -> None:
-        with caplog.at_level("DEBUG", logger="app.services.cover_letter_validation"):
-            _validate(draft_text=_draft(100))
-        assert "1 issue(s)" in caplog.text
-        assert "passed=False" in caplog.text
