@@ -46,8 +46,8 @@ from app.services.stretch_score import (
 # REQ-008 §10.1: Reasonable limit for batch processing
 _MAX_BATCH_SIZE = 500
 
-# Expected embedding dimensions (text-embedding-3-small)
-_EXPECTED_EMBEDDING_DIMENSIONS = 1536
+# Expected embedding dimensions (text-embedding-004)
+_EXPECTED_EMBEDDING_DIMENSIONS = 768
 
 
 # =============================================================================

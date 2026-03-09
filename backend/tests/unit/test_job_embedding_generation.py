@@ -258,10 +258,10 @@ class TestGetNeutralEmbedding:
     """Tests for get_neutral_embedding function."""
 
     def test_returns_correct_dimensions(self) -> None:
-        """Returns 1536-dimensional vector."""
+        """Returns 768-dimensional vector."""
         result = get_neutral_embedding()
 
-        assert len(result) == 1536
+        assert len(result) == 768
 
     def test_all_values_are_zero(self) -> None:
         """All values in the vector are 0.0."""
@@ -286,11 +286,11 @@ class TestJobEmbeddingsResult:
         result = JobEmbeddingsResult(
             job_id=job_id,
             requirements=JobEmbeddingData(
-                vector=[0.1] * 1536,
+                vector=[0.1] * 768,
                 source_text="Python (Expert)",
             ),
             culture=JobEmbeddingData(
-                vector=[0.2] * 1536,
+                vector=[0.2] * 768,
                 source_text="We value collaboration.",
             ),
             version=version,
@@ -298,8 +298,8 @@ class TestJobEmbeddingsResult:
         )
 
         assert result.job_id == job_id
-        assert len(result.requirements.vector) == 1536
-        assert len(result.culture.vector) == 1536
+        assert len(result.requirements.vector) == 768
+        assert len(result.culture.vector) == 768
         assert result.version == version
         assert result.model_name == "text-embedding-3-small"
 
@@ -318,7 +318,7 @@ class TestGenerateJobEmbeddings:
         sample_job_posting: MockJobPosting,
     ) -> None:
         """Generates embeddings for requirements and culture."""
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_job_embeddings(sample_job_posting, mock_embed)
 
@@ -333,7 +333,7 @@ class TestGenerateJobEmbeddings:
         sample_job_posting: MockJobPosting,
     ) -> None:
         """Result includes the job ID."""
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_job_embeddings(sample_job_posting, mock_embed)
 
@@ -345,7 +345,7 @@ class TestGenerateJobEmbeddings:
         sample_job_posting: MockJobPosting,
     ) -> None:
         """Version is set from job.updated_at for staleness detection."""
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_job_embeddings(sample_job_posting, mock_embed)
 
@@ -361,7 +361,7 @@ class TestGenerateJobEmbeddings:
 
         async def capture_embed(text: str) -> list[list[float]]:
             captured_texts.append(text)
-            return [[0.1] * 1536]
+            return [[0.1] * 768]
 
         await generate_job_embeddings(sample_job_posting, capture_embed)
 
@@ -381,7 +381,7 @@ class TestGenerateJobEmbeddings:
 
         async def capture_embed(text: str) -> list[list[float]]:
             captured_texts.append(text)
-            return [[0.1] * 1536]
+            return [[0.1] * 768]
 
         await generate_job_embeddings(sample_job_posting, capture_embed)
 
@@ -395,7 +395,7 @@ class TestGenerateJobEmbeddings:
         sample_job_posting: MockJobPosting,
     ) -> None:
         """Result includes the source text used for embedding."""
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_job_embeddings(sample_job_posting, mock_embed)
 
@@ -409,7 +409,7 @@ class TestGenerateJobEmbeddings:
             extracted_skills=[],
             culture_text="Great team culture.",
         )
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_job_embeddings(job, mock_embed)
 
@@ -425,7 +425,7 @@ class TestGenerateJobEmbeddings:
             extracted_skills=[MockExtractedSkill("Python", "Hard")],
             culture_text=None,
         )
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_job_embeddings(job, mock_embed)
 
@@ -442,7 +442,7 @@ class TestGenerateJobEmbeddings:
             extracted_skills=[MockExtractedSkill("Python", "Hard")],
             culture_text="   ",  # Whitespace only
         )
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_job_embeddings(job, mock_embed)
 

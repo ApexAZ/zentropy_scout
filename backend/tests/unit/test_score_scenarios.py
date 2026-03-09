@@ -117,7 +117,7 @@ class MockJobPosting:
             self.updated_at = datetime.now(tz=UTC)
 
 
-def make_mock_embedding(dimensions: int = 1536) -> list[float]:
+def make_mock_embedding(dimensions: int = 768) -> list[float]:
     """Create a mock embedding vector (non-zero for similarity tests)."""
     return [0.1] * dimensions
 

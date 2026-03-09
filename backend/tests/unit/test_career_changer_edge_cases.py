@@ -42,8 +42,8 @@ from app.services.stretch_score import (
 # Constants for Tests
 # =============================================================================
 
-# Default embedding dimension (OpenAI text-embedding-3-small)
-EMBEDDING_DIM = 1536
+# Default embedding dimension (Gemini text-embedding-004)
+EMBEDDING_DIM = 768
 
 
 # =============================================================================

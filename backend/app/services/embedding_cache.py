@@ -30,7 +30,7 @@ from app.services.persona_embedding_generator import PersonaEmbeddingsResult
 # =============================================================================
 
 # Default maximum cache size (prevents unbounded memory growth)
-# Each entry is ~37KB (3 * 1536 * 8 bytes for float64 vectors + hashes)
+# Each entry is ~18KB (3 * 768 * 8 bytes for float64 vectors + hashes)
 # 1000 entries ≈ 37MB
 _DEFAULT_MAX_SIZE = 1000
 

@@ -100,7 +100,7 @@ class MockJobPosting:
             self.updated_at = datetime.now(tz=UTC)
 
 
-def make_mock_embedding(dimensions: int = 1536) -> list[float]:
+def make_mock_embedding(dimensions: int = 768) -> list[float]:
     """Create a mock embedding vector (non-zero for similarity tests)."""
     return [0.1] * dimensions
 
@@ -822,15 +822,15 @@ class TestBatchScoringEmbeddingValidation:
             async def embed(self, texts: list[str]) -> MockEmbeddingResult:  # noqa: ARG002
                 # Always return just 1 vector regardless of input count
                 return MockEmbeddingResult(
-                    vectors=[[0.1] * 1536],  # Only 1 vector
-                    model="text-embedding-3-small",
-                    dimensions=1536,
+                    vectors=[[0.1] * 768],  # Only 1 vector
+                    model="text-embedding-004",
+                    dimensions=768,
                     total_tokens=10,
                 )
 
             @property
             def dimensions(self) -> int:
-                return 1536
+                return 768
 
         provider = BadEmbeddingProvider()
 

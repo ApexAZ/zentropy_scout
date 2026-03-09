@@ -210,10 +210,9 @@ class TestSemanticSimilarity:
         assert score > 75.0
 
     def test_semantic_with_high_dimensional_embeddings(self) -> None:
-        """Works with high-dimensional embeddings (1536 dimensions)."""
-        # Simulate OpenAI text-embedding-3-small dimensions
-        vec1 = [0.01 * i for i in range(1536)]
-        vec2 = [0.01 * (i + 0.5) for i in range(1536)]
+        """Works with high-dimensional embeddings (768 dimensions)."""
+        vec1 = [0.01 * i for i in range(768)]
+        vec2 = [0.01 * (i + 0.5) for i in range(768)]
         score = calculate_target_role_alignment(
             target_roles=["Senior Engineer"],
             job_title="Staff Engineer",

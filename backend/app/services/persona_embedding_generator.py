@@ -57,7 +57,7 @@ class PersonaEmbeddingData:
     """Single embedding with its source text.
 
     Attributes:
-        vector: The 1536-dimensional embedding vector.
+        vector: The embedding vector.
         source_text: The text that was embedded (for debugging/auditing).
     """
 

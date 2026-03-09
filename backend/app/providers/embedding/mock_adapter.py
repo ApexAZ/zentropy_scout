@@ -20,8 +20,8 @@ class MockEmbeddingProvider(EmbeddingProvider):
         calls: Record of all method invocations for test assertions.
     """
 
-    # Match OpenAI text-embedding-3-small dimensions
-    MOCK_DIMENSIONS = 1536
+    # Match Gemini text-embedding-004 dimensions
+    MOCK_DIMENSIONS = 768
 
     @property
     def provider_name(self) -> str:
@@ -69,7 +69,7 @@ class MockEmbeddingProvider(EmbeddingProvider):
         """Return the mock embedding dimensions.
 
         Returns:
-            1536 (matching text-embedding-3-small).
+            768 (matching text-embedding-004).
         """
         return self.MOCK_DIMENSIONS
 

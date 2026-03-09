@@ -165,8 +165,8 @@ def mock_llm() -> Iterator[MockLLMProvider]:
 def mock_embedding() -> Iterator[MockEmbeddingProvider]:
     """Fixture that provides mock embedding provider and resets after test.
 
-    REQ-009 §9.2: Provides MockEmbeddingProvider with 1536-dimension vectors
-    (matching text-embedding-3-small). Automatically injects into factory
+    REQ-009 §9.2: Provides MockEmbeddingProvider with 768-dimension vectors
+    (matching text-embedding-004). Automatically injects into factory
     singleton and resets after test.
 
     Yields:

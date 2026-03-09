@@ -289,7 +289,7 @@ class TestGeneratePersonaEmbeddings:
     ) -> None:
         """Generates embeddings for hard_skills, soft_skills, and logistics."""
         mock_embed = AsyncMock(
-            return_value=[[0.1] * 1536],
+            return_value=[[0.1] * 768],
         )
 
         result = await generate_persona_embeddings(sample_persona, mock_embed)
@@ -305,7 +305,7 @@ class TestGeneratePersonaEmbeddings:
         sample_persona: MockPersona,
     ) -> None:
         """Result includes the persona ID."""
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_persona_embeddings(sample_persona, mock_embed)
 
@@ -317,7 +317,7 @@ class TestGeneratePersonaEmbeddings:
         sample_persona: MockPersona,
     ) -> None:
         """Version is set from persona.updated_at for staleness detection."""
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_persona_embeddings(sample_persona, mock_embed)
 
@@ -333,7 +333,7 @@ class TestGeneratePersonaEmbeddings:
 
         async def capture_embed(text: str) -> list[list[float]]:
             captured_texts.append(text)
-            return [[0.1] * 1536]
+            return [[0.1] * 768]
 
         await generate_persona_embeddings(sample_persona, capture_embed)
 
@@ -352,7 +352,7 @@ class TestGeneratePersonaEmbeddings:
 
         async def capture_embed(text: str) -> list[list[float]]:
             captured_texts.append(text)
-            return [[0.1] * 1536]
+            return [[0.1] * 768]
 
         await generate_persona_embeddings(sample_persona, capture_embed)
 
@@ -373,7 +373,7 @@ class TestGeneratePersonaEmbeddings:
 
         async def capture_embed(text: str) -> list[list[float]]:
             captured_texts.append(text)
-            return [[0.1] * 1536]
+            return [[0.1] * 768]
 
         await generate_persona_embeddings(sample_persona, capture_embed)
 
@@ -388,7 +388,7 @@ class TestGeneratePersonaEmbeddings:
         sample_persona: MockPersona,
     ) -> None:
         """Result includes the source text used for embedding."""
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_persona_embeddings(sample_persona, mock_embed)
 
@@ -400,7 +400,7 @@ class TestGeneratePersonaEmbeddings:
     async def test_handles_empty_skills(self) -> None:
         """Works when persona has no skills."""
         persona = MockPersona(skills=[])
-        mock_embed = AsyncMock(return_value=[[0.1] * 1536])
+        mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
         result = await generate_persona_embeddings(persona, mock_embed)
 

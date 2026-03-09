@@ -67,10 +67,9 @@ class TestCosineSimilarity:
             cosine_similarity(vec1, vec2)
 
     def test_high_dimensional_vectors(self) -> None:
-        """Works with high-dimensional vectors (1536 dimensions)."""
-        # Simulate OpenAI embedding dimensions
-        vec1 = [0.01 * i for i in range(1536)]
-        vec2 = [0.01 * (i + 0.5) for i in range(1536)]
+        """Works with high-dimensional vectors (768 dimensions)."""
+        vec1 = [0.01 * i for i in range(768)]
+        vec2 = [0.01 * (i + 0.5) for i in range(768)]
         sim = cosine_similarity(vec1, vec2)
         assert -1.0 <= sim <= 1.0
 
@@ -181,10 +180,9 @@ class TestCalculateSoftSkillsScore:
         assert score == pytest.approx(50.0, abs=0.1)
 
     def test_high_dimensional_embeddings(self) -> None:
-        """Works with high-dimensional embeddings (1536)."""
-        # Simulate OpenAI embedding dimensions
-        persona = [0.01 * i for i in range(1536)]
-        job = [0.01 * (i + 0.5) for i in range(1536)]
+        """Works with high-dimensional embeddings (768)."""
+        persona = [0.01 * i for i in range(768)]
+        job = [0.01 * (i + 0.5) for i in range(768)]
         score = calculate_soft_skills_score(persona, job)
         assert 0 <= score <= 100
 

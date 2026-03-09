@@ -483,7 +483,7 @@ class TestMeteredEmbeddingProviderEmbed:
         """embed() returns the inner provider's result unchanged."""
         result = await metered_embedding.embed(["Hello"])
         assert result.model == _MOCK_EMBEDDING_MODEL
-        assert result.dimensions == 1536
+        assert result.dimensions == 768
         assert len(result.vectors) == 1
 
     async def test_records_usage_after_success(
@@ -562,7 +562,7 @@ class TestMeteredEmbeddingProviderDelegation:
         self, metered_embedding: MeteredEmbeddingProvider
     ) -> None:
         """dimensions returns inner provider's value."""
-        assert metered_embedding.dimensions == 1536
+        assert metered_embedding.dimensions == 768
 
     def test_provider_name_delegates(
         self, metered_embedding: MeteredEmbeddingProvider

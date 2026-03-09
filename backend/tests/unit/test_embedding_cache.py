@@ -37,15 +37,15 @@ def make_persona_embeddings(
     return PersonaEmbeddingsResult(
         persona_id=persona_id or uuid.uuid4(),
         hard_skills=PersonaEmbeddingData(
-            vector=[0.1] * 1536,
+            vector=[0.1] * 768,
             source_text="Python (Expert) | AWS (Proficient)",
         ),
         soft_skills=PersonaEmbeddingData(
-            vector=[0.2] * 1536,
+            vector=[0.2] * 768,
             source_text="Leadership | Communication",
         ),
         logistics=PersonaEmbeddingData(
-            vector=[0.3] * 1536,
+            vector=[0.3] * 768,
             source_text="Remote preference: hybrid\nLocation: Seattle, WA, USA",
         ),
         version=version or datetime(2026, 1, 15, 10, 0, 0, tzinfo=UTC),
@@ -330,9 +330,9 @@ class TestPersonaEmbeddingCacheEdgeCases:
         persona_id = uuid.uuid4()
         embeddings = PersonaEmbeddingsResult(
             persona_id=persona_id,
-            hard_skills=PersonaEmbeddingData(vector=[0.1] * 1536, source_text=""),
-            soft_skills=PersonaEmbeddingData(vector=[0.2] * 1536, source_text=""),
-            logistics=PersonaEmbeddingData(vector=[0.3] * 1536, source_text="data"),
+            hard_skills=PersonaEmbeddingData(vector=[0.1] * 768, source_text=""),
+            soft_skills=PersonaEmbeddingData(vector=[0.2] * 768, source_text=""),
+            logistics=PersonaEmbeddingData(vector=[0.3] * 768, source_text="data"),
             version=datetime(2026, 1, 15, tzinfo=UTC),
             model_name="text-embedding-3-small",
         )

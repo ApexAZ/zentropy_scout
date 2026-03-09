@@ -122,7 +122,7 @@ class TestAbstractEnforcement:
 
             @property
             def dimensions(self) -> int:
-                return 1536
+                return 768
 
         with pytest.raises(TypeError, match="provider_name"):
             IncompleteEmbedding(_make_config())  # type: ignore[abstract]

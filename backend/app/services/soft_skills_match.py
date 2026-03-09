@@ -28,7 +28,7 @@ from app.services.fit_score import FIT_NEUTRAL_SCORE
 # =============================================================================
 
 # Maximum embedding dimensions to prevent DoS via oversized vectors
-# OpenAI text-embedding-3-small uses 1536, allow up to 2x for safety
+# Gemini text-embedding-004 uses 768, allow generous headroom
 _MAX_EMBEDDING_DIMENSIONS = 5000
 
 

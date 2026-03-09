@@ -78,7 +78,7 @@ class EmbeddingColumnsMixin:
 
     Attributes:
         embedding_type: Category of embedding (e.g., 'hard_skills', 'culture').
-        vector: 1536-dimensional vector (OpenAI text-embedding-3-small).
+        vector: 768-dimensional vector (Gemini text-embedding-004).
         model_name: Name of the embedding model used.
         model_version: Version of the embedding model.
         source_hash: SHA-256 hash of the source text for change detection.
@@ -89,9 +89,9 @@ class EmbeddingColumnsMixin:
         String(20),
         nullable=False,
     )
-    # Vector column for 1536-dimensional embeddings (OpenAI text-embedding-3-small)
+    # Vector column for 768-dimensional embeddings (Gemini text-embedding-004)
     vector: Mapped[list[float]] = mapped_column(
-        Vector(1536),
+        Vector(768),
         nullable=False,
     )
     model_name: Mapped[str] = mapped_column(
