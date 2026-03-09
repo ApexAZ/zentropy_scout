@@ -132,7 +132,7 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 
 ## Phase 4: Gemini Embedding Adapter
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 **Focus:** Backend — Gemini embedding adapter, vector dimension migration, re-embedding script
 
 #### Workflow
@@ -154,8 +154,8 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | 3 | Update ProviderConfig defaults + `.env.example` | `plan, tdd` | ✅ |
 | 4 | Alembic migration — truncate + alter vector columns | `plan, tdd, db` | ✅ |
 | 5 | Update EmbeddingColumnsMixin + MockEmbeddingProvider | `plan, tdd, provider` | ✅ |
-| 6 | Re-embedding script `backend/scripts/reembed_all.py` | `plan, tdd, provider, db` | ⬜ |
-| 7 | Phase 4 quality gate — full test suite + push | `plan, commands` | ⬜ |
+| 6 | Re-embedding script `backend/scripts/reembed_all.py` | `plan, tdd, provider, db` | ✅ |
+| 7 | Phase 4 quality gate — full test suite + push | `plan, commands` | ✅ |
 
 **Notes:**
 - `google.genai` SDK for Gemini embeddings (same SDK as LLM adapter)
@@ -174,8 +174,8 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 | Phase 1 | 8 (0-7) | 8/8 ✅ |
 | Phase 2 | 6 (0-5) | 6/6 ✅ |
 | Phase 3 | 2 (0-1) | 2/2 ✅ |
-| Phase 4 | 8 (0-7) | ⬜ |
-| **Total** | **24** | **16/24 complete** |
+| Phase 4 | 8 (0-7) | 8/8 ✅ |
+| **Total** | **24** | **24/24 ✅** |
 
 ---
 
@@ -211,3 +211,4 @@ Phase 1 must complete first. Phases 2, 3, 4 can proceed in any order after Phase
 |------|--------|
 | 2026-03-07 | Plan created |
 | 2026-03-08 | Phase 3 complete — BYOK removal docs, security triage (5 FP dismissed), readonly props fix |
+| 2026-03-08 | Phase 4 complete — GeminiEmbeddingAdapter, shared error classifier, factory update, config defaults, migration 024, dimension updates (1536→768), re-embedding script with transaction safety. All 24/24 tasks done. |

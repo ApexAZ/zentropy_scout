@@ -100,7 +100,9 @@ async def reembed_personas(
                     )
 
                     embeddings = await generate_persona_embeddings(
-                        persona, embed, model_name=model_name
+                        persona,
+                        embed,
+                        model_name=model_name,  # type: ignore[arg-type]
                     )
 
                     for emb_type, data in [
@@ -177,7 +179,9 @@ async def reembed_jobs(
                     )
 
                     embeddings = await generate_job_embeddings(
-                        job, embed, model_name=model_name
+                        job,
+                        embed,
+                        model_name=model_name,  # type: ignore[arg-type]
                     )
 
                     for emb_type, data in [
