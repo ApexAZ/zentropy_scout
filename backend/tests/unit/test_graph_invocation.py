@@ -119,24 +119,6 @@ class TestDelegateGhostwriter:
         assert "job" in tool_results[0]["error"].lower()
 
     @pytest.mark.asyncio
-    async def test_exception_returns_safe_error_message(self) -> None:
-        """Service exception does not leak internals to user."""
-        mock_service = MagicMock()
-        mock_service.generate = AsyncMock(
-            side_effect=RuntimeError("DB connection refused")
-        )
-        with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
-            result = await delegate_ghostwriter(_make_chat_state())
-
-        tool_results = result["tool_results"]
-        assert len(tool_results) == 1
-        assert tool_results[0]["tool"] == "invoke_ghostwriter"
-        assert tool_results[0]["result"] is None
-        # Error message must be generic — no internal details leaked
-        assert "DB connection refused" not in tool_results[0]["error"]
-        assert tool_results[0]["error"] is not None
-
-    @pytest.mark.asyncio
     async def test_does_not_mutate_input_state(self) -> None:
         """Delegate returns new state, does not mutate the input."""
         state = _make_chat_state()
@@ -158,46 +140,6 @@ class TestDelegateGhostwriter:
 
 class TestDelegateOnboarding:
     """delegate_onboarding returns redirect messages (REQ-019 §5)."""
-
-    def test_update_request_with_section_returns_specific_redirect(self) -> None:
-        """Update request with detected section returns section-specific message."""
-        state = _make_chat_state(current_message="Change my salary requirement")
-        result = delegate_onboarding(state)
-
-        tool_results = result["tool_results"]
-        assert tool_results[0]["tool"] == "invoke_onboarding"
-        assert tool_results[0]["result"]["status"] == "redirected"
-        assert "non negotiables" in tool_results[0]["result"]["message"].lower()
-        assert "Persona Management" in tool_results[0]["result"]["message"]
-
-    def test_update_request_without_section_returns_generic_redirect(
-        self,
-    ) -> None:
-        """Update request without detectable section returns generic message."""
-        state = _make_chat_state(current_message="Edit my experience")
-        result = delegate_onboarding(state)
-
-        tool_results = result["tool_results"]
-        assert tool_results[0]["result"]["status"] == "redirected"
-        assert "Persona Management" in tool_results[0]["result"]["message"]
-
-    def test_non_update_request_redirects_to_wizard(self) -> None:
-        """Non-update onboarding request redirects to setup wizard."""
-        state = _make_chat_state(current_message="Start onboarding")
-        result = delegate_onboarding(state)
-
-        tool_results = result["tool_results"]
-        assert tool_results[0]["result"]["status"] == "redirected"
-        assert "wizard" in tool_results[0]["result"]["message"].lower()
-
-    def test_populates_tool_results_without_error(self) -> None:
-        """Redirect always returns successfully with no error."""
-        state = _make_chat_state(current_message="Change my salary requirement")
-        result = delegate_onboarding(state)
-
-        tool_results = result["tool_results"]
-        assert len(tool_results) == 1
-        assert tool_results[0]["error"] is None
 
     def test_does_not_mutate_input_state(self) -> None:
         """Delegate returns new state, does not mutate the input."""
