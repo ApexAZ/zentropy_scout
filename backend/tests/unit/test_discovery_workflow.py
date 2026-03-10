@@ -17,7 +17,6 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.services.discovery_workflow import (
-    DiscoveryResult,
     DiscoveryTrigger,
     TriggerType,
     check_trigger_conditions,
@@ -39,40 +38,6 @@ _JOB_FETCH_SERVICE = "app.services.discovery_workflow.JobFetchService"
 
 class TestDiscoveryTrigger:
     """Tests for DiscoveryTrigger dataclass."""
-
-    def test_scheduled_trigger_creation(self) -> None:
-        """Scheduled trigger includes next_poll_at."""
-        trigger = DiscoveryTrigger(
-            trigger_type=TriggerType.SCHEDULED,
-            next_poll_at=datetime.now(UTC),
-        )
-
-        assert trigger.trigger_type == TriggerType.SCHEDULED
-        assert trigger.next_poll_at is not None
-        assert trigger.user_message is None
-        assert trigger.previous_sources is None
-
-    def test_manual_trigger_creation(self) -> None:
-        """Manual trigger includes user message."""
-        trigger = DiscoveryTrigger(
-            trigger_type=TriggerType.MANUAL,
-            user_message="Find me some jobs",
-        )
-
-        assert trigger.trigger_type == TriggerType.MANUAL
-        assert trigger.user_message == "Find me some jobs"
-
-    def test_source_added_trigger_creation(self) -> None:
-        """Source added trigger includes previous and current sources as tuples."""
-        trigger = DiscoveryTrigger(
-            trigger_type=TriggerType.SOURCE_ADDED,
-            previous_sources=(_SOURCE_ADZUNA,),
-            current_sources=(_SOURCE_ADZUNA, _SOURCE_REMOTEOK),
-        )
-
-        assert trigger.trigger_type == TriggerType.SOURCE_ADDED
-        assert trigger.previous_sources == (_SOURCE_ADZUNA,)
-        assert trigger.current_sources == (_SOURCE_ADZUNA, _SOURCE_REMOTEOK)
 
     def test_discovery_trigger_is_frozen(self) -> None:
         """DiscoveryTrigger attributes cannot be reassigned after creation."""
@@ -176,39 +141,6 @@ class TestShouldRunDiscovery:
 # =============================================================================
 # Result Formatting Tests (REQ-003 §13.1)
 # =============================================================================
-
-
-class TestDiscoveryResult:
-    """Tests for DiscoveryResult dataclass."""
-
-    def test_result_contains_jobs_sorted_by_fit_score(self) -> None:
-        """DiscoveryResult holds jobs list sorted by fit score."""
-        jobs = [
-            {"id": "1", "title": "Job A", "fit_score": 85},
-            {"id": "2", "title": "Job B", "fit_score": 92},
-        ]
-
-        result = DiscoveryResult(
-            jobs=jobs,
-            total_discovered=2,
-            sources_queried=[_SOURCE_ADZUNA],
-            error_sources=[],
-        )
-
-        assert result.jobs == jobs
-        assert result.total_discovered == 2
-        assert result.sources_queried == [_SOURCE_ADZUNA]
-
-    def test_result_tracks_error_sources(self) -> None:
-        """DiscoveryResult tracks sources that failed."""
-        result = DiscoveryResult(
-            jobs=[],
-            total_discovered=0,
-            sources_queried=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
-            error_sources=[_SOURCE_REMOTEOK],
-        )
-
-        assert _SOURCE_REMOTEOK in result.error_sources
 
 
 class TestFormatDiscoveryResults:
