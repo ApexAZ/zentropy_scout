@@ -323,7 +323,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit embedding infrastructure** — `test_embedding_types`, `test_embedding_freshness`, `test_embedding_cache`, `test_embedding_storage`, `test_ingest_token_store` (5 files) | `plan, test` | ⬜ |
+| 2 | **Audit embedding infrastructure** — `test_embedding_types`, `test_embedding_freshness`, `test_embedding_cache`, `test_embedding_storage`, `test_ingest_token_store` (5 files). Removed 1 constructor mirror #8 from embedding_cache (TestCachedPersonaEmbeddings: test_stores_embeddings_with_source_hashes — construct dataclass, assert same values back). Other 4 files clean — behavioral hash tests, cache operations with LRU/freshness/tenant isolation, ORM schema verification, token store lifecycle. | `plan, test` | ✅ |
 | 3 | **Audit persona lifecycle** — `test_persona_change`, `test_persona_embedding_generation`, `test_persona_sync`, `test_modification_limits`, `test_timeline_immutability` (5 files) | `plan, test` | ⬜ |
 | 4 | **Audit voice, detection & expiration** — `test_voice_prompt_block`, `test_voice_validation`, `test_ghost_detection`, `test_expiration_detection` (4 files) | `plan, test` | ⬜ |
 | 5 | **Audit golden set & credit repos** — `test_golden_set`, `test_golden_set_fixture`, `test_credit_repository`, `test_credit_repository_balance` (4 files) | `plan, test` | ⬜ |

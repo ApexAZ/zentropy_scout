@@ -8,10 +8,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.services.embedding_cache import (
-    CachedPersonaEmbeddings,
-    PersonaEmbeddingCache,
-)
+from app.services.embedding_cache import PersonaEmbeddingCache
 from app.services.persona_embedding_generator import (
     PersonaEmbeddingData,
     PersonaEmbeddingsResult,
@@ -253,30 +250,6 @@ class TestPersonaEmbeddingCacheStats:
         cache.invalidate(_USER_ID, persona_id)
 
         assert cache.stats().invalidations == 1
-
-
-# =============================================================================
-# Test: CachedPersonaEmbeddings
-# =============================================================================
-
-
-class TestCachedPersonaEmbeddings:
-    """Test the CachedPersonaEmbeddings dataclass."""
-
-    def test_stores_embeddings_with_source_hashes(self):
-        """CachedPersonaEmbeddings stores embeddings and source hashes."""
-        embeddings = make_persona_embeddings()
-        cached = CachedPersonaEmbeddings(
-            embeddings=embeddings,
-            hard_skills_hash="abc123",
-            soft_skills_hash="def456",
-            logistics_hash="ghi789",
-        )
-
-        assert cached.embeddings == embeddings
-        assert cached.hard_skills_hash == "abc123"
-        assert cached.soft_skills_hash == "def456"
-        assert cached.logistics_hash == "ghi789"
 
 
 # =============================================================================
