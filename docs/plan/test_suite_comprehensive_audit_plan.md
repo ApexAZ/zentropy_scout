@@ -214,7 +214,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
 | 2 | **Audit API scaffold & resources** — `test_api_main`, `test_api_pagination`, `test_api_auth`, `test_api_resources_router` (4 files) — all clean (HTTP integration, security headers, CORS, JWT, route existence) | `plan, test` | ✅ |
 | 3 | **Audit persona & onboarding endpoints** — `test_api_personas_crud`, `test_api_personas_router`, `test_api_persona_change_flags`, `test_api_onboarding` (4 files) — all clean (auth, ownership, CRUD, file validation, cross-tenant) | `plan, test` | ✅ |
-| 4 | **Audit job posting endpoints** — `test_api_job_postings_crud`, `test_api_job_postings_ingest`, `test_api_job_postings_router`, `test_api_job_variants` (4 files) | `plan, test` | ⬜ |
+| 4 | **Audit job posting endpoints** — `test_api_job_postings_crud`, `test_api_job_postings_ingest`, `test_api_job_postings_router`, `test_api_job_variants` (4 files) — all clean (CRUD, ingest flow, dedup, auth, cross-tenant isolation, bulk operations, snapshot logic, balance gating, security whitelist) | `plan, test` | ✅ |
 | 5 | **Audit application & variant endpoints** — `test_api_variant_for_job`, `test_api_applications`, `test_api_base_resumes`, `test_api_cover_letters` (4 files) | `plan, test` | ⬜ |
 | 6 | **Audit resume, chat & file endpoints** — `test_api_resume_templates`, `test_api_chat`, `test_api_files`, `test_api_bulk_operations` (4 files) | `plan, test` | ⬜ |
 | 7 | **Audit usage, preferences & generation endpoints** — `test_api_usage`, `test_api_user_source_preferences`, `test_export_endpoints`, `test_generation_endpoint` (4 files) | `plan, test` | ⬜ |
