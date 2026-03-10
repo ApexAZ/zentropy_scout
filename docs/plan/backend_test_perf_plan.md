@@ -158,9 +158,9 @@ from sqlalchemy import event  # Add to conftest.py imports
 
 ## Phase 2: Slow Test Markers
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
-*Mark migration tests with `@pytest.mark.slow` and configure default filtering. Improves day-to-day TDD feedback by skipping ~119 inherently slow migration tests.*
+*Mark migration tests with `@pytest.mark.slow` and configure default filtering. Improves day-to-day TDD feedback by skipping 125 migration tests. **Default run: 4,134 tests in 52s.***
 
 #### Workflow
 | Step | Action |
@@ -175,7 +175,7 @@ from sqlalchemy import event  # Add to conftest.py imports
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 5 | **Add `@pytest.mark.slow` + configure filtering** — Register `slow` marker in `pyproject.toml`. Add `pytestmark = pytest.mark.slow` to all 5 migration test files. Add class-level `@pytest.mark.slow` to `TestMigration020Upgrade` and `TestMigration020Downgrade` in `test_metering_models.py` (NOT module-level — file has non-migration tests). Set `addopts = "-m 'not slow'"` in `pyproject.toml`. Update pre-push hook to add `-m ""`. Verify: default run skips slow, `-m ""` runs all, `-m slow` runs only migration tests. | `tdd, plan` | ✅ 2026-03-10 21:52 UTC — 125 slow tests, default run 4,134 in 52.07s |
-| 6 | **Phase 2 gate — full test suite + push** — Run full suite with `-m ""`. Fix regressions. Commit, push. | `plan, commands` | ⬜ |
+| 6 | **Phase 2 gate — full test suite + push** — Run full suite with `-m ""`. Fix regressions. Commit, push. | `plan, commands` | ✅ 2026-03-10 22:09 UTC — Backend 4,259 passed 123.02s, Frontend 3,437 passed, lint+typecheck clean |
 
 #### Files to Mark
 | File | Marker Level | Why |
@@ -286,3 +286,4 @@ After each phase gate:
 |------|--------|
 | 2026-03-10 | Plan created. 3 phases, 8 items. DX infrastructure — no REQ document. |
 | 2026-03-10 | Phase 1 complete (§1-§4). Backend 4,259 passed, 120.93s (3.86x speedup from 467s). |
+| 2026-03-10 | Phase 2 complete (§5-§6). 125 migration tests marked slow. Default run: 4,134 in 52s. |
