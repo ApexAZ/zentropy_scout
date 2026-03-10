@@ -526,7 +526,36 @@ class TestBulkFavoriteDB:
             "/api/v1/job-postings/bulk-favorite",
             json={"ids": [str(persona_job_b.id)], "is_favorite": True},
         )
-        assert response.status_code == 200
+        # DIAGNOSTIC: Flaky 401 investigation (2026-03-09)
+        # This test intermittently fails with 401 in full-suite runs but passes
+        # in isolation. The diagnostic captures the auth chain state at failure
+        # time to identify whether the cause is:
+        #   - settings.auth_enabled leaked to False (→ default_user_id=None → 401)
+        #   - settings.auth_secret changed (→ JWT signature mismatch → 401)
+        #   - cookie name mismatch (→ no token found → 401)
+        #   - something else in the JWT validation chain
+        # Once the root cause is identified, remove this block and fix the
+        # underlying issue. See: git log for "flaky 401" commits.
+        if response.status_code != 200:
+            from app.core.config import settings
+            from tests.conftest import TEST_AUTH_SECRET
+
+            diag = {
+                "status": response.status_code,
+                "body": response.text,
+                "auth_enabled": settings.auth_enabled,
+                "auth_secret_set": settings.auth_secret is not None,
+                "auth_secret_matches": (
+                    settings.auth_secret is not None
+                    and settings.auth_secret.get_secret_value() == TEST_AUTH_SECRET
+                ),
+                "default_user_id": str(settings.default_user_id),
+                "cookie_name": settings.auth_cookie_name,
+                "client_cookies": dict(client.cookies),
+            }
+            raise AssertionError(
+                f"Expected 200, got {response.status_code}. Diag: {diag}"
+            )
         data = response.json()["data"]
         assert data["succeeded"] == []
         assert len(data["failed"]) == 1

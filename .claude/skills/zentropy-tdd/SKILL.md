@@ -14,38 +14,17 @@ description: |
 
 # TDD & Testing Patterns
 
-## Core Philosophy: Behavior Over Implementation
+## Core Philosophy
 
-**Test WHAT code does, not HOW it does it.** Tests should verify observable behavior from the perspective of callers, not internal implementation details.
+**Test WHAT code does, not HOW it does it.** See CLAUDE.md "Testing Philosophy" for full rationale and examples.
 
-### Good vs Bad Tests
+**Decision criterion:** "Would this test still pass if I rewrote the implementation using a completely different internal structure but preserved the same external behavior?" YES = behavioral (good). NO = structural (bad).
 
-```python
-# GOOD: Tests behavior - what the caller cares about
-def test_extraction_tasks_use_cheaper_model():
-    adapter = ClaudeAdapter(config)
-    model = adapter.get_model_for_task(TaskType.EXTRACTION)
-    assert "haiku" in model.lower()
-
-# BAD: Tests implementation - brittle, breaks on refactor
-def test_routing_dict_has_nine_entries():
-    assert len(DEFAULT_ROUTING) == 9
-```
-
-### When Implementation Details Matter
-
-Test implementation when:
+**Exception — test implementation when:**
 - **Performance guarantees** — "Must use O(1) lookup"
 - **Security requirements** — "Must use constant-time comparison"
 - **Contractual obligations** — "Must call audit log before delete"
-- **Resource constraints** — "Must stream, not buffer"
-
-### When Tests Should Change
-
-- **Change tests when:** Behavior requirements change
-- **Don't change tests when:** Refactoring internals
-
-If refactoring breaks tests, they were testing implementation, not behavior.
+- **High production risk** — Wrong model name sent to external API = silent billing/quality issue that no behavioral test can catch
 
 ---
 
@@ -103,9 +82,7 @@ Before writing ANY implementation code:
 
 ---
 
-## Test Quality
-
-### Checklist
+## Test Quality Checklist
 
 Before marking a test complete:
 1. **Behavior focus** — Would a caller/user care about this assertion?
@@ -113,78 +90,44 @@ Before marking a test complete:
 3. **Readable** — Can someone understand intent without reading implementation?
 4. **Independent** — Passes/fails regardless of test execution order?
 5. **Clear name** — Uses `test_<behavior>_when_<condition>` format?
+6. **No companions** — Is this behavior already tested elsewhere? If yes, don't write a duplicate — either strengthen the existing test or skip this one.
 
-### Red Flags
+---
 
-- Testing exact string matches when substring would suffice
-- Asserting dict/list lengths instead of contents
-- Testing private methods or attributes (`_prefixed`)
-- Mocking so much you're testing the mocks
-- Tests that pass even if you comment out the implementation
+## Test Bloat Patterns
 
-### Anti-Patterns
+Every test must justify its existence: **"What real bug would this test catch that no other test catches?"** If the answer is "nothing," it's bloat. These are the patterns that produce bloat — never write them.
 
-| Anti-Pattern | Correct Approach |
-|--------------|------------------|
-| Writing implementation first | Write test first |
-| Testing private methods | Test public interface only |
-| Testing framework internals | Test your code's behavior |
-| 100% coverage as goal | Cover critical paths and edge cases |
-| Mocking everything | Use real DB for integration tests |
-
-### Structural Assertion Anti-Patterns (NEVER USE)
-
-These patterns test implementation details rather than behavior. They break on refactors that don't change functionality. The conftest.py hook detects most of these and reports warnings.
+### Structural Assertion Patterns (conftest.py hook detects some)
 
 | Banned Pattern | Why It's Wrong | What to Do Instead |
 |----------------|----------------|-------------------|
-| `isinstance(result, SomeType)` | Tests return type, not behavior | Assert on the result's value or properties |
+| `isinstance(result, T)` | Tests return type, not behavior | Assert on the result's value or properties |
 | `issubclass(Foo, Bar)` | Tests inheritance chain | Test that `Foo` exhibits `Bar`'s behavioral contract |
 | `hasattr(obj, "field")` | Tests attribute existence | Call the attribute and assert on its behavior |
-| `callable(obj)` | Tests callable status, not behavior | Call the function and assert on its return value |
-| `get_type_hints(Cls)` | Tests schema shape | Construct instances and assert on behavior |
-| `dataclasses.fields(Cls)` | Tests schema shape | Construct instances and assert on behavior |
+| `callable(obj)` | Tests callable status | Call the function and assert on its return value |
+| `get_type_hints(Cls)` / `dataclasses.fields(Cls)` | Tests schema shape | Construct instances and assert on behavior |
 | `"method" in Cls.__abstractmethods__` | Tests ABC internals | Test that concrete subclasses implement the method |
 | `CONSTANT == 42` / `enum.value == "literal"` | Duplicates the source code | Test behavior that depends on the constant's value |
 | `len(some_enum) == N` | Breaks when enum grows | Test specific members that matter for behavior |
 
-**Decision criterion:** Ask "Would this test still pass if I rewrote the implementation using a completely different internal structure but preserved the same external behavior?" If yes, the test is behavioral (good). If no, the test is structural (bad).
+### Behavioral Bloat Patterns (not auto-detected)
+
+| Pattern | Example | Why It's Bloat | Fix |
+|---------|---------|----------------|-----|
+| **Constructor mirror** | `obj = Foo(x=1)` → `assert obj.x == 1` | Tests that Python assignment works, not business logic. Was the #1 bloat source in the 2026-03 audit (drove most of 225 deletions). | DELETE if constructor just assigns. KEEP if constructor validates/transforms (e.g., `Entry(score=101)` → `raises ValueError` tests validation behavior, not assignment) |
+| **Pass-through mock** | `mock.return_value = X` → `assert result == X` | The mock guarantees the test passes — it can never fail | If the function transforms/filters/branches on the result, assert on that. If it's pure delegation with no logic, DELETE the test — there's nothing to break |
+| **Default-value mirror** | `assert config.timeout == 30` | Mirrors Pydantic/ORM default; duplicates source code | Test behavior that depends on the default (e.g., "request times out after default period") |
+| **Mock-only assertion** | `mock.assert_called_once_with(args)` as sole assertion | Tests wiring, not behavior; breaks on any refactor | Add output/result assertions; mock call checks are supplementary, never primary |
+| **caplog-only test** | `assert "Processing" in caplog.text` | Logging is developer convenience, not a contract; fragile to rewording | DELETE unless log message is part of a monitoring/alerting contract |
+| **`is not None` sole assertion** | `assert result is not None` | Redundant when companion tests assert on properties of result | DELETE if companions exist; if no companions, add real assertions instead |
+| **Subsumed/duplicate** | Same code path tested identically in two places | One test can never catch a bug the other misses | DELETE the less specific test; keep the one with richer assertions |
+
+### Approved Exception: Frozen-Test Pattern
+
+When verifying immutability, test through the public API (`replace()`), not Python's freeze mechanism:
 
 ```python
-# BAD: Structural — tests that the type is correct
-def test_returns_cover_letter_result():
-    result = await generate_cover_letter(**kwargs)
-    assert isinstance(result, CoverLetterResult)
-
-# GOOD: Behavioral — tests what the caller actually cares about
-def test_result_contains_content_and_reasoning():
-    result = await generate_cover_letter(**kwargs)
-    assert "Dear Hiring Manager" in result.content
-    assert "cloud migration" in result.reasoning
-
-# BAD: Structural — tests field existence
-def test_record_has_all_fields():
-    record = create_outcome_record(gen_id="abc", outcome=APPROVED)
-    assert hasattr(record, "generation_id")
-    assert hasattr(record, "outcome")
-
-# GOOD: Behavioral — tests field values
-def test_approved_record_has_correct_values():
-    record = create_outcome_record(gen_id="abc", outcome=APPROVED)
-    assert record.generation_id == "abc"
-    assert record.outcome == APPROVED
-    assert record.feedback_category is None
-```
-
-**Frozen-test pattern (approved alternative for immutability):**
-
-```python
-# BAD: Tests Python's frozen mechanism
-def test_result_is_frozen():
-    result = SomeResult(field="value")
-    with pytest.raises(FrozenInstanceError):
-        result.field = "new"
-
 # GOOD: Tests immutability through public API
 def test_result_preserves_original_on_copy():
     result = SomeResult(field="value")
@@ -195,121 +138,53 @@ def test_result_preserves_original_on_copy():
 
 ---
 
-## Test Setup
+## Evaluating Existing Tests
+
+When auditing or reviewing tests, follow this evaluation process:
+
+1. **Read the test.** What does it assert?
+2. **Read the source function.** Is the assertion testing behavior or echoing implementation?
+3. **Check for companions.** Does another test already cover this behavior more thoroughly?
+4. **Apply the refactor test.** Would this test still pass after a complete reimplementation that preserves external behavior?
+
+### Dispositions
+
+| Disposition | When to Use |
+|-------------|-------------|
+| **KEEP** | Actually valuable — tests real behavior, no companion covers it |
+| **DELETE** | No value, no refactor path, companion covers the behavior |
+| **REFACTOR** | Currently tests implementation but COULD test behavior instead |
+| **CONSOLIDATE** | Multiple tests that should be one parametrized test |
+
+---
+
+## Test Setup Reference
+
+All test infrastructure lives in `backend/tests/conftest.py`. Key fixtures:
+
+- **`db_engine`** — Function-scoped, creates/drops all tables per test
+- **`db_session`** — Function-scoped async session with rollback on teardown
+- **`mock_llm`** — `MockLLMProvider` with pre-configured responses, injected into factory
+- **`mock_embedding`** — `MockEmbeddingProvider` (768-dim vectors), injected into factory
+- **`client`** — Authenticated `AsyncClient` with JWT cookie, DB override, auth enabled
+- **`test_user`** / **`test_persona`** / **`test_job_source`** — Standard test data
+
+Before writing a new test file, **always read an existing sibling test file** in the same directory to match the exact mock setup pattern, fixture usage, and naming conventions.
 
 ### File Organization
 
 ```
 backend/tests/
-├── conftest.py              # Shared fixtures
-├── unit/                    # Pure logic, fully mocked
-│   ├── test_extraction.py
-│   └── test_scoring.py
-├── integration/             # Real DB, mocked externals
-│   ├── test_persona_repository.py
-│   └── test_api_personas.py
-└── fixtures/
-```
-
-### conftest.py
-
-```python
-import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from app.models.base import Base
-
-TEST_DATABASE_URL = "postgresql+asyncpg://zentropy_user:zentropy_dev_password@localhost:5432/zentropy_scout_test"
-
-@pytest.fixture(scope="session")
-def event_loop():
-    import asyncio
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-@pytest_asyncio.fixture(scope="function")
-async def db_engine():
-    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield engine
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
-
-@pytest_asyncio.fixture(scope="function")
-async def db_session(db_engine):
-    async_session = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
-    async with async_session() as session:
-        yield session
-        await session.rollback()
-```
-
-### Mock LLM Provider
-
-```python
-class MockLLMProvider:
-    def __init__(self, responses: dict = None):
-        self.responses = responses or {}
-        self.calls = []
-
-    async def complete(self, messages, task, output_schema=None, **kwargs):
-        self.calls.append({"messages": messages, "task": task, "output_schema": output_schema})
-        if task in self.responses:
-            response = self.responses[task]
-            if output_schema and isinstance(response, dict):
-                return output_schema.model_validate(response)
-            return response
-        raise ValueError(f"No mock response for task: {task}")
-
-@pytest.fixture
-def mock_llm():
-    def _create(responses=None):
-        return MockLLMProvider(responses=responses)
-    return _create
-```
-
----
-
-## Testing Patterns
-
-### Async Code
-
-```python
-@pytest.mark.asyncio
-async def test_create_persona(db_session, mock_llm):
-    llm = mock_llm(responses={"extraction": {"skills": [{"name": "Python", "level": "expert"}]}})
-    repo = PersonaRepository(db_session)
-    service = PersonaService(repo, llm)
-    persona = await service.create_from_text("I am a Python developer")
-    assert persona.id is not None
-    assert len(llm.calls) == 1
-```
-
-### API Endpoints
-
-```python
-@pytest_asyncio.fixture
-async def client(db_session):
-    app.dependency_overrides[get_db] = lambda: db_session
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        yield client
-    app.dependency_overrides.clear()
-
-@pytest.mark.asyncio
-async def test_create_persona_endpoint(client):
-    response = await client.post("/api/v1/personas", json={"name": "Test User"})
-    assert response.status_code == 201
-    assert "id" in response.json()
+├── conftest.py              # Shared fixtures (read this first)
+├── unit/                    # Pure logic + API endpoint tests
+└── fixtures/                # Test data files
 ```
 
 ---
 
 ## Property-Based Testing with Hypothesis
 
-Use Hypothesis for testing invariants that must hold for ANY input. Especially valuable for security-sensitive code.
+Use Hypothesis for testing invariants that must hold for ANY input. Especially valuable for security-sensitive code like sanitization.
 
 ```python
 from hypothesis import given, settings
@@ -328,8 +203,6 @@ def test_sanitize_idempotent(text: str) -> None:
     assert once == twice
 ```
 
-### When to Use Hypothesis vs Example-Based
-
 | Scenario | Approach |
 |----------|----------|
 | Specific known inputs -> expected outputs | Example-based (pytest) |
@@ -337,13 +210,7 @@ def test_sanitize_idempotent(text: str) -> None:
 | Security: no forbidden patterns in output | Property-based (Hypothesis) |
 | Regression: specific bug reproduction | Example-based (pytest) |
 
-### Key Patterns
-
-- Use `assume()` (not `return`) to discard invalid inputs
-- Pre-compile regex at module level, not inside `@given`
-- Use `st.sampled_from()` for injection-adjacent characters
-- Extract shared assertion helpers for reused invariants
-- Existing fuzz tests: `backend/tests/unit/test_llm_sanitization_fuzz.py`
+Key rules: use `assume()` to discard invalid inputs, pre-compile regex at module level, use `st.sampled_from()` for injection-adjacent characters. See `backend/tests/unit/test_llm_sanitization_fuzz.py` for examples.
 
 ---
 
@@ -364,16 +231,6 @@ async def complete(self, messages, task, max_tokens=None):  # noqa: ARG002
 If you must use noqa, track it in the active plan file for cleanup.
 
 ---
-
-## Running Tests
-
-```bash
-pytest -v                                    # All tests
-pytest --cov=app --cov-report=html           # With coverage
-pytest tests/unit/test_file.py -v            # Specific file
-pytest -k "persona" -v                       # Pattern match
-pytest --lf                                  # Failed tests only
-```
 
 ## Workflow Summary
 
