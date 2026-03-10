@@ -251,7 +251,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit agent infrastructure** — `test_agent_client`, `test_agent_handoff`, `test_agent_message`, `test_agent_session_guard` (4 files) | `plan, test` | ⬜ |
+| 2 | **Audit agent infrastructure** — `test_agent_client`, `test_agent_handoff`, `test_agent_message`, `test_agent_session_guard` (4 files). Removed 24 constructor mirrors: 11 from handoff (test_fields_accessible + 3 per-type classes), 13 from message (test_fields_accessible + 6 per-type classes). Behavioral tests kept: immutability, format_for_state, truncation, edge cases. | `plan, test` | ✅ |
 | 3 | **Audit chat & onboarding agents** — `test_chat_agent`, `test_onboarding_utilities`, `test_onboarding_workflow`, `test_graph_invocation` (4 files) | `plan, test` | ⬜ |
 | 4 | **Audit ghostwriter & scouter** — `test_ghostwriter`, `test_ghostwriter_prompts`, `test_scouter_agent`, `test_scouter_error_handling` (4 files) | `plan, test` | ⬜ |
 | 5 | **Audit embedding & provider adapters** — `test_gemini_embedding_adapter`, `test_metered_provider`, `test_provider_errors`, `test_provider_name` (4 files) | `plan, test` | ⬜ |

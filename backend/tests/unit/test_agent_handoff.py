@@ -64,19 +64,6 @@ class TestAgentHandoffType:
 class TestAgentHandoffStructure:
     """AgentHandoff is a frozen dataclass with four fields."""
 
-    def test_fields_accessible(self) -> None:
-        """All four fields are accessible after construction."""
-        handoff = AgentHandoff(
-            handoff_type=AgentHandoffType.SCOUTER_TO_STRATEGIST,
-            source_agent=_AGENT_SCOUTER,
-            target_agent=_AGENT_STRATEGIST,
-            payload_summary=_PAYLOAD_SCORING,
-        )
-        assert handoff.handoff_type == AgentHandoffType.SCOUTER_TO_STRATEGIST
-        assert handoff.source_agent == _AGENT_SCOUTER
-        assert handoff.target_agent == _AGENT_STRATEGIST
-        assert handoff.payload_summary == _PAYLOAD_SCORING
-
     def test_preserves_original_values(self) -> None:
         """Modifying a copy preserves the original handoff values."""
         handoff = AgentHandoff(
@@ -88,110 +75,6 @@ class TestAgentHandoffStructure:
         updated = replace(handoff, source_agent=_AGENT_CHAT)
         assert handoff.source_agent == _AGENT_SCOUTER
         assert updated.source_agent == _AGENT_CHAT
-
-
-# =============================================================================
-# create_agent_handoff — Per-Type Tests
-# =============================================================================
-
-
-class TestCreateScouterToStrategist:
-    """create_agent_handoff with SCOUTER_TO_STRATEGIST type."""
-
-    def test_correct_type(self) -> None:
-        """Handoff has SCOUTER_TO_STRATEGIST type."""
-        handoff = _make_handoff(payload_summary="5 new jobs discovered from Adzuna")
-        assert handoff.handoff_type == AgentHandoffType.SCOUTER_TO_STRATEGIST
-
-    def test_agents_preserved(self) -> None:
-        """Source and target agent names are stored verbatim."""
-        handoff = _make_handoff()
-        assert handoff.source_agent == _AGENT_SCOUTER
-        assert handoff.target_agent == _AGENT_STRATEGIST
-
-    def test_payload_preserved(self) -> None:
-        """Payload summary is stored verbatim when within length limit."""
-        handoff = _make_handoff(payload_summary="5 new jobs discovered from Adzuna")
-        assert handoff.payload_summary == "5 new jobs discovered from Adzuna"
-
-
-class TestCreateStrategistToGhostwriter:
-    """create_agent_handoff with STRATEGIST_TO_GHOSTWRITER type."""
-
-    def test_correct_type(self) -> None:
-        """Handoff has STRATEGIST_TO_GHOSTWRITER type."""
-        handoff = _make_handoff(
-            handoff_type=AgentHandoffType.STRATEGIST_TO_GHOSTWRITER,
-            source_agent=_AGENT_STRATEGIST,
-            target_agent=_AGENT_GHOSTWRITER,
-            payload_summary="Job job-456 scored 95, above threshold 90",
-        )
-        assert handoff.handoff_type == AgentHandoffType.STRATEGIST_TO_GHOSTWRITER
-
-    def test_agents_preserved(self) -> None:
-        """Source and target agent names are stored verbatim."""
-        handoff = _make_handoff(
-            handoff_type=AgentHandoffType.STRATEGIST_TO_GHOSTWRITER,
-            source_agent=_AGENT_STRATEGIST,
-            target_agent=_AGENT_GHOSTWRITER,
-        )
-        assert handoff.source_agent == _AGENT_STRATEGIST
-        assert handoff.target_agent == _AGENT_GHOSTWRITER
-
-    def test_payload_preserved(self) -> None:
-        """Payload summary is stored verbatim when within length limit."""
-        handoff = _make_handoff(
-            handoff_type=AgentHandoffType.STRATEGIST_TO_GHOSTWRITER,
-            source_agent=_AGENT_STRATEGIST,
-            target_agent=_AGENT_GHOSTWRITER,
-            payload_summary="Job job-456 scored 95, above threshold 90",
-        )
-        assert handoff.payload_summary == "Job job-456 scored 95, above threshold 90"
-
-
-class TestCreateChatToAgent:
-    """create_agent_handoff with CHAT_TO_AGENT type."""
-
-    def test_correct_type(self) -> None:
-        """Handoff has CHAT_TO_AGENT type."""
-        handoff = _make_handoff(
-            handoff_type=AgentHandoffType.CHAT_TO_AGENT,
-            source_agent=_AGENT_CHAT,
-            target_agent=_AGENT_GHOSTWRITER,
-            payload_summary="User requested materials for job-789",
-        )
-        assert handoff.handoff_type == AgentHandoffType.CHAT_TO_AGENT
-
-    def test_agents_preserved(self) -> None:
-        """Source and target agent names are stored verbatim."""
-        handoff = _make_handoff(
-            handoff_type=AgentHandoffType.CHAT_TO_AGENT,
-            source_agent=_AGENT_CHAT,
-            target_agent=_AGENT_ONBOARDING,
-        )
-        assert handoff.source_agent == _AGENT_CHAT
-        assert handoff.target_agent == _AGENT_ONBOARDING
-
-    def test_payload_preserved(self) -> None:
-        """Payload summary is stored verbatim when within length limit."""
-        handoff = _make_handoff(
-            handoff_type=AgentHandoffType.CHAT_TO_AGENT,
-            source_agent=_AGENT_CHAT,
-            target_agent=_AGENT_SCOUTER,
-            payload_summary="User triggered immediate job search",
-        )
-        assert handoff.payload_summary == "User triggered immediate job search"
-
-    def test_different_targets(self) -> None:
-        """Chat can delegate to different target agents."""
-        for target in (_AGENT_ONBOARDING, _AGENT_SCOUTER, _AGENT_GHOSTWRITER):
-            handoff = _make_handoff(
-                handoff_type=AgentHandoffType.CHAT_TO_AGENT,
-                source_agent=_AGENT_CHAT,
-                target_agent=target,
-                payload_summary=f"Delegating to {target}",
-            )
-            assert handoff.target_agent == target
 
 
 # =============================================================================
