@@ -29,6 +29,8 @@ if TYPE_CHECKING:
     from alembic.config import Config
     from sqlalchemy.ext.asyncio import AsyncConnection
 
+pytestmark = pytest.mark.slow
+
 TEST_DATABASE_URL = settings.database_url.replace(
     settings.database_name, f"{settings.database_name}_test"
 )

@@ -174,7 +174,7 @@ from sqlalchemy import event  # Add to conftest.py imports
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 5 | **Add `@pytest.mark.slow` + configure filtering** — Register `slow` marker in `pyproject.toml`. Add `pytestmark = pytest.mark.slow` to all 5 migration test files. Add class-level `@pytest.mark.slow` to `TestMigration020Upgrade` and `TestMigration020Downgrade` in `test_metering_models.py` (NOT module-level — file has non-migration tests). Set `addopts = "-m 'not slow'"` in `pyproject.toml`. Update pre-push hook to add `-m ""`. Verify: default run skips slow, `-m ""` runs all, `-m slow` runs only migration tests. | `tdd, plan` | ⬜ |
+| 5 | **Add `@pytest.mark.slow` + configure filtering** — Register `slow` marker in `pyproject.toml`. Add `pytestmark = pytest.mark.slow` to all 5 migration test files. Add class-level `@pytest.mark.slow` to `TestMigration020Upgrade` and `TestMigration020Downgrade` in `test_metering_models.py` (NOT module-level — file has non-migration tests). Set `addopts = "-m 'not slow'"` in `pyproject.toml`. Update pre-push hook to add `-m ""`. Verify: default run skips slow, `-m ""` runs all, `-m slow` runs only migration tests. | `tdd, plan` | ✅ 2026-03-10 21:52 UTC — 125 slow tests, default run 4,134 in 52.07s |
 | 6 | **Phase 2 gate — full test suite + push** — Run full suite with `-m ""`. Fix regressions. Commit, push. | `plan, commands` | ⬜ |
 
 #### Files to Mark

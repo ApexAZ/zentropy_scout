@@ -440,6 +440,7 @@ def _create_alembic_config() -> Config:
     return cfg
 
 
+@pytest.mark.slow
 class TestMigration020Upgrade:
     """Verify migration 020 creates metering tables and balance column."""
 
@@ -585,6 +586,7 @@ class TestMigration020Upgrade:
         )
 
 
+@pytest.mark.slow
 class TestMigration020Downgrade:
     """Verify migration 020 can be cleanly downgraded."""
 
