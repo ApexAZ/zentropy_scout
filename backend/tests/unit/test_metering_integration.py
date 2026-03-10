@@ -11,7 +11,7 @@ from decimal import Decimal
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, select, text
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.admin_config import ModelRegistry, PricingConfig
@@ -388,58 +388,128 @@ class TestEndToEndMetering:
 
 
 class TestConcurrentRequests:
-    """Concurrent LLM calls must not overdraft via race condition."""
+    """Concurrent LLM calls must not overdraft via race condition.
+
+    These tests need true concurrent DB access (multiple connections via
+    asyncio.gather), so they bypass SAVEPOINT isolation and commit directly
+    to the DB. Each test seeds its own data and cleans up after.
+    """
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def _seed_concurrent_pricing(self, db_engine):
+        """Seed pricing data directly into DB for concurrent access.
+
+        Unlike db_session-based fixtures, this commits to the real DB so
+        per-task sessions (each on their own connection) can see the data.
+        """
+        async with AsyncSession(db_engine, expire_on_commit=False) as session:
+            session.add(
+                ModelRegistry(
+                    provider=_CLAUDE_PROVIDER,
+                    model=_HAIKU_MODEL,
+                    display_name="Claude 3.5 Haiku",
+                    model_type="llm",
+                    is_active=True,
+                )
+            )
+            session.add(
+                PricingConfig(
+                    provider=_CLAUDE_PROVIDER,
+                    model=_HAIKU_MODEL,
+                    input_cost_per_1k=_HAIKU_INPUT_PER_1K,
+                    output_cost_per_1k=_HAIKU_OUTPUT_PER_1K,
+                    margin_multiplier=_MARGIN,
+                    effective_date=date(2020, 1, 1),
+                )
+            )
+            await session.commit()
+
+        yield
+
+        async with AsyncSession(db_engine, expire_on_commit=False) as session:
+            await session.execute(
+                delete(PricingConfig).where(
+                    PricingConfig.provider == _CLAUDE_PROVIDER,
+                    PricingConfig.model == _HAIKU_MODEL,
+                )
+            )
+            await session.execute(
+                delete(ModelRegistry).where(
+                    ModelRegistry.provider == _CLAUDE_PROVIDER,
+                    ModelRegistry.model == _HAIKU_MODEL,
+                )
+            )
+            await session.commit()
+
+    @staticmethod
+    async def _cleanup_user_data(db_engine, user_id: uuid.UUID) -> None:
+        """Delete all test data for a user (usage records, transactions, user)."""
+        async with AsyncSession(db_engine, expire_on_commit=False) as session:
+            await session.execute(
+                delete(CreditTransaction).where(CreditTransaction.user_id == user_id)
+            )
+            await session.execute(
+                delete(LLMUsageRecord).where(LLMUsageRecord.user_id == user_id)
+            )
+            await session.execute(delete(User).where(User.id == user_id))
+            await session.commit()
 
     @pytest.mark.asyncio
-    async def test_concurrent_calls_no_overdraft(
-        self,
-        db_session,
-        metering_user,  # noqa: ARG002
-        seed_pricing_data,  # noqa: ARG002
-    ):
+    async def test_concurrent_calls_no_overdraft(self, db_engine):
         """asyncio.gather() with many calls never drives balance below zero.
 
         User has $10.00. Each call costs ~$0.000364. Even hundreds of
         concurrent calls shouldn't overdraft because the atomic UPDATE
         uses WHERE balance_usd >= amount.
 
-        Note: Concurrent calls share the same db_session. This is intentional —
-        asyncio.gather() runs coroutines concurrently within a single event loop,
-        which is how concurrent FastAPI requests within a single worker behave.
+        Each concurrent task gets its own AsyncSession from the engine pool,
+        enabling true concurrent DB access across multiple connections.
         """
-        n_concurrent = 20
-
-        async def _make_one_call(_idx: int) -> LLMResponse:
-            inner = _HaikuMockProvider()
-            config = AdminConfigService(db_session)
-            service = MeteringService(db_session, config)
-            provider = MeteredLLMProvider(
-                inner, None, service, config, _METERING_USER_ID
+        user_id = _METERING_USER_ID
+        async with AsyncSession(db_engine, expire_on_commit=False) as session:
+            session.add(
+                User(
+                    id=user_id,
+                    email="metering-test@example.com",
+                    balance_usd=_INITIAL_BALANCE,
+                )
             )
-            return await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
+            await session.commit()
 
-        results = await asyncio.gather(
-            *[_make_one_call(i) for i in range(n_concurrent)]
-        )
-        await db_session.flush()
+        try:
+            n_concurrent = 20
 
-        # All calls should succeed (return responses)
-        assert len(results) == n_concurrent
+            async def _make_one_call(_idx: int) -> LLMResponse:
+                async with AsyncSession(
+                    db_engine, expire_on_commit=False
+                ) as task_session:
+                    inner = _HaikuMockProvider()
+                    config = AdminConfigService(task_session)
+                    service = MeteringService(task_session, config)
+                    provider = MeteredLLMProvider(inner, None, service, config, user_id)
+                    result = await provider.complete(
+                        _SIMPLE_MESSAGES, TaskType.EXTRACTION
+                    )
+                    await task_session.commit()
+                    return result
 
-        # Balance should never be negative
-        balance = await _get_balance(db_session, _METERING_USER_ID)
-        assert balance >= Decimal("0")
+            results = await asyncio.gather(
+                *[_make_one_call(i) for i in range(n_concurrent)]
+            )
 
-        # All records should be inserted
-        usage_count = await _count_usage_records(db_session, _METERING_USER_ID)
-        assert usage_count == n_concurrent
+            assert len(results) == n_concurrent
+
+            async with AsyncSession(db_engine) as check_session:
+                balance = await _get_balance(check_session, user_id)
+                assert balance >= Decimal("0")
+
+                usage_count = await _count_usage_records(check_session, user_id)
+                assert usage_count == n_concurrent
+        finally:
+            await self._cleanup_user_data(db_engine, user_id)
 
     @pytest.mark.asyncio
-    async def test_concurrent_calls_with_low_balance_no_overdraft(
-        self,
-        db_session,
-        seed_pricing_data,  # noqa: ARG002
-    ):
+    async def test_concurrent_calls_with_low_balance_no_overdraft(self, db_engine):
         """With a balance that can only cover 2 calls, concurrent calls
         must not overdraft even if 10 run simultaneously.
 
@@ -447,37 +517,49 @@ class TestConcurrentRequests:
         will log a warning for insufficient balance, but none will
         drive the balance below zero.
         """
-        # Create user with very low balance (enough for ~2 calls)
         low_balance_user_id = uuid.UUID("00000000-0000-0000-0000-000000000021")
         two_calls_worth = _EXPECTED_BILLED_COST * 2 + Decimal("0.000001")
-        user = User(
-            id=low_balance_user_id,
-            email="low-balance@example.com",
-            balance_usd=two_calls_worth,
-        )
-        db_session.add(user)
-        await db_session.commit()
 
-        n_concurrent = 10
-
-        async def _make_one_call() -> LLMResponse:
-            inner = _HaikuMockProvider()
-            config = AdminConfigService(db_session)
-            service = MeteringService(db_session, config)
-            provider = MeteredLLMProvider(
-                inner, None, service, config, low_balance_user_id
+        async with AsyncSession(db_engine, expire_on_commit=False) as session:
+            session.add(
+                User(
+                    id=low_balance_user_id,
+                    email="low-balance@example.com",
+                    balance_usd=two_calls_worth,
+                )
             )
-            return await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
+            await session.commit()
 
-        # All calls should complete (metering never blocks the LLM response)
-        results = await asyncio.gather(*[_make_one_call() for _ in range(n_concurrent)])
-        await db_session.flush()
+        try:
+            n_concurrent = 10
 
-        assert len(results) == n_concurrent
+            async def _make_one_call() -> LLMResponse:
+                async with AsyncSession(
+                    db_engine, expire_on_commit=False
+                ) as task_session:
+                    inner = _HaikuMockProvider()
+                    config = AdminConfigService(task_session)
+                    service = MeteringService(task_session, config)
+                    provider = MeteredLLMProvider(
+                        inner, None, service, config, low_balance_user_id
+                    )
+                    result = await provider.complete(
+                        _SIMPLE_MESSAGES, TaskType.EXTRACTION
+                    )
+                    await task_session.commit()
+                    return result
 
-        # Balance must be >= 0
-        balance = await _get_balance(db_session, low_balance_user_id)
-        assert balance >= Decimal("0")
+            results = await asyncio.gather(
+                *[_make_one_call() for _ in range(n_concurrent)]
+            )
+
+            assert len(results) == n_concurrent
+
+            async with AsyncSession(db_engine) as check_session:
+                balance = await _get_balance(check_session, low_balance_user_id)
+                assert balance >= Decimal("0")
+        finally:
+            await self._cleanup_user_data(db_engine, low_balance_user_id)
 
 
 # =============================================================================

@@ -10,7 +10,7 @@ Tests cover:
 """
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -196,7 +196,9 @@ class TestRaiseChangeFlag:
         )
 
         assert flag.created_at is not None
-        assert flag.created_at >= before
+        # Tolerance: PostgreSQL's now() returns transaction start time, which
+        # may precede Python's datetime.now() under SAVEPOINT isolation.
+        assert flag.created_at >= before - timedelta(seconds=2)
 
     async def test_persona_not_found(self, db_session: AsyncSession):
         """Raises NotFoundError for nonexistent persona."""

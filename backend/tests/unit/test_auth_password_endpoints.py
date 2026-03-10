@@ -18,7 +18,7 @@ from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 from sqlalchemy import select
 from sqlalchemy import update as sql_update
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.user import User
@@ -53,7 +53,7 @@ async def user_with_password(db_session: AsyncSession) -> User:
 
 @pytest_asyncio.fixture
 async def password_client(
-    db_engine,
+    db_session,
 ) -> AsyncGenerator[AsyncClient, None]:
     """Unauthenticated client for verify-password and register tests.
 
@@ -62,13 +62,8 @@ async def password_client(
     from app.core.database import get_db
     from app.main import app
 
-    test_session_factory = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
@@ -88,20 +83,15 @@ async def password_client(
 
 @pytest_asyncio.fixture
 async def auth_password_client(
-    db_engine,
+    db_session,
     user_with_password,  # noqa: ARG001
 ) -> AsyncGenerator[AsyncClient, None]:
     """Authenticated client with JWT cookie for change-password tests."""
     from app.core.database import get_db
     from app.main import app
 
-    test_session_factory = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 

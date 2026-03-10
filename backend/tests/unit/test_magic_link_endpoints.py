@@ -16,7 +16,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.user import User
@@ -103,18 +103,13 @@ async def password_user(db_session: AsyncSession) -> User:
 
 
 @pytest_asyncio.fixture
-async def _auth_app(db_engine):
+async def _auth_app(db_session):
     """Shared setup: DB override + auth settings for all client fixtures."""
     from app.core.database import get_db
     from app.main import app
 
-    test_session_factory = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 

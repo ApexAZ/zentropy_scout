@@ -15,7 +15,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from httpx import Response as HttpxResponse
 from pydantic import SecretStr
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import create_jwt
 from app.core.config import settings
@@ -192,19 +192,14 @@ class TestRequireAdmin:
 
 @pytest_asyncio.fixture
 async def admin_bootstrap_client(
-    db_engine,
+    db_session,
 ) -> AsyncGenerator[AsyncClient, None]:
     """Unauthenticated client with ADMIN_EMAILS configured for bootstrap tests."""
     from app.core.database import get_db
     from app.main import app
 
-    test_session_factory = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 

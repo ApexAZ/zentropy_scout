@@ -11,11 +11,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.core.config import settings
 from app.models.base import Base
@@ -99,11 +95,12 @@ def skip_if_no_postgres() -> None:
         )
 
 
-@pytest_asyncio.fixture(scope="function")
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def db_engine():
-    """Create test database engine.
+    """Create test database engine (session-scoped).
 
-    Skips test if PostgreSQL is not available (e.g., Docker not running).
+    Creates all tables once at session start, drops them at session end.
+    Skips all tests if PostgreSQL is not available.
     """
     skip_if_no_postgres()
 
@@ -120,18 +117,60 @@ async def db_engine():
     await engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="function")
-async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
-    """Create test database session."""
-    async_session = async_sessionmaker(
-        db_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def _ensure_schema(db_engine):
+    """Restore full schema if migration tests destroyed it.
 
-    async with async_session() as session:
-        yield session
-        await session.rollback()
+    Migration tests DROP SCHEMA public CASCADE on the shared test database.
+    This module-scoped autouse fixture detects the destruction (via a cheap
+    ``to_regclass`` catalog lookup) and re-creates schema, extensions, and
+    tables before non-migration tests run.
+    """
+    from sqlalchemy import text
+
+    async with db_engine.connect() as conn:
+        result = await conn.execute(text("SELECT to_regclass('public.users')"))
+        if result.scalar() is None:
+            await conn.execute(text("CREATE SCHEMA IF NOT EXISTS public"))
+            await conn.execute(
+                text("CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA public")
+            )
+            await conn.execute(
+                text("CREATE EXTENSION IF NOT EXISTS vector SCHEMA public")
+            )
+            await conn.run_sync(Base.metadata.create_all)
+        await conn.commit()
+    yield
+
+
+@pytest_asyncio.fixture(scope="function")
+async def db_connection(db_engine):
+    """Per-test database connection with automatic rollback.
+
+    Opens a connection and begins a transaction. The transaction is
+    rolled back after the test, ensuring complete isolation.
+    """
+    async with db_engine.connect() as conn:
+        trans = await conn.begin()
+        yield conn
+        await trans.rollback()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def db_session(db_connection) -> AsyncGenerator[AsyncSession, None]:
+    """Create test database session with SAVEPOINT isolation.
+
+    Uses ``join_transaction_mode="create_savepoint"`` so that
+    session.commit() commits only the SAVEPOINT (not the outer
+    transaction). The outer transaction is rolled back by db_connection.
+    """
+    session = AsyncSession(
+        bind=db_connection,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
+    )
+    yield session
+    await session.close()
 
 
 @pytest.fixture
@@ -276,7 +315,7 @@ async def test_job_source(db_session: AsyncSession):
 
 @pytest_asyncio.fixture
 async def client(
-    db_engine,
+    db_session,
     test_user,  # noqa: ARG001
     test_persona,  # noqa: ARG001
     test_job_source,  # noqa: ARG001
@@ -287,12 +326,12 @@ async def client(
     Enables auth_enabled=True and injects a valid JWT for TEST_USER_ID.
 
     Sets up:
-    - Test database connection via dependency override
+    - Test database session via dependency override (shared SAVEPOINT connection)
     - JWT auth with test secret
     - httpx.AsyncClient with ASGI transport + auth cookie
 
     Args:
-        db_engine: Test database engine from db_engine fixture.
+        db_session: Test database session (shared connection for SAVEPOINT isolation).
         test_user: Test user (ensures user exists in DB).
         test_persona: Test persona (ensures persona exists).
         test_job_source: Test job source (ensures source exists).
@@ -303,17 +342,9 @@ async def client(
     from app.core.database import get_db
     from app.main import app
 
-    # Create session factory for this test
-    test_session_factory = async_sessionmaker(
-        db_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-
-    # Override get_db to use test database
+    # Override get_db to use the shared test session
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
@@ -348,14 +379,14 @@ async def client(
 
 
 @pytest_asyncio.fixture
-async def unauthenticated_client(db_engine) -> AsyncGenerator[AsyncClient, None]:
+async def unauthenticated_client(db_session) -> AsyncGenerator[AsyncClient, None]:
     """Async HTTP client without authentication.
 
     REQ-013 §7.1: For testing 401 responses when auth is required.
     Auth is enabled but no JWT cookie is provided.
 
     Args:
-        db_engine: Test database engine (needed for DB override).
+        db_session: Test database session (shared connection for SAVEPOINT isolation).
 
     Yields:
         AsyncClient with no auth cookie.
@@ -363,17 +394,9 @@ async def unauthenticated_client(db_engine) -> AsyncGenerator[AsyncClient, None]
     from app.core.database import get_db
     from app.main import app
 
-    # Create session factory for this test
-    test_session_factory = async_sessionmaker(
-        db_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-
-    # Override get_db to use test database
+    # Override get_db to use the shared test session
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 

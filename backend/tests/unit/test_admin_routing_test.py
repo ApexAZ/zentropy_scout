@@ -17,7 +17,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.admin_config import TaskRoutingConfig
@@ -109,7 +109,7 @@ async def mock_adapters() -> dict[str, AsyncMock]:
 
 @pytest_asyncio.fixture
 async def routing_client(
-    db_engine,
+    db_session,
     admin_user,  # noqa: ARG001
     mock_adapters,
 ) -> AsyncGenerator[AsyncClient, None]:
@@ -118,13 +118,8 @@ async def routing_client(
     from app.core.database import get_db
     from app.main import app
 
-    test_session_factory = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            yield session
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_llm_registry_dep] = lambda: dict(mock_adapters)
@@ -160,7 +155,7 @@ async def routing_client(
 
 @pytest_asyncio.fixture
 async def non_admin_client(
-    db_engine,
+    db_session,
 ) -> AsyncGenerator[AsyncClient, None]:
     """Non-admin HTTP client for 403 gate test."""
     from app.core.database import get_db
@@ -168,22 +163,19 @@ async def non_admin_client(
 
     non_admin_id = uuid.UUID("00000000-0000-0000-0000-000000000088")
 
-    test_session_factory = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    # Create non-admin user in the shared session
+    existing = await db_session.get(User, non_admin_id)
+    if existing is None:
+        user = User(
+            id=non_admin_id,
+            email="nonadmin-routing@test.example.com",
+            is_admin=False,
+        )
+        db_session.add(user)
+        await db_session.commit()
 
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with test_session_factory() as session:
-            existing = await session.get(User, non_admin_id)
-            if existing is None:
-                user = User(
-                    id=non_admin_id,
-                    email="nonadmin-routing@test.example.com",
-                    is_admin=False,
-                )
-                session.add(user)
-                await session.commit()
-            yield session
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
