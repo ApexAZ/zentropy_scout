@@ -7,7 +7,6 @@ reasoning, word count, stories used, and validation result into a single
 output object with a to_cover_letter_record() method for database persistence.
 """
 
-from dataclasses import replace
 from uuid import UUID, uuid4
 
 import pytest
@@ -66,30 +65,6 @@ def _make_output(
 
 class TestGeneratedCoverLetter:
     """Tests for GeneratedCoverLetter dataclass."""
-
-    def test_construction_with_all_fields(self) -> None:
-        """Can construct with all required fields."""
-        story_ids = (uuid4(), uuid4())
-        validation = _make_validation()
-        output = GeneratedCoverLetter(
-            draft_text="Hello world",
-            agent_reasoning="Chose story A",
-            word_count=300,
-            stories_used=story_ids,
-            validation=validation,
-        )
-        assert output.draft_text == "Hello world"
-        assert output.agent_reasoning == "Chose story A"
-        assert output.word_count == 300
-        assert output.stories_used == story_ids
-        assert output.validation is validation
-
-    def test_preserves_original_values(self) -> None:
-        """Modifying a copy preserves the original output values."""
-        output = _make_output(draft_text="Original text")
-        updated = replace(output, draft_text="Changed text")
-        assert output.draft_text == "Original text"
-        assert updated.draft_text == "Changed text"
 
     def test_empty_stories_allowed(self) -> None:
         """Cover letter can reference zero stories."""

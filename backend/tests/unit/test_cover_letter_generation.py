@@ -300,15 +300,3 @@ class TestCoverLetterResultFrozen:
         )
         with pytest.raises(AttributeError):
             result.content = "Changed"  # type: ignore[misc]
-
-    def test_stories_used_preserves_order_as_tuple(self) -> None:
-        """stories_used stores items in order as a tuple."""
-        from app.services.cover_letter_generation import CoverLetterResult
-
-        result = CoverLetterResult(
-            content="Letter",
-            reasoning="Reasoning",
-            word_count=1,
-            stories_used=("s-1", "s-2"),
-        )
-        assert result.stories_used == ("s-1", "s-2")

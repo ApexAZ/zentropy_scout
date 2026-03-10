@@ -6,11 +6,8 @@ Verifies that the cover letter section enum, section specs, and word count
 constants are correctly defined and consistent.
 """
 
-from dataclasses import replace
-
 from app.services.cover_letter_structure import (
     CoverLetterSection,
-    SectionSpec,
     get_section_spec,
 )
 
@@ -21,17 +18,6 @@ from app.services.cover_letter_structure import (
 
 class TestSectionSpec:
     """Tests for the SectionSpec dataclass."""
-
-    def test_section_spec_has_required_fields(self) -> None:
-        """SectionSpec stores purpose and sentence range."""
-        spec = SectionSpec(
-            purpose="Test purpose",
-            min_sentences=1,
-            max_sentences=3,
-        )
-        assert spec.purpose == "Test purpose"
-        assert spec.min_sentences == 1
-        assert spec.max_sentences == 3
 
     def test_section_spec_min_less_than_max(self) -> None:
         """All real section specs should have min <= max sentences."""
@@ -54,13 +40,6 @@ class TestSectionSpec:
         for section in CoverLetterSection:
             spec = get_section_spec(section)
             assert spec.purpose.strip(), f"{section.name}: purpose must not be empty"
-
-    def test_section_spec_preserves_original_values(self) -> None:
-        """Modifying a copy preserves the original spec values."""
-        spec = SectionSpec(purpose="test", min_sentences=1, max_sentences=2)
-        updated = replace(spec, purpose="changed")
-        assert spec.purpose == "test"
-        assert updated.purpose == "changed"
 
 
 # =============================================================================

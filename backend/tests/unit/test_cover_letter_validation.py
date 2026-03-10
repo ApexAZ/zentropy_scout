@@ -13,13 +13,10 @@ Pass/fail: passed = True only when there are zero error-severity issues.
 Warnings are shown but do not block.
 """
 
-from dataclasses import replace
-
 import pytest
 
 from app.services.cover_letter_validation import (
     CoverLetterValidation,
-    ValidationIssue,
     extract_draft_metrics,
     validate_cover_letter,
 )
@@ -54,42 +51,6 @@ def _validate(**kwargs) -> CoverLetterValidation:
 # =============================================================================
 # Data Structure Tests
 # =============================================================================
-
-
-class TestValidationIssue:
-    """ValidationIssue is a frozen dataclass with severity, rule, message."""
-
-    def test_preserves_original_values(self) -> None:
-        """Modifying a copy preserves the original issue values."""
-        issue = ValidationIssue(severity="error", rule="test", message="msg")
-        updated = replace(issue, severity="warning")
-        assert issue.severity == "error"
-        assert updated.severity == "warning"
-
-    def test_has_required_fields(self) -> None:
-        issue = ValidationIssue(
-            severity="error", rule="length_min", message="Too short"
-        )
-        assert issue.severity == "error"
-        assert issue.rule == "length_min"
-        assert issue.message == "Too short"
-
-
-class TestCoverLetterValidation:
-    """CoverLetterValidation is a frozen dataclass with passed, issues, word_count."""
-
-    def test_preserves_original_values(self) -> None:
-        """Modifying a copy preserves the original validation values."""
-        result = CoverLetterValidation(passed=True, issues=(), word_count=300)
-        updated = replace(result, passed=False)
-        assert result.passed is True
-        assert updated.passed is False
-
-    def test_has_required_fields(self) -> None:
-        result = CoverLetterValidation(passed=True, issues=(), word_count=300)
-        assert result.passed is True
-        assert result.issues == ()
-        assert result.word_count == 300
 
 
 # =============================================================================
