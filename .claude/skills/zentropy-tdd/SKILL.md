@@ -180,11 +180,29 @@ When auditing or reviewing tests, follow this evaluation process:
 
 All test infrastructure lives in `backend/tests/conftest.py`. Key fixtures:
 
-- **`db_engine`** — Function-scoped, creates/drops all tables per test
-- **`db_session`** — Function-scoped async session with rollback on teardown
+### Fixture Architecture (SAVEPOINT rollback)
+
+```
+db_engine (session-scoped) ← creates tables ONCE, drops on teardown
+  └─ _ensure_schema (module-scoped, autouse) ← restores schema if migration tests destroyed it
+       └─ db_connection (function-scoped) ← begin() + rollback() per test
+            └─ db_session (function-scoped) ← SAVEPOINT via join_transaction_mode="create_savepoint"
+                 ├─ test_user, test_persona, test_job_source ← commit to SAVEPOINT
+                 ├─ client ← yields db_session as override_get_db (same connection)
+                 └─ unauthenticated_client ← same pattern, no auth
+```
+
+Each test runs inside a transaction that's rolled back — no data leaks between tests, tables created only once.
+
+### Key Fixtures
+
+- **`db_engine`** — Session-scoped async engine, `loop_scope="session"`. Schema created once.
+- **`db_connection`** — Function-scoped. Opens connection, begins transaction, yields, rolls back.
+- **`db_session`** — Function-scoped. `AsyncSession(bind=db_connection, join_transaction_mode="create_savepoint")`. Commits go to SAVEPOINT (auto-restarted by SQLAlchemy).
+- **`_ensure_schema`** — Module-scoped autouse. Detects if migration tests destroyed the schema and restores it.
 - **`mock_llm`** — `MockLLMProvider` with pre-configured responses, injected into factory
 - **`mock_embedding`** — `MockEmbeddingProvider` (768-dim vectors), injected into factory
-- **`client`** — Authenticated `AsyncClient` with JWT cookie, DB override, auth enabled
+- **`client`** — Authenticated `AsyncClient` with JWT cookie, DB override (`override_get_db` yields `db_session`)
 - **`test_user`** / **`test_persona`** / **`test_job_source`** — Standard test data
 
 Before writing a new test file, **always read an existing sibling test file** in the same directory to match the exact mock setup pattern, fixture usage, and naming conventions.
@@ -197,6 +215,63 @@ backend/tests/
 ├── unit/                    # Pure logic + API endpoint tests
 └── fixtures/                # Test data files
 ```
+
+---
+
+## Slow Test Markers
+
+Migration tests are marked `@pytest.mark.slow` and **skipped by default** (`addopts = "-m 'not slow'"` in `pyproject.toml`).
+
+| Mode | Command | Tests | Duration |
+|------|---------|-------|----------|
+| **Default (fast)** | `pytest tests/` | 4,134 | ~52s |
+| **Full (all)** | `pytest tests/ -m ""` | 4,259 | ~123s |
+| **Slow only** | `pytest tests/ -m slow` | 125 | ~70s |
+
+### Marking New Migration Tests
+
+- **100% migration file** — Add module-level: `pytestmark = pytest.mark.slow` (after ALL imports, before first variable)
+- **Mixed file** — Add class-level: `@pytest.mark.slow` on migration test classes only
+
+The pre-push hook runs with `-m ""` (all tests). The `slow` marker is registered in `pyproject.toml`.
+
+---
+
+## SAVEPOINT Gotchas
+
+### Timestamp Tolerance
+
+PostgreSQL's `now()` returns the **transaction start time**, not wall-clock time. Under SAVEPOINT isolation, `now()` in a column default may predate Python's `datetime.now()` captured before the DB operation:
+
+```python
+# BAD — can flake under SAVEPOINT
+before = datetime.now(UTC)
+db_session.add(Flag(user_id=user.id))
+await db_session.flush()
+assert flag.created_at >= before  # May fail!
+
+# GOOD — allow tolerance for transaction time
+before = datetime.now(UTC)
+db_session.add(Flag(user_id=user.id))
+await db_session.flush()
+assert flag.created_at >= before - timedelta(seconds=2)
+```
+
+### Concurrent DB Access in Tests
+
+The shared `db_session` is bound to a single asyncpg connection — it **cannot handle concurrent operations** (`asyncio.gather`). For true concurrency:
+
+```python
+# Create per-task sessions from the engine (each gets its own connection)
+async def _make_one_call(idx):
+    async with AsyncSession(db_engine, expire_on_commit=False) as task_session:
+        # ... do work with task_session ...
+        await task_session.commit()
+
+results = await asyncio.gather(*[_make_one_call(i) for i in range(20)])
+```
+
+**Important:** Data committed via `db_session.commit()` only commits the SAVEPOINT, invisible to other connections. Concurrent tests must seed data directly via `AsyncSession(db_engine)` and clean up in a `finally` block or autouse fixture.
 
 ---
 
