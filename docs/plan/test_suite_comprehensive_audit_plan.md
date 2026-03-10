@@ -178,7 +178,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | 3 | **Audit job lifecycle & scoring** — `test_job_expiry`, `test_job_status_transitions`, `test_job_scoring_service`, `test_job_pool_helpers`, `test_job_embedding_generation` (5 files) — removed 2 tests (1 replace() immutability from expiry; 1 constructor mirror from embedding_generation); status_transitions, scoring_service, pool_helpers all clean | `plan, test` | ✅ |
 | 4 | **Audit pool repositories & surfacing** — `test_job_pool_repository`, `test_job_pool_repository_dedup`, `test_pool_scoring`, `test_pool_surfacing_service`, `test_pool_surfacing_worker` (5 files) — all clean, no changes; all DB integration and behavioral unit tests | `plan, test` | ✅ |
 | 5 | **Audit discovery & dedup** — `test_discovery_workflow`, `test_source_adapters`, `test_source_selection`, `test_dedup_cross_persona`, `test_global_dedup_service`, `test_persona_job_repository_write` (6 files) — removed 5 tests (3 constructor mirrors from DiscoveryTrigger + 2 from DiscoveryResult in discovery_workflow); other 5 files all clean | `plan, test` | ✅ |
-| 6 | **Phase gate — full backend test suite + push** | `plan, commands` | ⬜ |
+| 6 | **Phase gate — full backend test suite + push** — Deferred per user; push deferred to next gate. | `plan, commands` | 🟡 |
 
 ---
 
@@ -193,7 +193,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit resume generation** — `test_resume_generation_prompts`, `test_resume_generation_service`, `test_resume_llm_generate`, `test_resume_parsing_service`, `test_resume_template_repository` (5 files) | `plan, test` | ⬜ |
+| 2 | **Audit resume generation** — `test_resume_generation_prompts`, `test_resume_generation_service`, `test_resume_llm_generate`, `test_resume_parsing_service`, `test_resume_template_repository` (5 files) — removed 3 tests (1 constructor mirror from ResumeParseResult + 2 tautological confidence assertions from VoiceSuggestions in parsing_service); other 4 files all clean | `plan, test` | ✅ |
 | 3 | **Audit resume templates & content utils** — `test_resume_template_schemas`, `test_resume_template_service`, `test_pdf_generation`, `test_content_utils` (4 files) | `plan, test` | ⬜ |
 | 4 | **Audit cover letter generation & validation** — `test_cover_letter_generation`, `test_cover_letter_structure`, `test_cover_letter_validation`, `test_cover_letter_editing`, `test_cover_letter_output` (5 files) | `plan, test` | ⬜ |
 | 5 | **Audit cover letter PDF & rendering** — `test_cover_letter_pdf_generation`, `test_cover_letter_pdf_storage`, `test_content_generation_service`, `test_markdown_docx_renderer`, `test_markdown_pdf_renderer` (5 files) | `plan, test` | ⬜ |

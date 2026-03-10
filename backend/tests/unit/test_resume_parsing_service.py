@@ -27,7 +27,6 @@ from app.services.resume_parsing_service import (
     _MAX_PDF_PAGES,
     ResumeParseResult,
     ResumeParsingService,
-    VoiceSuggestions,
 )
 
 
@@ -149,21 +148,6 @@ def _mock_pdfplumber(text: str = "Jane Smith\nSenior Engineer") -> MagicMock:
 class TestResumeParseResult:
     """ResumeParseResult holds structured resume data."""
 
-    def test_result_has_all_fields(self) -> None:
-        """Result contains all required schema fields."""
-        result = ResumeParseResult(
-            basic_info={"full_name": "Test"},
-            work_history=(),
-            education=(),
-            skills=(),
-            certifications=(),
-            voice_suggestions=None,
-            raw_text="Resume text",
-        )
-        assert result.basic_info == {"full_name": "Test"}
-        assert result.work_history == ()
-        assert result.raw_text == "Resume text"
-
     def test_result_is_frozen(self) -> None:
         """ResumeParseResult is immutable."""
         result = ResumeParseResult(
@@ -186,26 +170,6 @@ class TestResumeParseResult:
 
 class TestVoiceSuggestions:
     """VoiceSuggestions captures voice profile inference."""
-
-    def test_high_confidence_is_usable(self) -> None:
-        """Confidence >= 0.7 means voice data should pre-populate form."""
-        voice = VoiceSuggestions(
-            writing_style="results-focused",
-            vocabulary_level="technical",
-            personality_markers="collaborative",
-            confidence=0.85,
-        )
-        assert voice.confidence >= 0.7
-
-    def test_low_confidence_below_threshold(self) -> None:
-        """Confidence < 0.7 means voice data should NOT pre-populate."""
-        voice = VoiceSuggestions(
-            writing_style="concise",
-            vocabulary_level="accessible",
-            personality_markers="independent",
-            confidence=0.4,
-        )
-        assert voice.confidence < 0.7
 
     @pytest.mark.asyncio
     async def test_out_of_range_confidence_is_clamped(self) -> None:
