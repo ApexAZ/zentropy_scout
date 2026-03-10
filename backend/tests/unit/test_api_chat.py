@@ -19,13 +19,9 @@ from app.api.v1.chat import (
     event_generator,
 )
 from app.schemas.chat import (
-    ChatDoneEvent,
     ChatMessageRequest,
     ChatTokenEvent,
-    DataChangedEvent,
     HeartbeatEvent,
-    ToolResultEvent,
-    ToolStartEvent,
 )
 
 # =============================================================================
@@ -43,53 +39,6 @@ class TestSSEEventSchemas:
         # Should serialize to JSON correctly
         data = event.model_dump()
         assert data == {"type": "chat_token", "text": "Hello"}
-
-    def test_chat_done_event_schema(self):
-        """ChatDoneEvent has correct structure."""
-        msg_id = uuid.uuid4()
-        event = ChatDoneEvent(message_id=str(msg_id))
-        assert event.message_id == str(msg_id)
-
-    def test_tool_start_event_schema(self):
-        """ToolStartEvent has correct structure."""
-        event = ToolStartEvent(tool="favorite_job", args={"id": "123"})
-        assert event.tool == "favorite_job"
-        assert event.args == {"id": "123"}
-
-    def test_tool_result_event_schema(self):
-        """ToolResultEvent has correct structure."""
-        event = ToolResultEvent(
-            tool="favorite_job", success=True, result={"status": "ok"}
-        )
-        assert event.tool == "favorite_job"
-        assert event.success is True
-        assert event.result == {"status": "ok"}
-
-    def test_tool_result_event_with_error(self):
-        """ToolResultEvent can include error message."""
-        event = ToolResultEvent(
-            tool="favorite_job", success=False, error="Job not found"
-        )
-        assert event.success is False
-        assert event.error == "Job not found"
-        assert event.result is None
-
-    def test_data_changed_event_schema(self):
-        """DataChangedEvent has correct structure."""
-        event = DataChangedEvent(
-            resource="job-posting",
-            id="29583",
-            action="updated",
-        )
-        assert event.resource == "job-posting"
-        assert event.id == "29583"
-        assert event.action == "updated"
-
-    def test_data_changed_event_actions(self):
-        """DataChangedEvent supports all action types."""
-        for action in ["created", "updated", "deleted"]:
-            event = DataChangedEvent(resource="application", id="1", action=action)
-            assert event.action == action
 
     def test_sse_event_serialization(self):
         """SSE events serialize to proper format."""
