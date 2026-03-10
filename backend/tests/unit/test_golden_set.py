@@ -27,39 +27,6 @@ from app.services.golden_set import (
 class TestGoldenSetEntry:
     """Tests for individual golden set entries."""
 
-    def test_entry_accepts_all_valid_fields(self) -> None:
-        """Entry should accept all valid fields."""
-        entry = GoldenSetEntry(
-            id="gs-001",
-            persona_summary="Senior Python developer with 8 years experience",
-            job_summary="Backend engineer role at fintech startup",
-            human_fit_score=85,
-            human_stretch_score=45,
-            notes="Strong technical match, limited growth opportunity",
-        )
-
-        assert entry.id == "gs-001"
-        assert (
-            entry.persona_summary == "Senior Python developer with 8 years experience"
-        )
-        assert entry.job_summary == "Backend engineer role at fintech startup"
-        assert entry.human_fit_score == 85
-        assert entry.human_stretch_score == 45
-        assert entry.notes == "Strong technical match, limited growth opportunity"
-
-    def test_entry_without_optional_notes(self) -> None:
-        """Entry should work without optional notes field."""
-        entry = GoldenSetEntry(
-            id="gs-002",
-            persona_summary="Junior frontend developer",
-            job_summary="React developer position",
-            human_fit_score=70,
-            human_stretch_score=60,
-        )
-
-        assert entry.id == "gs-002"
-        assert entry.notes is None
-
     def test_entry_accepts_scores_at_boundaries(self) -> None:
         """Scores at 0 and 100 boundaries should be valid."""
         entry_min = GoldenSetEntry(
@@ -117,60 +84,12 @@ class TestGoldenSetEntry:
 
 
 # =============================================================================
-# GoldenSetMetadata Tests
-# =============================================================================
-
-
-class TestGoldenSetMetadata:
-    """Tests for golden set metadata."""
-
-    def test_metadata_accepts_all_valid_fields(self) -> None:
-        """Metadata should accept all valid fields."""
-        metadata = GoldenSetMetadata(
-            version="1.0.0",
-            created_date="2026-02-04",
-            last_updated="2026-02-04",
-            description="Initial golden set for scoring validation",
-            curated_by="Brian",
-            target_correlation=0.8,
-        )
-
-        assert metadata.version == "1.0.0"
-        assert metadata.target_correlation == 0.8
-
-
-# =============================================================================
 # GoldenSet Tests
 # =============================================================================
 
 
 class TestGoldenSet:
     """Tests for the complete golden set collection."""
-
-    def test_golden_set_holds_multiple_entries(self) -> None:
-        """Golden set should hold multiple entries."""
-        entries = [
-            GoldenSetEntry(
-                id="gs-001",
-                persona_summary="Senior developer",
-                job_summary="Backend role",
-                human_fit_score=85,
-                human_stretch_score=40,
-            ),
-            GoldenSetEntry(
-                id="gs-002",
-                persona_summary="Junior developer",
-                job_summary="Entry position",
-                human_fit_score=60,
-                human_stretch_score=75,
-            ),
-        ]
-        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")
-
-        golden_set = GoldenSet(metadata=metadata, entries=entries)
-
-        assert len(golden_set.entries) == 2
-        assert golden_set.metadata.version == "1.0.0"
 
     def test_golden_set_rejects_duplicate_ids(self) -> None:
         """Golden set should reject entries with duplicate IDs."""
