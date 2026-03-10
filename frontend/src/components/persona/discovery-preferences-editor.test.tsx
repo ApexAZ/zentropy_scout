@@ -22,7 +22,6 @@ import { DiscoveryPreferencesEditor } from "./discovery-preferences-editor";
 const DEFAULT_PERSONA_ID = "00000000-0000-4000-a000-000000000001";
 const PERSONA_PATCH_URL = `/personas/${DEFAULT_PERSONA_ID}`;
 const GENERIC_ERROR_TEXT = "Failed to save. Please try again.";
-const FORM_TESTID = "discovery-preferences-editor-form";
 const MOCK_PATCH_RESPONSE = { data: {} };
 
 const MOCK_PERSONA: Persona = {
@@ -227,12 +226,6 @@ describe("DiscoveryPreferencesEditor", () => {
 			renderEditor();
 
 			expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
-		});
-
-		it("has correct form testid", () => {
-			renderEditor();
-
-			expect(screen.getByTestId(FORM_TESTID)).toBeInTheDocument();
 		});
 
 		it("renders Back to Profile link", () => {

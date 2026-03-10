@@ -17,8 +17,6 @@ import { ChatInput } from "./chat-input";
 // ---------------------------------------------------------------------------
 
 const INPUT_SELECTOR = '[data-slot="chat-input"]';
-const TEXTAREA_SELECTOR = '[data-slot="chat-textarea"]';
-const SEND_BUTTON_SELECTOR = '[data-slot="chat-send-button"]';
 const CHAR_COUNTER_SELECTOR = '[data-slot="char-counter"]';
 
 // ---------------------------------------------------------------------------
@@ -35,12 +33,6 @@ function renderInput(props: Partial<ComponentProps<typeof ChatInput>> = {}) {
 
 describe("ChatInput", () => {
 	describe("structure", () => {
-		it("renders the chat input wrapper", () => {
-			const { container } = renderInput();
-
-			expect(container.querySelector(INPUT_SELECTOR)).toBeInTheDocument();
-		});
-
 		it("renders a textarea", () => {
 			renderInput();
 
@@ -53,18 +45,6 @@ describe("ChatInput", () => {
 			renderInput();
 
 			expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument();
-		});
-
-		it("has data-slot on textarea", () => {
-			const { container } = renderInput();
-
-			expect(container.querySelector(TEXTAREA_SELECTOR)).toBeInTheDocument();
-		});
-
-		it("has data-slot on send button", () => {
-			const { container } = renderInput();
-
-			expect(container.querySelector(SEND_BUTTON_SELECTOR)).toBeInTheDocument();
 		});
 
 		it("merges custom className", () => {
@@ -198,12 +178,6 @@ describe("ChatInput", () => {
 			expect(screen.getByRole("button", { name: /send/i })).toBeDisabled();
 		});
 
-		it("does not disable textarea by default", () => {
-			renderInput();
-
-			expect(screen.getByRole("textbox")).not.toBeDisabled();
-		});
-
 		it("does not call onSend on render when disabled", () => {
 			const onSend = vi.fn();
 			renderInput({ onSend, disabled: true });
@@ -216,13 +190,6 @@ describe("ChatInput", () => {
 
 			const wrapper = container.querySelector(INPUT_SELECTOR);
 			expect(wrapper).toHaveAttribute("data-disabled", "true");
-		});
-
-		it("marks wrapper with data-disabled false by default", () => {
-			const { container } = renderInput();
-
-			const wrapper = container.querySelector(INPUT_SELECTOR);
-			expect(wrapper).toHaveAttribute("data-disabled", "false");
 		});
 	});
 

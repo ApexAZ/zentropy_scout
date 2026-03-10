@@ -228,12 +228,6 @@ describe("ChatScoreCard", () => {
 	// -----------------------------------------------------------------------
 
 	describe("structure", () => {
-		it("has data-slot attribute", () => {
-			const { container } = renderCard();
-
-			expect(container.querySelector(CARD_SELECTOR)).toBeInTheDocument();
-		});
-
 		it("renders with card styling", () => {
 			const { container } = renderCard();
 

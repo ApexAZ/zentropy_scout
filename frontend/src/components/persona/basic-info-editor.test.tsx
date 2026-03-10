@@ -23,7 +23,6 @@ import { BasicInfoEditor } from "./basic-info-editor";
 
 const DEFAULT_PERSONA_ID = "00000000-0000-4000-a000-000000000001";
 const GENERIC_ERROR_TEXT = "Failed to save. Please try again.";
-const FORM_TESTID = "basic-info-editor-form";
 const MOCK_PATCH_RESPONSE = { data: {} };
 
 const FIELD_LABELS = [
@@ -205,12 +204,6 @@ describe("BasicInfoEditor", () => {
 			expect(
 				screen.getByRole("heading", { name: /edit basic info/i }),
 			).toBeInTheDocument();
-		});
-
-		it("has correct form testid", () => {
-			renderEditor();
-
-			expect(screen.getByTestId(FORM_TESTID)).toBeInTheDocument();
 		});
 	});
 

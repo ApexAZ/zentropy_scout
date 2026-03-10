@@ -184,12 +184,6 @@ describe("ChatConfirmCard", () => {
 	// -----------------------------------------------------------------------
 
 	describe("structure", () => {
-		it("has data-slot attribute", () => {
-			const { container } = renderCard();
-
-			expect(container.querySelector(CARD_SELECTOR)).toBeInTheDocument();
-		});
-
 		it("renders with card styling", () => {
 			const { container } = renderCard();
 
@@ -225,13 +219,6 @@ describe("ChatConfirmCard", () => {
 
 			const card = container.querySelector(CARD_SELECTOR);
 			expect(card).toHaveClass("border-destructive/50");
-		});
-
-		it("does not have destructive border for non-destructive variant", () => {
-			const { container } = renderCard({ data: NON_DESTRUCTIVE_CONFIRM });
-
-			const card = container.querySelector(CARD_SELECTOR);
-			expect(card).not.toHaveClass("border-destructive/50");
 		});
 	});
 

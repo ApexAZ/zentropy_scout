@@ -28,13 +28,6 @@ describe("TypingIndicator", () => {
 		expect(screen.getByText(/Scout is typing/)).toBeInTheDocument();
 	});
 
-	it("has data-slot attribute", () => {
-		const { container } = render(<TypingIndicator />);
-
-		const indicator = container.querySelector(INDICATOR_SELECTOR);
-		expect(indicator).toBeInTheDocument();
-	});
-
 	it("has role=status for accessibility", () => {
 		render(<TypingIndicator />);
 

@@ -92,7 +92,7 @@ Phase 4: Quality Gate (verification + documentation)
 | # | Task | Scope | Status |
 |---|------|-------|--------|
 | 2.1 | **Delete type test bloat** — Remove CONSTRUCTOR_MIRROR and ENUM_ECHO tests from types/*.test.ts based on triage classifications. Delete entire files if 100% bloat (expected: `api.test.ts`). Keep VALIDATION and BEHAVIORAL tests. | 7 files, ~100-120 test deletions | ✅ |
-| 2.2 | **Clean 100% sole-assertion files** — Delete or refactor tests in the 15 files where every `toBeInTheDocument()` is sole, applying triage dispositions. For DELETE: remove the test. For REFACTOR: add meaningful assertion (text content, attributes, interaction). | 15 files, ~50-94 tests affected | ⬜ |
+| 2.2 | **Clean 100% sole-assertion files** — Delete or refactor tests in the 15 files where every `toBeInTheDocument()` is sole, applying triage dispositions. For DELETE: remove the test. For REFACTOR: add meaningful assertion (text content, attributes, interaction). | 15 files, ~50-94 tests affected | ✅ |
 | 2.3 | **Phase gate — full test suite + push** — Run Vitest full suite. Compare test count to baseline (3,843). Fix regressions, commit, push. | Full frontend suite | ⬜ |
 
 **Notes:**
@@ -224,6 +224,8 @@ After full audit:
 | 2026-03-09 | §1.3 complete — heavy files triage: ~50 DELETE across 8 files + mechanical rule (see Appendix C) |
 | 2026-03-09 | §1.4 complete — mock/CSS/data-state triage: sse-query-bridge ~22 DELETE, status-badge 15 DELETE, 4 data-state DELETE (see Appendix D) |
 | 2026-03-09 | §1.5 complete — Phase 1 done. Consolidated report: ~281 estimated deletions (see Appendix E). Phase 3 tasks refined. |
+| 2026-03-09 | §2.1 complete — Deleted 167 type test bloat (6 files deleted, 1 trimmed). Test count: 3,843 → 3,676. |
+| 2026-03-09 | §2.2 complete — Deleted 22 sole-assertion smoke tests across 9 files (1 file deleted, 8 trimmed). Fixed Appendix B triage miscount for usage-page (was 7 total, actual 6). Test count: 3,676 → 3,654. |
 
 ---
 
@@ -359,7 +361,7 @@ After full audit:
 | basic-info-editor.test.tsx | 39 | 6 | 1 | 5 |
 | page.test.tsx (VariantEditPage) | 7 | 7 | 0 | 7 |
 | chat-score-card.test.tsx | 21 | 12 | 1 | 11 |
-| usage-page.test.tsx | 7 | 7 | 6 | 1 |
+| usage-page.test.tsx | 6 | 6 | 6 | 0 |
 | typing-indicator.test.tsx | 8 | 5 | 1 | 4 |
 | generation-options-panel.test.tsx | 21 | 3 | 0 | 3 |
 | form-select-field.test.tsx | 6 | 4 | 0 | 4 |
@@ -367,7 +369,7 @@ After full audit:
 | submit-button.test.tsx | 8 | 3 | 0 | 3 |
 | hero-section.test.tsx | 6 | 4 | 3 | 1 |
 | landing-footer.test.tsx | 6 | 3 | 2 | 1 |
-| **TOTAL** | **227** | **93** | **22** | **71** |
+| **TOTAL** | **226** | **92** | **22** | **70** |
 
 **Key finding:** Most sole `toBeInTheDocument()` assertions are LEGITIMATE conditional render tests (element appears/disappears based on props/state). Only 22 are pure smoke tests with no state variation and duplicate element coverage.
 

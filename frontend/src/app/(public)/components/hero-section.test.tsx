@@ -46,17 +46,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("HeroSection", () => {
-	it("renders h1 headline", () => {
-		render(<HeroSection />);
-		const heading = screen.getByRole("heading", { level: 1 });
-		expect(heading).toBeInTheDocument();
-	});
-
-	it("has hero-section test id", () => {
-		render(<HeroSection />);
-		expect(screen.getByTestId("hero-section")).toBeInTheDocument();
-	});
-
 	it("CTA button links to /register", () => {
 		render(<HeroSection />);
 		const cta = screen.getByTestId("hero-cta");
@@ -67,10 +56,5 @@ describe("HeroSection", () => {
 		render(<HeroSection />);
 		const signIn = screen.getByTestId("hero-sign-in");
 		expect(signIn).toHaveAttribute("href", "/login");
-	});
-
-	it("renders hero graphic placeholder", () => {
-		render(<HeroSection />);
-		expect(screen.getByTestId("hero-graphic")).toBeInTheDocument();
 	});
 });

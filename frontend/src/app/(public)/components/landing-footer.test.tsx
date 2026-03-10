@@ -46,11 +46,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("LandingFooter", () => {
-	it("renders copyright text", () => {
-		render(<LandingFooter />);
-		expect(screen.getByText(/© 2026 Zentropy Scout/)).toBeInTheDocument();
-	});
-
 	it("renders Terms of Service link", () => {
 		render(<LandingFooter />);
 		const tos = screen.getByTestId("footer-tos");
@@ -67,10 +62,5 @@ describe("LandingFooter", () => {
 		render(<LandingFooter />);
 		const signIn = screen.getByRole("link", { name: /sign in/i });
 		expect(signIn).toHaveAttribute("href", "/login");
-	});
-
-	it("has landing-footer test id", () => {
-		render(<LandingFooter />);
-		expect(screen.getByTestId("landing-footer")).toBeInTheDocument();
 	});
 });
