@@ -9,7 +9,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-	RESOURCE_QUERY_KEY_MAP,
 	createSSEQueryBridge,
 	handleDataChanged,
 	handleReconnect,
@@ -48,58 +47,6 @@ describe("SSE Query Bridge", () => {
 
 	beforeEach(() => {
 		queryClient = createMockQueryClient();
-	});
-
-	// -----------------------------------------------------------------------
-	// RESOURCE_QUERY_KEY_MAP
-	// -----------------------------------------------------------------------
-
-	describe("RESOURCE_QUERY_KEY_MAP", () => {
-		it("maps persona to personas query key", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get("persona")).toEqual(queryKeys.personas);
-		});
-
-		it("maps job-posting to jobs query key", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get(RESOURCE_JOB_POSTING)).toEqual(
-				queryKeys.jobs,
-			);
-		});
-
-		it("maps application to applications query key", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get("application")).toEqual(
-				queryKeys.applications,
-			);
-		});
-
-		it("maps resume to resumes query key", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get("resume")).toEqual(queryKeys.resumes);
-		});
-
-		it("maps variant to variants query key", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get("variant")).toEqual(queryKeys.variants);
-		});
-
-		it("maps cover-letter to coverLetters query key", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get(RESOURCE_COVER_LETTER)).toEqual(
-				queryKeys.coverLetters,
-			);
-		});
-
-		it("maps change-flag to changeFlags query key", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get(RESOURCE_CHANGE_FLAG)).toEqual(
-				queryKeys.changeFlags,
-			);
-		});
-
-		it("maps embedding to jobs query key", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get(RESOURCE_EMBEDDING)).toEqual(
-				queryKeys.jobs,
-			);
-		});
-
-		it("returns undefined for unknown keys", () => {
-			expect(RESOURCE_QUERY_KEY_MAP.get("unknown")).toBeUndefined();
-		});
 	});
 
 	// -----------------------------------------------------------------------
@@ -208,17 +155,6 @@ describe("SSE Query Bridge", () => {
 			expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
 		});
 
-		it("calls invalidateQueries exactly once per event", () => {
-			handleDataChanged(
-				queryClient,
-				RESOURCE_JOB_POSTING,
-				TEST_ID,
-				ACTION_UPDATED,
-			);
-
-			expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(1);
-		});
-
 		it("ignores __proto__ resource name (prototype pollution)", () => {
 			handleDataChanged(queryClient, "__proto__", TEST_ID, ACTION_UPDATED);
 
@@ -248,12 +184,6 @@ describe("SSE Query Bridge", () => {
 
 			expect(queryClient.invalidateQueries).toHaveBeenCalledWith();
 		});
-
-		it("calls invalidateQueries exactly once", () => {
-			handleReconnect(queryClient);
-
-			expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(1);
-		});
 	});
 
 	// -----------------------------------------------------------------------
@@ -261,15 +191,6 @@ describe("SSE Query Bridge", () => {
 	// -----------------------------------------------------------------------
 
 	describe("createSSEQueryBridge", () => {
-		it("returns onDataChanged and onReconnect callbacks", () => {
-			const bridge = createSSEQueryBridge(queryClient);
-
-			expect(bridge).toHaveProperty("onDataChanged");
-			expect(bridge).toHaveProperty("onReconnect");
-			expect(typeof bridge.onDataChanged).toBe("function");
-			expect(typeof bridge.onReconnect).toBe("function");
-		});
-
 		it("onDataChanged delegates to handleDataChanged", () => {
 			const bridge = createSSEQueryBridge(queryClient);
 
@@ -286,14 +207,6 @@ describe("SSE Query Bridge", () => {
 			bridge.onReconnect();
 
 			expect(queryClient.invalidateQueries).toHaveBeenCalledWith();
-		});
-
-		it("onDataChanged ignores unknown resources", () => {
-			const bridge = createSSEQueryBridge(queryClient);
-
-			bridge.onDataChanged("not-a-resource", TEST_ID, ACTION_UPDATED);
-
-			expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
 		});
 
 		it("calls onEmbeddingUpdated when embedding resource changes", () => {

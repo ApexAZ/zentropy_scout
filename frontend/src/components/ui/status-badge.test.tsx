@@ -17,9 +17,6 @@ import { StatusBadge } from "./status-badge";
 // ---------------------------------------------------------------------------
 
 const ROOT_SELECTOR = '[data-slot="status-badge"]';
-const BG_SUCCESS = "bg-success";
-const BG_MUTED = "bg-muted";
-const BG_DESTRUCTIVE = "bg-destructive";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -62,52 +59,39 @@ describe("StatusBadge", () => {
 	// ---------------------------------------------------------------------------
 
 	describe("application statuses", () => {
-		it("renders Applied with primary color", () => {
-			const { container } = renderBadge({ status: "Applied" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Applied", () => {
+			renderBadge({ status: "Applied" });
 
-			expect(root).toHaveClass("bg-primary");
 			expect(screen.getByText("Applied")).toBeInTheDocument();
 		});
 
-		it("renders Interviewing with warning color", () => {
-			const { container } = renderBadge({ status: "Interviewing" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Interviewing", () => {
+			renderBadge({ status: "Interviewing" });
 
-			expect(root).toHaveClass("bg-warning");
 			expect(screen.getByText("Interviewing")).toBeInTheDocument();
 		});
 
-		it("renders Offer with success color", () => {
-			const { container } = renderBadge({ status: "Offer" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Offer", () => {
+			renderBadge({ status: "Offer" });
 
-			expect(root).toHaveClass(BG_SUCCESS);
 			expect(screen.getByText("Offer")).toBeInTheDocument();
 		});
 
-		it("renders Accepted with success color and semibold", () => {
-			const { container } = renderBadge({ status: "Accepted" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Accepted", () => {
+			renderBadge({ status: "Accepted" });
 
-			expect(root).toHaveClass(BG_SUCCESS);
-			expect(root).toHaveClass("font-semibold");
 			expect(screen.getByText("Accepted")).toBeInTheDocument();
 		});
 
-		it("renders Rejected with destructive color", () => {
-			const { container } = renderBadge({ status: "Rejected" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Rejected", () => {
+			renderBadge({ status: "Rejected" });
 
-			expect(root).toHaveClass(BG_DESTRUCTIVE);
 			expect(screen.getByText("Rejected")).toBeInTheDocument();
 		});
 
-		it("renders Withdrawn with muted color", () => {
-			const { container } = renderBadge({ status: "Withdrawn" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Withdrawn", () => {
+			renderBadge({ status: "Withdrawn" });
 
-			expect(root).toHaveClass(BG_MUTED);
 			expect(screen.getByText("Withdrawn")).toBeInTheDocument();
 		});
 	});
@@ -117,27 +101,21 @@ describe("StatusBadge", () => {
 	// ---------------------------------------------------------------------------
 
 	describe("document statuses", () => {
-		it("renders Draft with warning color", () => {
-			const { container } = renderBadge({ status: "Draft" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Draft", () => {
+			renderBadge({ status: "Draft" });
 
-			expect(root).toHaveClass("bg-warning");
 			expect(screen.getByText("Draft")).toBeInTheDocument();
 		});
 
-		it("renders Approved with success color", () => {
-			const { container } = renderBadge({ status: "Approved" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Approved", () => {
+			renderBadge({ status: "Approved" });
 
-			expect(root).toHaveClass(BG_SUCCESS);
 			expect(screen.getByText("Approved")).toBeInTheDocument();
 		});
 
-		it("renders Archived with muted color", () => {
-			const { container } = renderBadge({ status: "Archived" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Archived", () => {
+			renderBadge({ status: "Archived" });
 
-			expect(root).toHaveClass(BG_MUTED);
 			expect(screen.getByText("Archived")).toBeInTheDocument();
 		});
 	});
@@ -148,27 +126,21 @@ describe("StatusBadge", () => {
 
 	// "Applied" shared with ApplicationStatus — tested in application statuses group.
 	describe("job posting statuses", () => {
-		it("renders Discovered with info color", () => {
-			const { container } = renderBadge({ status: "Discovered" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Discovered", () => {
+			renderBadge({ status: "Discovered" });
 
-			expect(root).toHaveClass("bg-info");
 			expect(screen.getByText("Discovered")).toBeInTheDocument();
 		});
 
-		it("renders Dismissed with muted color", () => {
-			const { container } = renderBadge({ status: "Dismissed" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Dismissed", () => {
+			renderBadge({ status: "Dismissed" });
 
-			expect(root).toHaveClass(BG_MUTED);
 			expect(screen.getByText("Dismissed")).toBeInTheDocument();
 		});
 
-		it("renders Expired with destructive color", () => {
-			const { container } = renderBadge({ status: "Expired" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Expired", () => {
+			renderBadge({ status: "Expired" });
 
-			expect(root).toHaveClass(BG_DESTRUCTIVE);
 			expect(screen.getByText("Expired")).toBeInTheDocument();
 		});
 	});
@@ -178,27 +150,21 @@ describe("StatusBadge", () => {
 	// ---------------------------------------------------------------------------
 
 	describe("special statuses", () => {
-		it("renders Active with success color", () => {
-			const { container } = renderBadge({ status: "Active" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Active", () => {
+			renderBadge({ status: "Active" });
 
-			expect(root).toHaveClass(BG_SUCCESS);
 			expect(screen.getByText("Active")).toBeInTheDocument();
 		});
 
-		it("renders Filtered with destructive color", () => {
-			const { container } = renderBadge({ status: "Filtered" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders Filtered", () => {
+			renderBadge({ status: "Filtered" });
 
-			expect(root).toHaveClass(BG_DESTRUCTIVE);
 			expect(screen.getByText("Filtered")).toBeInTheDocument();
 		});
 
-		it("renders None with muted color", () => {
-			const { container } = renderBadge({ status: "None" });
-			const root = container.querySelector(ROOT_SELECTOR);
+		it("renders None", () => {
+			renderBadge({ status: "None" });
 
-			expect(root).toHaveClass(BG_MUTED);
 			expect(screen.getByText("None")).toBeInTheDocument();
 		});
 	});

@@ -112,7 +112,7 @@ Phase 4: Quality Gate (verification + documentation)
 |---|------|-------|--------|
 | 3.1 | **Clean toBeInTheDocument sole assertions — heavy files batch A** — Top 5 files by sole count from triage (opportunities-table, resume-detail, message-bubble, application-detail, applications-list). Apply dispositions. | 5 files, 47 deletions | ✅ |
 | 3.2 | **Clean toBeInTheDocument sole assertions — heavy files batch B** — Next 5 files by sole count from triage (change-flags-resolver, status-transition-dropdown, cover-letter-review, add-timeline-event-dialog, login page). Apply dispositions. | 5 files, 12 deletions | ✅ |
-| 3.3 | **Clean mock-only + CSS assertion files** — Files identified in triage as having ANTIPATTERN mock-only or CSS-class-as-sole-assertion tests. | TBD from triage | ⬜ |
+| 3.3 | **Clean mock-only + CSS assertion files** — Files identified in triage as having ANTIPATTERN mock-only or CSS-class-as-sole-assertion tests. | 3 files, 15 deletions + 16 assertions removed + 2 refactored | ✅ |
 | 3.4 | **Clean remaining files** — Apply mechanical rules from triage to remaining files with sole assertions. May be zero work if rules show most findings are legitimate. | TBD from triage | ⬜ |
 | 3.5 | **Phase gate — full test suite + push** — Run Vitest full suite. Compare test count to baseline. Fix regressions, commit, push. | Full frontend suite | ⬜ |
 
@@ -229,6 +229,7 @@ After full audit:
 | 2026-03-09 | §2.3 complete — Phase 2 gate passed. 3,515 tests pass (198 files), lint clean, typecheck clean. Corrected baseline from 3,843 to 3,704 (verified at origin/main). Total Phase 2 delta: -189 tests. |
 | 2026-03-09 | §3.1 complete — Deleted 47 sole-assertion smoke tests across 5 files: opportunities-table (-12), resume-detail (-8), message-bubble (-9), application-detail (-9), applications-list (-9). Also removed 5 unused constants + 1 unused helper. Test count: 3,515 → 3,468. |
 | 2026-03-09 | §3.2 complete — Deleted 12 sole-assertion smoke tests across 5 files: add-timeline-event-dialog (-5), login page (-3), change-flags-resolver (-2), status-transition-dropdown (-1), cover-letter-review (-1). Also removed 1 unused constant. Test count: 3,468 → 3,455. |
+| 2026-03-09 | §3.3 complete — 3 files: sse-query-bridge (-13 tests: 9 constant echoes, 2 redundant CalledTimes, 1 structural, 1 duplicate), status-badge (0 tests deleted, 16 Tailwind toHaveClass assertions removed, 3 unused constants removed), resume-detail (-2 data-state tests, 2 refactored data-state→data-editable). Test count: 3,455 → 3,440. |
 
 ---
 

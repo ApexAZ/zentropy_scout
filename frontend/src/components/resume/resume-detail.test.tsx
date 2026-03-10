@@ -1269,29 +1269,10 @@ describe("ResumeDetail", () => {
 	});
 
 	describe("toggle view", () => {
-		it("defaults to Preview mode when markdown_content exists", async () => {
-			await renderWithContent();
-			expect(screen.getByRole("tab", { name: /preview/i })).toHaveAttribute(
-				"data-state",
-				"active",
-			);
-		});
-
 		it("renders read-only ResumeEditor in Preview mode", async () => {
 			await renderWithContent();
 			const editor = screen.getByTestId("resume-editor");
 			expect(editor).toHaveAttribute("data-editable", "false");
-		});
-
-		it("switches to Edit mode when Edit tab is clicked", async () => {
-			const user = userEvent.setup();
-			await renderWithContent();
-			await switchToEditMode(user);
-
-			expect(screen.getByRole("tab", { name: /edit/i })).toHaveAttribute(
-				"data-state",
-				"active",
-			);
 		});
 
 		it("renders editable ResumeEditor in Edit mode", async () => {
@@ -1323,10 +1304,8 @@ describe("ResumeDetail", () => {
 
 			await user.click(screen.getByRole("button", { name: /done editing/i }));
 
-			expect(screen.getByRole("tab", { name: /preview/i })).toHaveAttribute(
-				"data-state",
-				"active",
-			);
+			const editor = screen.getByTestId("resume-editor");
+			expect(editor).toHaveAttribute("data-editable", "false");
 		});
 	});
 
@@ -1370,10 +1349,8 @@ describe("ResumeDetail", () => {
 
 			await user.click(screen.getByRole("button", { name: /^edit$/i }));
 
-			expect(screen.getByRole("tab", { name: /edit/i })).toHaveAttribute(
-				"data-state",
-				"active",
-			);
+			const editor = screen.getByTestId("resume-editor");
+			expect(editor).toHaveAttribute("data-editable", "true");
 		});
 	});
 
