@@ -212,7 +212,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit API scaffold & resources** — `test_api_main`, `test_api_pagination`, `test_api_auth`, `test_api_resources_router` (4 files) | `plan, test` | ⬜ |
+| 2 | **Audit API scaffold & resources** — `test_api_main`, `test_api_pagination`, `test_api_auth`, `test_api_resources_router` (4 files) — all clean (HTTP integration, security headers, CORS, JWT, route existence) | `plan, test` | ✅ |
 | 3 | **Audit persona & onboarding endpoints** — `test_api_personas_crud`, `test_api_personas_router`, `test_api_persona_change_flags`, `test_api_onboarding` (4 files) | `plan, test` | ⬜ |
 | 4 | **Audit job posting endpoints** — `test_api_job_postings_crud`, `test_api_job_postings_ingest`, `test_api_job_postings_router`, `test_api_job_variants` (4 files) | `plan, test` | ⬜ |
 | 5 | **Audit application & variant endpoints** — `test_api_variant_for_job`, `test_api_applications`, `test_api_base_resumes`, `test_api_cover_letters` (4 files) | `plan, test` | ⬜ |
