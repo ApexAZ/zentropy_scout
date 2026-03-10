@@ -289,8 +289,8 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit sanitization & middleware** — `test_llm_sanitization`, `test_llm_sanitization_fuzz`, `test_content_security`, `test_null_byte_middleware` (4 files) | `plan, test, security` | ⬜ |
-| 3 | **Audit validation & isolation** — `test_file_validation`, `test_schema_extra_forbid`, `test_cross_tenant_isolation`, `test_application_idor` (4 files) | `plan, test, security` | ⬜ |
+| 2 | **Audit sanitization & middleware** — `test_llm_sanitization`, `test_llm_sanitization_fuzz`, `test_content_security`, `test_null_byte_middleware` (4 files). All clean — security-critical behavioral tests: injection prevention, zero-width/homoglyph bypass, Hypothesis fuzz invariants, content validation/quarantine, null byte middleware. No changes. | `plan, test, security` | ✅ |
+| 3 | **Audit validation & isolation** — `test_file_validation`, `test_schema_extra_forbid`, `test_cross_tenant_isolation`, `test_application_idor` (4 files). All clean — security-critical: magic byte validation + MIME leak prevention, mass assignment defense (extra="forbid"), cross-tenant IDOR prevention across 8 routers, VULN-003 regression tests. No changes. | `plan, test, security` | ✅ |
 | 4 | **Phase gate — full backend test suite + push** | `plan, commands` | ⬜ |
 
 ---
