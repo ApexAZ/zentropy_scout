@@ -97,7 +97,7 @@ repos:
     hooks:
       - id: pytest
         name: pytest (full suite)
-        entry: bash -c 'cd backend && .venv/bin/python -m pytest tests/ -v --tb=short'
+        entry: bash -c 'mkdir -p backend/test-results && cd backend && .venv/bin/python -m pytest tests/ -v --tb=short 2>&1 | tee test-results/pre-push-pytest.log; exit_code=${PIPESTATUS[0]}; if [ $exit_code -ne 0 ]; then echo ""; echo "=== FAILURE SUMMARY (last 50 lines) ==="; tail -50 test-results/pre-push-pytest.log; fi; exit $exit_code'
         language: system
         pass_filenames: false
         always_run: true
@@ -108,7 +108,7 @@ repos:
     hooks:
       - id: frontend-vitest
         name: Vitest (frontend)
-        entry: bash -c 'cd frontend && npm run test:run'
+        entry: bash -c 'mkdir -p frontend/test-results && cd frontend && npm run test:run 2>&1 | tee test-results/pre-push-vitest.log; exit_code=${PIPESTATUS[0]}; if [ $exit_code -ne 0 ]; then echo ""; echo "=== FAILURE SUMMARY (last 50 lines) ==="; tail -50 test-results/pre-push-vitest.log; fi; exit $exit_code'
         language: system
         pass_filenames: false
         files: ^frontend/
