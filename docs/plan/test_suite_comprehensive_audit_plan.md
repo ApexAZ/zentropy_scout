@@ -356,10 +356,10 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | Metric | Value |
 |--------|-------|
 | **Starting baseline** | 4,485 tests |
-| **Current count** | 4,485 tests |
-| **Tests removed** | 0 |
-| **Files audited** | 17 / 193 |
-| **Phases complete** | 0 / 10 |
+| **Current count** | 4,260 tests |
+| **Tests removed** | 225 |
+| **Files audited** | 193 / 193 |
+| **Phases complete** | 10 / 10 (audit subtasks complete; phase gates deferred) |
 
 *Update this table at each phase gate.*
 
@@ -370,3 +370,4 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | Date | Change |
 |------|--------|
 | 2026-03-09 | Plan created. 17 files already audited (Phase 0). |
+| 2026-03-09 | All 39 audit subtasks complete across 10 phases. 225 tests removed (constructor mirrors, tautological echoes, subsumed/duplicate tests, default-value mirrors). Security phase (8) was entirely clean. Phase gates and security triage gates deferred per user. |
