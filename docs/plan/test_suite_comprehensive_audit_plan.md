@@ -233,7 +233,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit auth & account** — `test_auth_helpers`, `test_auth_password_endpoints`, `test_admin_auth`, `test_account_linking`, `test_account_repository` (5 files) | `plan, test, security` | ⬜ |
+| 2 | **Audit auth & account** — `test_auth_helpers`, `test_auth_password_endpoints`, `test_admin_auth`, `test_account_linking`, `test_account_repository` (5 files) — all clean (JWT creation/decode, cookie security flags, password validation/HIBP, register/login/change-password integration, admin bootstrap, pre-hijack defense, account linking, repository CRUD with unique constraints) | `plan, test, security` | ✅ |
 | 3 | **Audit OAuth & sessions** — `test_magic_link_endpoints`, `test_oauth_endpoints`, `test_oauth_helpers`, `test_tenant_session` (4 files) | `plan, test, security` | ⬜ |
 | 4 | **Audit admin services** — `test_admin_api`, `test_admin_routing_test`, `test_admin_schemas`, `test_admin_config_service`, `test_admin_management_service` (5 files) | `plan, test` | ⬜ |
 | 5 | **Phase gate — full backend test suite + push** | `plan, commands` | ⬜ |
