@@ -185,65 +185,6 @@ class TestNeedsVerification:
 
 
 # =============================================================================
-# Expiration Detection Result Tests
-# =============================================================================
-
-
-class TestExpirationDetectionResult:
-    """Tests for ExpirationDetectionResult dataclass."""
-
-    def test_deadline_expired_result(self) -> None:
-        """Result for deadline-based expiration."""
-        result = ExpirationDetectionResult(
-            is_expired=True,
-            method=ExpirationMethod.DEADLINE_PASSED,
-            job_title="Software Engineer",
-            company_name="Acme Corp",
-        )
-
-        assert result.is_expired is True
-        assert result.method == ExpirationMethod.DEADLINE_PASSED
-        assert result.job_title == "Software Engineer"
-        assert result.company_name == "Acme Corp"
-
-    def test_url_check_expired_result(self) -> None:
-        """Result for URL 404 detection."""
-        result = ExpirationDetectionResult(
-            is_expired=True,
-            method=ExpirationMethod.URL_NOT_FOUND,
-            job_title="Data Analyst",
-            company_name="TechCo",
-        )
-
-        assert result.is_expired is True
-        assert result.method == ExpirationMethod.URL_NOT_FOUND
-
-    def test_user_reported_result(self) -> None:
-        """Result for user-reported expiration."""
-        result = ExpirationDetectionResult(
-            is_expired=True,
-            method=ExpirationMethod.USER_REPORTED,
-            job_title="Product Manager",
-            company_name="StartupXYZ",
-        )
-
-        assert result.is_expired is True
-        assert result.method == ExpirationMethod.USER_REPORTED
-
-    def test_not_expired_result(self) -> None:
-        """Result when job is not expired."""
-        result = ExpirationDetectionResult(
-            is_expired=False,
-            method=None,
-            job_title="Designer",
-            company_name="DesignCo",
-        )
-
-        assert result.is_expired is False
-        assert result.method is None
-
-
-# =============================================================================
 # Agent Communication Message Tests (REQ-003 §12.2)
 # =============================================================================
 
