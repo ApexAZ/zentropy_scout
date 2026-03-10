@@ -306,8 +306,8 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit migrations** — `test_migration_010_auth_tables`, `test_migration_011_rename_indexes`, `test_migration_012_persona_jobs`, `test_migration_013_backfill`, `test_migration_014_drop_per_user_columns` (5 files) | `plan, test` | ⬜ |
-| 3 | **Audit rate limiting, retry & cleanup** — `test_rate_limiting`, `test_rate_limit_enforcement`, `test_retry_strategy`, `test_retention_cleanup`, `test_reembed_script` (5 files) | `plan, test` | ⬜ |
+| 2 | **Audit migrations** — `test_migration_010_auth_tables`, `test_migration_011_rename_indexes`, `test_migration_012_persona_jobs`, `test_migration_013_backfill`, `test_migration_014_drop_per_user_columns` (5 files). All clean — DB integration tests running actual Alembic migrations against a real PostgreSQL test database. Verify schema changes (columns, data types, constraints, indexes), FK cascades, CHECK constraints, data backfill correctness, partial UNIQUE behavior, and upgrade/downgrade round-trips. No changes. | `plan, test` | ✅ |
+| 3 | **Audit rate limiting, retry & cleanup** — `test_rate_limiting`, `test_rate_limit_enforcement`, `test_retry_strategy`, `test_retention_cleanup`, `test_reembed_script` (5 files). All clean — security-critical rate limit handler + key function transitions, HTTP enforcement via minimal FastAPI app, exponential backoff with retry_after capping, DB integration retention cleanup (4 categories with age/status/favorite protection), embed_fn wrapper. No changes. | `plan, test` | ✅ |
 | 4 | **Phase gate — full backend test suite + push** | `plan, commands` | ⬜ |
 
 ---
