@@ -159,7 +159,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | 4 | **Audit score explanation & types** — `test_score_explanation`, `test_score_types`, `test_score_scenarios`, `test_scoring_flow`, `test_score_correlation` (5 files) — removed 27 tests (17 constructor echoes from explanation dataclass file deleted entirely; 8 subsumed from scoring_flow; 2 constructor echoes from correlation); consolidated 4→1 parametrized validation test | `plan, test` | ✅ |
 | 5 | **Audit explanation generation & reasoning** — `test_explanation_generation`, `test_reasoning_explanation`, `test_stretch_score_aggregation`, `test_stretch_score_interpretation` (4 files) — removed 25 tests (1 subsumed summary from explanation; 3 subsumed from reasoning; 8 from aggregation: 1 duplicate, 1 constructor mirror, 2 default-value mirrors, 2 duplicates, 2 subsumed bounds; 14 from interpretation: consolidated 16→1 parametrized threshold test, deleted 3 result structure + 2 boundary + 2 integration subsumed + 3 replace() immutability) | `plan, test` | ✅ |
 | 6 | **Audit stretch weights, quality & batch** — `test_stretch_score_weights`, `test_quality_metrics`, `test_non_negotiables_filter`, `test_batch_scoring` (4 files) — removed 17 tests (deleted weights file: 1 test subsumed by import-time check; quality: 1 replace() immutability + 8 subsumed per-metric + 4 subsumed edge cases; non-neg: 3 constructor mirrors; batch: clean) | `plan, test` | ✅ |
-| 7 | **Phase gate — full backend test suite + push** | `plan, commands` | ⬜ |
+| 7 | **Phase gate — full backend test suite + push** — Deferred; 4284 passed, 0 failures, 103 pre-existing DB-session errors. Push deferred to next phase gate. | `plan, commands` | 🟡 |
 
 ---
 
@@ -174,7 +174,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit job extraction & enrichment** — `test_job_extraction`, `test_job_enrichment_service`, `test_job_fetch_service`, `test_job_posting_schemas`, `test_job_deduplication` (5 files) | `plan, test` | ⬜ |
+| 2 | **Audit job extraction & enrichment** — `test_job_extraction`, `test_job_enrichment_service`, `test_job_fetch_service`, `test_job_posting_schemas`, `test_job_deduplication` (5 files) — removed 11 tests (5 TypedDict constructor mirrors from extraction; 3 PollResult constructor mirrors from fetch; 2 Pydantic constructor mirrors + 1 default-value mirror from schemas; enrichment + dedup clean) | `plan, test` | ✅ |
 | 3 | **Audit job lifecycle & scoring** — `test_job_expiry`, `test_job_status_transitions`, `test_job_scoring_service`, `test_job_pool_helpers`, `test_job_embedding_generation` (5 files) | `plan, test` | ⬜ |
 | 4 | **Audit pool repositories & surfacing** — `test_job_pool_repository`, `test_job_pool_repository_dedup`, `test_pool_scoring`, `test_pool_surfacing_service`, `test_pool_surfacing_worker` (5 files) | `plan, test` | ⬜ |
 | 5 | **Audit discovery & dedup** — `test_discovery_workflow`, `test_source_adapters`, `test_source_selection`, `test_dedup_cross_persona`, `test_global_dedup_service`, `test_persona_job_repository_write` (6 files) | `plan, test` | ⬜ |

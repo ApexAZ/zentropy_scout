@@ -14,7 +14,6 @@ import pytest
 
 from app.providers.llm.base import TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
-from app.schemas.ingest import ExtractedSkill
 from app.services.job_extraction import (
     _basic_extraction,
     _build_extraction_prompt,
@@ -25,69 +24,6 @@ from app.services.job_extraction import (
 
 # S1192: Duplicated test input string
 _SAMPLE_JOB_TEXT = "Job posting text"
-
-# =============================================================================
-# ExtractedSkill Schema Tests
-# =============================================================================
-
-
-class TestExtractedSkillSchema:
-    """Tests for ExtractedSkill TypedDict structure.
-
-    REQ-007 §6.4: Skills must have skill_type (Hard/Soft), is_required (bool),
-    years_requested (int|null).
-    """
-
-    def test_extracted_skill_has_skill_name(self) -> None:
-        """ExtractedSkill requires skill_name field."""
-        skill: ExtractedSkill = {
-            "skill_name": "Python",
-            "skill_type": "Hard",
-            "is_required": True,
-            "years_requested": None,
-        }
-        assert skill["skill_name"] == "Python"
-
-    def test_extracted_skill_has_skill_type(self) -> None:
-        """ExtractedSkill requires skill_type field (Hard or Soft)."""
-        skill: ExtractedSkill = {
-            "skill_name": "Communication",
-            "skill_type": "Soft",
-            "is_required": True,
-            "years_requested": None,
-        }
-        assert skill["skill_type"] == "Soft"
-
-    def test_extracted_skill_has_is_required(self) -> None:
-        """ExtractedSkill requires is_required field (bool)."""
-        skill: ExtractedSkill = {
-            "skill_name": "AWS",
-            "skill_type": "Hard",
-            "is_required": False,
-            "years_requested": None,
-        }
-        assert skill["is_required"] is False
-
-    def test_extracted_skill_has_years_requested(self) -> None:
-        """ExtractedSkill can have years_requested (int or None)."""
-        skill: ExtractedSkill = {
-            "skill_name": "Python",
-            "skill_type": "Hard",
-            "is_required": True,
-            "years_requested": 5,
-        }
-        assert skill["years_requested"] == 5
-
-    def test_extracted_skill_years_requested_can_be_none(self) -> None:
-        """ExtractedSkill years_requested can be None when not specified."""
-        skill: ExtractedSkill = {
-            "skill_name": "Python",
-            "skill_type": "Hard",
-            "is_required": True,
-            "years_requested": None,
-        }
-        assert skill["years_requested"] is None
-
 
 # =============================================================================
 # Text Truncation Tests

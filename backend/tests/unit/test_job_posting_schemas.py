@@ -53,15 +53,6 @@ def _make_pj_data(**overrides: object) -> dict:
 class TestJobPostingResponse:
     """Test JobPostingResponse schema (REQ-015 §8.3)."""
 
-    def test_minimal_fields(self):
-        """Schema accepts minimal required fields."""
-        resp = JobPostingResponse(**_make_job_data())
-        assert resp.id == _JOB_ID
-        assert resp.job_title == "Software Engineer"
-        assert resp.company_name == "Acme Corp"
-        assert resp.is_active is True
-        assert resp.description == "Build great things"
-
     def test_all_optional_fields(self):
         """Schema accepts all optional factual fields."""
         resp = JobPostingResponse(
@@ -112,20 +103,13 @@ class TestJobPostingResponse:
 
     def test_source_id_included(self):
         """source_id is included for client-side source display."""
-        resp = JobPostingResponse(**_make_job_data(source_id=uuid.uuid4()))
-        assert resp.source_id is not None
+        source = uuid.uuid4()
+        resp = JobPostingResponse(**_make_job_data(source_id=source))
+        assert resp.source_id == source
 
 
 class TestPersonaJobResponse:
     """Test PersonaJobResponse schema (REQ-015 §8.3)."""
-
-    def test_minimal_fields(self):
-        """Schema accepts minimal required fields."""
-        resp = PersonaJobResponse(**_make_pj_data())
-        assert resp.id == _PJ_ID
-        assert resp.status == "Discovered"
-        assert resp.is_favorite is False
-        assert resp.discovery_method == "scouter"
 
     def test_nested_job_data(self):
         """PersonaJobResponse nests JobPostingResponse."""
@@ -149,16 +133,6 @@ class TestPersonaJobResponse:
         assert resp.stretch_score == 30
         assert resp.failed_non_negotiables == ["Python 5+ years"]
         assert resp.score_details == {"skill_match": 0.9}
-
-    def test_optional_fields_default_none(self):
-        """Scoring fields default to None when not provided."""
-        resp = PersonaJobResponse(**_make_pj_data())
-        assert resp.fit_score is None
-        assert resp.stretch_score is None
-        assert resp.failed_non_negotiables is None
-        assert resp.score_details is None
-        assert resp.scored_at is None
-        assert resp.dismissed_at is None
 
     def test_discovery_methods(self):
         """All valid discovery methods are accepted."""

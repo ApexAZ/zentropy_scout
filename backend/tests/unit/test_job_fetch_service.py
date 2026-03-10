@@ -7,13 +7,12 @@ saves/links to pool, and updates poll state.
 
 from collections.abc import Callable
 from datetime import timedelta
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
 import pytest
 
-from app.services.job_fetch_service import JobFetchService, PollResult
+from app.services.job_fetch_service import JobFetchService
 
 # Module paths for patching
 _GET_ADAPTER = "app.services.job_fetch_service.get_source_adapter"
@@ -97,52 +96,6 @@ def make_adapter() -> Callable[..., AsyncMock]:
         return adapter
 
     return _make
-
-
-# ---------------------------------------------------------------------------
-# PollResult
-# ---------------------------------------------------------------------------
-
-
-class TestPollResult:
-    """Tests for PollResult dataclass."""
-
-    def test_captures_processed_jobs(self) -> None:
-        """PollResult holds the combined list of processed jobs."""
-        jobs: list[dict[str, Any]] = [{"id": "1", "title": "Job A"}]
-        result = PollResult(
-            processed_jobs=jobs,
-            new_job_count=1,
-            existing_job_count=0,
-            error_sources=[],
-        )
-
-        assert result.processed_jobs == jobs
-        assert result.new_job_count == 1
-
-    def test_tracks_new_and_existing_counts(self) -> None:
-        """PollResult distinguishes new saves from existing links."""
-        result = PollResult(
-            processed_jobs=[],
-            new_job_count=5,
-            existing_job_count=3,
-            error_sources=[],
-        )
-
-        assert result.new_job_count == 5
-        assert result.existing_job_count == 3
-
-    def test_tracks_error_sources(self) -> None:
-        """PollResult records sources that failed during fetch."""
-        result = PollResult(
-            processed_jobs=[],
-            new_job_count=0,
-            existing_job_count=0,
-            error_sources=[_SOURCE_REMOTEOK, "TheMuse"],
-        )
-
-        assert _SOURCE_REMOTEOK in result.error_sources
-        assert len(result.error_sources) == 2
 
 
 # ---------------------------------------------------------------------------
