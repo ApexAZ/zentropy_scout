@@ -123,6 +123,24 @@ Every test must justify its existence: **"What real bug would this test catch th
 | **`is not None` sole assertion** | `assert result is not None` | Redundant when companion tests assert on properties of result | DELETE if companions exist; if no companions, add real assertions instead |
 | **Subsumed/duplicate** | Same code path tested identically in two places | One test can never catch a bug the other misses | DELETE the less specific test; keep the one with richer assertions |
 
+### Frontend-Specific Bloat Patterns (from 2026-03 audit)
+
+| Pattern | Example | Why It's Bloat | Fix |
+|---------|---------|----------------|-----|
+| **Sole toBeInTheDocument smoke** | `expect(getByText("Title")).toBeInTheDocument()` | Unconditional element, companion test interacts with same element | DELETE if companion exists. KEEP if conditional render, only test for element, or tests error/empty/loading states |
+| **TypeScript constructor mirror** | `const obj: IFoo = {x:1}; expect(obj.x).toBe(1)` | `tsc --noEmit` already enforces type conformance | DELETE entire test. Was the #1 frontend bloat source (167 deletions) |
+| **Tailwind toHaveClass** | `expect(el).toHaveClass("bg-primary")` | Tests which CSS utility class is applied, not user-visible behavior | DELETE or remove assertion. Keep the rendered text/content assertion if present. Exception: `toHaveClass("sr-only")` for accessibility |
+| **Radix data-state on tabs** | `expect(tab).toHaveAttribute("data-state", "active")` | Tests Radix UI internal attribute, not visible content | Replace with content visibility check or `data-editable` on editors. Note: `data-state` on checkboxes/switches IS legitimate |
+| **Constant echo (Map/config)** | `expect(MAP.get("key")).toEqual(value)` | Duplicates source literal; behavioral tests already verify same mapping | DELETE if a function-level test covers the same path |
+| **Redundant CalledTimes** | `expect(fn).toHaveBeenCalledTimes(1)` after `toHaveBeenCalledWith(args)` | CalledWith already proves the call happened; "exactly once" is rarely a behavioral contract | DELETE unless double-invocation is a known risk |
+
+**Frontend DELETE rule (mechanical):** Delete a sole-assertion `toBeInTheDocument()` test if ALL of:
+1. Uses ONLY `.toBeInTheDocument()` as its assertion
+2. Element renders UNCONDITIONALLY (no props/state variation)
+3. A companion test in the same file already covers the element with richer assertions (text content, attributes, interaction)
+
+**KEEP if ANY of:** conditional rendering, only test for that element, multiple assertions (toHaveAttribute, toHaveValue, etc.), unique error/empty/loading state.
+
 ### Approved Exception: Frozen-Test Pattern
 
 When verifying immutability, test through the public API (`replace()`), not Python's freeze mechanism:
@@ -211,6 +229,21 @@ def test_sanitize_idempotent(text: str) -> None:
 | Regression: specific bug reproduction | Example-based (pytest) |
 
 Key rules: use `assume()` to discard invalid inputs, pre-compile regex at module level, use `st.sampled_from()` for injection-adjacent characters. See `backend/tests/unit/test_llm_sanitization_fuzz.py` for examples.
+
+---
+
+## Frontend Test Setup Reference
+
+Frontend tests use Vitest + React Testing Library + jsdom. Key patterns:
+
+- **Test file convention:** `component-name.test.tsx` colocated with component
+- **Mock pattern:** Use `vi.hoisted()` for mock definitions, `vi.mock()` for module mocking
+- **Render helper:** Each file has a `renderFoo()` helper wrapping `render(<Foo {...defaults} />)`
+- **User events:** `const user = userEvent.setup()` — always use `userEvent` over `fireEvent`
+- **Async queries:** Use `waitFor()` for elements that appear after state changes
+- **Cleanup:** `afterEach(() => { cleanup(); vi.restoreAllMocks(); })`
+
+Before writing a new frontend test file, **always read an existing sibling test file** in the same directory to match the exact `vi.hoisted()` shape, `MockApiError` inclusion, `beforeEach`/`afterEach` hooks, ID format, and testid prefixes.
 
 ---
 
