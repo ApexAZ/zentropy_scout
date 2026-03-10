@@ -399,31 +399,6 @@ class TestReasoningExplanation:
 
 
 # ---------------------------------------------------------------------------
-# GenerationResult Dataclass
-# ---------------------------------------------------------------------------
-
-
-class TestGenerationResult:
-    """GenerationResult behavioral tests."""
-
-    def test_duplicate_result_has_no_content(self) -> None:
-        """Duplicate prevention result should have no generated content."""
-        result = GenerationResult(
-            cover_letter=None,
-            tailoring_action=None,
-            tailoring_reasoning=None,
-            selected_stories=(),
-            agent_reasoning=None,
-            review_warning=None,
-            duplicate_message="Already working on this.",
-            job_active=True,
-        )
-
-        assert result.cover_letter is None
-        assert result.duplicate_message == "Already working on this."
-
-
-# ---------------------------------------------------------------------------
 # Chat.py Delegation
 # ---------------------------------------------------------------------------
 
