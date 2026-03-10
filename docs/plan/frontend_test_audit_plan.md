@@ -104,7 +104,7 @@ Phase 4: Quality Gate (verification + documentation)
 
 ## Phase 3: Cleanup — Component Tests
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Apply triage findings to the broader component test suite. Exact scope determined by Phase 1 triage report.*
 
@@ -114,7 +114,7 @@ Phase 4: Quality Gate (verification + documentation)
 | 3.2 | **Clean toBeInTheDocument sole assertions — heavy files batch B** — Next 5 files by sole count from triage (change-flags-resolver, status-transition-dropdown, cover-letter-review, add-timeline-event-dialog, login page). Apply dispositions. | 5 files, 12 deletions | ✅ |
 | 3.3 | **Clean mock-only + CSS assertion files** — Files identified in triage as having ANTIPATTERN mock-only or CSS-class-as-sole-assertion tests. | 3 files, 15 deletions + 16 assertions removed + 2 refactored | ✅ |
 | 3.4 | **Clean remaining files** — Applied data-state tab assertions from resume-content-view (-2 tests, 2 refactored) and ghostwriter-review (-1 test, 1 assertion removed). Checkbox/switch data-state assertions classified LEGITIMATE. | 2 files, 3 deletions + 3 refactored | ✅ |
-| 3.5 | **Phase gate — full test suite + push** — Run Vitest full suite. Compare test count to baseline. Fix regressions, commit, push. | Full frontend suite | ⬜ |
+| 3.5 | **Phase gate — full test suite + push** — 3,437 tests pass (198 files), lint clean, typecheck clean. Pushed 4 commits (§3.1–§3.4). | Full frontend suite | ✅ |
 
 **Notes:**
 - Exact scope determined by Phase 1 triage report (task 1.5)
@@ -231,6 +231,7 @@ After full audit:
 | 2026-03-09 | §3.2 complete — Deleted 12 sole-assertion smoke tests across 5 files: add-timeline-event-dialog (-5), login page (-3), change-flags-resolver (-2), status-transition-dropdown (-1), cover-letter-review (-1). Also removed 1 unused constant. Test count: 3,468 → 3,455. |
 | 2026-03-09 | §3.3 complete — 3 files: sse-query-bridge (-13 tests: 9 constant echoes, 2 redundant CalledTimes, 1 structural, 1 duplicate), status-badge (0 tests deleted, 16 Tailwind toHaveClass assertions removed, 3 unused constants removed), resume-detail (-2 data-state tests, 2 refactored data-state→data-editable). Test count: 3,455 → 3,440. |
 | 2026-03-09 | §3.4 complete — 2 files: resume-content-view (-2 data-state tab tests, 2 refactored to data-editable), ghostwriter-review (-1 data-state tab test, 1 data-state assertion removed from tab-switch test). Remaining data-state assertions (checkbox/switch in ~4 files) classified LEGITIMATE. Test count: 3,440 → 3,437. |
+| 2026-03-09 | §3.5 complete — Phase 3 gate passed. 3,437 tests (198 files), lint clean, typecheck clean. Pushed 4 commits (§3.1–§3.4). Phase 3 delta: -78 tests. |
 
 ---
 
