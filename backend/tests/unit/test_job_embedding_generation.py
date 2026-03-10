@@ -13,8 +13,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.services.job_embedding_generator import (
-    JobEmbeddingData,
-    JobEmbeddingsResult,
     build_culture_text,
     build_requirements_text,
     generate_job_embeddings,
@@ -268,40 +266,6 @@ class TestGetNeutralEmbedding:
         result = get_neutral_embedding()
 
         assert all(v == 0.0 for v in result)
-
-
-# =============================================================================
-# JobEmbeddingsResult Tests
-# =============================================================================
-
-
-class TestJobEmbeddingsResult:
-    """Tests for JobEmbeddingsResult dataclass."""
-
-    def test_has_required_fields(self) -> None:
-        """Result has job_id and both embedding types."""
-        job_id = uuid.uuid4()
-        version = datetime.now()
-
-        result = JobEmbeddingsResult(
-            job_id=job_id,
-            requirements=JobEmbeddingData(
-                vector=[0.1] * 768,
-                source_text="Python (Expert)",
-            ),
-            culture=JobEmbeddingData(
-                vector=[0.2] * 768,
-                source_text="We value collaboration.",
-            ),
-            version=version,
-            model_name="text-embedding-3-small",
-        )
-
-        assert result.job_id == job_id
-        assert len(result.requirements.vector) == 768
-        assert len(result.culture.vector) == 768
-        assert result.version == version
-        assert result.model_name == "text-embedding-3-small"
 
 
 # =============================================================================

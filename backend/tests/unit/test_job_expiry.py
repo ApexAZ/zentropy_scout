@@ -7,28 +7,10 @@ Two phases:
 2. Post-generation: If job expired mid-generation, preserve content + warning.
 """
 
-from dataclasses import replace
-
 from app.services.job_expiry import (
     check_job_expiry_after,
     check_job_expiry_before,
 )
-
-# =============================================================================
-# JobExpiryResult Structure
-# =============================================================================
-
-
-class TestJobExpiryResultStructure:
-    """Tests for JobExpiryResult frozen dataclass."""
-
-    def test_result_is_frozen(self) -> None:
-        """JobExpiryResult should be immutable."""
-        result = check_job_expiry_before(job_status="Discovered")
-        updated = replace(result, can_proceed=False)
-        assert result.can_proceed is True
-        assert updated.can_proceed is False
-
 
 # =============================================================================
 # check_job_expiry_before — Active Statuses

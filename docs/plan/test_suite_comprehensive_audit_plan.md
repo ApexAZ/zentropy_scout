@@ -175,7 +175,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
 | 2 | **Audit job extraction & enrichment** — `test_job_extraction`, `test_job_enrichment_service`, `test_job_fetch_service`, `test_job_posting_schemas`, `test_job_deduplication` (5 files) — removed 11 tests (5 TypedDict constructor mirrors from extraction; 3 PollResult constructor mirrors from fetch; 2 Pydantic constructor mirrors + 1 default-value mirror from schemas; enrichment + dedup clean) | `plan, test` | ✅ |
-| 3 | **Audit job lifecycle & scoring** — `test_job_expiry`, `test_job_status_transitions`, `test_job_scoring_service`, `test_job_pool_helpers`, `test_job_embedding_generation` (5 files) | `plan, test` | ⬜ |
+| 3 | **Audit job lifecycle & scoring** — `test_job_expiry`, `test_job_status_transitions`, `test_job_scoring_service`, `test_job_pool_helpers`, `test_job_embedding_generation` (5 files) — removed 2 tests (1 replace() immutability from expiry; 1 constructor mirror from embedding_generation); status_transitions, scoring_service, pool_helpers all clean | `plan, test` | ✅ |
 | 4 | **Audit pool repositories & surfacing** — `test_job_pool_repository`, `test_job_pool_repository_dedup`, `test_pool_scoring`, `test_pool_surfacing_service`, `test_pool_surfacing_worker` (5 files) | `plan, test` | ⬜ |
 | 5 | **Audit discovery & dedup** — `test_discovery_workflow`, `test_source_adapters`, `test_source_selection`, `test_dedup_cross_persona`, `test_global_dedup_service`, `test_persona_job_repository_write` (6 files) | `plan, test` | ⬜ |
 | 6 | **Phase gate — full backend test suite + push** | `plan, commands` | ⬜ |
