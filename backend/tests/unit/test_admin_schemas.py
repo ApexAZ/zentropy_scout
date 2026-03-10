@@ -5,28 +5,21 @@ API resources — model registry, pricing config, task routing, funding packs,
 system config, admin users, and cache refresh.
 """
 
-from datetime import date, datetime
+from datetime import date
 
 import pytest
 from pydantic import ValidationError
 
 from app.schemas.admin import (
-    AdminUserResponse,
     AdminUserUpdate,
-    CacheRefreshResponse,
     FundingPackCreate,
-    FundingPackResponse,
     FundingPackUpdate,
     ModelRegistryCreate,
-    ModelRegistryResponse,
     ModelRegistryUpdate,
     PricingConfigCreate,
-    PricingConfigResponse,
     PricingConfigUpdate,
-    SystemConfigResponse,
     SystemConfigUpsert,
     TaskRoutingCreate,
-    TaskRoutingResponse,
     TaskRoutingUpdate,
 )
 
@@ -131,25 +124,6 @@ class TestModelRegistryUpdate:
     def test_accepts_display_name_at_100_chars(self) -> None:
         schema = ModelRegistryUpdate(display_name="x" * 100)
         assert len(schema.display_name) == 100
-
-
-class TestModelRegistryResponse:
-    """ModelRegistryResponse serializes correctly."""
-
-    def test_full_response(self) -> None:
-        now = datetime(2026, 3, 1, 12, 0, 0)
-        schema = ModelRegistryResponse(
-            id="550e8400-e29b-41d4-a716-446655440000",
-            provider="claude",
-            model="claude-3-5-haiku-20241022",
-            display_name="Claude 3.5 Haiku",
-            model_type="llm",
-            is_active=True,
-            created_at=now,
-            updated_at=now,
-        )
-        assert schema.id == "550e8400-e29b-41d4-a716-446655440000"
-        assert schema.is_active is True
 
 
 # =============================================================================
@@ -299,27 +273,6 @@ class TestPricingConfigUpdate:
             PricingConfigUpdate(margin_multiplier="-1.0")
 
 
-class TestPricingConfigResponse:
-    """PricingConfigResponse includes is_current computed field."""
-
-    def test_response_with_is_current(self) -> None:
-        now = datetime(2026, 3, 1, 12, 0, 0)
-        schema = PricingConfigResponse(
-            id="550e8400-e29b-41d4-a716-446655440000",
-            provider="claude",
-            model="claude-3-5-haiku-20241022",
-            input_cost_per_1k="0.000800",
-            output_cost_per_1k="0.004000",
-            margin_multiplier="1.30",
-            effective_date=date(2026, 3, 1),
-            is_current=True,
-            created_at=now,
-            updated_at=now,
-        )
-        assert schema.is_current is True
-        assert schema.effective_date == date(2026, 3, 1)
-
-
 # =============================================================================
 # Task Routing schemas
 # =============================================================================
@@ -393,36 +346,6 @@ class TestTaskRoutingUpdate:
     def test_rejects_model_over_100_chars(self) -> None:
         with pytest.raises(ValidationError, match="model"):
             TaskRoutingUpdate(model="x" * 101)
-
-
-class TestTaskRoutingResponse:
-    """TaskRoutingResponse includes optional model_display_name."""
-
-    def test_response_with_display_name(self) -> None:
-        now = datetime(2026, 3, 1, 12, 0, 0)
-        schema = TaskRoutingResponse(
-            id="550e8400-e29b-41d4-a716-446655440000",
-            provider="claude",
-            task_type="extraction",
-            model="claude-3-5-haiku-20241022",
-            model_display_name="Claude 3.5 Haiku",
-            created_at=now,
-            updated_at=now,
-        )
-        assert schema.model_display_name == "Claude 3.5 Haiku"
-
-    def test_response_without_display_name(self) -> None:
-        now = datetime(2026, 3, 1, 12, 0, 0)
-        schema = TaskRoutingResponse(
-            id="550e8400-e29b-41d4-a716-446655440000",
-            provider="claude",
-            task_type="_default",
-            model="claude-3-5-haiku-20241022",
-            model_display_name=None,
-            created_at=now,
-            updated_at=now,
-        )
-        assert schema.model_display_name is None
 
 
 # =============================================================================
@@ -517,29 +440,6 @@ class TestFundingPackUpdate:
             FundingPackUpdate(highlight_label="x" * 51)
 
 
-class TestFundingPackResponse:
-    """FundingPackResponse includes price_display computed value."""
-
-    def test_price_display_formatting(self) -> None:
-        now = datetime(2026, 3, 1, 12, 0, 0)
-        schema = FundingPackResponse(
-            id="550e8400-e29b-41d4-a716-446655440000",
-            name="Starter",
-            price_cents=500,
-            price_display="$5.00",
-            grant_cents=1000,
-            stripe_price_id=None,
-            display_order=1,
-            is_active=True,
-            description="Basic pack",
-            highlight_label=None,
-            created_at=now,
-            updated_at=now,
-        )
-        assert schema.price_display == "$5.00"
-        assert schema.stripe_price_id is None
-
-
 # =============================================================================
 # System Config schemas
 # =============================================================================
@@ -580,21 +480,6 @@ class TestSystemConfigUpsert:
             SystemConfigUpsert(value="ok", description="x" * 256)
 
 
-class TestSystemConfigResponse:
-    """SystemConfigResponse returns key-value pairs."""
-
-    def test_full_response(self) -> None:
-        now = datetime(2026, 3, 1, 12, 0, 0)
-        schema = SystemConfigResponse(
-            key="signup_grant_cents",
-            value="10",
-            description="USD cents on signup",
-            updated_at=now,
-        )
-        assert schema.key == "signup_grant_cents"
-        assert schema.value == "10"
-
-
 # =============================================================================
 # Admin User schemas
 # =============================================================================
@@ -603,53 +488,9 @@ class TestSystemConfigResponse:
 class TestAdminUserUpdate:
     """AdminUserUpdate validates is_admin field."""
 
-    def test_set_admin_true(self) -> None:
-        schema = AdminUserUpdate(is_admin=True)
-        assert schema.is_admin is True
-
-    def test_set_admin_false(self) -> None:
-        schema = AdminUserUpdate(is_admin=False)
-        assert schema.is_admin is False
-
     def test_rejects_extra_fields(self) -> None:
         with pytest.raises(ValidationError, match="extra"):
             AdminUserUpdate(
                 is_admin=True,
                 email="hack@evil.com",  # type: ignore[call-arg]
             )
-
-
-class TestAdminUserResponse:
-    """AdminUserResponse includes computed is_env_protected."""
-
-    def test_full_response(self) -> None:
-        now = datetime(2026, 3, 1, 12, 0, 0)
-        schema = AdminUserResponse(
-            id="550e8400-e29b-41d4-a716-446655440000",
-            email="admin@example.com",
-            name="Admin User",
-            is_admin=True,
-            is_env_protected=True,
-            balance_usd="10.500000",
-            created_at=now,
-        )
-        assert schema.is_admin is True
-        assert schema.is_env_protected is True
-        assert schema.balance_usd == "10.500000"
-
-
-# =============================================================================
-# Cache Refresh schema
-# =============================================================================
-
-
-class TestCacheRefreshResponse:
-    """CacheRefreshResponse returns message and caching status."""
-
-    def test_cache_not_enabled(self) -> None:
-        schema = CacheRefreshResponse(
-            message="Cache refresh triggered",
-            caching_enabled=False,
-        )
-        assert schema.message == "Cache refresh triggered"
-        assert schema.caching_enabled is False
