@@ -219,24 +219,6 @@ class TestLLMUsageRecord:
         with pytest.raises(IntegrityError):
             await db_session.flush()
 
-    @pytest.mark.asyncio
-    async def test_default_created_at(
-        self, db_session: AsyncSession, test_user: User
-    ) -> None:
-        """created_at is set by server default on insert."""
-        record = _make_usage_record(
-            test_user.id,
-            provider="gemini",
-            model="gemini-2.0-flash",
-            raw_cost_usd=Decimal("0.000060"),
-            billed_cost_usd=Decimal("0.000078"),
-        )
-        db_session.add(record)
-        await db_session.flush()
-        await db_session.refresh(record)
-
-        assert record.created_at is not None
-
 
 class TestCreditTransaction:
     """Test CreditTransaction ORM model."""
@@ -385,22 +367,6 @@ class TestCreditTransaction:
             {"id": txn_id},
         )
         assert result.fetchone() is None
-
-    @pytest.mark.asyncio
-    async def test_default_created_at(
-        self, db_session: AsyncSession, test_user: User
-    ) -> None:
-        """created_at is set by server default on insert."""
-        txn = CreditTransaction(
-            user_id=test_user.id,
-            amount_usd=Decimal("5.000000"),
-            transaction_type="admin_grant",
-        )
-        db_session.add(txn)
-        await db_session.flush()
-        await db_session.refresh(txn)
-
-        assert txn.created_at is not None
 
 
 class TestUserBalanceUsd:

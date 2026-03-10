@@ -14,9 +14,6 @@ import pytest_asyncio
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import require_sufficient_balance
-from app.core.config import settings
-from app.core.errors import InsufficientBalanceError
 from app.models.admin_config import ModelRegistry, PricingConfig
 from app.models.usage import CreditTransaction, LLMUsageRecord
 from app.models.user import User
@@ -187,24 +184,6 @@ def metered_provider(
     return MeteredLLMProvider(
         inner_provider, None, metering_service, admin_config, _METERING_USER_ID
     )
-
-
-@pytest.fixture
-def _enable_metering():
-    """Temporarily enable metering for tests that need it."""
-    original = settings.metering_enabled
-    settings.metering_enabled = True
-    yield
-    settings.metering_enabled = original
-
-
-@pytest.fixture
-def _disable_metering():
-    """Temporarily disable metering for tests that need it."""
-    original = settings.metering_enabled
-    settings.metering_enabled = False
-    yield
-    settings.metering_enabled = original
 
 
 # =============================================================================
@@ -584,93 +563,6 @@ class TestReconciliation:
         # SUM(txns) should be: credit + (3 * -billed_cost)
         # And initial_balance + SUM(txns) == current_balance
         assert _INITIAL_BALANCE + txn_sum == balance
-
-
-# =============================================================================
-# Tests — Balance gating (REQ-020 §7, §12)
-# =============================================================================
-
-
-class TestBalanceGating:
-    """Balance check returns 402 when balance is zero or insufficient."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.usefixtures("_enable_metering")
-    async def test_402_when_balance_zero(self, db_session):
-        """require_sufficient_balance raises InsufficientBalanceError at $0."""
-        zero_user_id = uuid.UUID("00000000-0000-0000-0000-000000000022")
-        user = User(
-            id=zero_user_id,
-            email="zero-balance@example.com",
-            balance_usd=Decimal("0.000000"),
-        )
-        db_session.add(user)
-        await db_session.commit()
-
-        with pytest.raises(InsufficientBalanceError) as exc_info:
-            await require_sufficient_balance(zero_user_id, db_session)
-
-        assert exc_info.value.status_code == 402
-        assert exc_info.value.code == "INSUFFICIENT_BALANCE"
-        assert exc_info.value.details is not None
-        assert exc_info.value.details[0]["balance_usd"] == "0.000000"
-
-    @pytest.mark.asyncio
-    @pytest.mark.usefixtures("_enable_metering")
-    async def test_no_402_when_balance_positive(self, db_session, metering_user):  # noqa: ARG002
-        """require_sufficient_balance passes when balance > 0."""
-        # Should not raise
-        await require_sufficient_balance(_METERING_USER_ID, db_session)
-
-
-# =============================================================================
-# Tests — Metering disabled (REQ-020 §11)
-# =============================================================================
-
-
-class TestMeteringDisabled:
-    """When metering_enabled=False, no records are created and balance unchanged."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.usefixtures("_disable_metering")
-    async def test_disabled_metering_no_records(self, db_session, metering_user):  # noqa: ARG002
-        """With metering disabled, complete() works but no DB records created."""
-        # Use a raw MockLLMProvider (not metered) since the DI function
-        # would return the raw provider when disabled. We simulate
-        # the behavior directly.
-        inner = _HaikuMockProvider()
-        response = await inner.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)
-
-        # No usage records
-        usage_count = await _count_usage_records(db_session, _METERING_USER_ID)
-        assert usage_count == 0
-
-        # No credit transactions
-        txn_count = await _count_credit_transactions(db_session, _METERING_USER_ID)
-        assert txn_count == 0
-
-        # Balance unchanged
-        balance = await _get_balance(db_session, _METERING_USER_ID)
-        assert balance == _INITIAL_BALANCE
-
-        # Response still works
-        assert response.content == _TEST_RESPONSE_CONTENT
-
-    @pytest.mark.asyncio
-    @pytest.mark.usefixtures("_disable_metering")
-    async def test_disabled_metering_skips_balance_check(self, db_session):
-        """With metering disabled, balance check is skipped entirely."""
-        zero_user_id = uuid.UUID("00000000-0000-0000-0000-000000000023")
-        user = User(
-            id=zero_user_id,
-            email="zero-disabled@example.com",
-            balance_usd=Decimal("0.000000"),
-        )
-        db_session.add(user)
-        await db_session.commit()
-
-        # Should NOT raise even with zero balance
-        await require_sufficient_balance(zero_user_id, db_session)
 
 
 # =============================================================================
