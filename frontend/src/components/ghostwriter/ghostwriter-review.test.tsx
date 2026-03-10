@@ -358,18 +358,6 @@ describe("GhostwriterReview", () => {
 			).toBeInTheDocument();
 		});
 
-		it("shows Resume Variant tab active by default", async () => {
-			setupMockApi();
-			renderReview();
-			await waitFor(() => {
-				expect(screen.getByTestId(REVIEW_TESTID)).toBeInTheDocument();
-			});
-			expect(screen.getByRole("tab", { name: VARIANT_TAB })).toHaveAttribute(
-				"data-state",
-				"active",
-			);
-		});
-
 		it("shows VariantReview stub in Resume Variant tab", async () => {
 			setupMockApi();
 			renderReview();
@@ -388,9 +376,6 @@ describe("GhostwriterReview", () => {
 
 			await user.click(screen.getByRole("tab", { name: COVER_LETTER_TAB }));
 
-			expect(
-				screen.getByRole("tab", { name: COVER_LETTER_TAB }),
-			).toHaveAttribute("data-state", "active");
 			expect(
 				screen.getByTestId("cover-letter-review-stub"),
 			).toBeInTheDocument();
