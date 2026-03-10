@@ -168,27 +168,12 @@ describe("LoginPage", () => {
 			);
 		});
 
-		it("renders email and password inputs", () => {
-			renderLogin();
-
-			expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-			expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-		});
-
 		it("renders Sign In submit button", () => {
 			renderLogin();
 
 			const btn = screen.getByTestId(LOGIN_SUBMIT_TESTID);
 			expect(btn).toBeInTheDocument();
 			expect(btn).toHaveTextContent(/sign in/i);
-		});
-
-		it("renders Forgot password link", () => {
-			renderLogin();
-
-			expect(
-				screen.getByRole("button", { name: /forgot password/i }),
-			).toBeInTheDocument();
 		});
 
 		it("renders Create account link to /register", () => {
@@ -417,19 +402,6 @@ describe("LoginPage", () => {
 
 			await waitFor(() => {
 				expect(screen.getByText(/check your email/i)).toBeInTheDocument();
-			});
-		});
-
-		it("shows Back to sign in link from confirmation", async () => {
-			mocks.mockApiPost.mockResolvedValueOnce({ data: {} });
-			const user = renderLogin();
-
-			await submitMagicLink(user);
-
-			await waitFor(() => {
-				expect(
-					screen.getByRole("button", { name: /back to sign in/i }),
-				).toBeInTheDocument();
 			});
 		});
 

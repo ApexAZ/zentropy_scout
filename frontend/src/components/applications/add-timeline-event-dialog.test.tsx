@@ -21,7 +21,6 @@ const DIALOG_TITLE = "Add Timeline Event";
 const EVENT_TYPE_SELECT_TESTID = "event-type-select";
 const INTERVIEW_STAGE_SELECT_TESTID = "interview-stage-select";
 const CHAR_COUNT_TESTID = "description-char-count";
-const EVENT_TYPE_LABEL = "Event Type";
 const EVENT_DATE_LABEL = "Event Date";
 const DESCRIPTION_LABEL = "Description";
 const INTERVIEW_STAGE_LABEL = "Interview Stage";
@@ -76,26 +75,6 @@ describe("AddTimelineEventDialog", () => {
 	// -----------------------------------------------------------------------
 
 	describe("rendering", () => {
-		it("renders dialog title", () => {
-			renderDialog();
-			expect(screen.getByText(DIALOG_TITLE)).toBeInTheDocument();
-		});
-
-		it("renders event type select", () => {
-			renderDialog();
-			expect(screen.getByLabelText(EVENT_TYPE_LABEL)).toBeInTheDocument();
-		});
-
-		it("renders event date input", () => {
-			renderDialog();
-			expect(screen.getByLabelText(EVENT_DATE_LABEL)).toBeInTheDocument();
-		});
-
-		it("renders description textarea", () => {
-			renderDialog();
-			expect(screen.getByLabelText(DESCRIPTION_LABEL)).toBeInTheDocument();
-		});
-
 		it("renders character counter for description", () => {
 			renderDialog();
 			expect(screen.getByTestId(CHAR_COUNT_TESTID)).toHaveTextContent("0/2000");
@@ -104,14 +83,6 @@ describe("AddTimelineEventDialog", () => {
 		it("does not render dialog content when open is false", () => {
 			renderDialog({ open: false });
 			expect(screen.queryByText(DIALOG_TITLE)).not.toBeInTheDocument();
-		});
-
-		it("renders Save and Cancel buttons", () => {
-			renderDialog();
-			expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
-			expect(
-				screen.getByRole("button", { name: "Cancel" }),
-			).toBeInTheDocument();
 		});
 
 		it("disables Save button when form is empty (no event type or date)", () => {

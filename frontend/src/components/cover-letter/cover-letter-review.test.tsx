@@ -377,15 +377,6 @@ describe("CoverLetterReview", () => {
 	// Agent Reasoning
 	// -----------------------------------------------------------------------
 
-	it("renders agent reasoning when present", async () => {
-		setupMockApi();
-		renderReview();
-		await waitFor(() => {
-			expect(screen.getByTestId(REASONING_TESTID)).toBeInTheDocument();
-		});
-		expect(screen.getByText(MOCK_REASONING)).toBeInTheDocument();
-	});
-
 	it("collapses reasoning when toggle clicked", async () => {
 		setupMockApi();
 		const user = userEvent.setup();

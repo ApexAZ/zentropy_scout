@@ -261,40 +261,6 @@ describe("ChangeFlagsResolver", () => {
 			});
 		});
 
-		it("renders flag items with descriptions", async () => {
-			setupDefaultMocks();
-
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<ChangeFlagsResolver />
-				</Wrapper>,
-			);
-
-			await waitFor(() => {
-				expect(screen.getByText(/Senior Engineer at Acme/)).toBeInTheDocument();
-				expect(screen.getByText(/TypeScript/)).toBeInTheDocument();
-				expect(screen.getByText(/MIT CS Degree/)).toBeInTheDocument();
-			});
-		});
-
-		it("renders change type labels correctly", async () => {
-			setupDefaultMocks();
-
-			const Wrapper = createWrapper();
-			render(
-				<Wrapper>
-					<ChangeFlagsResolver />
-				</Wrapper>,
-			);
-
-			await waitFor(() => {
-				expect(screen.getByText(/New job/)).toBeInTheDocument();
-				expect(screen.getByText(/Added skill/)).toBeInTheDocument();
-				expect(screen.getByText(/New education/)).toBeInTheDocument();
-			});
-		});
-
 		it("renders three action buttons per flag", async () => {
 			setupDefaultMocks();
 

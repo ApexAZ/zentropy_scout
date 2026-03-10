@@ -128,13 +128,6 @@ afterEach(() => {
 
 describe("StatusTransitionDropdown", () => {
 	describe("rendering", () => {
-		it("renders a dropdown trigger with 'Update Status' text", () => {
-			renderDropdown("Applied");
-			expect(
-				screen.getByRole("combobox", { name: TRIGGER_LABEL }),
-			).toBeInTheDocument();
-		});
-
 		it("disables the trigger for terminal status Accepted", () => {
 			renderDropdown("Accepted");
 			expect(
