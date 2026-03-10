@@ -292,6 +292,7 @@ class TestGetSummary:
         await db_session.commit()
 
         response = await client.get(_URL_SUMMARY)
+        assert response.status_code == 200, response.text
         data = response.json()["data"]
         assert "margin_multiplier" not in data
         for entry in data["by_task_type"]:
