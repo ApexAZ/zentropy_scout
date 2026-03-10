@@ -56,9 +56,9 @@ Phase 3: pytest-xdist Parallel Execution (depends on Phase 1)
 
 ## Phase 1: Session-Scoped Engine + SAVEPOINT Rollback
 
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
-*Refactor `backend/tests/conftest.py` to create tables ONCE at session start, wrap each test in a SAVEPOINT, and rollback after. Fixes the flaky test by eliminating PostgreSQL overload. Expected: ~467s → ~130-170s.*
+*Refactor `backend/tests/conftest.py` to create tables ONCE at session start, wrap each test in a SAVEPOINT, and rollback after. Fixes the flaky test by eliminating PostgreSQL overload. Expected: ~467s → ~130-170s. **Actual: 120.93s (3.86x speedup).***
 
 #### Workflow
 | Step | Action |
@@ -76,7 +76,7 @@ Phase 3: pytest-xdist Parallel Execution (depends on Phase 1)
 | 1 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Verdicts: CLEAR → proceed. VULNERABLE → fix. FALSE POSITIVE → PROSECUTION PROTOCOL. NEEDS INVESTIGATION → escalate. | `plan, security` | ✅ |
 | 2 | **Defensive fix for flaky test** — Read `backend/tests/unit/test_api_usage.py` lines 284-298. Add `assert response.status_code == 200, response.text` before `response.json()["data"]` access. Makes failure diagnostic instead of cryptic KeyError. Verify: `pytest tests/unit/test_api_usage.py -v`. | `tdd, plan` | ✅ |
 | 3 | **Refactor conftest.py: session-scoped engine + SAVEPOINT rollback** — Core refactor of `backend/tests/conftest.py`. See implementation notes below. Verify: `cd backend && pytest tests/ -v` — all 4,259 tests pass. Benchmark new duration vs 467s baseline. | `tdd, db, plan` | ✅ 2026-03-10 19:55 UTC — 4,259 passed, 120.88s (3.86x speedup) |
-| 4 | **Phase 1 gate — full test suite + push** — Run full backend + frontend suite. Record new duration. Fix regressions. Commit, push. | `plan, commands` | ⬜ |
+| 4 | **Phase 1 gate — full test suite + push** — Run full backend + frontend suite. Record new duration. Fix regressions. Commit, push. | `plan, commands` | ✅ 2026-03-10 21:44 UTC — Backend 4,259 passed 120.93s (3.86x), Frontend 3,437 passed, lint+typecheck clean |
 
 #### §3 Implementation Notes
 
@@ -285,3 +285,4 @@ After each phase gate:
 | Date | Change |
 |------|--------|
 | 2026-03-10 | Plan created. 3 phases, 8 items. DX infrastructure — no REQ document. |
+| 2026-03-10 | Phase 1 complete (§1-§4). Backend 4,259 passed, 120.93s (3.86x speedup from 467s). |
