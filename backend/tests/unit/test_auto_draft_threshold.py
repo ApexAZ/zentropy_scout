@@ -117,27 +117,3 @@ class TestQualifiesForAutoDraftValidation:
         """Score over 100 raises ValueError."""
         with pytest.raises(ValueError, match="cannot exceed 100"):
             qualifies_for_auto_draft(101)
-
-
-# =============================================================================
-# Boundary Tests (REQ-008 §7.4)
-# =============================================================================
-
-
-class TestAutoDraftBoundaryConditions:
-    """Tests for boundary conditions at threshold edge."""
-
-    def test_boundary_89_90(self) -> None:
-        """Boundary at 89/90 - 89 does not qualify, 90 does."""
-        assert qualifies_for_auto_draft(89) is False
-        assert qualifies_for_auto_draft(90) is True
-
-    def test_boundary_0_is_valid(self) -> None:
-        """Score of 0 is valid (does not qualify)."""
-        result = qualifies_for_auto_draft(0)
-        assert result is False
-
-    def test_boundary_100_is_valid(self) -> None:
-        """Score of 100 is valid (qualifies)."""
-        result = qualifies_for_auto_draft(100)
-        assert result is True

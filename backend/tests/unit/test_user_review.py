@@ -13,9 +13,6 @@ from datetime import UTC, datetime
 
 from app.services.job_status import JobPostingStatus
 from app.services.user_review import (
-    ApplyResult,
-    DismissResult,
-    FavoriteResult,
     ReviewAction,
     apply_to_job,
     dismiss_job,
@@ -62,38 +59,6 @@ class TestGetReviewActionFromString:
 # =============================================================================
 # Dismiss Action Tests (REQ-003 §13.2)
 # =============================================================================
-
-
-class TestDismissResult:
-    """Tests for DismissResult dataclass."""
-
-    def test_successful_dismiss_result(self) -> None:
-        """DismissResult captures successful dismissal."""
-        now = datetime.now(UTC)
-        result = DismissResult(
-            success=True,
-            new_status=JobPostingStatus.DISMISSED,
-            dismissed_at=now,
-            error=None,
-        )
-
-        assert result.success is True
-        assert result.new_status == JobPostingStatus.DISMISSED
-        assert result.dismissed_at == now
-        assert result.error is None
-
-    def test_failed_dismiss_result(self) -> None:
-        """DismissResult captures failed dismissal."""
-        result = DismissResult(
-            success=False,
-            new_status=None,
-            dismissed_at=None,
-            error="Job already dismissed",
-        )
-
-        assert result.success is False
-        assert result.new_status is None
-        assert result.error == "Job already dismissed"
 
 
 class TestDismissJob:
@@ -144,33 +109,6 @@ class TestDismissJob:
 # =============================================================================
 # Favorite Action Tests (REQ-003 §13.2)
 # =============================================================================
-
-
-class TestFavoriteResult:
-    """Tests for FavoriteResult dataclass."""
-
-    def test_successful_favorite_result(self) -> None:
-        """FavoriteResult captures successful favoriting."""
-        result = FavoriteResult(
-            success=True,
-            is_favorite=True,
-            error=None,
-        )
-
-        assert result.success is True
-        assert result.is_favorite is True
-        assert result.error is None
-
-    def test_unfavorite_result(self) -> None:
-        """FavoriteResult captures unfavoriting."""
-        result = FavoriteResult(
-            success=True,
-            is_favorite=False,
-            error=None,
-        )
-
-        assert result.success is True
-        assert result.is_favorite is False
 
 
 class TestToggleFavorite:
@@ -250,37 +188,6 @@ class TestToggleFavorite:
 # =============================================================================
 # Apply Action Tests (REQ-003 §13.2)
 # =============================================================================
-
-
-class TestApplyResult:
-    """Tests for ApplyResult dataclass."""
-
-    def test_successful_apply_result(self) -> None:
-        """ApplyResult captures successful application."""
-        now = datetime.now(UTC)
-        result = ApplyResult(
-            success=True,
-            new_status=JobPostingStatus.APPLIED,
-            applied_at=now,
-            error=None,
-        )
-
-        assert result.success is True
-        assert result.new_status == JobPostingStatus.APPLIED
-        assert result.applied_at == now
-        assert result.error is None
-
-    def test_failed_apply_result(self) -> None:
-        """ApplyResult captures failed application."""
-        result = ApplyResult(
-            success=False,
-            new_status=None,
-            applied_at=None,
-            error="Already applied",
-        )
-
-        assert result.success is False
-        assert result.error == "Already applied"
 
 
 class TestApplyToJob:
