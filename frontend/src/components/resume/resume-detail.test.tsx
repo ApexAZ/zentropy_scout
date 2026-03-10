@@ -15,7 +15,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Constants
 // ---------------------------------------------------------------------------
 
-const LOADING_TESTID = "loading-spinner";
 const RESUME_NAME = "Scrum Master";
 const ROLE_TYPE = "Scrum Master roles";
 const SUMMARY_TEXT =
@@ -480,14 +479,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("ResumeDetail", () => {
-	describe("loading state", () => {
-		it("shows loading spinner initially", () => {
-			mocks.mockApiGet.mockReturnValue(new Promise(() => {}));
-			renderDetail();
-			expect(screen.getByTestId(LOADING_TESTID)).toBeInTheDocument();
-		});
-	});
-
 	describe("error state", () => {
 		it("shows failed state on API error", async () => {
 			mocks.mockApiGet.mockRejectedValue(
@@ -501,24 +492,6 @@ describe("ResumeDetail", () => {
 	});
 
 	describe("header", () => {
-		it("renders resume name as heading", async () => {
-			setupMockApi();
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByRole("heading", { name: RESUME_NAME }),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("renders role type", async () => {
-			setupMockApi();
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByText(ROLE_TYPE)).toBeInTheDocument();
-			});
-		});
-
 		it("renders back link to /resumes", async () => {
 			setupMockApi();
 			renderDetail();
@@ -834,14 +807,6 @@ describe("ResumeDetail", () => {
 	});
 
 	describe("bullet reordering", () => {
-		it("renders reorderable list for included job bullets", async () => {
-			setupMockApi();
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId("reorderable-list")).toBeInTheDocument();
-			});
-		});
-
 		it("sends job_bullet_order in PATCH on save", async () => {
 			const user = userEvent.setup();
 			mocks.mockApiPatch.mockResolvedValue({ data: makeResume() });
@@ -1248,14 +1213,6 @@ describe("ResumeDetail", () => {
 	});
 
 	describe("status display", () => {
-		it("shows Active status badge", async () => {
-			setupMockApi();
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByText("Active")).toBeInTheDocument();
-			});
-		});
-
 		it("shows Archived status badge", async () => {
 			setupMockApi({
 				data: makeResume({ status: "Archived" }),
@@ -1407,37 +1364,6 @@ describe("ResumeDetail", () => {
 	});
 
 	describe("action buttons per mode", () => {
-		it("shows Edit button in Preview mode", async () => {
-			await renderWithContent();
-			expect(
-				screen.getByRole("button", { name: /^edit$/i }),
-			).toBeInTheDocument();
-		});
-
-		it("shows Export PDF button in Preview mode", async () => {
-			await renderWithContent();
-			expect(
-				screen.getByRole("button", { name: /export pdf/i }),
-			).toBeInTheDocument();
-		});
-
-		it("shows Export DOCX button in Preview mode", async () => {
-			await renderWithContent();
-			expect(
-				screen.getByRole("button", { name: /export docx/i }),
-			).toBeInTheDocument();
-		});
-
-		it("shows Done Editing button in Edit mode", async () => {
-			const user = userEvent.setup();
-			await renderWithContent();
-			await switchToEditMode(user);
-
-			expect(
-				screen.getByRole("button", { name: /done editing/i }),
-			).toBeInTheDocument();
-		});
-
 		it("clicking Edit action button switches to Edit mode", async () => {
 			const user = userEvent.setup();
 			await renderWithContent();

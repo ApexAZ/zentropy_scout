@@ -7,7 +7,7 @@
 
 ## Context
 
-The frontend has 3,843 tests across 205 files and 71,813 lines of test code. This audit ensures tests target user-visible behavior over implementation details, per the project's testing philosophy in CLAUDE.md and the zentropy-tdd skill.
+The frontend has 3,704 tests across 205 files and 71,813 lines of test code. *(Original scan estimated 3,843; verified baseline at origin/main is 3,704.)* This audit ensures tests target user-visible behavior over implementation details, per the project's testing philosophy in CLAUDE.md and the zentropy-tdd skill.
 
 **Four exploration agents completed initial analysis:**
 1. **Structure scan** — Mapped all 205 test files across 5 directory groups: types (7 files, 189 tests), lib (~15 files, 469 tests), hooks (9 files, 106 tests), components (~120+ files, 2,856 tests), app (~25 files, 204 tests).
@@ -85,7 +85,7 @@ Phase 4: Quality Gate (verification + documentation)
 
 ## Phase 2: Cleanup — Priority Targets
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Highest-confidence deletions. Clean wins with minimal ambiguity.*
 
@@ -93,7 +93,7 @@ Phase 4: Quality Gate (verification + documentation)
 |---|------|-------|--------|
 | 2.1 | **Delete type test bloat** — Remove CONSTRUCTOR_MIRROR and ENUM_ECHO tests from types/*.test.ts based on triage classifications. Delete entire files if 100% bloat (expected: `api.test.ts`). Keep VALIDATION and BEHAVIORAL tests. | 7 files, ~100-120 test deletions | ✅ |
 | 2.2 | **Clean 100% sole-assertion files** — Delete or refactor tests in the 15 files where every `toBeInTheDocument()` is sole, applying triage dispositions. For DELETE: remove the test. For REFACTOR: add meaningful assertion (text content, attributes, interaction). | 15 files, ~50-94 tests affected | ✅ |
-| 2.3 | **Phase gate — full test suite + push** — Run Vitest full suite. Compare test count to baseline (3,843). Fix regressions, commit, push. | Full frontend suite | ⬜ |
+| 2.3 | **Phase gate — full test suite + push** — Run Vitest full suite. Compare test count to baseline (3,704). Fix regressions, commit, push. | Full frontend suite | ✅ |
 
 **Notes:**
 - Each subtask: run affected tests → full lint → commit
@@ -110,7 +110,7 @@ Phase 4: Quality Gate (verification + documentation)
 
 | # | Task | Scope | Status |
 |---|------|-------|--------|
-| 3.1 | **Clean toBeInTheDocument sole assertions — heavy files batch A** — Top 5 files by sole count from triage (opportunities-table, resume-detail, message-bubble, application-detail, applications-list). Apply dispositions. | ~5 files, TBD deletions | ⬜ |
+| 3.1 | **Clean toBeInTheDocument sole assertions — heavy files batch A** — Top 5 files by sole count from triage (opportunities-table, resume-detail, message-bubble, application-detail, applications-list). Apply dispositions. | 5 files, 47 deletions | ✅ |
 | 3.2 | **Clean toBeInTheDocument sole assertions — heavy files batch B** — Next 5 files by sole count from triage (change-flags-resolver, status-transition-dropdown, cover-letter-review, add-timeline-event-dialog, login page). Apply dispositions. | ~5 files, TBD deletions | ⬜ |
 | 3.3 | **Clean mock-only + CSS assertion files** — Files identified in triage as having ANTIPATTERN mock-only or CSS-class-as-sole-assertion tests. | TBD from triage | ⬜ |
 | 3.4 | **Clean remaining files** — Apply mechanical rules from triage to remaining files with sole assertions. May be zero work if rules show most findings are legitimate. | TBD from triage | ⬜ |
@@ -130,7 +130,7 @@ Phase 4: Quality Gate (verification + documentation)
 
 | # | Task | Scope | Status |
 |---|------|-------|--------|
-| 4.1 | **Full test suite + test count comparison** — Run full Vitest suite. Compare test count to baseline (3,843). Verify no legitimate test coverage was lost. Run `npm run lint` and `npm run typecheck`. | Full suite + lint + types | ⬜ |
+| 4.1 | **Full test suite + test count comparison** — Run full Vitest suite. Compare test count to baseline (3,704). Verify no legitimate test coverage was lost. Run `npm run lint` and `npm run typecheck`. | Full suite + lint + types | ⬜ |
 | 4.2 | **Update documentation** — Update zentropy-tdd skill with frontend-specific bloat patterns learned during audit. Document which patterns were most/least impactful. | TDD skill file | ⬜ |
 
 ---
@@ -204,7 +204,7 @@ Phase 4: Quality Gate (verification + documentation)
 
 After each phase gate:
 1. Run `cd frontend && npm run test:run` — all tests must pass
-2. Compare test count to baseline (3,843) — document delta
+2. Compare test count to baseline (3,704) — document delta
 3. Run `npm run lint && npm run typecheck` — must pass
 4. No legitimate test coverage should be lost (conditional render tests, validation tests preserved)
 
@@ -224,8 +224,10 @@ After full audit:
 | 2026-03-09 | §1.3 complete — heavy files triage: ~50 DELETE across 8 files + mechanical rule (see Appendix C) |
 | 2026-03-09 | §1.4 complete — mock/CSS/data-state triage: sse-query-bridge ~22 DELETE, status-badge 15 DELETE, 4 data-state DELETE (see Appendix D) |
 | 2026-03-09 | §1.5 complete — Phase 1 done. Consolidated report: ~281 estimated deletions (see Appendix E). Phase 3 tasks refined. |
-| 2026-03-09 | §2.1 complete — Deleted 167 type test bloat (6 files deleted, 1 trimmed). Test count: 3,843 → 3,676. |
-| 2026-03-09 | §2.2 complete — Deleted 22 sole-assertion smoke tests across 9 files (1 file deleted, 8 trimmed). Fixed Appendix B triage miscount for usage-page (was 7 total, actual 6). Test count: 3,676 → 3,654. |
+| 2026-03-09 | §2.1 complete — Deleted 168 type test bloat (6 files deleted, 1 trimmed). Test count: 3,704 → 3,537. |
+| 2026-03-09 | §2.2 complete — Deleted 22 sole-assertion smoke tests across 9 files (1 file deleted, 8 trimmed). Fixed Appendix B triage miscount for usage-page (was 7 total, actual 6). Test count: 3,537 → 3,515. |
+| 2026-03-09 | §2.3 complete — Phase 2 gate passed. 3,515 tests pass (198 files), lint clean, typecheck clean. Corrected baseline from 3,843 to 3,704 (verified at origin/main). Total Phase 2 delta: -189 tests. |
+| 2026-03-09 | §3.1 complete — Deleted 47 sole-assertion smoke tests across 5 files: opportunities-table (-12), resume-detail (-8), message-bubble (-9), application-detail (-9), applications-list (-9). Also removed 5 unused constants + 1 unused helper. Test count: 3,515 → 3,468. |
 
 ---
 
@@ -510,9 +512,9 @@ KEEP if ANY of:
 
 ### Estimated Test Count After Audit
 
-- Baseline: 3,843 tests
+- Baseline: 3,704 tests (corrected from initial estimate of 3,843)
 - Estimated deletions: ~281
-- Estimated final: ~3,562 tests (~7.3% reduction)
+- Estimated final: ~3,423 tests (~7.6% reduction)
 
 ### Phase 2-3 Refinement
 

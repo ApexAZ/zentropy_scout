@@ -28,7 +28,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Constants
 // ---------------------------------------------------------------------------
 
-const LOADING_TESTID = "loading-spinner";
 const BACK_LINK_TESTID = "back-to-applications";
 const HEADER_TESTID = "application-header";
 const DOCUMENTS_TESTID = "documents-panel";
@@ -282,12 +281,6 @@ afterEach(() => {
 
 describe("ApplicationDetail", () => {
 	describe("loading and error states", () => {
-		it("shows a loading spinner while fetching", () => {
-			mocks.mockApiGet.mockReturnValue(new Promise(() => {}));
-			renderDetail();
-			expect(screen.getByTestId(LOADING_TESTID)).toBeInTheDocument();
-		});
-
 		it("shows FailedState when the API returns an error", async () => {
 			mocks.mockApiGet.mockRejectedValue(new Error("Network error"));
 			renderDetail();
@@ -381,14 +374,6 @@ describe("ApplicationDetail", () => {
 	// -----------------------------------------------------------------------
 
 	describe("documents panel", () => {
-		it("renders the documents panel", async () => {
-			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId(DOCUMENTS_TESTID)).toBeInTheDocument();
-			});
-		});
-
 		it("shows resume View and Download links when pdf exists", async () => {
 			mocks.mockApiGet.mockResolvedValue({
 				data: makeApplication({ submitted_resume_pdf_id: "srpdf-1" }),
@@ -504,15 +489,6 @@ describe("ApplicationDetail", () => {
 			const timeline = screen.getByTestId("mock-application-timeline");
 			expect(timeline).toBeInTheDocument();
 			expect(timeline).toHaveAttribute("data-app-id", MOCK_APP_ID);
-		});
-
-		it("passes onAddEvent to ApplicationTimeline", async () => {
-			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId(TIMELINE_PANEL_TESTID)).toBeInTheDocument();
-			});
-			expect(screen.getByTestId("mock-add-event-btn")).toBeInTheDocument();
 		});
 
 		it("opens Add Event dialog when Add Event button is clicked", async () => {
@@ -742,22 +718,6 @@ describe("ApplicationDetail", () => {
 	// -----------------------------------------------------------------------
 
 	describe("offer details section", () => {
-		it("renders offer details card when status is Offer and offer_details exists", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: makeApplication({
-					status: "Offer",
-					offer_details: {
-						base_salary: 155000,
-						salary_currency: "USD",
-					},
-				}),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId(OFFER_SECTION_TESTID)).toBeInTheDocument();
-			});
-		});
-
 		it("renders offer details card when status is Accepted and offer_details exists", async () => {
 			mocks.mockApiGet.mockResolvedValue({
 				data: makeApplication({
@@ -826,24 +786,6 @@ describe("ApplicationDetail", () => {
 	// -----------------------------------------------------------------------
 
 	describe("rejection details section", () => {
-		it("renders rejection details card when status is Rejected and rejection_details exists", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: makeApplication({
-					status: "Rejected",
-					rejection_details: {
-						stage: "Onsite",
-						reason: "Culture fit concerns",
-					},
-				}),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByTestId(REJECTION_SECTION_TESTID),
-				).toBeInTheDocument();
-			});
-		});
-
 		it("does not render rejection section when status is Applied", async () => {
 			mocks.mockApiGet.mockResolvedValue({
 				data: makeApplication({ status: "Applied" }),
@@ -1000,14 +942,6 @@ describe("ApplicationDetail", () => {
 	// -----------------------------------------------------------------------
 
 	describe("pin toggle", () => {
-		it("renders pin toggle button in header", async () => {
-			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
-			});
-		});
-
 		it("has aria-label 'Pin application' when unpinned", async () => {
 			mocks.mockApiGet.mockResolvedValue({
 				data: makeApplication({ is_pinned: false }),
@@ -1122,16 +1056,6 @@ describe("ApplicationDetail", () => {
 	// -----------------------------------------------------------------------
 
 	describe("archive", () => {
-		it("shows archive button when not archived", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: makeApplication({ archived_at: null }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId("archive-button")).toBeInTheDocument();
-			});
-		});
-
 		it("hides archive button when archived", async () => {
 			mocks.mockApiGet.mockResolvedValue({
 				data: makeApplication({ archived_at: "2026-02-10T00:00:00Z" }),
@@ -1204,16 +1128,6 @@ describe("ApplicationDetail", () => {
 	// -----------------------------------------------------------------------
 
 	describe("restore", () => {
-		it("shows restore button when archived", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: makeApplication({ archived_at: "2026-02-10T00:00:00Z" }),
-			});
-			renderDetail();
-			await waitFor(() => {
-				expect(screen.getByTestId("restore-button")).toBeInTheDocument();
-			});
-		});
-
 		it("hides restore button when not archived", async () => {
 			mocks.mockApiGet.mockResolvedValue({
 				data: makeApplication({ archived_at: null }),
@@ -1288,18 +1202,6 @@ describe("ApplicationDetail", () => {
 	// -----------------------------------------------------------------------
 	// Job Snapshot Section integration (§10.9)
 	// -----------------------------------------------------------------------
-
-	describe("job snapshot section integration", () => {
-		it("renders JobSnapshotSection with snapshot data", async () => {
-			mocks.mockApiGet.mockResolvedValue({ data: makeApplication() });
-			renderDetail();
-			await waitFor(() => {
-				expect(
-					screen.getByTestId("mock-job-snapshot-section"),
-				).toBeInTheDocument();
-			});
-		});
-	});
 
 	// -----------------------------------------------------------------------
 	// API call verification

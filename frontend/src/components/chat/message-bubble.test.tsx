@@ -92,12 +92,6 @@ describe("MessageBubble", () => {
 	// -----------------------------------------------------------------------
 
 	describe("user message", () => {
-		it("renders message content", () => {
-			renderBubble();
-
-			expect(screen.getByText(USER_MESSAGE.content)).toBeInTheDocument();
-		});
-
 		it("has right alignment", () => {
 			const { container } = renderBubble();
 
@@ -141,12 +135,6 @@ describe("MessageBubble", () => {
 	// -----------------------------------------------------------------------
 
 	describe("agent message", () => {
-		it("renders message content", () => {
-			renderBubble({ message: AGENT_MESSAGE });
-
-			expect(screen.getByText(AGENT_MESSAGE.content)).toBeInTheDocument();
-		});
-
 		it("has left alignment", () => {
 			const { container } = renderBubble({ message: AGENT_MESSAGE });
 
@@ -183,12 +171,6 @@ describe("MessageBubble", () => {
 	// -----------------------------------------------------------------------
 
 	describe("system notice", () => {
-		it("renders notice content", () => {
-			renderBubble({ message: SYSTEM_MESSAGE });
-
-			expect(screen.getByText(SYSTEM_MESSAGE.content)).toBeInTheDocument();
-		});
-
 		it("has center alignment", () => {
 			const { container } = renderBubble({ message: SYSTEM_MESSAGE });
 
@@ -307,13 +289,6 @@ describe("MessageBubble", () => {
 	// -----------------------------------------------------------------------
 
 	describe("edge cases", () => {
-		it("renders empty content gracefully", () => {
-			const emptyMsg: ChatMessage = { ...USER_MESSAGE, content: "" };
-			const { container } = renderBubble({ message: emptyMsg });
-
-			expect(container.querySelector(BUBBLE_SELECTOR)).toBeInTheDocument();
-		});
-
 		it("renders fallback text for invalid ISO timestamp", () => {
 			const badTimestamp: ChatMessage = {
 				...USER_MESSAGE,
@@ -364,16 +339,6 @@ describe("MessageBubble", () => {
 	// -----------------------------------------------------------------------
 
 	describe("tool execution badges", () => {
-		it("renders tool badges for agent messages with tools", () => {
-			const msg: ChatMessage = {
-				...AGENT_MESSAGE,
-				tools: [{ tool: "favorite_job", args: {}, status: "success" }],
-			};
-			const { container } = renderBubble({ message: msg });
-
-			expect(container.querySelector(TOOL_BADGE_SELECTOR)).toBeInTheDocument();
-		});
-
 		it("renders multiple tool badges", () => {
 			const msg: ChatMessage = {
 				...AGENT_MESSAGE,
@@ -575,26 +540,6 @@ describe("MessageBubble", () => {
 		const JOB_CARD: ChatCard = { type: "job", data: JOB_CARD_DATA };
 		const SCORE_CARD: ChatCard = { type: "score", data: SCORE_CARD_DATA };
 
-		it("renders job card for agent message with cards", () => {
-			const msg: ChatMessage = {
-				...AGENT_MESSAGE,
-				cards: [JOB_CARD],
-			};
-			const { container } = renderBubble({ message: msg });
-
-			expect(container.querySelector(JOB_CARD_SELECTOR)).toBeInTheDocument();
-		});
-
-		it("renders score card for agent message with cards", () => {
-			const msg: ChatMessage = {
-				...AGENT_MESSAGE,
-				cards: [SCORE_CARD],
-			};
-			const { container } = renderBubble({ message: msg });
-
-			expect(container.querySelector(SCORE_CARD_SELECTOR)).toBeInTheDocument();
-		});
-
 		it("renders multiple cards", () => {
 			const msg: ChatMessage = {
 				...AGENT_MESSAGE,
@@ -690,28 +635,6 @@ describe("MessageBubble", () => {
 			type: "confirm",
 			data: CONFIRM_DATA,
 		};
-
-		it("renders option list card for agent message", () => {
-			const msg: ChatMessage = {
-				...AGENT_MESSAGE,
-				cards: [OPTION_CARD],
-			};
-			const { container } = renderBubble({ message: msg });
-
-			expect(container.querySelector(OPTION_LIST_SELECTOR)).toBeInTheDocument();
-		});
-
-		it("renders confirm card for agent message", () => {
-			const msg: ChatMessage = {
-				...AGENT_MESSAGE,
-				cards: [CONFIRM_CARD],
-			};
-			const { container } = renderBubble({ message: msg });
-
-			expect(
-				container.querySelector(CONFIRM_CARD_SELECTOR),
-			).toBeInTheDocument();
-		});
 
 		it("does not render option list for user messages", () => {
 			const msg: ChatMessage = {

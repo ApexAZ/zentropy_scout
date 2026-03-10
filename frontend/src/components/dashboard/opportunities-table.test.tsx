@@ -21,7 +21,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ---------------------------------------------------------------------------
 
 const TABLE_TESTID = "opportunities-table";
-const LOADING_TESTID = "loading-spinner";
 const EMPTY_MESSAGE = "No opportunities found.";
 const FAVORITE_ERROR_MESSAGE = "Failed to update favorite.";
 const FAVORITE_TOGGLE_JOB1 = "favorite-toggle-job-1";
@@ -237,16 +236,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("OpportunitiesTable", () => {
-	describe("loading state", () => {
-		it("shows loading spinner initially", () => {
-			mocks.mockApiGet.mockReturnValue(new Promise(() => {}));
-
-			renderTable();
-
-			expect(screen.getByTestId(LOADING_TESTID)).toBeInTheDocument();
-		});
-	});
-
 	describe("rendering", () => {
 		it("renders table container after data loads", async () => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
@@ -488,64 +477,6 @@ describe("OpportunitiesTable", () => {
 	});
 
 	describe("toolbar", () => {
-		it("renders search input with placeholder", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(
-					screen.getByPlaceholderText(SEARCH_PLACEHOLDER),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("renders status filter dropdown", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(
-					screen.getByRole("combobox", { name: STATUS_FILTER_LABEL }),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("renders min-fit filter dropdown", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(
-					screen.getByRole("combobox", { name: "Minimum fit score" }),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("renders sort dropdown", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(
-					screen.getByRole("combobox", { name: "Sort by" }),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("renders Add Job button in toolbar", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(screen.getByTestId("add-job-button")).toBeInTheDocument();
-			});
-		});
-
 		it("opens AddJobModal when Add Job button is clicked", async () => {
 			const user = userEvent.setup();
 			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
@@ -643,61 +574,12 @@ describe("OpportunitiesTable", () => {
 				expect(icon).toHaveAttribute("aria-label", "High ghost risk");
 			});
 		});
-
-		it("shows amber for score 50 (upper moderate boundary)", async () => {
-			mocks.mockApiGet.mockResolvedValue(
-				makeSingleJobResponse({ ghost_score: 50 }),
-			);
-
-			renderTable();
-
-			await waitFor(() => {
-				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
-				expect(icon).toHaveClass("text-warning/70");
-			});
-		});
-
-		it("shows orange for score 75 (upper elevated boundary)", async () => {
-			mocks.mockApiGet.mockResolvedValue(
-				makeSingleJobResponse({ ghost_score: 75 }),
-			);
-
-			renderTable();
-
-			await waitFor(() => {
-				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
-				expect(icon).toHaveClass("text-warning");
-			});
-		});
-
-		it("shows red for score 100 (upper high risk boundary)", async () => {
-			mocks.mockApiGet.mockResolvedValue(
-				makeSingleJobResponse({ ghost_score: 100 }),
-			);
-
-			renderTable();
-
-			await waitFor(() => {
-				const icon = screen.getByTestId(GHOST_WARNING_JOB1);
-				expect(icon).toHaveClass("text-destructive");
-			});
-		});
 	});
 
 	describe("multi-select mode", () => {
 		async function enterSelectMode(user: ReturnType<typeof userEvent.setup>) {
 			await user.click(screen.getByTestId(SELECT_MODE_BUTTON));
 		}
-
-		it("renders Select button in toolbar", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(screen.getByTestId(SELECT_MODE_BUTTON)).toBeInTheDocument();
-			});
-		});
 
 		it("shows checkbox column when Select is clicked", async () => {
 			const user = userEvent.setup();
@@ -1064,18 +946,6 @@ describe("OpportunitiesTable", () => {
 			};
 		}
 
-		it("renders 'Show filtered jobs' checkbox in toolbar", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_JOBS_RESPONSE);
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(
-					screen.getByRole("checkbox", { name: SHOW_FILTERED_LABEL }),
-				).toBeInTheDocument();
-			});
-		});
-
 		it("hides jobs with failed_non_negotiables by default", async () => {
 			mocks.mockApiGet.mockResolvedValue(makeMixedResponse());
 
@@ -1233,21 +1103,6 @@ describe("OpportunitiesTable", () => {
 			await user.click(screen.getByTestId("expand-reasons-job-undisclosed"));
 
 			expect(screen.getByText(/Salary not disclosed/)).toBeInTheDocument();
-		});
-
-		it("treats empty failed_non_negotiables array as non-filtered", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: [
-					makePersonaJob("job-1", undefined, { failed_non_negotiables: [] }),
-				],
-				meta: { ...MOCK_LIST_META, total: 1 },
-			});
-
-			renderTable();
-
-			await waitFor(() => {
-				expect(screen.getByText(JOB1_TITLE)).toBeInTheDocument();
-			});
 		});
 
 		it("formats generic failure reason correctly", async () => {

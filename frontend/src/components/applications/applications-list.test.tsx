@@ -23,7 +23,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ---------------------------------------------------------------------------
 
 const LIST_TESTID = "applications-list";
-const LOADING_TESTID = "loading-spinner";
 const EMPTY_MESSAGE = "No applications yet.";
 const SEARCH_PLACEHOLDER = "Search applications...";
 const STATUS_FILTER_LABEL = "Status filter";
@@ -34,13 +33,6 @@ const EM_DASH = "\u2014";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Returns an ISO 8601 datetime string for N days before now (UTC). */
-function daysAgoIso(days: number): string {
-	const d = new Date();
-	d.setUTCDate(d.getUTCDate() - days);
-	return d.toISOString();
-}
 
 function makeApplication(id: string, overrides?: Record<string, unknown>) {
 	return {
@@ -183,16 +175,6 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("ApplicationsList", () => {
-	describe("loading state", () => {
-		it("shows loading spinner initially", () => {
-			mocks.mockApiGet.mockReturnValue(new Promise(() => {}));
-
-			renderList();
-
-			expect(screen.getByTestId(LOADING_TESTID)).toBeInTheDocument();
-		});
-	});
-
 	describe("error state", () => {
 		it("shows failed state on API error", async () => {
 			mocks.mockApiGet.mockRejectedValue(
@@ -220,28 +202,6 @@ describe("ApplicationsList", () => {
 	});
 
 	describe("column rendering", () => {
-		it("renders job title from job_snapshot", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
-
-			renderList();
-
-			await waitFor(() => {
-				expect(
-					screen.getByText("Frontend Developer app-1"),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("renders company name as sub-text", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
-
-			renderList();
-
-			await waitFor(() => {
-				expect(screen.getByText("Company app-1")).toBeInTheDocument();
-			});
-		});
-
 		it("renders status badge", async () => {
 			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
 
@@ -287,19 +247,6 @@ describe("ApplicationsList", () => {
 			const list = screen.getByTestId(LIST_TESTID);
 			expect(within(list).getByText(EM_DASH)).toBeInTheDocument();
 		});
-
-		it("renders applied date using formatDateTimeAgo", async () => {
-			mocks.mockApiGet.mockResolvedValue({
-				data: [makeApplication("app-1", { applied_at: daysAgoIso(0) })],
-				meta: { ...MOCK_LIST_META, total: 1 },
-			});
-
-			renderList();
-
-			await waitFor(() => {
-				expect(screen.getByText("Today")).toBeInTheDocument();
-			});
-		});
 	});
 
 	describe("row click", () => {
@@ -340,18 +287,6 @@ describe("ApplicationsList", () => {
 	});
 
 	describe("toolbar", () => {
-		it("renders search input", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
-
-			renderList();
-
-			await waitFor(() => {
-				expect(
-					screen.getByPlaceholderText(SEARCH_PLACEHOLDER),
-				).toBeInTheDocument();
-			});
-		});
-
 		it("renders status filter dropdown with all statuses", async () => {
 			const user = userEvent.setup();
 			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
@@ -389,40 +324,6 @@ describe("ApplicationsList", () => {
 				expect(
 					screen.getByRole("option", { name: "Withdrawn" }),
 				).toBeInTheDocument();
-			});
-		});
-
-		it("renders sort dropdown", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
-
-			renderList();
-
-			await waitFor(() => {
-				expect(
-					screen.getByRole("combobox", { name: SORT_BY_LABEL }),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("renders show archived toggle", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
-
-			renderList();
-
-			await waitFor(() => {
-				expect(
-					screen.getByRole("checkbox", { name: SHOW_ARCHIVED_LABEL }),
-				).toBeInTheDocument();
-			});
-		});
-
-		it("renders select mode button", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
-
-			renderList();
-
-			await waitFor(() => {
-				expect(screen.getByTestId("select-mode-button")).toBeInTheDocument();
 			});
 		});
 	});
@@ -872,20 +773,6 @@ describe("ApplicationsList", () => {
 				expect(mocks.mockShowToast.warning).toHaveBeenCalledWith(
 					"1 archived, 1 failed.",
 				);
-			});
-		});
-	});
-
-	describe("page header", () => {
-		it("renders the page title", async () => {
-			mocks.mockApiGet.mockResolvedValue(MOCK_APPS_RESPONSE);
-
-			renderList();
-
-			await waitFor(() => {
-				expect(
-					screen.getByRole("heading", { name: "Applications" }),
-				).toBeInTheDocument();
 			});
 		});
 	});
