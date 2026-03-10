@@ -692,26 +692,6 @@ class TestExecutiveHardSkillsMatch:
         # Strong match expected
         assert score >= 80.0
 
-    def test_executive_job_with_minimal_hard_skills(self) -> None:
-        """CEO job has minimal hard skill requirements."""
-        job = make_ceo_job()
-
-        # Count hard skills in CEO job
-        hard_skills = [s for s in job.extracted_skills if s.skill_type == "Hard"]
-
-        # CEO role should have fewer hard skills (only P&L Management)
-        assert len(hard_skills) <= 2
-
-    def test_vp_job_emphasizes_soft_skills(self) -> None:
-        """VP job has more soft skills than hard skills."""
-        job = make_vp_engineering_job()
-
-        hard_skills = [s for s in job.extracted_skills if s.skill_type == "Hard"]
-        soft_skills = [s for s in job.extracted_skills if s.skill_type == "Soft"]
-
-        # VP role should emphasize soft skills
-        assert len(soft_skills) > len(hard_skills)
-
 
 # =============================================================================
 # Tests: Weight System for Executive Roles (REQ-008 §9.4)
@@ -1077,21 +1057,3 @@ class TestExecutiveEdgeCases:
             job_title="CEO",
         )
         assert score_growth == 70.0  # Both c_level → lateral
-
-    def test_executive_soft_skills_emphasis_in_job(self) -> None:
-        """Executive jobs emphasize soft skills over hard skills.
-
-        This demonstrates why the weight shift would be valuable.
-        """
-        job = make_cto_job()
-
-        soft_count = sum(
-            1 for s in job.extracted_skills if s.skill_type == "Soft" and s.is_required
-        )
-        hard_count = sum(
-            1 for s in job.extracted_skills if s.skill_type == "Hard" and s.is_required
-        )
-
-        # CTO job: More required soft skills than hard skills
-        # This is why executive weight shift would help
-        assert soft_count >= hard_count

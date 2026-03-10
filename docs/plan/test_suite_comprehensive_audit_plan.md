@@ -271,7 +271,7 @@ Phase 10: Embeddings, Persona & Misc (21 files, 408 tests)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **Security triage gate** | `plan, security` | ⬜ |
-| 2 | **Audit career profile edge cases** — `test_career_changer_edge_cases`, `test_entry_level_edge_cases`, `test_executive_role_edge_cases`, `test_missing_data_edge_cases`, `test_data_availability` (5 files) | `plan, test` | ⬜ |
+| 2 | **Audit career profile edge cases** — `test_career_changer_edge_cases`, `test_entry_level_edge_cases`, `test_executive_role_edge_cases`, `test_missing_data_edge_cases`, `test_data_availability` (5 files). Removed 3 tautological tests from executive_role (mock fixture assertions testing no production code: CEO minimal hard skills, VP soft>hard count, CTO soft emphasis). Other 4 files clean — all scenario-based behavioral tests calling real scoring functions. | `plan, test` | ✅ |
 | 3 | **Audit selection & tailoring** — `test_growth_trajectory`, `test_base_resume_selection`, `test_story_selection`, `test_tailoring_decision`, `test_duplicate_story` (5 files) | `plan, test` | ⬜ |
 | 4 | **Audit draft, reorder & review** — `test_auto_draft_threshold`, `test_bullet_reordering`, `test_user_review`, `test_regeneration` (4 files) | `plan, test` | ⬜ |
 | 5 | **Phase gate — full backend test suite + push** | `plan, commands` | ⬜ |
