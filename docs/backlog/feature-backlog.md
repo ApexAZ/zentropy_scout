@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-02
 
-**Items:** 28 (8 completed, 20 pending)
+**Items:** 28 (10 completed, 18 pending)
 
 ---
 
@@ -318,14 +318,15 @@ Personalized bookmarklet that lets users capture job postings from any browser w
 
 ---
 
-### 24. Resume Editor — TipTap Rich Text (Promoted to REQ)
+### 24. Resume Editor — TipTap Rich Text ✅
 
 **Category:** Frontend / Backend / LLM
 **Added:** 2026-03-02
 **Updated:** 2026-03-04 (promoted to REQ-025, REQ-026, REQ-027)
+**Completed:** 2026-03-06
 **Priority:** P2 — Core resume workflow upgrade. Replaces current static resume view with an interactive editor.
 **Depends on:** Nothing (can start anytime)
-**Status:** Promoted to requirements — REQ-025 (TipTap Editor Foundation), REQ-026 (Resume Editing Workflow), REQ-027 (Resume Collaboration & AI-Assisted Editing)
+**Status:** Complete — implemented via REQ-025 (TipTap Editor Foundation), REQ-026 (Resume Editing Workflow), REQ-027 (Resume Collaboration & AI-Assisted Editing). 9 phases, 28 tasks.
 
 Replace the current resume management flow with a TipTap rich text editor that supports real-time AI-assisted writing. Users pick a starter template, Claude streams tailored content directly into the editor, and users can edit, tweak, then export to PDF or DOCX.
 
@@ -367,12 +368,14 @@ Replace the current resume management flow with a TipTap rich text editor that s
 
 ---
 
-### 27. Remove BYOK Multi-Provider Architecture
+### 27. Remove BYOK Multi-Provider Architecture ✅
 
 **Category:** Backend / Refactor
 **Added:** 2026-03-04
+**Closed:** 2026-03-09 — Superseded by REQ-028 (Cross-Provider Task Routing)
 **Priority:** P1 — Simplify before building new features on top of vestigial complexity.
 **Depends on:** #24 (TipTap Resume Editor) — do this right after the TipTap implementation
+**Status:** Closed — superseded. REQ-028 formalized multi-provider routing as a feature (admin-configured per-task routing across Claude/OpenAI/Gemini). The multi-provider architecture is no longer vestigial; it is actively used. BYOK was marked "Not Planned" in REQ-009 §10.
 
 The original architecture (REQ-009 §4 Provider Abstraction Layer) supported Bring Your Own Key (BYOK) where each user could configure their own LLM provider (Claude, OpenAI, Gemini). REQ-023 (USD-Direct Billing) replaced this with centralized billing where the platform pays for LLM calls and bills users via funding packs. The admin routing table (REQ-022 §10.3) was designed for multi-provider routing but now only needs single-provider support. BYOK is no longer part of the product model.
 

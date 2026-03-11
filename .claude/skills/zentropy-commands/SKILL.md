@@ -47,14 +47,20 @@ cd /home/brianhusk/repos/zentropy_scout
 source backend/.venv/bin/activate
 uvicorn backend.app.main:app --reload --port 8000
 
-# Run tests
-pytest -v
+# Run tests (default: skip slow, parallel via xdist)
+pytest tests/ -v                          # ~26s, 4,134 tests
+
+# Run ALL tests (including slow migration tests)
+pytest tests/ -v -m ""                    # ~34s, 4,259 tests
+
+# Run serial (no xdist, for debugging)
+pytest tests/ -v -m "" -n 0              # ~121s
 
 # Run specific test file
-pytest tests/test_personas.py -v
+pytest tests/unit/test_personas.py -v
 
 # Run with coverage
-pytest --cov=app --cov-report=html
+pytest --cov=app --cov-report=html -m ""
 
 # Lint and format
 ruff check .
@@ -153,5 +159,7 @@ gh api repos/ApexAZ/zentropy_scout/pulls/<pr-number>/comments
 | Migrate | `cd backend && alembic upgrade head` |
 | Backend | `cd /home/brianhusk/repos/zentropy_scout && source backend/.venv/bin/activate && uvicorn backend.app.main:app --reload --port 8000` |
 | Frontend | `cd frontend && npm run dev` |
-| Tests | `cd backend && pytest -v` |
+| Tests (default) | `cd backend && pytest -v` |
+| Tests (all) | `cd backend && pytest -v -m ""` |
+| Tests (serial) | `cd backend && pytest -v -m "" -n 0` |
 | Lint | `cd backend && ruff check . && ruff format .` |
