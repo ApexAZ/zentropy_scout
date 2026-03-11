@@ -287,7 +287,9 @@ test.describe("Admin — Routing Tab", () => {
 		await expect(page.getByTestId(ROUTING_TAB)).toBeVisible();
 
 		// Fixed table should show task type labels
-		await expect(page.getByRole("cell", { name: "Extraction" })).toBeVisible();
+		await expect(
+			page.getByRole("cell", { name: "Extraction", exact: true }),
+		).toBeVisible();
 		await expect(
 			page.getByRole("cell", { name: "Chat Response" }),
 		).toBeVisible();
