@@ -1,7 +1,7 @@
 # Backend Test Performance Optimization Plan
 
 **Created:** 2026-03-10
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
 ---
 
@@ -201,9 +201,9 @@ cd backend && .venv/bin/python -m pytest tests/ -v --tb=short -m ""
 
 ## Phase 3: pytest-xdist Parallel Execution
 
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
-*Install pytest-xdist and configure parallel test execution across multiple workers. Each worker gets its own database. Expected: ~130-170s → ~40-80s with 4 workers. **Actual: 37s full / 26s default (16 workers).***
+*Install pytest-xdist and configure parallel test execution across multiple workers. Each worker gets its own database. Expected: ~130-170s → ~40-80s with 4 workers. **Actual: 34s full / 26s default (16 workers).***
 
 #### Workflow
 | Step | Action |
@@ -219,7 +219,7 @@ cd backend && .venv/bin/python -m pytest tests/ -v --tb=short -m ""
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 7 | **Install pytest-xdist + per-worker database provisioning** — Add `pytest-xdist>=3.5.0` to dev deps. Create per-worker DB provisioning in conftest.py: detect `worker_id`, create `zentropy_scout_test_gw0` etc. at session start, update `TEST_DATABASE_URL`, drop at session end. Add `@pytest.mark.xdist_group("migrations")` to migration tests (they DROP/CREATE schema — can't run in parallel). Update `addopts` to include `-n auto`. Update pre-push hook. Verify: `pytest -n auto -m "not slow"` (fast parallel), `pytest -n auto -m ""` (all parallel). | `tdd, db, plan` | ✅ 2026-03-10 22:35 UTC — Full: 4,259 in 37s (12.6x), Default: 4,134 in 26s (18x) |
-| 8 | **Phase 3 gate — full test suite + push** — Run full suite parallel. Record final duration vs 467s baseline. Fix regressions. Commit, push. | `plan, commands` | ⬜ |
+| 8 | **Phase 3 gate — full test suite + push** — Run full suite parallel. Record final duration vs 467s baseline. Fix regressions. Commit, push. | `plan, commands` | ✅ 2026-03-10 23:07 UTC — Backend 4,259 passed 34.08s (13.7x), Frontend 3,437 passed, lint+typecheck clean |
 
 #### §7 Implementation Notes
 
@@ -287,3 +287,4 @@ After each phase gate:
 | 2026-03-10 | Plan created. 3 phases, 8 items. DX infrastructure — no REQ document. |
 | 2026-03-10 | Phase 1 complete (§1-§4). Backend 4,259 passed, 120.93s (3.86x speedup from 467s). |
 | 2026-03-10 | Phase 2 complete (§5-§6). 125 migration tests marked slow. Default run: 4,134 in 52s. |
+| 2026-03-10 | Phase 3 complete (§7-§8). pytest-xdist parallel. Full: 34s (13.7x), Default: 26s (18x). Plan complete. |
