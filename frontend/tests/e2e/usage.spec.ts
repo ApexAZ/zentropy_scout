@@ -10,6 +10,7 @@
 import { expect, test } from "./base-test";
 
 import {
+	PACK_IDS,
 	setupEmptyUsageMocks,
 	setupPaginatedTransactionMocks,
 	setupPaginatedUsageMocks,
@@ -81,7 +82,7 @@ test.describe("Balance Indicator — Navigation Bar", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Usage Page Layout", () => {
-	test("renders all four page sections with data", async ({ page }) => {
+	test("renders all page sections with data", async ({ page }) => {
 		await setupUsageMocks(page);
 		await page.goto("/usage");
 
@@ -91,13 +92,23 @@ test.describe("Usage Page Layout", () => {
 			page.getByRole("heading", { name: "Usage & Billing" }),
 		).toBeVisible();
 
-		// Balance card with amount and disabled Add Funds button
+		// Balance card with amount and Add Funds link
 		await expect(page.getByTestId("balance-card")).toBeVisible();
 		await expect(page.getByTestId(BALANCE_AMOUNT)).toBeVisible();
 		await expect(page.getByTestId(BALANCE_AMOUNT)).toHaveText("$10.50");
+		const addFundsLink = page.getByRole("link", { name: "Add Funds" }).first();
+		await expect(addFundsLink).toBeVisible();
+		await expect(addFundsLink).toHaveAttribute("href", /#funding-packs/);
+
+		// Funding packs section (REQ-029 §9.2)
 		await expect(
-			page.getByRole("button", { name: "Add Funds" }),
-		).toBeDisabled();
+			page.getByText("Add Funds", { exact: true }).first(),
+		).toBeVisible();
+		await expect(page.getByTestId(`pack-card-${PACK_IDS[1]}`)).toBeVisible();
+
+		// Purchase history table (REQ-029 §8.3)
+		await expect(page.getByText("Purchase History")).toBeVisible();
+		await expect(page.getByText("Popular pack purchase")).toBeVisible();
 
 		// Period summary stats
 		await expect(page.getByTestId("total-calls")).toHaveText("42");
@@ -120,6 +131,12 @@ test.describe("Usage Page Layout", () => {
 		await page.goto("/usage");
 
 		await expect(page.getByTestId("usage-page")).toBeVisible();
+
+		// Empty funding packs
+		await expect(page.getByText("No funding packs available.")).toBeVisible();
+
+		// Empty purchases
+		await expect(page.getByText("No purchases yet.")).toBeVisible();
 
 		// Empty summary — API returns zero-filled data, component shows zeros
 		await expect(page.getByTestId("total-calls")).toHaveText("0");

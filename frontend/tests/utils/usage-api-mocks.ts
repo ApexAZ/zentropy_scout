@@ -12,9 +12,14 @@ import type { Page, Route } from "@playwright/test";
 
 import {
 	balanceResponse,
+	emptyPackList,
+	emptyPurchaseList,
 	emptyTransactionList,
 	emptyUsageHistoryList,
 	emptyUsageSummaryResponse,
+	onboardedPersonaList,
+	packList,
+	purchaseList,
 	transactionList,
 	transactionPage1,
 	transactionPage2,
@@ -22,11 +27,14 @@ import {
 	usageHistoryPage1,
 	usageHistoryPage2,
 	usageSummaryResponse,
-	onboardedPersonaList,
 } from "../fixtures/usage-mock-data";
 
 // Re-export IDs so spec files can import from a single source
-export { TRANSACTION_IDS, USAGE_RECORD_IDS } from "../fixtures/usage-mock-data";
+export {
+	PACK_IDS,
+	TRANSACTION_IDS,
+	USAGE_RECORD_IDS,
+} from "../fixtures/usage-mock-data";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -63,7 +71,7 @@ export class UsageMockController {
 	async setupRoutes(page: Page): Promise<void> {
 		// Single regex intercepts all /api/v1/ endpoints we need to mock.
 		await page.route(
-			/\/api\/v1\/(chat|persona-change-flags|personas|usage)/,
+			/\/api\/v1\/(chat|credits|persona-change-flags|personas|usage)/,
 			async (route) => this.handleRoute(route),
 		);
 	}
@@ -92,9 +100,38 @@ export class UsageMockController {
 			return this.json(route, onboardedPersonaList());
 		}
 
+		// ---- Credits endpoints (REQ-029) ----
+		if (path.includes("/credits")) {
+			return this.handleCredits(route, path);
+		}
+
 		// ---- Usage endpoints ----
 		if (path.includes("/usage")) {
 			return this.handleUsage(route, path, parsed);
+		}
+
+		return route.continue();
+	}
+
+	// -----------------------------------------------------------------------
+	// Credits handler (REQ-029)
+	// -----------------------------------------------------------------------
+
+	private async handleCredits(route: Route, path: string): Promise<void> {
+		// GET /credits/packs
+		if (path.endsWith("/credits/packs")) {
+			if (this.state.emptyState) {
+				return this.json(route, emptyPackList());
+			}
+			return this.json(route, packList());
+		}
+
+		// GET /credits/purchases
+		if (path.endsWith("/credits/purchases")) {
+			if (this.state.emptyState) {
+				return this.json(route, emptyPurchaseList());
+			}
+			return this.json(route, purchaseList());
 		}
 
 		return route.continue();

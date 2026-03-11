@@ -10,6 +10,8 @@ import type { Persona } from "@/types/persona";
 import type {
 	BalanceResponse,
 	CreditTransactionResponse,
+	PackItem,
+	PurchaseItem,
 	UsageRecordResponse,
 	UsageSummaryResponse,
 } from "@/types/usage";
@@ -284,5 +286,89 @@ export function transactionPage2(): ApiListResponse<CreditTransactionResponse> {
 
 /** Empty transaction history. */
 export function emptyTransactionList(): ApiListResponse<CreditTransactionResponse> {
+	return { data: [], meta: listMeta(0) };
+}
+
+// ---------------------------------------------------------------------------
+// Funding Packs (REQ-029 §9.2)
+// ---------------------------------------------------------------------------
+
+export const PACK_IDS = ["pack-001", "pack-002", "pack-003"] as const;
+
+const PACKS: PackItem[] = [
+	{
+		id: PACK_IDS[0],
+		name: "Starter",
+		price_cents: 500,
+		price_display: "$5.00",
+		grant_cents: 500,
+		amount_display: "$5.00",
+		description: "Good for getting started",
+		highlight_label: null,
+	},
+	{
+		id: PACK_IDS[1],
+		name: "Popular",
+		price_cents: 2000,
+		price_display: "$20.00",
+		grant_cents: 2000,
+		amount_display: "$20.00",
+		description: "Best value for regular users",
+		highlight_label: "Most Popular",
+	},
+	{
+		id: PACK_IDS[2],
+		name: "Pro",
+		price_cents: 5000,
+		price_display: "$50.00",
+		grant_cents: 5000,
+		amount_display: "$50.00",
+		description: "For power users",
+		highlight_label: null,
+	},
+];
+
+/** 3 funding packs with one highlighted. */
+export function packList(): ApiResponse<PackItem[]> {
+	return { data: [...PACKS] };
+}
+
+/** Empty pack list. */
+export function emptyPackList(): ApiResponse<PackItem[]> {
+	return { data: [] };
+}
+
+// ---------------------------------------------------------------------------
+// Purchases (REQ-029 §8.3)
+// ---------------------------------------------------------------------------
+
+export const PURCHASE_IDS = ["pur-001", "pur-002"] as const;
+
+const PURCHASES: PurchaseItem[] = [
+	{
+		id: PURCHASE_IDS[0],
+		amount_usd: "20.000000",
+		amount_display: "$20.00",
+		transaction_type: "purchase",
+		description: "Popular pack purchase",
+		created_at: "2026-03-01T14:00:00Z",
+	},
+	{
+		id: PURCHASE_IDS[1],
+		amount_usd: "5.000000",
+		amount_display: "$5.00",
+		transaction_type: "signup_grant",
+		description: "Signup bonus",
+		created_at: "2026-02-28T10:00:00Z",
+	},
+];
+
+/** 2 purchase records on a single page. */
+export function purchaseList(): ApiListResponse<PurchaseItem> {
+	return { data: [...PURCHASES], meta: listMeta(2) };
+}
+
+/** Empty purchase list. */
+export function emptyPurchaseList(): ApiListResponse<PurchaseItem> {
 	return { data: [], meta: listMeta(0) };
 }
