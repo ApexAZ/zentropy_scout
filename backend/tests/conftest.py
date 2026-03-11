@@ -434,12 +434,32 @@ async def client(
     # Generate valid JWT for test user
     test_jwt = create_test_jwt(TEST_USER_ID)
 
+    # Diagnostic hook: log auth state on unexpected 401s (xdist flake debugging).
+    # Tests using `client` always expect authenticated access, so 401 = broken auth.
+    async def _diagnose_401(response) -> None:
+        if response.status_code != 401:
+            return
+        import logging
+
+        logging.getLogger("test.flake_diagnostics").warning(
+            "UNEXPECTED 401 — url=%s auth_enabled=%s secret_match=%s "
+            "get_db_override=%s cookie_set=%s default_user_id=%s worker=%s",
+            response.request.url,
+            settings.auth_enabled,
+            settings.auth_secret.get_secret_value() == TEST_AUTH_SECRET,
+            get_db in app.dependency_overrides,
+            settings.auth_cookie_name in (response.request.headers.get("cookie") or ""),
+            settings.default_user_id,
+            _XDIST_WORKER or "serial",
+        )
+
     # Create async client with auth cookie
     transport = ASGITransport(app=app)
     async with AsyncClient(
         transport=transport,
         base_url="http://test",
         cookies={settings.auth_cookie_name: test_jwt},
+        event_hooks={"response": [_diagnose_401]},
     ) as ac:
         yield ac
 
