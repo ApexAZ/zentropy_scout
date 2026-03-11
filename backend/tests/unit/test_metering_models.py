@@ -41,6 +41,8 @@ _OUTPUT_TOKENS = 50
 _RAW_COST = Decimal("0.001000")
 _BILLED_COST = Decimal("0.001300")
 _MARGIN = Decimal("1.30")
+_SIGNUP_GRANT = "signup_grant"
+_GRANT_AMOUNT = Decimal("0.100000")
 
 
 def _make_usage_record(user_id: uuid.UUID, **overrides: object) -> LLMUsageRecord:
@@ -524,15 +526,84 @@ class TestCreditTransactionStripeEventId:
         """CHECK constraint accepts 'signup_grant' transaction type."""
         txn = CreditTransaction(
             user_id=test_user.id,
-            amount_usd=Decimal("0.100000"),
-            transaction_type="signup_grant",
+            amount_usd=_GRANT_AMOUNT,
+            transaction_type=_SIGNUP_GRANT,
             description="Welcome bonus — free starter balance",
         )
         db_session.add(txn)
         await db_session.flush()
         await db_session.refresh(txn)
 
-        assert txn.transaction_type == "signup_grant"
+        assert txn.transaction_type == _SIGNUP_GRANT
+
+
+class TestSignupGrantUniqueConstraint:
+    """Partial unique index: one signup_grant per user."""
+
+    @pytest.mark.asyncio
+    async def test_duplicate_signup_grant_rejected(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """Second signup_grant for same user violates partial unique index."""
+        txn1 = CreditTransaction(
+            user_id=test_user.id,
+            amount_usd=_GRANT_AMOUNT,
+            transaction_type=_SIGNUP_GRANT,
+        )
+        db_session.add(txn1)
+        await db_session.flush()
+
+        txn2 = CreditTransaction(
+            user_id=test_user.id,
+            amount_usd=_GRANT_AMOUNT,
+            transaction_type=_SIGNUP_GRANT,
+        )
+        db_session.add(txn2)
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+    @pytest.mark.asyncio
+    async def test_different_user_signup_grant_allowed(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """Constraint is per-user — different users can each get a grant."""
+        txn1 = CreditTransaction(
+            user_id=test_user.id,
+            amount_usd=_GRANT_AMOUNT,
+            transaction_type=_SIGNUP_GRANT,
+        )
+        db_session.add(txn1)
+        await db_session.flush()
+
+        other_user = User(email="other-signup-grant@example.com")
+        db_session.add(other_user)
+        await db_session.flush()
+
+        txn2 = CreditTransaction(
+            user_id=other_user.id,
+            amount_usd=_GRANT_AMOUNT,
+            transaction_type=_SIGNUP_GRANT,
+        )
+        db_session.add(txn2)
+        await db_session.flush()
+        await db_session.refresh(txn2)
+
+        assert txn2.amount_usd == _GRANT_AMOUNT
+
+    @pytest.mark.asyncio
+    async def test_non_signup_grant_types_unaffected(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """Constraint only applies to signup_grant — multiple purchases are fine."""
+        for i in range(3):
+            txn = CreditTransaction(
+                user_id=test_user.id,
+                amount_usd=Decimal("10.000000"),
+                transaction_type="purchase",
+                reference_id=f"cs_session_{i}",
+            )
+            db_session.add(txn)
+        await db_session.flush()
 
 
 # ---------------------------------------------------------------------------

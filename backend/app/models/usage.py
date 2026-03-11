@@ -14,6 +14,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -126,6 +127,12 @@ class CreditTransaction(Base):
             "transaction_type IN ("
             "'purchase', 'usage_debit', 'admin_grant', 'refund', 'signup_grant')",
             name="ck_credit_txn_type_valid",
+        ),
+        Index(
+            "uq_credit_txn_signup_grant_per_user",
+            "user_id",
+            unique=True,
+            postgresql_where=text("transaction_type = 'signup_grant'"),
         ),
     )
 

@@ -241,11 +241,20 @@ async def grant_signup_credits(
         return
 
     grant_usd = Decimal(grant_cents) / Decimal(100)
-    await CreditRepository.create(
-        db,
-        user_id=user_id,
-        amount_usd=grant_usd,
-        transaction_type="signup_grant",
-        description="Welcome bonus — free starter balance",
-    )
-    await CreditRepository.atomic_credit(db, user_id=user_id, amount=grant_usd)
+    try:
+        await CreditRepository.create(
+            db,
+            user_id=user_id,
+            amount_usd=grant_usd,
+            transaction_type="signup_grant",
+            description="Welcome bonus — free starter balance",
+        )
+        await CreditRepository.atomic_credit(db, user_id=user_id, amount=grant_usd)
+    except IntegrityError:
+        # Race condition: concurrent registration already inserted a
+        # signup_grant for this user. The partial unique index
+        # (uq_credit_txn_signup_grant_per_user) prevented the duplicate.
+        # Re-raise so the caller's begin_nested() rolls back the savepoint
+        # (db.rollback() here would roll back the entire session).
+        logger.info("Signup grant already exists for user %s (race caught)", user_id)
+        raise
