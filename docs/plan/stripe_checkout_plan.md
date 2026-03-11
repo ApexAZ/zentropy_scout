@@ -80,7 +80,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 ## Phase 1: Foundation — Config, Dependency & StripeClient
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Install the Stripe SDK, add configuration variables with production security checks, create the StripeClient factory with FastAPI dependency injection.*
 
@@ -114,7 +114,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **Create `backend/tests/unit/test_stripe_client.py`:** Test factory creates client, test API version is pinned, test dependency type alias exists. Mock `settings.stripe_secret_key` — do NOT use real keys. | | |
 | | **Run:** `pytest tests/unit/test_stripe_client.py -v` | | |
 | | **Done when:** Factory creates StripeClient with pinned API version. `StripeClientDep` ready for endpoint use. | | |
-| 4 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 4 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 1 Notes
 
