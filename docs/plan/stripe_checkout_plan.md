@@ -285,7 +285,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 ## Phase 4: Backend API — Schemas, Endpoints & Registration
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Create Pydantic schemas for credit endpoints, build the credits router (packs, checkout, purchases) and webhooks router (Stripe webhook), and register both in the main router.*
 
@@ -335,7 +335,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Test: valid signature processes event, invalid signature returns 401, malformed payload returns 400, unknown event type returns 200 (no processing), duplicate event handled idempotently. Mock `stripe.Webhook.construct_event`. | | |
 | | **Run:** `pytest tests/unit/test_webhooks_api.py -v` | | |
 | | **Done when:** Webhook verifies signatures, routes events, returns 200 for unhandled types. Routers registered. | | |
-| 19 | **Phase gate — full test suite + push** | `plan, commands` | ⬜ |
+| 19 | **Phase gate — full test suite + push** | `plan, commands` | ✅ |
 
 #### Phase 4 Notes
 
