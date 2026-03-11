@@ -180,23 +180,25 @@ When auditing or reviewing tests, follow this evaluation process:
 
 All test infrastructure lives in `backend/tests/conftest.py`. Key fixtures:
 
-### Fixture Architecture (SAVEPOINT rollback)
+### Fixture Architecture (SAVEPOINT rollback + xdist)
 
 ```
-db_engine (session-scoped) ← creates tables ONCE, drops on teardown
-  └─ _ensure_schema (module-scoped, autouse) ← restores schema if migration tests destroyed it
-       └─ db_connection (function-scoped) ← begin() + rollback() per test
-            └─ db_session (function-scoped) ← SAVEPOINT via join_transaction_mode="create_savepoint"
-                 ├─ test_user, test_persona, test_job_source ← commit to SAVEPOINT
-                 ├─ client ← yields db_session as override_get_db (same connection)
-                 └─ unauthenticated_client ← same pattern, no auth
+_worker_db (session-scoped) ← creates per-worker database under xdist (no-op serial)
+  └─ db_engine (session-scoped) ← creates tables ONCE, drops on teardown
+       └─ _ensure_schema (module-scoped, autouse) ← restores schema if migration tests destroyed it
+            └─ db_connection (function-scoped) ← begin() + rollback() per test
+                 └─ db_session (function-scoped) ← SAVEPOINT via join_transaction_mode="create_savepoint"
+                      ├─ test_user, test_persona, test_job_source ← commit to SAVEPOINT
+                      ├─ client ← yields db_session as override_get_db (same connection)
+                      └─ unauthenticated_client ← same pattern, no auth
 ```
 
 Each test runs inside a transaction that's rolled back — no data leaks between tests, tables created only once.
 
 ### Key Fixtures
 
-- **`db_engine`** — Session-scoped async engine, `loop_scope="session"`. Schema created once.
+- **`_worker_db`** — Session-scoped. Creates per-worker database under xdist (no-op in serial mode). Installs pgcrypto + vector extensions. Drops on teardown.
+- **`db_engine`** — Session-scoped async engine, `loop_scope="session"`. Depends on `_worker_db`. Schema created once.
 - **`db_connection`** — Function-scoped. Opens connection, begins transaction, yields, rolls back.
 - **`db_session`** — Function-scoped. `AsyncSession(bind=db_connection, join_transaction_mode="create_savepoint")`. Commits go to SAVEPOINT (auto-restarted by SQLAlchemy).
 - **`_ensure_schema`** — Module-scoped autouse. Detects if migration tests destroyed the schema and restores it.
@@ -218,22 +220,54 @@ backend/tests/
 
 ---
 
-## Slow Test Markers
+## Slow Test Markers + Parallel Execution (xdist)
 
-Migration tests are marked `@pytest.mark.slow` and **skipped by default** (`addopts = "-m 'not slow'"` in `pyproject.toml`).
+Tests run in parallel via `pytest-xdist` (`-n auto` in `addopts`). Migration tests are marked `@pytest.mark.slow` and **skipped by default**.
 
 | Mode | Command | Tests | Duration |
 |------|---------|-------|----------|
-| **Default (fast)** | `pytest tests/` | 4,134 | ~52s |
-| **Full (all)** | `pytest tests/ -m ""` | 4,259 | ~123s |
-| **Slow only** | `pytest tests/ -m slow` | 125 | ~70s |
+| **Default TDD** | `pytest tests/` | 4,134 | ~26s |
+| **Full parallel** | `pytest tests/ -m ""` | 4,259 | ~34s |
+| **Full serial** | `pytest tests/ -m "" -n 0` | 4,259 | ~121s |
+| **Slow only** | `pytest tests/ -m slow` | 125 | ~10s |
 
 ### Marking New Migration Tests
 
-- **100% migration file** — Add module-level: `pytestmark = pytest.mark.slow` (after ALL imports, before first variable)
-- **Mixed file** — Add class-level: `@pytest.mark.slow` on migration test classes only
+- **100% migration file** — Add module-level: `pytestmark = [pytest.mark.slow, pytest.mark.xdist_group("migrations")]`
+- **Mixed file** — Add class-level: `@pytest.mark.slow` and `@pytest.mark.xdist_group("migrations")` on migration test classes only
+- Migration files must import `TEST_DATABASE_URL` and `TEST_DB_NAME` from `tests.conftest` (not compute locally)
+- Use `TEST_DB_NAME` (not `f"{original}_test"`) when patching `settings.database_name` for alembic
 
-The pre-push hook runs with `-m ""` (all tests). The `slow` marker is registered in `pyproject.toml`.
+The pre-push hook runs with `-m "" -n auto` (all tests, parallel). Both markers are registered in `pyproject.toml`.
+
+---
+
+## xdist Parallel Execution
+
+### How It Works
+
+Each xdist worker (gw0, gw1, ...) gets its own database:
+1. `PYTEST_XDIST_WORKER` env var detected at conftest import time
+2. `_worker_db` session-scoped fixture creates `zentropy_scout_test_gw0` etc. with pgcrypto + vector extensions
+3. `TEST_DATABASE_URL` computed with worker suffix
+4. Database dropped on worker teardown
+
+### Rules for xdist-Compatible Tests
+
+1. **No module-level state sharing** — Each worker is a separate process with its own conftest fixtures
+2. **Migration tests MUST use `xdist_group("migrations")`** — They `DROP SCHEMA public CASCADE`, which would destroy other workers' databases if run in parallel
+3. **Import `TEST_DATABASE_URL` from conftest** — Never compute it locally with `settings.database_url.replace()`. The conftest version is worker-aware.
+4. **`-n 0` for serial mode** — Use when debugging test ordering issues or fixture teardown problems
+
+### Disabling xdist
+
+```bash
+# Run serial (ignore addopts -n auto)
+pytest tests/ -n 0
+
+# Or override addopts entirely
+pytest tests/ -o "addopts="
+```
 
 ---
 

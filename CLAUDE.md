@@ -268,8 +268,9 @@ If refactoring breaks tests, the tests were likely testing implementation, not b
 |-------|-------------|---------|-----|
 | **While coding** | Affected tests | `pytest tests/unit/test_file.py -v` | Fast TDD feedback loop |
 | **Before commit** (subtask) | Affected tests + lint | Pre-commit hooks (~25-40s) | Quick quality check |
-| **Full fast suite** | All non-migration tests | `pytest tests/ -v` (~52s) | Default — skips `@pytest.mark.slow` |
-| **Before push** (phase gate) | Full suite + lint + types | `pytest tests/ -v -m ""` (~123s) | Includes migration tests. Pre-push hook does this automatically. |
+| **Full fast suite** | All non-migration tests (parallel) | `pytest tests/ -v` (~26s) | Default — skips slow, runs xdist parallel |
+| **Before push** (phase gate) | Full suite (parallel) + lint + types | `pytest tests/ -v -m ""` (~34s) | Includes migration tests. Pre-push hook adds `-n auto`. |
+| **Serial mode** | All tests (no xdist) | `pytest tests/ -v -m "" -n 0` (~121s) | For debugging test ordering or fixture issues |
 | **CI/CD** | Everything + coverage | GitHub Actions | Final quality gate |
 
 ### Test Quality Checklist
