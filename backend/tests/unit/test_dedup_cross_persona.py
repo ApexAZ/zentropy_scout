@@ -33,10 +33,7 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import settings
 from scripts.dedup_cross_persona import find_duplicate_groups, run_dedup
-
-TEST_DATABASE_URL = settings.database_url.replace(
-    settings.database_name, f"{settings.database_name}_test"
-)
+from tests.conftest import TEST_DATABASE_URL, TEST_DB_NAME
 
 # ---------------------------------------------------------------------------
 # Reusable SQL fragments
@@ -101,7 +98,7 @@ async def _reset_schema(conn: AsyncConnection) -> None:
 def _patch_settings_for_test_db() -> str:
     """Patch settings.database_name so alembic migrates the test DB."""
     original = settings.database_name
-    settings.database_name = f"{original}_test"
+    settings.database_name = TEST_DB_NAME
     return original
 
 

@@ -24,16 +24,13 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.core.config import settings
+from tests.conftest import TEST_DATABASE_URL, TEST_DB_NAME
 
 if TYPE_CHECKING:
     from alembic.config import Config
     from sqlalchemy.ext.asyncio import AsyncConnection
 
-pytestmark = pytest.mark.slow
-
-TEST_DATABASE_URL = settings.database_url.replace(
-    settings.database_name, f"{settings.database_name}_test"
-)
+pytestmark = [pytest.mark.slow, pytest.mark.xdist_group("migrations")]
 
 # Complete mapping: (old_name, new_name, table)
 # Sorted by migration origin for traceability.
@@ -220,7 +217,7 @@ def _patch_settings_for_test_db() -> str:
         Original database_name to restore later.
     """
     original = settings.database_name
-    settings.database_name = f"{original}_test"
+    settings.database_name = TEST_DB_NAME
     return original
 
 

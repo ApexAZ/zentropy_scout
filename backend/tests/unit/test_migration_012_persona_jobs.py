@@ -24,12 +24,9 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.core.config import settings
+from tests.conftest import TEST_DATABASE_URL, TEST_DB_NAME
 
-pytestmark = pytest.mark.slow
-
-TEST_DATABASE_URL = settings.database_url.replace(
-    settings.database_name, f"{settings.database_name}_test"
-)
+pytestmark = [pytest.mark.slow, pytest.mark.xdist_group("migrations")]
 
 # Reusable SQL fragments
 _INSERT_USER = text(
@@ -82,7 +79,7 @@ async def _reset_schema(conn: AsyncConnection) -> None:
 def _patch_settings_for_test_db() -> str:
     """Patch settings.database_name so alembic migrates the test DB."""
     original = settings.database_name
-    settings.database_name = f"{original}_test"
+    settings.database_name = TEST_DB_NAME
     return original
 
 

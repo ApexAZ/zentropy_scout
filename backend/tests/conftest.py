@@ -1,5 +1,6 @@
 import ast
 import inspect
+import os
 import socket
 import textwrap
 import uuid
@@ -20,10 +21,19 @@ from app.providers.embedding.mock_adapter import MockEmbeddingProvider
 from app.providers.llm.base import TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
 
-# Use separate test database
+# ---------------------------------------------------------------------------
+# pytest-xdist: per-worker database URL
+# ---------------------------------------------------------------------------
+# When running under xdist, each worker gets its own database to avoid
+# conflicts. PYTEST_XDIST_WORKER is set by xdist before collection.
+_XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER")
+_TEST_DB_SUFFIX = f"_test_{_XDIST_WORKER}" if _XDIST_WORKER else "_test"
+
+# Use separate test database (worker-specific under xdist)
 TEST_DATABASE_URL = settings.database_url.replace(
-    settings.database_name, f"{settings.database_name}_test"
+    settings.database_name, f"{settings.database_name}{_TEST_DB_SUFFIX}"
 )
+TEST_DB_NAME = f"{settings.database_name}{_TEST_DB_SUFFIX}"
 
 # Test user ID (consistent across tests for predictable auth)
 TEST_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
@@ -96,10 +106,72 @@ def skip_if_no_postgres() -> None:
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
-async def db_engine():
+async def _worker_db():
+    """Create per-worker test database for xdist parallel execution.
+
+    When running under pytest-xdist, each worker (gw0, gw1, ...) gets its
+    own database to avoid conflicts. Connects to the ``postgres`` maintenance
+    database to CREATE/DROP the worker-specific test database.
+
+    When running serially (no xdist), uses the standard ``_test`` database
+    which already exists — no CREATE/DROP needed.
+    """
+    if not _XDIST_WORKER:
+        yield
+        return
+
+    skip_if_no_postgres()
+
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine as _cae
+
+    # Connect to postgres maintenance DB to create worker DB
+    maint_url = settings.database_url.replace(f"/{settings.database_name}", "/postgres")
+    maint_engine = _cae(maint_url, isolation_level="AUTOCOMMIT")
+
+    async with maint_engine.connect() as conn:
+        # Terminate lingering connections from a crashed run, then create fresh
+        await conn.execute(
+            text(
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                f"WHERE datname = '{TEST_DB_NAME}' AND pid <> pg_backend_pid()"
+            )
+        )
+        await conn.execute(text(f'DROP DATABASE IF EXISTS "{TEST_DB_NAME}"'))
+        await conn.execute(text(f'CREATE DATABASE "{TEST_DB_NAME}"'))
+
+    await maint_engine.dispose()
+
+    # Install required extensions in the new worker database
+    worker_engine = _cae(TEST_DATABASE_URL, isolation_level="AUTOCOMMIT")
+    async with worker_engine.connect() as conn:
+        await conn.execute(
+            text("CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA public")
+        )
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector SCHEMA public"))
+    await worker_engine.dispose()
+
+    yield
+
+    # Teardown: terminate connections then drop the worker database
+    maint_engine = _cae(maint_url, isolation_level="AUTOCOMMIT")
+    async with maint_engine.connect() as conn:
+        await conn.execute(
+            text(
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                f"WHERE datname = '{TEST_DB_NAME}' AND pid <> pg_backend_pid()"
+            )
+        )
+        await conn.execute(text(f'DROP DATABASE IF EXISTS "{TEST_DB_NAME}"'))
+    await maint_engine.dispose()
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def db_engine(_worker_db):
     """Create test database engine (session-scoped).
 
     Creates all tables once at session start, drops them at session end.
+    Depends on ``_worker_db`` to ensure the database exists under xdist.
     Skips all tests if PostgreSQL is not available.
     """
     skip_if_no_postgres()

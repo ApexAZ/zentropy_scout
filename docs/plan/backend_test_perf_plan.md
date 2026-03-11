@@ -201,9 +201,9 @@ cd backend && .venv/bin/python -m pytest tests/ -v --tb=short -m ""
 
 ## Phase 3: pytest-xdist Parallel Execution
 
-**Status:** ⬜ Incomplete
+**Status:** 🟡 In Progress
 
-*Install pytest-xdist and configure parallel test execution across multiple workers. Each worker gets its own database. Expected: ~130-170s → ~40-80s with 4 workers.*
+*Install pytest-xdist and configure parallel test execution across multiple workers. Each worker gets its own database. Expected: ~130-170s → ~40-80s with 4 workers. **Actual: 37s full / 26s default (16 workers).***
 
 #### Workflow
 | Step | Action |
@@ -218,7 +218,7 @@ cd backend && .venv/bin/python -m pytest tests/ -v --tb=short -m ""
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 7 | **Install pytest-xdist + per-worker database provisioning** — Add `pytest-xdist>=3.5.0` to dev deps. Create per-worker DB provisioning in conftest.py: detect `worker_id`, create `zentropy_scout_test_gw0` etc. at session start, update `TEST_DATABASE_URL`, drop at session end. Add `@pytest.mark.xdist_group("migrations")` to migration tests (they DROP/CREATE schema — can't run in parallel). Update `addopts` to include `-n auto`. Update pre-push hook. Verify: `pytest -n auto -m "not slow"` (fast parallel), `pytest -n auto -m ""` (all parallel). | `tdd, db, plan` | ⬜ |
+| 7 | **Install pytest-xdist + per-worker database provisioning** — Add `pytest-xdist>=3.5.0` to dev deps. Create per-worker DB provisioning in conftest.py: detect `worker_id`, create `zentropy_scout_test_gw0` etc. at session start, update `TEST_DATABASE_URL`, drop at session end. Add `@pytest.mark.xdist_group("migrations")` to migration tests (they DROP/CREATE schema — can't run in parallel). Update `addopts` to include `-n auto`. Update pre-push hook. Verify: `pytest -n auto -m "not slow"` (fast parallel), `pytest -n auto -m ""` (all parallel). | `tdd, db, plan` | ✅ 2026-03-10 22:35 UTC — Full: 4,259 in 37s (12.6x), Default: 4,134 in 26s (18x) |
 | 8 | **Phase 3 gate — full test suite + push** — Run full suite parallel. Record final duration vs 467s baseline. Fix regressions. Commit, push. | `plan, commands` | ⬜ |
 
 #### §7 Implementation Notes

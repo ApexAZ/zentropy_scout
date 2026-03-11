@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import (
 from app.core.config import settings
 from app.models.usage import CreditTransaction, LLMUsageRecord
 from app.models.user import User
+from tests.conftest import TEST_DATABASE_URL, TEST_DB_NAME
 
 # Fixed test UUIDs
 _MISSING_USER_ID = uuid.UUID("99999999-9999-9999-9999-999999999999")
@@ -39,10 +40,6 @@ _OUTPUT_TOKENS = 50
 _RAW_COST = Decimal("0.001000")
 _BILLED_COST = Decimal("0.001300")
 _MARGIN = Decimal("1.30")
-
-TEST_DATABASE_URL = settings.database_url.replace(
-    settings.database_name, f"{settings.database_name}_test"
-)
 
 
 def _make_usage_record(user_id: uuid.UUID, **overrides: object) -> LLMUsageRecord:
@@ -428,7 +425,7 @@ async def _reset_schema(conn: AsyncConnection) -> None:
 def _patch_settings_for_test_db() -> str:
     """Patch settings.database_name so alembic migrates the test DB."""
     original = settings.database_name
-    settings.database_name = f"{original}_test"
+    settings.database_name = TEST_DB_NAME
     return original
 
 
@@ -441,6 +438,7 @@ def _create_alembic_config() -> Config:
 
 
 @pytest.mark.slow
+@pytest.mark.xdist_group("migrations")
 class TestMigration020Upgrade:
     """Verify migration 020 creates metering tables and balance column."""
 
@@ -587,6 +585,7 @@ class TestMigration020Upgrade:
 
 
 @pytest.mark.slow
+@pytest.mark.xdist_group("migrations")
 class TestMigration020Downgrade:
     """Verify migration 020 can be cleanly downgraded."""
 
