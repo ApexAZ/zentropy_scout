@@ -305,7 +305,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 15 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ✅ |
-| 16 | **Credit schemas** — Pydantic models for credit endpoint request/response bodies. | `plan, tdd, api` | ⬜ |
+| 16 | **Credit schemas** — Pydantic models for credit endpoint request/response bodies. | `plan, tdd, api` | ✅ |
 | | **Read:** REQ-029 §8.1 (GET /packs response), §8.2 (POST /checkout request/response), §8.3 (GET /purchases response), §13.1 (error codes). Read `backend/app/schemas/admin.py` (sibling schema file for format/pattern). | `req-reader` | |
 | | **Create `backend/app/schemas/credits.py`:** | | |
 | | — `CheckoutRequest`: `pack_id: UUID` (required) | | |
