@@ -121,6 +121,7 @@ class CreditRepository:
         offset: int = 0,
         limit: int = 50,
         transaction_type: str | None = None,
+        transaction_types: tuple[str, ...] | None = None,
     ) -> tuple[list[CreditTransaction], int]:
         """List credit transactions for a user with pagination.
 
@@ -129,13 +130,17 @@ class CreditRepository:
             user_id: User to query transactions for.
             offset: Number of records to skip.
             limit: Maximum records to return.
-            transaction_type: Optional filter (purchase, usage_debit, etc.).
+            transaction_type: Optional single-type filter (purchase, usage_debit, etc.).
+            transaction_types: Optional multi-type IN filter. Takes precedence
+                over transaction_type if both are provided.
 
         Returns:
             Tuple of (transactions list, total count).
         """
         conditions = [CreditTransaction.user_id == user_id]
-        if transaction_type is not None:
+        if transaction_types is not None:
+            conditions.append(CreditTransaction.transaction_type.in_(transaction_types))
+        elif transaction_type is not None:
             conditions.append(CreditTransaction.transaction_type == transaction_type)
 
         count_stmt = (

@@ -16,6 +16,7 @@ from app.api.v1 import (
     base_resumes,
     chat,
     cover_letters,
+    credits,
     files,
     job_postings,
     job_sources,
@@ -127,6 +128,12 @@ router.include_router(refresh.router, prefix="/refresh", tags=["actions"])
 # =============================================================================
 
 router.include_router(usage.router, prefix="/usage", tags=["usage"])
+
+# =============================================================================
+# Credits & Checkout (REQ-029)
+# =============================================================================
+
+router.include_router(credits.router, prefix="/credits", tags=["credits"])
 
 # =============================================================================
 # Admin (REQ-022)

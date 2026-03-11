@@ -316,7 +316,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Write schema validation tests — valid data passes, missing required fields rejected, UUID format validated, display formatting correct. | | |
 | | **Run:** `pytest tests/unit/test_credit_schemas.py -v` | | |
 | | **Done when:** All schemas validate correctly. Display formatters produce expected output. | | |
-| 17 | **Credits router — GET /packs, POST /checkout, GET /purchases** — Three credit-related endpoints for pack listing, checkout initiation, and purchase history. | `plan, tdd, api, security` | ⬜ |
+| 17 | **Credits router — GET /packs, POST /checkout, GET /purchases** — Three credit-related endpoints for pack listing, checkout initiation, and purchase history. | `plan, tdd, api, security` | ✅ |
 | | **Read:** REQ-029 §8.1–§8.3 (endpoint specs), §8.5 (router registration). Read `backend/app/api/v1/usage.py` (sibling router for pattern). Read `backend/app/api/v1/router.py` (registration). | `req-reader` | |
 | | **Create `backend/app/api/v1/credits.py`:** | | |
 | | — `GET /packs` — No auth required. Query active `FundingPack` rows with non-null `stripe_price_id`. Return `PackResponse[]`. | | |
