@@ -33,6 +33,7 @@ from app.core.responses import DataResponse
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.repositories.verification_token_repository import VerificationTokenRepository
+from app.services.stripe_service import grant_signup_credits
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +187,9 @@ async def verify_magic_link(
 
     # Find or create user
     user = await UserRepository.get_by_email(db, email)
+    is_new_user = False
     if user is None:
+        is_new_user = True
         user = await UserRepository.create(
             db,
             email=email,
@@ -200,6 +203,16 @@ async def verify_magic_link(
         )
 
     await db.commit()
+
+    # Grant signup credits for new users (REQ-029 §12, REQ-021 §8)
+    # Savepoint ensures partial grant failure doesn't corrupt the session.
+    if is_new_user:
+        try:
+            async with db.begin_nested():
+                await grant_signup_credits(db, user_id=user.id)
+            await db.commit()
+        except Exception:
+            logger.exception("Signup grant failed for user %s", user.id)
 
     # Issue JWT — include password-reset claim if this was a forgot-password flow
     is_password_reset = purpose == "password_reset"

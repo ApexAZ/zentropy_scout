@@ -26,6 +26,7 @@ from tests.conftest import TEST_AUTH_SECRET, TEST_USER_ID, create_test_jwt
 
 _TEST_PASSWORD = "ValidP@ss1"  # nosec B105  # gitleaks:allow
 _BCRYPT_ROUNDS = 4  # Low cost factor for fast tests
+_PATCH_GRANT = "app.api.v1.auth.grant_signup_credits"
 
 
 # ===================================================================
@@ -347,6 +348,58 @@ class TestRegister:
         )
         assert response.status_code == 201
         assert response.json()["data"]["email"] == "upper@example.com"
+
+
+class TestRegisterSignupGrant:
+    """Tests for signup grant integration in POST /auth/register.
+
+    REQ-029 §12, REQ-021 §8: grant_signup_credits called after registration,
+    failures don't block user creation.
+    """
+
+    @patch(
+        _PATCH_GRANT,
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "app.api.v1.auth.check_password_breached",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
+    async def test_register_calls_signup_grant(
+        self, _mock_hibp, mock_grant, password_client
+    ):
+        """Registration calls grant_signup_credits with the new user's ID."""
+        response = await password_client.post(
+            "/api/v1/auth/register",
+            json={"email": "grant@example.com", "password": "NewP@ss1!"},
+        )
+        assert response.status_code == 201
+        user_id = response.json()["data"]["id"]
+        mock_grant.assert_awaited_once()
+        call_kwargs = mock_grant.call_args
+        assert str(call_kwargs.kwargs["user_id"]) == user_id
+
+    @patch(
+        _PATCH_GRANT,
+        new_callable=AsyncMock,
+        side_effect=Exception("Grant failed"),
+    )
+    @patch(
+        "app.api.v1.auth.check_password_breached",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
+    async def test_register_succeeds_when_grant_fails(
+        self, _mock_hibp, _mock_grant, password_client
+    ):
+        """Registration succeeds even when signup grant fails."""
+        response = await password_client.post(
+            "/api/v1/auth/register",
+            json={"email": "failgrant@example.com", "password": "NewP@ss1!"},
+        )
+        assert response.status_code == 201
+        assert response.json()["data"]["email"] == "failgrant@example.com"
 
 
 # ===================================================================

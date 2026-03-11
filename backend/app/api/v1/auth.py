@@ -33,6 +33,7 @@ from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse
 from app.repositories.user_repository import UserRepository
 from app.repositories.verification_token_repository import VerificationTokenRepository
+from app.services.stripe_service import grant_signup_credits
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +204,15 @@ async def register(
         expires=datetime.now(UTC) + _VERIFICATION_TOKEN_TTL,
     )
     await db.commit()
+
+    # Grant signup credits (REQ-029 §12, REQ-021 §8)
+    # Savepoint ensures partial grant failure doesn't corrupt the session.
+    try:
+        async with db.begin_nested():
+            await grant_signup_credits(db, user_id=user.id)
+        await db.commit()
+    except Exception:
+        logger.exception("Signup grant failed for user %s", user.id)
 
     # Send verification email as background task
     background_tasks.add_task(

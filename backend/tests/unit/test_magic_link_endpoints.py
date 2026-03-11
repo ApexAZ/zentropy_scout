@@ -30,6 +30,7 @@ _ME_URL = "/api/v1/auth/me"
 _PROFILE_URL = "/api/v1/auth/profile"
 _INVALIDATE_SESSIONS_URL = "/api/v1/auth/invalidate-sessions"
 _PATCH_SEND_EMAIL = "app.api.v1.auth_magic_link.send_magic_link_email"
+_PATCH_GRANT = "app.api.v1.auth_magic_link.grant_signup_credits"
 
 _TEST_EMAIL = "magicuser@example.com"
 _TOKEN_TTL_MINUTES = 10
@@ -530,6 +531,83 @@ class TestVerifyMagicLink:
         )
 
         assert response.status_code == 307
+        result = await db_session.execute(select(User).where(User.email == new_email))
+        user = result.scalar_one()
+        assert user.email_verified is not None
+
+
+class TestVerifyMagicLinkSignupGrant:
+    """Tests for signup grant integration in GET /auth/verify-magic-link.
+
+    REQ-029 §12, REQ-021 §8: grant_signup_credits called for new users
+    created via magic link, skipped for existing users, failures don't block.
+    """
+
+    async def test_new_user_gets_signup_grant(self, magic_link_client, db_session):
+        """Magic link creating a new user calls grant_signup_credits."""
+        new_email = "grant-new@example.com"
+        plain_token, token_hash = _create_token_and_hash()
+        await _insert_verification_token(db_session, new_email, token_hash)
+
+        with patch(
+            _PATCH_GRANT,
+            new_callable=AsyncMock,
+        ) as mock_grant:
+            response = await magic_link_client.get(
+                _VERIFY_URL,
+                params={"token": plain_token, "identifier": new_email},
+            )
+
+        assert response.status_code == 307
+        mock_grant.assert_awaited_once()
+        # Verify called with the new user's ID
+        result = await db_session.execute(select(User).where(User.email == new_email))
+        user = result.scalar_one()
+        call_kwargs = mock_grant.call_args
+        assert call_kwargs.kwargs["user_id"] == user.id
+
+    async def test_existing_user_does_not_get_grant(
+        self,
+        magic_link_client,
+        verified_user,  # noqa: ARG002
+        db_session,
+    ):
+        """Existing user logging in via magic link does not get signup grant."""
+        plain_token, token_hash = _create_token_and_hash()
+        await _insert_verification_token(db_session, _TEST_EMAIL, token_hash)
+
+        with patch(
+            _PATCH_GRANT,
+            new_callable=AsyncMock,
+        ) as mock_grant:
+            response = await magic_link_client.get(
+                _VERIFY_URL,
+                params={"token": plain_token, "identifier": _TEST_EMAIL},
+            )
+
+        assert response.status_code == 307
+        mock_grant.assert_not_awaited()
+
+    async def test_grant_failure_does_not_block_verification(
+        self, magic_link_client, db_session
+    ):
+        """Magic link verification succeeds even when signup grant fails."""
+        new_email = "grant-fail@example.com"
+        plain_token, token_hash = _create_token_and_hash()
+        await _insert_verification_token(db_session, new_email, token_hash)
+
+        with patch(
+            _PATCH_GRANT,
+            new_callable=AsyncMock,
+            side_effect=Exception("Grant failed"),
+        ):
+            response = await magic_link_client.get(
+                _VERIFY_URL,
+                params={"token": plain_token, "identifier": new_email},
+            )
+
+        assert response.status_code == 307
+        # User was still created despite grant failure
         result = await db_session.execute(select(User).where(User.email == new_email))
         user = result.scalar_one()
         assert user.email_verified is not None

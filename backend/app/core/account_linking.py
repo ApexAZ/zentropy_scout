@@ -19,6 +19,7 @@ from app.core.errors import APIError
 from app.models.user import User
 from app.repositories.account_repository import AccountRepository
 from app.repositories.user_repository import UserRepository
+from app.services.stripe_service import grant_signup_credits
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,14 @@ async def find_or_create_user_for_oauth(
         provider=provider,
         provider_account_id=provider_account_id,
     )
+
+    # Grant signup credits (REQ-029 §12, REQ-021 §8)
+    # Use savepoint so grant failure doesn't break user creation.
+    try:
+        async with db.begin_nested():
+            await grant_signup_credits(db, user_id=new_user.id)
+    except Exception:
+        logger.exception("Signup grant failed for user %s", new_user.id)
 
     logger.info(
         "Created new OAuth user",
