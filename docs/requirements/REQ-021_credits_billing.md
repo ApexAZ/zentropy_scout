@@ -1,9 +1,12 @@
 # REQ-021: Credits & Billing
 
 **Status:** Not Started
-**Version:** 0.5
+**Version:** 0.6
 **PRD Reference:** §6 Technical Architecture
-**Last Updated:** 2026-03-02
+**Backlog Item:** #13
+**Last Updated:** 2026-03-10
+
+> **Supersession Notice (v0.6):** REQ-029 (Stripe Checkout Integration) supersedes the Stripe SDK and implementation sections of this document. See REQ-029 §1 for the precise traceability map. This document remains the authoritative source for design decision rationale (§2), signup grant integration points (§8), frontend UX patterns (§9.3 Suspense/toast/query keys), webhook rate limiting rationale (§11.2), and resolved questions (§15). When REQ-021 and REQ-029 conflict, **REQ-029 takes precedence**.
 
 ---
 
@@ -180,7 +183,7 @@ When a refund is issued via Stripe Dashboard, the `charge.refunded` webhook fire
 
 This REQ **cannot be implemented** until:
 1. **Backlog #16 / REQ-022** (Admin Pricing Dashboard) is complete ✅ — provides `funding_packs` table (renamed from `credit_packs` by REQ-023), `system_config` table, and admin auth
-2. **Backlog #19 / REQ-023** (USD-Direct Billing) is complete — renames `credit_packs` → `funding_packs` and `credit_amount` → `grant_cents`, provides corrected seed data (USD cents), renamed `signup_grant_cents` config key, and usage bar
+2. **Backlog #19 / REQ-023** (USD-Direct Billing) is complete ✅ — renames `credit_packs` → `funding_packs` and `credit_amount` → `grant_cents`, provides corrected seed data (USD cents), renamed `signup_grant_cents` config key, and usage bar
 
 No column renames are needed on `users` or `credit_transactions`. The existing USD-denominated columns (`balance_usd`, `amount_usd`) are correct as-is — the USD-direct decision (REQ-023 §2.1) means the column names match their semantic meaning. The `credit_packs` → `funding_packs` and `credit_amount` → `grant_cents` renames are handled by REQ-023's migration (§4.1).
 
@@ -224,7 +227,7 @@ CREATE TABLE funding_packs (
     name            VARCHAR(50) NOT NULL,         -- "Starter", "Standard", "Pro"
     price_cents     INTEGER NOT NULL,              -- USD price in cents (e.g., 500 = $5.00)
     grant_cents     BIGINT NOT NULL,               -- USD cents to grant (e.g., 500 = $5.00). Equals price_cents for MVP (dollar-for-dollar).
-    stripe_price_id VARCHAR(255) NOT NULL UNIQUE,  -- Stripe Price ID (e.g., "price_abc123")
+    stripe_price_id VARCHAR(255) UNIQUE,            -- Stripe Price ID (e.g., "price_abc123"). Nullable until admin configures Stripe.
     display_order   INTEGER NOT NULL DEFAULT 0,    -- Sort order in UI
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,  -- Soft-disable without deleting
     description     VARCHAR(255),                  -- "Get started with Zentropy Scout"
@@ -593,8 +596,8 @@ Creates a Stripe Checkout Session and returns the redirect URL. Requires authent
 - `502 Bad Gateway` — Stripe API error
 
 **Success/Cancel URLs:** The backend constructs these from the existing `frontend_url` config value:
-- Success: `{frontend_url}/credits?status=success&session_id={CHECKOUT_SESSION_ID}`
-- Cancel: `{frontend_url}/credits?status=cancelled`
+- Success: `{frontend_url}/usage?status=success&session_id={CHECKOUT_SESSION_ID}`
+- Cancel: `{frontend_url}/usage?status=cancelled`
 
 **Note:** `{CHECKOUT_SESSION_ID}` is a Stripe template variable — do NOT interpolate it server-side. Pass it as a literal string in the URL. Stripe's redirect automatically replaces it with the actual session ID (e.g., `cs_test_a1b2c3...`) when redirecting the user back to your site.
 
@@ -736,7 +739,7 @@ The Alembic migration includes a data migration step that inserts a `signup_gran
 
 ### 9.1 Credits Page
 
-**Route:** `/credits`
+**Route:** `/usage`
 
 **Sections:**
 
@@ -751,15 +754,15 @@ The Alembic migration includes a data migration step that inserts a `signup_gran
 3. Frontend receives `checkout_url` in response
 4. Frontend redirects to `checkout_url` via `window.location.href = checkout_url`
 5. User completes payment on Stripe's hosted page
-6. Stripe redirects to `/credits?status=success&session_id=cs_test_...`
+6. Stripe redirects to `/usage?status=success&session_id=cs_test_...`
 7. Frontend shows success toast: "Payment successful! Your balance has been updated."
 8. Frontend invalidates the balance query key to refresh the balance display (see query key pattern below)
 
-**Cancel flow:** If the user cancels on Stripe's page, they're redirected to `/credits?status=cancelled`. Frontend shows an info toast: "Purchase cancelled." No balance change.
+**Cancel flow:** If the user cancels on Stripe's page, they're redirected to `/usage?status=cancelled`. Frontend shows an info toast: "Purchase cancelled." No balance change.
 
 ### 9.3 Success/Cancel Handling
 
-The `/credits` page checks URL query parameters on mount:
+The `/usage` page checks URL query parameters on mount:
 
 ```typescript
 // Pseudocode — must be wrapped in <Suspense> (see note below)
@@ -771,10 +774,10 @@ useEffect(() => {
         showToast.success("Payment successful! Your balance has been updated.");
         queryClient.invalidateQueries({ queryKey: queryKeys.balance });
         // Clean up URL params
-        router.replace("/credits");
+        router.replace("/usage");
     } else if (status === "cancelled") {
         showToast.info("Purchase cancelled.");
-        router.replace("/credits");
+        router.replace("/usage");
     }
 }, [status]);
 ```
@@ -798,7 +801,7 @@ purchases: ["credits", "purchases"] as const,
 
 ### 9.4 Navigation Update
 
-The existing balance display in the nav bar (REQ-020 §9.1) links directly to `/credits` when clicked — no additional nav item needed.
+The existing balance display in the nav bar (REQ-020 §9.1) links directly to `/usage` when clicked — no additional nav item needed.
 
 ---
 
@@ -1012,4 +1015,5 @@ No new frontend dependencies. The hosted redirect flow uses `window.location.hre
 | 2026-02-27 | 0.2 | Audit fixes: corrected signup grant integration points (OAuth uses `account_linking.py`, email+password is `auth.py` not `auth_register.py`), amended REQ-020 `reference_id` from `UUID` to `VARCHAR(255)` for Stripe ID compatibility, noted `FRONTEND_URL` already exists in config, resolved webhook rate limiting (exempt), added query key pattern following existing `query-keys.ts` convention, added Stripe API version pinning, documented `{CHECKOUT_SESSION_ID}` as Stripe template variable, clarified refund negative amount semantics, added Stripe fee impact analysis on pack pricing, added `Suspense` requirement for `useSearchParams`, added configuration matrix for `METERING_ENABLED` × `CREDITS_ENABLED`, added toast pattern note, resolved all 3 open questions |
 | 2026-03-01 | 0.3 | **Major revision for abstract credits and admin-configurable pricing.** Changes driven by pricing/billing architecture decisions captured in backlog items #16 (Admin Pricing Dashboard & Model Registry), #19 (Credit Denomination & Display Configuration). Key changes: (1) Replaced all USD-denominated references with abstract credits throughout. (2) Credit pack definitions moved from hardcoded Python dict to admin-configurable `credit_packs` DB table. (3) Signup grant amount moved from `CREDITS_SIGNUP_GRANT_USD` env var to `system_config` table (`signup_grant_credits`). (4) Added explicit dependencies on REQs for backlog #16 and #19. (5) Added §3.3 prerequisite implementation order. (6) Added §4.3 `credit_packs` table reference (owned by #16, consumed by this REQ). (7) Stripe Price IDs moved from env vars to `credit_packs` table. (8) API responses now include server-rendered display strings via credit denomination formatting utility (#19). (9) Refund logic updated for proportional credit debit calculation. (10) Removed 3 Stripe Price env vars (now in DB). (11) Added 3 resolved questions (#4–#6) for architecture decisions. (12) Narrowed scope: pricing config, model registry, and credit denomination are explicitly out of scope (owned by #16 and #19). |
 | 2026-03-02 | 0.4 | **Errata: USD-direct billing replaces abstract credits.** Design review (documented in backlog PBI #19 and REQ-023) rejected abstract credits in favor of USD-direct billing. Key changes: (1) All "abstract credits" references replaced with USD amounts throughout. (2) Pack definitions updated from $5/50K, $15/175K, $40/500K with volume bonuses to $5/$10/$15 dollar-for-dollar with volume-based descriptions. (3) `signup_grant_credits` → `signup_grant_cents` (10 = $0.10 default). (4) Display strings changed from "50,000 credits" to "$5.00". (5) Column renames cancelled — `balance_usd` and `amount_usd` are correct as-is. (6) Dependencies updated: backlog #19 now provides corrected seed data and config key (REQ-023), not `credits_per_dollar` and formatting utility. (7) Resolved question #4 changed from "Abstract credits" to "USD-direct." (8) Added errata notice to §1. See REQ-023 §6.1 for full change map. |
+| 2026-03-10 | 0.6 | **REQ-029 supersession + errata.** (1) Added supersession notice — REQ-029 supersedes Stripe SDK/implementation sections; REQ-021 remains authoritative for design rationale, signup grant integration points, frontend UX patterns, webhook rate limiting rationale, and resolved questions. (2) Added `**Backlog Item:** #13` header field. (3) Fixed `funding_packs.stripe_price_id` from `NOT NULL` to nullable — matches actual schema (column is nullable until admin configures Stripe). (4) Marked REQ-023 as ✅ in §3.3 prerequisite order. (5) Fixed all frontend page routes from `/credits` to `/usage` — the actual page lives at `frontend/src/app/(main)/usage/page.tsx`, not `/credits`. Affects §7.2 redirect URLs, §9.1 route, §9.2 redirect flows, §9.3 `router.replace()` calls, §9.4 nav link. API routes (`/api/v1/credits/*`) are unchanged. |
 | 2026-03-02 | 0.5 | **Naming alignment with REQ-023.** All table/column/metadata references updated to match REQ-023's rename migration (§4.1, §2.3): (1) `credit_packs` → `funding_packs` throughout (§2.2, §3.1, §3.3, §4.3, §5.2, §6.2, §10.1, §15). (2) `credit_amount` → `grant_cents` throughout (§4.3 CREATE TABLE, §5.1 pack definitions, §6.2 service pseudocode, §6.3 metadata, §6.7 SQL, §7.1 JSON responses, §11.4). (3) §4.3 section header renamed "Credit Packs Table" → "Funding Packs Table" with naming history note. (4) Updated errata notice to cover both v0.4 and v0.5. (5) §3.3 prerequisite order now notes REQ-023 handles the rename migration. (6) §5 section header renamed "Credit Packs" → "Funding Packs". |
