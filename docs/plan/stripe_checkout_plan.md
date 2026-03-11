@@ -224,7 +224,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 10 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ⬜ |
+| 10 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ✅ |
 | 11 | **StripeService — checkout session creation + customer management** — `create_checkout_session()` and `get_or_create_customer()` methods. | `plan, tdd, security` | ⬜ |
 | | **Read:** REQ-029 §6.2 (checkout session creation), §6.3 (customer management), §13.3 (Stripe error mapping), REQ-021 §12.2 (full error mapping). Read `backend/app/services/` (sibling service files for pattern). | `req-reader` | |
 | | **Create `backend/app/services/stripe_service.py`:** | | |
