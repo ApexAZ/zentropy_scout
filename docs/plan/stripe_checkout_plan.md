@@ -397,7 +397,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | — Error shows toast | | |
 | | **Run:** `npm test -- --run funding-packs` | | |
 | | **Done when:** Pack cards render correctly, checkout redirect works, loading/error states handled. | | |
-| 23 | **PurchaseTable + LowBalanceWarning components** — Purchase history table with pagination and low-balance alert banner. | `plan, tdd, ui` | ⬜ |
+| 23 | **PurchaseTable + LowBalanceWarning components** — Purchase history table with pagination and low-balance alert banner. | `plan, tdd, ui` | ✅ |
 | | **Read:** REQ-029 §8.3 (purchases response shape), §9.5 (low-balance warning thresholds). Read `frontend/src/lib/format-utils.ts` (`BALANCE_THRESHOLD_HIGH`, `BALANCE_THRESHOLD_LOW`). Read `frontend/src/components/usage/transaction-table.tsx` (sibling table for pattern). | `req-reader` | |
 | | **Create `frontend/src/components/usage/purchase-table.tsx`:** | | |
 | | — Fetch purchases via `useQuery` with `purchases` key, paginated | | |
