@@ -236,7 +236,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Mock StripeClient methods. Test: valid checkout creates session + pending purchase, existing customer reused, new customer created and saved, pack without `stripe_price_id` raises error, inactive pack raises error, Stripe API error mapped correctly. | | |
 | | **Run:** `pytest tests/unit/test_stripe_service.py -v` | | |
 | | **Done when:** Checkout session created with correct metadata, customer management idempotent, Stripe errors handled gracefully. | | |
-| 12 | **StripeService — `handle_checkout_completed` webhook handler** — Process `checkout.session.completed` events: verify payment status, extract metadata, credit balance, update purchase record. | `plan, tdd, security` | ⬜ |
+| 12 | **StripeService — `handle_checkout_completed` webhook handler** — Process `checkout.session.completed` events: verify payment status, extract metadata, credit balance, update purchase record. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-029 §7.2 (handler logic, event payload fields), §7.4 (retry behavior), §13.2 (webhook error scenarios), REQ-021 §6.6 (error table), §6.7 (atomic balance SQL). | `req-reader` | |
 | | **Add to `stripe_service.py`:** | | |
 | | — `handle_checkout_completed(event) -> None` — per §7.2: | | |

@@ -7,6 +7,8 @@ webhook event processing, and signup credit grants.
 
 import logging
 import uuid
+from decimal import Decimal
+from typing import Any
 
 import stripe as stripe_module
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +18,7 @@ from stripe import StripeClient
 from app.core.config import settings
 from app.core.errors import APIError, InvalidStateError, ValidationError
 from app.models.admin_config import FundingPack
+from app.repositories.credit_repository import CreditRepository
 from app.repositories.stripe_repository import StripePurchaseRepository
 from app.repositories.user_repository import UserRepository
 
@@ -51,11 +54,7 @@ class StripeServiceError(APIError):
 
 
 def _handle_stripe_error(exc: stripe_module.StripeError) -> StripeServiceError:
-    """Map a Stripe exception to a StripeServiceError with user-safe message.
-
-    Logs the original error type and code server-side. The returned error
-    only contains the user-safe message from the mapping table (REQ-029 §13.3).
-    """
+    """Map a Stripe exception to a StripeServiceError with user-safe message."""
     user_message = _STRIPE_ERROR_MESSAGES.get(type(exc), _DEFAULT_STRIPE_ERROR_MESSAGE)
     logger.error(
         "Stripe API error: type=%s code=%s",
@@ -205,3 +204,97 @@ async def create_checkout_session(
     )
 
     return session.url, session.id
+
+
+async def handle_checkout_completed(
+    db: AsyncSession,
+    *,
+    event: stripe_module.Event,
+) -> None:
+    """Process a checkout.session.completed webhook event.
+
+    REQ-029 §7.2: Verifies payment status, extracts metadata, checks
+    idempotency via stripe_event_id, credits the user's balance, and
+    marks the purchase as completed.
+
+    Always returns normally (no exceptions) — the webhook endpoint must
+    return 200 to prevent Stripe retries (REQ-029 §7.4).
+    """
+    try:
+        await _process_checkout_completed(db, event=event)
+    except Exception:
+        logger.exception("Unexpected error processing checkout event %s", event.id)
+
+
+async def _process_checkout_completed(
+    db: AsyncSession,
+    *,
+    event: stripe_module.Event,
+) -> None:
+    """Inner logic — separated so the outer function catches all exceptions."""
+    session: dict[str, Any] = event.data.object
+    event_id: str = event.id
+    session_id: str = session["id"]
+    payment_status: str = session["payment_status"]
+
+    # Only process paid sessions (REQ-029 §7.2)
+    if payment_status != "paid":
+        logger.warning(
+            "Checkout session %s has status %s, skipping",
+            session_id,
+            payment_status,
+        )
+        return
+
+    # Extract metadata — skip on missing/invalid fields (REQ-029 §13.2).
+    # TypeError guards against metadata being None instead of a dict.
+    metadata: dict[str, str] = session.get("metadata", {}) or {}
+    try:
+        user_id = uuid.UUID(metadata["user_id"])
+        grant_cents = int(metadata["grant_cents"])
+    except (KeyError, ValueError, TypeError):
+        logger.error(
+            "Checkout session %s has missing/invalid metadata"
+            " (expected user_id, grant_cents)",
+            session_id,
+        )
+        return
+
+    if grant_cents <= 0:
+        logger.error(
+            "Checkout session %s has non-positive grant_cents: %d",
+            session_id,
+            grant_cents,
+        )
+        return
+
+    # Idempotency check — skip if event already processed
+    existing = await CreditRepository.find_by_stripe_event_id(db, event_id)
+    if existing:
+        return
+
+    # Validate user exists
+    user = await UserRepository.get_by_id(db, user_id)
+    if not user:
+        logger.error("User %s not found for checkout session %s", user_id, session_id)
+        return
+
+    # Credit the balance (REQ-021 §6.7: transaction + atomic update)
+    grant_usd = Decimal(grant_cents) / Decimal(100)
+    await CreditRepository.create(
+        db,
+        user_id=user_id,
+        amount_usd=grant_usd,
+        transaction_type="purchase",
+        reference_id=session_id,
+        stripe_event_id=event_id,
+        description="Funding pack purchase",
+    )
+    await CreditRepository.atomic_credit(db, user_id=user_id, amount=grant_usd)
+
+    # Update stripe_purchases record
+    await StripePurchaseRepository.mark_completed(
+        db,
+        stripe_session_id=session_id,
+        stripe_payment_intent=session["payment_intent"],
+    )
