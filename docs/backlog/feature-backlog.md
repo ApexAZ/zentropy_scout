@@ -1,9 +1,9 @@
 # Zentropy Scout — Feature Backlog
 
 **Created:** 2026-02-16
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-11
 
-**Items:** 28 (10 completed, 18 pending)
+**Items:** 28 (11 completed, 17 pending)
 
 ---
 
@@ -141,13 +141,15 @@ Exact descriptions are set by admin from the Packs tab. Names, descriptions, and
 
 ---
 
-### 13. Stripe Credits Integration
+### 13. Stripe Credits Integration ✅
 
 **Category:** Backend / Frontend / Payments
 **Added:** 2026-02-27
-**Updated:** 2026-03-02 (reordered after #16/#19, narrowed scope to payment rail, updated for USD-direct billing)
+**Updated:** 2026-03-11 (completed — REQ-029 implemented)
+**Completed:** 2026-03-11
 **Priority:** P2 — Monetization. Users purchase balance packs to use the tool.
 **Depends on:** ~~#12 (Token Metering)~~ ✅, ~~#16 (Admin Pricing Dashboard)~~ ✅, ~~#19 (USD-Direct Billing)~~ ✅
+**Status:** Complete — implemented via REQ-029 (Stripe Checkout). 6 phases, 28 tasks. Stripe SDK, funding packs API, checkout sessions, webhook fulfillment, usage dashboard, signup grant in all auth flows.
 
 Integrate Stripe as the payment rail for "Add Funds" purchases. Users select a quick-select amount ($5/$10/$15 — admin-configurable), Stripe Checkout processes the payment, webhook confirms and credits the user's dollar balance. Pricing intelligence and margin configuration live in #16 — Stripe just processes the payment and triggers the balance grant.
 
@@ -413,7 +415,7 @@ The original architecture (REQ-009 §4 Provider Abstraction Layer) supported Bri
 **Added:** 2026-02-16
 **Updated:** 2026-03-01 (updated dependencies for new ordering)
 **Priority:** P4 — Deploy after metering + payments are functional.
-**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, ~~#12 (Token Metering)~~ ✅, ~~#16 (Admin Pricing)~~ ✅, #13 (Stripe Integration)
+**Depends on:** ~~#1 (Authentication), #2 (Multi-Tenant)~~ ✅, ~~#12 (Token Metering)~~ ✅, ~~#16 (Admin Pricing)~~ ✅, ~~#13 (Stripe Integration)~~ ✅
 
 Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Python background workers on Render. Render is already familiar, uses fixed predictable pricing, has native background worker and cron job support, and no cold-start surprises.
 
@@ -452,7 +454,7 @@ Configure `render.yaml` to deploy the Next.js frontend, FastAPI backend, and Pyt
 **Category:** Security / Testing / Quality
 **Added:** 2026-03-02
 **Priority:** Critical — Complete before public launch. Final gate before real user data is at risk.
-**Depends on:** All MVP items complete (~~#16~~ ✅, ~~#19~~ ✅, #13, #20, #23, #24, #14, #4), private Render deployment live
+**Depends on:** All MVP items complete (~~#16~~ ✅, ~~#19~~ ✅, ~~#13~~ ✅, #20, #23, #24, #14, #4), private Render deployment live
 **Assigned to:** Claude Code (Opus 4.6) + Brian (joint review)
 
 Structured white-box security audit and penetration test of the full Zentropy Scout system. Conducted against the live Render deployment (not localhost) to capture infrastructure-level issues. Goal: surface and remediate vulnerabilities before real user data and payment information are at risk.
@@ -1062,7 +1064,7 @@ Improve the development and deployment pipeline for reliability and speed.
 **Category:** Legal / Frontend
 **Added:** 2026-03-02
 **Priority:** Post-MVP — Required before public launch with real users and payment processing.
-**Depends on:** #13 (Stripe Credits Integration), #4 (Render Deployment) — ToS must reflect the final billing model and hosting setup
+**Depends on:** ~~#13 (Stripe Credits Integration)~~ ✅, #4 (Render Deployment) — ToS must reflect the final billing model and hosting setup
 
 Draft and implement Terms of Service and Privacy Policy for Zentropy Scout. Both documents must be drafted together since they cross-reference each other (ToS §7 and §10 reference the Privacy Policy directly). These are legal requirements before accepting real user data and payments.
 
