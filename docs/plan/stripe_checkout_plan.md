@@ -349,7 +349,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 ## Phase 5: Frontend — API Client, Components & Page Integration
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Build the frontend: API client for credit endpoints, funding pack cards, purchase history table, low-balance warning, and integrate into the existing usage page.*
 
@@ -425,7 +425,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **Run:** `npm test -- --run usage-page && npm test -- --run balance-card` | | |
 | | **Done when:** Usage page shows all components in correct order, success/cancel toasts work, "Add Funds" enabled and scrolls to packs. | | |
 | 24b | **Fix stale E2E tests + add credits API mocks** — Update `usage.spec.ts` stale "Add Funds" button assertion (now a link). Add `/credits/packs` and `/credits/purchases` routes to `usage-api-mocks.ts`. Add `PackItem[]` and `PurchaseItem[]` fixtures to `usage-mock-data.ts`. Update "renders all page sections" test scope. | `plan, playwright, e2e` | ✅ |
-| 25 | **Phase gate — full test suite + push** | `plan, commands` | ⬜ |
+| 25 | **Phase gate — full test suite + push** | `plan, commands` | ✅ |
 
 #### Phase 5 Notes
 
