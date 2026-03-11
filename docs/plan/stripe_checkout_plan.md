@@ -128,7 +128,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 ## Phase 2: Database — Models, Migration & Repository
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Update existing models with Stripe columns, create the StripePurchase model, write the Alembic migration (schema + signup grant data migration), and create the StripePurchase repository.*
 
@@ -191,7 +191,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Write repository tests with mock/test DB session. Test each CRUD method, pagination, and idempotency lookup. | | |
 | | **Run:** `pytest tests/unit/test_stripe_repository.py -v` | | |
 | | **Done when:** All repository methods work, paginated queries return correct results, `find_by_stripe_event_id` returns existing or None. | | |
-| 9 | **Phase gate — full test suite + push** | `plan, commands` | ⬜ |
+| 9 | **Phase gate — full test suite + push** | `plan, commands` | ✅ |
 
 #### Phase 2 Notes
 
