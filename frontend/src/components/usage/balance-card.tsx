@@ -78,23 +78,27 @@ export function BalanceCard({
 					</Button>
 				</div>
 				{!isLoading && (
-					<div
-						data-testid="usage-bar"
-						role="progressbar"
-						className="bg-muted h-2 w-full overflow-hidden rounded-full"
-						aria-label={`Balance: ${displayBalance}`}
-						aria-valuemin={0}
-						aria-valuemax={100}
-						aria-valuenow={Math.round(pct)}
-					>
-						<div
-							className={cn(
-								"h-full rounded-full transition-all",
-								getBarColorClass(parsed),
-							)}
-							style={{ width: `${pct}%` }}
+					<>
+						<progress
+							className="sr-only"
+							aria-label={`Balance: ${displayBalance}`}
+							max={100}
+							value={Math.round(pct)}
 						/>
-					</div>
+						<div
+							data-testid="usage-bar"
+							className="bg-muted h-2 w-full overflow-hidden rounded-full"
+							aria-hidden="true"
+						>
+							<div
+								className={cn(
+									"h-full rounded-full transition-all",
+									getBarColorClass(parsed),
+								)}
+								style={{ width: `${pct}%` }}
+							/>
+						</div>
+					</>
 				)}
 			</CardContent>
 		</Card>

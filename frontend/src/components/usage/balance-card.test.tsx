@@ -139,10 +139,12 @@ describe("BalanceCard", () => {
 		expect(getBarFill().style.width).toBe("100%");
 	});
 
-	it("usage bar has accessible label", () => {
+	it("usage bar has accessible progress element", () => {
 		render(<BalanceCard balance="7.420000" isLoading={false} />);
-		const bar = screen.getByTestId("usage-bar");
-		expect(bar).toHaveAttribute("aria-label", "Balance: $7.42");
+		const progress = screen.getByRole("progressbar", {
+			name: "Balance: $7.42",
+		});
+		expect(progress).toBeInTheDocument();
 	});
 
 	it("usage bar hidden during loading", () => {

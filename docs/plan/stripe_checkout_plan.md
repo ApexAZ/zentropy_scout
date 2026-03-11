@@ -460,7 +460,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 26 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ⬜ |
+| 26 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ✅ |
 | 27 | **Wire signup grant into auth flows** — Call `StripeService.grant_signup_credits(user_id)` from all three user registration paths: OAuth account linking, email+password registration, and magic link signup. | `plan, tdd, security, api` | ⬜ |
 | | **Read:** REQ-029 §12 (signup grant summary), REQ-021 §8.1–§8.2 (detailed spec with exact file paths and integration points). Read: `backend/app/api/v1/account_linking.py`, `backend/app/api/v1/auth.py`, `backend/app/api/v1/auth_magic_link.py` (find the user creation points). | `req-reader` | |
 | | **Modify 3 auth files:** At each user creation point, after the user record is created and committed, call `await stripe_service.grant_signup_credits(user_id)`. Wrap in try/except to ensure signup grant failure doesn't block registration (log error, continue). | | |

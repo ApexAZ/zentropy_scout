@@ -4,7 +4,7 @@
  * Funding pack selection cards with checkout redirect.
  *
  * REQ-029 §9.2: Pack cards with name, description, price, highlight badge.
- * REQ-029 §9.3: Checkout via window.location.href redirect (no Stripe JS).
+ * REQ-029 §9.3: Checkout via location.assign redirect (no Stripe JS).
  */
 
 import { useState } from "react";
@@ -42,7 +42,7 @@ export function FundingPacks() {
 		setCheckoutPackId(packId);
 		try {
 			const response = await createCheckoutSession(packId);
-			window.location.assign(response.data.checkout_url);
+			globalThis.location.assign(response.data.checkout_url);
 		} catch {
 			showToast.error("Unable to start checkout. Please try again.");
 			setCheckoutPackId(null);
