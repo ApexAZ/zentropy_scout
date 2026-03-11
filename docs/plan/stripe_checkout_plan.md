@@ -441,7 +441,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 ## Phase 6: Auth Integration — Signup Grant
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Wire the `grant_signup_credits` service method into all three authentication flows so new users receive their startup balance.*
 
@@ -467,7 +467,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Integration tests for each auth path: (1) New user → grant_signup_credits called → balance credited. (2) Existing user login → grant NOT called (not a new user). (3) Grant failure → registration still succeeds (error logged). Mock StripeService in auth tests. | | |
 | | **Run:** `pytest tests/unit/test_auth*.py tests/unit/test_account_linking*.py -v` | | |
 | | **Done when:** All 3 auth flows call signup grant on new user creation. Grant failures don't break registration. | | |
-| 28 | **Phase gate (FINAL) — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 28 | **Phase gate (FINAL) — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 6 Notes
 
