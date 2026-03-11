@@ -205,7 +205,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 ## Phase 3: Stripe Service — Checkout, Webhooks & Signup Grant
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Build the core business logic: checkout session creation with Stripe Customer management, webhook handlers for checkout.session.completed and charge.refunded, and the signup grant service method.*
 
@@ -271,7 +271,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Refund tests: full refund debits correctly, partial refund tracks delta, duplicate event skipped, purchase not found logged, balance goes negative (warning logged). Signup grant tests: grants on first call, skips on duplicate, zero amount disables, converts cents to USD correctly. | | |
 | | **Run:** `pytest tests/unit/test_stripe_service.py -v -k "refund or signup"` | | |
 | | **Done when:** Refund handler handles full/partial/duplicate correctly. Signup grant is idempotent and configurable. | | |
-| 14 | **Phase gate — full test suite + push** | `plan, commands` | ⬜ |
+| 14 | **Phase gate — full test suite + push** | `plan, commands` | ✅ |
 
 #### Phase 3 Notes
 
