@@ -1,7 +1,8 @@
 /**
- * Usage and billing response types matching backend/app/schemas/usage.py.
+ * Usage, billing, and credits response types.
  *
  * REQ-020 §8: Response shapes for the 4 usage API endpoints.
+ * REQ-029 §8: Response shapes for credit pack, checkout, and purchase endpoints.
  * All monetary values are strings with 6 decimal places from the API;
  * frontend displays 2 decimal places (REQ-020 §2.5).
  */
@@ -79,6 +80,47 @@ export interface CreditTransactionResponse {
 	/** One of: purchase, usage_debit, admin_grant, refund. */
 	transaction_type: string;
 	description: string | null;
+	/** ISO 8601 timestamp. */
+	created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Credits & checkout interfaces (REQ-029 §8)
+// ---------------------------------------------------------------------------
+
+/** Response item for GET /api/v1/credits/packs (§8.1). */
+export interface PackItem {
+	id: string;
+	name: string;
+	price_cents: number;
+	/** Formatted price (e.g., "$5.00"). */
+	price_display: string;
+	grant_cents: number;
+	/** Formatted grant amount (e.g., "$5.00"). */
+	amount_display: string;
+	description: string;
+	/** Optional highlight badge text (e.g., "Most Popular"). */
+	highlight_label: string | null;
+}
+
+/** Response for POST /api/v1/credits/checkout (§8.2). */
+export interface CheckoutResponse {
+	/** Full Stripe hosted checkout URL. */
+	checkout_url: string;
+	/** Stripe checkout session ID (e.g., "cs_test_..."). */
+	session_id: string;
+}
+
+/** Response item for GET /api/v1/credits/purchases (§8.3). */
+export interface PurchaseItem {
+	id: string;
+	/** Signed amount with 6 decimal places (e.g., "10.000000"). */
+	amount_usd: string;
+	/** Formatted display amount (e.g., "$10.00" or "-$5.00"). */
+	amount_display: string;
+	/** One of: purchase, signup_grant, admin_grant, refund. */
+	transaction_type: string;
+	description: string;
 	/** ISO 8601 timestamp. */
 	created_at: string;
 }

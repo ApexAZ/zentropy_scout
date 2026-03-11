@@ -369,7 +369,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 20 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ✅ |
-| 21 | **Credits API client + types + query keys** — TypeScript API functions, type definitions, and React Query keys for credit endpoints. | `plan, tdd` | ⬜ |
+| 21 | **Credits API client + types + query keys** — TypeScript API functions, type definitions, and React Query keys for credit endpoints. | `plan, tdd` | ✅ |
 | | **Read:** REQ-029 §8.1–§8.3 (API response shapes), §9.6 (query keys). Read `frontend/src/lib/api/` (sibling API client for pattern). Read `frontend/src/types/usage.ts`. Read `frontend/src/lib/query-keys.ts`. | `req-reader` | |
 | | **Create `frontend/src/lib/api/credits.ts`:** | | |
 | | — `fetchCreditPacks(): Promise<PackItem[]>` — GET /credits/packs (no auth needed) | | |

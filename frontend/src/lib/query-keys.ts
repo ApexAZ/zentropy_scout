@@ -11,6 +11,7 @@ const PERSONAS = "personas" as const;
 const JOBS = "jobs" as const;
 const BASE_RESUMES = "base-resumes" as const;
 const USAGE = "usage" as const;
+const CREDITS = "credits" as const;
 const ADMIN = "admin" as const;
 
 export const queryKeys = {
@@ -59,6 +60,10 @@ export const queryKeys = {
 	// Sub-entity keys (nested under job for prefix invalidation)
 	extractedSkills: (jobId: string) =>
 		[JOBS, jobId, "extracted-skills"] as const,
+
+	// Credits & checkout keys (REQ-029 §9.6)
+	creditPacks: [CREDITS, "packs"] as const,
+	purchases: [CREDITS, "purchases"] as const,
 
 	// Usage & billing keys (REQ-020 §9.1)
 	balance: [USAGE, "balance"] as const,
