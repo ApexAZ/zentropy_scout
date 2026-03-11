@@ -220,3 +220,48 @@ class TestGetBalance:
         await _set_balance(db_session, user_a.id, Decimal("15.500000"))
         balance = await CreditRepository.get_balance(db_session, user_a.id)
         assert balance == Decimal("15.500000")
+
+
+# =============================================================================
+# TestFindByUserAndType
+# =============================================================================
+
+
+class TestFindByUserAndType:
+    """Tests for CreditRepository.find_by_user_and_type()."""
+
+    async def test_returns_transaction_when_exists(
+        self, db_session: AsyncSession, user_a: User
+    ) -> None:
+        """Returns the transaction when user has one of that type."""
+        await _insert_transaction(
+            db_session, user_a.id, transaction_type="signup_grant"
+        )
+        result = await CreditRepository.find_by_user_and_type(
+            db_session, user_id=user_a.id, transaction_type="signup_grant"
+        )
+        assert result is not None
+        assert result.user_id == user_a.id
+        assert result.transaction_type == "signup_grant"
+
+    async def test_returns_none_when_no_matching_type(
+        self, db_session: AsyncSession, user_a: User
+    ) -> None:
+        """Returns None when user has no transaction of that type."""
+        await _insert_transaction(db_session, user_a.id, transaction_type="purchase")
+        result = await CreditRepository.find_by_user_and_type(
+            db_session, user_id=user_a.id, transaction_type="signup_grant"
+        )
+        assert result is None
+
+    async def test_returns_none_for_different_user(
+        self, db_session: AsyncSession, user_a: User, other_user: User
+    ) -> None:
+        """Returns None for a different user's transaction."""
+        await _insert_transaction(
+            db_session, other_user.id, transaction_type="signup_grant"
+        )
+        result = await CreditRepository.find_by_user_and_type(
+            db_session, user_id=user_a.id, transaction_type="signup_grant"
+        )
+        assert result is None

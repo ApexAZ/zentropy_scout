@@ -232,3 +232,65 @@ class TestAmountGuards:
             await CreditRepository.atomic_credit(
                 db_session, user_id=user_a.id, amount=Decimal("-10.000000")
             )
+
+
+# =============================================================================
+# TestAtomicRefundDebit
+# =============================================================================
+
+
+class TestAtomicRefundDebit:
+    """Tests for CreditRepository.atomic_refund_debit().
+
+    REQ-029 §7.3: Refund debits can make balance negative (no overdraft guard).
+    """
+
+    async def test_debits_balance(self, db_session: AsyncSession, user_a: User) -> None:
+        """Debits the user's balance by the refund amount."""
+        await _set_balance(db_session, user_a.id, Decimal("50.000000"))
+        new_balance = await CreditRepository.atomic_refund_debit(
+            db_session, user_id=user_a.id, amount=Decimal("20.000000")
+        )
+        assert new_balance == Decimal("30.000000")
+
+    async def test_returns_new_balance(
+        self, db_session: AsyncSession, user_a: User
+    ) -> None:
+        """Returns the balance after debiting."""
+        await _set_balance(db_session, user_a.id, Decimal("10.000000"))
+        result = await CreditRepository.atomic_refund_debit(
+            db_session, user_id=user_a.id, amount=Decimal("3.000000")
+        )
+        assert result == Decimal("7.000000")
+
+    async def test_allows_negative_balance(
+        self, db_session: AsyncSession, user_a: User
+    ) -> None:
+        """Allows balance to go negative (refund after spending)."""
+        await _set_balance(db_session, user_a.id, Decimal("2.000000"))
+        new_balance = await CreditRepository.atomic_refund_debit(
+            db_session, user_id=user_a.id, amount=Decimal("10.000000")
+        )
+        assert new_balance == Decimal("-8.000000")
+
+    async def test_rejects_zero_amount(
+        self, db_session: AsyncSession, user_a: User
+    ) -> None:
+        """Raises ValueError for zero amount."""
+        with pytest.raises(
+            ValueError, match="atomic_refund_debit amount must be positive"
+        ):
+            await CreditRepository.atomic_refund_debit(
+                db_session, user_id=user_a.id, amount=Decimal("0")
+            )
+
+    async def test_rejects_negative_amount(
+        self, db_session: AsyncSession, user_a: User
+    ) -> None:
+        """Raises ValueError for negative amount."""
+        with pytest.raises(
+            ValueError, match="atomic_refund_debit amount must be positive"
+        ):
+            await CreditRepository.atomic_refund_debit(
+                db_session, user_id=user_a.id, amount=Decimal("-5.000000")
+            )

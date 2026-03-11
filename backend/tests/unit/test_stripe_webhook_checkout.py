@@ -15,7 +15,7 @@ from app.models.admin_config import FundingPack
 from app.models.stripe import StripePurchase
 from app.models.usage import CreditTransaction
 from app.models.user import User
-from app.services.stripe_service import handle_checkout_completed
+from app.services.stripe_webhook_service import handle_checkout_completed
 
 # ===============================================================================
 # Constants & Helpers

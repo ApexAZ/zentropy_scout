@@ -1,23 +1,23 @@
-"""Stripe service — checkout session creation, webhooks, and signup grant.
+"""Stripe service — checkout session creation, customer management, signup grant.
 
-REQ-029 §6.2, §6.3, §7, §12, §13.3: Business logic for Stripe Checkout
+REQ-029 §6.2, §6.3, §12, §13.3: Business logic for Stripe Checkout
 integration. Handles customer management, checkout session creation,
-webhook event processing, and signup credit grants.
+and signup credit grants. Webhook handlers are in stripe_webhook_service.py.
 """
 
 import logging
 import uuid
 from decimal import Decimal
-from typing import Any
 
 import stripe as stripe_module
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from stripe import StripeClient
 
 from app.core.config import settings
 from app.core.errors import APIError, InvalidStateError, ValidationError
-from app.models.admin_config import FundingPack
+from app.models.admin_config import FundingPack, SystemConfig
 from app.repositories.credit_repository import CreditRepository
 from app.repositories.stripe_repository import StripePurchaseRepository
 from app.repositories.user_repository import UserRepository
@@ -206,95 +206,46 @@ async def create_checkout_session(
     return session.url, session.id
 
 
-async def handle_checkout_completed(
+async def grant_signup_credits(
     db: AsyncSession,
     *,
-    event: stripe_module.Event,
+    user_id: uuid.UUID,
 ) -> None:
-    """Process a checkout.session.completed webhook event.
+    """Grant signup credits to a new user.
 
-    REQ-029 §7.2: Verifies payment status, extracts metadata, checks
-    idempotency via stripe_event_id, credits the user's balance, and
-    marks the purchase as completed.
+    REQ-029 §12, REQ-021 §8: Reads signup_grant_cents from system_config,
+    checks idempotency (existing signup_grant transaction), credits balance.
 
-    Always returns normally (no exceptions) — the webhook endpoint must
-    return 200 to prevent Stripe retries (REQ-029 §7.4).
+    Args:
+        db: Async database session.
+        user_id: Newly registered user to grant credits to.
     """
-    try:
-        await _process_checkout_completed(db, event=event)
-    except Exception:
-        logger.exception("Unexpected error processing checkout event %s", event.id)
-
-
-async def _process_checkout_completed(
-    db: AsyncSession,
-    *,
-    event: stripe_module.Event,
-) -> None:
-    """Inner logic — separated so the outer function catches all exceptions."""
-    session: dict[str, Any] = event.data.object
-    event_id: str = event.id
-    session_id: str = session["id"]
-    payment_status: str = session["payment_status"]
-
-    # Only process paid sessions (REQ-029 §7.2)
-    if payment_status != "paid":
-        logger.warning(
-            "Checkout session %s has status %s, skipping",
-            session_id,
-            payment_status,
-        )
-        return
-
-    # Extract metadata — skip on missing/invalid fields (REQ-029 §13.2).
-    # TypeError guards against metadata being None instead of a dict.
-    metadata: dict[str, str] = session.get("metadata", {}) or {}
-    try:
-        user_id = uuid.UUID(metadata["user_id"])
-        grant_cents = int(metadata["grant_cents"])
-    except (KeyError, ValueError, TypeError):
-        logger.error(
-            "Checkout session %s has missing/invalid metadata"
-            " (expected user_id, grant_cents)",
-            session_id,
-        )
-        return
-
-    if grant_cents <= 0:
-        logger.error(
-            "Checkout session %s has non-positive grant_cents: %d",
-            session_id,
-            grant_cents,
-        )
-        return
-
-    # Idempotency check — skip if event already processed
-    existing = await CreditRepository.find_by_stripe_event_id(db, event_id)
+    # Idempotency: skip if user already has a signup_grant
+    existing = await CreditRepository.find_by_user_and_type(
+        db, user_id=user_id, transaction_type="signup_grant"
+    )
     if existing:
         return
 
-    # Validate user exists
-    user = await UserRepository.get_by_id(db, user_id)
-    if not user:
-        logger.error("User %s not found for checkout session %s", user_id, session_id)
+    # Read grant amount from system_config (default 0 if missing)
+    stmt = select(SystemConfig.value).where(SystemConfig.key == "signup_grant_cents")
+    result = await db.execute(stmt)
+    value = result.scalar_one_or_none()
+    try:
+        grant_cents = int(value) if value is not None else 0
+    except ValueError:
+        logger.warning("signup_grant_cents is not a valid integer: %s", value)
+        grant_cents = 0
+
+    if grant_cents <= 0:
         return
 
-    # Credit the balance (REQ-021 §6.7: transaction + atomic update)
     grant_usd = Decimal(grant_cents) / Decimal(100)
     await CreditRepository.create(
         db,
         user_id=user_id,
         amount_usd=grant_usd,
-        transaction_type="purchase",
-        reference_id=session_id,
-        stripe_event_id=event_id,
-        description="Funding pack purchase",
+        transaction_type="signup_grant",
+        description="Welcome bonus — free starter balance",
     )
     await CreditRepository.atomic_credit(db, user_id=user_id, amount=grant_usd)
-
-    # Update stripe_purchases record
-    await StripePurchaseRepository.mark_completed(
-        db,
-        stripe_session_id=session_id,
-        stripe_payment_intent=session["payment_intent"],
-    )

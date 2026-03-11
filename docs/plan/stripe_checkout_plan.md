@@ -250,7 +250,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Test: balance credited correctly, idempotent (same event ID skipped), missing metadata logged + skipped, user not found logged + skipped, unpaid session skipped, purchase record updated to 'completed'. | | |
 | | **Run:** `pytest tests/unit/test_stripe_service.py -v -k "checkout_completed"` | | |
 | | **Done when:** Webhook handler is idempotent, credits balance atomically, handles all error scenarios from §13.2. | | |
-| 13 | **StripeService — `handle_charge_refunded` + `grant_signup_credits`** — Refund webhook handler with cumulative partial refund tracking, plus the signup grant service method. | `plan, tdd, security` | ⬜ |
+| 13 | **StripeService — `handle_charge_refunded` + `grant_signup_credits`** — Refund webhook handler with cumulative partial refund tracking, plus the signup grant service method. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-029 §7.3 (refund handler, cumulative `amount_refunded`), §12 (signup grant flow), REQ-021 §8 (signup grant integration points, idempotency). | `req-reader` | |
 | | **Add to `stripe_service.py`:** | | |
 | | — `handle_charge_refunded(event) -> None` — per §7.3: | | |

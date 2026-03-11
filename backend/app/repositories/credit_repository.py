@@ -15,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.usage import CreditTransaction
 from app.models.user import User
 
+_ZERO = Decimal("0")
+
 
 class CreditRepository:
     """Stateless repository for CreditTransaction and balance operations.
@@ -61,6 +63,33 @@ class CreditRepository:
         await db.flush()
         await db.refresh(txn)
         return txn
+
+    @staticmethod
+    async def find_by_user_and_type(
+        db: AsyncSession,
+        *,
+        user_id: uuid.UUID,
+        transaction_type: str,
+    ) -> CreditTransaction | None:
+        """Find a credit transaction by user and type.
+
+        REQ-021 §8.3: Idempotency check for signup grants — ensures a user
+        receives at most one transaction of a given type.
+
+        Args:
+            db: Async database session.
+            user_id: User to look up.
+            transaction_type: Transaction type to filter by.
+
+        Returns:
+            CreditTransaction if found, None otherwise.
+        """
+        stmt = select(CreditTransaction).where(
+            CreditTransaction.user_id == user_id,
+            CreditTransaction.transaction_type == transaction_type,
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
 
     @staticmethod
     async def find_by_stripe_event_id(
@@ -164,7 +193,7 @@ class CreditRepository:
         Raises:
             ValueError: If amount is not positive.
         """
-        if amount <= Decimal("0"):
+        if amount <= _ZERO:
             raise ValueError("atomic_debit amount must be positive")
         result = cast(
             CursorResult[Any],
@@ -199,11 +228,46 @@ class CreditRepository:
         Raises:
             ValueError: If amount is not positive.
         """
-        if amount <= Decimal("0"):
+        if amount <= _ZERO:
             raise ValueError("atomic_credit amount must be positive")
         result = await db.execute(
             text(
                 "UPDATE users SET balance_usd = balance_usd + :amount "
+                "WHERE id = :user_id RETURNING balance_usd"
+            ),
+            {"amount": amount, "user_id": user_id},
+        )
+        new_balance: Decimal = result.scalar_one()
+        return new_balance
+
+    @staticmethod
+    async def atomic_refund_debit(
+        db: AsyncSession,
+        *,
+        user_id: uuid.UUID,
+        amount: Decimal,
+    ) -> Decimal:
+        """Atomically debit a user's balance for a refund.
+
+        REQ-029 §7.3: Unlike atomic_debit, this does NOT check for
+        sufficient balance — refunds can legitimately make balance negative.
+
+        Args:
+            db: Async database session.
+            user_id: User to debit.
+            amount: Amount to debit (positive value).
+
+        Returns:
+            New balance after debiting.
+
+        Raises:
+            ValueError: If amount is not positive.
+        """
+        if amount <= _ZERO:
+            raise ValueError("atomic_refund_debit amount must be positive")
+        result = await db.execute(
+            text(
+                "UPDATE users SET balance_usd = balance_usd - :amount "
                 "WHERE id = :user_id RETURNING balance_usd"
             ),
             {"amount": amount, "user_id": user_id},
