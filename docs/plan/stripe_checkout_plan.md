@@ -380,7 +380,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Write API client tests (mock fetch). Test each function calls correct URL, passes correct params, returns typed data. | | |
 | | **Run:** `npm test -- --run credits` | | |
 | | **Done when:** API functions typed correctly, query keys defined, tests pass. | | |
-| 22 | **FundingPacks component** — Pack selection cards with highlight badge and "Add Funds" buttons. | `plan, tdd, ui` | ⬜ |
+| 22 | **FundingPacks component** — Pack selection cards with highlight badge and "Add Funds" buttons. | `plan, tdd, ui` | ✅ |
 | | **Read:** REQ-029 §9.2 (pack card spec), §9.3 (checkout flow). Read `frontend/src/components/usage/` (sibling components for pattern). Read `frontend/src/components/usage/balance-card.tsx` (existing disabled "Add Funds" button). | `req-reader` | |
 | | **Create `frontend/src/components/usage/funding-packs.tsx`:** | | |
 | | — Fetch packs via `useQuery` with `creditPacks` key | | |
