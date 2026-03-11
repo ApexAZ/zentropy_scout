@@ -157,7 +157,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Write model tests — field types, nullable constraints, unique constraints, FK relationships, default values. Follow sibling test file patterns. | | |
 | | **Run:** `pytest tests/unit/test_*models*.py -v` (affected model tests) | | |
 | | **Done when:** All 3 model files updated, StripePurchase defined with correct schema, `__init__.py` exports it, model tests pass. | | |
-| 7 | **Alembic migration 025 — schema DDL + signup grant data migration** — Create `025_stripe_checkout.py` with schema changes and existing-user signup grant. | `plan, tdd, db, commands` | ⬜ |
+| 7 | **Alembic migration 025 — schema DDL + signup grant data migration** — Create `025_stripe_checkout.py` with schema changes and existing-user signup grant. | `plan, tdd, db, commands` | ✅ |
 | | **Read:** REQ-029 §4.6 (migration spec), §4.1–§4.3 (column/table SQL), REQ-021 §8 (signup grant details). Read `backend/migrations/versions/024_gemini_embedding_dimensions.py` (revision chain, format). | `req-reader` | |
 | | **Create `backend/migrations/versions/025_stripe_checkout.py`:** | | |
 | | `revision = "025_stripe_checkout"`, `down_revision = "024_gemini_embedding_dimensions"` | | |
