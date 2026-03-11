@@ -2,7 +2,7 @@
 
 REQ-006 §6.1, REQ-013 §7.2, §11: Settings for database, API, LLM providers,
 and authentication. Tests cover defaults, env var loading, and production
-security validation.
+security validation. Stripe config tests are in test_core_config_stripe.py.
 """
 
 import pytest
@@ -46,6 +46,7 @@ class TestProductionSecurityValidation:
         s = Settings(
             environment=_PRODUCTION,
             database_password=_SECURE_DB_PASSWORD,
+            credits_enabled=False,
         )
         assert s.database_password == _SECURE_DB_PASSWORD
 
@@ -131,6 +132,7 @@ class TestAuthProductionValidation:
             database_password=_SECURE_DB_PASSWORD,
             auth_enabled=True,
             auth_secret="a" * 32,
+            credits_enabled=False,
         )
         assert len(s.auth_secret.get_secret_value()) == 32
 
@@ -141,6 +143,7 @@ class TestAuthProductionValidation:
             database_password=_SECURE_DB_PASSWORD,
             auth_enabled=False,
             auth_secret="",
+            credits_enabled=False,
         )
         assert s.auth_secret.get_secret_value() == ""
 
@@ -156,6 +159,7 @@ class TestAuthProductionValidation:
             database_password=_SECURE_DB_PASSWORD,
             auth_enabled=True,
             auth_secret=_TEST_AUTH_SECRET,
+            credits_enabled=False,
         )
         assert s.auth_secret.get_secret_value() == _TEST_AUTH_SECRET
 

@@ -1,14 +1,18 @@
 """Application configuration loaded from environment variables.
 
-REQ-006 §6.1, REQ-013 §7.2, §11: Settings for database, API, LLM providers,
-and authentication. Uses pydantic-settings for validation and .env file support.
+REQ-006 §6.1, REQ-013 §7.2, §11, REQ-029 §11: Settings for database, API,
+LLM providers, authentication, and Stripe. Uses pydantic-settings for
+validation and .env file support.
 """
 
+import logging
 import uuid
 from typing import Literal
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 # Known insecure default password that must not be used in production
 # Security: Runtime check in check_production_security() prevents use in production
@@ -90,6 +94,12 @@ class Settings(BaseSettings):
     # Admin (REQ-022 §5.1, §13.1)
     admin_emails: str = ""
 
+    # Stripe (REQ-029 §11)
+    stripe_secret_key: SecretStr = SecretStr("")
+    stripe_webhook_secret: SecretStr = SecretStr("")
+    stripe_publishable_key: str = ""
+    credits_enabled: bool = True
+
     # Metering (REQ-020 §11)
     metering_enabled: bool = True
     # REMOVED: metering_margin_multiplier (REQ-022 §7.7 — now per-model in pricing_config table)
@@ -155,6 +165,14 @@ class Settings(BaseSettings):
             )
             raise ValueError(msg)
 
+        if self.credits_enabled and not self.metering_enabled:
+            logger.warning(
+                "Invalid configuration: credits_enabled=True but "
+                "metering_enabled=False. Credits require metering to "
+                "track usage. Purchases will succeed but usage won't "
+                "be deducted."
+            )
+
         if self.environment == "production":
             self._check_production_defaults()
 
@@ -185,6 +203,21 @@ class Settings(BaseSettings):
                 msg = (
                     f"AUTH_SECRET must be at least {_MIN_AUTH_SECRET_LENGTH} "
                     "characters for adequate security."
+                )
+                raise ValueError(msg)
+
+        if self.credits_enabled:
+            if not self.stripe_secret_key.get_secret_value():
+                msg = "STRIPE_SECRET_KEY required in production when credits enabled"
+                raise ValueError(msg)
+            if not self.stripe_webhook_secret.get_secret_value():
+                msg = (
+                    "STRIPE_WEBHOOK_SECRET required in production when credits enabled"
+                )
+                raise ValueError(msg)
+            if self.stripe_secret_key.get_secret_value().startswith("sk_test_"):
+                msg = (
+                    "STRIPE_SECRET_KEY must use live keys in production (got sk_test_)"
                 )
                 raise ValueError(msg)
 
