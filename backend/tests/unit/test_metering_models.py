@@ -2,6 +2,7 @@
 
 REQ-020 §4.1–§4.5: Verifies LLMUsageRecord, CreditTransaction models,
 User.balance_usd column, migration 020 up/down, and all constraints.
+REQ-029 §4.1–§4.2: stripe_customer_id on User, stripe_event_id on CreditTransaction.
 """
 
 import asyncio
@@ -407,6 +408,131 @@ class TestUserBalanceUsd:
                 text("UPDATE users SET balance_usd = NULL WHERE id = :id"),
                 {"id": user.id},
             )
+
+
+class TestUserStripeCustomerId:
+    """REQ-029 §4.1: stripe_customer_id column on users table."""
+
+    @pytest.mark.asyncio
+    async def test_defaults_to_none(self, db_session: AsyncSession) -> None:
+        """New users have stripe_customer_id = None by default."""
+        user = User(email="stripe-cust-default@example.com")
+        db_session.add(user)
+        await db_session.flush()
+        await db_session.refresh(user)
+
+        assert user.stripe_customer_id is None
+
+    @pytest.mark.asyncio
+    async def test_stores_and_retrieves_customer_id(
+        self, db_session: AsyncSession
+    ) -> None:
+        """stripe_customer_id roundtrips through the database."""
+        user = User(
+            email="stripe-cust-set@example.com",
+            stripe_customer_id="cus_abc123def456",
+        )
+        db_session.add(user)
+        await db_session.flush()
+        await db_session.refresh(user)
+
+        assert user.stripe_customer_id == "cus_abc123def456"
+
+    @pytest.mark.asyncio
+    async def test_unique_constraint(self, db_session: AsyncSession) -> None:
+        """Two users cannot share the same stripe_customer_id."""
+        user1 = User(
+            email="stripe-uniq-1@example.com",
+            stripe_customer_id="cus_unique_test",
+        )
+        user2 = User(
+            email="stripe-uniq-2@example.com",
+            stripe_customer_id="cus_unique_test",
+        )
+        db_session.add(user1)
+        await db_session.flush()
+
+        db_session.add(user2)
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+
+class TestCreditTransactionStripeEventId:
+    """REQ-029 §4.2: stripe_event_id column on credit_transactions."""
+
+    @pytest.mark.asyncio
+    async def test_defaults_to_none(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """Non-Stripe transactions have stripe_event_id = None."""
+        txn = CreditTransaction(
+            user_id=test_user.id,
+            amount_usd=Decimal("5.000000"),
+            transaction_type="admin_grant",
+        )
+        db_session.add(txn)
+        await db_session.flush()
+        await db_session.refresh(txn)
+
+        assert txn.stripe_event_id is None
+
+    @pytest.mark.asyncio
+    async def test_stores_and_retrieves_event_id(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """stripe_event_id roundtrips through the database."""
+        txn = CreditTransaction(
+            user_id=test_user.id,
+            amount_usd=Decimal("10.000000"),
+            transaction_type="purchase",
+            stripe_event_id="evt_test_abc123",
+        )
+        db_session.add(txn)
+        await db_session.flush()
+        await db_session.refresh(txn)
+
+        assert txn.stripe_event_id == "evt_test_abc123"
+
+    @pytest.mark.asyncio
+    async def test_unique_constraint(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """Duplicate stripe_event_id is rejected (idempotency guard)."""
+        txn1 = CreditTransaction(
+            user_id=test_user.id,
+            amount_usd=Decimal("10.000000"),
+            transaction_type="purchase",
+            stripe_event_id="evt_duplicate_test",
+        )
+        txn2 = CreditTransaction(
+            user_id=test_user.id,
+            amount_usd=Decimal("10.000000"),
+            transaction_type="purchase",
+            stripe_event_id="evt_duplicate_test",
+        )
+        db_session.add(txn1)
+        await db_session.flush()
+
+        db_session.add(txn2)
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+    @pytest.mark.asyncio
+    async def test_signup_grant_transaction_type_accepted(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """CHECK constraint accepts 'signup_grant' transaction type."""
+        txn = CreditTransaction(
+            user_id=test_user.id,
+            amount_usd=Decimal("0.100000"),
+            transaction_type="signup_grant",
+            description="Welcome bonus — free starter balance",
+        )
+        db_session.add(txn)
+        await db_session.flush()
+        await db_session.refresh(txn)
+
+        assert txn.transaction_type == "signup_grant"
 
 
 # ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ REQ-005 §4.0 - Tier 0, no FK dependencies.
 REQ-013 §6.1 - Expanded with auth columns.
 REQ-020 §4.1 - balance_usd for token metering.
 REQ-022 §4.1 - is_admin for admin access control.
+REQ-029 §4.1 - stripe_customer_id for Stripe Customer mapping.
 """
 
 import uuid
@@ -41,6 +42,7 @@ class User(Base, TimestampMixin):
         token_invalidated_before: JWTs issued before this are rejected.
         balance_usd: Cached balance in USD (Numeric 10,6). Defaults to 0.
         is_admin: Whether the user has admin privileges. Defaults to False.
+        stripe_customer_id: Stripe Customer ID (cus_xxx). NULL until first purchase.
     """
 
     __tablename__ = "users"
@@ -83,6 +85,11 @@ class User(Base, TimestampMixin):
         nullable=False,
         server_default=text("false"),
         default=False,
+    )
+    stripe_customer_id: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=True,
     )
 
     # Relationships

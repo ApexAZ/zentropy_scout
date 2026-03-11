@@ -147,8 +147,8 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 5 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ⬜ |
-| 6 | **Model updates — user.py, usage.py, new stripe.py, __init__.py** — Add `stripe_customer_id` to User, `stripe_event_id` to CreditTransaction, create StripePurchase model, export from `__init__.py`. | `plan, tdd, db` | ⬜ |
+| 5 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ✅ |
+| 6 | **Model updates — user.py, usage.py, new stripe.py, __init__.py** — Add `stripe_customer_id` to User, `stripe_event_id` to CreditTransaction, create StripePurchase model, export from `__init__.py`. | `plan, tdd, db` | ✅ |
 | | **Read:** REQ-029 §4.1 (`stripe_customer_id`), §4.2 (`stripe_event_id`), §4.3 (`stripe_purchases` table). Read `backend/app/models/user.py`, `backend/app/models/usage.py`, `backend/app/models/__init__.py`. | `req-reader` | |
 | | **Modify `backend/app/models/user.py`:** Add `stripe_customer_id: Mapped[str \| None] = mapped_column(String(255), unique=True, nullable=True)`. | | |
 | | **Modify `backend/app/models/usage.py`:** Add `stripe_event_id: Mapped[str \| None] = mapped_column(String(255), unique=True, nullable=True)` to `CreditTransaction`. | | |

@@ -3,6 +3,7 @@
 REQ-020 §4.2–§4.3: LLMUsageRecord tracks every LLM/embedding API call.
 CreditTransaction is an append-only ledger of all balance changes.
 Both tables are immutable — records are never updated or deleted.
+REQ-029 §4.2: stripe_event_id on CreditTransaction for webhook idempotency.
 """
 
 import uuid
@@ -112,16 +113,18 @@ class CreditTransaction(Base):
         id: UUID primary key.
         user_id: FK to users table.
         amount_usd: Signed amount (+credit, -debit).
-        transaction_type: One of purchase, usage_debit, admin_grant, refund.
+        transaction_type: One of purchase, usage_debit, admin_grant, refund, signup_grant.
         reference_id: Links to source (usage record ID, Stripe session, etc.).
         description: Human-readable description.
+        stripe_event_id: Stripe event ID for webhook idempotency. NULL for non-Stripe txns.
         created_at: Transaction timestamp.
     """
 
     __tablename__ = "credit_transactions"
     __table_args__ = (
         CheckConstraint(
-            "transaction_type IN ('purchase', 'usage_debit', 'admin_grant', 'refund')",
+            "transaction_type IN ("
+            "'purchase', 'usage_debit', 'admin_grant', 'refund', 'signup_grant')",
             name="ck_credit_txn_type_valid",
         ),
     )
@@ -150,6 +153,11 @@ class CreditTransaction(Base):
     )
     description: Mapped[str | None] = mapped_column(
         String(255),
+        nullable=True,
+    )
+    stripe_event_id: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
