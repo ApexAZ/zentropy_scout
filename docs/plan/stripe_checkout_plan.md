@@ -413,7 +413,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** PurchaseTable: renders rows, pagination, empty state. LowBalanceWarning: red at <$0.10, amber at <$1.00, hidden at >=$1.00, CTA links to packs section. | | |
 | | **Run:** `npm test -- --run purchase-table && npm test -- --run low-balance` | | |
 | | **Done when:** Both components render correctly with all threshold states, pagination works. | | |
-| 24 | **Wire up usage page — integrate components + enable "Add Funds" + success/cancel handling** — Integrate all new components into the usage page, enable the balance card's "Add Funds" button, and handle Stripe redirect query params. | `plan, tdd, ui` | ⬜ |
+| 24 | **Wire up usage page — integrate components + enable "Add Funds" + success/cancel handling** — Integrate all new components into the usage page, enable the balance card's "Add Funds" button, and handle Stripe redirect query params. | `plan, tdd, ui` | ✅ |
 | | **Read:** REQ-029 §9.1 (page layout), §9.4 (success/cancel handling). Read `frontend/src/components/usage/usage-page.tsx`. Read `frontend/src/components/usage/balance-card.tsx` (disabled "Add Funds" button). | `req-reader` | |
 | | **Modify `frontend/src/components/usage/usage-page.tsx`:** | | |
 | | — Add layout order: (1) LowBalanceWarning, (2) Balance Card (existing), (3) FundingPacks (new), (4) PurchaseTable (new), (5) Usage Summary (existing), (6) Usage History (existing) | | |
@@ -424,6 +424,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Test usage page renders all sections in order. Test success param shows toast and refreshes balance. Test cancel param shows toast. Test URL params cleaned after handling. Test "Add Funds" button is no longer disabled. | | |
 | | **Run:** `npm test -- --run usage-page && npm test -- --run balance-card` | | |
 | | **Done when:** Usage page shows all components in correct order, success/cancel toasts work, "Add Funds" enabled and scrolls to packs. | | |
+| 24b | **Fix stale E2E tests + add credits API mocks** — Update `usage.spec.ts` stale "Add Funds" button assertion (now a link). Add `/credits/packs` and `/credits/purchases` routes to `usage-api-mocks.ts`. Add `PackItem[]` and `PurchaseItem[]` fixtures to `usage-mock-data.ts`. Update "renders all page sections" test scope. | `plan, playwright, e2e` | ⬜ |
 | 25 | **Phase gate — full test suite + push** | `plan, commands` | ⬜ |
 
 #### Phase 5 Notes

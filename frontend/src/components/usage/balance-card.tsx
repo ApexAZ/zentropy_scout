@@ -2,7 +2,7 @@
  * Balance card component for the usage dashboard.
  *
  * REQ-020 §9.2: Large balance display with color coding.
- * "Add Funds" button disabled until REQ-021 (Credits & Billing).
+ * REQ-029 §9.1: "Add Funds" button links to funding packs section.
  */
 
 import { Button } from "@/components/ui/button";
@@ -73,15 +73,19 @@ export function BalanceCard({
 							{displayBalance}
 						</span>
 					)}
-					<Button disabled title="Coming soon — REQ-021">
-						Add Funds
+					<Button asChild>
+						<a href="#funding-packs">Add Funds</a>
 					</Button>
 				</div>
 				{!isLoading && (
 					<div
 						data-testid="usage-bar"
+						role="progressbar"
 						className="bg-muted h-2 w-full overflow-hidden rounded-full"
 						aria-label={`Balance: ${displayBalance}`}
+						aria-valuemin={0}
+						aria-valuemax={100}
+						aria-valuenow={Math.round(pct)}
 					>
 						<div
 							className={cn(

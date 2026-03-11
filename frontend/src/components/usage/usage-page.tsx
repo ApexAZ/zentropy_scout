@@ -1,19 +1,24 @@
+"use client";
+
 /**
  * Usage dashboard page layout component.
  *
  * REQ-020 §9.2: Usage page at /usage with balance card,
  * period summary, cost breakdowns, and paginated tables.
+ * REQ-029 §9.1: Funding packs, purchase history, low-balance warning.
+ * REQ-029 §9.4: Stripe redirect success/cancel handling.
  */
 
-"use client";
+import { Suspense, useEffect, useState } from "react";
 
-import { useState } from "react";
-
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { useBalance } from "@/hooks/use-balance";
 import { apiGet } from "@/lib/api-client";
+import { fetchPurchases } from "@/lib/api/credits";
 import { queryKeys } from "@/lib/query-keys";
+import { showToast } from "@/lib/toast";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type {
 	CreditTransactionResponse,
@@ -22,6 +27,9 @@ import type {
 } from "@/types/usage";
 
 import { BalanceCard } from "./balance-card";
+import { FundingPacks } from "./funding-packs";
+import { LowBalanceWarning } from "./low-balance-warning";
+import { PurchaseTable } from "./purchase-table";
 import { TransactionTable } from "./transaction-table";
 import { UsageSummary } from "./usage-summary";
 import { UsageTable } from "./usage-table";
@@ -38,6 +46,31 @@ function getCurrentMonthRange(): { start: string; end: string } {
 		start: start.toISOString().slice(0, 10),
 		end: end.toISOString().slice(0, 10),
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Stripe redirect handler (REQ-029 §9.4)
+// ---------------------------------------------------------------------------
+
+function StripeRedirectHandler() {
+	const searchParams = useSearchParams();
+	const router = useRouter();
+	const queryClient = useQueryClient();
+
+	useEffect(() => {
+		const status = searchParams.get("status");
+		if (status === "success") {
+			showToast.success("Payment successful! Your balance has been updated.");
+			queryClient.invalidateQueries({ queryKey: queryKeys.balance });
+		} else if (status === "cancelled") {
+			showToast.info("Purchase cancelled.");
+		}
+		if (status === "success" || status === "cancelled") {
+			router.replace("/usage");
+		}
+	}, [searchParams, router, queryClient]);
+
+	return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -76,11 +109,36 @@ export function UsagePage() {
 			),
 	});
 
+	const [purchasePage, setPurchasePage] = useState(1);
+	const { data: purchaseData, isLoading: purchaseLoading } = useQuery({
+		queryKey: [...queryKeys.purchases, purchasePage],
+		queryFn: () => fetchPurchases(purchasePage),
+	});
+
+	const balanceNum = balance ? Number.parseFloat(balance) : 0;
+	const parsedBalance = Number.isNaN(balanceNum) ? 0 : balanceNum;
+
 	return (
 		<div data-testid="usage-page" className="space-y-6">
+			<Suspense>
+				<StripeRedirectHandler />
+			</Suspense>
+
 			<h1 className="text-2xl font-bold">Usage &amp; Billing</h1>
 
+			{!balanceLoading && <LowBalanceWarning balance={parsedBalance} />}
+
 			<BalanceCard balance={balance} isLoading={balanceLoading} />
+
+			<FundingPacks />
+
+			<PurchaseTable
+				purchases={purchaseData?.data ?? []}
+				isLoading={purchaseLoading}
+				page={purchasePage}
+				totalPages={purchaseData?.meta.total_pages ?? 1}
+				onPageChange={setPurchasePage}
+			/>
 
 			<UsageSummary data={summaryData?.data} isLoading={summaryLoading} />
 

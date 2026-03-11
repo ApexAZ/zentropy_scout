@@ -1,8 +1,8 @@
 /**
  * Tests for the BalanceCard component.
  *
- * REQ-020 §9.2: Current balance display with color coding
- * and disabled "Add Funds" button (REQ-021).
+ * REQ-020 §9.2: Current balance display with color coding.
+ * REQ-029 §9.1: "Add Funds" button links to funding packs section.
  * REQ-023 §5.1, §7.5: Usage bar with color thresholds and width scaling.
  */
 
@@ -92,10 +92,10 @@ describe("BalanceCard", () => {
 		expect(screen.queryByTestId("balance-amount")).not.toBeInTheDocument();
 	});
 
-	it("renders disabled Add Funds button", () => {
+	it("renders Add Funds link to funding packs section", () => {
 		render(<BalanceCard balance="10.000000" isLoading={false} />);
-		const button = screen.getByRole("button", { name: /add funds/i });
-		expect(button).toBeDisabled();
+		const link = screen.getByRole("link", { name: /add funds/i });
+		expect(link).toHaveAttribute("href", "#funding-packs");
 	});
 
 	// -----------------------------------------------------------------------
