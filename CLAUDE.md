@@ -454,6 +454,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 **LLM Redesign:** All phases complete (REQ-016 through REQ-019). Scouter, Strategist, Ghostwriter, and Onboarding agents replaced with plain async services. ~3,130 lines of LangGraph boilerplate removed.
 **REQ-023 (USD-Direct Billing):** Complete. `credit_packs` → `funding_packs`, `credit_amount` → `grant_cents`, seed data updated to USD cents, usage bar added to balance card. REQ-021 updated to v0.5 with all errata.
 **TipTap Editor (REQ-025/026/027):** Complete. 9 phases, 28 tasks. TipTap rich text editor, resume generation (AI + template fill), markdown export (PDF/DOCX), job variant tailoring with diff view and approval workflow.
+**Stripe Checkout (REQ-029):** Complete. 6 phases, 28 tasks. Stripe SDK, funding packs API, checkout sessions, webhook fulfillment, usage dashboard (balance card, transaction history, pagination), signup grant wired into all 3 auth flows.
 **Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
 
 **IMPORTANT:** After completing ANY subtask, update the active plan file status (⬜ → ✅). See `zentropy-planner` skill. Discover plan files via `Glob "docs/plan/*_plan.md"` or ask the user which plan is in scope.
@@ -462,4 +463,4 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ---
 
-*Last updated: 2026-03-06*
+*Last updated: 2026-03-11*
