@@ -177,7 +177,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **Verify:** `alembic upgrade head` → `alembic downgrade -1` → `alembic upgrade head`. SQL queries to verify columns, table, and signup grant data. | | |
 | | **Run:** `pytest tests/ -v -k "migration or alembic"` (if migration tests exist) | | |
 | | **Done when:** Migration runs cleanly in both directions. `stripe_purchases` table exists. `stripe_customer_id` and `stripe_event_id` columns exist. Existing users have `signup_grant` transactions. | | |
-| 8 | **StripePurchase repository + CreditTransaction extensions** — CRUD repository for `stripe_purchases` table and `find_by_stripe_event_id` for idempotency checks. | `plan, tdd, db` | ⬜ |
+| 8 | **StripePurchase repository + CreditTransaction extensions** — CRUD repository for `stripe_purchases` table and `find_by_stripe_event_id` for idempotency checks. | `plan, tdd, db` | ✅ |
 | | **Read:** REQ-029 §7.2 (idempotency via `stripe_event_id`), §7.3 (refund via `payment_intent`), §8.3 (purchases query). Read existing repository: `backend/app/repositories/` (sibling files for pattern). | `req-reader` | |
 | | **Create `backend/app/repositories/stripe_repository.py`:** | | |
 | | — `StripePurchaseRepository(db: AsyncSession)` | | |

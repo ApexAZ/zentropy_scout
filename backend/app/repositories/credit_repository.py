@@ -32,6 +32,7 @@ class CreditRepository:
         transaction_type: str,
         reference_id: str | None = None,
         description: str | None = None,
+        stripe_event_id: str | None = None,
     ) -> CreditTransaction:
         """Create a new credit transaction.
 
@@ -39,9 +40,11 @@ class CreditRepository:
             db: Async database session.
             user_id: Account owner.
             amount_usd: Signed amount (+credit, -debit).
-            transaction_type: One of purchase, usage_debit, admin_grant, refund.
+            transaction_type: One of purchase, usage_debit, admin_grant,
+                refund, signup_grant.
             reference_id: Links to source (usage record ID, Stripe session, etc.).
             description: Human-readable description.
+            stripe_event_id: Stripe event ID for idempotency (REQ-029 §7.2).
 
         Returns:
             Created CreditTransaction with database-generated fields.
@@ -52,11 +55,34 @@ class CreditRepository:
             transaction_type=transaction_type,
             reference_id=reference_id,
             description=description,
+            stripe_event_id=stripe_event_id,
         )
         db.add(txn)
         await db.flush()
         await db.refresh(txn)
         return txn
+
+    @staticmethod
+    async def find_by_stripe_event_id(
+        db: AsyncSession, event_id: str
+    ) -> CreditTransaction | None:
+        """Find a credit transaction by its Stripe event ID.
+
+        REQ-029 §7.2: Idempotency check — webhook handlers call this to
+        determine whether an event has already been processed.
+
+        Args:
+            db: Async database session.
+            event_id: Stripe event ID (evt_xxx).
+
+        Returns:
+            CreditTransaction if found, None otherwise.
+        """
+        stmt = select(CreditTransaction).where(
+            CreditTransaction.stripe_event_id == event_id
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
 
     @staticmethod
     async def list_by_user(
