@@ -28,6 +28,7 @@ from app.api.v1 import (
     resume_templates,
     usage,
     user_source_preferences,
+    webhooks,
 )
 
 router = APIRouter()
@@ -134,6 +135,7 @@ router.include_router(usage.router, prefix="/usage", tags=["usage"])
 # =============================================================================
 
 router.include_router(credits.router, prefix="/credits", tags=["credits"])
+router.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 
 # =============================================================================
 # Admin (REQ-022)

@@ -325,7 +325,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Test each endpoint — auth requirements, valid/invalid requests, error codes (INVALID_PACK_ID 400, STRIPE_ERROR 502, CREDITS_UNAVAILABLE 503), pagination. Mock StripeService. | | |
 | | **Run:** `pytest tests/unit/test_credits_api.py -v` | | |
 | | **Done when:** All 3 endpoints work with correct auth, validation, and error handling. | | |
-| 18 | **Webhooks router + router registration** — Stripe webhook endpoint with signature verification, event routing, and rate limit exemption. Register credits and webhooks routers. | `plan, tdd, api, security` | ⬜ |
+| 18 | **Webhooks router + router registration** — Stripe webhook endpoint with signature verification, event routing, and rate limit exemption. Register credits and webhooks routers. | `plan, tdd, api, security` | ✅ |
 | | **Read:** REQ-029 §7.1 (webhook endpoint), §5.3 (signature verification), §7.4 (retry behavior), §10.2 (webhook security). Read `backend/app/api/v1/router.py` (current registrations). | `req-reader` | |
 | | **Create `backend/app/api/v1/webhooks.py`:** | | |
 | | — `POST /stripe` — No auth (public endpoint). Read raw `request.body()` bytes. Verify `Stripe-Signature` header via `stripe.Webhook.construct_event()`. Route by `event.type` using `match/case`: `checkout.session.completed` → `stripe_service.handle_checkout_completed()`, `charge.refunded` → `stripe_service.handle_charge_refunded()`, default → ignore (return 200). Return `{"received": True}`. | | |
