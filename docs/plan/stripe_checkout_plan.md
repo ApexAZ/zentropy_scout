@@ -108,7 +108,7 @@ Phase 6: Auth Integration (Signup Grant → Auth Flows)
 | | **TDD:** Update existing config tests (`test_config*.py`) — verify new settings load, SecretStr masking works, production check raises on missing keys, production check raises on `sk_test_` key, `credits_enabled` defaults to `true`, startup warning logged for `credits_enabled=True` + `metering_enabled=False`. | | |
 | | **Run:** `pytest tests/unit/test_config*.py -v` | | |
 | | **Done when:** `import stripe` works, all 4 config vars load, production checks pass, `.env.example` documented. | | |
-| 3 | **StripeClient factory + FastAPI dependency injection** — Create the `get_stripe_client()` factory function and `StripeClientDep` type alias for endpoint injection. | `plan, tdd, api` | ⬜ |
+| 3 | **StripeClient factory + FastAPI dependency injection** — Create the `get_stripe_client()` factory function and `StripeClientDep` type alias for endpoint injection. | `plan, tdd, api` | ✅ |
 | | **Read:** REQ-029 §5.2 (StripeClient config, API version pinning). Read `backend/app/api/deps.py` (existing DI patterns for `DbSession`, `CurrentUserId`). | `req-reader` | |
 | | **Create `backend/app/core/stripe_client.py`:** `get_stripe_client()` factory returning `StripeClient(api_key=settings.stripe_secret_key.get_secret_value(), stripe_version="2025-12-18.preview")`. Export `StripeClientDep = Annotated[StripeClient, Depends(get_stripe_client)]`. | | |
 | | **Create `backend/tests/unit/test_stripe_client.py`:** Test factory creates client, test API version is pinned, test dependency type alias exists. Mock `settings.stripe_secret_key` — do NOT use real keys. | | |
