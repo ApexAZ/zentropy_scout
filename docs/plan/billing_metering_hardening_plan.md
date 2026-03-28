@@ -183,7 +183,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §7.2a (savepoint), §7.2b (cap), §7.2c (null guard). Read `backend/app/services/stripe_webhook_service.py` (current refund handler). Read `backend/tests/unit/test_stripe_webhook_refund.py` (existing tests). | `req-reader` | |
 | | **TDD:** Test savepoint rolls back on partial failure (no orphaned credit txn). Test refund capped at amount_cents. Test null payment_intent returns early with log. Update existing refund tests. | | |
 | | **Done when:** Refund handler is atomic (savepoint), caps refunds, guards against null PI. | | |
-| 15 | **checkout.session.expired handler** — Add `handle_checkout_expired` to `stripe_webhook_service.py`, `mark_expired` to `stripe_repository.py`, wire into webhook router `match` statement. | `plan, tdd, api` | ⬜ |
+| 15 | **checkout.session.expired handler** — Add `handle_checkout_expired` to `stripe_webhook_service.py`, `mark_expired` to `stripe_repository.py`, wire into webhook router `match` statement. | `plan, tdd, api` | ✅ |
 | | **Read:** REQ-030 §7.3 (expired handler). Read `backend/app/api/v1/webhooks.py` (router), `backend/app/repositories/stripe_repository.py` (existing mark_* methods). | `req-reader` | |
 | | **TDD:** Test expired event transitions pending→expired. Test non-pending purchase is no-op. Test webhook routes to handler. | | |
 | | **Done when:** Expired sessions transition to `expired` status. No balance changes. | | |

@@ -1,8 +1,9 @@
-"""Stripe webhook handlers — checkout.session.completed and charge.refunded.
+"""Stripe webhook handlers — checkout.session.completed, checkout.session.expired, and charge.refunded.
 
-REQ-029 §7.2, §7.3, §7.4: Business logic for processing Stripe webhook events.
-All handlers follow the "never raise" contract — the outer function catches all
-exceptions so the webhook endpoint always returns 200 (prevents Stripe retries).
+REQ-029 §7.2, §7.3, §7.4; REQ-030 §7.2, §7.3: Business logic for processing
+Stripe webhook events. All handlers follow the "never raise" contract — the
+outer function catches all exceptions so the webhook endpoint always returns
+200 (prevents Stripe retries).
 """
 
 import logging
@@ -122,6 +123,24 @@ async def _process_checkout_completed(
             session_id,
             user_id,
         )
+
+
+async def handle_checkout_expired(
+    db: AsyncSession,
+    *,
+    event: stripe_module.Event,
+) -> None:
+    """Mark a pending purchase as expired when Stripe session expires.
+
+    REQ-030 §7.3 (F-07): Handles checkout.session.expired events.
+    Always returns normally (never-raise contract).
+    """
+    try:
+        session: dict[str, Any] = event.data.object
+        session_id: str = session["id"]
+        await StripePurchaseRepository.mark_expired(db, stripe_session_id=session_id)
+    except Exception:
+        logger.exception("Error processing checkout.session.expired %s", event.id)
 
 
 async def handle_charge_refunded(

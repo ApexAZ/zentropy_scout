@@ -1,8 +1,8 @@
 """Stripe webhook router.
 
-REQ-029 §7.1, §5.3: Receives Stripe webhook events, verifies HMAC
-signatures, and routes to the appropriate handler. Public endpoint —
-security comes from signature verification, not JWT authentication.
+REQ-029 §7.1, §5.3; REQ-030 §7.3: Receives Stripe webhook events,
+verifies HMAC signatures, and routes to the appropriate handler. Public
+endpoint — security comes from signature verification, not JWT authentication.
 
 Rate-limiting exempt (REQ-029 §10.2): Stripe may send bursts of
 webhooks; the @limiter.limit decorator is intentionally omitted.
@@ -19,6 +19,7 @@ from app.core.errors import APIError
 from app.services.stripe_webhook_service import (
     handle_charge_refunded,
     handle_checkout_completed,
+    handle_checkout_expired,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,8 @@ async def stripe_webhook(request: Request, db: DbSession) -> dict:
             await handle_checkout_completed(db, event=event)
         case "charge.refunded":
             await handle_charge_refunded(db, event=event)
+        case "checkout.session.expired":
+            await handle_checkout_expired(db, event=event)
         case _:
             pass  # Ignore unhandled events — return 200 to stop retries
 
