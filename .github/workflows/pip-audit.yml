@@ -33,11 +33,22 @@ jobs:
 
       - name: Run pip-audit (with retry)
         run: |
+          # Temporarily accepted advisories (no upstream fix available).
+          # Remove entries when upstream fixes land.
+          #
+          # CVE-2026-4539: pygments AdlLexer ReDoS (CVSS 3.3, local-only)
+          #   - No fix available (upstream unresponsive)
+          #   - AdlLexer never invoked by this project (no ADL files)
+          #   - pygments is transitive dep of pytest/rich (dev/tooling only)
+          #   - Accepted 2026-03-27
+          #
+          ACCEPTED_PIP="--ignore-vuln CVE-2026-4539"
+
           max_attempts=3
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "::group::Attempt $attempt of $max_attempts"
-            if pip-audit --vulnerability-service osv; then
+            if pip-audit --vulnerability-service osv $ACCEPTED_PIP; then
               echo "::endgroup::"
               echo "pip-audit passed on attempt $attempt"
               exit 0
