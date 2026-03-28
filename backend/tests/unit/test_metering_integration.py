@@ -1,7 +1,8 @@
 """Integration tests for the full metering pipeline.
 
-REQ-020 §12.2, REQ-022 §7: End-to-end metering with DB-backed pricing,
-concurrent request safety, and reconciliation — real DB and MockLLMProvider.
+REQ-020 §12.2, REQ-022 §7, REQ-030 §5: End-to-end metering with DB-backed
+pricing, reserve→call→settle pipeline, concurrent request safety, and
+reconciliation — real DB and MockLLMProvider.
 """
 
 import asyncio
@@ -14,8 +15,9 @@ import pytest_asyncio
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.admin_config import ModelRegistry, PricingConfig
+from app.models.admin_config import ModelRegistry, PricingConfig, TaskRoutingConfig
 from app.models.usage import CreditTransaction, LLMUsageRecord
+from app.models.usage_reservation import UsageReservation
 from app.models.user import User
 from app.providers.errors import ProviderError
 from app.providers.llm.base import LLMMessage, LLMResponse, TaskType
@@ -129,7 +131,11 @@ async def metering_user(db_session: AsyncSession) -> User:
 
 @pytest_asyncio.fixture
 async def seed_pricing_data(db_session: AsyncSession) -> None:
-    """Seed model_registry and pricing_config for Haiku pricing tests."""
+    """Seed model_registry, pricing_config, and routing for Haiku pricing tests.
+
+    REQ-030 §5.2: reserve() needs routing to resolve pricing. A _default
+    routing entry ensures all task types route to Haiku for these tests.
+    """
     registry = ModelRegistry(
         provider=_CLAUDE_PROVIDER,
         model=_HAIKU_MODEL,
@@ -145,8 +151,14 @@ async def seed_pricing_data(db_session: AsyncSession) -> None:
         margin_multiplier=_MARGIN,
         effective_date=date(2020, 1, 1),
     )
+    routing = TaskRoutingConfig(
+        provider=_CLAUDE_PROVIDER,
+        task_type="_default",
+        model=_HAIKU_MODEL,
+    )
     db_session.add(registry)
     db_session.add(pricing)
+    db_session.add(routing)
     await db_session.flush()
 
 
@@ -180,9 +192,17 @@ def metered_provider(
     metering_service: MeteringService,
     admin_config: AdminConfigService,
 ) -> MeteredLLMProvider:
-    """MeteredLLMProvider wrapping the Haiku mock."""
+    """MeteredLLMProvider wrapping the Haiku mock.
+
+    REQ-030 §5.4: Registry maps provider name to adapter instance for
+    cross-provider dispatch. Routing resolves 'claude' → inner_provider.
+    """
     return MeteredLLMProvider(
-        inner_provider, None, metering_service, admin_config, _METERING_USER_ID
+        inner_provider,
+        {_CLAUDE_PROVIDER: inner_provider},
+        metering_service,
+        admin_config,
+        _METERING_USER_ID,
     )
 
 
@@ -397,10 +417,11 @@ class TestConcurrentRequests:
 
     @pytest_asyncio.fixture(autouse=True)
     async def _seed_concurrent_pricing(self, db_engine):
-        """Seed pricing data directly into DB for concurrent access.
+        """Seed pricing and routing data directly into DB for concurrent access.
 
         Unlike db_session-based fixtures, this commits to the real DB so
         per-task sessions (each on their own connection) can see the data.
+        REQ-030 §5.2: reserve() needs routing to resolve pricing.
         """
         async with AsyncSession(db_engine, expire_on_commit=False) as session:
             session.add(
@@ -422,11 +443,23 @@ class TestConcurrentRequests:
                     effective_date=date(2020, 1, 1),
                 )
             )
+            session.add(
+                TaskRoutingConfig(
+                    provider=_CLAUDE_PROVIDER,
+                    task_type="_default",
+                    model=_HAIKU_MODEL,
+                )
+            )
             await session.commit()
 
         yield
 
         async with AsyncSession(db_engine, expire_on_commit=False) as session:
+            await session.execute(
+                delete(TaskRoutingConfig).where(
+                    TaskRoutingConfig.provider == _CLAUDE_PROVIDER,
+                )
+            )
             await session.execute(
                 delete(PricingConfig).where(
                     PricingConfig.provider == _CLAUDE_PROVIDER,
@@ -443,8 +476,11 @@ class TestConcurrentRequests:
 
     @staticmethod
     async def _cleanup_user_data(db_engine, user_id: uuid.UUID) -> None:
-        """Delete all test data for a user (usage records, transactions, user)."""
+        """Delete all test data for a user (reservations, usage, transactions, user)."""
         async with AsyncSession(db_engine, expire_on_commit=False) as session:
+            await session.execute(
+                delete(UsageReservation).where(UsageReservation.user_id == user_id)
+            )
             await session.execute(
                 delete(CreditTransaction).where(CreditTransaction.user_id == user_id)
             )
@@ -486,7 +522,13 @@ class TestConcurrentRequests:
                     inner = _HaikuMockProvider()
                     config = AdminConfigService(task_session)
                     service = MeteringService(task_session, config)
-                    provider = MeteredLLMProvider(inner, None, service, config, user_id)
+                    provider = MeteredLLMProvider(
+                        inner,
+                        {_CLAUDE_PROVIDER: inner},
+                        service,
+                        config,
+                        user_id,
+                    )
                     result = await provider.complete(
                         _SIMPLE_MESSAGES, TaskType.EXTRACTION
                     )
@@ -509,13 +551,14 @@ class TestConcurrentRequests:
             await self._cleanup_user_data(db_engine, user_id)
 
     @pytest.mark.asyncio
-    async def test_concurrent_calls_with_low_balance_no_overdraft(self, db_engine):
-        """With a balance that can only cover 2 calls, concurrent calls
-        must not overdraft even if 10 run simultaneously.
+    async def test_concurrent_calls_with_low_balance_debits_all(self, db_engine):
+        """With low balance, all concurrent calls are served and debited.
 
-        The atomic debit's WHERE clause prevents overdraft. Some calls
-        will log a warning for insufficient balance, but none will
-        drive the balance below zero.
+        REQ-030 §5.3: settle() debits unconditionally — the user consumed
+        the LLM response, so we always charge. Balance may go negative.
+        The soft gate (require_sufficient_balance) should have blocked
+        before reaching here; settle() is the hard enforcement that
+        ensures no usage goes unrecorded.
         """
         low_balance_user_id = uuid.UUID("00000000-0000-0000-0000-000000000021")
         two_calls_worth = _EXPECTED_BILLED_COST * 2 + Decimal("0.000001")
@@ -541,7 +584,11 @@ class TestConcurrentRequests:
                     config = AdminConfigService(task_session)
                     service = MeteringService(task_session, config)
                     provider = MeteredLLMProvider(
-                        inner, None, service, config, low_balance_user_id
+                        inner,
+                        {_CLAUDE_PROVIDER: inner},
+                        service,
+                        config,
+                        low_balance_user_id,
                     )
                     result = await provider.complete(
                         _SIMPLE_MESSAGES, TaskType.EXTRACTION
@@ -557,7 +604,14 @@ class TestConcurrentRequests:
 
             async with AsyncSession(db_engine) as check_session:
                 balance = await _get_balance(check_session, low_balance_user_id)
-                assert balance >= Decimal("0")
+                # All 10 calls debited: initial - (10 * billed_cost)
+                expected = two_calls_worth - (_EXPECTED_BILLED_COST * n_concurrent)
+                assert balance == expected
+
+                usage_count = await _count_usage_records(
+                    check_session, low_balance_user_id
+                )
+                assert usage_count == n_concurrent
         finally:
             await self._cleanup_user_data(db_engine, low_balance_user_id)
 
@@ -662,11 +716,17 @@ class TestProviderError:
         metering_user,  # noqa: ARG002
         seed_pricing_data,  # noqa: ARG002
     ):
-        """If inner.complete() raises ProviderError, no records are created."""
+        """If inner.complete() raises ProviderError, no records are created.
+
+        REQ-030 §5.5: On provider failure, reservation is released and
+        no usage/transaction records exist.
+        """
         inner = _FailingMockProvider()
         config = AdminConfigService(db_session)
         service = MeteringService(db_session, config)
-        provider = MeteredLLMProvider(inner, None, service, config, _METERING_USER_ID)
+        provider = MeteredLLMProvider(
+            inner, {_CLAUDE_PROVIDER: inner}, service, config, _METERING_USER_ID
+        )
 
         with pytest.raises(ProviderError):
             await provider.complete(_SIMPLE_MESSAGES, TaskType.EXTRACTION)

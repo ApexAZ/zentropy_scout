@@ -492,10 +492,14 @@ class TestRoutingPipeline:
 
         assert inner.complete.call_args.kwargs[_MODEL_OVERRIDE_KEY] == _MODEL_SONNET
 
-    async def test_routing_none_passes_none_override(
+    async def test_routing_none_blocks_call_fail_closed(
         self, db_session: AsyncSession
     ) -> None:
-        """No routing at all passes model_override=None (adapter uses hardcoded)."""
+        """No routing at all blocks the call (fail-closed).
+
+        REQ-030 §5.2: reserve() raises NoPricingConfigError when no
+        routing exists. The LLM call never happens.
+        """
         user = await _seed_user(db_session)
         await _seed_model(db_session, model=_MODEL_HAIKU)
         await _seed_pricing(db_session, model=_MODEL_HAIKU)
@@ -508,9 +512,10 @@ class TestRoutingPipeline:
             inner, {_PROVIDER: inner}, metering, admin_config, user.id
         )
 
-        await provider.complete([], TaskType.EXTRACTION)
+        with pytest.raises(NoPricingConfigError):
+            await provider.complete([], TaskType.EXTRACTION)
 
-        assert inner.complete.call_args.kwargs[_MODEL_OVERRIDE_KEY] is None
+        inner.complete.assert_not_called()
 
     async def test_routing_override_changes_model_used(
         self, db_session: AsyncSession
