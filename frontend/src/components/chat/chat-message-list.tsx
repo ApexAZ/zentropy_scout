@@ -66,6 +66,8 @@ export function ChatMessageList({
 				data-slot="chat-scroll-container"
 				role="log"
 				aria-label="Chat messages"
+				// eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- WCAG scrollable-region-focusable requires tabIndex on scrollable containers
+				tabIndex={0}
 				className="flex flex-1 flex-col gap-3 overflow-y-auto p-4"
 			>
 				{showLoading && (

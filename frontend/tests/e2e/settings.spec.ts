@@ -130,10 +130,10 @@ test.describe("Job Sources", () => {
 
 		await expect(page.getByTestId("job-sources-section")).toBeVisible();
 
-		// Chrome Extension (is_active=false) should have opacity-50
+		// Chrome Extension (is_active=false) should have opacity-60
 		const extensionItem = page.getByTestId(`source-item-${JOB_SOURCE_IDS[3]}`);
 		await expect(extensionItem).toBeVisible();
-		await expect(extensionItem).toHaveClass(/opacity-50/);
+		await expect(extensionItem).toHaveClass(/opacity-60/);
 
 		// Toggle should be disabled
 		const extensionToggle = page.getByRole("switch", {

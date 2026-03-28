@@ -146,7 +146,7 @@ export function PacksTab() {
 								<TableCell>{item.grant_cents.toLocaleString()}</TableCell>
 								<TableCell>
 									{item.highlight_label ? (
-										<span className="bg-warning/20 text-warning rounded px-2 py-0.5 text-xs font-medium">
+										<span className="bg-warning text-warning-foreground rounded-full px-2 py-0.5 text-xs font-medium">
 											{item.highlight_label}
 										</span>
 									) : (

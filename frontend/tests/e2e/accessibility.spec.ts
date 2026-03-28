@@ -5,13 +5,19 @@
  *
  * A. Reduced Motion — verifies prefers-reduced-motion CSS override.
  * B. WCAG 2.1 AA — Public Pages — axe-core audits for /, /login, /register.
+ * C. WCAG 2.1 AA — Authenticated Pages — axe-core audits for /dashboard,
+ *    /persona/basic-info, /resumes, /applications, /settings.
  */
 
 import { expect, test } from "./base-test";
 
 import { runAxeAudit } from "../utils/axe-helper";
+import { setupApplicationsListMocks } from "../utils/app-tracking-api-mocks";
 import { setupUnauthMocks } from "../utils/auth-api-mocks";
 import { setupOnboardedUserMocks } from "../utils/onboarding-api-mocks";
+import { setupBasicInfoEditorMocks } from "../utils/persona-update-api-mocks";
+import { setupResumeListMocks } from "../utils/resume-api-mocks";
+import { setupSettingsMocks } from "../utils/settings-api-mocks";
 
 // ---------------------------------------------------------------------------
 // A. Reduced Motion (1 test)
@@ -87,6 +93,60 @@ test.describe("WCAG 2.1 AA — Public Pages", () => {
 	}) => {
 		await setupUnauthMocks(page);
 		await page.goto("/register", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// C. WCAG 2.1 AA — Authenticated Pages (5 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("WCAG 2.1 AA — Authenticated Pages", () => {
+	test("dashboard (/dashboard) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupOnboardedUserMocks(page);
+		await page.goto("/dashboard", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("persona basic info (/persona/basic-info) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupBasicInfoEditorMocks(page);
+		await page.goto("/persona/basic-info", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("resumes (/resumes) has no WCAG 2.1 AA violations", async ({ page }) => {
+		await setupResumeListMocks(page);
+		await page.goto("/resumes", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("applications (/applications) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupApplicationsListMocks(page);
+		await page.goto("/applications", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("settings (/settings) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupSettingsMocks(page);
+		await page.goto("/settings", { waitUntil: "networkidle" });
 
 		const results = await runAxeAudit(page);
 		expect(results.violations).toEqual([]);

@@ -377,7 +377,7 @@ export function ApplicationDetail({
 					<span className="text-muted-foreground">{DOT_SEPARATOR}</span>
 					<StatusBadge status={app.status} />
 					{app.current_interview_stage && (
-						<span className="bg-warning/20 text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
+						<span className="bg-warning text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
 							{app.current_interview_stage}
 						</span>
 					)}
