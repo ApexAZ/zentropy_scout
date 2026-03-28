@@ -159,7 +159,7 @@ Phase 6: Integration Testing & Polish
 
 ## Phase 3: Webhook & Stripe Hardening
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Harden the webhook handlers and Stripe service. These fixes are independent of the reservation pipeline but need the migration from Phase 1 (for `expired` status).*
 
@@ -191,7 +191,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §8.1 (savepoint fix). Read `backend/app/services/stripe_service.py` lines 112-124. Read `backend/tests/unit/test_stripe_service.py`. | `req-reader` | |
 | | **TDD:** Test IntegrityError only rolls back the savepoint (not entire session). Test winner's customer ID is returned on race. | | |
 | | **Done when:** Race condition uses savepoint instead of full rollback. | | |
-| 17 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 17 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 3 Notes
 
