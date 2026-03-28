@@ -203,7 +203,7 @@ Phase 6: Integration Testing & Polish
 
 ## Phase 4: Quick Fixes & Frontend
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Small, independent fixes: display rounding, frontend query invalidation, CLAUDE.md docs. Low risk, can land anytime after Phase 1.*
 
@@ -230,7 +230,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §10.2 (query invalidation), §10.3 (CLAUDE.md). Read `frontend/src/components/usage/usage-page.tsx` (StripeRedirectHandler). Read CLAUDE.md error handling section. | `req-reader` | |
 | | **TDD:** Update frontend test to verify purchases query is invalidated on success redirect. | | |
 | | **Done when:** Checkout success invalidates both balance and purchases. CLAUDE.md matches code. | | |
-| 20 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 20 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 4 Notes
 
