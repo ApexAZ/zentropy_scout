@@ -6,7 +6,7 @@ metadata validation, balance crediting, and purchase status updates.
 
 import uuid
 from decimal import Decimal
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -158,6 +158,31 @@ class TestHandleCheckoutCompletedSuccess:
         assert purchase.status == "completed"
         assert purchase.stripe_payment_intent == _TEST_PAYMENT_INTENT
         assert purchase.completed_at is not None
+
+    async def test_credit_and_balance_are_atomic(
+        self, db_session: AsyncSession
+    ) -> None:
+        """If atomic_credit fails after create flushes, neither persists.
+
+        The savepoint in _process_checkout_completed must roll back the
+        CreditTransaction record when the balance update raises. The outer
+        handler must not raise (REQ-029 §7.4 "never raise" contract).
+        """
+        user, pack, _purchase = await _setup_user_and_purchase(db_session)
+        event = _make_event(metadata=_default_metadata(user, pack))
+
+        with patch(
+            "app.services.stripe_webhook_service.CreditRepository.atomic_credit",
+            side_effect=RuntimeError("simulated failure"),
+        ):
+            await handle_checkout_completed(db_session, event=event)
+
+        # CreditTransaction must not exist — savepoint rolled it back
+        assert await _find_txn_by_event(db_session) is None
+
+        # Balance must remain unchanged
+        await db_session.refresh(user)
+        assert user.balance_usd == Decimal("0")
 
 
 # ===============================================================================

@@ -94,17 +94,20 @@ async def _process_checkout_completed(
         return
 
     # Credit the balance (REQ-021 §6.7: transaction + atomic update)
+    # Savepoint ensures CreditTransaction + balance update are atomic —
+    # if atomic_credit fails after create flushes, the savepoint rolls back both.
     grant_usd = Decimal(grant_cents) / Decimal(100)
-    await CreditRepository.create(
-        db,
-        user_id=user_id,
-        amount_usd=grant_usd,
-        transaction_type="purchase",
-        reference_id=session_id,
-        stripe_event_id=event_id,
-        description="Funding pack purchase",
-    )
-    await CreditRepository.atomic_credit(db, user_id=user_id, amount=grant_usd)
+    async with db.begin_nested():
+        await CreditRepository.create(
+            db,
+            user_id=user_id,
+            amount_usd=grant_usd,
+            transaction_type="purchase",
+            reference_id=session_id,
+            stripe_event_id=event_id,
+            description="Funding pack purchase",
+        )
+        await CreditRepository.atomic_credit(db, user_id=user_id, amount=grant_usd)
 
     # Update stripe_purchases record
     await StripePurchaseRepository.mark_completed(
