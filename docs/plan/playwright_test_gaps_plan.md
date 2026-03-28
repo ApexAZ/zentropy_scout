@@ -1,7 +1,7 @@
 # Zentropy Scout — Playwright E2E Test Gaps Plan
 
 **Created:** 2026-03-27
-**Last Updated:** 2026-03-27
+**Last Updated:** 2026-03-28
 **Status:** ⬜ Incomplete
 **Destination:** `docs/plan/playwright_test_gaps_plan.md`
 
@@ -76,7 +76,7 @@ Phase 5: Real Backend Integration Strategy
 
 ## Phase 1: Multi-Browser Configuration
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add Firefox and WebKit projects to playwright.config.ts, update CI to run all three browsers, and fix any browser-specific failures in the existing 261 tests. This must precede visual regression baselines since they are per-browser.*
 
@@ -98,7 +98,7 @@ Phase 5: Real Backend Integration Strategy
 | 3 | **Update CI workflow for multi-browser matrix** — Modify `.github/workflows/playwright.yml`: (a) change browser install to `npx playwright install --with-deps` (all configured browsers), (b) add matrix strategy `browser: [chromium, firefox, webkit]` passing `--project=${{ matrix.browser }}`, (c) gate Firefox/WebKit to `push` events only (not `pull_request`) via matrix conditional, (d) update artifact upload to include browser name, (e) increase `timeout-minutes` to 20. | `plan, playwright, commands` | ✅ |
 | 4 | **Add cross-browser npm scripts and run Firefox tests** — Add to `package.json`: `"test:e2e:firefox": "playwright test --project=firefox"`, `"test:e2e:webkit": "playwright test --project=webkit"`, `"test:e2e:all": "playwright test"`. Run all 261 tests against Firefox. Document and fix all failures. This may involve fixing CSS/JS browser-specific issues, adjusting selectors, or adding small waits for rendering differences. | `plan, playwright, e2e, tdd` | ✅ |
 | 5 | **Run WebKit tests and fix remaining failures** — Run all 261 tests against WebKit. Fix all browser-specific failures. WebKit has stricter CSS handling and different event timing — expect different failures than Firefox. After fixing, run all 3 browsers together to confirm no regressions. | `plan, playwright, e2e, tdd` | ✅ |
-| 6 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright all browsers + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 6 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright all browsers + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - Split browser fixes into separate tasks (§4 Firefox, §5 WebKit) because each may surface different issues and could be substantial
