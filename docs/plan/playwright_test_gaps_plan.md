@@ -108,7 +108,7 @@ Phase 5: Real Backend Integration Strategy
 
 ## Phase 2: Accessibility Audits with axe-core
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Install @axe-core/playwright, create a reusable audit helper, and scan 11 key pages for WCAG 2.1 AA violations. This runs before visual regression because findings may trigger component changes that would invalidate baselines.*
 
@@ -130,7 +130,7 @@ Phase 5: Real Backend Integration Strategy
 | 9 | **Axe audits for public pages (landing, login, register)** — Expand `accessibility.spec.ts` with a new `test.describe("WCAG 2.1 AA — Public Pages")` block. Add axe-core scans for: `/` (landing, unauthenticated — clear cookies), `/login`, `/register`. Each test: navigate with appropriate mocks, wait for `networkidle`, run `runAxeAudit(page)`, assert `violations.length === 0`. Fix any WCAG violations in-line (TDD: test fails → fix component → test passes). Existing reduced-motion test stays unchanged. | `plan, playwright, e2e, tdd, ui` | ✅ |
 | 10 | **Axe audits for authenticated pages (dashboard, persona, resumes, applications, settings)** — Add `test.describe("WCAG 2.1 AA — Authenticated Pages")` block. Scan 5 pages: `/dashboard`, `/persona/basic-info`, `/resumes`, `/applications`, `/settings`. Use appropriate mock controllers from existing utils. Fix WCAG violations in-line. | `plan, playwright, e2e, tdd, ui` | ✅ |
 | 11 | **Axe audits for complex pages (onboarding, ghostwriter review, chat)** — Add `test.describe("WCAG 2.1 AA — Complex Pages")` block. Scan 3 pages: `/onboarding` (step 1 idle), `/jobs/{id}/review` (ghostwriter review with mocked variant + cover letter), dashboard with chat panel open. These have the most interactive widgets — highest a11y risk. Fix violations in-line. | `plan, playwright, e2e, tdd, ui` | ✅ |
-| 12 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 12 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - Expect common violations: missing aria-labels on icon buttons, color contrast issues, heading hierarchy gaps, form label associations
