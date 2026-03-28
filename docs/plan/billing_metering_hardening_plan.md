@@ -305,7 +305,7 @@ Phase 6: Integration Testing & Polish
 | 26 | **Integration tests: reservation lifecycle** — Write integration tests covering: reserve→settle happy path, reserve→release on failure, concurrent reservations, ledger integrity after full cycle. Use real async DB with transaction fixtures. | `plan, tdd, db` | ✅ |
 | | **Read:** REQ-030 §15.2 (integration test scenarios). Read `backend/tests/integration/test_admin_pricing_pipeline.py` (existing integration test pattern). | `req-reader` | |
 | | **Done when:** All 7 integration test scenarios from §15.2 are covered and passing. | | |
-| 27 | **Integration tests: webhook hardening** — Write integration tests for: refund savepoint rollback, expired checkout transition, concurrent customer creation. | `plan, tdd, security` | ⬜ |
+| 27 | **Integration tests: webhook hardening** — Write integration tests for: refund savepoint rollback, expired checkout transition, concurrent customer creation. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-030 §15.2 (refund + expired scenarios). Read `backend/tests/unit/test_stripe_webhook_checkout.py` (existing pattern). | `req-reader` | |
 | | **Done when:** Refund atomicity, expired transition, and customer race all verified. | | |
 | 28 | **Findings verification audit** — Cross-check all 13 findings from REQ-030 §1.5 against the implementation. Verify each finding has tests, code changes, and passes. Document verification in this plan. | `plan, security` | ⬜ |
