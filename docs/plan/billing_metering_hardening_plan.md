@@ -187,7 +187,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §7.3 (expired handler). Read `backend/app/api/v1/webhooks.py` (router), `backend/app/repositories/stripe_repository.py` (existing mark_* methods). | `req-reader` | |
 | | **TDD:** Test expired event transitions pending→expired. Test non-pending purchase is no-op. Test webhook routes to handler. | | |
 | | **Done when:** Expired sessions transition to `expired` status. No balance changes. | | |
-| 16 | **get_or_create_customer savepoint fix** — Replace `db.rollback()` with `db.begin_nested()` savepoint in `backend/app/services/stripe_service.py`. | `plan, tdd, security` | ⬜ |
+| 16 | **get_or_create_customer savepoint fix** — Replace `db.rollback()` with `db.begin_nested()` savepoint in `backend/app/services/stripe_service.py`. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-030 §8.1 (savepoint fix). Read `backend/app/services/stripe_service.py` lines 112-124. Read `backend/tests/unit/test_stripe_service.py`. | `req-reader` | |
 | | **TDD:** Test IntegrityError only rolls back the savepoint (not entire session). Test winner's customer ID is returned on race. | | |
 | | **Done when:** Race condition uses savepoint instead of full rollback. | | |
