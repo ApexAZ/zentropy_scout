@@ -13,7 +13,7 @@ from app.core.config import settings
 
 # Pin Stripe API version to prevent silent breaking changes from Dashboard updates.
 # Update intentionally with testing, not as a surprise from Stripe's rolling updates.
-STRIPE_API_VERSION = "2025-12-18.preview"
+STRIPE_API_VERSION = "2025-12-15.clover"
 
 
 def get_stripe_client() -> StripeClient:
