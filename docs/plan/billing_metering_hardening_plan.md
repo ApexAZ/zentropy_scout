@@ -266,7 +266,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §11.1 (sweep spec), §2.4 (stale handling design). Read `backend/app/main.py` (existing lifespan events). | `req-reader` | |
 | | **TDD:** Test sweep releases stale reservations (status→stale, held_balance decremented). Test sweep ignores non-held and recent reservations. Test configurable TTL. | | |
 | | **Done when:** Sweep runs on interval, releases stale holds, logs warnings. | | |
-| 23 | **Balance/ledger drift detection** — Implement drift detection query as a function in `reservation_sweep.py` (runs alongside sweep). Log any drift at error level. | `plan, tdd, db` | ⬜ |
+| 23 | **Balance/ledger drift detection** — Implement drift detection query as a function in `reservation_sweep.py` (runs alongside sweep). Log any drift at error level. | `plan, tdd, db` | ✅ |
 | | **Read:** REQ-030 §11.2 (drift detection). | `req-reader` | |
 | | **TDD:** Test drift detection finds mismatches. Test no drift returns clean. | | |
 | | **Done when:** Drift check runs, logs errors on mismatch, returns clean on match. | | |

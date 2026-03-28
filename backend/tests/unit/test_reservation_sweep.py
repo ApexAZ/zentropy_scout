@@ -1,6 +1,7 @@
-"""Tests for stale reservation sweep and worker lifecycle.
+"""Tests for stale reservation sweep, drift detection, and worker lifecycle.
 
 REQ-030 §11.1: Background sweep releases reservations that exceeded TTL.
+REQ-030 §11.2: Balance/ledger drift detection.
 REQ-030 §2.4: Configurable interval and TTL via settings.
 """
 
@@ -22,6 +23,7 @@ from app.services.reservation_sweep import (
 
 _PATCH_SETTINGS = "app.services.reservation_sweep.settings"
 _PATCH_SWEEP = "app.services.reservation_sweep.sweep_stale_reservations"
+_PATCH_DRIFT = "app.services.reservation_sweep.detect_balance_drift"
 
 _DEFAULT_TTL = 300
 
@@ -238,6 +240,7 @@ class TestReservationSweepWorker:
                 new_callable=AsyncMock,
                 return_value=3,
             ) as mock_sweep,
+            patch(_PATCH_DRIFT, new_callable=AsyncMock),
             patch(_PATCH_SETTINGS) as mock_settings,
         ):
             mock_settings.reservation_ttl_seconds = _DEFAULT_TTL
@@ -260,12 +263,30 @@ class TestReservationSweepWorker:
                 new_callable=AsyncMock,
                 return_value=0,
             ) as mock_sweep,
+            patch(_PATCH_DRIFT, new_callable=AsyncMock),
             patch(_PATCH_SETTINGS) as mock_settings,
         ):
             mock_settings.reservation_ttl_seconds = 600
             await worker.run_once()
 
         mock_sweep.assert_called_once_with(mock_session, ttl_seconds=600)
+
+    async def test_run_once_calls_drift_detection(
+        self, mock_session_factory: MagicMock
+    ) -> None:
+        """run_once() calls drift detection after sweep."""
+        mock_session = mock_session_factory.return_value
+        worker = ReservationSweepWorker(mock_session_factory, interval_seconds=60)
+
+        with (
+            patch(_PATCH_SWEEP, new_callable=AsyncMock, return_value=0),
+            patch(_PATCH_DRIFT, new_callable=AsyncMock, return_value=[]) as mock_drift,
+            patch(_PATCH_SETTINGS) as mock_settings,
+        ):
+            mock_settings.reservation_ttl_seconds = _DEFAULT_TTL
+            await worker.run_once()
+
+        mock_drift.assert_called_once_with(mock_session)
 
     async def test_double_start_is_noop(self) -> None:
         """Calling start() twice does not create duplicate tasks."""

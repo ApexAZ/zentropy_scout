@@ -1,9 +1,13 @@
-"""Stale reservation sweep background worker.
+"""Stale reservation sweep and balance drift detection background worker.
 
 REQ-030 §11.1: Background task that releases held reservations exceeding
 the TTL. Reservations stuck in 'held' status (e.g., due to process crash
 or settlement failure) are released by decrementing held_balance_usd and
 updating status to 'stale'.
+
+REQ-030 §11.2: Balance/ledger drift detection. Compares users.balance_usd
+against SUM(credit_transactions.amount_usd) and logs any drift exceeding
+the threshold at error level.
 
 REQ-030 §2.4: Runs every RESERVATION_SWEEP_INTERVAL_SECONDS (default 300).
 TTL controlled by RESERVATION_TTL_SECONDS (default 300).
@@ -13,6 +17,7 @@ import asyncio
 import contextlib
 import logging
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any, cast
 
 from sqlalchemy import select, text
@@ -114,6 +119,61 @@ async def sweep_stale_reservations(
     return released
 
 
+_DRIFT_THRESHOLD = Decimal("0.000001")
+
+
+async def detect_balance_drift(
+    db: AsyncSession,
+) -> list[dict[str, object]]:
+    """Detect drift between users.balance_usd and credit_transactions ledger.
+
+    REQ-030 §11.2: Compares cached balance against the ledger sum for each
+    user. Any absolute drift exceeding the threshold is logged at error level.
+
+    Args:
+        db: Async database session.
+
+    Returns:
+        List of drift records (user_id, balance_usd, ledger_sum, drift).
+        Empty list if no drift detected.
+    """
+    result = await db.execute(
+        text(
+            "SELECT u.id AS user_id, u.balance_usd, "
+            "COALESCE(SUM(ct.amount_usd), 0) AS ledger_sum, "
+            "u.balance_usd - COALESCE(SUM(ct.amount_usd), 0) AS drift "
+            "FROM users u "
+            "LEFT JOIN credit_transactions ct ON ct.user_id = u.id "
+            "GROUP BY u.id "
+            "HAVING ABS(u.balance_usd - COALESCE(SUM(ct.amount_usd), 0)) "
+            "> :threshold"
+        ),
+        {"threshold": _DRIFT_THRESHOLD},
+    )
+    rows = result.mappings().all()
+
+    drifts: list[dict[str, object]] = []
+    for row in rows:
+        drifts.append(
+            {
+                "user_id": row["user_id"],
+                "balance_usd": row["balance_usd"],
+                "ledger_sum": row["ledger_sum"],
+                "drift": row["drift"],
+            }
+        )
+        logger.error(
+            "Balance/ledger drift detected for user %s: "
+            "balance=$%s, ledger=$%s, drift=$%s",
+            row["user_id"],
+            row["balance_usd"],
+            row["ledger_sum"],
+            row["drift"],
+        )
+
+    return drifts
+
+
 class ReservationSweepWorker:
     """Background worker that periodically sweeps stale reservations.
 
@@ -178,7 +238,7 @@ class ReservationSweepWorker:
         logger.info("Reservation sweep worker stopped")
 
     async def run_once(self) -> int:
-        """Execute a single sweep pass.
+        """Execute a single sweep pass and drift check.
 
         Returns:
             Number of stale reservations released.
@@ -188,6 +248,11 @@ class ReservationSweepWorker:
                 db, ttl_seconds=settings.reservation_ttl_seconds
             )
             await db.commit()
+
+        # Drift check uses a separate session (read-only, no writes)
+        async with self._session_factory() as db:
+            await detect_balance_drift(db)
+
         return released
 
     async def _run_loop(self) -> None:
