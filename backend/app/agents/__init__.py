@@ -7,7 +7,6 @@ Ghostwriter, Scouter, Strategist) have been replaced by direct service
 calls in ``app.services``.
 
 Modules:
-    base: Agent utilities and API client abstraction
     state: LangGraph state schemas for the Chat Agent (REQ-007 §3.2)
     checkpoint: Checkpointer and graph config utilities (REQ-007 §3.3)
     chat: User-facing conversational interface (REQ-007 §4)
@@ -15,14 +14,6 @@ Modules:
     ghostwriter: Draft/regeneration detection utilities (REQ-007 §8)
 """
 
-from app.agents.base import (
-    AgentAPIClient,
-    BaseAgentClient,
-    HTTPAgentClient,
-    LocalAgentClient,
-    get_agent_client,
-    reset_agent_client,
-)
 from app.agents.chat import (
     classify_intent,
     create_chat_graph,
@@ -73,13 +64,6 @@ from app.prompts.strategist import (
 )
 
 __all__ = [
-    # API Client
-    "AgentAPIClient",
-    "BaseAgentClient",
-    "HTTPAgentClient",
-    "LocalAgentClient",
-    "get_agent_client",
-    "reset_agent_client",
     # Checkpointing
     "create_checkpointer",
     "create_graph_config",

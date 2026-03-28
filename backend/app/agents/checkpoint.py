@@ -7,9 +7,9 @@ This module provides utilities for:
 - Configuring graph execution
 
 Checkpoint Storage:
-    MVP uses MemorySaver (no persistence) for single-user local deployment.
-    PostgreSQL checkpointing will be enabled when multi-user support is added
-    (see feature backlog).
+    MVP uses MemorySaver (in-memory, no cross-session persistence).
+    PostgreSQL checkpointing is deferred until multi-tenant hosted mode
+    requires persistent conversation history across sessions.
 """
 
 from typing import Any
@@ -30,8 +30,9 @@ def create_checkpointer() -> BaseCheckpointSaver:
     Note:
         PostgreSQL checkpointer requires async context management.
         For MVP, we use MemorySaver which is simpler and sufficient
-        for single-user local deployment. PostgreSQL checkpointing
-        will be enabled when distributed/multi-user mode is needed.
+        for the Chat Agent MVP. PostgreSQL checkpointing will be
+        enabled when multi-tenant hosted mode requires persistent
+        conversation history across sessions.
 
         The PostgresCheckpoint requires connection pool setup:
         ```python
@@ -43,10 +44,10 @@ def create_checkpointer() -> BaseCheckpointSaver:
             # Use checkpointer with graphs
         ```
     """
-    # WHY: MVP uses MemorySaver for simplicity. PostgreSQL checkpointing
-    # adds complexity (connection pooling, async context managers) that
-    # isn't needed for single-user local deployment. The abstraction
-    # allows easy switch to PostgreSQL when multi-user support is added.
+    # WHY: Chat Agent is MVP and MemorySaver is sufficient. PostgreSQL
+    # checkpointing adds complexity (connection pooling, async context
+    # managers) that is deferred until multi-tenant hosted mode requires
+    # persistent conversation history across sessions.
     #
     # FUTURE: PostgreSQL checkpointing for hosted/multi-user mode is tracked
     # in the implementation plan (Phase 2.8, REQ-007 §11). When implemented,

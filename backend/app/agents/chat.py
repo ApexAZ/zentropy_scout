@@ -604,10 +604,9 @@ def execute_tools(state: ChatAgentState) -> ChatAgentState:
     Returns:
         State with tool_results populated.
     """
-    # WHY: Placeholder for tool execution. The actual implementation will use
-    # the AgentAPIClient to execute tools. This is structured so tests can
+    # WHY: Placeholder for tool execution. Agents call services directly
+    # (not via an API client abstraction). This is structured so tests can
     # mock tool_results directly.
-    # FUTURE: Implement tool execution via AgentAPIClient in Phase 2.3+
 
     # Mark tools as "executed" (results will be mocked in tests or filled
     # by actual service calls in production)

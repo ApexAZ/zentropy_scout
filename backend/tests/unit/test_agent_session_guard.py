@@ -31,8 +31,8 @@ class TestNoRawSessionInAgents:
     def test_no_async_session_import(self) -> None:
         """No agent file should import AsyncSession directly.
 
-        Agents use the API-mediated pattern (AgentAPIClient) for all data
-        access. Direct AsyncSession usage bypasses tenant isolation.
+        Agents call services directly (not raw DB sessions). Direct
+        AsyncSession usage bypasses tenant isolation.
         """
         violations: list[str] = []
 
@@ -48,6 +48,6 @@ class TestNoRawSessionInAgents:
 
         assert violations == [], (
             "Agent files must not import raw DB sessions. "
-            "Use AgentAPIClient or TenantScopedSession instead.\n"
+            "Use service layer or TenantScopedSession instead.\n"
             "Violations:\n" + "\n".join(f"  - {v}" for v in violations)
         )

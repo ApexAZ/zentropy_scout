@@ -4,8 +4,8 @@ REQ-014 §7.3: TenantScopedSession wraps AsyncSession with automatic
 user_id filtering for defense-in-depth tenant isolation.
 
 Architecture:
-    Agents currently use the API-mediated pattern (AgentAPIClient) and
-    do NOT access the database directly. This wrapper exists for any
+    Agents call services directly (no separate API client abstraction)
+    and do NOT access the database directly. This wrapper exists for any
     future code that needs scoped DB access outside the API layer.
 
     All queries automatically filter by the user_id set at construction.

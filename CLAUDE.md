@@ -8,7 +8,7 @@ Zentropy Scout is an AI-powered job application assistant that helps users:
 3. Generate tailored resumes and cover letters
 4. Track applications and provide strategic recommendations
 
-**Target:** SaaS application intended for public deployment. Currently in active development with security hardening. Hosting planned for Railway (to be scoped when ready).
+**Target:** SaaS application intended for public deployment. Currently in active development with security hardening. Hosting planned for Render (to be scoped when ready).
 
 ---
 
