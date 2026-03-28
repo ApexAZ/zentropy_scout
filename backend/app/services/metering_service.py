@@ -3,6 +3,8 @@
 REQ-022 §7: Calculates costs for LLM/embedding API calls using
 admin-configured pricing from the pricing_config table, with per-model
 margin multipliers. Records usage and debits the user's balance atomically.
+REQ-030 §5.2: Pre-debit reservation via reserve() — estimates worst-case
+cost and holds it before the LLM call.
 """
 
 import logging
@@ -16,11 +18,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import NoPricingConfigError, UnregisteredModelError
 from app.models.usage import CreditTransaction, LLMUsageRecord
+from app.models.usage_reservation import UsageReservation
 from app.services.admin_config_service import AdminConfigService
 
 logger = logging.getLogger(__name__)
 
 _THOUSAND = Decimal(1000)
+_DEFAULT_MAX_TOKENS = 4096
 
 
 class MeteringService:
@@ -105,6 +109,78 @@ class MeteringService:
         ) / _THOUSAND
         billed_cost = raw_cost * margin
         return raw_cost, billed_cost
+
+    async def reserve(
+        self,
+        user_id: uuid.UUID,
+        task_type: str,
+        max_tokens: int | None = None,
+    ) -> UsageReservation:
+        """Reserve estimated cost from user's available balance.
+
+        REQ-030 §5.2: Resolves routing, looks up pricing, calculates
+        worst-case cost from max_tokens × output_price × margin, inserts
+        a UsageReservation, and atomically increments held_balance_usd.
+
+        Args:
+            user_id: User making the LLM call.
+            task_type: Task type for routing and pricing lookup.
+            max_tokens: Output token ceiling. Uses 4096 default if None.
+
+        Returns:
+            UsageReservation with status='held'.
+
+        Raises:
+            NoPricingConfigError: If no routing or pricing exists.
+            UnregisteredModelError: If the routed model is not registered.
+        """
+        # 1. Resolve routing
+        routing = await self._admin_config.get_routing_for_task(task_type)
+        if routing is None:
+            raise NoPricingConfigError(provider="unrouted", model=task_type)
+        provider, model = routing
+
+        # 2. Look up pricing (validates model registration)
+        _input_per_1k, output_per_1k, margin = await self._get_pricing(provider, model)
+
+        # 3. Default max_tokens
+        if max_tokens is None:
+            max_tokens = _DEFAULT_MAX_TOKENS
+
+        # 4. Estimated cost: max_tokens / 1000 * output_per_1k * margin
+        estimated_cost = (Decimal(max_tokens) / _THOUSAND) * output_per_1k * margin
+
+        # 5. Insert reservation
+        reservation = UsageReservation(
+            user_id=user_id,
+            estimated_cost_usd=estimated_cost,
+            status="held",
+            task_type=task_type,
+            provider=provider,
+            model=model,
+            max_tokens=max_tokens,
+        )
+        self._db.add(reservation)
+
+        # 6. Atomically increment held_balance_usd
+        result = cast(
+            CursorResult[Any],
+            await self._db.execute(
+                text(
+                    "UPDATE users SET held_balance_usd = held_balance_usd + :amount "
+                    "WHERE id = :user_id"
+                ),
+                {"amount": estimated_cost, "user_id": user_id},
+            ),
+        )
+        if result.rowcount == 0:
+            logger.error("Reserve failed: user %s not found", user_id)
+            msg = f"User {user_id} not found"
+            raise ValueError(msg)
+
+        # 7. Flush and return
+        await self._db.flush()
+        return reservation
 
     async def record_and_debit(
         self,

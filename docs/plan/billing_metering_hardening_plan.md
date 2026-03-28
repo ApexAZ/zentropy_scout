@@ -125,8 +125,8 @@ Phase 6: Integration Testing & Polish
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 6 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). | `plan, security` | ⬜ |
-| 7 | **MeteringService.reserve()** — Add the `reserve()` method to `backend/app/services/metering_service.py`. Resolves routing, looks up pricing, calculates estimated cost from `max_tokens × output_price`, inserts `UsageReservation`, increments `held_balance_usd`. | `plan, tdd, provider` | ⬜ |
+| 6 | **Security triage gate** — Skipped per user (other agent addressing findings). | `plan, security` | ✅ |
+| 7 | **MeteringService.reserve()** — Add the `reserve()` method to `backend/app/services/metering_service.py`. Resolves routing, looks up pricing, calculates estimated cost from `max_tokens × output_price`, inserts `UsageReservation`, increments `held_balance_usd`. | `plan, tdd, provider` | ✅ |
 | | **Read:** REQ-030 §5.2 (reserve spec), §2.3 (estimation formula). Read `backend/app/services/metering_service.py` (current class), `backend/app/services/admin_config_service.py` (pricing/routing lookups). | `req-reader` | |
 | | **TDD:** Test happy path (reservation created, held_balance incremented). Test pricing lookup failure propagates (no reservation created). Test max_tokens=None uses default. Test estimated cost calculation matches formula. | | |
 | | **Done when:** `reserve()` creates reservation, increments held balance, returns UsageReservation. Pricing errors propagate. | | |
