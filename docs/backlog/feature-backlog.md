@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-27
 
-**Items:** 29 (11 completed, 18 pending)
+**Items:** 30 (11 completed, 19 pending)
 
 ---
 
@@ -1396,6 +1396,19 @@ Requires a new REQ document (REQ-030) before implementation.
 | REQ-022 (admin pricing) | §7.4 (cost calculation) | Cost calculation unchanged; routing into reservation wrapper |
 | REQ-029 (Stripe checkout) | §7.2 (checkout webhook), §7.3 (refund webhook), §7.1 (webhook router), §11 (config) | Refund handler fixes + expired session handler |
 | REQ-030 (NEW — to be written) | All sections | New REQ specifying reservation pattern, settlement, reconciliation |
+
+---
+
+### 30. Reduce oauth_callback() Cognitive Complexity
+
+**Category:** Backend / Code Quality
+**Added:** 2026-03-28
+**Priority:** P3 — Code quality (SonarCloud python:S3776, not a security vulnerability)
+**Depends on:** Nothing
+
+SonarCloud flagged `backend/app/api/v1/auth_oauth.py:oauth_callback()` with cognitive complexity 16 (limit 15). Appeared after commit acc0444 moved signup grant logic into the callback. Extract the signup credits block (~lines 261-269) or admin bootstrap block (~lines 271-281) into a helper function (`_maybe_grant_signup_credits()` or `_maybe_promote_admin()`) to reduce complexity below 15.
+
+**Key files:** `backend/app/api/v1/auth_oauth.py`
 
 ---
 
