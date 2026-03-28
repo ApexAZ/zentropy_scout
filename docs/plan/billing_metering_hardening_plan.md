@@ -308,7 +308,7 @@ Phase 6: Integration Testing & Polish
 | 27 | **Integration tests: webhook hardening** — Write integration tests for: refund savepoint rollback, expired checkout transition, concurrent customer creation. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-030 §15.2 (refund + expired scenarios). Read `backend/tests/unit/test_stripe_webhook_checkout.py` (existing pattern). | `req-reader` | |
 | | **Done when:** Refund atomicity, expired transition, and customer race all verified. | | |
-| 28 | **Findings verification audit** — Cross-check all 13 findings from REQ-030 §1.5 against the implementation. Verify each finding has tests, code changes, and passes. Document verification in this plan. | `plan, security` | ⬜ |
+| 28 | **Findings verification audit** — Cross-check all 13 findings from REQ-030 §1.5 against the implementation. Verify each finding has tests, code changes, and passes. Document verification in this plan. | `plan, security` | ✅ |
 | | **Read:** REQ-030 §1.5 (findings register), §13 (security considerations). | `req-reader` | |
 | | **Done when:** All 13 findings verified resolved with test coverage. | | |
 | 29 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. Final push for the feature branch. | `plan, commands` | ⬜ |
@@ -318,6 +318,31 @@ Phase 6: Integration Testing & Polish
 - §28 (findings audit) is a verification task — read each finding, confirm the code change exists, confirm a test covers it
 - After §29, the feature branch is ready for PR review
 - Consider running the security-triage subagent one final time as part of §25 to ensure no new scanner findings
+
+#### §28 Findings Verification Audit (2026-03-28)
+
+All 13 findings from REQ-030 §1.5 verified resolved with code changes and test coverage:
+
+| ID | Title | Code Location | Tests | Status |
+|----|-------|---------------|-------|--------|
+| F-01 | Ledger/balance drift — savepoint in settle() | `metering_service.py:222-283` (begin_nested) | `test_metering_service.py::TestSettle` — 7 tests (savepoint, failure stays held, pricing failure) | ✅ |
+| F-02 | Fail-open metering — reserve→call→settle | `metered_provider.py:144-178` (no bare except swallowing) | `test_metered_provider.py::TestMeteredLLMProviderComplete` — 5 tests + integration | ✅ |
+| F-03 | Refund savepoint — begin_nested() wraps 3 ops | `stripe_webhook_service.py:216` (begin_nested) | `test_stripe_webhook_refund_hardening.py::TestRefundSavepointAtomicity` + integration | ✅ |
+| F-04 | Refund cap — min() limits debit | `stripe_webhook_service.py:203` (min cap) | `test_stripe_webhook_refund_hardening.py::TestRefundCap` — 2 tests | ✅ |
+| F-05 | Null payment_intent guard | `stripe_webhook_service.py:180-186` (early return) | `test_stripe_webhook_refund_hardening.py::TestNullPaymentIntentGuard` — 2 tests | ✅ |
+| F-06 | Config rejects credits+!metering in prod | `config.py:171-182` (ValueError in production) | `test_core_config_stripe.py::TestStripeConfigMatrix` — 2 tests | ✅ |
+| F-07 | Expired checkout handler | `webhooks.py:67-68`, `stripe_webhook_service.py:128-143`, `stripe_repository.py:180-208`, `stripe.py:69` | `test_stripe_webhook_expired.py` — 4 tests + integration | ✅ |
+| F-08 | round() replaces int() truncation | `credits.py:185` (int(round(...))) | `test_credits_api.py::test_sub_cent_amount_rounds_correctly` | ✅ |
+| F-09 | Frontend purchases query invalidation | `usage-page.tsx:64-65` | `usage-page.test.tsx` — 2 tests | ✅ |
+| F-10 | stream() warning for unmetered usage | `metered_provider.py:205-209` (warning log) | `test_metered_provider.py::TestMeteredLLMProviderStream` — 2 tests | ✅ |
+| F-11 | Customer creation savepoint | `stripe_service.py:113-122` (begin_nested) | `test_stripe_service.py` — 3 tests + integration | ✅ |
+| F-12 | grant_cents BIGINT→INTEGER alignment | `stripe.py:105-112`, migration `028:128-141` | `test_migration_028.py` — 4 tests (upgrade + downgrade) | ✅ |
+| F-13 | CLAUDE.md error hierarchy updated | `CLAUDE.md:129-138` (APIError, not ZentropyError) | Documentation only — no tests needed | ✅ |
+
+**Integration test coverage (Phase 6, §26-§27):**
+- `test_reservation_lifecycle.py` — reserve→settle, reserve→release (F-01, F-02)
+- `test_reservation_advanced.py` — concurrent reservations, stale sweep, ledger integrity (F-01, F-02)
+- `test_webhook_hardening.py` — refund savepoint, expired transition, customer creation savepoint (F-03, F-07, F-11)
 
 ---
 
