@@ -142,7 +142,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §5.7 (embedding provider). Read existing `embed()` in `metered_provider.py`. | `req-reader` | |
 | | **TDD:** Test reserve→embed→settle flow. Test token estimation (sum(len)/4). Test release on embed failure. | | |
 | | **Done when:** `embed()` uses reservation pattern. Estimation uses existing heuristic. | | |
-| 11 | **Balance gating: available balance** — Update `require_sufficient_balance` in `backend/app/api/deps.py` to check `balance_usd - held_balance_usd > threshold`. Update `InsufficientBalanceError` to report available balance. | `plan, tdd, security` | ⬜ |
+| 11 | **Balance gating: available balance** — Update `require_sufficient_balance` in `backend/app/api/deps.py` to check `balance_usd - held_balance_usd > threshold`. Update `InsufficientBalanceError` to report available balance. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-030 §6.1 (available balance formula). Read `backend/app/api/deps.py` lines 306-346. Read `backend/tests/unit/test_balance_gating.py`. | `req-reader` | |
 | | **TDD:** Test available balance = balance - held. Test held balance reduces available. Test zero held balance unchanged from current behavior. Update existing gating tests. | | |
 | | **Done when:** Balance check uses available balance. Existing gating tests updated and passing. | | |
