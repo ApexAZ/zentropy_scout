@@ -261,8 +261,8 @@ Phase 6: Integration Testing & Polish
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 21 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). | `plan, security` | ⬜ |
-| 22 | **Stale reservation sweep** — Implement `sweep_stale_reservations()` function in a new `backend/app/services/reservation_sweep.py`. Wire into FastAPI lifespan event with configurable interval. | `plan, tdd, security` | ⬜ |
+| 21 | **Security triage gate** — Skipped per user (other agent addressing findings). | `plan, security` | ✅ |
+| 22 | **Stale reservation sweep** — Implement `sweep_stale_reservations()` function in a new `backend/app/services/reservation_sweep.py`. Wire into FastAPI lifespan event with configurable interval. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-030 §11.1 (sweep spec), §2.4 (stale handling design). Read `backend/app/main.py` (existing lifespan events). | `req-reader` | |
 | | **TDD:** Test sweep releases stale reservations (status→stale, held_balance decremented). Test sweep ignores non-held and recent reservations. Test configurable TTL. | | |
 | | **Done when:** Sweep runs on interval, releases stale holds, logs warnings. | | |
