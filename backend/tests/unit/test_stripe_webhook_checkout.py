@@ -4,10 +4,12 @@ REQ-029 §7.2, §13.2: Verifies checkout completion handling, idempotency,
 metadata validation, balance crediting, and purchase status updates.
 """
 
+import logging
 import uuid
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -183,6 +185,35 @@ class TestHandleCheckoutCompletedSuccess:
         # Balance must remain unchanged
         await db_session.refresh(user)
         assert user.balance_usd == Decimal("0")
+
+    async def test_logs_warning_when_no_purchase_record_to_complete(
+        self, db_session: AsyncSession, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Should log a warning when mark_completed finds no pending purchase.
+
+        This covers the reconciliation gap where a user is credited but no
+        StripePurchase record exists (e.g., DB failure during checkout session
+        creation left the purchase record uncommitted).
+        """
+        user = User(email=_TEST_EMAIL, stripe_customer_id=_TEST_CUSTOMER_ID)
+        db_session.add(user)
+        await db_session.flush()
+
+        event = _make_event(
+            metadata={
+                "user_id": str(user.id),
+                "grant_cents": str(_TEST_GRANT_CENTS),
+            },
+        )
+
+        with caplog.at_level(logging.WARNING):
+            await handle_checkout_completed(db_session, event=event)
+
+        assert any(
+            "mark_completed found no pending purchase" in record.message
+            and _TEST_SESSION_ID in record.message
+            for record in caplog.records
+        )
 
 
 # ===============================================================================

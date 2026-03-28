@@ -110,11 +110,18 @@ async def _process_checkout_completed(
         await CreditRepository.atomic_credit(db, user_id=user_id, amount=grant_usd)
 
     # Update stripe_purchases record
-    await StripePurchaseRepository.mark_completed(
+    updated = await StripePurchaseRepository.mark_completed(
         db,
         stripe_session_id=session_id,
         stripe_payment_intent=session["payment_intent"],
     )
+    if not updated:
+        logger.warning(
+            "mark_completed found no pending purchase for session %s "
+            "(user %s credited — reconciliation may be needed)",
+            session_id,
+            user_id,
+        )
 
 
 async def handle_charge_refunded(
