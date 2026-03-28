@@ -61,7 +61,7 @@ Phase 6: Integration Testing & Polish
 
 ## Phase 1: Database & Foundation
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add the `held_balance_usd` column, `usage_reservations` table, type alignment fixes, `expired` status, and new config variables. This is additive and doesn't break existing code.*
 
@@ -94,7 +94,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §9.1 (config rejection), §9.2 (new variables). Read `backend/app/core/config.py` (existing Settings, check_production_security). Read `backend/tests/unit/test_core_config_stripe.py` (existing config tests). | `req-reader` | |
 | | **TDD:** Test new vars load with defaults. Test production rejection of credits+!metering. Test non-production still warns (not raises). | | |
 | | **Done when:** Config vars load, production check raises, dev check warns. | | |
-| 5 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 5 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 1 Notes
 
