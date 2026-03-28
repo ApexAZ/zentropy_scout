@@ -90,7 +90,7 @@ Phase 6: Integration Testing & Polish
 | | **TDD:** Write migration test verifying upgrade creates columns/table, downgrade removes them. Verify `grant_cents` type changes. Verify constraint includes `expired`. | | |
 | | **Run:** `alembic upgrade head && alembic downgrade -1 && alembic upgrade head` | | |
 | | **Done when:** Migration applies cleanly, all columns/tables/indexes exist, downgrade works. | | |
-| 4 | **Config variables for reservation system** — Add `reservation_ttl_seconds` and `reservation_sweep_interval_seconds` to Settings class. Reject `credits_enabled + !metering_enabled` in production (upgrade from warning to ValueError). | `plan, tdd, security` | ⬜ |
+| 4 | **Config variables for reservation system** — Add `reservation_ttl_seconds` and `reservation_sweep_interval_seconds` to Settings class. Reject `credits_enabled + !metering_enabled` in production (upgrade from warning to ValueError). | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-030 §9.1 (config rejection), §9.2 (new variables). Read `backend/app/core/config.py` (existing Settings, check_production_security). Read `backend/tests/unit/test_core_config_stripe.py` (existing config tests). | `req-reader` | |
 | | **TDD:** Test new vars load with defaults. Test production rejection of credits+!metering. Test non-production still warns (not raises). | | |
 | | **Done when:** Config vars load, production check raises, dev check warns. | | |
