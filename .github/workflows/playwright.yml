@@ -12,12 +12,13 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'frontend/**'
+      - '.github/workflows/playwright.yml'
 
 jobs:
-  playwright:
-    name: Playwright E2E
+  playwright-chromium:
+    name: Playwright E2E (chromium)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -38,7 +39,7 @@ jobs:
         run: cd frontend && npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        run: cd frontend && npx playwright test
+        run: cd frontend && npx playwright test --project=chromium
         env:
           CI: true
 
@@ -46,6 +47,68 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
-          name: playwright-report
+          name: playwright-report-chromium
           path: frontend/playwright-report/
           retention-days: 30
+
+      - name: Upload test traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: playwright-traces-chromium
+          path: frontend/test-results/
+          retention-days: 7
+
+  # Firefox and WebKit run on push to main and workflow_dispatch only
+  # (not on PRs) to avoid tripling CI time on every pull request.
+  playwright-cross-browser:
+    name: Playwright E2E (${{ matrix.browser }})
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install --with-deps "$BROWSER"
+        env:
+          BROWSER: ${{ matrix.browser }}
+
+      - name: Run Playwright tests
+        run: cd frontend && npx playwright test --project="$BROWSER"
+        env:
+          CI: true
+          BROWSER: ${{ matrix.browser }}
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: frontend/playwright-report/
+          retention-days: 30
+
+      - name: Upload test traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: playwright-traces-${{ matrix.browser }}
+          path: frontend/test-results/
+          retention-days: 7
