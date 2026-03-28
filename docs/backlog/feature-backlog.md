@@ -1,9 +1,9 @@
 # Zentropy Scout — Feature Backlog
 
 **Created:** 2026-02-16
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-27
 
-**Items:** 28 (11 completed, 17 pending)
+**Items:** 29 (11 completed, 18 pending)
 
 ---
 
@@ -249,10 +249,23 @@ Elevate the visual design from functional-but-generic shadcn/ui defaults to a po
 - **Responsive refinement** — mobile-first polish (currently functional but basic at mobile breakpoints)
 - **Loading states** — skeleton screens are in place; add subtle transitions and branded loading indicators
 
+**The problem:** The current UI looks like generic AI-generated React — functional but lifeless. Default shadcn/ui styling, no visual personality, no brand identity. It needs a human eye (or a vision-capable AI acting as one) to assess the actual rendered experience and draft concrete improvements.
+
 **Approach options:**
 - **Option A:** Iterative self-improvement — pick a design reference (Linear, Vercel, Notion) and systematically align component styling
 - **Option B:** Tailwind UI / shadcn themes — purchase and apply a polished theme pack for rapid uplift
 - **Option C:** Designer engagement — hire a designer for brand identity + component specs, implement from their deliverables
+- **Option D (preferred): Claude Vision audit via Desktop / Cowork** — use Claude Code's desktop integration (cowork mode) with vision capabilities to automate requirements gathering. The workflow:
+  1. **Screenshot capture** — run the app locally and capture screenshots of every major page/flow (onboarding, dashboard, persona, jobs, resumes, cover letters, settings, chat, admin)
+  2. **Vision-based audit** — feed screenshots to Claude with vision to analyze the current UX: layout issues, visual hierarchy gaps, inconsistent spacing, missing affordances, generic styling, empty state problems, mobile breakpoint issues
+  3. **Design critique document** — Claude drafts a per-page critique with specific, actionable findings (not vague "make it better" — concrete issues like "the job card score badge has no visual weight", "onboarding steps lack progress context", "empty states use plain text with no illustration or CTA")
+  4. **Reference comparison** — capture screenshots of design reference targets (Linear, Vercel, Notion) and have Claude compare specific components side-by-side with ours to identify the delta
+  5. **Improvement spec** — from the critique, generate a prioritized improvement plan with before/after mockup descriptions, targeting the highest-impact pages first
+  6. **Iterative implementation** — implement changes page-by-page, re-screenshotting after each pass to verify the visual improvement lands as intended
+
+  **Why this works:** Claude can literally see what a user sees — no guessing from JSX whether the rendered output looks good. Vision-based audit catches things code review never will: awkward whitespace, visual imbalance, color contrast issues, information density problems, and the overall "feel" that makes a UI look polished vs. generated.
+
+  **Requirements:** Claude Code desktop app or VS Code extension with cowork mode, local dev server running (`npm run dev`), browser accessible for screenshots.
 
 **Key files:**
 - `frontend/src/app/globals.css` — CSS variables, theme definitions
@@ -271,6 +284,7 @@ Elevate the visual design from functional-but-generic shadcn/ui defaults to a po
 - Illustrations: use an icon library (Lucide already included) or custom illustrations?
 - Dark mode: primary mode or secondary? (Affects design priority)
 - Scope: full redesign or targeted polish of highest-traffic pages first?
+- Cowork/Desktop: which pages to screenshot first? (Suggest: onboarding flow and job dashboard — highest user traffic)
 
 ---
 
@@ -1300,6 +1314,88 @@ Audit the full backend test suite for consistency, isolation, and pytest-asyncio
 - `backend/pyproject.toml` — `[tool.pytest.ini_options]` section
 - `backend/tests/conftest.py` — top-level test fixtures
 - `backend/tests/unit/conftest.py` — unit test fixtures
+
+---
+
+### 29. Billing & Metering Hardening — Reservation Pattern + Stripe Fixes
+
+**Category:** Backend / Frontend / Security / Billing
+**Added:** 2026-03-27
+**Priority:** P1 — Financial integrity. Must complete before public launch.
+**Depends on:** ~~#13 (Stripe Credits Integration)~~ ✅, ~~#19 (USD-Direct Billing)~~ ✅, ~~#12 (Token Metering)~~ ✅, ~~#16 (Admin Pricing)~~ ✅
+
+Steelman analysis of the billing/metering/Stripe stack identified 16 findings across 4 tiers. Three independent reviews (original analysis + code-reviewer + security-reviewer) reached consensus on severity and prioritization. The most significant architectural gap is that the metering system uses a post-debit pattern where the balance check and the debit are separate steps with a race window — industry standard for prepaid billing is a **pre-debit reservation pattern** (similar to credit card pre-auth).
+
+#### Origin
+
+Adversarial code review session on 2026-03-27. Full trace of all billing files across backend and frontend. Cross-referenced against REQ-020 (metering), REQ-021 (credits/billing), REQ-022 (admin pricing), REQ-023 (USD-direct billing), and REQ-029 (Stripe checkout).
+
+#### Findings Summary (16 items, 4 tiers)
+
+**Tier 1 — Must Fix (financial integrity):**
+1. `record_and_debit` ledger/balance drift — CreditTransaction inserted even when atomic debit fails (rowcount=0), causing ledger sum to diverge from `users.balance_usd` (REQ-020 §6.3)
+2. Fail-open metering — double `except Exception` in metering_service.py and metered_provider.py means DB errors = free LLM calls, contradicting REQ-020's fail-closed requirement
+3. Refund handler missing `begin_nested()` savepoint — partial failure can commit credit+debit without updating `purchase.refund_amount_cents`, causing double-debit on next refund event (REQ-029 §7.3)
+4. Refund handler doesn't cap `total_refunded_cents` at `purchase.amount_cents` — defense-in-depth gap (REQ-029 §7.3)
+5. Refund handler doesn't guard against `payment_intent` being None — Stripe charge objects have nullable `payment_intent` (REQ-029 §7.3)
+
+**Tier 2 — Should Fix (operational safety):**
+6. `credits_enabled=True` + `metering_enabled=False` only warned, not rejected in production — allows unlimited free LLM calls after any purchase (REQ-020 §11, REQ-029 §11)
+7. No `checkout.session.expired` webhook handler — orphaned `pending` records in `stripe_purchases` accumulate forever (REQ-029 §7.1)
+8. `int()` truncation in purchase history display — `int(txn.amount_usd * Decimal(100))` truncates toward zero instead of rounding; sub-cent precision from margin calculations gets silently dropped (REQ-029 §8.3)
+
+**Tier 3 — Nice to Have (hardening/hygiene):**
+9. Frontend: `queryKeys.purchases` not invalidated on checkout success — balance updates but purchase history shows stale data (REQ-029 §9.4)
+10. `MeteredLLMProvider.stream()` never calls `record_and_debit` — streaming calls completely unmetered; currently dormant (no call path) but latent risk (REQ-020 §6.2)
+11. `get_or_create_customer` uses `db.rollback()` instead of savepoint — rolls back entire transaction on IntegrityError, fragile if called later in a multi-step flow (REQ-029 §6.3)
+
+**Tier 4 — Consistency/Readability:**
+12. `grant_cents` is BIGINT but `amount_cents` is INTEGER on `stripe_purchases` — inconsistent, creates "why are these different?" cognitive load for future readers
+13. CLAUDE.md documents `ZentropyError` as base error class but code uses `APIError` — docs/code out of sync
+
+#### Architectural Decision: Pre-Debit Reservation Pattern
+
+Research into how production billing systems (Stripe Meters, OpenMeter, Orb, LiteLLM, Helicone, WarpStream, Azure API Management) handle the metering reliability problem identified the **pre-debit reservation pattern** as the industry standard for prepaid balance billing:
+
+1. **Before LLM call:** Estimate max cost (input_tokens + max_tokens × price), atomically reserve from balance
+2. **Execute LLM call** (outside any transaction)
+3. **After LLM call:** Calculate actual cost, settle reservation (release hold, debit actual amount)
+4. **On settlement failure:** Reservation stays held (user temporarily over-charged, reconcilable) — versus current behavior where failure means user under-charged (irrecoverable revenue loss)
+
+This pattern eliminates findings #1 and #2 as side effects, because:
+- The reservation is the balance check AND the hold in one atomic step (no race window)
+- If settlement fails, the money is already held (no free calls)
+
+Requires a new REQ document (REQ-030) before implementation.
+
+#### Key Files
+
+**Backend (billing core):**
+- `backend/app/services/metering_service.py` — cost calculation, usage recording, balance debit
+- `backend/app/services/stripe_webhook_service.py` — webhook handlers (checkout.completed, charge.refunded)
+- `backend/app/providers/metered_provider.py` — MeteredLLMProvider, MeteredEmbeddingProvider
+- `backend/app/repositories/credit_repository.py` — atomic balance operations
+- `backend/app/repositories/stripe_repository.py` — purchase lifecycle
+- `backend/app/api/deps.py` — `require_sufficient_balance`, `get_metered_provider`
+- `backend/app/api/v1/webhooks.py` — webhook router
+- `backend/app/api/v1/credits.py` — credits API
+- `backend/app/core/config.py` — production validation
+- `backend/app/models/stripe.py` — StripePurchase model
+- `backend/app/models/usage.py` — CreditTransaction, LLMUsageRecord
+
+**Frontend:**
+- `frontend/src/components/usage/usage-page.tsx` — Stripe redirect handler
+- `frontend/src/components/usage/funding-packs.tsx` — checkout flow
+
+#### REQ References (Bidirectional)
+
+| REQ | Sections Affected | Direction |
+|-----|-------------------|-----------|
+| REQ-020 (metering) | §6.2 (metered provider), §6.3 (atomic debit), §7.1 (balance gating), §11 (config) | This work amends REQ-020's balance check + post-debit pattern → reservation + settlement |
+| REQ-021 (credits/billing) | §6.7 (transaction + atomic update), §8 (signup grant) | This work adds `held_balance` concept to the balance model |
+| REQ-022 (admin pricing) | §7.4 (cost calculation) | Cost calculation unchanged; routing into reservation wrapper |
+| REQ-029 (Stripe checkout) | §7.2 (checkout webhook), §7.3 (refund webhook), §7.1 (webhook router), §11 (config) | Refund handler fixes + expired session handler |
+| REQ-030 (NEW — to be written) | All sections | New REQ specifying reservation pattern, settlement, reconciliation |
 
 ---
 
