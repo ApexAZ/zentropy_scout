@@ -301,8 +301,8 @@ Phase 6: Integration Testing & Polish
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 25 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). | `plan, security` | ⬜ |
-| 26 | **Integration tests: reservation lifecycle** — Write integration tests covering: reserve→settle happy path, reserve→release on failure, concurrent reservations, ledger integrity after full cycle. Use real async DB with transaction fixtures. | `plan, tdd, db` | ⬜ |
+| 25 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). | `plan, security` | ✅ |
+| 26 | **Integration tests: reservation lifecycle** — Write integration tests covering: reserve→settle happy path, reserve→release on failure, concurrent reservations, ledger integrity after full cycle. Use real async DB with transaction fixtures. | `plan, tdd, db` | ✅ |
 | | **Read:** REQ-030 §15.2 (integration test scenarios). Read `backend/tests/integration/test_admin_pricing_pipeline.py` (existing integration test pattern). | `req-reader` | |
 | | **Done when:** All 7 integration test scenarios from §15.2 are covered and passing. | | |
 | 27 | **Integration tests: webhook hardening** — Write integration tests for: refund savepoint rollback, expired checkout transition, concurrent customer creation. | `plan, tdd, security` | ⬜ |
