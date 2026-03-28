@@ -226,7 +226,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §10.1. Read `backend/app/api/v1/credits.py` (purchase history endpoint). Read `backend/tests/unit/test_credits_api.py`. | `req-reader` | |
 | | **TDD:** Test that sub-cent amounts round correctly (e.g., Decimal("4.999") → 5 cents, not 4). | | |
 | | **Done when:** `format_usd_display` receives correctly rounded cents. | | |
-| 19 | **Frontend: invalidate purchases on checkout success + CLAUDE.md docs fix** — Add `queryKeys.purchases` invalidation in `frontend/src/components/usage/usage-page.tsx`. Fix CLAUDE.md error hierarchy (`ZentropyError` → `APIError`). | `plan, tdd, ui` | ⬜ |
+| 19 | **Frontend: invalidate purchases on checkout success + CLAUDE.md docs fix** — Add `queryKeys.purchases` invalidation in `frontend/src/components/usage/usage-page.tsx`. Fix CLAUDE.md error hierarchy (`ZentropyError` → `APIError`). | `plan, tdd, ui` | ✅ |
 | | **Read:** REQ-030 §10.2 (query invalidation), §10.3 (CLAUDE.md). Read `frontend/src/components/usage/usage-page.tsx` (StripeRedirectHandler). Read CLAUDE.md error handling section. | `req-reader` | |
 | | **TDD:** Update frontend test to verify purchases query is invalidated on success redirect. | | |
 | | **Done when:** Checkout success invalidates both balance and purchases. CLAUDE.md matches code. | | |
