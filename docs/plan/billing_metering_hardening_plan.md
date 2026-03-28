@@ -106,7 +106,7 @@ Phase 6: Integration Testing & Polish
 
 ## Phase 2: Reservation Pipeline
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Implement the core reserve→call→settle pattern. This is the biggest behavioral change — replaces the fire-and-forget post-debit metering with pre-debit reservations.*
 
@@ -146,7 +146,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §6.1 (available balance formula). Read `backend/app/api/deps.py` lines 306-346. Read `backend/tests/unit/test_balance_gating.py`. | `req-reader` | |
 | | **TDD:** Test available balance = balance - held. Test held balance reduces available. Test zero held balance unchanged from current behavior. Update existing gating tests. | | |
 | | **Done when:** Balance check uses available balance. Existing gating tests updated and passing. | | |
-| 12 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 12 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 2 Notes
 
