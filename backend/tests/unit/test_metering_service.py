@@ -4,8 +4,12 @@ REQ-022 §7: Verifies pricing lookup via AdminConfigService, per-model margins,
 unregistered model blocking, and the record_and_debit pipeline.
 REQ-030 §5.2: Verifies reserve() — routing, pricing lookup, cost estimation,
 UsageReservation creation, and held_balance_usd increment.
+REQ-030 §5.3: Verifies settle() — savepoint-wrapped recording, balance debit,
+held release, and fail-closed error handling.
+REQ-030 §5.5: Verifies release() — held balance decrement and status update.
 """
 
+import logging
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -14,6 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.core.errors import NoPricingConfigError, UnregisteredModelError
+from app.models.usage_reservation import UsageReservation
 from app.services.admin_config_service import PricingResult
 from app.services.metering_service import MeteringService
 
@@ -58,6 +63,20 @@ _EMBEDDING_PRICING = PricingResult(
 def _added_objects(mock_db: AsyncMock) -> list:
     """Extract objects added to the mocked DB session."""
     return [c[0][0] for c in mock_db.add.call_args_list]
+
+
+def _make_held_reservation() -> UsageReservation:
+    """Create a held UsageReservation for settle/release tests."""
+    return UsageReservation(
+        id=uuid.uuid4(),
+        user_id=_USER_ID,
+        estimated_cost_usd=Decimal("0.049152"),
+        status="held",
+        task_type=_TASK_TYPE,
+        provider=_PROVIDER,
+        model=_HAIKU_MODEL,
+        max_tokens=4096,
+    )
 
 
 # =============================================================================
@@ -582,3 +601,351 @@ class TestReserve:
         assert mock_db.add.call_count == 0
         assert mock_db.execute.call_count == 0
         mock_db.flush.assert_not_awaited()
+
+
+# =============================================================================
+# TestSettle
+# =============================================================================
+
+
+class TestSettle:
+    """Tests for MeteringService.settle() — post-LLM-call settlement.
+
+    REQ-030 §5.3: Wraps all recording in a savepoint. Calculates actual cost,
+    inserts LLMUsageRecord + CreditTransaction, debits balance, releases hold,
+    and marks reservation as settled. Fail-closed on error.
+    """
+
+    @pytest.fixture
+    def mock_db_with_savepoint(self, mock_db: AsyncMock) -> AsyncMock:
+        """mock_db with begin_nested() returning async context manager."""
+        mock_db.begin_nested = MagicMock(return_value=AsyncMock())
+        return mock_db
+
+    @pytest.fixture
+    def settle_service(
+        self, mock_db_with_savepoint: AsyncMock, mock_admin_config: AsyncMock
+    ) -> MeteringService:
+        """MeteringService wired for settle tests."""
+        return MeteringService(mock_db_with_savepoint, mock_admin_config)
+
+    @pytest.fixture
+    def reservation(self) -> UsageReservation:
+        """Pre-built held reservation from a prior reserve() call."""
+        return _make_held_reservation()
+
+    @pytest.mark.asyncio
+    async def test_creates_usage_record(
+        self,
+        settle_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() creates LLMUsageRecord with correct fields."""
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        added = _added_objects(mock_db_with_savepoint)
+        usage_record = added[0]
+        assert usage_record.provider == _PROVIDER
+        assert usage_record.model == _HAIKU_MODEL
+        assert usage_record.task_type == _TASK_TYPE
+        assert usage_record.input_tokens == 1000
+        assert usage_record.output_tokens == 500
+        assert usage_record.user_id == _USER_ID
+
+    @pytest.mark.asyncio
+    async def test_creates_debit_transaction(
+        self,
+        settle_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() creates CreditTransaction with negative billed cost."""
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        added = _added_objects(mock_db_with_savepoint)
+        credit_txn = added[1]
+        assert credit_txn.transaction_type == "usage_debit"
+        assert credit_txn.amount_usd < Decimal("0")
+        assert credit_txn.user_id == _USER_ID
+
+    @pytest.mark.asyncio
+    async def test_debit_references_usage_record(
+        self,
+        settle_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """CreditTransaction reference_id links to LLMUsageRecord id."""
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        added = _added_objects(mock_db_with_savepoint)
+        usage_record = added[0]
+        credit_txn = added[1]
+        assert credit_txn.reference_id == str(usage_record.id)
+
+    @pytest.mark.asyncio
+    async def test_debits_balance_and_releases_hold(
+        self,
+        settle_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() atomically debits balance and releases held amount."""
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        execute_calls = mock_db_with_savepoint.execute.call_args_list
+        assert len(execute_calls) == 1
+        sql_arg = str(execute_calls[0][0][0])
+        assert "balance_usd" in sql_arg
+        assert "held_balance_usd" in sql_arg
+        params = execute_calls[0][0][1]
+        assert params["user_id"] == _USER_ID
+        assert params["estimated"] == reservation.estimated_cost_usd
+        expected_billed = (
+            (
+                Decimal(1000) * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal(500) * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal(1000)
+            * _HAIKU_PRICING.margin_multiplier
+        )
+        assert params["actual"] == expected_billed
+
+    @pytest.mark.asyncio
+    async def test_usage_record_costs_match_pricing(
+        self,
+        settle_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """Usage record raw and billed costs match pricing formula."""
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        usage_record = _added_objects(mock_db_with_savepoint)[0]
+        expected_raw = (
+            Decimal(1000) * _HAIKU_PRICING.input_cost_per_1k
+            + Decimal(500) * _HAIKU_PRICING.output_cost_per_1k
+        ) / Decimal(1000)
+        assert usage_record.raw_cost_usd == expected_raw
+        assert (
+            usage_record.billed_cost_usd
+            == expected_raw * _HAIKU_PRICING.margin_multiplier
+        )
+
+    @pytest.mark.asyncio
+    async def test_reservation_marked_settled(
+        self,
+        settle_service: MeteringService,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() updates reservation status to 'settled'."""
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        assert reservation.status == "settled"
+
+    @pytest.mark.asyncio
+    async def test_reservation_stores_actual_cost(
+        self,
+        settle_service: MeteringService,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() sets actual_cost_usd to the calculated billed cost."""
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        expected_billed = (
+            (
+                Decimal(1000) * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal(500) * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal(1000)
+            * _HAIKU_PRICING.margin_multiplier
+        )
+        assert reservation.actual_cost_usd == expected_billed
+
+    @pytest.mark.asyncio
+    async def test_reservation_stores_settled_at(
+        self,
+        settle_service: MeteringService,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() sets settled_at timestamp."""
+        assert reservation.settled_at is None
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        assert reservation.settled_at is not None
+
+    @pytest.mark.asyncio
+    async def test_uses_savepoint(
+        self,
+        settle_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() wraps operations in a savepoint (begin_nested)."""
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        mock_db_with_savepoint.begin_nested.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_failure_does_not_raise(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """Settlement failure (DB error) is caught — reservation stays held."""
+        mock_db_with_savepoint.execute.side_effect = RuntimeError("DB error")
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        # Should not raise
+        await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        # Fail-closed: reservation stays held for background sweep
+        assert reservation.status == "held"
+
+    @pytest.mark.asyncio
+    async def test_pricing_failure_stays_held(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """Pricing failure inside savepoint is caught — reservation stays held."""
+        mock_admin_config.is_model_registered.return_value = False
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        assert reservation.status == "held"
+
+    @pytest.mark.asyncio
+    async def test_already_settled_is_noop(
+        self,
+        settle_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() on non-held reservation is a no-op."""
+        reservation.status = "settled"
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        mock_db_with_savepoint.add.assert_not_called()
+        mock_db_with_savepoint.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_failure_logs_error(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Settlement failure logs error with reservation and user IDs."""
+        mock_db_with_savepoint.execute.side_effect = RuntimeError("DB error")
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        with caplog.at_level(logging.ERROR):
+            await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        assert any(
+            "Settlement failed" in r.message and str(reservation.id) in r.message
+            for r in caplog.records
+        )
+
+
+# =============================================================================
+# TestRelease
+# =============================================================================
+
+
+class TestRelease:
+    """Tests for MeteringService.release() — held reservation release.
+
+    REQ-030 §5.5: Decrements held_balance_usd and marks reservation as
+    'released' when the LLM call fails. Errors are logged, not raised.
+    """
+
+    @pytest.fixture
+    def reservation(self) -> UsageReservation:
+        """Pre-built held reservation from a prior reserve() call."""
+        return _make_held_reservation()
+
+    @pytest.mark.asyncio
+    async def test_decrements_held_balance(
+        self,
+        service: MeteringService,
+        mock_db: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """release() decrements held_balance_usd by estimated cost."""
+        await service.release(reservation)
+        execute_calls = mock_db.execute.call_args_list
+        assert len(execute_calls) == 1
+        sql_arg = str(execute_calls[0][0][0])
+        assert "held_balance_usd" in sql_arg
+        params = execute_calls[0][0][1]
+        assert params["amount"] == reservation.estimated_cost_usd
+        assert params["user_id"] == _USER_ID
+
+    @pytest.mark.asyncio
+    async def test_reservation_marked_released(
+        self,
+        service: MeteringService,
+        reservation: UsageReservation,
+    ) -> None:
+        """release() updates reservation status to 'released'."""
+        await service.release(reservation)
+        assert reservation.status == "released"
+
+    @pytest.mark.asyncio
+    async def test_reservation_stores_settled_at(
+        self,
+        service: MeteringService,
+        reservation: UsageReservation,
+    ) -> None:
+        """release() sets settled_at timestamp."""
+        assert reservation.settled_at is None
+        await service.release(reservation)
+        assert reservation.settled_at is not None
+
+    @pytest.mark.asyncio
+    async def test_flushes_session(
+        self,
+        service: MeteringService,
+        mock_db: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """release() flushes the session after releasing."""
+        await service.release(reservation)
+        mock_db.flush.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_failure_does_not_raise(
+        self,
+        mock_db: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """Release failure is caught — reservation stays held."""
+        mock_db.execute.side_effect = RuntimeError("DB error")
+        service = MeteringService(mock_db, mock_admin_config)
+        # Should not raise
+        await service.release(reservation)
+        # Fail-closed: hold remains for background sweep
+        assert reservation.status == "held"
+
+    @pytest.mark.asyncio
+    async def test_already_released_is_noop(
+        self,
+        service: MeteringService,
+        mock_db: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """release() on non-held reservation is a no-op."""
+        reservation.status = "released"
+        await service.release(reservation)
+        mock_db.execute.assert_not_called()
+        mock_db.flush.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_failure_logs_error(
+        self,
+        mock_db: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Release failure logs error with reservation and user IDs."""
+        mock_db.execute.side_effect = RuntimeError("DB error")
+        service = MeteringService(mock_db, mock_admin_config)
+        with caplog.at_level(logging.ERROR):
+            await service.release(reservation)
+        assert any(
+            "Release failed" in r.message and str(reservation.id) in r.message
+            for r in caplog.records
+        )

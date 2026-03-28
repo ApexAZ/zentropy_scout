@@ -130,7 +130,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §5.2 (reserve spec), §2.3 (estimation formula). Read `backend/app/services/metering_service.py` (current class), `backend/app/services/admin_config_service.py` (pricing/routing lookups). | `req-reader` | |
 | | **TDD:** Test happy path (reservation created, held_balance incremented). Test pricing lookup failure propagates (no reservation created). Test max_tokens=None uses default. Test estimated cost calculation matches formula. | | |
 | | **Done when:** `reserve()` creates reservation, increments held balance, returns UsageReservation. Pricing errors propagate. | | |
-| 8 | **MeteringService.settle() + release()** — Add `settle()` (wraps all recording in savepoint) and `release()` (decrements held balance on LLM failure) to `backend/app/services/metering_service.py`. | `plan, tdd, security` | ⬜ |
+| 8 | **MeteringService.settle() + release()** — Add `settle()` (wraps all recording in savepoint) and `release()` (decrements held balance on LLM failure) to `backend/app/services/metering_service.py`. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-030 §5.3 (settle spec), §5.5 (release spec). Read existing `record_and_debit()` in `metering_service.py` (being replaced). | `req-reader` | |
 | | **TDD:** Test settle happy path (usage record + credit transaction + balance debit + held release + reservation settled). Test settle savepoint rollback on failure (reservation stays held = fail-closed). Test release happy path (held decremented, status=released). Test release failure logged (hold stays). | | |
 | | **Done when:** `settle()` atomically records + debits + releases hold. `release()` restores held balance. Both handle errors gracefully. | | |
