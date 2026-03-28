@@ -90,7 +90,7 @@ export function OnboardingShell({
 					</span>
 				</div>
 				<div className="mx-auto mt-2 max-w-3xl">
-					<Progress value={progressPercent} />
+					<Progress value={progressPercent} aria-label="Onboarding progress" />
 				</div>
 			</header>
 

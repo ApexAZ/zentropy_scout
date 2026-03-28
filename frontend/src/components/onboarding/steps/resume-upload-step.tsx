@@ -303,7 +303,7 @@ export function ResumeUploadStep() {
 				>
 					<Loader2 className="text-primary mx-auto mb-3 h-8 w-8 animate-spin" />
 					<p className="mb-3 font-medium">Parsing resume...</p>
-					<Progress value={progress} />
+					<Progress value={progress} aria-label="Upload progress" />
 				</div>
 			)}
 

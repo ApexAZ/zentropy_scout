@@ -7,6 +7,8 @@
  * B. WCAG 2.1 AA — Public Pages — axe-core audits for /, /login, /register.
  * C. WCAG 2.1 AA — Authenticated Pages — axe-core audits for /dashboard,
  *    /persona/basic-info, /resumes, /applications, /settings.
+ * D. WCAG 2.1 AA — Complex Pages — axe-core audits for /onboarding,
+ *    /jobs/{id}/review, and dashboard with chat panel open.
  */
 
 import { expect, test } from "./base-test";
@@ -14,7 +16,15 @@ import { expect, test } from "./base-test";
 import { runAxeAudit } from "../utils/axe-helper";
 import { setupApplicationsListMocks } from "../utils/app-tracking-api-mocks";
 import { setupUnauthMocks } from "../utils/auth-api-mocks";
-import { setupOnboardedUserMocks } from "../utils/onboarding-api-mocks";
+import { setupChatMocks } from "../utils/chat-api-mocks";
+import {
+	JOB_POSTING_ID,
+	setupGhostwriterReviewMocks,
+} from "../utils/ghostwriter-api-mocks";
+import {
+	setupNewOnboardingMocks,
+	setupOnboardedUserMocks,
+} from "../utils/onboarding-api-mocks";
 import { setupBasicInfoEditorMocks } from "../utils/persona-update-api-mocks";
 import { setupResumeListMocks } from "../utils/resume-api-mocks";
 import { setupSettingsMocks } from "../utils/settings-api-mocks";
@@ -147,6 +157,48 @@ test.describe("WCAG 2.1 AA — Authenticated Pages", () => {
 	}) => {
 		await setupSettingsMocks(page);
 		await page.goto("/settings", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// D. WCAG 2.1 AA — Complex Pages (3 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("WCAG 2.1 AA — Complex Pages", () => {
+	test("onboarding step 1 (/onboarding) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupNewOnboardingMocks(page);
+		await page.goto("/onboarding", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("ghostwriter review (/jobs/{id}/review) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupGhostwriterReviewMocks(page);
+		await page.goto(`/jobs/${JOB_POSTING_ID}/review`, {
+			waitUntil: "networkidle",
+		});
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("dashboard with chat panel open has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupChatMocks(page);
+		await page.goto("/dashboard", { waitUntil: "networkidle" });
+
+		// Open the chat panel
+		await page.getByRole("button", { name: "Toggle chat" }).click();
+		await expect(page.locator('[data-slot="chat-message-list"]')).toBeVisible();
 
 		const results = await runAxeAudit(page);
 		expect(results.violations).toEqual([]);
