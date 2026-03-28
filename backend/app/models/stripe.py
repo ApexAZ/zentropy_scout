@@ -99,6 +99,7 @@ class StripePurchase(Base, TimestampMixin):
     stripe_payment_intent: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
+        index=True,
     )
     amount_cents: Mapped[int] = mapped_column(
         Integer,
