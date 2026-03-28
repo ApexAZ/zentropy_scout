@@ -242,7 +242,7 @@ Phase 6: Integration Testing & Polish
 
 ## Phase 5: Background Reconciliation
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add the stale reservation sweep and balance/ledger drift detection. Depends on Phase 2 (reservation pipeline must exist).*
 
@@ -270,7 +270,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §11.2 (drift detection). | `req-reader` | |
 | | **TDD:** Test drift detection finds mismatches. Test no drift returns clean. | | |
 | | **Done when:** Drift check runs, logs errors on mismatch, returns clean on match. | | |
-| 24 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 24 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 5 Notes
 
