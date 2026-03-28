@@ -222,7 +222,7 @@ Phase 6: Integration Testing & Polish
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 18 | **Purchase display rounding fix** — Change `int()` to `int(round())` in `backend/app/api/v1/credits.py` line 184. Fix F-08 (int truncation). | `plan, tdd` | ⬜ |
+| 18 | **Purchase display rounding fix** — Change `int()` to `int(round())` in `backend/app/api/v1/credits.py` line 184. Fix F-08 (int truncation). | `plan, tdd` | ✅ |
 | | **Read:** REQ-030 §10.1. Read `backend/app/api/v1/credits.py` (purchase history endpoint). Read `backend/tests/unit/test_credits_api.py`. | `req-reader` | |
 | | **TDD:** Test that sub-cent amounts round correctly (e.g., Decimal("4.999") → 5 cents, not 4). | | |
 | | **Done when:** `format_usd_display` receives correctly rounded cents. | | |

@@ -1,8 +1,8 @@
 """Credits API router.
 
-REQ-029 §8.1–§8.3: Endpoints for pack listing (public), checkout session
-creation (auth), and purchase history (auth). All follow REQ-006 response
-envelope conventions.
+REQ-029 §8.1–§8.3; REQ-030 §10.1: Endpoints for pack listing (public),
+checkout session creation (auth), and purchase history (auth). All follow
+REQ-006 response envelope conventions.
 """
 
 from decimal import Decimal
@@ -181,7 +181,9 @@ async def get_purchases(
             PurchaseResponse(
                 id=str(txn.id),
                 amount_usd=_DECIMAL_FMT.format(txn.amount_usd),
-                amount_display=format_usd_display(int(txn.amount_usd * Decimal(100))),
+                amount_display=format_usd_display(
+                    int(round(txn.amount_usd * Decimal(100)))
+                ),
                 transaction_type=txn.transaction_type,
                 description=txn.description,
                 created_at=txn.created_at,
