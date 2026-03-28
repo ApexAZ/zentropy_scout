@@ -30,6 +30,7 @@ from app.core.oauth import (
 )
 from app.core.oauth_client import exchange_code_for_tokens, fetch_userinfo
 from app.core.rate_limiting import limiter
+from app.services.stripe_service import grant_signup_credits
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +238,7 @@ async def oauth_callback(
 
     # Find or create user (account linking logic)
     try:
-        user, _created = await find_or_create_user_for_oauth(
+        user, is_new_user = await find_or_create_user_for_oauth(
             db=db,
             email=email,
             email_verified_by_provider=email_verified,
@@ -256,6 +257,16 @@ async def oauth_callback(
             "Please sign in with your original method first."
         ) from None
     await db.commit()
+
+    # Grant signup credits for new users (REQ-029 §12, REQ-021 §8)
+    # Savepoint ensures partial grant failure doesn't corrupt the session.
+    if is_new_user:
+        try:
+            async with db.begin_nested():
+                await grant_signup_credits(db, user_id=user.id)
+            await db.commit()
+        except Exception:
+            logger.exception("Signup grant failed for user %s", user.id)
 
     # REQ-022 §5.1: ADMIN_EMAILS bootstrap — auto-promote matching users on login
     admin_emails = [

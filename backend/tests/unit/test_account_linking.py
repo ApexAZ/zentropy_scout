@@ -5,7 +5,6 @@ Shared logic used by OAuth callback and magic link verification.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,8 +15,6 @@ from app.core.account_linking import (
 )
 from app.repositories.account_repository import AccountRepository
 from app.repositories.user_repository import UserRepository
-
-_PATCH_GRANT = "app.core.account_linking.grant_signup_credits"
 
 
 class TestNewUserCreation:
@@ -242,88 +239,3 @@ class TestReturningUser:
         )
         assert created is False
         assert user2.id == user.id
-
-
-class TestSignupGrant:
-    """Tests for signup grant integration in account linking.
-
-    REQ-029 §12, REQ-021 §8: grant_signup_credits called for new users,
-    skipped for returning/linked users, and failures don't block creation.
-    """
-
-    async def test_grants_signup_credits_for_new_user(
-        self, db_session: AsyncSession
-    ) -> None:
-        """Calls grant_signup_credits when creating a new user."""
-        with patch(_PATCH_GRANT, new_callable=AsyncMock) as mock_grant:
-            user, created = await find_or_create_user_for_oauth(
-                db=db_session,
-                email="new-grant@example.com",
-                email_verified_by_provider=True,
-                provider="google",
-                provider_account_id="google-grant-1",
-            )
-        assert created is True
-        mock_grant.assert_awaited_once_with(db_session, user_id=user.id)
-
-    async def test_does_not_grant_for_returning_user(
-        self, db_session: AsyncSession
-    ) -> None:
-        """Does not call grant_signup_credits for returning user."""
-        await find_or_create_user_for_oauth(
-            db=db_session,
-            email="returning-grant@example.com",
-            email_verified_by_provider=True,
-            provider="google",
-            provider_account_id="google-grant-2",
-        )
-        await db_session.flush()
-
-        with patch(_PATCH_GRANT, new_callable=AsyncMock) as mock_grant:
-            user, created = await find_or_create_user_for_oauth(
-                db=db_session,
-                email="returning-grant@example.com",
-                email_verified_by_provider=True,
-                provider="google",
-                provider_account_id="google-grant-2",
-            )
-        assert created is False
-        mock_grant.assert_not_awaited()
-
-    async def test_does_not_grant_for_account_linking(
-        self, db_session: AsyncSession
-    ) -> None:
-        """Does not call grant_signup_credits when linking to existing account."""
-        await UserRepository.create(
-            db_session,
-            email="linked-grant@example.com",
-            email_verified=datetime.now(UTC),
-        )
-        await db_session.flush()
-
-        with patch(_PATCH_GRANT, new_callable=AsyncMock) as mock_grant:
-            user, created = await find_or_create_user_for_oauth(
-                db=db_session,
-                email="linked-grant@example.com",
-                email_verified_by_provider=True,
-                provider="linkedin",
-                provider_account_id="li-linked-1",
-            )
-        assert created is False
-        mock_grant.assert_not_awaited()
-
-    async def test_grant_failure_does_not_prevent_user_creation(
-        self, db_session: AsyncSession
-    ) -> None:
-        """Signup grant failure does not block user creation."""
-        with patch(_PATCH_GRANT, new_callable=AsyncMock) as mock_grant:
-            mock_grant.side_effect = Exception("Grant failed")
-            user, created = await find_or_create_user_for_oauth(
-                db=db_session,
-                email="fail-grant@example.com",
-                email_verified_by_provider=True,
-                provider="google",
-                provider_account_id="google-grant-fail",
-            )
-        assert created is True
-        assert user.email == "fail-grant@example.com"

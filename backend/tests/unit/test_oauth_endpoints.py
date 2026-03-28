@@ -26,6 +26,7 @@ _GOOGLE_CALLBACK_URL = "/api/v1/auth/callback/google"
 _OAUTH_STATE_COOKIE = "oauth_state"
 _PATCH_EXCHANGE = "app.api.v1.auth_oauth.exchange_code_for_tokens"
 _PATCH_USERINFO = "app.api.v1.auth_oauth.fetch_userinfo"
+_PATCH_GRANT = "app.api.v1.auth_oauth.grant_signup_credits"
 
 # Mock user info returned by provider
 _MOCK_GOOGLE_USERINFO = {
@@ -323,3 +324,194 @@ class TestOAuthCallback:
             for c in set_cookies
         )
         assert oauth_cookie_cleared
+
+
+# ===================================================================
+# Signup Grant — OAuth callback
+# ===================================================================
+
+
+class TestOAuthCallbackSignupGrant:
+    """Tests for signup grant integration in OAuth callback.
+
+    REQ-029 §12, REQ-021 §8: grant_signup_credits called for new OAuth users,
+    skipped for returning/linked users, and failures don't block user creation.
+    """
+
+    async def test_new_oauth_user_receives_signup_grant(self, oauth_client):
+        """New OAuth user triggers grant_signup_credits after account creation."""
+        state_cookie = create_oauth_state_cookie(
+            state="grant-state",
+            code_verifier="grant-verifier",
+            secret=TEST_AUTH_SECRET,
+        )
+
+        with (
+            patch(
+                _PATCH_EXCHANGE,
+                new_callable=AsyncMock,
+                return_value={"access_token": "mock-token"},
+            ),
+            patch(
+                _PATCH_USERINFO,
+                new_callable=AsyncMock,
+                return_value={
+                    "sub": "google-grant-new-1",
+                    "email": "grant-new@example.com",
+                    "email_verified": True,
+                    "name": "Grant User",
+                },
+            ),
+            patch(_PATCH_GRANT, new_callable=AsyncMock) as mock_grant,
+        ):
+            response = await oauth_client.get(
+                _GOOGLE_CALLBACK_URL,
+                params={"code": "auth-code", "state": "grant-state"},
+                cookies={_OAUTH_STATE_COOKIE: state_cookie},
+            )
+
+        assert response.status_code == 307
+        mock_grant.assert_awaited_once()
+
+    async def test_returning_oauth_user_does_not_receive_grant(
+        self, oauth_client, db_session
+    ):
+        """Returning user (existing provider+account_id) skips signup grant."""
+        from app.repositories.account_repository import AccountRepository
+        from app.repositories.user_repository import UserRepository
+
+        # Create existing user + account
+        user = await UserRepository.create(
+            db_session,
+            email="returning-grant@example.com",
+            email_verified=None,
+        )
+        await AccountRepository.create(
+            db_session,
+            user_id=user.id,
+            type="oauth",
+            provider="google",
+            provider_account_id="google-returning-grant-1",
+        )
+        await db_session.commit()
+
+        state_cookie = create_oauth_state_cookie(
+            state="ret-state",
+            code_verifier="ret-verifier",
+            secret=TEST_AUTH_SECRET,
+        )
+
+        with (
+            patch(
+                _PATCH_EXCHANGE,
+                new_callable=AsyncMock,
+                return_value={"access_token": "mock-token"},
+            ),
+            patch(
+                _PATCH_USERINFO,
+                new_callable=AsyncMock,
+                return_value={
+                    "sub": "google-returning-grant-1",
+                    "email": "returning-grant@example.com",
+                    "email_verified": True,
+                },
+            ),
+            patch(_PATCH_GRANT, new_callable=AsyncMock) as mock_grant,
+        ):
+            response = await oauth_client.get(
+                _GOOGLE_CALLBACK_URL,
+                params={"code": "auth-code", "state": "ret-state"},
+                cookies={_OAUTH_STATE_COOKIE: state_cookie},
+            )
+
+        assert response.status_code == 307
+        mock_grant.assert_not_awaited()
+
+    async def test_linked_account_does_not_receive_grant(
+        self, oauth_client, db_session
+    ):
+        """Linking to existing verified user skips signup grant."""
+        from datetime import UTC, datetime
+
+        from app.repositories.user_repository import UserRepository
+
+        # Create existing verified user (no account for this provider)
+        await UserRepository.create(
+            db_session,
+            email="linked-grant@example.com",
+            email_verified=datetime.now(UTC),
+        )
+        await db_session.commit()
+
+        state_cookie = create_oauth_state_cookie(
+            state="link-state",
+            code_verifier="link-verifier",
+            secret=TEST_AUTH_SECRET,
+        )
+
+        with (
+            patch(
+                _PATCH_EXCHANGE,
+                new_callable=AsyncMock,
+                return_value={"access_token": "mock-token"},
+            ),
+            patch(
+                _PATCH_USERINFO,
+                new_callable=AsyncMock,
+                return_value={
+                    "sub": "google-linked-grant-1",
+                    "email": "linked-grant@example.com",
+                    "email_verified": True,
+                    "name": "Linked User",
+                },
+            ),
+            patch(_PATCH_GRANT, new_callable=AsyncMock) as mock_grant,
+        ):
+            response = await oauth_client.get(
+                _GOOGLE_CALLBACK_URL,
+                params={"code": "auth-code", "state": "link-state"},
+                cookies={_OAUTH_STATE_COOKIE: state_cookie},
+            )
+
+        assert response.status_code == 307
+        mock_grant.assert_not_awaited()
+
+    async def test_grant_failure_does_not_block_oauth_login(self, oauth_client):
+        """Signup grant failure does not prevent OAuth user creation or login."""
+        state_cookie = create_oauth_state_cookie(
+            state="fail-state",
+            code_verifier="fail-verifier",
+            secret=TEST_AUTH_SECRET,
+        )
+
+        with (
+            patch(
+                _PATCH_EXCHANGE,
+                new_callable=AsyncMock,
+                return_value={"access_token": "mock-token"},
+            ),
+            patch(
+                _PATCH_USERINFO,
+                new_callable=AsyncMock,
+                return_value={
+                    "sub": "google-grant-fail-1",
+                    "email": "grant-fail@example.com",
+                    "email_verified": True,
+                    "name": "Fail Grant User",
+                },
+            ),
+            patch(
+                _PATCH_GRANT,
+                new_callable=AsyncMock,
+                side_effect=Exception("Grant failed"),
+            ),
+        ):
+            response = await oauth_client.get(
+                _GOOGLE_CALLBACK_URL,
+                params={"code": "auth-code", "state": "fail-state"},
+                cookies={_OAUTH_STATE_COOKIE: state_cookie},
+            )
+
+        # Login succeeds despite grant failure
+        assert response.status_code == 307
+        assert settings.auth_cookie_name in response.headers.get("set-cookie", "")
