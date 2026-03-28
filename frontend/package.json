@@ -13,8 +13,12 @@
 		"test": "vitest",
 		"test:run": "vitest run",
 		"test:coverage": "vitest run --coverage",
-		"test:e2e": "playwright test",
-		"test:e2e:ui": "playwright test --ui"
+		"test:e2e": "playwright test --project=chromium",
+		"test:e2e:ui": "playwright test --ui",
+		"test:e2e:chromium": "playwright test --project=chromium",
+		"test:e2e:firefox": "playwright test --project=firefox",
+		"test:e2e:webkit": "playwright test --project=webkit",
+		"test:e2e:all": "playwright test"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",
