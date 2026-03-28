@@ -1,7 +1,9 @@
 """Metered provider wrappers.
 
-REQ-020 §6.2, §6.5: Proxy providers that record token usage
-after successful LLM/embedding calls and debit user balances.
+REQ-030 §5.4: MeteredLLMProvider.complete() uses reserve→call→settle
+pattern — pre-debit reservation before LLM call, settlement after.
+REQ-030 §5.6: stream() logs warning about unmetered streaming.
+REQ-020 §6.5: MeteredEmbeddingProvider records embedding usage.
 REQ-028 §4: Cross-provider dispatch via registry — routes each
 task to the correct provider+model based on DB routing table.
 """
@@ -108,11 +110,11 @@ class MeteredLLMProvider(LLMProvider):
         json_mode: bool = False,
         _model_override: str | None = None,
     ) -> LLMResponse:
-        """Dispatch to the correct provider, then record usage.
+        """Dispatch to the correct provider using reserve→call→settle.
 
-        REQ-028 §4.2: Resolves (provider, model) from DB routing table.
-        Dispatches to the correct adapter from the registry.
-        Falls back to inner provider when no routing is configured.
+        REQ-030 §5.4: Reserves estimated cost before the LLM call,
+        settles with actual cost after success, or releases the hold
+        on failure. Eliminates the post-debit fire-and-forget pattern.
 
         Args:
             messages: Conversation history.
@@ -129,34 +131,52 @@ class MeteredLLMProvider(LLMProvider):
 
         Raises:
             ProviderError: If routed provider is not in registry.
+            NoPricingConfigError: If no routing/pricing exists.
+            UnregisteredModelError: If routed model not in registry.
         """
-        # REQ-028 §4: Resolve cross-provider routing from DB.
+        # 1. Resolve cross-provider routing from DB
         routing = await self._admin_config.get_routing_for_task(task.value)
         adapter, model_override = self._resolve_adapter(routing)
 
-        response = await adapter.complete(
-            messages,
-            task,
+        # 2. Reserve estimated cost (fail-closed: no reservation = no LLM call)
+        reservation = await self._metering_service.reserve(
+            user_id=self._user_id,
+            task_type=task.value,
             max_tokens=max_tokens,
-            temperature=temperature,
-            stop_sequences=stop_sequences,
-            tools=tools,
-            json_mode=json_mode,
-            model_override=model_override,
         )
+
+        # 3. Make the LLM call (release hold on any adapter failure)
         try:
-            await self._metering_service.record_and_debit(
-                user_id=self._user_id,
-                provider=adapter.provider_name,
-                model=response.model,
-                task_type=task.value,
-                input_tokens=max(0, response.input_tokens),
-                output_tokens=max(0, response.output_tokens),
+            response = await adapter.complete(
+                messages,
+                task,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stop_sequences=stop_sequences,
+                tools=tools,
+                json_mode=json_mode,
+                model_override=model_override,
             )
         except Exception:
-            logger.exception(
-                "Failed to record metered usage for user %s", self._user_id
-            )
+            try:
+                await self._metering_service.release(reservation)
+            except Exception:
+                logger.exception(
+                    "Release also failed for user %s — hold orphaned until sweep",
+                    self._user_id,
+                )
+            raise
+
+        # 4. Settle with actual cost (settle() handles its own errors
+        # internally via savepoint + catch — safe to call without guard)
+        await self._metering_service.settle(
+            reservation=reservation,
+            provider=adapter.provider_name,
+            model=response.model,
+            input_tokens=max(0, response.input_tokens),
+            output_tokens=max(0, response.output_tokens),
+        )
+
         return response
 
     async def stream(
@@ -168,10 +188,10 @@ class MeteredLLMProvider(LLMProvider):
     ) -> AsyncGenerator[str, None]:
         """Stream from the correct provider based on DB routing.
 
-        REQ-028 §4.2: Applies cross-provider dispatch to streaming.
-        Note: model_override is not supported for streaming — the adapter
-        uses its default model for the task. The correct provider is
-        selected, but DB-configured model is not applied.
+        REQ-030 §5.6: Logs a warning because stream metering is not yet
+        implemented — usage will not be recorded. Full stream metering
+        requires accumulating token counts from provider-specific stream
+        APIs and is deferred to a future REQ.
 
         Args:
             messages: Conversation history.
@@ -182,6 +202,11 @@ class MeteredLLMProvider(LLMProvider):
         Yields:
             Text chunks from the dispatched provider's stream.
         """
+        logger.warning(
+            "stream() called with metering enabled but stream metering is not "
+            "implemented — usage will not be recorded for user %s",
+            self._user_id,
+        )
         routing = await self._admin_config.get_routing_for_task(task.value)
         adapter, _model_override = self._resolve_adapter(routing)
 
