@@ -3,7 +3,8 @@
 REQ-030 §5.4: MeteredLLMProvider.complete() uses reserve→call→settle
 pattern — pre-debit reservation before LLM call, settlement after.
 REQ-030 §5.6: stream() logs warning about unmetered streaming.
-REQ-020 §6.5: MeteredEmbeddingProvider records embedding usage.
+REQ-030 §5.7: MeteredEmbeddingProvider.embed() uses reserve→embed→settle
+pattern with token estimation heuristic.
 REQ-028 §4: Cross-provider dispatch via registry.
 """
 
@@ -32,6 +33,9 @@ _PROVIDER_GEMINI = "gemini"
 _KEY_KWARGS = "kwargs"
 _KEY_MODEL_OVERRIDE = "model_override"
 _PROVIDER_UNAVAILABLE = "Provider unavailable"
+_EMBEDDING_SERVICE_DOWN = "Embedding service down"
+_NO_PRICING_MSG = "No pricing"
+_EMBED_HELLO = ["Hello"]
 
 
 # =============================================================================
@@ -46,8 +50,6 @@ def mock_metering() -> AsyncMock:
     service.reserve = AsyncMock(return_value=MagicMock())
     service.settle = AsyncMock(return_value=None)
     service.release = AsyncMock(return_value=None)
-    # Keep record_and_debit for embedding tests (removed in §10)
-    service.record_and_debit = AsyncMock(return_value=None)
     return service
 
 
@@ -200,8 +202,8 @@ class TestMeteredLLMProviderComplete:
         mock_metering: AsyncMock,
     ) -> None:
         """If reserve() raises, adapter.complete() is never called."""
-        mock_metering.reserve.side_effect = RuntimeError("No pricing")
-        with pytest.raises(RuntimeError, match="No pricing"):
+        mock_metering.reserve.side_effect = RuntimeError(_NO_PRICING_MSG)
+        with pytest.raises(RuntimeError, match=_NO_PRICING_MSG):
             await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         assert len(inner_llm.calls) == 0
         mock_metering.settle.assert_not_called()
@@ -475,67 +477,109 @@ class TestMeteredLLMProviderCrossProviderDispatch:
 
 
 class TestMeteredEmbeddingProviderEmbed:
-    """MeteredEmbeddingProvider.embed() delegates and records usage."""
+    """REQ-030 §5.7: MeteredEmbeddingProvider.embed() uses reserve→embed→settle."""
 
     async def test_returns_inner_result(
         self, metered_embedding: MeteredEmbeddingProvider
     ) -> None:
         """embed() returns the inner provider's result unchanged."""
-        result = await metered_embedding.embed(["Hello"])
+        result = await metered_embedding.embed(_EMBED_HELLO)
         assert result.model == _MOCK_EMBEDDING_MODEL
         assert result.dimensions == 768
         assert len(result.vectors) == 1
 
-    async def test_records_usage_after_success(
+    async def test_reserve_called_with_estimated_tokens(
         self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
     ) -> None:
-        """embed() calls record_and_debit after successful call."""
-        await metered_embedding.embed(["Hello"])
-        mock_metering.record_and_debit.assert_called_once()
+        """reserve() receives estimated input tokens from sum(len(text))/4."""
+        await metered_embedding.embed(["Hello world"])  # len=11, 11//4 = 2
+        mock_metering.reserve.assert_called_once_with(
+            user_id=TEST_USER_ID,
+            task_type="embedding",
+            max_tokens=2,
+        )
 
-    async def test_records_correct_arguments(
+    async def test_settle_called_after_success(
         self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
     ) -> None:
-        """record_and_debit receives correct args for embedding."""
-        await metered_embedding.embed(["Hello world"])
-        call_kwargs = mock_metering.record_and_debit.call_args.kwargs
-        assert call_kwargs["user_id"] == TEST_USER_ID
-        assert call_kwargs["provider"] == _MOCK_PROVIDER_NAME
-        assert call_kwargs["model"] == _MOCK_EMBEDDING_MODEL
-        assert call_kwargs["task_type"] == "embedding"
-        assert call_kwargs["output_tokens"] == 0
-        # MockEmbeddingProvider: total_tokens = len(texts) * 10
-        assert call_kwargs["input_tokens"] == 10
+        """settle() is called with reservation and actual token count."""
+        await metered_embedding.embed(_EMBED_HELLO)
+        mock_metering.settle.assert_called_once_with(
+            reservation=mock_metering.reserve.return_value,
+            provider=_MOCK_PROVIDER_NAME,
+            model=_MOCK_EMBEDDING_MODEL,
+            input_tokens=10,  # MockEmbeddingProvider: len(texts) * 10
+            output_tokens=0,
+        )
 
-    async def test_does_not_record_on_error(
+    async def test_release_called_on_embed_failure(
         self,
         metered_embedding: MeteredEmbeddingProvider,
         inner_embedding: MockEmbeddingProvider,
         mock_metering: AsyncMock,
     ) -> None:
-        """If inner.embed() raises, no usage is recorded."""
-
+        """If inner.embed() raises, release() frees the hold."""
         inner_embedding.embed = AsyncMock(
-            side_effect=RuntimeError("Embedding service down")
+            side_effect=RuntimeError(_EMBEDDING_SERVICE_DOWN)
+        )
+        with pytest.raises(RuntimeError, match=_EMBEDDING_SERVICE_DOWN):
+            await metered_embedding.embed(_EMBED_HELLO)
+        mock_metering.release.assert_called_once_with(
+            mock_metering.reserve.return_value
         )
 
-        with pytest.raises(RuntimeError, match="Embedding service down"):
-            await metered_embedding.embed(["Hello"])
-        mock_metering.record_and_debit.assert_not_called()
+    async def test_embed_failure_propagates_after_release(
+        self,
+        metered_embedding: MeteredEmbeddingProvider,
+        inner_embedding: MockEmbeddingProvider,
+        mock_metering: AsyncMock,
+    ) -> None:
+        """If inner.embed() raises, exception propagates and settle is skipped."""
+        inner_embedding.embed = AsyncMock(
+            side_effect=RuntimeError(_EMBEDDING_SERVICE_DOWN)
+        )
+        with pytest.raises(RuntimeError, match=_EMBEDDING_SERVICE_DOWN):
+            await metered_embedding.embed(_EMBED_HELLO)
+        mock_metering.settle.assert_not_called()
 
-    async def test_returns_result_when_recording_fails(
+    async def test_release_failure_does_not_mask_provider_error(
+        self,
+        metered_embedding: MeteredEmbeddingProvider,
+        inner_embedding: MockEmbeddingProvider,
+        mock_metering: AsyncMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """If both embed() and release() fail, original exception propagates."""
+        inner_embedding.embed = AsyncMock(
+            side_effect=RuntimeError(_EMBEDDING_SERVICE_DOWN)
+        )
+        mock_metering.release.side_effect = RuntimeError(_DB_ERROR_MSG)
+        with (
+            caplog.at_level(logging.ERROR),
+            pytest.raises(RuntimeError, match=_EMBEDDING_SERVICE_DOWN),
+        ):
+            await metered_embedding.embed(_EMBED_HELLO)
+        mock_metering.settle.assert_not_called()
+        assert any("orphaned" in record.message for record in caplog.records)
+
+    async def test_reserve_failure_prevents_embed_call(
+        self,
+        metered_embedding: MeteredEmbeddingProvider,
+        inner_embedding: MockEmbeddingProvider,
+        mock_metering: AsyncMock,
+    ) -> None:
+        """If reserve() raises, inner.embed() is never called."""
+        mock_metering.reserve.side_effect = RuntimeError(_NO_PRICING_MSG)
+        with pytest.raises(RuntimeError, match=_NO_PRICING_MSG):
+            await metered_embedding.embed(_EMBED_HELLO)
+        assert len(inner_embedding.calls) == 0
+        mock_metering.settle.assert_not_called()
+        mock_metering.release.assert_not_called()
+
+    async def test_settle_uses_estimate_for_chunked_batch(
         self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
     ) -> None:
-        """If record_and_debit fails, result is still returned."""
-        mock_metering.record_and_debit.side_effect = RuntimeError(_DB_ERROR_MSG)
-        result = await metered_embedding.embed(["Hello"])
-        assert result.model == _MOCK_EMBEDDING_MODEL
-
-    async def test_estimates_tokens_for_chunked_batch(
-        self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
-    ) -> None:
-        """When total_tokens is -1 (chunked), estimate as sum(len(text))/4."""
-        # Patch inner to return total_tokens=-1 (chunked batch)
+        """When total_tokens is -1 (chunked), settle uses sum(len(text))/4 estimate."""
         original_embed = metered_embedding._inner.embed  # noqa: SLF001
 
         async def embed_with_neg_tokens(texts: list[str]) -> EmbeddingResult:
@@ -545,9 +589,17 @@ class TestMeteredEmbeddingProviderEmbed:
 
         metered_embedding._inner.embed = embed_with_neg_tokens  # type: ignore[assignment]  # noqa: SLF001
 
-        await metered_embedding.embed(["Hello world"])  # len=11, //4 = 2
-        call_kwargs = mock_metering.record_and_debit.call_args.kwargs
-        assert call_kwargs["input_tokens"] == 2  # 11 // 4 = 2
+        await metered_embedding.embed(["Hello world"])  # len=11, 11//4 = 2
+        call_kwargs = mock_metering.settle.call_args.kwargs
+        assert call_kwargs["input_tokens"] == 2
+
+    async def test_settle_receives_zero_output_tokens(
+        self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
+    ) -> None:
+        """Embedding settle() always passes output_tokens=0."""
+        await metered_embedding.embed(_EMBED_HELLO)
+        call_kwargs = mock_metering.settle.call_args.kwargs
+        assert call_kwargs["output_tokens"] == 0
 
 
 # =============================================================================

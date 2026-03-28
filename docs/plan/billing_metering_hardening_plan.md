@@ -138,7 +138,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §5.4 (complete rewrite), §5.6 (stream warning). Read `backend/app/providers/metered_provider.py` (current complete/stream). Read `backend/tests/unit/test_metered_provider.py` (existing tests to update). | `req-reader` | |
 | | **TDD:** Test reserve→call→settle happy path. Test reserve→call fails→release path (user not charged). Test reserve fails→no LLM call (error propagates). Test stream() logs warning when metering enabled. Update existing metered_provider tests for new behavior. | | |
 | | **Done when:** `complete()` uses reservation pattern. Double `except Exception` eliminated. `stream()` logs warning. All existing tests updated and passing. | | |
-| 10 | **MeteredEmbeddingProvider.embed() rewrite** — Adapt `embed()` in `backend/app/providers/metered_provider.py` to use reserve→embed→settle pattern with token estimation heuristic. | `plan, tdd, provider` | ⬜ |
+| 10 | **MeteredEmbeddingProvider.embed() rewrite** — Adapt `embed()` in `backend/app/providers/metered_provider.py` to use reserve→embed→settle pattern with token estimation heuristic. | `plan, tdd, provider` | ✅ |
 | | **Read:** REQ-030 §5.7 (embedding provider). Read existing `embed()` in `metered_provider.py`. | `req-reader` | |
 | | **TDD:** Test reserve→embed→settle flow. Test token estimation (sum(len)/4). Test release on embed failure. | | |
 | | **Done when:** `embed()` uses reservation pattern. Estimation uses existing heuristic. | | |
