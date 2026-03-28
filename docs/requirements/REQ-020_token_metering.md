@@ -5,6 +5,8 @@
 **PRD Reference:** §6 Technical Architecture
 **Last Updated:** 2026-02-27
 
+> **Amendment Notice:** REQ-030 (Billing & Metering Hardening) supersedes §6.2–6.3 (metering pipeline) and amends §2.2 (balance tracking), §7.1 (balance gating), §11 (configuration). The post-debit fire-and-forget pattern in §6.2–6.3 is replaced by a pre-debit reservation pattern. When REQ-020 and REQ-030 conflict, **REQ-030 takes precedence**.
+
 ---
 
 ## 1. Overview

@@ -7,6 +7,8 @@
 **Last Updated:** 2026-03-10
 
 > **Supersession Notice (v0.6):** REQ-029 (Stripe Checkout Integration) supersedes the Stripe SDK and implementation sections of this document. See REQ-029 §1 for the precise traceability map. This document remains the authoritative source for design decision rationale (§2), signup grant integration points (§8), frontend UX patterns (§9.3 Suspense/toast/query keys), webhook rate limiting rationale (§11.2), and resolved questions (§15). When REQ-021 and REQ-029 conflict, **REQ-029 takes precedence**.
+>
+> **Amendment Notice:** REQ-030 (Billing & Metering Hardening) amends the balance model by adding a `held_balance_usd` concept for pre-debit reservations, and amends §10.3 (configuration matrix — invalid combo rejected in production). When REQ-021 and REQ-030 conflict, **REQ-030 takes precedence**.
 
 ---
 

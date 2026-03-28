@@ -6,6 +6,8 @@
 **Backlog Item:** #13
 **Last Updated:** 2026-03-10
 
+> **Amendment Notice:** REQ-030 (Billing & Metering Hardening) amends §7.1 (webhook routing — adds `checkout.session.expired`), §7.3 (refund handler — savepoint, cap, null guard), §4.3 (schema — type alignment), §6.3 (customer creation — savepoint), §8.3 (purchase display — rounding), §9.4 (frontend — query invalidation), §11.4 (config — reject invalid combo). When REQ-029 and REQ-030 conflict, **REQ-030 takes precedence**.
+
 ---
 
 ## 1. Overview
