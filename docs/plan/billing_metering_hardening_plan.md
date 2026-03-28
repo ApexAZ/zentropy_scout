@@ -85,7 +85,7 @@ Phase 6: Integration Testing & Polish
 | | **Read:** REQ-030 §4.1 (users amendment), §4.2 (usage_reservations), §4.3 (type alignment), §7.3 (expired status). Read `backend/app/models/user.py`, `backend/app/models/usage.py` (existing patterns), `backend/app/models/stripe.py`. | `req-reader` | |
 | | **TDD:** Write tests for model instantiation, constraint validation (status values, positive estimated_cost, non-negative actual_cost), held_balance_usd default. | | |
 | | **Done when:** Models importable, constraints match REQ-030 §4.2 exactly. | | |
-| 3 | **Alembic migration 028** — Create `backend/migrations/versions/028_billing_hardening.py`. Add `held_balance_usd` to `users`, create `usage_reservations` table with indexes, alter `grant_cents` BIGINT→INTEGER on `stripe_purchases` and `funding_packs`, update `stripe_purchases` status constraint to include `'expired'`. Test upgrade AND downgrade. | `plan, tdd, db, commands` | ⬜ |
+| 3 | **Alembic migration 028** — Create `backend/migrations/versions/028_billing_hardening.py`. Add `held_balance_usd` to `users`, create `usage_reservations` table with indexes, alter `grant_cents` BIGINT→INTEGER on `stripe_purchases` and `funding_packs`, update `stripe_purchases` status constraint to include `'expired'`. Test upgrade AND downgrade. | `plan, tdd, db, commands` | ✅ |
 | | **Read:** REQ-030 §4.4 (migration spec). Read `backend/migrations/versions/027_stripe_payment_intent_index.py` (revision chain). | `req-reader` | |
 | | **TDD:** Write migration test verifying upgrade creates columns/table, downgrade removes them. Verify `grant_cents` type changes. Verify constraint includes `expired`. | | |
 | | **Run:** `alembic upgrade head && alembic downgrade -1 && alembic upgrade head` | | |
