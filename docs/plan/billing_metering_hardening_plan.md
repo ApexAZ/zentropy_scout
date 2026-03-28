@@ -80,8 +80,8 @@ Phase 6: Integration Testing & Polish
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 1 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Verdicts: CLEAR → mark complete, proceed. VULNERABLE → fix immediately. FALSE POSITIVE → complete full PROSECUTION PROTOCOL before dismissing. NEEDS INVESTIGATION → escalate to user via AskUserQuestion. | `plan, security` | ⬜ |
-| 2 | **UsageReservation ORM model** — Create `backend/app/models/usage_reservation.py` with the `UsageReservation` model matching REQ-030 §4.2 schema. Include all columns, check constraints, and indexes. Add `held_balance_usd` column to User model (`backend/app/models/user.py`). Add `'expired'` to StripePurchase status constraint (`backend/app/models/stripe.py`). | `plan, tdd, db` | ⬜ |
+| 1 | **Security triage gate** — Skipped per user (other agent addressing findings). | `plan, security` | ✅ |
+| 2 | **UsageReservation ORM model** — Create `backend/app/models/usage_reservation.py` with the `UsageReservation` model matching REQ-030 §4.2 schema. Include all columns, check constraints, and indexes. Add `held_balance_usd` column to User model (`backend/app/models/user.py`). Add `'expired'` to StripePurchase status constraint (`backend/app/models/stripe.py`). | `plan, tdd, db` | ✅ |
 | | **Read:** REQ-030 §4.1 (users amendment), §4.2 (usage_reservations), §4.3 (type alignment), §7.3 (expired status). Read `backend/app/models/user.py`, `backend/app/models/usage.py` (existing patterns), `backend/app/models/stripe.py`. | `req-reader` | |
 | | **TDD:** Write tests for model instantiation, constraint validation (status values, positive estimated_cost, non-negative actual_cost), held_balance_usd default. | | |
 | | **Done when:** Models importable, constraints match REQ-030 §4.2 exactly. | | |

@@ -5,6 +5,7 @@ REQ-013 §6.1 - Expanded with auth columns.
 REQ-020 §4.1 - balance_usd for token metering.
 REQ-022 §4.1 - is_admin for admin access control.
 REQ-029 §4.1 - stripe_customer_id for Stripe Customer mapping.
+REQ-030 §4.1 - held_balance_usd for reservation-based metering.
 """
 
 import uuid
@@ -12,7 +13,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Numeric, String, Text, text
+from sqlalchemy import Boolean, CheckConstraint, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -41,11 +42,18 @@ class User(Base, TimestampMixin):
         password_hash: bcrypt hash. NULL for OAuth-only users.
         token_invalidated_before: JWTs issued before this are rejected.
         balance_usd: Cached balance in USD (Numeric 10,6). Defaults to 0.
+        held_balance_usd: Sum of active reservation holds (Numeric 10,6). Defaults to 0.
         is_admin: Whether the user has admin privileges. Defaults to False.
         stripe_customer_id: Stripe Customer ID (cus_xxx). NULL until first purchase.
     """
 
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "held_balance_usd >= 0",
+            name="ck_users_held_balance_nonneg",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -76,6 +84,11 @@ class User(Base, TimestampMixin):
         nullable=True,
     )
     balance_usd: Mapped[Decimal] = mapped_column(
+        Numeric(10, 6),
+        nullable=False,
+        server_default=text("0.000000"),
+    )
+    held_balance_usd: Mapped[Decimal] = mapped_column(
         Numeric(10, 6),
         nullable=False,
         server_default=text("0.000000"),
