@@ -178,8 +178,8 @@ Phase 6: Integration Testing & Polish
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 13 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). | `plan, security` | ⬜ |
-| 14 | **Refund handler: savepoint + cap + null guard** — Wrap `_process_charge_refunded()` operations in `begin_nested()`. Cap `total_refunded_cents` at `purchase.amount_cents`. Guard against null `payment_intent`. Three changes in `backend/app/services/stripe_webhook_service.py`. | `plan, tdd, security` | ⬜ |
+| 13 | **Security triage gate** — Skipped per user (other agent addressing findings). | `plan, security` | ✅ |
+| 14 | **Refund handler: savepoint + cap + null guard** — Wrap `_process_charge_refunded()` operations in `begin_nested()`. Cap `total_refunded_cents` at `purchase.amount_cents`. Guard against null `payment_intent`. Three changes in `backend/app/services/stripe_webhook_service.py`. | `plan, tdd, security` | ✅ |
 | | **Read:** REQ-030 §7.2a (savepoint), §7.2b (cap), §7.2c (null guard). Read `backend/app/services/stripe_webhook_service.py` (current refund handler). Read `backend/tests/unit/test_stripe_webhook_refund.py` (existing tests). | `req-reader` | |
 | | **TDD:** Test savepoint rolls back on partial failure (no orphaned credit txn). Test refund capped at amount_cents. Test null payment_intent returns early with log. Update existing refund tests. | | |
 | | **Done when:** Refund handler is atomic (savepoint), caps refunds, guards against null PI. | | |
