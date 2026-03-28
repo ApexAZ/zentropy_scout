@@ -13,7 +13,7 @@ import { expect, test } from "./base-test";
 import { setupUnauthMocks } from "../utils/auth-api-mocks";
 
 // ---------------------------------------------------------------------------
-// Constants — test IDs and selectors
+// Constants — test IDs, selectors, and navigation
 // ---------------------------------------------------------------------------
 
 const TID_LOGIN_SUBMIT = "login-submit";
@@ -21,6 +21,14 @@ const TID_REGISTER_SUBMIT = "register-submit";
 const TID_SUBMIT_ERROR = "submit-error";
 const TID_MAGIC_LINK_SUBMIT = "magic-link-submit";
 const DATA_MET = "data-met";
+
+const LOGIN_PATH = "/login";
+const REGISTER_PATH = "/register";
+
+// WebKit fix: AuthProvider's /auth/me check fires after mount and triggers a
+// React re-render that can race with fill() on form inputs. Waiting for
+// networkidle ensures the auth check has settled before the test interacts.
+const GOTO_OPTS = { waitUntil: "networkidle" } as const;
 
 // ---------------------------------------------------------------------------
 // Cookie cleanup — clear auth cookie so proxy allows /login and /register
@@ -40,7 +48,7 @@ test.describe("Login Page", () => {
 	}) => {
 		const controller = await setupUnauthMocks(page);
 
-		await page.goto("/login");
+		await page.goto(LOGIN_PATH, GOTO_OPTS);
 		await expect(page.getByTestId(TID_LOGIN_SUBMIT)).toBeVisible();
 
 		await page.getByLabel("Email").fill("test@example.com");
@@ -70,7 +78,7 @@ test.describe("Login Page", () => {
 		const controller = await setupUnauthMocks(page);
 		controller.state.verifyPasswordStatus = 401;
 
-		await page.goto("/login");
+		await page.goto(LOGIN_PATH, GOTO_OPTS);
 		await expect(page.getByTestId(TID_LOGIN_SUBMIT)).toBeVisible();
 
 		await page.getByLabel("Email").fill("wrong@example.com");
@@ -82,14 +90,14 @@ test.describe("Login Page", () => {
 			"Invalid email or password",
 		);
 
-		await expect(page).toHaveURL("/login");
+		await expect(page).toHaveURL(LOGIN_PATH);
 	});
 
 	test("forgot password flow sends magic link and shows confirmation", async ({
 		page,
 	}) => {
 		await setupUnauthMocks(page);
-		await page.goto("/login");
+		await page.goto(LOGIN_PATH, GOTO_OPTS);
 
 		await page.getByRole("button", { name: "Forgot password?" }).click();
 
@@ -123,7 +131,7 @@ test.describe("Login Page", () => {
 
 	test("OAuth buttons link to correct provider URLs", async ({ page }) => {
 		await setupUnauthMocks(page);
-		await page.goto("/login");
+		await page.goto(LOGIN_PATH, GOTO_OPTS);
 
 		await expect(page.getByTestId(TID_LOGIN_SUBMIT)).toBeVisible();
 
@@ -148,7 +156,7 @@ test.describe("Register Page", () => {
 		page,
 	}) => {
 		await setupUnauthMocks(page);
-		await page.goto("/register");
+		await page.goto(REGISTER_PATH, GOTO_OPTS);
 
 		await expect(page.getByTestId(TID_REGISTER_SUBMIT)).toBeVisible();
 
@@ -181,7 +189,7 @@ test.describe("Register Page", () => {
 		page,
 	}) => {
 		await setupUnauthMocks(page);
-		await page.goto("/register");
+		await page.goto(REGISTER_PATH, GOTO_OPTS);
 
 		await expect(page.getByTestId(TID_REGISTER_SUBMIT)).toBeVisible();
 
@@ -205,7 +213,7 @@ test.describe("Register Page", () => {
 		const controller = await setupUnauthMocks(page);
 		controller.state.registerStatus = 409;
 
-		await page.goto("/register");
+		await page.goto(REGISTER_PATH, GOTO_OPTS);
 		await expect(page.getByTestId(TID_REGISTER_SUBMIT)).toBeVisible();
 
 		await page.getByLabel("Email").fill("existing@example.com");
