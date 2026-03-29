@@ -248,7 +248,14 @@ def get_metered_provider(
     registry = get_llm_registry()
     admin_config = AdminConfigService(db)
     metering_service = MeteringService(db, admin_config)
-    return MeteredLLMProvider(inner, registry, metering_service, admin_config, user_id)
+    return MeteredLLMProvider(
+        inner,
+        registry,
+        metering_service,
+        admin_config,
+        user_id,
+        credits_enabled=settings.credits_enabled,
+    )
 
 
 def get_metered_embedding_provider(

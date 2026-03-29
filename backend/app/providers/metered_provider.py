@@ -48,6 +48,7 @@ class MeteredLLMProvider(LLMProvider):
         metering_service: Service for recording usage and debiting balance.
         admin_config: Service for resolving task-to-model routing from DB.
         user_id: User who made the API call.
+        credits_enabled: If True, stream() is fail-closed (AF-09).
     """
 
     def __init__(
@@ -57,6 +58,8 @@ class MeteredLLMProvider(LLMProvider):
         metering_service: MeteringService,
         admin_config: AdminConfigService,
         user_id: uuid.UUID,
+        *,
+        credits_enabled: bool = True,
     ) -> None:
         # Don't call super().__init__() — no ProviderConfig needed.
         # The inner provider already has its config.
@@ -65,6 +68,7 @@ class MeteredLLMProvider(LLMProvider):
         self._metering_service = metering_service
         self._admin_config = admin_config
         self._user_id = user_id
+        self._credits_enabled = credits_enabled
 
     @property
     def provider_name(self) -> str:
@@ -196,10 +200,10 @@ class MeteredLLMProvider(LLMProvider):
     ) -> AsyncGenerator[str, None]:
         """Stream from the correct provider based on DB routing.
 
-        REQ-030 §5.6: Logs a warning because stream metering is not yet
-        implemented — usage will not be recorded. Full stream metering
-        requires accumulating token counts from provider-specific stream
-        APIs and is deferred to a future REQ.
+        AF-09: Fail-closed when credits are enabled — stream metering is
+        not implemented, so allowing streaming would bypass billing.
+        REQ-030 §5.6: When credits are disabled, logs a warning and
+        passes through to the inner provider.
 
         Args:
             messages: Conversation history.
@@ -209,7 +213,17 @@ class MeteredLLMProvider(LLMProvider):
 
         Yields:
             Text chunks from the dispatched provider's stream.
+
+        Raises:
+            ProviderError: If credits_enabled is True (unmetered streaming
+                would bypass billing).
         """
+        if self._credits_enabled:
+            raise ProviderError(
+                "Streaming is not supported while credits are enabled. "
+                "Use complete() instead."
+            )
+
         logger.warning(
             "stream() called with metering enabled but stream metering is not "
             "implemented — usage will not be recorded for user %s",
