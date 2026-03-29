@@ -22,6 +22,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
 	testDir: "./tests",
+	// Visual regression tests run only via Docker (npm run test:e2e:visual).
+	// Exclude from default npx playwright test to avoid font-rendering mismatches.
+	testIgnore: /visual-regression/,
 	timeout: 30_000,
 	expect: {
 		timeout: 10_000,
@@ -70,11 +73,9 @@ export default defineConfig({
 			use: { ...devices["Desktop Safari"] },
 		},
 	],
-	webServer: process.env.PLAYWRIGHT_DOCKER
-		? undefined
-		: {
-				command: "npm run dev",
-				port: 3000,
-				reuseExistingServer: !process.env.CI,
-			},
+	webServer: {
+		command: "npm run dev",
+		port: 3000,
+		reuseExistingServer: !process.env.CI,
+	},
 });

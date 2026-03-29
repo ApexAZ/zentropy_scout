@@ -20,11 +20,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Copy config files needed by Playwright
-COPY playwright.config.ts tsconfig.json ./
+# Copy config files needed by Playwright and Next.js dev server
+COPY playwright.config.ts tsconfig.json next.config.ts postcss.config.mjs ./
 
-# Run as non-root for least-privilege (pwuser is included in the Playwright image)
-USER pwuser
+# Create output directories and make /app writable so any UID (via
+# docker-compose user: override) can create .next/ build cache,
+# test-results/, and playwright-report/.
+RUN mkdir -p test-results playwright-report .next node_modules/.cache \
+    && chmod 777 /app test-results playwright-report .next node_modules/.cache
 
 # Tests and source are bind-mounted at runtime via docker-compose
 # so baselines written by --update-snapshots persist on the host.
