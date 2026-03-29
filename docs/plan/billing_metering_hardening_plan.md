@@ -1,8 +1,8 @@
 # Zentropy Scout — REQ-030 Billing & Metering Hardening Implementation Plan
 
 **Created:** 2026-03-27
-**Last Updated:** 2026-03-27
-**Status:** ⬜ Incomplete
+**Last Updated:** 2026-03-28
+**Status:** 🟡 In Progress (Phase 7 added 2026-03-28)
 **Branch:** `feat/billing-metering-hardening`
 **Backlog Item:** #29
 
@@ -53,6 +53,9 @@ Phase 5: Background Reconciliation (Stale sweep + Drift detection)
     │     (depends on Phase 2 — reservation pipeline must be working)
     ▼
 Phase 6: Integration Testing & Polish
+    │
+    ▼
+Phase 7: Post-Audit Hardening (12 findings from adversarial red-team audit)
 ```
 
 **Ordering rationale:** Phase 1 is the migration — everything else depends on the new columns/tables existing. Phase 2 is the core architectural change (reservation pipeline). Phase 3 is webhook hardening (independent of reservation but needs the migration for `expired` status). Phase 4 is quick fixes that can land anytime after Phase 1. Phase 5 is the background sweep (needs the reservation pipeline from Phase 2). Phase 6 is integration testing across all changes.
@@ -346,6 +349,101 @@ All 13 findings from REQ-030 §1.5 verified resolved with code changes and test 
 
 ---
 
+## Phase 7: Post-Audit Hardening
+
+**Status:** ⬜ Incomplete
+
+*Addresses 12 findings from a comprehensive adversarial red-team audit conducted 2026-03-28 after PR #61 merged. The audit traced every balance modification path, reviewed all 42 changed files, and launched parallel security, code, and codebase exploration agents. Findings range from HIGH (race conditions, missing balance guards) to LOW (documentation, config types). Ordered by severity — HIGH items first.*
+
+#### Audit Context
+
+The audit was conducted with zero-trust posture across the full billing/metering data path:
+- **Security reviewer:** Investigated 12 attack vectors (race conditions, negative balance, webhook replay, savepoint correctness, decimal overflow, config bypass, stream gap, dead code)
+- **Code reviewer:** Checked 16 production files for correctness, convention compliance, and edge cases
+- **Explore agents:** Traced all callers of `record_and_debit()`, mapped all 11 balance modification points, assessed stream metering gap exposure
+- **Result:** 12 findings (3 HIGH, 4 MEDIUM, 5 LOW)
+
+#### Workflow
+
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Re-read audit findings in this phase's context section for each task |
+| 🧪 **TDD** | Write failing test first for each fix — follow `zentropy-tdd` |
+| 🗃️ **Patterns** | Use `zentropy-tdd` for mocking, `zentropy-db` for SQL patterns |
+| ✅ **Verify** | `pytest -v` affected tests, lint, typecheck |
+| 🔍 **Review** | Use `code-reviewer` + `security-reviewer` agents |
+| 📝 **Commit** | Follow `zentropy-git` |
+
+#### Tasks
+
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 30 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Verdicts: CLEAR → mark complete, proceed. VULNERABLE → fix immediately. FALSE POSITIVE → complete full PROSECUTION PROTOCOL before dismissing. NEEDS INVESTIGATION → escalate to user via AskUserQuestion. | `plan, security` | ⬜ |
+| 31 | **[HIGH] Fix settle/sweep race — conditional SQL UPDATE in settle() (AF-01)** — Replace ORM attribute assignment in `MeteringService.settle()` (lines 278-282) with a conditional SQL `UPDATE usage_reservations SET status = 'settled' ... WHERE id = :id AND status = 'held'`. If `rowcount == 0`, the sweep already handled the reservation — abort cleanly (return without error). This eliminates the race where sweep marks a reservation 'stale' but settle overwrites it back to 'settled', causing double-decrement of `held_balance_usd` and a free LLM call. Also update `release()` with the same conditional pattern for consistency. | `plan, tdd, security` | ⬜ |
+| | **Read:** `backend/app/services/metering_service.py` (settle at 190-290, release at 292-339). `backend/app/services/reservation_sweep.py` (sweep at 35-119, conditional UPDATE at 74-79). | | |
+| | **TDD:** Test that settle returns cleanly when reservation is already stale (rowcount=0). Test that settle still works for normal held→settled. Test that release returns cleanly when reservation is already settled/stale. Test concurrent settle+sweep scenario cannot double-decrement held_balance_usd. | | |
+| | **Done when:** settle() and release() use conditional SQL UPDATE. No ORM attribute assignment for status changes. Race is impossible by construction. | | |
+| 32 | **[HIGH] Add balance overdraft protection to settle() (AF-02)** — The settle() UPDATE at line 263 does `balance_usd = balance_usd - :actual` with no floor check. There is NO CHECK constraint on `balance_usd >= 0` (only `held_balance_usd` has one). Concurrent requests can drive balance negative through settlement. Add `RETURNING balance_usd` to the settle UPDATE and log at ERROR level if the new balance is negative (overdraft via usage, distinct from intentional negative via refund). Consider adding a DB CHECK constraint `balance_usd >= -<overdraft_limit>` as a hard cap. | `plan, tdd, security, db` | ⬜ |
+| | **Read:** `backend/app/services/metering_service.py` (settle UPDATE at 263-275). `backend/app/models/user.py` (no CHECK on balance_usd). `backend/app/repositories/credit_repository.py` (atomic_debit has WHERE clause at 207-208, atomic_refund_debit intentionally allows negative at 273-278). `backend/app/api/deps.py` (soft gate at 306-352). | | |
+| | **TDD:** Test settle logs error when balance goes negative. Test that the usage record is still created (service was already consumed). Test that the overdraft alert includes user_id, reservation_id, and amount. | | |
+| | **Done when:** Overdraft is detected and logged at ERROR. Usage is still recorded (fail-forward for consumed service). Alert enables operator investigation. | | |
+| 33 | **[MEDIUM] Include input token cost in reserve() estimation (AF-03)** — The reservation formula (`max_tokens / 1000 * output_per_1k * margin`) ignores input tokens. For large-prompt scenarios, `actual_cost >> estimated_cost`, making the soft gate ineffective. Add an input token ceiling to the estimate: `estimated = (input_ceiling * input_per_1k + max_tokens * output_per_1k) / 1000 * margin`. Use a configurable default input ceiling (e.g., 4096). | `plan, tdd, provider` | ⬜ |
+| | **Read:** `backend/app/services/metering_service.py` (reserve at 118-188, cost formula at 155-156). `backend/app/core/config.py` (existing reservation config vars). | | |
+| | **TDD:** Test that estimated cost now includes input component. Test that zero input_per_1k still works (output-only pricing). Test default input ceiling is used when not specified. | | |
+| | **Done when:** Reserve() produces estimates that include both input and output cost components. Over-estimation is still preferred over under-estimation. | | |
+| 34 | **[MEDIUM] Remove dead record_and_debit() method and tests (AF-04)** — `record_and_debit()` is the legacy fire-and-forget pattern superseded by reserve/settle/release. Zero production callers confirmed by codebase search. Remove the method from `MeteringService`, the `TestRecordAndDebit` class from `test_metering_service.py` (11 tests), and 4 calls from `test_admin_pricing_pipeline.py`. Replace integration test calls with reserve/settle pattern tests. | `plan, tdd` | ⬜ |
+| | **Read:** `backend/app/services/metering_service.py` (record_and_debit at 341-429). `backend/tests/unit/test_metering_service.py` (TestRecordAndDebit at ~238-386). `backend/tests/integration/test_admin_pricing_pipeline.py` (4 calls at 369, 405, 429, 626). | | |
+| | **TDD:** Verify no import errors after removal. Verify remaining tests still pass. Update integration tests to use reserve/settle instead of record_and_debit. | | |
+| | **Done when:** record_and_debit() removed. All tests updated to use reservation pipeline. No dead code remains. | | |
+| 35 | **[MEDIUM] Guard zero-cost reservation in reserve() (AF-05)** — `PricingConfig` allows `output_cost_per_1k >= 0` but `UsageReservation` requires `estimated_cost_usd > 0`. If an admin configures a model with zero output cost, `reserve()` produces `estimated_cost = 0`, causing `IntegrityError` on flush. Add a floor: `estimated_cost = max(estimated_cost, Decimal("0.000001"))`. | `plan, tdd, db` | ⬜ |
+| | **Read:** `backend/app/services/metering_service.py` (reserve at 155-156). `backend/app/models/admin_config.py` (PricingConfig constraints, output_cost_per_1k at ~119). `backend/app/models/usage_reservation.py` (ck_reservation_estimated_positive). | | |
+| | **TDD:** Test that zero-priced model produces minimum estimated cost, not IntegrityError. Test that normal pricing is unchanged. | | |
+| | **Done when:** reserve() never produces zero estimated cost. Floor is documented. | | |
+| 36 | **[MEDIUM] Move mark_completed inside savepoint in checkout handler (AF-06)** — In `handle_checkout_completed`, the savepoint wraps `CreditRepository.create` + `atomic_credit` (lines 101-111), but `mark_completed` (line 114) is outside. If mark_completed fails, the user is credited but the purchase stays "pending." Move mark_completed inside the savepoint for full atomicity. | `plan, tdd, security` | ⬜ |
+| | **Read:** `backend/app/services/stripe_webhook_service.py` (handle_checkout_completed at 24-125). `backend/app/repositories/stripe_repository.py` (mark_completed). | | |
+| | **TDD:** Test that mark_completed failure rolls back the credit. Test that happy path still credits AND marks completed. | | |
+| | **Done when:** Credit + balance update + purchase status update are all atomic within one savepoint. | | |
+| 37 | **[MEDIUM] Narrow settle() and release() exception handling (AF-07)** — Both methods use bare `except Exception` catch-all (lines 284, 333), swallowing programming errors (`TypeError`, `AttributeError`) alongside expected DB errors. Narrow to `except (SQLAlchemyError, NoPricingConfigError, UnregisteredModelError)` or add a return value indicating success/failure so callers can react. | `plan, tdd, security` | ⬜ |
+| | **Read:** `backend/app/services/metering_service.py` (settle except at 284-290, release except at 333-339). `backend/app/providers/metered_provider.py` (callers of settle/release at 172-178). | | |
+| | **TDD:** Test that expected DB errors are still caught and logged. Test that unexpected errors (e.g., TypeError) are re-raised or reported distinctly. | | |
+| | **Done when:** Programming errors in settle/release are not silently swallowed. Expected financial errors are still handled gracefully. | | |
+| 38 | **[LOW] Stream fail-closed when credits enabled (AF-09)** — `MeteredLLMProvider.stream()` is unmetered. Currently no production callers exist (dormant risk), but the method is on the public interface. Make stream() fail-closed by raising `ProviderError` when `settings.credits_enabled` is True, preventing accidental unmetered usage if streaming is wired up in the future. | `plan, tdd, provider, security` | ⬜ |
+| | **Read:** `backend/app/providers/metered_provider.py` (stream at 182-216). `backend/app/core/config.py` (credits_enabled). | | |
+| | **TDD:** Test stream raises ProviderError when credits_enabled=True. Test stream still works when credits_enabled=False. | | |
+| | **Done when:** Stream is fail-closed for metered environments. Unmetered environments unaffected. | | |
+| 39 | **[LOW] Frontend query invalidation + config Decimal + documentation (AF-08, AF-10, AF-11, AF-12)** — Four small fixes: (a) Add `usageTransactions` query invalidation on checkout success in `usage-page.tsx`. (b) Change `metering_minimum_balance` from `float` to `str` in config.py (avoids float→Decimal precision issues). (c) Add code comment documenting refund+active-reservation interaction in `stripe_webhook_service.py`. (d) Add `# nosemgrep` comment to migration 028 f-string SQL with justification. | `plan, tdd, ui` | ⬜ |
+| | **Read:** `frontend/src/components/usage/usage-page.tsx` (StripeRedirectHandler at 55-75, query invalidation at 64-65). `backend/app/core/config.py` (metering_minimum_balance). `backend/app/services/stripe_webhook_service.py` (refund handler at 162-240). `backend/migrations/versions/028_billing_hardening.py` (f-string at 121-123). `backend/app/api/deps.py` (Decimal conversion at 344). | | |
+| | **TDD:** Test frontend: checkout success invalidates usageTransactions. Test backend: metering_minimum_balance loads correctly as Decimal. | | |
+| | **Done when:** All four minor fixes applied. No stale cache on checkout success. Config precision is clean. Documentation items addressed. | | |
+| 40 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+
+#### Phase 7 Notes
+
+- Tasks are ordered by severity (HIGH → MEDIUM → LOW), not by dependency. Most are independent and could be implemented in any order, except: §31 (settle race fix) should land before §32 (overdraft protection) since both modify settle()
+- §31 is the highest-impact fix: eliminates a race condition that could result in free LLM calls
+- §34 (remove record_and_debit) is a breaking change for tests only — zero production impact
+- §39 groups four genuinely trivial fixes (1-3 lines each) into one commit. Each is independent but too small to warrant separate review cycles
+- The audit was conducted against the merged PR #61 code on `main`. Phase 7 work should branch from current `main`
+
+#### Audit Findings Register
+
+| ID | Severity | Title | Task | Impact |
+|----|----------|-------|------|--------|
+| AF-01 | HIGH | Settle/sweep race — free LLM calls | §31 | Financial: user gets unmetered service |
+| AF-02 | HIGH | No balance_usd floor in settle() | §32 | Financial: balance goes negative via usage |
+| AF-03 | MEDIUM | Reservation ignores input token cost | §33 | Financial: under-estimation enables overdraft |
+| AF-04 | MEDIUM | Dead record_and_debit() method | §34 | Integrity: legacy path could bypass reservations |
+| AF-05 | MEDIUM | Zero-cost reservation hits CHECK constraint | §35 | Availability: IntegrityError on zero-priced models |
+| AF-06 | MEDIUM | mark_completed outside savepoint | §36 | Integrity: credit without purchase status update |
+| AF-07 | MEDIUM | settle/release swallow programming errors | §37 | Debuggability: silent failures in financial code |
+| AF-08 | LOW | Refund + active reservation interaction | §39 | Documentation: confusing state, not a bug |
+| AF-09 | LOW | Stream metering gap (dormant) | §38 | Financial: zero current exposure, future risk |
+| AF-10 | LOW | Frontend usageTransactions stale cache | §39 | UX: stale data after checkout |
+| AF-11 | LOW | Migration f-string SQL (false positive) | §39 | Tooling: Semgrep false positive |
+| AF-12 | LOW | metering_minimum_balance is float | §39 | Precision: float→Decimal conversion risk |
+
+---
+
 ## Task Count Summary
 
 | Phase | Tasks | Subtasks | Gates |
@@ -356,7 +454,8 @@ All 13 findings from REQ-030 §1.5 verified resolved with code changes and test 
 | Phase 4: Quick Fixes & Frontend | 3 | 2 | 1 phase |
 | Phase 5: Background Reconciliation | 4 | 2 | 1 security + 1 phase |
 | Phase 6: Integration Testing & Polish | 5 | 3 | 1 security + 1 phase |
-| **Total** | **29** | **18** | **5 security + 6 phase** |
+| Phase 7: Post-Audit Hardening | 11 | 9 | 1 security + 1 phase |
+| **Total** | **40** | **27** | **6 security + 7 phase** |
 
 ---
 
@@ -367,19 +466,19 @@ All 13 findings from REQ-030 §1.5 verified resolved with code changes and test 
 | `backend/app/models/usage_reservation.py` | 1 | §4.2 |
 | `backend/app/models/user.py` | 1 | §4.1 |
 | `backend/app/models/stripe.py` | 1 | §4.3, §7.3 |
-| `backend/migrations/versions/028_billing_hardening.py` | 1 | §4.4 |
-| `backend/app/core/config.py` | 1 | §9.1, §9.2 |
-| `backend/app/services/metering_service.py` | 2 | §5.2, §5.3, §5.5 |
-| `backend/app/providers/metered_provider.py` | 2 | §5.4, §5.6, §5.7 |
+| `backend/app/services/metering_service.py` | 2, 7 | §5.2, §5.3, §5.5 + AF-01–AF-05, AF-07 |
+| `backend/app/providers/metered_provider.py` | 2, 7 | §5.4, §5.6, §5.7 + AF-07, AF-09 |
 | `backend/app/api/deps.py` | 2 | §6.1 |
-| `backend/app/services/stripe_webhook_service.py` | 3 | §7.2, §7.3 |
+| `backend/app/services/stripe_webhook_service.py` | 3, 7 | §7.2, §7.3 + AF-06, AF-08 |
 | `backend/app/repositories/stripe_repository.py` | 3 | §7.3 |
 | `backend/app/api/v1/webhooks.py` | 3 | §7.3 |
 | `backend/app/services/stripe_service.py` | 3 | §8.1 |
 | `backend/app/api/v1/credits.py` | 4 | §10.1 |
-| `frontend/src/components/usage/usage-page.tsx` | 4 | §10.2 |
+| `frontend/src/components/usage/usage-page.tsx` | 4, 7 | §10.2 + AF-10 |
 | `CLAUDE.md` | 4 | §10.3 |
 | `backend/app/services/reservation_sweep.py` | 5 | §11.1, §11.2 |
+| `backend/app/core/config.py` | 1, 7 | §9.1, §9.2, AF-12 |
+| `backend/migrations/versions/028_billing_hardening.py` | 1, 7 | §4.4, AF-11 |
 
 ---
 
@@ -388,3 +487,4 @@ All 13 findings from REQ-030 §1.5 verified resolved with code changes and test 
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-03-27 | 0.1 | Initial plan. 6 phases, 29 tasks (18 implementation + 5 security gates + 6 phase gates). |
+| 2026-03-28 | 0.2 | Added Phase 7: Post-Audit Hardening. 12 findings from adversarial red-team audit (3 HIGH, 4 MEDIUM, 5 LOW). 11 new tasks (§30–§40). Total: 7 phases, 40 tasks. |
