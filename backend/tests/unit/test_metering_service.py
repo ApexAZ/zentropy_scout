@@ -16,6 +16,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.errors import NoPricingConfigError, UnregisteredModelError
 from app.models.usage_reservation import UsageReservation
@@ -32,6 +33,8 @@ _HAIKU_MODEL = "claude-3-5-haiku-20241022"
 _SONNET_MODEL = "claude-3-5-sonnet-20241022"
 _TASK_TYPE = "extraction"
 _POSITIVE_BALANCE = Decimal("5.000000")
+_DB_ERROR_MSG = "DB error"
+_PROGRAMMING_ERROR_MSG = "bad operand type"
 
 # Pricing fixtures — simulate different models with different margins
 _HAIKU_PRICING = PricingResult(
@@ -755,14 +758,18 @@ class TestSettle:
         mock_db_with_savepoint.begin_nested.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_failure_does_not_raise(
+    async def test_db_error_does_not_raise(
         self,
         mock_db_with_savepoint: AsyncMock,
         mock_admin_config: AsyncMock,
         reservation: UsageReservation,
     ) -> None:
-        """Settlement failure (DB error) is caught — reservation stays held."""
-        mock_db_with_savepoint.execute.side_effect = RuntimeError("DB error")
+        """Settlement failure (DB error) is caught — reservation stays held.
+
+        AF-07: SQLAlchemyError is an expected failure mode (connection loss,
+        constraint violation) and is handled gracefully.
+        """
+        mock_db_with_savepoint.execute.side_effect = SQLAlchemyError(_DB_ERROR_MSG)
         service = MeteringService(mock_db_with_savepoint, mock_admin_config)
         # Should not raise
         await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
@@ -796,15 +803,15 @@ class TestSettle:
         mock_db_with_savepoint.execute.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_failure_logs_error(
+    async def test_db_error_logs_error(
         self,
         mock_db_with_savepoint: AsyncMock,
         mock_admin_config: AsyncMock,
         reservation: UsageReservation,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Settlement failure logs error with reservation and user IDs."""
-        mock_db_with_savepoint.execute.side_effect = RuntimeError("DB error")
+        """Settlement DB failure logs error with reservation and user IDs."""
+        mock_db_with_savepoint.execute.side_effect = SQLAlchemyError(_DB_ERROR_MSG)
         service = MeteringService(mock_db_with_savepoint, mock_admin_config)
         with caplog.at_level(logging.ERROR):
             await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
@@ -967,6 +974,24 @@ class TestSettle:
             if r.levelno == logging.ERROR
         )
 
+    @pytest.mark.asyncio
+    async def test_programming_error_propagates(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """AF-07: Programming errors (TypeError, AttributeError) must NOT be
+        silently swallowed — they propagate so callers can react.
+
+        Expected DB/pricing errors are still caught, but a TypeError inside
+        the savepoint indicates a bug that must be surfaced, not hidden.
+        """
+        mock_db_with_savepoint.execute.side_effect = TypeError(_PROGRAMMING_ERROR_MSG)
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        with pytest.raises(TypeError, match=_PROGRAMMING_ERROR_MSG):
+            await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+
 
 # =============================================================================
 # TestRelease
@@ -1080,14 +1105,18 @@ class TestRelease:
         assert "AND status = 'held'" in reservation_sql
 
     @pytest.mark.asyncio
-    async def test_failure_does_not_raise(
+    async def test_db_error_does_not_raise(
         self,
         mock_db_with_savepoint: AsyncMock,
         mock_admin_config: AsyncMock,
         reservation: UsageReservation,
     ) -> None:
-        """Release failure is caught — reservation stays held."""
-        mock_db_with_savepoint.execute.side_effect = RuntimeError("DB error")
+        """Release DB failure is caught — reservation stays held.
+
+        AF-07: SQLAlchemyError is an expected failure mode and is handled
+        gracefully. The hold remains for background sweep.
+        """
+        mock_db_with_savepoint.execute.side_effect = SQLAlchemyError(_DB_ERROR_MSG)
         service = MeteringService(mock_db_with_savepoint, mock_admin_config)
         # Should not raise
         await service.release(reservation)
@@ -1108,15 +1137,15 @@ class TestRelease:
         mock_db_with_savepoint.flush.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_failure_logs_error(
+    async def test_db_error_logs_error(
         self,
         mock_db_with_savepoint: AsyncMock,
         mock_admin_config: AsyncMock,
         reservation: UsageReservation,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Release failure logs error with reservation and user IDs."""
-        mock_db_with_savepoint.execute.side_effect = RuntimeError("DB error")
+        """Release DB failure logs error with reservation and user IDs."""
+        mock_db_with_savepoint.execute.side_effect = SQLAlchemyError(_DB_ERROR_MSG)
         service = MeteringService(mock_db_with_savepoint, mock_admin_config)
         with caplog.at_level(logging.ERROR):
             await service.release(reservation)
@@ -1164,3 +1193,21 @@ class TestRelease:
             for r in caplog.records
             if r.levelno == logging.WARNING
         )
+
+    @pytest.mark.asyncio
+    async def test_programming_error_propagates(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """AF-07: Programming errors (TypeError, AttributeError) must NOT be
+        silently swallowed — they propagate so callers can react.
+
+        Expected DB errors (SQLAlchemyError) are still caught, but a TypeError
+        inside the savepoint indicates a bug that must be surfaced.
+        """
+        mock_db_with_savepoint.execute.side_effect = TypeError(_PROGRAMMING_ERROR_MSG)
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        with pytest.raises(TypeError, match=_PROGRAMMING_ERROR_MSG):
+            await service.release(reservation)

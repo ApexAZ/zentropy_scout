@@ -28,6 +28,9 @@ from app.services.metering_service import MeteringService
 logger = logging.getLogger(__name__)
 
 _RELEASE_FAILED_LOG = "Release also failed for user %s — hold orphaned until sweep"
+_SETTLE_FAILED_LOG = (
+    "Unexpected settlement error for user %s — %s returned, hold orphaned until sweep"
+)
 
 
 class MeteredLLMProvider(LLMProvider):
@@ -167,15 +170,20 @@ class MeteredLLMProvider(LLMProvider):
                 logger.exception(_RELEASE_FAILED_LOG, self._user_id)
             raise
 
-        # 4. Settle with actual cost (settle() handles its own errors
-        # internally via savepoint + catch — safe to call without guard)
-        await self._metering_service.settle(
-            reservation=reservation,
-            provider=adapter.provider_name,
-            model=response.model,
-            input_tokens=max(0, response.input_tokens),
-            output_tokens=max(0, response.output_tokens),
-        )
+        # 4. Settle with actual cost. settle() catches expected errors
+        # (SQLAlchemyError, pricing errors) internally. Unexpected errors
+        # (AF-07: programming bugs) propagate — catch them here so the
+        # LLM response is still returned to the user.
+        try:
+            await self._metering_service.settle(
+                reservation=reservation,
+                provider=adapter.provider_name,
+                model=response.model,
+                input_tokens=max(0, response.input_tokens),
+                output_tokens=max(0, response.output_tokens),
+            )
+        except Exception:
+            logger.exception(_SETTLE_FAILED_LOG, self._user_id, "response")
 
         return response
 
@@ -305,15 +313,19 @@ class MeteredEmbeddingProvider(EmbeddingProvider):
                 result.total_tokens,
             )
 
-        # 5. Settle with actual cost (settle() handles its own errors
-        # internally via savepoint + catch — safe to call without guard)
-        await self._metering_service.settle(
-            reservation=reservation,
-            provider=self._inner.provider_name,
-            model=result.model,
-            input_tokens=max(0, input_tokens),
-            output_tokens=0,
-        )
+        # 5. Settle with actual cost. settle() catches expected errors
+        # internally. Unexpected errors (AF-07) propagate — catch here
+        # so the embedding result is still returned.
+        try:
+            await self._metering_service.settle(
+                reservation=reservation,
+                provider=self._inner.provider_name,
+                model=result.model,
+                input_tokens=max(0, input_tokens),
+                output_tokens=0,
+            )
+        except Exception:
+            logger.exception(_SETTLE_FAILED_LOG, self._user_id, "result")
 
         return result
 

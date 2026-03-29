@@ -19,6 +19,7 @@ from typing import Any, cast
 
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import NoPricingConfigError, UnregisteredModelError
@@ -355,7 +356,10 @@ class MeteringService:
                 "savepoint rolled back, no double-decrement",
                 reservation.id,
             )
-        except Exception:
+        except (SQLAlchemyError, NoPricingConfigError, UnregisteredModelError):
+            # AF-07: Narrow catch — only expected DB and pricing errors.
+            # Programming errors (TypeError, AttributeError) propagate to
+            # callers so they are surfaced, not silently swallowed.
             logger.exception(
                 "Settlement failed for reservation %s (user %s) — "
                 "hold remains active, background sweep will release",
@@ -428,7 +432,9 @@ class MeteringService:
             # 3. Flush (outside savepoint)
             await self._db.flush()
 
-        except Exception:
+        except SQLAlchemyError:
+            # AF-07: Narrow catch — only expected DB errors. Programming
+            # errors propagate to callers so they are surfaced.
             logger.exception(
                 "Release failed for reservation %s (user %s) — "
                 "hold remains active, background sweep will release",
