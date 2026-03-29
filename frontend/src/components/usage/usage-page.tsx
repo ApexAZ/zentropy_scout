@@ -63,6 +63,9 @@ function StripeRedirectHandler() {
 			showToast.success("Payment successful! Your balance has been updated.");
 			queryClient.invalidateQueries({ queryKey: queryKeys.balance });
 			queryClient.invalidateQueries({ queryKey: queryKeys.purchases });
+			queryClient.invalidateQueries({
+				queryKey: queryKeys.usageTransactionsAll,
+			});
 		} else if (status === "cancelled") {
 			showToast.info("Purchase cancelled.");
 		}

@@ -2,7 +2,7 @@
 
 REQ-022 §7: Calculates costs for LLM/embedding API calls using
 admin-configured pricing from the pricing_config table, with per-model
-margin multipliers. Records usage and debits the user's balance atomically.
+margin multipliers.
 REQ-030 §5.2: Pre-debit reservation via reserve() — estimates worst-case
 cost and holds it before the LLM call.
 REQ-030 §5.3: Settlement via settle() — atomically records usage, debits
@@ -19,6 +19,7 @@ from typing import Any, cast
 
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import NoPricingConfigError, UnregisteredModelError
@@ -30,6 +31,19 @@ logger = logging.getLogger(__name__)
 
 _THOUSAND = Decimal(1000)
 _DEFAULT_MAX_TOKENS = 4096
+_DEFAULT_MAX_INPUT_TOKENS = 4096
+_STATUS_HELD = "held"
+# AF-05: Smallest positive value for Numeric(10,6). Prevents IntegrityError
+# when admin configures zero-cost pricing (PricingConfig allows >= 0 but
+# UsageReservation requires estimated_cost_usd > 0).
+_MINIMUM_ESTIMATED_COST = Decimal("0.000001")
+
+
+class _ReservationSweptError(Exception):
+    """Raised when settle finds the sweep already handled the reservation.
+
+    Not APIError: sentinel for savepoint rollback, never reaches callers.
+    """
 
 
 class MeteringService:
@@ -120,17 +134,20 @@ class MeteringService:
         user_id: uuid.UUID,
         task_type: str,
         max_tokens: int | None = None,
+        max_input_tokens: int | None = None,
     ) -> UsageReservation:
         """Reserve estimated cost from user's available balance.
 
-        REQ-030 §5.2: Resolves routing, looks up pricing, calculates
-        worst-case cost from max_tokens × output_price × margin, inserts
-        a UsageReservation, and atomically increments held_balance_usd.
+        REQ-030 §5.2, AF-03, AF-05: Resolves routing, looks up pricing,
+        calculates worst-case cost from input + output token ceilings × prices
+        × margin (floored at 0.000001 to satisfy ck_reservation_estimated_positive),
+        inserts a UsageReservation, and atomically increments held_balance_usd.
 
         Args:
             user_id: User making the LLM call.
             task_type: Task type for routing and pricing lookup.
             max_tokens: Output token ceiling. Uses 4096 default if None.
+            max_input_tokens: Input token ceiling. Uses 4096 default if None.
 
         Returns:
             UsageReservation with status='held'.
@@ -146,20 +163,32 @@ class MeteringService:
         provider, model = routing
 
         # 2. Look up pricing (validates model registration)
-        _input_per_1k, output_per_1k, margin = await self._get_pricing(provider, model)
+        input_per_1k, output_per_1k, margin = await self._get_pricing(provider, model)
 
-        # 3. Default max_tokens
-        if max_tokens is None:
+        # 3. Default ceilings (floor guard: negative/zero values use defaults)
+        if not max_tokens or max_tokens <= 0:
             max_tokens = _DEFAULT_MAX_TOKENS
+        if not max_input_tokens or max_input_tokens <= 0:
+            max_input_tokens = _DEFAULT_MAX_INPUT_TOKENS
 
-        # 4. Estimated cost: max_tokens / 1000 * output_per_1k * margin
-        estimated_cost = (Decimal(max_tokens) / _THOUSAND) * output_per_1k * margin
+        # 4. Estimated cost: (input_ceiling * input_per_1k + max_tokens * output_per_1k) / 1000 * margin
+        # AF-03: Includes input token cost to prevent under-estimation for large-prompt scenarios
+        # AF-05: Floor at _MINIMUM_ESTIMATED_COST to satisfy ck_reservation_estimated_positive
+        estimated_cost = max(
+            (
+                Decimal(max_input_tokens) * input_per_1k
+                + Decimal(max_tokens) * output_per_1k
+            )
+            / _THOUSAND
+            * margin,
+            _MINIMUM_ESTIMATED_COST,
+        )
 
         # 5. Insert reservation
         reservation = UsageReservation(
             user_id=user_id,
             estimated_cost_usd=estimated_cost,
-            status="held",
+            status=_STATUS_HELD,
             task_type=task_type,
             provider=provider,
             model=model,
@@ -210,7 +239,7 @@ class MeteringService:
             input_tokens: Actual input tokens from the response.
             output_tokens: Actual output tokens from the response.
         """
-        if reservation.status != "held":
+        if reservation.status != _STATUS_HELD:
             logger.warning(
                 "Attempted to settle reservation %s with status '%s' (expected 'held')",
                 reservation.id,
@@ -259,13 +288,15 @@ class MeteringService:
                 )
                 self._db.add(credit_txn)
 
-                # 5. Atomic debit + release hold
-                await self._db.execute(
+                # 5. Atomic debit + release hold (AF-02: RETURNING for
+                # overdraft detection — balance_usd has no CHECK constraint)
+                bal_result = await self._db.execute(
                     text(
                         "UPDATE users "
                         "SET balance_usd = balance_usd - :actual, "
                         "    held_balance_usd = held_balance_usd - :estimated "
-                        "WHERE id = :user_id"
+                        "WHERE id = :user_id "
+                        "RETURNING balance_usd"
                     ),
                     {
                         "actual": billed_cost,
@@ -273,15 +304,62 @@ class MeteringService:
                         "user_id": reservation.user_id,
                     },
                 )
+                new_balance: Decimal = bal_result.scalar_one()
+                if new_balance < 0:
+                    logger.error(
+                        "Balance overdraft after settlement: user %s, "
+                        "reservation %s, debit $%s, new balance $%s",
+                        reservation.user_id,
+                        reservation.id,
+                        billed_cost,
+                        new_balance,
+                    )
 
-                # 6. Update reservation
+                # 6. Conditional reservation update — prevents settle/sweep
+                # race (AF-01). The WHERE status = 'held' guard ensures only
+                # one process (settle or sweep) transitions the reservation.
+                # If rowcount == 0, the sweep already handled it — raise to
+                # trigger savepoint rollback (undoes steps 3-5).
+                now = datetime.now(UTC)
+                updated = cast(
+                    CursorResult[Any],
+                    await self._db.execute(
+                        text(
+                            "UPDATE usage_reservations "
+                            "SET status = 'settled', actual_cost_usd = :actual_cost, "
+                            "    provider = :prov, model = :model, settled_at = :now "
+                            "WHERE id = :id AND status = 'held'"
+                        ),
+                        {
+                            "actual_cost": billed_cost,
+                            "prov": provider,
+                            "model": model,
+                            "now": now,
+                            "id": reservation.id,
+                        },
+                    ),
+                )
+                if updated.rowcount == 0:
+                    msg = f"Reservation {reservation.id} already handled by sweep"
+                    raise _ReservationSweptError(msg)
+
+                # Sync in-memory ORM state (DB already updated by SQL above)
                 reservation.status = "settled"
                 reservation.actual_cost_usd = billed_cost
                 reservation.provider = provider
                 reservation.model = model
-                reservation.settled_at = datetime.now(UTC)
+                reservation.settled_at = now
 
-        except Exception:
+        except _ReservationSweptError:
+            logger.warning(
+                "Reservation %s was handled by sweep before settlement — "
+                "savepoint rolled back, no double-decrement",
+                reservation.id,
+            )
+        except (SQLAlchemyError, NoPricingConfigError, UnregisteredModelError):
+            # AF-07: Narrow catch — only expected DB and pricing errors.
+            # Programming errors (TypeError, AttributeError) propagate to
+            # callers so they are surfaced, not silently swallowed.
             logger.exception(
                 "Settlement failed for reservation %s (user %s) — "
                 "hold remains active, background sweep will release",
@@ -302,7 +380,7 @@ class MeteringService:
         Args:
             reservation: The held reservation to release.
         """
-        if reservation.status != "held":
+        if reservation.status != _STATUS_HELD:
             logger.warning(
                 "Attempted to release reservation %s with status '%s' (expected 'held')",
                 reservation.id,
@@ -311,119 +389,55 @@ class MeteringService:
             return
 
         try:
-            # 1. Decrement held balance
-            await self._db.execute(
-                text(
-                    "UPDATE users SET held_balance_usd = held_balance_usd - :amount "
-                    "WHERE id = :user_id"
-                ),
-                {
-                    "amount": reservation.estimated_cost_usd,
-                    "user_id": reservation.user_id,
-                },
-            )
+            async with self._db.begin_nested():
+                # 1. Conditional reservation update — prevents release/sweep
+                # race (AF-01). Claim the reservation before decrementing.
+                now = datetime.now(UTC)
+                updated = cast(
+                    CursorResult[Any],
+                    await self._db.execute(
+                        text(
+                            "UPDATE usage_reservations "
+                            "SET status = 'released', settled_at = :now "
+                            "WHERE id = :id AND status = 'held'"
+                        ),
+                        {"now": now, "id": reservation.id},
+                    ),
+                )
+                if updated.rowcount == 0:
+                    logger.warning(
+                        "Reservation %s was already handled by sweep — "
+                        "skipping release",
+                        reservation.id,
+                    )
+                    return
 
-            # 2. Update reservation
-            reservation.status = "released"
-            reservation.settled_at = datetime.now(UTC)
+                # 2. Decrement held balance (only if we claimed the reservation)
+                await self._db.execute(
+                    text(
+                        "UPDATE users "
+                        "SET held_balance_usd = held_balance_usd - :amount "
+                        "WHERE id = :user_id"
+                    ),
+                    {
+                        "amount": reservation.estimated_cost_usd,
+                        "user_id": reservation.user_id,
+                    },
+                )
 
-            # 3. Flush
+                # Sync in-memory ORM state
+                reservation.status = "released"
+                reservation.settled_at = now
+
+            # 3. Flush (outside savepoint)
             await self._db.flush()
 
-        except Exception:
+        except SQLAlchemyError:
+            # AF-07: Narrow catch — only expected DB errors. Programming
+            # errors propagate to callers so they are surfaced.
             logger.exception(
                 "Release failed for reservation %s (user %s) — "
                 "hold remains active, background sweep will release",
                 reservation.id,
                 reservation.user_id,
-            )
-
-    async def record_and_debit(
-        self,
-        user_id: uuid.UUID,
-        provider: str,
-        model: str,
-        task_type: str,
-        input_tokens: int,
-        output_tokens: int,
-    ) -> None:
-        """Record API usage and debit user balance.
-
-        REQ-022 §7.4: Full pipeline — calculate cost with per-model margin,
-        insert records, debit balance. Never raises; errors are logged.
-
-        Args:
-            user_id: User who made the API call.
-            provider: Provider name (claude, openai, gemini).
-            model: Exact model identifier.
-            task_type: Task type (extraction, cover_letter, etc.).
-            input_tokens: Input tokens consumed.
-            output_tokens: Output tokens consumed.
-        """
-        try:
-            input_per_1k, output_per_1k, margin = await self._get_pricing(
-                provider, model
-            )
-            raw_cost = (
-                Decimal(input_tokens) * input_per_1k
-                + Decimal(output_tokens) * output_per_1k
-            ) / _THOUSAND
-            billed_cost = raw_cost * margin
-
-            # Insert usage record
-            usage_id = uuid.uuid4()
-            usage_record = LLMUsageRecord(
-                id=usage_id,
-                user_id=user_id,
-                provider=provider,
-                model=model,
-                task_type=task_type,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                raw_cost_usd=raw_cost,
-                billed_cost_usd=billed_cost,
-                margin_multiplier=margin,
-            )
-            self._db.add(usage_record)
-
-            # Insert debit transaction
-            credit_txn = CreditTransaction(
-                id=uuid.uuid4(),
-                user_id=user_id,
-                amount_usd=-billed_cost,
-                transaction_type="usage_debit",
-                reference_id=str(usage_id),
-                description=f"{provider}/{model} - {task_type}",
-            )
-            self._db.add(credit_txn)
-
-            # Atomic debit
-            result = cast(
-                CursorResult[Any],
-                await self._db.execute(
-                    text(
-                        "UPDATE users SET balance_usd = balance_usd - :amount "
-                        "WHERE id = :user_id AND balance_usd >= :amount"
-                    ),
-                    {"amount": billed_cost, "user_id": user_id},
-                ),
-            )
-
-            # Log insufficient balance (REQ-020 §6.3)
-            rows_updated: int = result.rowcount
-            if rows_updated == 0:
-                logger.warning(
-                    "Insufficient balance for user %s (debit: $%s)",
-                    user_id,
-                    billed_cost,
-                )
-
-            await self._db.flush()
-
-        except Exception:
-            # Fire-and-forget: the user already received the LLM response.
-            # Don't interrupt their flow — log for operator investigation.
-            logger.exception(
-                "Failed to record usage for user %s",
-                user_id,
             )

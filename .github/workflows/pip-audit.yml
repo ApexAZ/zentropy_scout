@@ -33,13 +33,31 @@ jobs:
 
       - name: Run pip-audit (with retry)
         run: |
+          # Temporarily accepted advisories (dev-only, no upstream fix available).
+          # Remove entries when upstream fixes land.
+          #
+          # CVE-2026-4539: pygments 2.19.2 ReDoS in AdlLexer (CVSS 3.3 LOW)
+          #   - Transitive dep of pytest/rich; not imported by application code
+          #   - Requires local access to exploit via obscure Archetype Definition Language lexer
+          #   - No fix version available (2.19.2 is latest)
+          #   - Accepted 2026-03-29, zero production risk
+          ACCEPTED_VULNS="CVE-2026-4539"
+
           max_attempts=3
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "::group::Attempt $attempt of $max_attempts"
-            if pip-audit --vulnerability-service osv; then
+            ignore_flags=""
+            for vuln in $ACCEPTED_VULNS; do
+              ignore_flags="$ignore_flags --ignore-vuln $vuln"
+            done
+            if pip-audit --vulnerability-service osv $ignore_flags; then
               echo "::endgroup::"
-              echo "pip-audit passed on attempt $attempt"
+              if [ -n "$ACCEPTED_VULNS" ]; then
+                echo "::notice::pip-audit passed (accepted advisories: $ACCEPTED_VULNS)"
+              else
+                echo "pip-audit passed on attempt $attempt"
+              fi
               exit 0
             fi
             exit_code=$?

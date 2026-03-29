@@ -248,7 +248,14 @@ def get_metered_provider(
     registry = get_llm_registry()
     admin_config = AdminConfigService(db)
     metering_service = MeteringService(db, admin_config)
-    return MeteredLLMProvider(inner, registry, metering_service, admin_config, user_id)
+    return MeteredLLMProvider(
+        inner,
+        registry,
+        metering_service,
+        admin_config,
+        user_id,
+        credits_enabled=settings.credits_enabled,
+    )
 
 
 def get_metered_embedding_provider(
@@ -341,7 +348,7 @@ async def require_sufficient_balance(
     else:
         available = max(row.balance_usd - row.held_balance_usd, Decimal("0.000000"))
 
-    threshold = Decimal(str(settings.metering_minimum_balance))
+    threshold = Decimal(settings.metering_minimum_balance)
     if available <= threshold:
         raise InsufficientBalanceError(
             balance=available,

@@ -112,7 +112,12 @@ def metered_llm(
 ) -> MeteredLLMProvider:
     """Create a MeteredLLMProvider wrapping a mock inner provider."""
     return MeteredLLMProvider(
-        inner_llm, llm_registry, mock_metering, mock_admin_config, TEST_USER_ID
+        inner_llm,
+        llm_registry,
+        mock_metering,
+        mock_admin_config,
+        TEST_USER_ID,
+        credits_enabled=False,
     )
 
 
@@ -237,7 +242,52 @@ class TestMeteredLLMProviderComplete:
 
 
 class TestMeteredLLMProviderStream:
-    """MeteredLLMProvider.stream() passes through with warning."""
+    """MeteredLLMProvider.stream() — fail-closed when credits enabled."""
+
+    async def test_raises_provider_error_when_credits_enabled(
+        self,
+        inner_llm: MockLLMProvider,
+        llm_registry: dict[str, MockLLMProvider],
+        mock_metering: AsyncMock,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """AF-09: stream() raises ProviderError when credits_enabled=True,
+        preventing accidental unmetered usage."""
+        provider = MeteredLLMProvider(
+            inner_llm,
+            llm_registry,
+            mock_metering,
+            mock_admin_config,
+            TEST_USER_ID,
+            credits_enabled=True,
+        )
+        with pytest.raises(ProviderError, match="not supported.*credits are enabled"):
+            async for _ in provider.stream(_HELLO_MESSAGES, TaskType.EXTRACTION):
+                pass
+        mock_metering.reserve.assert_not_called()
+        mock_metering.settle.assert_not_called()
+        mock_metering.release.assert_not_called()
+
+    async def test_streams_normally_when_credits_disabled(
+        self,
+        inner_llm: MockLLMProvider,
+        llm_registry: dict[str, MockLLMProvider],
+        mock_metering: AsyncMock,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """AF-09: stream() still works when credits_enabled=False."""
+        provider = MeteredLLMProvider(
+            inner_llm,
+            llm_registry,
+            mock_metering,
+            mock_admin_config,
+            TEST_USER_ID,
+            credits_enabled=False,
+        )
+        chunks = []
+        async for chunk in provider.stream(_HELLO_MESSAGES, TaskType.EXTRACTION):
+            chunks.append(chunk)
+        assert len(chunks) > 0
 
     async def test_yields_inner_stream_chunks(
         self, metered_llm: MeteredLLMProvider
@@ -665,6 +715,28 @@ class TestGetMeteredProvider:
             mock_config_cls.assert_called_once_with(mock_db)
             mock_metering_cls.assert_called_once_with(mock_db, mock_admin_config)
             assert result.provider_name == _MOCK_PROVIDER_NAME
+
+    async def test_forwards_credits_enabled_to_provider(self) -> None:
+        """AF-09: credits_enabled is wired from settings to provider."""
+        from app.api.deps import get_metered_provider
+
+        mock_db = AsyncMock()
+        mock_registry = {_MOCK_PROVIDER_NAME: MockLLMProvider()}
+        with (
+            patch("app.api.deps.settings") as mock_settings,
+            patch("app.api.deps.get_llm_provider", return_value=MockLLMProvider()),
+            patch("app.api.deps.get_llm_registry", return_value=mock_registry),
+            patch("app.api.deps.AdminConfigService"),
+            patch("app.api.deps.MeteringService"),
+        ):
+            mock_settings.metering_enabled = True
+            mock_settings.credits_enabled = True
+            result = get_metered_provider(TEST_USER_ID, mock_db)
+            with pytest.raises(
+                ProviderError, match="not supported.*credits are enabled"
+            ):
+                async for _ in result.stream(_HELLO_MESSAGES, TaskType.EXTRACTION):
+                    pass
 
 
 class TestGetMeteredEmbeddingProvider:
