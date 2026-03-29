@@ -282,7 +282,7 @@ Phase 6: Integration Testing & Polish
 
 ## Phase 6: Integration Testing & Polish
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *End-to-end integration tests across the full hardened pipeline. Verify all 13 findings are resolved. Final quality gate.*
 
@@ -311,7 +311,7 @@ Phase 6: Integration Testing & Polish
 | 28 | **Findings verification audit** — Cross-check all 13 findings from REQ-030 §1.5 against the implementation. Verify each finding has tests, code changes, and passes. Document verification in this plan. | `plan, security` | ✅ |
 | | **Read:** REQ-030 §1.5 (findings register), §13 (security considerations). | `req-reader` | |
 | | **Done when:** All 13 findings verified resolved with test coverage. | | |
-| 29 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. Final push for the feature branch. | `plan, commands` | ⬜ |
+| 29 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. Final push for the feature branch. | `plan, commands` | ✅ |
 
 #### Phase 6 Notes
 
