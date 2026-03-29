@@ -55,6 +55,15 @@ _EMBEDDING_PRICING = PricingResult(
     effective_date=date(2026, 1, 1),
 )
 
+# AF-05: Zero-cost pricing — both input and output at zero.
+# PricingConfig allows >= 0 for both, but UsageReservation requires > 0.
+_ZERO_PRICING = PricingResult(
+    input_cost_per_1k=Decimal("0"),
+    output_cost_per_1k=Decimal("0"),
+    margin_multiplier=Decimal("1.00"),
+    effective_date=date(2026, 1, 1),
+)
+
 
 # =============================================================================
 # Helpers
@@ -503,6 +512,51 @@ class TestReserve:
 
         with pytest.raises(ValueError, match="not found"):
             await service.reserve(_USER_ID, _TASK_TYPE, max_tokens=4096)
+
+    @pytest.mark.asyncio
+    async def test_zero_cost_pricing_produces_minimum_estimate(
+        self,
+        mock_db: AsyncMock,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """AF-05: Zero input+output pricing produces floor estimate, not zero.
+
+        PricingConfig allows input_cost_per_1k=0 and output_cost_per_1k=0,
+        but UsageReservation requires estimated_cost_usd > 0. The floor
+        (0.000001) prevents an IntegrityError on the CHECK constraint.
+        """
+        mock_admin_config.get_routing_for_task.return_value = (_PROVIDER, _HAIKU_MODEL)
+        mock_admin_config.get_pricing.return_value = _ZERO_PRICING
+        service = MeteringService(mock_db, mock_admin_config)
+
+        reservation = await service.reserve(_USER_ID, _TASK_TYPE, max_tokens=4096)
+        assert reservation.estimated_cost_usd == Decimal("0.000001")
+
+    @pytest.mark.asyncio
+    async def test_normal_pricing_unaffected_by_floor(
+        self,
+        reserve_service: MeteringService,
+    ) -> None:
+        """AF-05: Normal pricing is not changed by the minimum floor.
+
+        The floor only activates when estimated cost would be zero or
+        below the representable minimum. Normal pricing produces values
+        well above the floor and should be returned unchanged.
+        """
+        reservation = await reserve_service.reserve(
+            _USER_ID, _TASK_TYPE, max_tokens=4096
+        )
+        # Haiku pricing produces 0.0589824, well above the floor
+        expected = (
+            (
+                Decimal("4096") * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal("4096") * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal("1000")
+            * _HAIKU_PRICING.margin_multiplier
+        )
+        assert reservation.estimated_cost_usd == expected
+        assert reservation.estimated_cost_usd > Decimal("0.000001")
 
     @pytest.mark.asyncio
     async def test_no_reservation_on_pricing_failure(

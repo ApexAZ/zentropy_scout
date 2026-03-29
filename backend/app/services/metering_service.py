@@ -32,6 +32,10 @@ _THOUSAND = Decimal(1000)
 _DEFAULT_MAX_TOKENS = 4096
 _DEFAULT_MAX_INPUT_TOKENS = 4096
 _STATUS_HELD = "held"
+# AF-05: Smallest positive value for Numeric(10,6). Prevents IntegrityError
+# when admin configures zero-cost pricing (PricingConfig allows >= 0 but
+# UsageReservation requires estimated_cost_usd > 0).
+_MINIMUM_ESTIMATED_COST = Decimal("0.000001")
 
 
 class _ReservationSweptError(Exception):
@@ -133,8 +137,9 @@ class MeteringService:
     ) -> UsageReservation:
         """Reserve estimated cost from user's available balance.
 
-        REQ-030 §5.2, AF-03: Resolves routing, looks up pricing, calculates
-        worst-case cost from input + output token ceilings × prices × margin,
+        REQ-030 §5.2, AF-03, AF-05: Resolves routing, looks up pricing,
+        calculates worst-case cost from input + output token ceilings × prices
+        × margin (floored at 0.000001 to satisfy ck_reservation_estimated_positive),
         inserts a UsageReservation, and atomically increments held_balance_usd.
 
         Args:
@@ -167,13 +172,15 @@ class MeteringService:
 
         # 4. Estimated cost: (input_ceiling * input_per_1k + max_tokens * output_per_1k) / 1000 * margin
         # AF-03: Includes input token cost to prevent under-estimation for large-prompt scenarios
-        estimated_cost = (
+        # AF-05: Floor at _MINIMUM_ESTIMATED_COST to satisfy ck_reservation_estimated_positive
+        estimated_cost = max(
             (
                 Decimal(max_input_tokens) * input_per_1k
                 + Decimal(max_tokens) * output_per_1k
             )
             / _THOUSAND
-            * margin
+            * margin,
+            _MINIMUM_ESTIMATED_COST,
         )
 
         # 5. Insert reservation
