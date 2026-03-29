@@ -2,7 +2,7 @@
 
 **Created:** 2026-03-27
 **Last Updated:** 2026-03-28
-**Status:** 🟡 In Progress (Phase 7 added 2026-03-28)
+**Status:** ✅ Complete (all 7 phases, 40 tasks)
 **Branch:** `feat/billing-metering-hardening`
 **Backlog Item:** #29
 
@@ -351,7 +351,7 @@ All 13 findings from REQ-030 §1.5 verified resolved with code changes and test 
 
 ## Phase 7: Post-Audit Hardening
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Addresses 12 findings from a comprehensive adversarial red-team audit conducted 2026-03-28 after PR #61 merged. The audit traced every balance modification path, reviewed all 42 changed files, and launched parallel security, code, and codebase exploration agents. Findings range from HIGH (race conditions, missing balance guards) to LOW (documentation, config types). Ordered by severity — HIGH items first.*
 
@@ -415,7 +415,7 @@ The audit was conducted with zero-trust posture across the full billing/metering
 | | **Read:** `frontend/src/components/usage/usage-page.tsx` (StripeRedirectHandler at 55-75, query invalidation at 64-65). `backend/app/core/config.py` (metering_minimum_balance). `backend/app/services/stripe_webhook_service.py` (refund handler at 162-240). `backend/migrations/versions/028_billing_hardening.py` (f-string at 121-123). `backend/app/api/deps.py` (Decimal conversion at 344). | | |
 | | **TDD:** Test frontend: checkout success invalidates usageTransactions. Test backend: metering_minimum_balance loads correctly as Decimal. | | |
 | | **Done when:** All four minor fixes applied. No stale cache on checkout success. Config precision is clean. Documentation items addressed. | | |
-| 40 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 40 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 7 Notes
 
