@@ -172,7 +172,7 @@ Phase 5: Real Backend Integration Strategy
 
 ## Phase 4: Visual Regression + Performance Testing
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add toHaveScreenshot() baselines for 10 key pages using Docker for OS-consistent rendering, and web vitals budget assertions for 4 key pages. Visual baselines depend on Phase 1 (multi-browser) and Phase 2 (accessibility fixes that may have changed components).*
 
@@ -196,7 +196,7 @@ Phase 5: Real Backend Integration Strategy
 | 22 | **Update CI for visual regression** — Update `.github/workflows/playwright.yml` to: (a) run visual regression tests using the same Docker image (or the matching official Playwright image in CI), (b) upload screenshot diff artifacts on failure for review, (c) initially use `continue-on-error: true` for visual regression job until baselines stabilize. Add step to upload `__screenshots__` directory as artifact when tests fail. | `plan, playwright, commands` | ✅ |
 | 23 | **Performance budget tests with web vitals** — Create `frontend/tests/e2e/performance.spec.ts`. Measure web vitals for 4 key pages: landing, dashboard, resume detail, onboarding step 1. Extract `PerformanceNavigationTiming` via `page.evaluate()`: (a) TTFB (`responseStart - requestStart` < 800ms), (b) DOM Content Loaded (`domContentLoadedEventEnd - navigationStart` < 3000ms), (c) Load (`loadEventEnd - navigationStart` < 5000ms). Extract LCP via `PerformanceObserver` where supported. All thresholds are generous for mocked-API pages — value is catching regressions. Run on Chromium only (`test.skip` for Firefox/WebKit). ~4-5 tests. | `plan, playwright, e2e, tdd` | ✅ |
 | 24 | **Update Claude Code configuration for Docker visual regression** — Update all `.claude/` files and `CLAUDE.md` that reference Playwright to document the Docker-based visual regression workflow. Files to update: (a) `.claude/skills/zentropy-playwright/SKILL.md` — add Docker commands (`npm run test:e2e:visual`, `npm run test:e2e:visual:update`), document when to use Docker vs native Playwright, baseline update workflow, (b) `.claude/agents/test-runner.md` — add visual regression Docker commands to the "Full mode" test suite, (c) `.claude/agents/qa-reviewer.md` — add visual regression as a test type to recommend when UI changes are detected, (d) `CLAUDE.md` Testing section — add visual regression Docker workflow to the "When to Run Tests" table and note about baseline generation, (e) `.claude/skills/zentropy-commands/SKILL.md` — add Docker Playwright commands if not already present. | `plan, playwright, e2e` | ✅ |
-| 25 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 25 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - Docker ensures WSL2 baselines match CI (Ubuntu) — same font rendering, same browser binaries
