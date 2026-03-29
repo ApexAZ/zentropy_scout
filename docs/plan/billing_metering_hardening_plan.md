@@ -1,8 +1,8 @@
 # Zentropy Scout — REQ-030 Billing & Metering Hardening Implementation Plan
 
 **Created:** 2026-03-27
-**Last Updated:** 2026-03-28
-**Status:** ✅ Complete (all 7 phases, 40 tasks)
+**Last Updated:** 2026-03-29
+**Status:** 🟡 In Progress (Phase 8 added 2026-03-29)
 **Branch:** `feat/billing-metering-hardening`
 **Backlog Item:** #29
 
@@ -56,6 +56,9 @@ Phase 6: Integration Testing & Polish
     │
     ▼
 Phase 7: Post-Audit Hardening (12 findings from adversarial red-team audit)
+    │
+    ▼
+Phase 8: Post-Merge Red-Team Audit R2 (3 findings from second audit)
 ```
 
 **Ordering rationale:** Phase 1 is the migration — everything else depends on the new columns/tables existing. Phase 2 is the core architectural change (reservation pipeline). Phase 3 is webhook hardening (independent of reservation but needs the migration for `expired` status). Phase 4 is quick fixes that can land anytime after Phase 1. Phase 5 is the background sweep (needs the reservation pipeline from Phase 2). Phase 6 is integration testing across all changes.
@@ -444,6 +447,68 @@ The audit was conducted with zero-trust posture across the full billing/metering
 
 ---
 
+## Phase 8: Post-Merge Red-Team Audit — Round 2
+
+**Status:** ⬜ Incomplete
+
+*Addresses 3 findings from a second adversarial red-team audit conducted 2026-03-29 after PR #62 merged all 7 phases. The audit traced every balance modification path, every embedding call site, and the full reconciliation system with zero-trust prosecutorial posture. Findings: MEDIUM (unmetered embedding calls, incorrect reservation parameters) and LOW (held_balance drift detection gap).*
+
+#### Audit Context
+
+Zero-trust posture across embedding metering and reconciliation coverage:
+- **Embedding metering trace:** Followed all embedding calls from API endpoints through `discovery_workflow.py` → `JobFetchService` → `JobScoringService` → `factory.get_embedding_provider()`. Confirmed `MeteredEmbedding` dependency exists in `deps.py:288` but is never injected into the scoring pipeline. All embedding costs are absorbed by the platform, invisible to the usage dashboard.
+- **Reservation parameter audit:** Verified every `reserve()` call site. Found `MeteredEmbeddingProvider.embed()` passes estimated input tokens as `max_tokens` (output ceiling) instead of `max_input_tokens` (input ceiling). Combined with the guard that treats `max_tokens=0` as falsy, embedding reservations use wrong token counts in both parameters.
+- **Reconciliation coverage:** Verified `detect_balance_drift()` only checks `balance_usd` vs ledger SUM. `held_balance_usd` vs active reservations is unchecked — drift in `held_balance_usd` permanently reduces available balance with no alert, potentially soft-locking users.
+- **Result:** 3 findings (2 MEDIUM, 1 LOW)
+
+#### Workflow
+
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Re-read audit findings in this phase's context section |
+| 🧪 **TDD** | Write failing test first — follow `zentropy-tdd` |
+| 🗃️ **Patterns** | Use `zentropy-tdd` for mocking, `zentropy-provider` for embedding patterns |
+| ✅ **Verify** | `pytest -v` affected tests, lint, typecheck |
+| 🔍 **Review** | Use `code-reviewer` + `security-reviewer` agents |
+| 📝 **Commit** | Follow `zentropy-git` |
+
+#### Tasks
+
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 41 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Verdicts: CLEAR → mark complete, proceed. VULNERABLE → fix immediately. FALSE POSITIVE → complete full PROSECUTION PROTOCOL before dismissing. NEEDS INVESTIGATION → escalate to user via AskUserQuestion. | `plan, security` | ⬜ |
+| 42 | **[MEDIUM] Fix embedding reservation parameter mapping (AF-13)** — Two changes. (a) In `backend/app/services/metering_service.py` line 169, change `if not max_tokens or max_tokens <= 0:` to `if max_tokens is None or max_tokens < 0:` to allow explicit `max_tokens=0` (embeddings produce zero output tokens). Apply the same fix to the `max_input_tokens` guard at line 171: change `if not max_input_tokens or max_input_tokens <= 0:` to `if max_input_tokens is None or max_input_tokens < 0:`. (b) In `backend/app/providers/metered_provider.py` lines 303-307, change `max_tokens=estimated_tokens` to `max_input_tokens=estimated_tokens, max_tokens=0`. This ensures estimated input tokens are correctly placed in the input ceiling (multiplied by `input_per_1k`) and the output ceiling is explicitly zero. | `plan, tdd, provider` | ⬜ |
+| | **Read:** `backend/app/services/metering_service.py` (reserve at 132-217, guards at 168-172). `backend/app/providers/metered_provider.py` (embed at 280-344, reserve call at 303-307). REQ-030 §5.7, REQ-020 §6.5. | | |
+| | **TDD:** Test that `reserve(max_tokens=0)` does NOT default to 4096. Test that `reserve(max_tokens=None)` still defaults to 4096. Test that `reserve(max_tokens=0, max_input_tokens=500)` produces estimated cost based on input only. Test that `MeteredEmbeddingProvider.embed()` passes `max_input_tokens` and `max_tokens=0` to reserve(). | | |
+| | **Done when:** Embedding reservations use input ceiling for input tokens and zero for output. `max_tokens=0` is preserved, not defaulted. | | |
+| 43 | **[MEDIUM] Wire MeteredEmbeddingProvider into discovery/scoring pipeline (AF-14)** — Thread the metered embedding provider through the DI chain so embedding calls during job scoring are metered. (a) Add optional `embedding_provider: EmbeddingProvider \| None = None` parameter to `run_discovery()` in `backend/app/services/discovery_workflow.py` and pass it to `JobFetchService(db, user_id, persona_id, embedding_provider=embedding_provider)`. (b) Verify `JobFetchService.__init__` already accepts `embedding_provider` (confirmed at line 116) and passes it to `JobScoringService` at line 368. (c) Verify `JobScoringService.__init__` already accepts `embedding_provider` (confirmed at line 248) and uses it with fallback at line 317-318. Only one link in the DI chain is broken: `run_discovery()` at line 245 creates `JobFetchService` without passing the provider. | `plan, tdd, provider, api` | ⬜ |
+| | **Read:** `backend/app/services/discovery_workflow.py` (run_discovery at 207-257, JobFetchService instantiation at 245). `backend/app/services/job_fetch_service.py` (\_\_init\_\_ at 110-122, \_score\_new\_jobs at 351-381). `backend/app/services/job_scoring_service.py` (\_\_init\_\_ at 244-252, score_batch fallback at 317-318). `backend/app/api/deps.py` (MeteredEmbedding at 288). | | |
+| | **TDD:** Test that `run_discovery()` passes `embedding_provider` to `JobFetchService`. Test that when provider is supplied, `JobScoringService.score_batch()` uses it instead of `factory.get_embedding_provider()`. Test backward compatibility: None still falls back to factory. | | |
+| | **Done when:** `run_discovery(embedding_provider=metered)` flows through to all embed() calls. No embedding call in the scoring pipeline bypasses metering when a metered provider is supplied. Backward compatibility preserved. | | |
+| 44 | **[LOW] Add held_balance_usd drift detection to reconciliation sweep (AF-15)** — Add `detect_held_balance_drift()` function in `backend/app/services/reservation_sweep.py` alongside the existing `detect_balance_drift()`. Compares `users.held_balance_usd` against `SUM(usage_reservations.estimated_cost_usd) WHERE status = 'held'` for each user. Any absolute drift exceeding `_DRIFT_THRESHOLD` (0.000001) is logged at ERROR level. Wire into `ReservationSweepWorker.run_once()` (line 240-256) alongside the existing `detect_balance_drift()` call. | `plan, tdd, db` | ⬜ |
+| | **Read:** `backend/app/services/reservation_sweep.py` (detect_balance_drift at 125-174, run_once at 240-256). `backend/app/models/usage_reservation.py` (status, estimated_cost_usd). REQ-030 §11.2. | | |
+| | **TDD:** Test that held_balance drift is detected when `held_balance_usd` exceeds SUM of held reservations. Test no drift returns empty list when values match. Test users with zero held and no reservations produce no drift. Test `run_once()` calls both drift checks. | | |
+| | **Done when:** `held_balance_usd` drift is detected and logged at ERROR. Worker calls both drift checks on every pass. | | |
+| 45 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+
+#### Phase 8 Notes
+
+- Tasks ordered: §42 (fix reserve parameter mapping) before §43 (wire metered provider) — provider must produce correct reservations before being wired into production
+- §42 is two coordinated changes (guard fix + call site fix) that must land together
+- §43 modifies only `discovery_workflow.py` — the downstream chain (`JobFetchService` → `JobScoringService`) already accepts optional providers. Only one link in the DI chain is broken
+- §44 is structurally identical to the existing `detect_balance_drift()` — same SQL pattern but against `usage_reservations` instead of `credit_transactions`
+- The `rescore` endpoint stub at `job_postings.py:787-798` returns `{"status": "queued"}` without triggering scoring. When implemented, it should use the `MeteredEmbedding` dependency — documentation note, not a Phase 8 code change
+
+#### Audit Findings Register (Round 2)
+
+| ID | Severity | Title | Task | Impact |
+|----|----------|-------|------|--------|
+| AF-13 | MEDIUM | Embedding reserve() uses wrong parameter (input tokens as output ceiling) | §42 | Financial: embedding reservations estimate wrong cost |
+| AF-14 | MEDIUM | All embedding calls bypass metering (MeteredEmbedding never injected) | §43 | Financial: embedding costs not tracked, recorded, or billed |
+| AF-15 | LOW | held_balance_usd drift not detected by reconciliation | §44 | Availability: drifted held_balance permanently reduces available balance |
+
+---
+
 ## Task Count Summary
 
 | Phase | Tasks | Subtasks | Gates |
@@ -455,7 +520,8 @@ The audit was conducted with zero-trust posture across the full billing/metering
 | Phase 5: Background Reconciliation | 4 | 2 | 1 security + 1 phase |
 | Phase 6: Integration Testing & Polish | 5 | 3 | 1 security + 1 phase |
 | Phase 7: Post-Audit Hardening | 11 | 9 | 1 security + 1 phase |
-| **Total** | **40** | **27** | **6 security + 7 phase** |
+| Phase 8: Post-Merge Red-Team Audit R2 | 5 | 3 | 1 security + 1 phase |
+| **Total** | **45** | **30** | **7 security + 8 phase** |
 
 ---
 
@@ -466,8 +532,8 @@ The audit was conducted with zero-trust posture across the full billing/metering
 | `backend/app/models/usage_reservation.py` | 1 | §4.2 |
 | `backend/app/models/user.py` | 1 | §4.1 |
 | `backend/app/models/stripe.py` | 1 | §4.3, §7.3 |
-| `backend/app/services/metering_service.py` | 2, 7 | §5.2, §5.3, §5.5 + AF-01–AF-05, AF-07 |
-| `backend/app/providers/metered_provider.py` | 2, 7 | §5.4, §5.6, §5.7 + AF-07, AF-09 |
+| `backend/app/services/metering_service.py` | 2, 7, 8 | §5.2, §5.3, §5.5 + AF-01–AF-05, AF-07, AF-13 |
+| `backend/app/providers/metered_provider.py` | 2, 7, 8 | §5.4, §5.6, §5.7 + AF-07, AF-09, AF-13 |
 | `backend/app/api/deps.py` | 2 | §6.1 |
 | `backend/app/services/stripe_webhook_service.py` | 3, 7 | §7.2, §7.3 + AF-06, AF-08 |
 | `backend/app/repositories/stripe_repository.py` | 3 | §7.3 |
@@ -476,7 +542,8 @@ The audit was conducted with zero-trust posture across the full billing/metering
 | `backend/app/api/v1/credits.py` | 4 | §10.1 |
 | `frontend/src/components/usage/usage-page.tsx` | 4, 7 | §10.2 + AF-10 |
 | `CLAUDE.md` | 4 | §10.3 |
-| `backend/app/services/reservation_sweep.py` | 5 | §11.1, §11.2 |
+| `backend/app/services/reservation_sweep.py` | 5, 8 | §11.1, §11.2 + AF-15 |
+| `backend/app/services/discovery_workflow.py` | 8 | §5.7 + AF-14 |
 | `backend/app/core/config.py` | 1, 7 | §9.1, §9.2, AF-12 |
 | `backend/migrations/versions/028_billing_hardening.py` | 1, 7 | §4.4, AF-11 |
 
@@ -488,3 +555,4 @@ The audit was conducted with zero-trust posture across the full billing/metering
 |------|---------|---------|
 | 2026-03-27 | 0.1 | Initial plan. 6 phases, 29 tasks (18 implementation + 5 security gates + 6 phase gates). |
 | 2026-03-28 | 0.2 | Added Phase 7: Post-Audit Hardening. 12 findings from adversarial red-team audit (3 HIGH, 4 MEDIUM, 5 LOW). 11 new tasks (§30–§40). Total: 7 phases, 40 tasks. |
+| 2026-03-29 | 0.3 | Added Phase 8: Post-Merge Red-Team Audit R2. 3 findings from second adversarial audit (2 MEDIUM, 1 LOW). 5 new tasks (§41–§45). Total: 8 phases, 45 tasks. |
