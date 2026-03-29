@@ -30,7 +30,7 @@ Read the modified files listed in the prompt. For each file, classify the change
 | Change Type | E2E Relevant? | Why |
 |-------------|---------------|-----|
 | New UI component | Yes | User will interact with it |
-| Modified UI component | Yes | Behavior may have changed |
+| Modified UI component | Yes | Behavior may have changed — also recommend visual regression baseline update |
 | New API endpoint | Maybe | Only if it feeds a UI flow |
 | Modified API response shape | Yes | Frontend rendering may break |
 | Backend-only logic | No | Covered by unit/integration tests |
@@ -121,9 +121,11 @@ Tests live at `frontend/tests/e2e/`. Always check these before recommending new 
 | `ghostwriter-review.spec.ts` | Unified review tabs, approve both/individual, error blocking, empty state | `ghostwriter-api-mocks` |
 | `settings.spec.ts` | Job source toggles, agent config, about section | `settings-api-mocks` |
 | `navigation.spec.ts` | Nav links, active highlight, badges, error states, toast | `job-discovery-api-mocks`, `settings-api-mocks` |
-| `accessibility.spec.ts` | A11y compliance (axe-core) | `job-discovery-api-mocks` |
 | `responsive.spec.ts` | Mobile/responsive layout, viewport tests | `job-discovery-api-mocks` |
 | `security-headers.spec.ts` | Security header presence | Inline route mocks |
+| `visual-regression.spec.ts` | Screenshot baselines (10 pages, Docker-based) | Multiple mock controllers |
+| `performance.spec.ts` | Web vitals budget (TTFB, DCL, Load, LCP, Chromium only) | Multiple mock controllers |
+| `accessibility.spec.ts` | WCAG 2.1 AA axe-core scans (11 pages) | Multiple mock controllers |
 
 ### Mock Infrastructure
 
@@ -204,6 +206,23 @@ If no orphans are found, omit this section entirely.
 
 ---
 
+## Visual Regression Baseline Updates
+
+When a subtask modifies UI components (`.tsx` files) that affect the visual appearance of pages covered by `visual-regression.spec.ts`, recommend a **baseline update** in your output:
+
+```
+### Visual Regression Baseline Update Needed
+The following baselines may need regeneration after this change:
+- `dashboard-desktop.png` — Dashboard layout modified
+- `settings-desktop.png` — New toggle added to settings page
+
+Run: `cd frontend && npm run test:e2e:visual:update`
+```
+
+Pages with baselines: landing, login, register, dashboard, persona basic info, resume list, resume detail, applications, settings, ghostwriter review.
+
+---
+
 ## Key Principles
 
 1. **Not everything needs E2E** — Backend-only changes, config changes, and tooling changes don't need Playwright tests
@@ -211,3 +230,4 @@ If no orphans are found, omit this section entirely.
 3. **Check before recommending** — Always search existing tests first. Don't recommend what already exists.
 4. **Priority matters** — Core user flows > edge cases > cosmetic changes
 5. **Stale tests are worse than missing tests** — A test that passes but doesn't verify real behavior gives false confidence. Always check for staleness.
+6. **Visual regression awareness** — When UI changes are detected, check if the affected pages have screenshot baselines that need updating.

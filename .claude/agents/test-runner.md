@@ -24,6 +24,7 @@ cd backend && pytest <specific_files> -v
 cd backend && pytest -v
 cd frontend && npm run test:run
 cd frontend && npx playwright test
+cd frontend && npm run test:e2e:visual    # Docker — visual regression
 
 # Lint + typecheck
 cd backend && ruff check .
@@ -41,6 +42,7 @@ cd frontend && npm run typecheck
 | API | `cd backend && pytest tests/api/ -v` |
 | Frontend Unit | `cd frontend && npm run test:run` |
 | E2E | `cd frontend && npx playwright test` |
+| Visual Regression | `cd frontend && npm run test:e2e:visual` (Docker) |
 | All Backend | `cd backend && pytest -v` |
 | All | See "Full mode" above |
 

@@ -270,6 +270,8 @@ If refactoring breaks tests, the tests were likely testing implementation, not b
 | **Before commit** (subtask) | Affected tests + lint | Pre-commit hooks (~25-40s) | Quick quality check |
 | **Full fast suite** | All non-migration tests (parallel) | `pytest tests/ -v` (~26s) | Default — skips slow, runs xdist parallel |
 | **Before push** (phase gate) | Full suite (parallel) + lint + types | `pytest tests/ -v -m ""` (~34s) | Includes migration tests. Pre-push hook adds `-n auto`. |
+| **Visual regression** | Screenshot baselines (Docker) | `cd frontend && npm run test:e2e:visual` | After UI changes — Docker ensures OS-consistent rendering |
+| **Update baselines** | Regenerate screenshots (Docker) | `cd frontend && npm run test:e2e:visual:update` | After intentional UI changes — commit updated baselines |
 | **Serial mode** | All tests (no xdist) | `pytest tests/ -v -m "" -n 0` (~121s) | For debugging test ordering or fixture issues |
 | **CI/CD** | Everything + coverage | GitHub Actions | Final quality gate |
 

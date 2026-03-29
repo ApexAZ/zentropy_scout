@@ -121,6 +121,22 @@ npm run typecheck
 npm run lint
 ```
 
+## Visual Regression (Docker)
+
+```bash
+cd frontend
+
+# Run visual regression tests (compare against committed baselines)
+npm run test:e2e:visual
+
+# Update baselines after intentional UI changes
+npm run test:e2e:visual:update
+```
+
+> **Note:** Visual regression tests run inside Docker (Ubuntu Noble) to ensure
+> consistent font rendering between WSL2 local and CI. Baselines live in
+> `frontend/tests/__screenshots__/` and must be committed to git.
+
 ## CI / GitHub (gh CLI)
 
 ```bash
@@ -162,4 +178,6 @@ gh api repos/ApexAZ/zentropy_scout/pulls/<pr-number>/comments
 | Tests (default) | `cd backend && pytest -v` |
 | Tests (all) | `cd backend && pytest -v -m ""` |
 | Tests (serial) | `cd backend && pytest -v -m "" -n 0` |
+| Visual regression | `cd frontend && npm run test:e2e:visual` |
+| Update baselines | `cd frontend && npm run test:e2e:visual:update` |
 | Lint | `cd backend && ruff check . && ruff format .` |

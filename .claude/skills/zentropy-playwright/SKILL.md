@@ -224,6 +224,69 @@ export default defineConfig({
 
 ---
 
+## Visual Regression Testing (Docker)
+
+Visual regression tests use `toHaveScreenshot()` to compare screenshots against committed baselines. Baselines are generated inside Docker (Ubuntu Noble) so that WSL2 local screenshots match CI (also Ubuntu) — same font rendering, same browser binaries.
+
+### When to Use Docker vs Native Playwright
+
+| Use Case | Tool | Why |
+|----------|------|-----|
+| **E2E functional tests** | Native Playwright (`npx playwright test`) | Fast, no Docker overhead |
+| **Visual regression tests** | Docker (`npm run test:e2e:visual`) | OS-consistent rendering |
+| **Updating baselines** | Docker (`npm run test:e2e:visual:update`) | Baselines must match CI |
+| **Accessibility tests** | Native Playwright | No screenshot comparison |
+| **Performance tests** | Native Playwright (Chromium only) | Browser timing APIs |
+
+### Docker Commands
+
+```bash
+cd frontend
+
+# Run visual regression tests (compare against committed baselines)
+npm run test:e2e:visual
+
+# Update baselines (after intentional UI changes)
+npm run test:e2e:visual:update
+```
+
+These commands run Playwright inside a Docker container defined in `frontend/docker/docker-compose.playwright.yml`. The container:
+- Uses `frontend/docker/playwright.Dockerfile` (Ubuntu Noble base)
+- Bind-mounts `tests/`, `src/`, and `public/` so baselines persist on host
+- Starts its own Next.js dev server via Playwright's `webServer` config
+- Runs as host user (`UID:GID`) so baselines have correct file ownership
+
+### Baseline Update Workflow
+
+1. Make your UI change
+2. Run `cd frontend && npm run test:e2e:visual` — tests fail showing diffs
+3. Review the diff screenshots in `frontend/test-results/` to confirm changes are intentional
+4. Run `cd frontend && npm run test:e2e:visual:update` — regenerates baselines
+5. Commit the updated baselines (`frontend/tests/__screenshots__/`)
+
+### Baseline File Structure
+
+```
+frontend/tests/__screenshots__/
+└── {projectName}/
+    └── e2e/visual-regression.spec.ts/
+        ├── landing-desktop.png
+        ├── login-desktop.png
+        ├── dashboard-desktop.png
+        └── ...
+```
+
+Baselines are committed to git and MUST be regenerated via Docker after any UI change that affects screenshots. The `maxDiffPixels: 50` threshold allows minor anti-aliasing differences while catching real regressions.
+
+### CI Integration
+
+Visual regression tests run in the `playwright-visual-regression` CI job (`.github/workflows/playwright.yml`), which:
+- Runs on push to main and workflow_dispatch only (not PRs)
+- Uses `continue-on-error: true` until baselines stabilize
+- Uploads screenshot diffs as artifacts on failure, and test reports on all non-cancelled runs
+
+---
+
 ## Checklist Before Merging E2E Tests
 
 - [ ] All AI/LLM endpoints are mocked
@@ -231,3 +294,4 @@ export default defineConfig({
 - [ ] Test cleans up any data it creates
 - [ ] Test passes 3x in a row locally
 - [ ] Test doesn't depend on other tests' state
+- [ ] If UI changed: visual regression baselines updated via Docker
