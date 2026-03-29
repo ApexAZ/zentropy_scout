@@ -8,6 +8,7 @@ REQ-030 §9: Reservation system config and production metering validation.
 
 import logging
 import uuid
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import SecretStr, model_validator
@@ -104,7 +105,7 @@ class Settings(BaseSettings):
     # Metering (REQ-020 §11, REQ-030 §9.2)
     metering_enabled: bool = True
     # REMOVED: metering_margin_multiplier (REQ-022 §7.7 — now per-model in pricing_config table)
-    metering_minimum_balance: float = 0.00
+    metering_minimum_balance: str = "0.00"
     reservation_ttl_seconds: int = 300
     reservation_sweep_interval_seconds: int = 300
 
@@ -152,7 +153,21 @@ class Settings(BaseSettings):
             raise ValueError(msg)
 
         # Metering config invariants (all environments)
-        if self.metering_minimum_balance < 0:
+        try:
+            min_bal = Decimal(self.metering_minimum_balance)
+        except (ArithmeticError, ValueError):
+            msg = (
+                "METERING_MINIMUM_BALANCE must be a valid decimal string. "
+                f"Got: {self.metering_minimum_balance!r}"
+            )
+            raise ValueError(msg) from None
+        if not min_bal.is_finite():
+            msg = (
+                "METERING_MINIMUM_BALANCE must be a finite decimal. "
+                f"Got: {self.metering_minimum_balance!r}"
+            )
+            raise ValueError(msg)
+        if min_bal < 0:
             msg = (
                 "METERING_MINIMUM_BALANCE cannot be negative. "
                 f"Got: {self.metering_minimum_balance}"

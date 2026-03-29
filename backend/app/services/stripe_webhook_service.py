@@ -211,6 +211,14 @@ async def _process_charge_refunded(
     # REQ-030 §7.2a (F-03): Savepoint wraps all three operations.
     # If any step fails, the savepoint rolls back — no orphaned credit
     # transactions or incorrect balance debits.
+    #
+    # AF-11: Refund deducts from balance_usd but does NOT touch held_balance_usd.
+    # If in-flight reservations exist, balance_usd may go negative after refund —
+    # this is intentional. The settle() pipeline logs an overdraft warning (AF-02)
+    # and the background sweep releases stale holds. No corrective action needed
+    # here because: (1) reservations are short-lived (~5 min TTL), (2) the soft
+    # gate in deps.py blocks new requests when available balance is low, and
+    # (3) atomic_refund_debit intentionally allows negative balance for refunds.
     is_full_refund: bool = charge.get("refunded", False)
     async with db.begin_nested():
         await CreditRepository.create(

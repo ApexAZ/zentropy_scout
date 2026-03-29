@@ -348,7 +348,7 @@ async def require_sufficient_balance(
     else:
         available = max(row.balance_usd - row.held_balance_usd, Decimal("0.000000"))
 
-    threshold = Decimal(str(settings.metering_minimum_balance))
+    threshold = Decimal(settings.metering_minimum_balance)
     if available <= threshold:
         raise InsufficientBalanceError(
             balance=available,

@@ -20,7 +20,7 @@ TEST_USER_ID = uuid.UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 _TEST_EMAIL = "test-gating@example.com"
 _ZERO_BALANCE = Decimal("0.000000")
 _FIVE_DOLLARS = Decimal("5.000000")
-_CUSTOM_THRESHOLD = 0.05
+_CUSTOM_THRESHOLD = "0.05"
 _CUSTOM_THRESHOLD_DECIMAL = Decimal("0.050000")
 _SETTINGS_PATCH = "app.api.deps.settings"
 

@@ -118,7 +118,10 @@ def upgrade() -> None:
     # Safety: verify no existing data exceeds INTEGER range
     conn = op.get_bind()
     for table in (_STRIPE_PURCHASES, _FUNDING_PACKS):
-        max_val = conn.execute(
+        max_val = conn.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query
+            # AF-12: Both _GRANT_CENTS and table are module-level string constants,
+            # not user input — f-string is safe here. Parameterized queries cannot
+            # be used for table/column identifiers in SQL.
             sa.text(f"SELECT COALESCE(MAX({_GRANT_CENTS}), 0) FROM {table}")
         ).scalar()
         if max_val > _INTEGER_MAX:
@@ -152,7 +155,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Reverse all billing hardening schema changes."""
     # 4. Migrate 'expired' rows before restoring narrower constraint
-    op.execute(
+    op.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query
+        # AF-12: _STRIPE_PURCHASES is a module-level constant, not user input.
         sa.text(
             f"UPDATE {_STRIPE_PURCHASES} SET status = 'pending' "
             "WHERE status = 'expired'"
@@ -182,7 +186,8 @@ def downgrade() -> None:
     )
 
     # 2. Release held reservations, then drop table
-    op.execute(
+    op.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query
+        # AF-12: _USAGE_RESERVATIONS is a module-level constant, not user input.
         sa.text(
             f"UPDATE {_USAGE_RESERVATIONS} SET status = 'released', "
             "settled_at = now() WHERE status = 'held'"

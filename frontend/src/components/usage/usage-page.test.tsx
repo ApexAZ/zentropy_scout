@@ -244,6 +244,19 @@ describe("UsagePage", () => {
 			});
 		});
 
+		it("invalidates usageTransactions queries on status=success", async () => {
+			const spy = vi.spyOn(queryClient, "invalidateQueries");
+			mocks.mockSearchParams.mockReturnValue(
+				new URLSearchParams(STRIPE_SUCCESS_PARAMS),
+			);
+			await renderUsagePage();
+			await waitFor(() => {
+				expect(spy).toHaveBeenCalledWith({
+					queryKey: queryKeys.usageTransactionsAll,
+				});
+			});
+		});
+
 		it("invalidates purchases query on status=success", async () => {
 			const spy = vi.spyOn(queryClient, "invalidateQueries");
 			mocks.mockSearchParams.mockReturnValue(

@@ -70,6 +70,7 @@ export const queryKeys = {
 	usageSummary: (start: string, end: string) =>
 		[USAGE, "summary", start, end] as const,
 	usageHistory: (page: number) => [USAGE, "history", page] as const,
+	usageTransactionsAll: [USAGE, "transactions"] as const,
 	usageTransactions: (page: number) => [USAGE, "transactions", page] as const,
 
 	// Admin keys (REQ-022 §11)
