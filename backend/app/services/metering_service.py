@@ -267,13 +267,15 @@ class MeteringService:
                 )
                 self._db.add(credit_txn)
 
-                # 5. Atomic debit + release hold
-                await self._db.execute(
+                # 5. Atomic debit + release hold (AF-02: RETURNING for
+                # overdraft detection — balance_usd has no CHECK constraint)
+                bal_result = await self._db.execute(
                     text(
                         "UPDATE users "
                         "SET balance_usd = balance_usd - :actual, "
                         "    held_balance_usd = held_balance_usd - :estimated "
-                        "WHERE id = :user_id"
+                        "WHERE id = :user_id "
+                        "RETURNING balance_usd"
                     ),
                     {
                         "actual": billed_cost,
@@ -281,6 +283,16 @@ class MeteringService:
                         "user_id": reservation.user_id,
                     },
                 )
+                new_balance: Decimal = bal_result.scalar_one()
+                if new_balance < 0:
+                    logger.error(
+                        "Balance overdraft after settlement: user %s, "
+                        "reservation %s, debit $%s, new balance $%s",
+                        reservation.user_id,
+                        reservation.id,
+                        billed_cost,
+                        new_balance,
+                    )
 
                 # 6. Conditional reservation update — prevents settle/sweep
                 # race (AF-01). The WHERE status = 'held' guard ensures only

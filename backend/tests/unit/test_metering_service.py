@@ -31,6 +31,7 @@ _PROVIDER = "claude"
 _HAIKU_MODEL = "claude-3-5-haiku-20241022"
 _SONNET_MODEL = "claude-3-5-sonnet-20241022"
 _TASK_TYPE = "extraction"
+_POSITIVE_BALANCE = Decimal("5.000000")
 
 # Pricing fixtures — simulate different models with different margins
 _HAIKU_PRICING = PricingResult(
@@ -91,6 +92,7 @@ def mock_db() -> AsyncMock:
     db.add = MagicMock()  # add() is synchronous in SQLAlchemy
     mock_result = MagicMock()
     mock_result.rowcount = 1  # Default: successful debit
+    mock_result.scalar_one.return_value = _POSITIVE_BALANCE  # Default: positive balance
     db.execute.return_value = mock_result
     return db
 
@@ -870,9 +872,12 @@ class TestSettle:
         the _ReservationSweptError triggers savepoint rollback — in
         production, all inserts and balance updates are undone.
         """
-        # First call (balance debit) succeeds, second (reservation) returns 0
+        # First call (balance debit) succeeds with positive balance,
+        # second (reservation) returns 0 — sweep already handled it
+        balance_mock = MagicMock(rowcount=1)
+        balance_mock.scalar_one.return_value = _POSITIVE_BALANCE
         mock_db_with_savepoint.execute.side_effect = [
-            MagicMock(rowcount=1),
+            balance_mock,
             MagicMock(rowcount=0),
         ]
         service = MeteringService(mock_db_with_savepoint, mock_admin_config)
@@ -892,8 +897,10 @@ class TestSettle:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """settle() logs warning (not error) when sweep wins the race."""
+        balance_mock = MagicMock(rowcount=1)
+        balance_mock.scalar_one.return_value = _POSITIVE_BALANCE
         mock_db_with_savepoint.execute.side_effect = [
-            MagicMock(rowcount=1),
+            balance_mock,
             MagicMock(rowcount=0),
         ]
         service = MeteringService(mock_db_with_savepoint, mock_admin_config)
@@ -903,6 +910,88 @@ class TestSettle:
             "sweep" in r.message.lower() and str(reservation.id) in r.message
             for r in caplog.records
             if r.levelno == logging.WARNING
+        )
+
+    @pytest.mark.asyncio
+    async def test_logs_error_on_balance_overdraft(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """settle() logs ERROR when balance goes negative after debit (AF-02).
+
+        The settlement still completes (fail-forward) since the LLM service
+        was already consumed, but the overdraft is logged for operator alert.
+        """
+        balance_result = MagicMock()
+        balance_result.scalar_one.return_value = Decimal("-0.500000")
+        reservation_result = MagicMock(rowcount=1)
+        mock_db_with_savepoint.execute.side_effect = [
+            balance_result,
+            reservation_result,
+        ]
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        with caplog.at_level(logging.ERROR):
+            await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        overdraft_records = [
+            r
+            for r in caplog.records
+            if r.levelno == logging.ERROR and "overdraft" in r.message.lower()
+        ]
+        assert len(overdraft_records) == 1
+        msg = overdraft_records[0].message
+        assert str(reservation.user_id) in msg
+        assert str(reservation.id) in msg
+        # Verify billed cost is included for operator investigation
+        expected_billed = (
+            (
+                Decimal(1000) * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal(500) * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal(1000)
+            * _HAIKU_PRICING.margin_multiplier
+        )
+        assert str(expected_billed) in msg
+
+    @pytest.mark.asyncio
+    async def test_overdraft_still_settles_reservation(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """Overdraft does not prevent settlement — service was already consumed.
+
+        AF-02: Fail-forward. The usage record and debit transaction are
+        still created. Only an ERROR log is emitted for operator investigation.
+        """
+        balance_result = MagicMock()
+        balance_result.scalar_one.return_value = Decimal("-0.500000")
+        reservation_result = MagicMock(rowcount=1)
+        mock_db_with_savepoint.execute.side_effect = [
+            balance_result,
+            reservation_result,
+        ]
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        assert reservation.status == "settled"
+
+    @pytest.mark.asyncio
+    async def test_no_overdraft_log_on_positive_balance(
+        self,
+        settle_service: MeteringService,
+        reservation: UsageReservation,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """No overdraft error when balance remains positive after settlement."""
+        with caplog.at_level(logging.ERROR):
+            await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        assert not any(
+            "overdraft" in r.message.lower()
+            for r in caplog.records
+            if r.levelno == logging.ERROR
         )
 
 
