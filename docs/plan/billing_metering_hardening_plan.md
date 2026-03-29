@@ -2,7 +2,7 @@
 
 **Created:** 2026-03-27
 **Last Updated:** 2026-03-29
-**Status:** 🟡 In Progress (Phase 8 added 2026-03-29)
+**Status:** ✅ Complete (all 8 phases, 45 tasks)
 **Branch:** `feat/billing-metering-hardening`
 **Backlog Item:** #29
 
@@ -449,7 +449,7 @@ The audit was conducted with zero-trust posture across the full billing/metering
 
 ## Phase 8: Post-Merge Red-Team Audit — Round 2
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Addresses 3 findings from a second adversarial red-team audit conducted 2026-03-29 after PR #62 merged all 7 phases. The audit traced every balance modification path, every embedding call site, and the full reconciliation system with zero-trust prosecutorial posture. Findings: MEDIUM (unmetered embedding calls, incorrect reservation parameters) and LOW (held_balance drift detection gap).*
 
@@ -489,7 +489,7 @@ Zero-trust posture across embedding metering and reconciliation coverage:
 | | **Read:** `backend/app/services/reservation_sweep.py` (detect_balance_drift at 125-174, run_once at 240-256). `backend/app/models/usage_reservation.py` (status, estimated_cost_usd). REQ-030 §11.2. | | |
 | | **TDD:** Test that held_balance drift is detected when `held_balance_usd` exceeds SUM of held reservations. Test no drift returns empty list when values match. Test users with zero held and no reservations produce no drift. Test `run_once()` calls both drift checks. | | |
 | | **Done when:** `held_balance_usd` drift is detected and logged at ERROR. Worker calls both drift checks on every pass. | | |
-| 45 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 45 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 8 Notes
 
