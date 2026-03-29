@@ -94,9 +94,10 @@ async def _process_checkout_completed(
         logger.error("User %s not found for checkout session %s", user_id, session_id)
         return
 
-    # Credit the balance (REQ-021 §6.7: transaction + atomic update)
-    # Savepoint ensures CreditTransaction + balance update are atomic —
-    # if atomic_credit fails after create flushes, the savepoint rolls back both.
+    # Credit the balance + mark purchase completed (AF-06: full atomicity).
+    # REQ-021 §6.7: CreditTransaction + balance update must be atomic.
+    # AF-06: mark_completed is inside the same savepoint so that a failure
+    # marking the purchase rolls back the credit — no "credited but pending" state.
     grant_usd = Decimal(grant_cents) / Decimal(100)
     async with db.begin_nested():
         await CreditRepository.create(
@@ -109,13 +110,11 @@ async def _process_checkout_completed(
             description="Funding pack purchase",
         )
         await CreditRepository.atomic_credit(db, user_id=user_id, amount=grant_usd)
-
-    # Update stripe_purchases record
-    updated = await StripePurchaseRepository.mark_completed(
-        db,
-        stripe_session_id=session_id,
-        stripe_payment_intent=session["payment_intent"],
-    )
+        updated = await StripePurchaseRepository.mark_completed(
+            db,
+            stripe_session_id=session_id,
+            stripe_payment_intent=session["payment_intent"],
+        )
     if not updated:
         logger.warning(
             "mark_completed found no pending purchase for session %s "

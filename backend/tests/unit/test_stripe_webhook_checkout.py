@@ -186,6 +186,36 @@ class TestHandleCheckoutCompletedSuccess:
         await db_session.refresh(user)
         assert user.balance_usd == Decimal("0")
 
+    async def test_mark_completed_failure_rolls_back_credit(
+        self, db_session: AsyncSession
+    ) -> None:
+        """AF-06: If mark_completed fails, credit + balance must roll back.
+
+        All three operations (CreditTransaction insert, balance update,
+        purchase status update) must be inside the same savepoint. If
+        mark_completed raises, the savepoint rolls back everything.
+        """
+        user, pack, purchase = await _setup_user_and_purchase(db_session)
+        event = _make_event(metadata=_default_metadata(user, pack))
+
+        with patch(
+            "app.services.stripe_webhook_service.StripePurchaseRepository.mark_completed",
+            side_effect=RuntimeError("simulated DB failure"),
+        ):
+            # Should not raise (never-raise contract)
+            await handle_checkout_completed(db_session, event=event)
+
+        # CreditTransaction must not exist — savepoint rolled it back
+        assert await _find_txn_by_event(db_session) is None
+
+        # Balance must remain unchanged
+        await db_session.refresh(user)
+        assert user.balance_usd == Decimal("0")
+
+        # Purchase must still be pending
+        await db_session.refresh(purchase)
+        assert purchase.status == "pending"
+
     async def test_logs_warning_when_no_purchase_record_to_complete(
         self, db_session: AsyncSession, caplog: pytest.LogCaptureFixture
     ) -> None:
