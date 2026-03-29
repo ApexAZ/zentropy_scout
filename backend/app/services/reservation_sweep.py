@@ -9,6 +9,9 @@ REQ-030 §11.2: Balance/ledger drift detection. Compares users.balance_usd
 against SUM(credit_transactions.amount_usd) and logs any drift exceeding
 the threshold at error level.
 
+AF-15: Held-balance drift detection. Compares users.held_balance_usd
+against SUM(usage_reservations.estimated_cost_usd WHERE status='held').
+
 REQ-030 §2.4: Runs every RESERVATION_SWEEP_INTERVAL_SECONDS (default 300).
 TTL controlled by RESERVATION_TTL_SECONDS (default 300).
 """
@@ -174,6 +177,60 @@ async def detect_balance_drift(
     return drifts
 
 
+async def detect_held_balance_drift(
+    db: AsyncSession,
+) -> list[dict[str, object]]:
+    """Detect drift between users.held_balance_usd and held reservation sum.
+
+    AF-15: Compares cached held balance against the sum of estimated costs
+    for all active (status='held') reservations. Any absolute drift exceeding
+    the threshold is logged at error level.
+
+    Args:
+        db: Async database session.
+
+    Returns:
+        List of drift records (user_id, held_balance_usd, reservations_sum, drift).
+        Empty list if no drift detected.
+    """
+    result = await db.execute(
+        text(
+            "SELECT u.id AS user_id, u.held_balance_usd, "
+            "COALESCE(SUM(ur.estimated_cost_usd), 0) AS reservations_sum, "
+            "u.held_balance_usd - COALESCE(SUM(ur.estimated_cost_usd), 0) AS drift "
+            "FROM users u "
+            "LEFT JOIN usage_reservations ur "
+            "ON ur.user_id = u.id AND ur.status = 'held' "
+            "GROUP BY u.id "
+            "HAVING ABS(u.held_balance_usd "
+            "- COALESCE(SUM(ur.estimated_cost_usd), 0)) > :threshold"
+        ),
+        {"threshold": _DRIFT_THRESHOLD},
+    )
+    rows = result.mappings().all()
+
+    drifts: list[dict[str, object]] = []
+    for row in rows:
+        drifts.append(
+            {
+                "user_id": row["user_id"],
+                "held_balance_usd": row["held_balance_usd"],
+                "reservations_sum": row["reservations_sum"],
+                "drift": row["drift"],
+            }
+        )
+        logger.error(
+            "Held-balance/reservation drift detected for user %s: "
+            "held=$%s, reservations=$%s, drift=$%s",
+            row["user_id"],
+            row["held_balance_usd"],
+            row["reservations_sum"],
+            row["drift"],
+        )
+
+    return drifts
+
+
 class ReservationSweepWorker:
     """Background worker that periodically sweeps stale reservations.
 
@@ -249,9 +306,10 @@ class ReservationSweepWorker:
             )
             await db.commit()
 
-        # Drift check uses a separate session (read-only, no writes)
+        # Drift checks use a separate session (read-only, no writes)
         async with self._session_factory() as db:
             await detect_balance_drift(db)
+            await detect_held_balance_drift(db)
 
         return released
 
