@@ -1,8 +1,9 @@
-"""Stripe webhook handlers — checkout.session.completed and charge.refunded.
+"""Stripe webhook handlers — checkout.session.completed, checkout.session.expired, and charge.refunded.
 
-REQ-029 §7.2, §7.3, §7.4: Business logic for processing Stripe webhook events.
-All handlers follow the "never raise" contract — the outer function catches all
-exceptions so the webhook endpoint always returns 200 (prevents Stripe retries).
+REQ-029 §7.2, §7.3, §7.4; REQ-030 §7.2, §7.3: Business logic for processing
+Stripe webhook events. All handlers follow the "never raise" contract — the
+outer function catches all exceptions so the webhook endpoint always returns
+200 (prevents Stripe retries).
 """
 
 import logging
@@ -124,6 +125,24 @@ async def _process_checkout_completed(
         )
 
 
+async def handle_checkout_expired(
+    db: AsyncSession,
+    *,
+    event: stripe_module.Event,
+) -> None:
+    """Mark a pending purchase as expired when Stripe session expires.
+
+    REQ-030 §7.3 (F-07): Handles checkout.session.expired events.
+    Always returns normally (never-raise contract).
+    """
+    try:
+        session: dict[str, Any] = event.data.object
+        session_id: str = session["id"]
+        await StripePurchaseRepository.mark_expired(db, stripe_session_id=session_id)
+    except Exception:
+        logger.exception("Error processing checkout.session.expired %s", event.id)
+
+
 async def handle_charge_refunded(
     db: AsyncSession,
     *,
@@ -145,10 +164,26 @@ async def _process_charge_refunded(
     *,
     event: stripe_module.Event,
 ) -> None:
-    """Inner logic for charge.refunded — separated for exception safety."""
+    """Inner logic for charge.refunded — separated for exception safety.
+
+    REQ-030 §7.2: Three hardening changes over REQ-029 §7.3:
+    (a) Savepoint wraps credit + debit + purchase update for atomicity.
+    (b) Cap total_refunded_cents at purchase.amount_cents.
+    (c) Null payment_intent guard (early return).
+    """
     charge: dict[str, Any] = event.data.object
     event_id: str = event.id
-    payment_intent_id: str = charge["payment_intent"]
+
+    # REQ-030 §7.2c (F-05): Guard against null payment_intent.
+    # Stripe checkout sessions always create a PaymentIntent, but the charge
+    # schema has payment_intent as nullable (e.g., legacy direct charges).
+    payment_intent_id = charge.get("payment_intent")
+    if payment_intent_id is None:
+        logger.error(
+            "charge.refunded event %s has null payment_intent — skipping",
+            event_id,
+        )
+        return
 
     # Idempotency check
     existing = await CreditRepository.find_by_stripe_event_id(db, event_id)
@@ -163,8 +198,9 @@ async def _process_charge_refunded(
         logger.error("No purchase found for payment_intent %s", payment_intent_id)
         return
 
-    # Calculate this refund's amount (cumulative delta)
-    total_refunded_cents = int(charge["amount_refunded"])
+    # REQ-030 §7.2b (F-04): Cap at purchase amount to prevent over-debit
+    # from corrupted or unexpected Stripe data.
+    total_refunded_cents = min(int(charge["amount_refunded"]), purchase.amount_cents)
     previous_refunded_cents: int = purchase.refund_amount_cents or 0
     this_refund_cents = total_refunded_cents - previous_refunded_cents
     if this_refund_cents <= 0:
@@ -173,30 +209,29 @@ async def _process_charge_refunded(
 
     this_refund_usd = Decimal(this_refund_cents) / Decimal(100)
 
-    # Create negative credit transaction
-    await CreditRepository.create(
-        db,
-        user_id=purchase.user_id,
-        amount_usd=-this_refund_usd,
-        transaction_type="refund",
-        reference_id=charge["id"],
-        stripe_event_id=event_id,
-        description=f"Refund — ${this_refund_usd:.2f}",
-    )
-
-    # Debit balance (no overdraft guard — refunds can make balance negative)
-    new_balance = await CreditRepository.atomic_refund_debit(
-        db, user_id=purchase.user_id, amount=this_refund_usd
-    )
-
-    # Update purchase record
+    # REQ-030 §7.2a (F-03): Savepoint wraps all three operations.
+    # If any step fails, the savepoint rolls back — no orphaned credit
+    # transactions or incorrect balance debits.
     is_full_refund: bool = charge.get("refunded", False)
-    await StripePurchaseRepository.mark_refunded(
-        db,
-        purchase_id=purchase.id,
-        refund_amount_cents=total_refunded_cents,
-        is_full_refund=is_full_refund,
-    )
+    async with db.begin_nested():
+        await CreditRepository.create(
+            db,
+            user_id=purchase.user_id,
+            amount_usd=-this_refund_usd,
+            transaction_type="refund",
+            reference_id=charge["id"],
+            stripe_event_id=event_id,
+            description=f"Refund — ${this_refund_usd:.2f}",
+        )
+        new_balance = await CreditRepository.atomic_refund_debit(
+            db, user_id=purchase.user_id, amount=this_refund_usd
+        )
+        await StripePurchaseRepository.mark_refunded(
+            db,
+            purchase_id=purchase.id,
+            refund_amount_cents=total_refunded_cents,
+            is_full_refund=is_full_refund,
+        )
 
     if new_balance < 0:
         logger.warning(

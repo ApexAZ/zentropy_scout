@@ -4,6 +4,7 @@ REQ-022 §4.1–§4.6: Models for the admin pricing dashboard and model registry
 Five tables: ModelRegistry, PricingConfig, TaskRoutingConfig, FundingPack,
 SystemConfig. These replace hardcoded pricing dicts and routing tables with
 admin-configurable database records.
+REQ-030 §4.3: FundingPack.grant_cents type aligned to Integer (was BigInteger).
 """
 
 import uuid
@@ -11,7 +12,6 @@ from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import (
-    BigInteger,
     Boolean,
     CheckConstraint,
     Date,
@@ -236,7 +236,7 @@ class FundingPack(Base, TimestampMixin):
         nullable=False,
     )
     grant_cents: Mapped[int] = mapped_column(
-        BigInteger,
+        Integer,
         nullable=False,
     )
     stripe_price_id: Mapped[str | None] = mapped_column(

@@ -1,7 +1,8 @@
 """Tests for Stripe service — handle_charge_refunded webhook handler.
 
-REQ-029 §7.3: Verifies refund handling, cumulative partial refund tracking,
-idempotency, balance debiting (including negative), and purchase status updates.
+REQ-029 §7.3, REQ-030 §7.2: Verifies refund handling, cumulative partial refund
+tracking, idempotency, balance debiting (including negative), purchase status
+updates, savepoint atomicity, refund cap, and null payment_intent guard.
 """
 
 import uuid
@@ -27,6 +28,7 @@ _TEST_CUSTOMER_ID = "cus_test_abc123"
 _TEST_PAYMENT_INTENT = "pi_test_abc123"
 _TEST_EMAIL = "test@example.com"
 _TEST_AMOUNT_CENTS = 50000  # $500.00 original charge
+_INITIAL_BALANCE = Decimal("500")
 
 
 def _make_refund_event(
@@ -34,7 +36,7 @@ def _make_refund_event(
     event_id: str = _TEST_EVENT_ID,
     charge_id: str = _TEST_CHARGE_ID,
     customer_id: str = _TEST_CUSTOMER_ID,
-    payment_intent: str = _TEST_PAYMENT_INTENT,
+    payment_intent: str | None = _TEST_PAYMENT_INTENT,
     amount: int = _TEST_AMOUNT_CENTS,
     amount_refunded: int = _TEST_AMOUNT_CENTS,
     refunded: bool = True,
@@ -56,9 +58,9 @@ def _make_refund_event(
 async def _setup_completed_purchase(
     db_session: AsyncSession,
     *,
-    amount_cents: int = 500,
+    amount_cents: int = _TEST_AMOUNT_CENTS,
     grant_cents: int = _TEST_AMOUNT_CENTS,
-    initial_balance: Decimal = Decimal("500"),
+    initial_balance: Decimal = _INITIAL_BALANCE,
     refund_amount_cents: int = 0,
 ) -> tuple[User, StripePurchase]:
     """Create user with balance and a completed purchase."""

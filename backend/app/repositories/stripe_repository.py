@@ -177,6 +177,37 @@ class StripePurchaseRepository:
         return True
 
     @staticmethod
+    async def mark_expired(
+        db: AsyncSession,
+        *,
+        stripe_session_id: str,
+    ) -> bool:
+        """Transition a pending purchase to expired status.
+
+        REQ-030 §7.3 (F-07): Called by the checkout.session.expired
+        webhook handler. Only transitions purchases in 'pending' status —
+        completed or refunded purchases are silently skipped.
+
+        Args:
+            db: Async database session.
+            stripe_session_id: Stripe Checkout Session ID to match.
+
+        Returns:
+            True if a purchase was updated, False if not found or not pending.
+        """
+        stmt = select(StripePurchase).where(
+            StripePurchase.stripe_session_id == stripe_session_id,
+            StripePurchase.status == "pending",
+        )
+        result = await db.execute(stmt)
+        purchase = result.scalar_one_or_none()
+        if purchase is None:
+            return False
+        purchase.status = "expired"
+        await db.flush()
+        return True
+
+    @staticmethod
     async def get_user_purchases(
         db: AsyncSession,
         user_id: uuid.UUID,

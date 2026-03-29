@@ -307,38 +307,44 @@ async def require_sufficient_balance(
     user_id: CurrentUserId,
     db: DbSession,
 ) -> None:
-    """Raise 402 if user has insufficient balance for LLM calls.
+    """Raise 402 if user has insufficient available balance for LLM calls.
 
-    REQ-020 §7.1: FastAPI dependency that gates LLM-triggering endpoints.
-    Check is ``balance > threshold`` (strict greater-than).
+    REQ-020 §7.1 + REQ-030 §6.1: FastAPI dependency that gates
+    LLM-triggering endpoints. Available balance = balance_usd minus
+    held_balance_usd (funds reserved for in-flight LLM calls).
+    Check is ``available > threshold`` (strict greater-than).
 
     This is a **soft gate** (read-only check). The hard enforcement is the
-    atomic debit in MeteringService.record_and_debit() which prevents
-    balance from going negative. Concurrent requests may pass this gate
-    simultaneously, but the atomic debit ensures correctness.
+    reserve→settle pipeline in MeteringService which prevents balance from
+    going negative. Concurrent requests may pass this gate simultaneously,
+    but the atomic reservation ensures correctness.
 
     Args:
         user_id: Current user ID (from auth dependency).
         db: Database session (injected).
 
     Raises:
-        InsufficientBalanceError: When balance <= minimum threshold.
+        InsufficientBalanceError: When available balance <= minimum threshold.
     """
     if not settings.metering_enabled:
         return
 
-    result = await db.execute(select(User.balance_usd).where(User.id == user_id))
-    balance = result.scalar_one_or_none()
-    # balance_usd is NOT NULL with server default 0. A None result means
-    # the user row does not exist (deleted account). Treat as zero balance
-    # for fail-safe behavior (402 blocks access).
-    if balance is None:
-        balance = Decimal("0.000000")
+    result = await db.execute(
+        select(User.balance_usd, User.held_balance_usd).where(User.id == user_id)
+    )
+    row = result.one_or_none()
+    # Both columns are NOT NULL with server default 0. A None result means
+    # the user row does not exist (deleted account). Treat as zero available
+    # balance for fail-safe behavior (402 blocks access).
+    if row is None:
+        available = Decimal("0.000000")
+    else:
+        available = max(row.balance_usd - row.held_balance_usd, Decimal("0.000000"))
 
     threshold = Decimal(str(settings.metering_minimum_balance))
-    if balance <= threshold:
+    if available <= threshold:
         raise InsufficientBalanceError(
-            balance=balance,
+            balance=available,
             minimum_required=threshold,
         )
 

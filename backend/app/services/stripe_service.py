@@ -1,7 +1,7 @@
 """Stripe service — checkout session creation, customer management, signup grant.
 
-REQ-029 §6.2, §6.3, §12, §13.3: Business logic for Stripe Checkout
-integration. Handles customer management, checkout session creation,
+REQ-029 §6.2, §6.3, §12, §13.3; REQ-030 §8.1: Business logic for Stripe
+Checkout integration. Handles customer management, checkout session creation,
 and signup credit grants. Webhook handlers are in stripe_webhook_service.py.
 """
 
@@ -109,13 +109,13 @@ async def get_or_create_customer(
     except stripe_module.StripeError as exc:
         raise _handle_stripe_error(exc) from exc
 
-    user.stripe_customer_id = customer.id
     try:
-        await db.flush()
+        async with db.begin_nested():
+            user.stripe_customer_id = customer.id
+            await db.flush()
     except IntegrityError:
         # Race condition: another request set stripe_customer_id first.
-        # Roll back the failed flush and re-read the user.
-        await db.rollback()
+        # Savepoint rolled back — only the flush is undone, session survives.
         user = await UserRepository.get_by_id(db, user_id)
         if user and user.stripe_customer_id:
             return user.stripe_customer_id

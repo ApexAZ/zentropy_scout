@@ -35,7 +35,7 @@ You are a code review specialist for the Zentropy Scout project.
 - [ ] Pydantic models for input/output
 - [ ] Repository pattern for DB access
 - [ ] Type hints on all functions (no `Any` without justification)
-- [ ] Custom exceptions inherit from `ZentropyError` (not bare `Exception`)
+- [ ] Custom exceptions inherit from `APIError` (not bare `Exception`)
 - [ ] No `list`/`dict` fields on `@dataclass(frozen=True)` — use `tuple`/`frozenset`
 - [ ] Bound constants use `_MAX_*` naming convention (e.g., `_MAX_FIELD_LENGTH`)
 

@@ -2,6 +2,7 @@
 
 REQ-029 §11: Stripe config vars, production security validation, and
 configuration matrix (credits × metering) warning.
+REQ-030 §9: Reservation config, production rejection of credits+!metering.
 """
 
 import logging
@@ -166,18 +167,33 @@ class TestStripeProductionValidation:
 class TestStripeConfigMatrix:
     """REQ-029 §11.4 / REQ-021 §10.3: Configuration matrix validation."""
 
-    def test_warns_credits_enabled_without_metering(self, caplog):
-        """credits_enabled=True + metering_enabled=False logs warning."""
+    def test_warns_credits_enabled_without_metering_non_production(self, caplog):
+        """credits_enabled=True + metering_enabled=False logs warning in non-production."""
         with caplog.at_level(logging.WARNING):
             Settings(
                 credits_enabled=True,
                 metering_enabled=False,
+                environment="development",
             )
         assert any(
             "credits_enabled=True" in record.message
             and "metering_enabled=False" in record.message
             for record in caplog.records
         )
+
+    def test_rejects_credits_enabled_without_metering_production(self):
+        """credits_enabled=True + metering_enabled=False raises ValueError in production."""
+        with pytest.raises(
+            ValidationError, match="credits_enabled=True requires metering"
+        ):
+            Settings(
+                credits_enabled=True,
+                metering_enabled=False,
+                environment=_PRODUCTION,
+                database_password=_SECURE_DB_PASSWORD,
+                stripe_secret_key=_STRIPE_LIVE_KEY,
+                stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,
+            )
 
     def test_no_warning_when_both_disabled(self, caplog):
         """No warning when both credits and metering disabled."""
@@ -196,3 +212,27 @@ class TestStripeConfigMatrix:
                 metering_enabled=True,
             )
         assert not any("credits_enabled" in record.message for record in caplog.records)
+
+
+class TestReservationConfig:
+    """REQ-030 §9.2: Reservation system configuration variables."""
+
+    def test_reservation_ttl_defaults_to_300(self):
+        """reservation_ttl_seconds defaults to 300."""
+        s = Settings(_env_file=None)
+        assert s.reservation_ttl_seconds == 300
+
+    def test_reservation_sweep_interval_defaults_to_300(self):
+        """reservation_sweep_interval_seconds defaults to 300."""
+        s = Settings(_env_file=None)
+        assert s.reservation_sweep_interval_seconds == 300
+
+    def test_reservation_ttl_can_be_overridden(self):
+        """reservation_ttl_seconds can be set via constructor."""
+        s = Settings(reservation_ttl_seconds=600, _env_file=None)
+        assert s.reservation_ttl_seconds == 600
+
+    def test_reservation_sweep_interval_can_be_overridden(self):
+        """reservation_sweep_interval_seconds can be set via constructor."""
+        s = Settings(reservation_sweep_interval_seconds=120, _env_file=None)
+        assert s.reservation_sweep_interval_seconds == 120

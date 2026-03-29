@@ -3,10 +3,17 @@
 REQ-022 §7: Calculates costs for LLM/embedding API calls using
 admin-configured pricing from the pricing_config table, with per-model
 margin multipliers. Records usage and debits the user's balance atomically.
+REQ-030 §5.2: Pre-debit reservation via reserve() — estimates worst-case
+cost and holds it before the LLM call.
+REQ-030 §5.3: Settlement via settle() — atomically records usage, debits
+balance, releases hold, and marks reservation as settled within a savepoint.
+REQ-030 §5.5: Release via release() — decrements held balance and marks
+reservation as released when the LLM call fails.
 """
 
 import logging
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, cast
 
@@ -16,11 +23,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import NoPricingConfigError, UnregisteredModelError
 from app.models.usage import CreditTransaction, LLMUsageRecord
+from app.models.usage_reservation import UsageReservation
 from app.services.admin_config_service import AdminConfigService
 
 logger = logging.getLogger(__name__)
 
 _THOUSAND = Decimal(1000)
+_DEFAULT_MAX_TOKENS = 4096
 
 
 class MeteringService:
@@ -105,6 +114,229 @@ class MeteringService:
         ) / _THOUSAND
         billed_cost = raw_cost * margin
         return raw_cost, billed_cost
+
+    async def reserve(
+        self,
+        user_id: uuid.UUID,
+        task_type: str,
+        max_tokens: int | None = None,
+    ) -> UsageReservation:
+        """Reserve estimated cost from user's available balance.
+
+        REQ-030 §5.2: Resolves routing, looks up pricing, calculates
+        worst-case cost from max_tokens × output_price × margin, inserts
+        a UsageReservation, and atomically increments held_balance_usd.
+
+        Args:
+            user_id: User making the LLM call.
+            task_type: Task type for routing and pricing lookup.
+            max_tokens: Output token ceiling. Uses 4096 default if None.
+
+        Returns:
+            UsageReservation with status='held'.
+
+        Raises:
+            NoPricingConfigError: If no routing or pricing exists.
+            UnregisteredModelError: If the routed model is not registered.
+        """
+        # 1. Resolve routing
+        routing = await self._admin_config.get_routing_for_task(task_type)
+        if routing is None:
+            raise NoPricingConfigError(provider="unrouted", model=task_type)
+        provider, model = routing
+
+        # 2. Look up pricing (validates model registration)
+        _input_per_1k, output_per_1k, margin = await self._get_pricing(provider, model)
+
+        # 3. Default max_tokens
+        if max_tokens is None:
+            max_tokens = _DEFAULT_MAX_TOKENS
+
+        # 4. Estimated cost: max_tokens / 1000 * output_per_1k * margin
+        estimated_cost = (Decimal(max_tokens) / _THOUSAND) * output_per_1k * margin
+
+        # 5. Insert reservation
+        reservation = UsageReservation(
+            user_id=user_id,
+            estimated_cost_usd=estimated_cost,
+            status="held",
+            task_type=task_type,
+            provider=provider,
+            model=model,
+            max_tokens=max_tokens,
+        )
+        self._db.add(reservation)
+
+        # 6. Atomically increment held_balance_usd
+        result = cast(
+            CursorResult[Any],
+            await self._db.execute(
+                text(
+                    "UPDATE users SET held_balance_usd = held_balance_usd + :amount "
+                    "WHERE id = :user_id"
+                ),
+                {"amount": estimated_cost, "user_id": user_id},
+            ),
+        )
+        if result.rowcount == 0:
+            logger.error("Reserve failed: user %s not found", user_id)
+            msg = f"User {user_id} not found"
+            raise ValueError(msg)
+
+        # 7. Flush and return
+        await self._db.flush()
+        return reservation
+
+    async def settle(
+        self,
+        reservation: UsageReservation,
+        provider: str,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+    ) -> None:
+        """Settle a reservation with actual token counts.
+
+        REQ-030 §5.3: Atomically records usage, creates debit transaction,
+        debits balance, releases hold, and updates reservation status.
+        All operations are wrapped in a savepoint (begin_nested). If any
+        step fails, the savepoint rolls back — reservation stays 'held'
+        (fail-closed). The background sweep will release it.
+
+        Args:
+            reservation: The held reservation to settle.
+            provider: Provider that handled the call (from response).
+            model: Exact model identifier (from response).
+            input_tokens: Actual input tokens from the response.
+            output_tokens: Actual output tokens from the response.
+        """
+        if reservation.status != "held":
+            logger.warning(
+                "Attempted to settle reservation %s with status '%s' (expected 'held')",
+                reservation.id,
+                reservation.status,
+            )
+            return
+
+        try:
+            async with self._db.begin_nested():
+                # 1. Look up pricing
+                input_per_1k, output_per_1k, margin = await self._get_pricing(
+                    provider, model
+                )
+
+                # 2. Calculate actual cost
+                raw_cost = (
+                    Decimal(input_tokens) * input_per_1k
+                    + Decimal(output_tokens) * output_per_1k
+                ) / _THOUSAND
+                billed_cost = raw_cost * margin
+
+                # 3. Insert usage record
+                usage_id = uuid.uuid4()
+                usage_record = LLMUsageRecord(
+                    id=usage_id,
+                    user_id=reservation.user_id,
+                    provider=provider,
+                    model=model,
+                    task_type=reservation.task_type,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    raw_cost_usd=raw_cost,
+                    billed_cost_usd=billed_cost,
+                    margin_multiplier=margin,
+                )
+                self._db.add(usage_record)
+
+                # 4. Insert debit transaction
+                credit_txn = CreditTransaction(
+                    id=uuid.uuid4(),
+                    user_id=reservation.user_id,
+                    amount_usd=-billed_cost,
+                    transaction_type="usage_debit",
+                    reference_id=str(usage_id),
+                    description=f"{provider}/{model} - {reservation.task_type}",
+                )
+                self._db.add(credit_txn)
+
+                # 5. Atomic debit + release hold
+                await self._db.execute(
+                    text(
+                        "UPDATE users "
+                        "SET balance_usd = balance_usd - :actual, "
+                        "    held_balance_usd = held_balance_usd - :estimated "
+                        "WHERE id = :user_id"
+                    ),
+                    {
+                        "actual": billed_cost,
+                        "estimated": reservation.estimated_cost_usd,
+                        "user_id": reservation.user_id,
+                    },
+                )
+
+                # 6. Update reservation
+                reservation.status = "settled"
+                reservation.actual_cost_usd = billed_cost
+                reservation.provider = provider
+                reservation.model = model
+                reservation.settled_at = datetime.now(UTC)
+
+        except Exception:
+            logger.exception(
+                "Settlement failed for reservation %s (user %s) — "
+                "hold remains active, background sweep will release",
+                reservation.id,
+                reservation.user_id,
+            )
+
+    async def release(
+        self,
+        reservation: UsageReservation,
+    ) -> None:
+        """Release a held reservation (LLM call failed).
+
+        REQ-030 §5.5: Atomically decrements held_balance_usd and marks
+        reservation as 'released'. If release fails, the hold stays active
+        and the background sweep will eventually release it.
+
+        Args:
+            reservation: The held reservation to release.
+        """
+        if reservation.status != "held":
+            logger.warning(
+                "Attempted to release reservation %s with status '%s' (expected 'held')",
+                reservation.id,
+                reservation.status,
+            )
+            return
+
+        try:
+            # 1. Decrement held balance
+            await self._db.execute(
+                text(
+                    "UPDATE users SET held_balance_usd = held_balance_usd - :amount "
+                    "WHERE id = :user_id"
+                ),
+                {
+                    "amount": reservation.estimated_cost_usd,
+                    "user_id": reservation.user_id,
+                },
+            )
+
+            # 2. Update reservation
+            reservation.status = "released"
+            reservation.settled_at = datetime.now(UTC)
+
+            # 3. Flush
+            await self._db.flush()
+
+        except Exception:
+            logger.exception(
+                "Release failed for reservation %s (user %s) — "
+                "hold remains active, background sweep will release",
+                reservation.id,
+                reservation.user_id,
+            )
 
     async def record_and_debit(
         self,
