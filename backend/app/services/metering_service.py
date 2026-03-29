@@ -2,7 +2,7 @@
 
 REQ-022 §7: Calculates costs for LLM/embedding API calls using
 admin-configured pricing from the pricing_config table, with per-model
-margin multipliers. Records usage and debits the user's balance atomically.
+margin multipliers.
 REQ-030 §5.2: Pre-debit reservation via reserve() — estimates worst-case
 cost and holds it before the LLM call.
 REQ-030 §5.3: Settlement via settle() — atomically records usage, debits
@@ -427,94 +427,4 @@ class MeteringService:
                 "hold remains active, background sweep will release",
                 reservation.id,
                 reservation.user_id,
-            )
-
-    async def record_and_debit(
-        self,
-        user_id: uuid.UUID,
-        provider: str,
-        model: str,
-        task_type: str,
-        input_tokens: int,
-        output_tokens: int,
-    ) -> None:
-        """Record API usage and debit user balance.
-
-        REQ-022 §7.4: Full pipeline — calculate cost with per-model margin,
-        insert records, debit balance. Never raises; errors are logged.
-
-        Args:
-            user_id: User who made the API call.
-            provider: Provider name (claude, openai, gemini).
-            model: Exact model identifier.
-            task_type: Task type (extraction, cover_letter, etc.).
-            input_tokens: Input tokens consumed.
-            output_tokens: Output tokens consumed.
-        """
-        try:
-            input_per_1k, output_per_1k, margin = await self._get_pricing(
-                provider, model
-            )
-            raw_cost = (
-                Decimal(input_tokens) * input_per_1k
-                + Decimal(output_tokens) * output_per_1k
-            ) / _THOUSAND
-            billed_cost = raw_cost * margin
-
-            # Insert usage record
-            usage_id = uuid.uuid4()
-            usage_record = LLMUsageRecord(
-                id=usage_id,
-                user_id=user_id,
-                provider=provider,
-                model=model,
-                task_type=task_type,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                raw_cost_usd=raw_cost,
-                billed_cost_usd=billed_cost,
-                margin_multiplier=margin,
-            )
-            self._db.add(usage_record)
-
-            # Insert debit transaction
-            credit_txn = CreditTransaction(
-                id=uuid.uuid4(),
-                user_id=user_id,
-                amount_usd=-billed_cost,
-                transaction_type="usage_debit",
-                reference_id=str(usage_id),
-                description=f"{provider}/{model} - {task_type}",
-            )
-            self._db.add(credit_txn)
-
-            # Atomic debit
-            result = cast(
-                CursorResult[Any],
-                await self._db.execute(
-                    text(
-                        "UPDATE users SET balance_usd = balance_usd - :amount "
-                        "WHERE id = :user_id AND balance_usd >= :amount"
-                    ),
-                    {"amount": billed_cost, "user_id": user_id},
-                ),
-            )
-
-            # Log insufficient balance (REQ-020 §6.3)
-            rows_updated: int = result.rowcount
-            if rows_updated == 0:
-                logger.warning(
-                    "Insufficient balance for user %s (debit: $%s)",
-                    user_id,
-                    billed_cost,
-                )
-
-            await self._db.flush()
-
-        except Exception:
-            # Fire-and-forget: the user already received the LLM response.
-            # Don't interrupt their flow — log for operator investigation.
-            logger.exception(
-                "Failed to record usage for user %s",
-                user_id,
             )
