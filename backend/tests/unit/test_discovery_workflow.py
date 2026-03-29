@@ -403,17 +403,53 @@ class TestRunDiscovery:
                 trigger=trigger,
             )
 
-        # Verify constructor received correct params
+        # Verify constructor received correct params (no embedding_provider)
         mock_cls.assert_called_once_with(
             db=mock_db,
             user_id=user_id,
             persona_id=persona_id,
+            embedding_provider=None,
         )
 
         # Verify run_poll received sources
         mock_cls.return_value.run_poll.assert_called_once_with(
             enabled_sources=[_SOURCE_ADZUNA, _SOURCE_REMOTEOK],
             polling_frequency="daily",
+        )
+
+    async def test_passes_embedding_provider_to_service(
+        self,
+        mock_db,
+        user_id,
+        persona_id,
+        _make_poll_result,
+    ) -> None:
+        """AF-14: embedding_provider is forwarded to JobFetchService."""
+        trigger = DiscoveryTrigger(
+            trigger_type=TriggerType.MANUAL,
+            user_message="Find jobs",
+        )
+        mock_embedding = AsyncMock()
+        poll_result = _make_poll_result()
+
+        with patch(
+            _JOB_FETCH_SERVICE,
+        ) as mock_cls:
+            mock_cls.return_value.run_poll = AsyncMock(return_value=poll_result)
+            await run_discovery(
+                db=mock_db,
+                user_id=user_id,
+                persona_id=persona_id,
+                enabled_sources=[_SOURCE_ADZUNA],
+                trigger=trigger,
+                embedding_provider=mock_embedding,
+            )
+
+        mock_cls.assert_called_once_with(
+            db=mock_db,
+            user_id=user_id,
+            persona_id=persona_id,
+            embedding_provider=mock_embedding,
         )
 
     async def test_forwards_polling_frequency_to_service(
