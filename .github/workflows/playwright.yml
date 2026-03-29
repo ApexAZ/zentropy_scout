@@ -59,6 +59,63 @@ jobs:
           path: frontend/test-results/
           retention-days: 7
 
+  # Visual regression tests compare against committed baseline screenshots.
+  # Runs on push to main and workflow_dispatch only (not on PRs).
+  # TODO: Remove continue-on-error once baselines are stable in CI.
+  # Baselines are generated locally in Docker (Ubuntu Noble) — CI also runs
+  # on Ubuntu, so font rendering is consistent.
+  #
+  # NOTE: The explicit file path on the CLI bypasses testIgnore in Playwright
+  # v1.58+. If a future Playwright upgrade changes this behavior, CI logs will
+  # show "0 tests" and continue-on-error prevents silent blocking.
+  playwright-visual-regression:
+    name: Visual Regression
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  # v6.2.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install --with-deps
+
+      - name: Run visual regression tests
+        run: cd frontend && npx playwright test tests/e2e/visual-regression.spec.ts
+        env:
+          CI: true
+
+      - name: Upload screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: visual-regression-diffs
+          path: |
+            frontend/test-results/
+            frontend/tests/__screenshots__/
+          retention-days: 30
+
+      - name: Upload test report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: visual-regression-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
   # Firefox and WebKit run on push to main and workflow_dispatch only
   # (not on PRs) to avoid tripling CI time on every pull request.
   playwright-cross-browser:
