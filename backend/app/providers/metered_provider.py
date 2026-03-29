@@ -300,10 +300,13 @@ class MeteredEmbeddingProvider(EmbeddingProvider):
         estimated_tokens = sum(len(text) for text in texts) // 4
 
         # 2. Reserve estimated cost (fail-closed: no reservation = no embed call)
+        # AF-13: Input tokens go to max_input_tokens; embeddings produce zero
+        # output tokens so max_tokens=0 (avoids inflated output cost component).
         reservation = await self._metering_service.reserve(
             user_id=self._user_id,
             task_type="embedding",
-            max_tokens=estimated_tokens,
+            max_input_tokens=estimated_tokens,
+            max_tokens=0,
         )
 
         # 3. Execute embedding call (release hold on any failure)

@@ -416,6 +416,69 @@ class TestReserve:
         )
 
     @pytest.mark.asyncio
+    async def test_zero_max_tokens_respected_for_embeddings(
+        self,
+        reserve_service: MeteringService,
+    ) -> None:
+        """AF-13: max_tokens=0 must not be replaced with default.
+
+        Embeddings produce zero output tokens. Treating 0 as falsy inflates
+        the estimated cost by adding a 4096-token output component.
+        """
+        reservation = await reserve_service.reserve(
+            _USER_ID, _TASK_TYPE, max_tokens=0, max_input_tokens=500
+        )
+        # With max_tokens=0, output component is zero — cost is input-only
+        expected = (
+            (
+                Decimal("500") * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal("0") * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal("1000")
+            * _HAIKU_PRICING.margin_multiplier
+        )
+        assert reservation.estimated_cost_usd == expected
+
+    @pytest.mark.asyncio
+    async def test_zero_max_input_tokens_respected(
+        self,
+        reserve_service: MeteringService,
+    ) -> None:
+        """AF-13: max_input_tokens=0 must not be replaced with default.
+
+        Symmetric to the max_tokens=0 test — ensures the guard fix applies
+        to both parameters.
+        """
+        reservation = await reserve_service.reserve(
+            _USER_ID, _TASK_TYPE, max_tokens=4096, max_input_tokens=0
+        )
+        expected = (
+            (
+                Decimal("0") * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal("4096") * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal("1000")
+            * _HAIKU_PRICING.margin_multiplier
+        )
+        assert reservation.estimated_cost_usd == expected
+
+    @pytest.mark.asyncio
+    async def test_both_ceilings_zero_uses_minimum_floor(
+        self,
+        reserve_service: MeteringService,
+    ) -> None:
+        """AF-13 + AF-05: Both ceilings zero produces the minimum floor cost.
+
+        Realistic for embed([]) where estimated_tokens=0. The
+        _MINIMUM_ESTIMATED_COST floor (0.000001) prevents a zero-cost
+        reservation that would violate ck_reservation_estimated_positive.
+        """
+        reservation = await reserve_service.reserve(
+            _USER_ID, _TASK_TYPE, max_tokens=0, max_input_tokens=0
+        )
+        assert reservation.estimated_cost_usd == Decimal("0.000001")
+
+    @pytest.mark.asyncio
     async def test_increments_held_balance(
         self,
         reserve_service: MeteringService,
