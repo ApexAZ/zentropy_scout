@@ -146,8 +146,10 @@ class MeteringService:
         Args:
             user_id: User making the LLM call.
             task_type: Task type for routing and pricing lookup.
-            max_tokens: Output token ceiling. Uses 4096 default if None.
-            max_input_tokens: Input token ceiling. Uses 4096 default if None.
+            max_tokens: Output token ceiling. Defaults to 4096 if None or
+                negative; 0 is valid (embeddings produce no output tokens).
+            max_input_tokens: Input token ceiling. Defaults to 4096 if None
+                or negative; 0 is valid.
 
         Returns:
             UsageReservation with status='held'.
@@ -165,10 +167,11 @@ class MeteringService:
         # 2. Look up pricing (validates model registration)
         input_per_1k, output_per_1k, margin = await self._get_pricing(provider, model)
 
-        # 3. Default ceilings (floor guard: negative/zero values use defaults)
-        if not max_tokens or max_tokens <= 0:
+        # 3. Default ceilings (None → default; negative → default; 0 is valid
+        #    for embeddings which produce zero output tokens — AF-13)
+        if max_tokens is None or max_tokens < 0:
             max_tokens = _DEFAULT_MAX_TOKENS
-        if not max_input_tokens or max_input_tokens <= 0:
+        if max_input_tokens is None or max_input_tokens < 0:
             max_input_tokens = _DEFAULT_MAX_INPUT_TOKENS
 
         # 4. Estimated cost: (input_ceiling * input_per_1k + max_tokens * output_per_1k) / 1000 * margin

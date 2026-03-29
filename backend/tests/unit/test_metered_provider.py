@@ -541,12 +541,17 @@ class TestMeteredEmbeddingProviderEmbed:
     async def test_reserve_called_with_estimated_tokens(
         self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
     ) -> None:
-        """reserve() receives estimated input tokens from sum(len(text))/4."""
+        """AF-13: reserve() maps estimated input tokens to max_input_tokens, not max_tokens.
+
+        Embeddings produce zero output tokens, so max_tokens=0 and the
+        character-count heuristic (sum(len(text))//4) goes to max_input_tokens.
+        """
         await metered_embedding.embed(["Hello world"])  # len=11, 11//4 = 2
         mock_metering.reserve.assert_called_once_with(
             user_id=TEST_USER_ID,
             task_type="embedding",
-            max_tokens=2,
+            max_input_tokens=2,
+            max_tokens=0,
         )
 
     async def test_settle_called_after_success(
