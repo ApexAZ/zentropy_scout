@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 _THOUSAND = Decimal(1000)
 _DEFAULT_MAX_TOKENS = 4096
+_DEFAULT_MAX_INPUT_TOKENS = 4096
 _STATUS_HELD = "held"
 
 
@@ -128,17 +129,19 @@ class MeteringService:
         user_id: uuid.UUID,
         task_type: str,
         max_tokens: int | None = None,
+        max_input_tokens: int | None = None,
     ) -> UsageReservation:
         """Reserve estimated cost from user's available balance.
 
-        REQ-030 §5.2: Resolves routing, looks up pricing, calculates
-        worst-case cost from max_tokens × output_price × margin, inserts
-        a UsageReservation, and atomically increments held_balance_usd.
+        REQ-030 §5.2, AF-03: Resolves routing, looks up pricing, calculates
+        worst-case cost from input + output token ceilings × prices × margin,
+        inserts a UsageReservation, and atomically increments held_balance_usd.
 
         Args:
             user_id: User making the LLM call.
             task_type: Task type for routing and pricing lookup.
             max_tokens: Output token ceiling. Uses 4096 default if None.
+            max_input_tokens: Input token ceiling. Uses 4096 default if None.
 
         Returns:
             UsageReservation with status='held'.
@@ -154,14 +157,24 @@ class MeteringService:
         provider, model = routing
 
         # 2. Look up pricing (validates model registration)
-        _input_per_1k, output_per_1k, margin = await self._get_pricing(provider, model)
+        input_per_1k, output_per_1k, margin = await self._get_pricing(provider, model)
 
-        # 3. Default max_tokens
-        if max_tokens is None:
+        # 3. Default ceilings (floor guard: negative/zero values use defaults)
+        if not max_tokens or max_tokens <= 0:
             max_tokens = _DEFAULT_MAX_TOKENS
+        if not max_input_tokens or max_input_tokens <= 0:
+            max_input_tokens = _DEFAULT_MAX_INPUT_TOKENS
 
-        # 4. Estimated cost: max_tokens / 1000 * output_per_1k * margin
-        estimated_cost = (Decimal(max_tokens) / _THOUSAND) * output_per_1k * margin
+        # 4. Estimated cost: (input_ceiling * input_per_1k + max_tokens * output_per_1k) / 1000 * margin
+        # AF-03: Includes input token cost to prevent under-estimation for large-prompt scenarios
+        estimated_cost = (
+            (
+                Decimal(max_input_tokens) * input_per_1k
+                + Decimal(max_tokens) * output_per_1k
+            )
+            / _THOUSAND
+            * margin
+        )
 
         # 5. Insert reservation
         reservation = UsageReservation(

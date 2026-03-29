@@ -67,11 +67,15 @@ def _added_objects(mock_db: AsyncMock) -> list:
 
 
 def _make_held_reservation() -> UsageReservation:
-    """Create a held UsageReservation for settle/release tests."""
+    """Create a held UsageReservation for settle/release tests.
+
+    Estimated cost reflects the AF-03 input+output formula:
+    (4096 * 0.0008 + 4096 * 0.004) / 1000 * 3.00 = 0.0589824
+    """
     return UsageReservation(
         id=uuid.uuid4(),
         user_id=_USER_ID,
-        estimated_cost_usd=Decimal("0.049152"),
+        estimated_cost_usd=Decimal("0.0589824"),
         status="held",
         task_type=_TASK_TYPE,
         provider=_PROVIDER,
@@ -395,9 +399,10 @@ class TestRecordAndDebit:
 class TestReserve:
     """Tests for MeteringService.reserve() — pre-debit reservation.
 
-    REQ-030 §5.2: Resolves routing, looks up pricing, calculates estimated
-    cost from max_tokens × output_price × margin, creates UsageReservation,
-    and atomically increments held_balance_usd.
+    REQ-030 §5.2, AF-03: Resolves routing, looks up pricing, calculates
+    estimated cost from (input_ceiling × input_price + output_ceiling ×
+    output_price) × margin, creates UsageReservation, and atomically
+    increments held_balance_usd.
     """
 
     @pytest.fixture
@@ -450,21 +455,26 @@ class TestReserve:
         assert reservation.max_tokens == 2048
 
     @pytest.mark.asyncio
-    async def test_estimated_cost_matches_formula(
+    async def test_estimated_cost_includes_input_and_output(
         self,
         reserve_service: MeteringService,
     ) -> None:
-        """Estimated cost = (max_tokens / 1000) * output_per_1k * margin.
+        """Estimated cost includes both input and output token components.
 
-        With haiku pricing: output_per_1k=0.004, margin=3.00, max_tokens=4096:
-        (4096 / 1000) * 0.004 * 3.00 = 0.049152
+        AF-03: estimated = (input_ceiling * input_per_1k + max_tokens * output_per_1k) / 1000 * margin.
+        With haiku pricing: input_per_1k=0.0008, output_per_1k=0.004, margin=3.00,
+        max_input_tokens=4096, max_tokens=4096:
+        (4096 * 0.0008 + 4096 * 0.004) / 1000 * 3.00 = 0.0589824
         """
         reservation = await reserve_service.reserve(
             _USER_ID, _TASK_TYPE, max_tokens=4096
         )
         expected = (
-            (Decimal("4096") / Decimal("1000"))
-            * _HAIKU_PRICING.output_cost_per_1k
+            (
+                Decimal("4096") * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal("4096") * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal("1000")
             * _HAIKU_PRICING.margin_multiplier
         )
         assert reservation.estimated_cost_usd == expected
@@ -478,11 +488,76 @@ class TestReserve:
         reservation = await reserve_service.reserve(_USER_ID, _TASK_TYPE)
         assert reservation.max_tokens == 4096
         expected = (
-            (Decimal("4096") / Decimal("1000"))
-            * _HAIKU_PRICING.output_cost_per_1k
+            (
+                Decimal("4096") * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal("4096") * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal("1000")
             * _HAIKU_PRICING.margin_multiplier
         )
         assert reservation.estimated_cost_usd == expected
+
+    @pytest.mark.asyncio
+    async def test_explicit_max_input_tokens_overrides_default(
+        self,
+        reserve_service: MeteringService,
+    ) -> None:
+        """Caller-specified max_input_tokens overrides the default ceiling."""
+        reservation = await reserve_service.reserve(
+            _USER_ID, _TASK_TYPE, max_tokens=4096, max_input_tokens=8192
+        )
+        expected = (
+            (
+                Decimal("8192") * _HAIKU_PRICING.input_cost_per_1k
+                + Decimal("4096") * _HAIKU_PRICING.output_cost_per_1k
+            )
+            / Decimal("1000")
+            * _HAIKU_PRICING.margin_multiplier
+        )
+        assert reservation.estimated_cost_usd == expected
+
+    @pytest.mark.asyncio
+    async def test_zero_input_price_uses_output_only(
+        self,
+        mock_db: AsyncMock,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """Zero input_cost_per_1k produces output-only estimate (no input component)."""
+        zero_input_pricing = PricingResult(
+            input_cost_per_1k=Decimal("0"),
+            output_cost_per_1k=Decimal("0.004"),
+            margin_multiplier=Decimal("3.00"),
+            effective_date=date(2026, 1, 1),
+        )
+        mock_admin_config.get_routing_for_task.return_value = (_PROVIDER, _HAIKU_MODEL)
+        mock_admin_config.get_pricing.return_value = zero_input_pricing
+        service = MeteringService(mock_db, mock_admin_config)
+
+        reservation = await service.reserve(_USER_ID, _TASK_TYPE, max_tokens=4096)
+        # With zero input price, estimate should equal output-only formula
+        expected = (
+            (Decimal("4096") * zero_input_pricing.output_cost_per_1k)
+            / Decimal("1000")
+            * zero_input_pricing.margin_multiplier
+        )
+        assert reservation.estimated_cost_usd == expected
+
+    @pytest.mark.asyncio
+    async def test_negative_max_input_tokens_uses_default(
+        self,
+        reserve_service: MeteringService,
+    ) -> None:
+        """Negative max_input_tokens falls back to default ceiling."""
+        default_reservation = await reserve_service.reserve(
+            _USER_ID, _TASK_TYPE, max_tokens=4096
+        )
+        negative_reservation = await reserve_service.reserve(
+            _USER_ID, _TASK_TYPE, max_tokens=4096, max_input_tokens=-100
+        )
+        assert (
+            negative_reservation.estimated_cost_usd
+            == default_reservation.estimated_cost_usd
+        )
 
     @pytest.mark.asyncio
     async def test_increments_held_balance(

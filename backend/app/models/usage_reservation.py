@@ -37,7 +37,7 @@ class UsageReservation(Base):
     Attributes:
         id: UUID primary key.
         user_id: FK to users table.
-        estimated_cost_usd: Worst-case cost from max_tokens x output_price.
+        estimated_cost_usd: Worst-case cost from input + output ceilings x prices x margin.
         actual_cost_usd: Real cost set at settlement. NULL until settled.
         status: held | settled | released | stale.
         task_type: TaskType enum value (extraction, cover_letter, etc.).
