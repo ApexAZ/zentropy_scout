@@ -6,6 +6,7 @@ Google and LinkedIn. Uses PKCE for authorization code flow.
 
 import logging
 import secrets
+import uuid
 from urllib.parse import urlencode
 
 import httpx
@@ -46,6 +47,50 @@ _PROVIDER_CREDENTIALS = {
 }
 
 _UNSUPPORTED_PROVIDER_MSG = "Unsupported OAuth provider"
+
+
+async def _handle_post_login(
+    db: DbSession,
+    user_id: "uuid.UUID",
+    user_email: str,
+    is_admin: bool,
+    is_new_user: bool,
+) -> bool:
+    """Run post-login side-effects: signup credits and admin bootstrap.
+
+    Args:
+        db: Async database session.
+        user_id: User's UUID.
+        user_email: User's email (lowercase comparison for admin check).
+        is_admin: Current admin status.
+        is_new_user: Whether this is a first-time OAuth login.
+
+    Returns:
+        Updated is_admin flag (True if user was promoted).
+    """
+    # Grant signup credits for new users (REQ-029 §12, REQ-021 §8)
+    # Savepoint ensures partial grant failure doesn't corrupt the session.
+    if is_new_user:
+        try:
+            async with db.begin_nested():
+                await grant_signup_credits(db, user_id=user_id)
+            await db.commit()
+        except Exception:
+            logger.exception("Signup grant failed for user %s", user_id)
+
+    # REQ-022 §5.1: ADMIN_EMAILS bootstrap — auto-promote matching users on login
+    admin_emails = [
+        e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()
+    ]
+    if user_email.lower() in admin_emails and not is_admin:
+        from app.repositories.user_repository import UserRepository
+
+        await UserRepository.set_admin(db, user_id, is_admin=True)
+        await db.commit()
+        logger.info("Admin bootstrap: promoted user %s via ADMIN_EMAILS", user_id)
+        return True
+
+    return is_admin
 
 
 def _get_api_callback_url(request: Request, provider: str) -> str:
@@ -258,33 +303,20 @@ async def oauth_callback(
         ) from None
     await db.commit()
 
-    # Grant signup credits for new users (REQ-029 §12, REQ-021 §8)
-    # Savepoint ensures partial grant failure doesn't corrupt the session.
-    if is_new_user:
-        try:
-            async with db.begin_nested():
-                await grant_signup_credits(db, user_id=user.id)
-            await db.commit()
-        except Exception:
-            logger.exception("Signup grant failed for user %s", user.id)
-
-    # REQ-022 §5.1: ADMIN_EMAILS bootstrap — auto-promote matching users on login
-    admin_emails = [
-        e.strip().lower() for e in settings.admin_emails.split(",") if e.strip()
-    ]
-    if user.email.lower() in admin_emails and not user.is_admin:
-        from app.repositories.user_repository import UserRepository
-
-        await UserRepository.set_admin(db, user.id, is_admin=True)
-        await db.commit()
-        await db.refresh(user)
-        logger.info("Admin bootstrap: promoted user %s via ADMIN_EMAILS", user.id)
+    # Post-login side-effects (signup grant, admin bootstrap)
+    updated_is_admin = await _handle_post_login(
+        db=db,
+        user_id=user.id,
+        user_email=user.email,
+        is_admin=user.is_admin,
+        is_new_user=is_new_user,
+    )
 
     # Issue JWT cookie
     token = create_jwt(
         user_id=str(user.id),
         secret=settings.auth_secret.get_secret_value(),
-        is_admin=user.is_admin,
+        is_admin=updated_is_admin,
     )
 
     # Redirect to frontend
