@@ -51,7 +51,7 @@ _UNSUPPORTED_PROVIDER_MSG = "Unsupported OAuth provider"
 
 async def _handle_post_login(
     db: DbSession,
-    user_id: "uuid.UUID",
+    user_id: uuid.UUID,
     user_email: str,
     is_admin: bool,
     is_new_user: bool,
