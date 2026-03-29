@@ -691,7 +691,8 @@ class TestSettle:
         """settle() atomically debits balance and releases held amount."""
         await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
         execute_calls = mock_db_with_savepoint.execute.call_args_list
-        assert len(execute_calls) == 1
+        # Two execute calls: balance debit + conditional reservation update
+        assert len(execute_calls) == 2
         sql_arg = str(execute_calls[0][0][0])
         assert "balance_usd" in sql_arg
         assert "held_balance_usd" in sql_arg
@@ -837,6 +838,73 @@ class TestSettle:
             for r in caplog.records
         )
 
+    @pytest.mark.asyncio
+    async def test_uses_conditional_reservation_update(
+        self,
+        settle_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() uses WHERE status = 'held' guard on reservation UPDATE.
+
+        AF-01: Prevents settle/sweep race where both processes act on the
+        same reservation, causing double-decrement of held_balance_usd.
+        """
+        await settle_service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        execute_calls = mock_db_with_savepoint.execute.call_args_list
+        # Second execute call is the conditional reservation UPDATE
+        reservation_sql = str(execute_calls[1][0][0])
+        assert "status = 'settled'" in reservation_sql
+        assert "AND status = 'held'" in reservation_sql
+
+    @pytest.mark.asyncio
+    async def test_swept_reservation_aborts_cleanly(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """settle() aborts when sweep already handled the reservation.
+
+        AF-01: If the conditional reservation UPDATE returns rowcount=0,
+        the _ReservationSweptError triggers savepoint rollback — in
+        production, all inserts and balance updates are undone.
+        """
+        # First call (balance debit) succeeds, second (reservation) returns 0
+        mock_db_with_savepoint.execute.side_effect = [
+            MagicMock(rowcount=1),
+            MagicMock(rowcount=0),
+        ]
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+
+        # Reservation stays 'held' in memory — sweep handles cleanup
+        assert reservation.status == "held"
+        # Savepoint was used — rollback undoes inserts + balance debit
+        mock_db_with_savepoint.begin_nested.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_swept_reservation_logs_warning(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """settle() logs warning (not error) when sweep wins the race."""
+        mock_db_with_savepoint.execute.side_effect = [
+            MagicMock(rowcount=1),
+            MagicMock(rowcount=0),
+        ]
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        with caplog.at_level(logging.WARNING):
+            await service.settle(reservation, _PROVIDER, _HAIKU_MODEL, 1000, 500)
+        assert any(
+            "sweep" in r.message.lower() and str(reservation.id) in r.message
+            for r in caplog.records
+            if r.levelno == logging.WARNING
+        )
+
 
 # =============================================================================
 # TestRelease
@@ -847,8 +915,22 @@ class TestRelease:
     """Tests for MeteringService.release() — held reservation release.
 
     REQ-030 §5.5: Decrements held_balance_usd and marks reservation as
-    'released' when the LLM call fails. Errors are logged, not raised.
+    'released' when the LLM call fails. Uses savepoint + conditional SQL
+    UPDATE to prevent release/sweep race. Errors are logged, not raised.
     """
+
+    @pytest.fixture
+    def mock_db_with_savepoint(self, mock_db: AsyncMock) -> AsyncMock:
+        """mock_db with begin_nested() returning async context manager."""
+        mock_db.begin_nested = MagicMock(return_value=AsyncMock())
+        return mock_db
+
+    @pytest.fixture
+    def release_service(
+        self, mock_db_with_savepoint: AsyncMock, mock_admin_config: AsyncMock
+    ) -> MeteringService:
+        """MeteringService wired for release tests."""
+        return MeteringService(mock_db_with_savepoint, mock_admin_config)
 
     @pytest.fixture
     def reservation(self) -> UsageReservation:
@@ -858,62 +940,93 @@ class TestRelease:
     @pytest.mark.asyncio
     async def test_decrements_held_balance(
         self,
-        service: MeteringService,
-        mock_db: AsyncMock,
+        release_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
         reservation: UsageReservation,
     ) -> None:
         """release() decrements held_balance_usd by estimated cost."""
-        await service.release(reservation)
-        execute_calls = mock_db.execute.call_args_list
-        assert len(execute_calls) == 1
-        sql_arg = str(execute_calls[0][0][0])
+        await release_service.release(reservation)
+        execute_calls = mock_db_with_savepoint.execute.call_args_list
+        # Two execute calls: conditional reservation UPDATE + balance decrement
+        assert len(execute_calls) == 2
+        # Second call is the balance decrement
+        sql_arg = str(execute_calls[1][0][0])
         assert "held_balance_usd" in sql_arg
-        params = execute_calls[0][0][1]
+        params = execute_calls[1][0][1]
         assert params["amount"] == reservation.estimated_cost_usd
         assert params["user_id"] == _USER_ID
 
     @pytest.mark.asyncio
     async def test_reservation_marked_released(
         self,
-        service: MeteringService,
+        release_service: MeteringService,
         reservation: UsageReservation,
     ) -> None:
         """release() updates reservation status to 'released'."""
-        await service.release(reservation)
+        await release_service.release(reservation)
         assert reservation.status == "released"
 
     @pytest.mark.asyncio
     async def test_reservation_stores_settled_at(
         self,
-        service: MeteringService,
+        release_service: MeteringService,
         reservation: UsageReservation,
     ) -> None:
         """release() sets settled_at timestamp."""
         assert reservation.settled_at is None
-        await service.release(reservation)
+        await release_service.release(reservation)
         assert reservation.settled_at is not None
 
     @pytest.mark.asyncio
     async def test_flushes_session(
         self,
-        service: MeteringService,
-        mock_db: AsyncMock,
+        release_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
         reservation: UsageReservation,
     ) -> None:
         """release() flushes the session after releasing."""
-        await service.release(reservation)
-        mock_db.flush.assert_awaited_once()
+        await release_service.release(reservation)
+        mock_db_with_savepoint.flush.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_uses_savepoint(
+        self,
+        release_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """release() wraps operations in a savepoint (begin_nested)."""
+        await release_service.release(reservation)
+        mock_db_with_savepoint.begin_nested.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_uses_conditional_reservation_update(
+        self,
+        release_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """release() uses WHERE status = 'held' guard on reservation UPDATE.
+
+        AF-01: Prevents release/sweep race — same pattern as settle().
+        """
+        await release_service.release(reservation)
+        execute_calls = mock_db_with_savepoint.execute.call_args_list
+        # First execute call is the conditional reservation UPDATE
+        reservation_sql = str(execute_calls[0][0][0])
+        assert "status = 'released'" in reservation_sql
+        assert "AND status = 'held'" in reservation_sql
 
     @pytest.mark.asyncio
     async def test_failure_does_not_raise(
         self,
-        mock_db: AsyncMock,
+        mock_db_with_savepoint: AsyncMock,
         mock_admin_config: AsyncMock,
         reservation: UsageReservation,
     ) -> None:
         """Release failure is caught — reservation stays held."""
-        mock_db.execute.side_effect = RuntimeError("DB error")
-        service = MeteringService(mock_db, mock_admin_config)
+        mock_db_with_savepoint.execute.side_effect = RuntimeError("DB error")
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
         # Should not raise
         await service.release(reservation)
         # Fail-closed: hold remains for background sweep
@@ -922,30 +1035,70 @@ class TestRelease:
     @pytest.mark.asyncio
     async def test_already_released_is_noop(
         self,
-        service: MeteringService,
-        mock_db: AsyncMock,
+        release_service: MeteringService,
+        mock_db_with_savepoint: AsyncMock,
         reservation: UsageReservation,
     ) -> None:
         """release() on non-held reservation is a no-op."""
         reservation.status = "released"
-        await service.release(reservation)
-        mock_db.execute.assert_not_called()
-        mock_db.flush.assert_not_awaited()
+        await release_service.release(reservation)
+        mock_db_with_savepoint.execute.assert_not_called()
+        mock_db_with_savepoint.flush.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_failure_logs_error(
         self,
-        mock_db: AsyncMock,
+        mock_db_with_savepoint: AsyncMock,
         mock_admin_config: AsyncMock,
         reservation: UsageReservation,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Release failure logs error with reservation and user IDs."""
-        mock_db.execute.side_effect = RuntimeError("DB error")
-        service = MeteringService(mock_db, mock_admin_config)
+        mock_db_with_savepoint.execute.side_effect = RuntimeError("DB error")
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
         with caplog.at_level(logging.ERROR):
             await service.release(reservation)
         assert any(
             "Release failed" in r.message and str(reservation.id) in r.message
             for r in caplog.records
+        )
+
+    @pytest.mark.asyncio
+    async def test_swept_reservation_skips_release(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """release() aborts when sweep already handled the reservation.
+
+        AF-01: If the conditional reservation UPDATE returns rowcount=0,
+        no balance decrement occurs — prevents double-decrement.
+        """
+        mock_db_with_savepoint.execute.return_value = MagicMock(rowcount=0)
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        await service.release(reservation)
+
+        # Only one execute call (the conditional UPDATE), no balance decrement
+        assert mock_db_with_savepoint.execute.call_count == 1
+        # Reservation stays 'held' in memory — sweep handles it
+        assert reservation.status == "held"
+
+    @pytest.mark.asyncio
+    async def test_swept_reservation_logs_warning(
+        self,
+        mock_db_with_savepoint: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """release() logs warning (not error) when sweep wins the race."""
+        mock_db_with_savepoint.execute.return_value = MagicMock(rowcount=0)
+        service = MeteringService(mock_db_with_savepoint, mock_admin_config)
+        with caplog.at_level(logging.WARNING):
+            await service.release(reservation)
+        assert any(
+            "sweep" in r.message.lower() and str(reservation.id) in r.message
+            for r in caplog.records
+            if r.levelno == logging.WARNING
         )

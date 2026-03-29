@@ -30,6 +30,14 @@ logger = logging.getLogger(__name__)
 
 _THOUSAND = Decimal(1000)
 _DEFAULT_MAX_TOKENS = 4096
+_STATUS_HELD = "held"
+
+
+class _ReservationSweptError(Exception):
+    """Raised when settle finds the sweep already handled the reservation.
+
+    Not APIError: sentinel for savepoint rollback, never reaches callers.
+    """
 
 
 class MeteringService:
@@ -159,7 +167,7 @@ class MeteringService:
         reservation = UsageReservation(
             user_id=user_id,
             estimated_cost_usd=estimated_cost,
-            status="held",
+            status=_STATUS_HELD,
             task_type=task_type,
             provider=provider,
             model=model,
@@ -210,7 +218,7 @@ class MeteringService:
             input_tokens: Actual input tokens from the response.
             output_tokens: Actual output tokens from the response.
         """
-        if reservation.status != "held":
+        if reservation.status != _STATUS_HELD:
             logger.warning(
                 "Attempted to settle reservation %s with status '%s' (expected 'held')",
                 reservation.id,
@@ -274,13 +282,47 @@ class MeteringService:
                     },
                 )
 
-                # 6. Update reservation
+                # 6. Conditional reservation update — prevents settle/sweep
+                # race (AF-01). The WHERE status = 'held' guard ensures only
+                # one process (settle or sweep) transitions the reservation.
+                # If rowcount == 0, the sweep already handled it — raise to
+                # trigger savepoint rollback (undoes steps 3-5).
+                now = datetime.now(UTC)
+                updated = cast(
+                    CursorResult[Any],
+                    await self._db.execute(
+                        text(
+                            "UPDATE usage_reservations "
+                            "SET status = 'settled', actual_cost_usd = :actual_cost, "
+                            "    provider = :prov, model = :model, settled_at = :now "
+                            "WHERE id = :id AND status = 'held'"
+                        ),
+                        {
+                            "actual_cost": billed_cost,
+                            "prov": provider,
+                            "model": model,
+                            "now": now,
+                            "id": reservation.id,
+                        },
+                    ),
+                )
+                if updated.rowcount == 0:
+                    msg = f"Reservation {reservation.id} already handled by sweep"
+                    raise _ReservationSweptError(msg)
+
+                # Sync in-memory ORM state (DB already updated by SQL above)
                 reservation.status = "settled"
                 reservation.actual_cost_usd = billed_cost
                 reservation.provider = provider
                 reservation.model = model
-                reservation.settled_at = datetime.now(UTC)
+                reservation.settled_at = now
 
+        except _ReservationSweptError:
+            logger.warning(
+                "Reservation %s was handled by sweep before settlement — "
+                "savepoint rolled back, no double-decrement",
+                reservation.id,
+            )
         except Exception:
             logger.exception(
                 "Settlement failed for reservation %s (user %s) — "
@@ -302,7 +344,7 @@ class MeteringService:
         Args:
             reservation: The held reservation to release.
         """
-        if reservation.status != "held":
+        if reservation.status != _STATUS_HELD:
             logger.warning(
                 "Attempted to release reservation %s with status '%s' (expected 'held')",
                 reservation.id,
@@ -311,23 +353,47 @@ class MeteringService:
             return
 
         try:
-            # 1. Decrement held balance
-            await self._db.execute(
-                text(
-                    "UPDATE users SET held_balance_usd = held_balance_usd - :amount "
-                    "WHERE id = :user_id"
-                ),
-                {
-                    "amount": reservation.estimated_cost_usd,
-                    "user_id": reservation.user_id,
-                },
-            )
+            async with self._db.begin_nested():
+                # 1. Conditional reservation update — prevents release/sweep
+                # race (AF-01). Claim the reservation before decrementing.
+                now = datetime.now(UTC)
+                updated = cast(
+                    CursorResult[Any],
+                    await self._db.execute(
+                        text(
+                            "UPDATE usage_reservations "
+                            "SET status = 'released', settled_at = :now "
+                            "WHERE id = :id AND status = 'held'"
+                        ),
+                        {"now": now, "id": reservation.id},
+                    ),
+                )
+                if updated.rowcount == 0:
+                    logger.warning(
+                        "Reservation %s was already handled by sweep — "
+                        "skipping release",
+                        reservation.id,
+                    )
+                    return
 
-            # 2. Update reservation
-            reservation.status = "released"
-            reservation.settled_at = datetime.now(UTC)
+                # 2. Decrement held balance (only if we claimed the reservation)
+                await self._db.execute(
+                    text(
+                        "UPDATE users "
+                        "SET held_balance_usd = held_balance_usd - :amount "
+                        "WHERE id = :user_id"
+                    ),
+                    {
+                        "amount": reservation.estimated_cost_usd,
+                        "user_id": reservation.user_id,
+                    },
+                )
 
-            # 3. Flush
+                # Sync in-memory ORM state
+                reservation.status = "released"
+                reservation.settled_at = now
+
+            # 3. Flush (outside savepoint)
             await self._db.flush()
 
         except Exception:
