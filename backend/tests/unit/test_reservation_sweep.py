@@ -2,6 +2,7 @@
 
 REQ-030 §11.1: Background sweep releases reservations that exceeded TTL.
 REQ-030 §11.2: Balance/ledger drift detection.
+REQ-030 §11.3: Settlement retry for stale reservations with response metadata.
 REQ-030 §2.4: Configurable interval and TTL via settings.
 """
 
@@ -16,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.usage_reservation import UsageReservation
 from app.models.user import User
+from app.services.admin_config_service import AdminConfigService
+from app.services.metering_service import MeteringService
 from app.services.reservation_sweep import (
     ReservationSweepWorker,
     detect_held_balance_drift,
@@ -26,6 +29,7 @@ _PATCH_SETTINGS = "app.services.reservation_sweep.settings"
 _PATCH_SWEEP = "app.services.reservation_sweep.sweep_stale_reservations"
 _PATCH_DRIFT = "app.services.reservation_sweep.detect_balance_drift"
 _PATCH_HELD_DRIFT = "app.services.reservation_sweep.detect_held_balance_drift"
+_PATCH_RETRY = "app.services.reservation_sweep._attempt_settlement_retry"
 
 _DEFAULT_TTL = 300
 
@@ -34,6 +38,7 @@ _DEFAULT_TTL = 300
 # ---------------------------------------------------------------------------
 
 _DEFAULT_ESTIMATED = Decimal("0.050000")
+_FAKE_SETTLE_COST = Decimal("0.003000")
 _USER_BALANCE = Decimal("10.000000")
 _USER_HELD = Decimal("0.100000")
 
@@ -373,14 +378,15 @@ class TestReservationSweepWorker:
             released = await worker.run_once()
 
         assert released == 3
-        mock_sweep.assert_called_once_with(mock_session, ttl_seconds=_DEFAULT_TTL)
+        mock_sweep.assert_called_once()
+        assert mock_sweep.call_args.args[0] is mock_session
+        assert mock_sweep.call_args.kwargs["ttl_seconds"] == _DEFAULT_TTL
         mock_session.commit.assert_awaited_once()
 
     async def test_run_once_uses_configured_ttl(
         self, mock_session_factory: MagicMock
     ) -> None:
         """run_once() passes the configured TTL from settings."""
-        mock_session = mock_session_factory.return_value
         worker = ReservationSweepWorker(mock_session_factory, interval_seconds=60)
 
         with (
@@ -396,7 +402,7 @@ class TestReservationSweepWorker:
             mock_settings.reservation_ttl_seconds = 600
             await worker.run_once()
 
-        mock_sweep.assert_called_once_with(mock_session, ttl_seconds=600)
+        assert mock_sweep.call_args.kwargs["ttl_seconds"] == 600
 
     async def test_run_once_calls_drift_detection(
         self, mock_session_factory: MagicMock
@@ -448,3 +454,276 @@ class TestReservationSweepWorker:
             assert worker._task is first_task
             assert worker.is_running is True
             await worker.stop()
+
+    async def test_run_once_passes_metering_service_to_sweep(
+        self, mock_session_factory: MagicMock
+    ) -> None:
+        """REQ-030 §11.3: run_once() constructs MeteringService and passes to sweep."""
+        mock_session = mock_session_factory.return_value
+        worker = ReservationSweepWorker(mock_session_factory, interval_seconds=60)
+
+        with (
+            patch(
+                _PATCH_SWEEP,
+                new_callable=AsyncMock,
+                return_value=0,
+            ) as mock_sweep,
+            patch(_PATCH_DRIFT, new_callable=AsyncMock),
+            patch(_PATCH_HELD_DRIFT, new_callable=AsyncMock),
+            patch(_PATCH_SETTINGS) as mock_settings,
+        ):
+            mock_settings.reservation_ttl_seconds = _DEFAULT_TTL
+            await worker.run_once()
+
+        call_kwargs = mock_sweep.call_args.kwargs
+        assert "metering_service" in call_kwargs
+        # Verify MeteringService was constructed with the sweep's DB session
+        assert call_kwargs["metering_service"]._db is mock_session
+
+
+# ---------------------------------------------------------------------------
+# Helpers for settlement retry tests
+# ---------------------------------------------------------------------------
+
+
+async def _add_response_metadata(
+    db: AsyncSession,
+    reservation: UsageReservation,
+    *,
+    model: str = "claude-sonnet-4-20250514",
+    input_tokens: int = 100,
+    output_tokens: int = 50,
+) -> None:
+    """Add response metadata to a reservation (outbox pattern, §5.8)."""
+    await db.execute(
+        text(
+            "UPDATE usage_reservations "
+            "SET response_model = :model, response_input_tokens = :inp, "
+            "    response_output_tokens = :out, call_completed_at = :ts "
+            "WHERE id = :id"
+        ),
+        {
+            "model": model,
+            "inp": input_tokens,
+            "out": output_tokens,
+            "ts": datetime.now(UTC),
+            "id": reservation.id,
+        },
+    )
+    # Expire the specific reservation so next ORM access re-reads from DB
+    # (raw SQL bypasses the identity map cache). Only expire the reservation,
+    # not all objects — expiring the User triggers MissingGreenlet.
+    db.expire(reservation)
+
+
+# ---------------------------------------------------------------------------
+# Settlement retry tests (REQ-030 §11.3)
+# ---------------------------------------------------------------------------
+
+
+class TestSweepSettlementRetry:
+    """REQ-030 §11.3: Settlement retry for stale reservations with response metadata."""
+
+    async def test_metadata_triggers_settlement_not_stale(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Stale reservation with response metadata → settled via retry (tier 1)."""
+        await _seed_user(db_session)
+        stale_time = datetime.now(UTC) - timedelta(seconds=400)
+        reservation = await _seed_reservation(db_session, created_at=stale_time)
+        await _add_response_metadata(db_session, reservation)
+
+        # Mock MeteringService where settle() succeeds (simulates real settle)
+        mock_metering = AsyncMock(spec=MeteringService)
+
+        async def _fake_settle(
+            reservation: UsageReservation,
+            _provider: str,
+            _model: str,
+            _input_tokens: int,
+            _output_tokens: int,
+        ) -> None:
+            now = datetime.now(UTC)
+            await db_session.execute(
+                text(
+                    "UPDATE usage_reservations "
+                    "SET status = 'settled', actual_cost_usd = :cost, "
+                    "    settled_at = :now "
+                    "WHERE id = :id AND status = 'held'"
+                ),
+                {"cost": _FAKE_SETTLE_COST, "now": now, "id": reservation.id},
+            )
+            await db_session.execute(
+                text(
+                    "UPDATE users SET balance_usd = balance_usd - :cost, "
+                    "held_balance_usd = held_balance_usd - :est "
+                    "WHERE id = :uid"
+                ),
+                {
+                    "cost": _FAKE_SETTLE_COST,
+                    "est": reservation.estimated_cost_usd,
+                    "uid": reservation.user_id,
+                },
+            )
+            reservation.status = "settled"
+            reservation.actual_cost_usd = _FAKE_SETTLE_COST
+
+        mock_metering.settle = AsyncMock(side_effect=_fake_settle)
+
+        released = await sweep_stale_reservations(
+            db_session,
+            ttl_seconds=_DEFAULT_TTL,
+            metering_service=mock_metering,
+        )
+
+        assert released == 1
+        row = await db_session.execute(
+            text("SELECT status FROM usage_reservations WHERE id = :id"),
+            {"id": reservation.id},
+        )
+        assert row.scalar_one() == "settled"
+
+    async def test_no_metadata_releases_as_stale(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Stale reservation without call_completed_at → normal stale release."""
+        await _seed_user(db_session)
+        stale_time = datetime.now(UTC) - timedelta(seconds=400)
+        reservation = await _seed_reservation(db_session, created_at=stale_time)
+
+        mock_metering = AsyncMock(spec=MeteringService)
+        released = await sweep_stale_reservations(
+            db_session,
+            ttl_seconds=_DEFAULT_TTL,
+            metering_service=mock_metering,
+        )
+
+        assert released == 1
+        row = await db_session.execute(
+            text("SELECT status FROM usage_reservations WHERE id = :id"),
+            {"id": reservation.id},
+        )
+        assert row.scalar_one() == "stale"
+        mock_metering.settle.assert_not_called()
+
+    async def test_tier2_settles_at_estimated_cost_with_records(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Tier 1 fails (no pricing), tier 2 settles at estimated_cost with records."""
+        user = await _seed_user(db_session)
+        stale_time = datetime.now(UTC) - timedelta(seconds=400)
+        reservation = await _seed_reservation(db_session, created_at=stale_time)
+        await _add_response_metadata(db_session, reservation)
+
+        # Real MeteringService with no pricing data → tier 1 fails
+        admin_config = AdminConfigService(db_session)
+        metering_service = MeteringService(db_session, admin_config)
+
+        released = await sweep_stale_reservations(
+            db_session,
+            ttl_seconds=_DEFAULT_TTL,
+            metering_service=metering_service,
+        )
+
+        assert released == 1
+
+        # Verify settled at estimated cost
+        row = await db_session.execute(
+            text(
+                "SELECT status, actual_cost_usd FROM usage_reservations WHERE id = :id"
+            ),
+            {"id": reservation.id},
+        )
+        result = row.one()
+        assert result.status == "settled"
+        assert result.actual_cost_usd == _DEFAULT_ESTIMATED
+
+        # Verify LLMUsageRecord created with correct data
+        usage_row = await db_session.execute(
+            text(
+                "SELECT provider, model, task_type, input_tokens, output_tokens, "
+                "raw_cost_usd, billed_cost_usd, margin_multiplier "
+                "FROM llm_usage_records WHERE user_id = :uid"
+            ),
+            {"uid": user.id},
+        )
+        usage = usage_row.one()
+        assert usage.provider == "claude"
+        assert usage.model == "claude-sonnet-4-20250514"
+        assert usage.task_type == "extraction"
+        assert usage.input_tokens == 100
+        assert usage.output_tokens == 50
+        assert usage.billed_cost_usd == _DEFAULT_ESTIMATED
+        assert usage.margin_multiplier == Decimal("1.00")
+
+        # Verify CreditTransaction debit
+        txn_row = await db_session.execute(
+            text(
+                "SELECT amount_usd, transaction_type, description "
+                "FROM credit_transactions "
+                "WHERE user_id = :uid AND transaction_type = 'usage_debit'"
+            ),
+            {"uid": user.id},
+        )
+        txn = txn_row.one()
+        assert txn.amount_usd == -_DEFAULT_ESTIMATED
+        assert "sweep-estimated" in txn.description
+
+        # Verify user balance decremented
+        user_row = await db_session.execute(
+            text("SELECT balance_usd, held_balance_usd FROM users WHERE id = :uid"),
+            {"uid": user.id},
+        )
+        user_data = user_row.one()
+        assert user_data.balance_usd == _USER_BALANCE - _DEFAULT_ESTIMATED
+        assert user_data.held_balance_usd == _USER_HELD - _DEFAULT_ESTIMATED
+
+    async def test_both_tiers_fail_releases_as_stale(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Both tiers fail → stale release (last resort)."""
+        await _seed_user(db_session)
+        stale_time = datetime.now(UTC) - timedelta(seconds=400)
+        reservation = await _seed_reservation(db_session, created_at=stale_time)
+        await _add_response_metadata(db_session, reservation)
+
+        # Mock _attempt_settlement_retry to return False (both tiers failed)
+        mock_metering = AsyncMock(spec=MeteringService)
+        with patch(
+            _PATCH_RETRY,
+            new_callable=AsyncMock,
+            return_value=False,
+        ):
+            released = await sweep_stale_reservations(
+                db_session,
+                ttl_seconds=_DEFAULT_TTL,
+                metering_service=mock_metering,
+            )
+
+        assert released == 1
+        row = await db_session.execute(
+            text("SELECT status FROM usage_reservations WHERE id = :id"),
+            {"id": reservation.id},
+        )
+        assert row.scalar_one() == "stale"
+
+    async def test_no_metering_service_skips_retry(
+        self, db_session: AsyncSession
+    ) -> None:
+        """metering_service=None → stale release even with metadata (backward compat)."""
+        await _seed_user(db_session)
+        stale_time = datetime.now(UTC) - timedelta(seconds=400)
+        reservation = await _seed_reservation(db_session, created_at=stale_time)
+        await _add_response_metadata(db_session, reservation)
+
+        released = await sweep_stale_reservations(
+            db_session,
+            ttl_seconds=_DEFAULT_TTL,
+        )
+
+        assert released == 1
+        row = await db_session.execute(
+            text("SELECT status FROM usage_reservations WHERE id = :id"),
+            {"id": reservation.id},
+        )
+        assert row.scalar_one() == "stale"
