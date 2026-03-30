@@ -30,7 +30,7 @@ from app.providers.embedding.base import EmbeddingProvider
 from app.providers.llm.base import LLMProvider
 from app.repositories.job_pool_repository import JobPoolRepository
 from app.services.job_enrichment_service import JobEnrichmentService
-from app.services.job_scoring_service import JobScoringService
+from app.services.scoring.job_scoring_service import JobScoringService
 from app.services.scouter_errors import SourceError, is_retryable_error
 from app.services.scouter_utils import calculate_next_poll_time, merge_results
 

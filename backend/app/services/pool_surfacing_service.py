@@ -29,7 +29,10 @@ from app.models.job_posting import JobPosting
 from app.models.persona import Persona
 from app.models.persona_job import PersonaJob
 from app.services.content_security import release_expired_quarantines
-from app.services.pool_scoring import calculate_lightweight_fit, keyword_pre_screen
+from app.services.scoring.pool_scoring import (
+    calculate_lightweight_fit,
+    keyword_pre_screen,
+)
 
 logger = logging.getLogger(__name__)
 

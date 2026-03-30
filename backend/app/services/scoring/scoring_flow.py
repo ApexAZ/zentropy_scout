@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol, TypeVar
 from uuid import UUID
 
-from app.services.non_negotiables_filter import (
+from app.services.scoring.non_negotiables_filter import (
     NonNegotiablesResult,
     aggregate_filter_results,
     check_commutable_cities,

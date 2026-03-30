@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from app.services.golden_set import (
+from app.services.scoring.golden_set import (
     GoldenSet,
     GoldenSetEntry,
     GoldenSetMetadata,

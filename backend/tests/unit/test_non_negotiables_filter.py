@@ -11,7 +11,7 @@ Tests cover:
 - Filter result structure (§3.3)
 """
 
-from app.services.non_negotiables_filter import (
+from app.services.scoring.non_negotiables_filter import (
     NonNegotiablesResult,
     check_commutable_cities,
     check_industry_exclusions,
@@ -390,7 +390,7 @@ class TestAggregateFilterResults:
 
     def test_empty_results_passes(self) -> None:
         """Empty results list passes (no filters = no failures)."""
-        from app.services.non_negotiables_filter import aggregate_filter_results
+        from app.services.scoring.non_negotiables_filter import aggregate_filter_results
 
         result = aggregate_filter_results([])
 
@@ -400,7 +400,7 @@ class TestAggregateFilterResults:
 
     def test_all_passed_returns_passed(self) -> None:
         """When all individual results pass, aggregate passes."""
-        from app.services.non_negotiables_filter import aggregate_filter_results
+        from app.services.scoring.non_negotiables_filter import aggregate_filter_results
 
         results = [
             NonNegotiablesResult(passed=True),
@@ -415,7 +415,7 @@ class TestAggregateFilterResults:
 
     def test_one_failure_causes_aggregate_failure(self) -> None:
         """When any individual result fails, aggregate fails."""
-        from app.services.non_negotiables_filter import aggregate_filter_results
+        from app.services.scoring.non_negotiables_filter import aggregate_filter_results
 
         results = [
             NonNegotiablesResult(passed=True),
@@ -433,7 +433,7 @@ class TestAggregateFilterResults:
 
     def test_multiple_failures_aggregated(self) -> None:
         """Multiple failed reasons are combined in order."""
-        from app.services.non_negotiables_filter import aggregate_filter_results
+        from app.services.scoring.non_negotiables_filter import aggregate_filter_results
 
         results = [
             NonNegotiablesResult(
@@ -454,7 +454,7 @@ class TestAggregateFilterResults:
 
     def test_warnings_aggregated_from_all_results(self) -> None:
         """Warnings from all results are combined."""
-        from app.services.non_negotiables_filter import aggregate_filter_results
+        from app.services.scoring.non_negotiables_filter import aggregate_filter_results
 
         results = [
             NonNegotiablesResult(passed=True, warnings=["Salary not disclosed"]),
@@ -470,7 +470,7 @@ class TestAggregateFilterResults:
 
     def test_mixed_failures_and_warnings(self) -> None:
         """Failures and warnings from different results are both collected."""
-        from app.services.non_negotiables_filter import aggregate_filter_results
+        from app.services.scoring.non_negotiables_filter import aggregate_filter_results
 
         results = [
             NonNegotiablesResult(passed=True, warnings=["Salary not disclosed"]),
@@ -490,7 +490,7 @@ class TestAggregateFilterResults:
 
     def test_single_result_with_multiple_reasons(self) -> None:
         """Individual result with multiple reasons preserved."""
-        from app.services.non_negotiables_filter import aggregate_filter_results
+        from app.services.scoring.non_negotiables_filter import aggregate_filter_results
 
         results = [
             NonNegotiablesResult(

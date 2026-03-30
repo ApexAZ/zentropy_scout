@@ -10,13 +10,13 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.services.job_scoring_service import (
+from app.services.scoring.job_scoring_service import (
     RATIONALE_SCORE_THRESHOLD,
     JobScoringService,
 )
 
 # Module path for patching
-_MODULE = "app.services.job_scoring_service"
+_MODULE = "app.services.scoring.job_scoring_service"
 
 # Patch targets (DRY — avoids repeating f"{_MODULE}.<name>" strings)
 _PATCH_LOAD_PERSONA = f"{_MODULE}._load_persona"
@@ -238,7 +238,7 @@ class TestScoreJob:
         embeddings = _make_persona_embeddings(persona_id)
 
         # Simulate filter failure
-        from app.services.scoring_flow import JobFilterResult
+        from app.services.scoring.scoring_flow import JobFilterResult
 
         filter_result = JobFilterResult(
             job_id=job_id,
@@ -459,7 +459,7 @@ class TestScoreBatch:
         self, mock_db: AsyncMock, user_id: UUID, persona_id: UUID
     ) -> None:
         """Batch with some jobs filtered and some scored."""
-        from app.services.scoring_flow import JobFilterResult
+        from app.services.scoring.scoring_flow import JobFilterResult
 
         pass_id = uuid4()
         fail_id = uuid4()
@@ -563,7 +563,7 @@ class TestScoreBatch:
         self, mock_db: AsyncMock, user_id: UUID, persona_id: UUID
     ) -> None:
         """When all jobs fail non-negotiables, no scoring should occur."""
-        from app.services.scoring_flow import JobFilterResult
+        from app.services.scoring.scoring_flow import JobFilterResult
 
         job_ids = [uuid4(), uuid4()]
         persona = _make_persona(persona_id=persona_id, user_id=user_id)
@@ -836,7 +836,7 @@ class TestScoreDetailsAndPersistence:
         self, mock_db: AsyncMock, user_id: UUID, persona_id: UUID
     ) -> None:
         """Filtered results should also be persisted with None scores."""
-        from app.services.scoring_flow import JobFilterResult
+        from app.services.scoring.scoring_flow import JobFilterResult
 
         job_id = uuid4()
         persona = _make_persona(persona_id=persona_id, user_id=user_id)

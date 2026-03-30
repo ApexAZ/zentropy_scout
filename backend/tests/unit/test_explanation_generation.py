@@ -13,7 +13,7 @@ Tests cover:
 
 import pytest
 
-from app.services.explanation_generation import (
+from app.services.scoring.explanation_generation import (
     generate_explanation,
     generate_summary_sentence,
     get_matched_skills,

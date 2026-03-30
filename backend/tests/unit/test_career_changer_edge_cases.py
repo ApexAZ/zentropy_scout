@@ -18,7 +18,7 @@ These tests document the CURRENT behavior without that mode.
 
 from dataclasses import dataclass
 
-from app.services.explanation_generation import (
+from app.services.scoring.explanation_generation import (
     generate_explanation,
     get_matched_skills,
     get_missing_skills,

@@ -7,7 +7,7 @@ scores used to validate the scoring algorithm's accuracy. The algorithm scores
 should correlate with human labels (r > 0.8) to be considered valid.
 
 Usage:
-    from app.services.golden_set import load_golden_set
+    from app.services.scoring.golden_set import load_golden_set
 
     golden_set = load_golden_set(Path("tests/fixtures/golden_set.json"))
     for entry in golden_set.entries:

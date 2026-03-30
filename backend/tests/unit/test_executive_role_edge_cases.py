@@ -23,8 +23,8 @@ is a future enhancement.
 
 from dataclasses import dataclass
 
-from app.services.explanation_generation import generate_explanation
 from app.services.scoring.experience_level import calculate_experience_score
+from app.services.scoring.explanation_generation import generate_explanation
 from app.services.scoring.fit_score import (
     FIT_NEUTRAL_SCORE,
     FitScoreResult,

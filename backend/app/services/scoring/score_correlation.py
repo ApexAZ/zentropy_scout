@@ -8,8 +8,8 @@ scores from the golden set to validate scoring accuracy.
 Target: r > 0.8 for both Fit and Stretch scores.
 
 Usage:
-    from app.services.score_correlation import validate_scores_against_golden_set
-    from app.services.golden_set import load_golden_set
+    from app.services.scoring.score_correlation import validate_scores_against_golden_set
+    from app.services.scoring.golden_set import load_golden_set
 
     golden_set = load_golden_set(Path("tests/fixtures/golden_set.json"))
     algorithm_scores = {
@@ -24,7 +24,7 @@ Usage:
 import math
 from dataclasses import dataclass, field
 
-from app.services.golden_set import GoldenSet
+from app.services.scoring.golden_set import GoldenSet
 
 # =============================================================================
 # Pearson Correlation Calculation

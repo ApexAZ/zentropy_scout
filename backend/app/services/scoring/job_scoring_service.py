@@ -36,10 +36,10 @@ from app.providers.embedding.base import EmbeddingProvider
 from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 from app.repositories.persona_job_repository import PersonaJobRepository
 from app.schemas.prompt_params import ScoreData
-from app.services.batch_scoring import ScoredJob, batch_score_jobs
 from app.services.embedding.persona_generator import generate_persona_embeddings
+from app.services.scoring.batch_scoring import ScoredJob, batch_score_jobs
 from app.services.scoring.score_types import ScoreResult
-from app.services.scoring_flow import (
+from app.services.scoring.scoring_flow import (
     build_filtered_score_result,
     build_scored_result,
     filter_jobs_batch,
