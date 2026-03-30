@@ -26,13 +26,13 @@ from app.adapters.sources.base import JobSourceAdapter, RawJob, SearchParams
 from app.adapters.sources.remoteok import RemoteOKAdapter
 from app.adapters.sources.themuse import TheMuseAdapter
 from app.adapters.sources.usajobs import USAJobsAdapter
-from app.agents.scouter import calculate_next_poll_time, merge_results
 from app.providers.embedding.base import EmbeddingProvider
 from app.providers.llm.base import LLMProvider
 from app.repositories.job_pool_repository import JobPoolRepository
 from app.services.job_enrichment_service import JobEnrichmentService
 from app.services.job_scoring_service import JobScoringService
 from app.services.scouter_errors import SourceError, is_retryable_error
+from app.services.scouter_utils import calculate_next_poll_time, merge_results
 
 logger = logging.getLogger(__name__)
 

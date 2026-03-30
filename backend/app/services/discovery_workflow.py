@@ -19,17 +19,18 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.providers.embedding.base import EmbeddingProvider
+from app.services.job_fetch_service import JobFetchService
+
 # WHY Any: Job data flows through multiple layers (source adapters,
 # services, API endpoints) with varying schemas. Using dict[str, Any]
 # provides flexibility while strict typing happens when creating
 # JobPosting models at persistence.
-from app.agents.scouter import (
+from app.services.scouter_utils import (
     is_manual_refresh_request,
     is_source_added_trigger,
     should_poll,
 )
-from app.providers.embedding.base import EmbeddingProvider
-from app.services.job_fetch_service import JobFetchService
 
 # =============================================================================
 # Enums
