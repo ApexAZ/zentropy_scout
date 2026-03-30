@@ -11,7 +11,6 @@ Modules:
     checkpoint: Checkpointer and graph config utilities (REQ-007 §3.3)
     chat: User-facing conversational interface (REQ-007 §4)
     onboarding: Post-onboarding update utilities (REQ-019 §5)
-    ghostwriter: Draft/regeneration detection utilities (REQ-007 §8)
 """
 
 from app.agents.chat import (
@@ -27,14 +26,6 @@ from app.agents.chat import (
 from app.agents.checkpoint import (
     create_checkpointer,
     create_graph_config,
-)
-from app.agents.ghostwriter import (
-    DRAFT_REQUEST_PATTERNS,
-    REGENERATION_PATTERNS,
-    TriggerType,
-    is_draft_request,
-    is_regeneration_request,
-    should_auto_draft,
 )
 from app.agents.onboarding import (
     ACHIEVEMENT_STORY_PROMPT,
@@ -94,13 +85,6 @@ __all__ = [
     "get_work_history_prompt",
     "is_update_request",
     "should_start_onboarding",
-    # Ghostwriter
-    "DRAFT_REQUEST_PATTERNS",
-    "REGENERATION_PATTERNS",
-    "TriggerType",
-    "is_draft_request",
-    "is_regeneration_request",
-    "should_auto_draft",
     # Strategist Prompts
     "NON_NEGOTIABLES_SYSTEM_PROMPT",
     "SCORE_RATIONALE_SYSTEM_PROMPT",

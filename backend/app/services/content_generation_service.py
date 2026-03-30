@@ -26,12 +26,12 @@ Cross-references:
 import logging
 from dataclasses import dataclass
 
-from app.agents.ghostwriter import TriggerType
 from app.core.errors import ValidationError
 from app.core.llm_sanitization import sanitize_user_feedback
 from app.providers.llm.base import LLMProvider
 from app.schemas.prompt_params import JobContext, VoiceProfileData
 from app.services.cover_letter_generation import CoverLetterResult
+from app.services.ghostwriter_triggers import TriggerType
 from app.services.reasoning_explanation import ReasoningStory, format_agent_reasoning
 from app.services.story_selection import ScoredStory, select_achievement_stories
 from app.services.tailoring_decision import TailoringDecision, evaluate_tailoring_need
