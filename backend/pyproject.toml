@@ -47,7 +47,7 @@ dependencies = [
     "tenacity>=8.2.0",
 
     # Payments (REQ-029 §5.1)
-    "stripe[async]>=14.0.0,<15.0.0",  # Stripe SDK with async (httpx) support
+    "stripe[async]>=14.0.0,<16.0.0",  # Stripe SDK with async (httpx) support
 
     # Security
     "python-magic>=0.4.27",  # File content validation via magic bytes
