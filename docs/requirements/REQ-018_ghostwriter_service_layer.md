@@ -1,10 +1,10 @@
 # REQ-018: Ghostwriter Service Layer Redesign
 
 **Status:** Implemented
-**Version:** 1.0
+**Version:** 1.1
 **Supersedes:** REQ-007 §8 (Ghostwriter Agent), §15.5 (Ghostwriter Agent Graph)
 **PRD Reference:** §4.4 Ghostwriter
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-29
 
 ---
 
@@ -491,5 +491,6 @@ Code-only changes. No database schema modifications. Git revert restores previou
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-03-29 | 0.3 | Errata: `backend/app/agents/ghostwriter.py` (trigger helpers, pattern detection) relocated to `backend/app/services/ghostwriter_triggers.py`. Test file renamed `test_ghostwriter.py` → `test_ghostwriter_triggers.py`. Re-exports removed from `agents/__init__.py`. File paths in §4 and §8 reflect the state at time of writing; current paths are in `services/`. |
 | 2026-02-23 | 0.2 | Audit fixes: added 2 missing service files to §4.2 (reasoning_explanation, duplicate_story), added 2 missing test files to §11, updated totals (15 service files, 501 tests kept), added cross-REQ implementation order to §2. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Ghostwriter with `ContentGenerationService` orchestrating 13 existing service files. |

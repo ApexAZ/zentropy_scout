@@ -1,10 +1,10 @@
 # REQ-016: Scouter Service Layer Redesign
 
 **Status:** Implemented
-**Version:** 1.0
+**Version:** 1.1
 **Supersedes:** REQ-007 §6 (Scouter Agent), §15.3 (Scouter Agent Graph)
 **PRD Reference:** §4.2 Scouter
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-29
 
 ---
 
@@ -582,5 +582,6 @@ Most test logic from `test_scouter_graph.py` migrates to the new service/reposit
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-03-29 | 0.3 | Errata: `backend/app/agents/scouter.py` (trigger helpers, merge utility) relocated to `backend/app/services/scouter_utils.py`. Test file renamed `test_scouter_agent.py` → `test_scouter_utils.py`. File paths in §4 and §8 reflect the state at time of writing; current paths are in `services/`. |
 | 2026-02-23 | 0.2 | Audit fixes: corrected dedup file references (global_dedup_service.py + job_deduplication.py), added 4 missing test files to §11, fixed E2E test counts, added cross-REQ implementation order to §2, documented state.py/agents/ directory end-state in §4.3, clarified checkpoint.py as DEFER not DELETE. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Scouter with 3 services + 1 repository. |
