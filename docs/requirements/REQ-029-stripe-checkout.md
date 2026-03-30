@@ -1,10 +1,10 @@
 # REQ-029: Stripe Checkout Integration
 
 **Status:** Not Started
-**Version:** 0.3
+**Version:** 0.4
 **PRD Reference:** §6 Technical Architecture
 **Backlog Item:** #13
-**Last Updated:** 2026-03-10
+**Last Updated:** 2026-03-29
 
 > **Amendment Notice:** REQ-030 (Billing & Metering Hardening) amends §7.1 (webhook routing — adds `checkout.session.expired`), §7.3 (refund handler — savepoint, cap, null guard), §4.3 (schema — type alignment), §6.3 (customer creation — savepoint), §8.3 (purchase display — rounding), §9.4 (frontend — query invalidation), §11.4 (config — reject invalid combo). When REQ-029 and REQ-030 conflict, **REQ-030 takes precedence**.
 
@@ -1239,6 +1239,7 @@ See REQ-021 §12.2 for the complete mapping. Summary:
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-03-29 | 0.4 | Errata: `stripe_service.py` → `services/billing/stripe_service.py` per REQ-031 (Services Reorganization). See REQ-031 §5 for complete mapping. |
 | 2026-03-10 | 0.3 | **Audit fix:** Updated §16.4 `LowBalanceWarning` test thresholds from `<$0.50`/`$0.00` to `<$1.00`/`<$0.10` — these were missed during the v0.2 coherence review when §9.5 was corrected. |
 | 2026-03-10 | 0.2 | **Coherence review with REQ-021 v0.6.** (1) Replaced vague "supersedes" statement with precise section-by-section traceability map (§1.4) — clarifies exactly which REQ-021 sections are superseded, which remain authoritative, and which are new in REQ-029. (2) Fixed all frontend page routes from `/credits` to `/usage` (actual page is at `frontend/src/app/(main)/usage/page.tsx`) — affects §6.2 success/cancel URLs, §8.2 redirect URLs, §9.1 route, §9.4 `router.replace()` calls. API routes (`/api/v1/credits/*`) unchanged. (3) Fixed low-balance warning thresholds (§9.5) from arbitrary $0.50/$0.00 to existing `BALANCE_THRESHOLD_HIGH` ($1.00) / `BALANCE_THRESHOLD_LOW` ($0.10) from `format-utils.ts` — aligns with REQ-020 §9.1 and existing balance-card color scheme. (4) Added §4.4 `reference_id` semantics table — documents what each transaction type stores in this column (was only in REQ-021 §6.8). (5) Added §13.2 webhook error scenarios table — documents metadata-missing, user-not-found, and unpaid-session cases (complements REQ-021 §6.6). (6) Added §13.3 cross-reference to REQ-021 §12.2 for Stripe error mapping. (7) Added configuration matrix to §11.4 (references REQ-021 §10.3). (8) Added `stripe_price_id` nullable note to §2.6 — checkout must validate non-null before creating session. (9) Fixed section numbering (§4.4→4.6 migration). (10) REQ-021 updated to v0.6 with reciprocal supersession notice, backlog item #13, `stripe_price_id` nullable fix, REQ-023 ✅, and `/credits`→`/usage` route fixes. |
 | 2026-03-10 | 0.1 | Initial version. Supersedes REQ-021 for Stripe-specific sections. Key differences from REQ-021: (1) Uses `StripeClient` pattern (not deprecated global `stripe.api_key`). (2) Adds `stripe_purchases` table for session lifecycle tracking. (3) Adds `stripe[async]` extra for native httpx async support. (4) Documents current SDK v14.4.0 patterns. (5) Adds low-balance warning specification. (6) Includes Stripe test mode details (test cards, CLI commands). (7) Adds open questions from backlog #13 (business account, minimum purchase, tax, subscriptions, receipts). (8) Consolidates checkout flow, webhook handling, refund processing, and customer management into a single implementation-ready document. |

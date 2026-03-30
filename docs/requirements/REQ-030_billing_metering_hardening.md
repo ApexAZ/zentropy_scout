@@ -1,10 +1,10 @@
 # REQ-030: Billing & Metering Hardening
 
 **Status:** Not Started
-**Version:** 0.1
+**Version:** 0.3
 **PRD Reference:** §6 Technical Architecture
 **Backlog Item:** #29
-**Last Updated:** 2026-03-27
+**Last Updated:** 2026-03-29
 
 ---
 
@@ -1233,3 +1233,4 @@ The reservation pattern is fail-closed at every step:
 |------|---------|---------|
 | 2026-03-27 | 0.1 | Initial version. Addresses 16 findings from steelman billing/metering review. Core change: reservation-based metering pattern replacing post-debit fire-and-forget. Amends REQ-020 §2.2, §6.2–6.3, §7.1, §11; REQ-029 §4.3, §6.3, §7.1, §7.3, §8.3, §9.4, §11.4; REQ-021 balance model. |
 | 2026-03-29 | 0.2 | Added §5.8 (response metadata persistence / outbox pattern), §11.3 (settlement retry in sweep with three-tier fallback). Addresses F-16: settlement failure after successful LLM call results in free usage. Updated §2.5, §13.1, §14, §15. New migration 029. |
+| 2026-03-29 | 0.3 | Errata: Service files reorganized per REQ-031. `stripe_webhook_service.py`, `stripe_service.py`, `metering_service.py` → `services/billing/`. See REQ-031 §5 for complete mapping. |

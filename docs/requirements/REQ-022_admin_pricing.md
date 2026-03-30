@@ -1,9 +1,9 @@
 # REQ-022: Admin Pricing Dashboard & Model Registry
 
 **Status:** Not Started
-**Version:** 0.1
+**Version:** 0.2
 **PRD Reference:** §6 Technical Architecture
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-29
 **Backlog Item:** #16
 
 ---
@@ -1742,3 +1742,4 @@ test_adapter_fallback_without_override
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.1 | 2026-03-01 | Initial draft |
+| 0.2 | 2026-03-29 | Errata: Service files reorganized per REQ-031. `admin_config_service.py`, `admin_management_service.py` → `services/admin/`; `metering_service.py` → `services/billing/`; `embedding_cost.py` → `services/embedding/cost.py`. See REQ-031 §5 for complete mapping. |

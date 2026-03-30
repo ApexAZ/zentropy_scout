@@ -481,7 +481,7 @@ Code-only changes. No database schema modifications. Git revert restores previou
 
 | # | Question | Status | Notes |
 |---|----------|--------|-------|
-| 1 | Should the 15 service files be reorganized into a `ghostwriter/` subdirectory? | Deferred | Currently scattered across `services/`. Could group as `services/ghostwriter/cover_letter_generation.py`, etc. Low priority — current flat structure works. |
+| 1 | Should the 15 service files be reorganized into a `ghostwriter/` subdirectory? | **Resolved** | Addressed by REQ-031 (Services Reorganization). Files grouped by domain (generation, rendering, scoring) rather than by agent name. See REQ-031 §4 for structure. |
 | 2 | When should true pause/resume revision be implemented? | Post-MVP | The one genuine LangGraph use case for Ghostwriter. Requires real checkpoint/resume infrastructure. Only justified when multi-turn revision within a single session is needed. |
 | 3 | Should auto-draft be wired? | **No (MVP)** | See §3.2. User trust concern. `TriggerType.AUTO_DRAFT` exists in enum but is never called. Post-MVP: requires opt-in consent, credit system, and user preference toggle. |
 
@@ -491,6 +491,7 @@ Code-only changes. No database schema modifications. Git revert restores previou
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-03-29 | 0.4 | Errata: Service files reorganized into domain subdirectories per REQ-031. 15 ghostwriter service files → `services/generation/`; `cover_letter_pdf_generation.py`, `cover_letter_pdf_storage.py`, `cover_letter_editing.py`, `pdf_generation.py` → `services/rendering/`; `content_generation_service.py` → `services/generation/`. §14 Q1 (subdirectory reorganization) resolved — files grouped by domain, not by agent. See REQ-031 §5 for complete mapping. |
 | 2026-03-29 | 0.3 | Errata: `backend/app/agents/ghostwriter.py` (trigger helpers, pattern detection) relocated to `backend/app/services/ghostwriter_triggers.py`. Test file renamed `test_ghostwriter.py` → `test_ghostwriter_triggers.py`. Re-exports removed from `agents/__init__.py`. File paths in §4 and §8 reflect the state at time of writing; current paths are in `services/`. |
 | 2026-02-23 | 0.2 | Audit fixes: added 2 missing service files to §4.2 (reasoning_explanation, duplicate_story), added 2 missing test files to §11, updated totals (15 service files, 501 tests kept), added cross-REQ implementation order to §2. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Ghostwriter with `ContentGenerationService` orchestrating 13 existing service files. |

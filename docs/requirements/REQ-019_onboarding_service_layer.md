@@ -594,6 +594,7 @@ All other step components (basic-info, work-history, education, skills, certific
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-03-29 | 0.4 | Errata: Service files reorganized per REQ-031. `onboarding_workflow.py`, `onboarding_utils.py` → `services/onboarding/`; `resume_parsing_service.py` → `services/rendering/`. See REQ-031 §5 for complete mapping. |
 | 2026-03-29 | 0.3 | Errata: `backend/app/agents/onboarding.py` (post-onboarding utilities) relocated to `backend/app/services/onboarding_utils.py`. Test file renamed `test_onboarding_utilities.py` → `test_onboarding_utils.py`. Re-exports removed from `agents/__init__.py`. File paths in §5 and §8 reflect the state at time of writing; current paths are in `services/`. |
 | 2026-02-23 | 0.2 | Audit fixes: added cross-REQ implementation order to §2, added frontend Vitest test files to §13.2, renumbered §13.3→§13.4. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Onboarding Agent with form wizard + ResumeParsingService. |

@@ -582,6 +582,7 @@ Most test logic from `test_scouter_graph.py` migrates to the new service/reposit
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-03-29 | 0.4 | Errata: Service files reorganized into domain subdirectories per REQ-031. `scouter_utils.py`, `scouter_errors.py`, `ghost_detection.py`, `job_deduplication.py`, `global_dedup_service.py`, `job_fetch_service.py`, `job_enrichment_service.py` → `services/discovery/`. See REQ-031 §5 for complete mapping. |
 | 2026-03-29 | 0.3 | Errata: `backend/app/agents/scouter.py` (trigger helpers, merge utility) relocated to `backend/app/services/scouter_utils.py`. Test file renamed `test_scouter_agent.py` → `test_scouter_utils.py`. File paths in §4 and §8 reflect the state at time of writing; current paths are in `services/`. |
 | 2026-02-23 | 0.2 | Audit fixes: corrected dedup file references (global_dedup_service.py + job_deduplication.py), added 4 missing test files to §11, fixed E2E test counts, added cross-REQ implementation order to §2, documented state.py/agents/ directory end-state in §4.3, clarified checkpoint.py as DEFER not DELETE. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Scouter with 3 services + 1 repository. |
