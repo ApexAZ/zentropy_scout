@@ -546,7 +546,7 @@ Revenue protection analysis traced the full reserve → call → settle pipeline
 | | **Read:** `metering_service.py` (settle at 222, release at 373, constructor at 60). `usage_reservation.py` (new columns from §47). | | |
 | | **TDD:** Test metadata written correctly. Test guard: only 'held' reservations get metadata. Test failure is isolated (does not prevent settle). | | |
 | | **Done when:** Method exists, writes 4 columns atomically, handles errors gracefully. | | |
-| 49 | **Wire persist_response_metadata into MeteredLLMProvider and MeteredEmbeddingProvider** — Call `persist_response_metadata()` after LLM/embedding call succeeds but before `settle()`. Wrap in try/except so persist failure doesn't block settlement or response return. | `plan, tdd, provider` | ⬜ |
+| 49 | **Wire persist_response_metadata into MeteredLLMProvider and MeteredEmbeddingProvider** — Call `persist_response_metadata()` after LLM/embedding call succeeds but before `settle()`. Wrap in try/except so persist failure doesn't block settlement or response return. | `plan, tdd, provider` | ✅ |
 | | **Read:** `metered_provider.py` (complete at 112, embed at 280). `test_metered_provider.py` (existing mock patterns). | | |
 | | **TDD:** Test persist called with correct args after call success. Test persist NOT called on call failure (release path). Test persist failure doesn't block settle or response return. Same for embedding. | | |
 | | **Done when:** Both providers persist metadata. Failure is isolated. Existing tests still pass. | | |
