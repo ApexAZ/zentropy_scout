@@ -148,7 +148,7 @@ export function ResumeList() {
 										)}
 										<CardTitle>{resume.name}</CardTitle>
 										{resume.is_primary && (
-											<span className="bg-warning/20 text-warning-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+											<span className="bg-warning text-warning-foreground rounded-full px-2 py-0.5 text-xs font-medium">
 												Primary
 											</span>
 										)}

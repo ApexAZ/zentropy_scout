@@ -1,0 +1,33 @@
+# Docker Compose for visual regression testing.
+#
+# Runs Playwright inside a container with consistent font rendering
+# and browser binaries (Ubuntu Noble). Screenshot baselines generated
+# here match CI (also Ubuntu), eliminating OS rendering differences.
+#
+# The container starts its own Next.js dev server via Playwright's webServer
+# config — no host-side dev server needed.
+#
+# Usage:
+#   cd frontend
+#   npm run test:e2e:visual           # Run visual regression tests
+#   npm run test:e2e:visual:update    # Update baselines
+
+services:
+  playwright:
+    build:
+      context: ..
+      dockerfile: docker/playwright.Dockerfile
+    # Run as host user so bind-mounted baselines have correct ownership.
+    # Without this, files are created as root and break native Playwright.
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      # Bind-mount test files, source, and public assets so baselines
+      # persist on host and the Next.js dev server can serve the app.
+      - ../tests:/app/tests
+      - ../src:/app/src
+      - ../public:/app/public
+    environment:
+      - CI=true
+    mem_limit: 4g
+    # Default command — overridden by npm scripts
+    command: npx playwright test tests/e2e/visual-regression.spec.ts

@@ -14,6 +14,14 @@ import {
 } from "../utils/resume-api-mocks";
 
 // ---------------------------------------------------------------------------
+// Constants — test IDs and selectors
+// ---------------------------------------------------------------------------
+
+const TID_RESUME_DETAIL = "resume-detail";
+const TID_VARIANTS_LIST = "variants-list";
+const HEADING_PDF_PREVIEW = "PDF Preview";
+
+// ---------------------------------------------------------------------------
 // A. Resume Detail — Display (2 tests)
 // ---------------------------------------------------------------------------
 
@@ -24,7 +32,7 @@ test.describe("Resume Detail — Display", () => {
 		await setupResumeListMocks(page);
 		await page.goto(`/resumes/${BASE_RESUME_IDS[0]}`);
 
-		await expect(page.getByTestId("resume-detail")).toBeVisible();
+		await expect(page.getByTestId(TID_RESUME_DETAIL)).toBeVisible();
 
 		// Header shows name, role type, and status badge
 		await expect(
@@ -40,17 +48,19 @@ test.describe("Resume Detail — Display", () => {
 		);
 
 		// PDF preview visible (rendered_at is set for Scrum Master)
-		await expect(page.getByText("PDF Preview")).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: HEADING_PDF_PREVIEW }),
+		).toBeVisible();
 
 		// Variants list visible
-		await expect(page.getByTestId("variants-list")).toBeVisible();
+		await expect(page.getByTestId(TID_VARIANTS_LIST)).toBeVisible();
 	});
 
 	test("shows Render PDF button for un-rendered resume", async ({ page }) => {
 		await setupResumeListMocks(page);
 		await page.goto(`/resumes/${BASE_RESUME_IDS[1]}`);
 
-		await expect(page.getByTestId("resume-detail")).toBeVisible();
+		await expect(page.getByTestId(TID_RESUME_DETAIL)).toBeVisible();
 
 		// Product Owner has no rendered_at — Render PDF button visible
 		await expect(
@@ -58,7 +68,9 @@ test.describe("Resume Detail — Display", () => {
 		).toBeVisible();
 
 		// No PDF preview section
-		await expect(page.getByText("PDF Preview")).not.toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: HEADING_PDF_PREVIEW }),
+		).not.toBeVisible();
 	});
 });
 
@@ -71,7 +83,7 @@ test.describe("Resume Detail — Save & Render", () => {
 		await setupResumeListMocks(page);
 		await page.goto(`/resumes/${BASE_RESUME_IDS[0]}`);
 
-		await expect(page.getByTestId("resume-detail")).toBeVisible();
+		await expect(page.getByTestId(TID_RESUME_DETAIL)).toBeVisible();
 
 		// Edit summary
 		const summary = page.getByLabel("Summary");
@@ -107,7 +119,7 @@ test.describe("Resume Detail — Save & Render", () => {
 		await setupResumeListMocks(page);
 		await page.goto(`/resumes/${BASE_RESUME_IDS[1]}`);
 
-		await expect(page.getByTestId("resume-detail")).toBeVisible();
+		await expect(page.getByTestId(TID_RESUME_DETAIL)).toBeVisible();
 
 		// Set up POST listener for render
 		const renderPromise = page.waitForResponse(
@@ -124,7 +136,9 @@ test.describe("Resume Detail — Save & Render", () => {
 		expect(response.status()).toBe(200);
 
 		// After render, PDF preview should appear (rendered_at now set)
-		await expect(page.getByText("PDF Preview")).toBeVisible();
+		await expect(
+			page.getByRole("heading", { name: HEADING_PDF_PREVIEW }),
+		).toBeVisible();
 	});
 });
 
@@ -139,7 +153,7 @@ test.describe("Resume Detail — Variants List", () => {
 		await setupResumeListMocks(page);
 		await page.goto(`/resumes/${BASE_RESUME_IDS[0]}`);
 
-		await expect(page.getByTestId("variants-list")).toBeVisible();
+		await expect(page.getByTestId(TID_VARIANTS_LIST)).toBeVisible();
 
 		// 2 variant cards (both belong to base resume 1)
 		const cards = page.getByTestId("variant-card");
@@ -177,7 +191,7 @@ test.describe("Resume Detail — Navigation", () => {
 		await setupResumeListMocks(page);
 		await page.goto(`/resumes/${BASE_RESUME_IDS[0]}`);
 
-		await expect(page.getByTestId("resume-detail")).toBeVisible();
+		await expect(page.getByTestId(TID_RESUME_DETAIL)).toBeVisible();
 
 		await page.getByRole("link", { name: "Back to Resumes" }).click();
 		await expect(page).toHaveURL("/resumes");

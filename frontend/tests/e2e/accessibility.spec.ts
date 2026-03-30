@@ -1,6 +1,37 @@
+/**
+ * E2E accessibility tests.
+ *
+ * REQ-012 §13.8: Global accessibility requirements — WCAG 2.1 AA compliance.
+ *
+ * A. Reduced Motion — verifies prefers-reduced-motion CSS override.
+ * B. WCAG 2.1 AA — Public Pages — axe-core audits for /, /login, /register.
+ * C. WCAG 2.1 AA — Authenticated Pages — axe-core audits for /dashboard,
+ *    /persona/basic-info, /resumes, /applications, /settings.
+ * D. WCAG 2.1 AA — Complex Pages — axe-core audits for /onboarding,
+ *    /jobs/{id}/review, and dashboard with chat panel open.
+ */
+
 import { expect, test } from "./base-test";
 
-import { setupOnboardedUserMocks } from "../utils/onboarding-api-mocks";
+import { runAxeAudit } from "../utils/axe-helper";
+import { setupApplicationsListMocks } from "../utils/app-tracking-api-mocks";
+import { setupUnauthMocks } from "../utils/auth-api-mocks";
+import { setupChatMocks } from "../utils/chat-api-mocks";
+import {
+	JOB_POSTING_ID,
+	setupGhostwriterReviewMocks,
+} from "../utils/ghostwriter-api-mocks";
+import {
+	setupNewOnboardingMocks,
+	setupOnboardedUserMocks,
+} from "../utils/onboarding-api-mocks";
+import { setupBasicInfoEditorMocks } from "../utils/persona-update-api-mocks";
+import { setupResumeListMocks } from "../utils/resume-api-mocks";
+import { setupSettingsMocks } from "../utils/settings-api-mocks";
+
+// ---------------------------------------------------------------------------
+// A. Reduced Motion (1 test)
+// ---------------------------------------------------------------------------
 
 test.describe("Reduced Motion", () => {
 	test("suppresses animations when prefers-reduced-motion is reduce", async ({
@@ -32,5 +63,144 @@ test.describe("Reduced Motion", () => {
 		// 0.01ms = 0.00001s; parseFloat("0.00001s") = 0.00001
 		// The !important rule overrides inline styles to near-zero.
 		expect(parseFloat(duration)).toBeLessThan(0.01);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// B. WCAG 2.1 AA — Public Pages (3 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("WCAG 2.1 AA — Public Pages", () => {
+	test.beforeEach(async ({ page }) => {
+		await page.context().clearCookies();
+
+		// Override base-test /auth/me mock to return 401 so AuthProvider
+		// sets status="unauthenticated" — same pattern as landing.spec.ts.
+		await page.route(/\/api\/v1\/auth\/me/, async (route) => {
+			await route.fulfill({ status: 401, body: "Unauthorized" });
+		});
+	});
+
+	test("landing page (/) has no WCAG 2.1 AA violations", async ({ page }) => {
+		await page.goto("/", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("login page (/login) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupUnauthMocks(page);
+		await page.goto("/login", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("register page (/register) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupUnauthMocks(page);
+		await page.goto("/register", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// C. WCAG 2.1 AA — Authenticated Pages (5 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("WCAG 2.1 AA — Authenticated Pages", () => {
+	test("dashboard (/dashboard) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupOnboardedUserMocks(page);
+		await page.goto("/dashboard", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("persona basic info (/persona/basic-info) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupBasicInfoEditorMocks(page);
+		await page.goto("/persona/basic-info", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("resumes (/resumes) has no WCAG 2.1 AA violations", async ({ page }) => {
+		await setupResumeListMocks(page);
+		await page.goto("/resumes", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("applications (/applications) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupApplicationsListMocks(page);
+		await page.goto("/applications", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("settings (/settings) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupSettingsMocks(page);
+		await page.goto("/settings", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// D. WCAG 2.1 AA — Complex Pages (3 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("WCAG 2.1 AA — Complex Pages", () => {
+	test("onboarding step 1 (/onboarding) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupNewOnboardingMocks(page);
+		await page.goto("/onboarding", { waitUntil: "networkidle" });
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("ghostwriter review (/jobs/{id}/review) has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupGhostwriterReviewMocks(page);
+		await page.goto(`/jobs/${JOB_POSTING_ID}/review`, {
+			waitUntil: "networkidle",
+		});
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
+	});
+
+	test("dashboard with chat panel open has no WCAG 2.1 AA violations", async ({
+		page,
+	}) => {
+		await setupChatMocks(page);
+		await page.goto("/dashboard", { waitUntil: "networkidle" });
+
+		// Open the chat panel
+		await page.getByRole("button", { name: "Toggle chat" }).click();
+		await expect(page.locator('[data-slot="chat-message-list"]')).toBeVisible();
+
+		const results = await runAxeAudit(page);
+		expect(results.violations).toEqual([]);
 	});
 });

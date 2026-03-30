@@ -303,7 +303,7 @@ describe("JobSourcesSection", () => {
 			});
 
 			const item = screen.getByTestId(SOURCE_1_TESTID);
-			expect(item).toHaveClass("opacity-50");
+			expect(item).toHaveClass("opacity-60");
 
 			const switchEl = within(item).getByRole("switch");
 			expect(switchEl).toBeDisabled();

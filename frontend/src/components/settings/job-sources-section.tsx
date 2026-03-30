@@ -213,7 +213,7 @@ export function JobSourcesSection({
 							data-testid={`source-item-${item.sourceId}`}
 							className={cn(
 								"flex items-center gap-3 rounded-md border p-3",
-								!item.isActive && "opacity-50",
+								!item.isActive && "opacity-60",
 							)}
 						>
 							{dragHandle}

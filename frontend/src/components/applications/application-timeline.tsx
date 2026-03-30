@@ -179,7 +179,7 @@ export function ApplicationTimeline({
 											{event.interview_stage && (
 												<span
 													data-testid="timeline-event-stage"
-													className="bg-warning/20 text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+													className="bg-warning text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
 												>
 													{event.interview_stage}
 												</span>

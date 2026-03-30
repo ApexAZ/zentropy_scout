@@ -65,7 +65,7 @@ function InterviewStageCell({
 	const stage = row.original.current_interview_stage;
 	if (stage) {
 		return (
-			<span className="bg-warning/20 text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
+			<span className="bg-warning text-warning-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
 				{stage}
 			</span>
 		);
