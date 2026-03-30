@@ -8,7 +8,7 @@
  * All API calls are mocked via Playwright's page.route() — no real backend.
  */
 
-import { expect, test } from "./base-test";
+import { expect, type Page, test } from "./base-test";
 
 import {
 	PACK_IDS,
@@ -21,6 +21,11 @@ import {
 // ---------------------------------------------------------------------------
 
 const ADD_FUNDS = "Add Funds";
+const TOGGLE_CHAT = "Toggle chat";
+const MESSAGE_INPUT = "Message";
+const SEND_MESSAGE = "Send message";
+const INSUFFICIENT_BALANCE_TOAST =
+	"Insufficient balance. Please add funds to continue.";
 
 // ---------------------------------------------------------------------------
 // A. Funding Pack Display (2 tests)
@@ -162,5 +167,64 @@ test.describe("Checkout Flow", () => {
 		// Button should be re-enabled with original text (not "Redirecting…")
 		await expect(button).toBeEnabled();
 		await expect(button).toHaveText(ADD_FUNDS);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// C. 402 Insufficient Balance (2 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("402 Insufficient Balance", () => {
+	// Override POST /chat/messages to return 402 (LIFO priority over base-test)
+	test.beforeEach(async ({ page }) => {
+		await page.route(/\/api\/v1\/chat\/.*messages/, async (route) => {
+			if (route.request().method() === "POST") {
+				await route.fulfill({
+					status: 402,
+					contentType: "application/json",
+					body: JSON.stringify({
+						error: {
+							code: "INSUFFICIENT_BALANCE",
+							message: "Insufficient balance",
+						},
+					}),
+				});
+			} else {
+				await route.fallback();
+			}
+		});
+	});
+
+	/** Navigate to dashboard, open chat, and send a message. */
+	async function sendChatMessage(page: Page): Promise<void> {
+		await page.goto("/dashboard");
+		await page.getByRole("button", { name: TOGGLE_CHAT }).click();
+		const textarea = page.getByRole("textbox", { name: MESSAGE_INPUT });
+		await textarea.fill("Hello Scout");
+		await page.getByRole("button", { name: SEND_MESSAGE }).click();
+	}
+
+	test("402 from chat message shows insufficient balance toast", async ({
+		page,
+	}) => {
+		await sendChatMessage(page);
+
+		await expect(page.getByText(INSUFFICIENT_BALANCE_TOAST)).toBeVisible();
+	});
+
+	test("insufficient balance toast persists and does not auto-dismiss", async ({
+		page,
+	}) => {
+		await sendChatMessage(page);
+
+		const toast = page.getByText(INSUFFICIENT_BALANCE_TOAST);
+		await expect(toast).toBeVisible();
+
+		// Wait longer than info/warning auto-dismiss duration (5 s).
+		// Error toasts use duration: Infinity, so this must survive.
+		await page.waitForTimeout(6000);
+
+		// Toast should still be visible — confirms persistence
+		await expect(toast).toBeVisible({ timeout: 5_000 });
 	});
 });
