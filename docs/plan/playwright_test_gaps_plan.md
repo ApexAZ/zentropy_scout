@@ -240,7 +240,7 @@ Phase 5: Real Backend Integration Strategy
 
 ## Phase 6: Billing & Checkout E2E Coverage
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Backfill E2E coverage for user-visible billing flows exposed by the billing & metering hardening (PRs #63, #67). Backend-internal metering (reservations, sweep, settlement) is already covered by 4,659 unit tests — these E2E tests focus on what the user sees.*
 
@@ -261,7 +261,7 @@ Phase 5: Real Backend Integration Strategy
 | 32 | **Funding pack display and checkout flow tests** — Create `frontend/tests/e2e/billing-checkout.spec.ts`. Tests: (a) Funding packs section renders all 3 pack cards with name, price, grant amount, and "Add Funds" button. (b) Highlighted pack shows highlight badge ("Most Popular"). (c) Click "Add Funds" → `POST /checkout` intercepted → verify `location.assign` called with checkout URL (use `page.evaluate` to stub `location.assign` and capture the URL). (d) Checkout success: navigate to `/usage?status=success` → verify success toast ("Payment successful!") and URL cleaned to `/usage`. (e) Checkout cancel: navigate to `/usage?status=cancelled` → verify info toast ("Purchase cancelled.") and URL cleaned. (f) Checkout error: set `checkoutError: true` → click "Add Funds" → verify error toast ("Unable to start checkout") and button re-enabled. | `plan, playwright, e2e, tdd, ui` | ✅ |
 | 33 | **402 insufficient balance during AI operation** — Add tests to `billing-checkout.spec.ts`: (a) Mock `POST /api/v1/chat/*/messages` to return 402 → navigate to chat → send message → verify "Insufficient balance" toast appears. (b) Verify toast has persistent `id: "insufficient-balance"` (doesn't auto-dismiss). Use chat-api-mocks pattern for the chat mock setup. | `plan, playwright, e2e, tdd` | ✅ |
 | 33a | **Low-balance warning and button loading state tests** — Add to `billing-checkout.spec.ts`: (a) Low balance ($0.50) shows amber warning banner. (b) Low balance ($0.03) shows red critical warning. (c) Warning contains "Add Funds" link pointing to `#funding-packs`. (d) Clicking "Add Funds" shows "Redirecting…" spinner and disables all pack buttons (deferred mock response). | `plan, playwright, e2e` | ✅ |
-| 34 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 34 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - The checkout flow uses `globalThis.location.assign(url)` for Stripe redirect — E2E tests need to intercept this (stub `location.assign` before clicking)
