@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.admin_config import SystemConfig
-from app.services.admin_config_service import AdminConfigService
+from app.services.admin.admin_config_service import AdminConfigService
 
 _KEY_SIGNUP_GRANT_CENTS = "signup_grant_cents"
 

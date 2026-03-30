@@ -19,7 +19,7 @@ from app.models.admin_config import (
 from app.models.user import User
 from app.providers.llm.base import LLMResponse
 from app.providers.metered_provider import MeteredLLMProvider
-from app.services.admin_config_service import AdminConfigService
+from app.services.admin.admin_config_service import AdminConfigService
 from app.services.billing.metering_service import MeteringService
 
 # ---------------------------------------------------------------------------

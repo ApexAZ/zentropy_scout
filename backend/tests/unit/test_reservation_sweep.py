@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.usage_reservation import UsageReservation
 from app.models.user import User
-from app.services.admin_config_service import AdminConfigService
+from app.services.admin.admin_config_service import AdminConfigService
 from app.services.billing.metering_service import MeteringService
 from app.services.billing.reservation_sweep import (
     ReservationSweepWorker,
