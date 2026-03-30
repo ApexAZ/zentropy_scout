@@ -199,7 +199,7 @@ class TestFinalizeOnboardingLocking:
         is a defense-in-depth measure for true concurrent access.
         """
         from app.core.errors import InvalidStateError
-        from app.services.onboarding_workflow import finalize_onboarding
+        from app.services.onboarding.onboarding_workflow import finalize_onboarding
 
         minimal_data = _minimal_gathered_data()
 

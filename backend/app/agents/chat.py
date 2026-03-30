@@ -658,7 +658,10 @@ def delegate_onboarding(state: ChatAgentState) -> ChatAgentState:
     Returns:
         State with redirect message in tool_results.
     """
-    from app.services.onboarding_utils import detect_update_section, is_update_request
+    from app.services.onboarding.onboarding_utils import (
+        detect_update_section,
+        is_update_request,
+    )
 
     new_state = _copy_state(state)
     message = state.get("current_message") or ""
