@@ -12,6 +12,8 @@ import type { Page, Route } from "@playwright/test";
 
 import {
 	balanceResponse,
+	checkoutErrorResponse,
+	checkoutResponse,
 	emptyPackList,
 	emptyPurchaseList,
 	emptyTransactionList,
@@ -49,6 +51,8 @@ interface UsageMockState {
 	paginatedTransactions: boolean;
 	/** Whether to return empty data for all usage endpoints. */
 	emptyState: boolean;
+	/** Whether POST /credits/checkout returns 502 STRIPE_ERROR. */
+	checkoutError: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -64,6 +68,7 @@ export class UsageMockController {
 			paginatedHistory: false,
 			paginatedTransactions: false,
 			emptyState: false,
+			checkoutError: false,
 			...initialState,
 		};
 	}
@@ -124,6 +129,17 @@ export class UsageMockController {
 				return this.json(route, emptyPackList());
 			}
 			return this.json(route, packList());
+		}
+
+		// POST /credits/checkout
+		if (
+			path.endsWith("/credits/checkout") &&
+			route.request().method() === "POST"
+		) {
+			if (this.state.checkoutError) {
+				return this.json(route, checkoutErrorResponse(), 502);
+			}
+			return this.json(route, checkoutResponse());
 		}
 
 		// GET /credits/purchases
@@ -272,6 +288,17 @@ export async function setupEmptyUsageMocks(
 	page: Page,
 ): Promise<UsageMockController> {
 	const controller = new UsageMockController({ emptyState: true });
+	await controller.setupRoutes(page);
+	return controller;
+}
+
+/**
+ * Set up mocks with checkout error mode (POST /checkout returns 502).
+ */
+export async function setupCheckoutErrorMocks(
+	page: Page,
+): Promise<UsageMockController> {
+	const controller = new UsageMockController({ checkoutError: true });
 	await controller.setupRoutes(page);
 	return controller;
 }

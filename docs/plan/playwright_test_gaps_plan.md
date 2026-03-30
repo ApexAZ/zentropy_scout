@@ -238,6 +238,40 @@ Phase 5: Real Backend Integration Strategy
 
 ---
 
+## Phase 6: Billing & Checkout E2E Coverage
+
+**Status:** ✅ Complete
+
+*Backfill E2E coverage for user-visible billing flows exposed by the billing & metering hardening (PRs #63, #67). Backend-internal metering (reservations, sweep, settlement) is already covered by 4,659 unit tests — these E2E tests focus on what the user sees.*
+
+#### Workflow
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read REQ-030 §10 (frontend), REQ-029 §9 (checkout flow) |
+| 🗃️ **Patterns** | Extend existing `UsageMockController`, follow `usage.spec.ts` conventions |
+| ✅ **Verify** | `npx playwright test --project=chromium`, `npm run lint`, `npm run typecheck` |
+| 🔍 **Review** | Use `code-reviewer` + `security-reviewer` + `qa-reviewer` agents |
+| 📝 **Commit** | Follow `zentropy-git` |
+
+#### Tasks
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 30 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). | `plan, security` | ✅ |
+| 31 | **Extend usage mock controller for checkout** — Add `POST /credits/checkout` handling to `UsageMockController.handleCredits()`: success returns `{ data: { checkout_url: "https://checkout.stripe.test/mock", session_id: "cs_test_mock" } }`, error mode returns 502 with `{ error: { code: "STRIPE_ERROR", message: "Payment service error." } }`. Add `checkoutError: boolean` flag to `UsageMockState`. Add `checkoutResponse()` and `checkoutErrorResponse()` factories to `usage-mock-data.ts`. Also add a `signup_grant` transaction type entry to the transaction mock data (currently only has `purchase`, `usage_debit`, `admin_grant`). | `plan, playwright, e2e, tdd` | ✅ |
+| 32 | **Funding pack display and checkout flow tests** — Create `frontend/tests/e2e/billing-checkout.spec.ts`. Tests: (a) Funding packs section renders all 3 pack cards with name, price, grant amount, and "Add Funds" button. (b) Highlighted pack shows highlight badge ("Most Popular"). (c) Click "Add Funds" → `POST /checkout` intercepted → verify `location.assign` called with checkout URL (use `page.evaluate` to stub `location.assign` and capture the URL). (d) Checkout success: navigate to `/usage?status=success` → verify success toast ("Payment successful!") and URL cleaned to `/usage`. (e) Checkout cancel: navigate to `/usage?status=cancelled` → verify info toast ("Purchase cancelled.") and URL cleaned. (f) Checkout error: set `checkoutError: true` → click "Add Funds" → verify error toast ("Unable to start checkout") and button re-enabled. | `plan, playwright, e2e, tdd, ui` | ✅ |
+| 33 | **402 insufficient balance during AI operation** — Add tests to `billing-checkout.spec.ts`: (a) Mock `POST /api/v1/chat/*/messages` to return 402 → navigate to chat → send message → verify "Insufficient balance" toast appears. (b) Verify toast has persistent `id: "insufficient-balance"` (doesn't auto-dismiss). Use chat-api-mocks pattern for the chat mock setup. | `plan, playwright, e2e, tdd` | ✅ |
+| 33a | **Low-balance warning and button loading state tests** — Add to `billing-checkout.spec.ts`: (a) Low balance ($0.50) shows amber warning banner. (b) Low balance ($0.03) shows red critical warning. (c) Warning contains "Add Funds" link pointing to `#funding-packs`. (d) Clicking "Add Funds" shows "Redirecting…" spinner and disables all pack buttons (deferred mock response). | `plan, playwright, e2e` | ✅ |
+| 34 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions, commit, push. | `plan, commands` | ✅ |
+
+#### Notes
+- The checkout flow uses `globalThis.location.assign(url)` for Stripe redirect — E2E tests need to intercept this (stub `location.assign` before clicking)
+- The Stripe redirect handler in `usage-page.tsx` reads `?status=success|cancelled` from searchParams — test by navigating directly to `/usage?status=success`
+- The 402 handler is in `api-client.ts` and fires for ANY 402 response, not just from the balance endpoint — testing it from a chat message verifies the global handler works
+- `held_balance_usd` is NOT exposed to the frontend yet (internal to metering service) — no E2E test needed until the UI surfaces it
+- Transaction mock data should include `signup_grant` type to verify all 4 user-visible transaction types render correctly
+
+---
+
 ## Task Count Summary
 
 | Phase | Feature Tasks | Gate Tasks | Total |
@@ -247,10 +281,11 @@ Phase 5: Real Backend Integration Strategy
 | 3. Specialized Flows | 3 | 2 | 5 |
 | 4. Visual + Perf + Config | 6 | 2 | 8 |
 | 5. Integration | 2 | 2 | 4 |
-| **Total** | **19** | **10** | **29** |
+| 6. Billing & Checkout | 3 | 2 | 5 |
+| **Total** | **22** | **12** | **34** |
 
-**Estimated new tests:** ~42-48 (11 axe scans + 13-15 flow tests + 10 screenshots + 4-5 perf + 1 integration smoke)
-**Estimated post-plan state:** ~305+ tests across ~32 spec files, 3 browsers, WCAG 2.1 AA compliance, visual baselines, performance budgets
+**Estimated new tests:** ~50-56 (11 axe scans + 13-15 flow tests + 10 screenshots + 4-5 perf + 4 integration smoke + 6-8 billing/checkout)
+**Estimated post-plan state:** ~310+ tests across ~33 spec files, 3 browsers, WCAG 2.1 AA compliance, visual baselines, performance budgets
 
 ---
 
@@ -276,6 +311,9 @@ Phase 5: Real Backend Integration Strategy
 | `.claude/skills/zentropy-commands/SKILL.md` | UPDATE — Add Docker Playwright commands |
 | `frontend/tests/integration/smoke.spec.ts` | NEW — Real backend smoke test |
 | `docs/integration_test_strategy.md` | NEW — Integration test strategy document |
+| `frontend/tests/e2e/billing-checkout.spec.ts` | NEW — Billing checkout flow E2E tests |
+| `frontend/tests/utils/usage-api-mocks.ts` | UPDATE — Add POST /credits/checkout mock |
+| `frontend/tests/fixtures/usage-mock-data.ts` | UPDATE — Add checkout and signup_grant factories |
 
 ---
 
@@ -284,3 +322,4 @@ Phase 5: Real Backend Integration Strategy
 | Date | Change |
 |------|--------|
 | 2026-03-27 | Initial plan created |
+| 2026-03-29 | Added Phase 6: Billing & Checkout E2E Coverage (backfill for PRs #63, #67) |

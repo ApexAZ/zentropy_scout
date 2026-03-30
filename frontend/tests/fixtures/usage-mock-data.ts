@@ -5,10 +5,16 @@
  * matching backend/app/schemas/usage.py and types/usage.ts.
  */
 
-import type { ApiListResponse, ApiResponse, PaginationMeta } from "@/types/api";
+import type {
+	ApiListResponse,
+	ApiResponse,
+	ErrorResponse,
+	PaginationMeta,
+} from "@/types/api";
 import type { Persona } from "@/types/persona";
 import type {
 	BalanceResponse,
+	CheckoutResponse,
 	CreditTransactionResponse,
 	PackItem,
 	PurchaseItem,
@@ -371,4 +377,28 @@ export function purchaseList(): ApiListResponse<PurchaseItem> {
 /** Empty purchase list. */
 export function emptyPurchaseList(): ApiListResponse<PurchaseItem> {
 	return { data: [], meta: listMeta(0) };
+}
+
+// ---------------------------------------------------------------------------
+// Checkout (REQ-029 §8.2)
+// ---------------------------------------------------------------------------
+
+/** Successful checkout session response. */
+export function checkoutResponse(): ApiResponse<CheckoutResponse> {
+	return {
+		data: {
+			checkout_url: "https://checkout.stripe.test/mock-session",
+			session_id: "cs_test_mock_session_001",
+		},
+	};
+}
+
+/** Stripe error response (502). */
+export function checkoutErrorResponse(): ErrorResponse {
+	return {
+		error: {
+			code: "STRIPE_ERROR",
+			message: "Payment service error. Please try again.",
+		},
+	};
 }
