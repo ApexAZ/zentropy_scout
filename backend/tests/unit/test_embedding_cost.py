@@ -12,7 +12,7 @@ These tests verify the calculation logic is correct given actual token usage.
 
 import pytest
 
-from app.services.embedding_cost import (
+from app.services.embedding.cost import (
     EMBEDDING_MODELS,
     estimate_embedding_cost,
     estimate_monthly_cost,

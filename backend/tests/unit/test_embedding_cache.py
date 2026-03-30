@@ -8,8 +8,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.services.embedding_cache import PersonaEmbeddingCache
-from app.services.persona_embedding_generator import (
+from app.services.embedding.cache import PersonaEmbeddingCache
+from app.services.embedding.persona_generator import (
     PersonaEmbeddingData,
     PersonaEmbeddingsResult,
 )

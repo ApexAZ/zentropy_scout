@@ -7,7 +7,7 @@ Zentropy Scout uses five embedding types for job-persona matching:
 - Job: requirements, culture
 """
 
-from app.services.embedding_types import (
+from app.services.embedding.types import (
     EMBEDDING_CONFIGS,
     EmbeddingType,
     get_job_embedding_types,
