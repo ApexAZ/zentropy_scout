@@ -24,8 +24,8 @@ from app.models.usage import LLMUsageRecord
 from app.models.user import User
 from app.providers.llm.base import LLMResponse, TaskType
 from app.providers.metered_provider import MeteredLLMProvider
-from app.services.admin_config_service import AdminConfigService
-from app.services.metering_service import MeteringService
+from app.services.admin.admin_config_service import AdminConfigService
+from app.services.billing.metering_service import MeteringService
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -337,7 +337,7 @@ class TestEffectiveDateTransitions:
 
         # Mock date to tomorrow: should use margin 2.00
         future = _TOMORROW
-        with patch("app.services.admin_config_service.date") as mock_date:
+        with patch("app.services.admin.admin_config_service.date") as mock_date:
             mock_date.today.return_value = future
             mock_date.side_effect = lambda *args, **kw: date(*args, **kw)
 

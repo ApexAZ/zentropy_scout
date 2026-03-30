@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.admin_config import SystemConfig
 from app.models.usage import CreditTransaction
 from app.models.user import User
-from app.services.stripe_service import grant_signup_credits
+from app.services.billing.stripe_service import grant_signup_credits
 
 # ===============================================================================
 # Constants & Helpers

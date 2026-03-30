@@ -5,17 +5,17 @@ REQ-008 §6.1: What Gets Embedded.
 Zentropy Scout uses five embedding types for semantic matching:
 
 **Persona Embeddings:**
-1. **persona_hard_skills**: Concatenated skill names + proficiency levels
+1. **hard_skills**: Concatenated skill names + proficiency levels
    from structured Skill records
-2. **persona_soft_skills**: Concatenated soft skill names from structured
+2. **soft_skills**: Concatenated soft skill names from structured
    Skill records
-3. **persona_logistics**: Location preferences, work model, values from
+3. **logistics**: Location preferences, work model, values from
    structured NonNegotiables fields
 
 **Job Embeddings:**
-4. **job_requirements**: Required + preferred skills, experience from
+4. **requirements**: Required + preferred skills, experience from
    structured ExtractedSkill records
-5. **job_culture**: Company values, team description, benefits. CRITICAL:
+5. **culture**: Company values, team description, benefits. CRITICAL:
    This requires LLM extraction from the raw description - NOT the entire
    description text (which would pollute the vector with technical keywords)
 
@@ -27,33 +27,22 @@ Key Principle (REQ-008 §6.1):
 from enum import Enum
 
 # =============================================================================
-# Embedding Type Enums
+# Embedding Type Enums (REQ-031 §6.2: Canonical definitions)
 # =============================================================================
 
 
-class EmbeddingType(Enum):
-    """All embedding types used in job-persona matching.
-
-    REQ-008 §6.1: Five embedding types total.
-
-    Persona embeddings come from structured data (Skill, NonNegotiables).
-    Job embeddings come from ExtractedSkill records and LLM-extracted culture.
-    """
-
-    # Persona embeddings (3 types)
-    PERSONA_HARD_SKILLS = "persona_hard_skills"
-    PERSONA_SOFT_SKILLS = "persona_soft_skills"
-    PERSONA_LOGISTICS = "persona_logistics"
-
-    # Job embeddings (2 types)
-    JOB_REQUIREMENTS = "job_requirements"
-    JOB_CULTURE = "job_culture"
-
-
-class PersonaEmbeddingType(Enum):
+class PersonaEmbeddingType(str, Enum):
     """Persona-only embedding types.
 
     REQ-008 §6.1: Three persona embedding types from structured data.
+
+    Values use unprefixed form for JSON serialization and DB storage
+    (matches CHECK constraints on persona_embeddings.embedding_type).
+
+    Values:
+        HARD_SKILLS: Technical skills with proficiency levels.
+        SOFT_SKILLS: Soft skills (names only, no proficiency).
+        LOGISTICS: Location, remote preference, exclusions.
     """
 
     HARD_SKILLS = "hard_skills"
@@ -61,14 +50,25 @@ class PersonaEmbeddingType(Enum):
     LOGISTICS = "logistics"
 
 
-class JobEmbeddingType(Enum):
+class JobEmbeddingType(str, Enum):
     """Job-only embedding types.
 
     REQ-008 §6.1: Two job embedding types (structured + LLM-extracted).
+
+    Values use unprefixed form for JSON serialization and DB storage
+    (matches CHECK constraints on job_embeddings.embedding_type).
+
+    Values:
+        REQUIREMENTS: Required/preferred skills with experience levels.
+        CULTURE: Company values and culture text.
     """
 
     REQUIREMENTS = "requirements"
     CULTURE = "culture"
+
+
+# Union type for any embedding type (REQ-031 §6.2: Union alias)
+EmbeddingType = PersonaEmbeddingType | JobEmbeddingType
 
 
 # =============================================================================
@@ -80,35 +80,35 @@ class JobEmbeddingType(Enum):
 # generation functions to build appropriate text for vectorization.
 
 EMBEDDING_CONFIGS: dict[EmbeddingType, dict[str, str]] = {
-    EmbeddingType.PERSONA_HARD_SKILLS: {
+    PersonaEmbeddingType.HARD_SKILLS: {
         "source": "Structured Skill records (type=HARD)",
         "description": (
             "Concatenated skill names with proficiency levels. "
             "Example: 'Python (Expert), AWS (Intermediate), Docker (Beginner)'"
         ),
     },
-    EmbeddingType.PERSONA_SOFT_SKILLS: {
+    PersonaEmbeddingType.SOFT_SKILLS: {
         "source": "Structured Skill records (type=SOFT)",
         "description": (
             "Concatenated soft skill names. "
             "Example: 'Leadership, Communication, Problem Solving'"
         ),
     },
-    EmbeddingType.PERSONA_LOGISTICS: {
+    PersonaEmbeddingType.LOGISTICS: {
         "source": "Structured NonNegotiables fields",
         "description": (
             "Location preferences, work model, values. "
             "Example: 'Remote, San Francisco Bay Area, work-life balance'"
         ),
     },
-    EmbeddingType.JOB_REQUIREMENTS: {
+    JobEmbeddingType.REQUIREMENTS: {
         "source": "Structured ExtractedSkill records",
         "description": (
             "Required and preferred skills, experience level. "
             "Example: 'Python required, AWS preferred, 5+ years experience'"
         ),
     },
-    EmbeddingType.JOB_CULTURE: {
+    JobEmbeddingType.CULTURE: {
         "source": "LLM-extracted culture_text from description",
         "description": (
             "Company values, team environment, benefits. "
@@ -124,26 +124,28 @@ EMBEDDING_CONFIGS: dict[EmbeddingType, dict[str, str]] = {
 # =============================================================================
 
 
-def get_persona_embedding_types() -> list[EmbeddingType]:
+def get_persona_embedding_types() -> list[PersonaEmbeddingType]:
     """Return all persona-related embedding types.
 
     Returns:
-        List of EmbeddingType values for persona embeddings.
+        List of PersonaEmbeddingType values.
     """
-    return [
-        EmbeddingType.PERSONA_HARD_SKILLS,
-        EmbeddingType.PERSONA_SOFT_SKILLS,
-        EmbeddingType.PERSONA_LOGISTICS,
-    ]
+    return list(PersonaEmbeddingType)
 
 
-def get_job_embedding_types() -> list[EmbeddingType]:
+def get_job_embedding_types() -> list[JobEmbeddingType]:
     """Return all job-related embedding types.
 
     Returns:
-        List of EmbeddingType values for job embeddings.
+        List of JobEmbeddingType values.
     """
-    return [
-        EmbeddingType.JOB_REQUIREMENTS,
-        EmbeddingType.JOB_CULTURE,
-    ]
+    return list(JobEmbeddingType)
+
+
+def get_all_embedding_types() -> list[EmbeddingType]:
+    """Return all embedding types (persona + job).
+
+    Returns:
+        List of all EmbeddingType values.
+    """
+    return [*PersonaEmbeddingType, *JobEmbeddingType]

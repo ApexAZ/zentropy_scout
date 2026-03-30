@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import NoPricingConfigError, UnregisteredModelError
 from app.models.usage import CreditTransaction, LLMUsageRecord
 from app.models.usage_reservation import UsageReservation
-from app.services.admin_config_service import AdminConfigService
+from app.services.admin.admin_config_service import AdminConfigService
 
 logger = logging.getLogger(__name__)
 

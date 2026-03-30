@@ -8,7 +8,7 @@ Tests cover:
 - Staleness detection when source text changes
 """
 
-from app.services.embedding_storage import (
+from app.services.embedding.storage import (
     compute_source_hash,
     is_embedding_fresh,
 )

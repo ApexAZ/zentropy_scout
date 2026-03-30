@@ -29,8 +29,8 @@ from app.models.persona_settings import PersonaEmbedding
 from app.providers.config import ProviderConfig
 from app.providers.embedding.base import EmbeddingProvider
 from app.providers.factory import get_embedding_provider
-from app.services.job_embedding_generator import generate_job_embeddings
-from app.services.persona_embedding_generator import (
+from app.services.embedding.job_generator import generate_job_embeddings
+from app.services.embedding.persona_generator import (
     EmbedFunction,
     generate_persona_embeddings,
 )

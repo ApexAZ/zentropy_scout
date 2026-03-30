@@ -16,7 +16,7 @@ from app.core.errors import InvalidStateError, ValidationError
 from app.models.admin_config import FundingPack
 from app.models.stripe import StripePurchase
 from app.models.user import User
-from app.services.stripe_service import (
+from app.services.billing.stripe_service import (
     StripeServiceError,
     create_checkout_session,
 )

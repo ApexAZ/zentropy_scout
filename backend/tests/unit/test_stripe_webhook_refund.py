@@ -16,7 +16,7 @@ from app.models.admin_config import FundingPack
 from app.models.stripe import StripePurchase
 from app.models.usage import CreditTransaction
 from app.models.user import User
-from app.services.stripe_webhook_service import handle_charge_refunded
+from app.services.billing.stripe_webhook_service import handle_charge_refunded
 
 # ===============================================================================
 # Constants & Helpers

@@ -15,7 +15,7 @@ This scales cosine similarity from [-1, 1] to score [0, 100].
 
 import re
 
-from app.services.embedding_utils import validate_embeddings
+from app.services.embedding.utils import validate_embeddings
 from app.services.fit_score import FIT_NEUTRAL_SCORE
 from app.services.soft_skills_match import cosine_similarity
 

@@ -1,9 +1,9 @@
 # REQ-020: Token Metering & Usage Tracking
 
 **Status:** Not Started
-**Version:** 0.3
+**Version:** 0.4
 **PRD Reference:** §6 Technical Architecture
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-29
 
 > **Amendment Notice:** REQ-030 (Billing & Metering Hardening) supersedes §6.2–6.3 (metering pipeline) and amends §2.2 (balance tracking), §7.1 (balance gating), §11 (configuration). The post-debit fire-and-forget pattern in §6.2–6.3 is replaced by a pre-debit reservation pattern. When REQ-020 and REQ-030 conflict, **REQ-030 takes precedence**.
 
@@ -887,3 +887,4 @@ New environment variables:
 | 2026-02-27 | 0.1 | Initial draft |
 | 2026-02-27 | 0.2 | Audit fixes: added `provider_name` prerequisite, specified factory injection pattern with 7 call sites, deferred streaming metering (unused), corrected endpoint list (2 exist, 3 planned, removed `/confirm`), added §6.4 internal LLM calls, added §6.5 `MeteredEmbeddingProvider`, aligned all monetary columns to `NUMERIC(10,6)`, resolved 5 of 6 open questions, split repositories, added router registration |
 | 2026-02-27 | 0.3 | REQ-021 cross-reference: changed `credit_transactions.reference_id` from `UUID` to `VARCHAR(255)` to accommodate Stripe session/refund IDs (non-UUID strings) |
+| 2026-03-29 | 0.4 | Errata: Service files reorganized per REQ-031. Files referenced in §6 call sites moved to domain subdirectories: `job_extraction.py`, `ghost_detection.py` → `services/discovery/`; `cover_letter_generation.py`, `content_utils.py` → `services/generation/`; `job_scoring_service.py`, `batch_scoring.py` → `services/scoring/`; `resume_parsing_service.py` → `services/rendering/`; `metering_service.py` → `services/billing/`. See REQ-031 §5 for complete mapping. |

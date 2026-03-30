@@ -48,8 +48,8 @@ from app.schemas.admin import (
     TaskRoutingResponse,
     TaskRoutingUpdate,
 )
-from app.services.admin_config_service import AdminConfigService
-from app.services.admin_management_service import AdminManagementService
+from app.services.admin.admin_config_service import AdminConfigService
+from app.services.admin.admin_management_service import AdminManagementService
 
 logger = logging.getLogger(__name__)
 

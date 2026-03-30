@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.services.job_embedding_generator import (
+from app.services.embedding.job_generator import (
     build_culture_text,
     build_requirements_text,
     generate_job_embeddings,

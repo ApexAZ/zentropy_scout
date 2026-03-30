@@ -23,7 +23,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
-from app.services.embedding_utils import validate_embeddings
+from app.services.embedding.utils import validate_embeddings
 from app.services.hard_skills_match import normalize_skill
 from app.services.role_title_match import normalize_title
 from app.services.soft_skills_match import cosine_similarity

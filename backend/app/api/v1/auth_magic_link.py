@@ -33,7 +33,7 @@ from app.core.responses import DataResponse
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.repositories.verification_token_repository import VerificationTokenRepository
-from app.services.stripe_service import grant_signup_credits
+from app.services.billing.stripe_service import grant_signup_credits
 
 logger = logging.getLogger(__name__)
 

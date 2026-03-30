@@ -17,7 +17,7 @@ from app.models.admin_config import FundingPack
 from app.models.stripe import StripePurchase
 from app.models.usage import CreditTransaction
 from app.models.user import User
-from app.services.stripe_webhook_service import handle_checkout_completed
+from app.services.billing.stripe_webhook_service import handle_checkout_completed
 
 # ===============================================================================
 # Constants & Helpers
@@ -174,7 +174,7 @@ class TestHandleCheckoutCompletedSuccess:
         event = _make_event(metadata=_default_metadata(user, pack))
 
         with patch(
-            "app.services.stripe_webhook_service.CreditRepository.atomic_credit",
+            "app.services.billing.stripe_webhook_service.CreditRepository.atomic_credit",
             side_effect=RuntimeError("simulated failure"),
         ):
             await handle_checkout_completed(db_session, event=event)
@@ -199,7 +199,7 @@ class TestHandleCheckoutCompletedSuccess:
         event = _make_event(metadata=_default_metadata(user, pack))
 
         with patch(
-            "app.services.stripe_webhook_service.StripePurchaseRepository.mark_completed",
+            "app.services.billing.stripe_webhook_service.StripePurchaseRepository.mark_completed",
             side_effect=RuntimeError("simulated DB failure"),
         ):
             # Should not raise (never-raise contract)

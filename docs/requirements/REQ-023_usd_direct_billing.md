@@ -1,10 +1,10 @@
 # REQ-023: USD-Direct Billing & Pack Configuration
 
 **Status:** Not Started
-**Version:** 0.3
+**Version:** 0.4
 **PRD Reference:** §6 Technical Architecture
 **Backlog Item:** #19
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-29
 
 ---
 
@@ -473,3 +473,4 @@ All existing tests for packs must be updated to use the new names and pass:
 | 2026-03-02 | 0.1 | Initial version. Documents USD-direct billing decision, seed data migration, config key rename, usage bar, and REQ-021 errata. Decision rationale references backlog PBI #19. |
 | 2026-03-02 | 0.2 | Added table/column/constraint rename: `credit_packs` → `funding_packs`, `credit_amount` → `grant_cents`. Added comprehensive file inventory for all backend and frontend renames. Added §2.3 (Naming Clean-Up) design decision with rationale for what IS and IS NOT renamed. |
 | 2026-03-02 | 0.3 | Gap review: (1) Added §2.5 API Route Rename decision (`/admin/credit-packs` → `/admin/funding-packs`). (2) Added §4.4 backend route rename details. (3) Added §5.2 frontend API client route updates. (4) Fixed migration filename from `023_` to `022_` (next after `021_admin_pricing`). (5) Expanded §7.3–7.4 to include E2E test infrastructure (`admin-api-mocks.ts`, `admin-mock-data.ts`, `admin.spec.ts`). (6) Added `admin-api-mocks.ts`, `admin.spec.ts`, and `types/index.ts` to §8.2 file inventory. (7) Clarified `add-pack-dialog.tsx` state var rename (`creditAmount` → `grantCents`). |
+| 2026-03-29 | 0.4 | Errata: `admin_management_service.py` → `services/admin/admin_management_service.py` per REQ-031 (Services Reorganization). See REQ-031 §5 for complete mapping. |

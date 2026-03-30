@@ -16,7 +16,7 @@ from fastapi import APIRouter, Request
 from app.api.deps import DbSession
 from app.core.config import settings
 from app.core.errors import APIError
-from app.services.stripe_webhook_service import (
+from app.services.billing.stripe_webhook_service import (
     handle_charge_refunded,
     handle_checkout_completed,
     handle_checkout_expired,

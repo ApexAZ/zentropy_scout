@@ -39,7 +39,7 @@ from app.models.persona_content import (
 )
 from app.models.persona_settings import VoiceProfile
 from app.models.resume import BaseResume
-from app.services.onboarding_workflow import finalize_onboarding
+from app.services.onboarding.onboarding_workflow import finalize_onboarding
 from tests.conftest import TEST_PERSONA_ID, TEST_USER_ID
 
 

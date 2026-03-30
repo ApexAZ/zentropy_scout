@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
-from app.services.stripe_service import (
+from app.services.billing.stripe_service import (
     StripeServiceError,
     get_or_create_customer,
 )
@@ -256,7 +256,7 @@ class TestGetOrCreateCustomerRaceCondition:
         mock_db, _mock_nested = _make_race_session_mock()
 
         with patch(
-            "app.services.stripe_service.UserRepository.get_by_id",
+            "app.services.billing.stripe_service.UserRepository.get_by_id",
             side_effect=[initial_user, winner_user],
         ):
             result = await get_or_create_customer(
@@ -290,7 +290,7 @@ class TestGetOrCreateCustomerRaceCondition:
 
         with (
             patch(
-                "app.services.stripe_service.UserRepository.get_by_id",
+                "app.services.billing.stripe_service.UserRepository.get_by_id",
                 side_effect=[initial_user, orphan_user],
             ),
             pytest.raises(StripeServiceError),
