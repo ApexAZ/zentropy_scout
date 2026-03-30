@@ -1,8 +1,8 @@
 # Zentropy Scout — REQ-030 Billing & Metering Hardening Implementation Plan
 
 **Created:** 2026-03-27
-**Last Updated:** 2026-03-29
-**Status:** 🟡 In Progress (Phase 9 added 2026-03-29)
+**Last Updated:** 2026-03-30
+**Status:** ✅ Complete (all 9 phases, 52 tasks)
 **Branch:** `feat/billing-metering-hardening`
 **Backlog Item:** #29
 
@@ -514,7 +514,7 @@ Zero-trust posture across embedding metering and reconciliation coverage:
 
 ## Phase 9: Settlement Retry & Revenue Protection
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Closes a revenue protection gap: when settle() fails after a successful LLM/embedding call, the user gets free usage. Fix: persist response metadata on the reservation row (outbox pattern), then sweep attempts settlement before releasing.*
 
@@ -556,7 +556,7 @@ Revenue protection analysis traced the full reserve → call → settle pipeline
 | | **Done when:** Sweep retries settlement for completed calls. Fallback charges estimated cost. Stale release is last resort. All paths produce correct LLMUsageRecord + CreditTransaction entries. | | |
 | 51 | **Amend REQ-030 with §5.8 and §11.3** — Document response metadata persistence (outbox pattern) and sweep settlement retry (three-tier fallback). Update §2.5, §13.1, §14, §15, findings register, change log. | `plan` | ✅ |
 | | **Done when:** REQ reflects implemented behavior. Traceability is clear. | | |
-| 52 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 52 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Phase 9 Notes
 
