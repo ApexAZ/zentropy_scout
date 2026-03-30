@@ -71,7 +71,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 1: Small Domains — billing/, admin/, onboarding/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Move the three smallest domains (8 files total) to validate the workflow: git mv, create __init__.py, update all imports, verify tests. Low cross-reference count makes these safe first movers.*
 
@@ -92,7 +92,7 @@ Phase 9: Final Verification + Cleanup
 | 2 | **Move billing/ (4 files)** — Create `services/billing/__init__.py`. `git mv` stripe_service.py, stripe_webhook_service.py, metering_service.py, reservation_sweep.py. Update all imports in: `app/api/auth.py`, `app/api/auth_magic_link.py`, `app/api/auth_oauth.py`, `app/api/credits.py`, `app/api/webhooks.py`, `app/api/deps.py`, `app/providers/metered_provider.py`, `app/main.py`, `app/services/admin_config_service.py` (internal ref from reservation_sweep), and all test files. Verify `pytest -v` passes. REQ-031 §5.1 billing section. | `plan` | ✅ |
 | 3 | **Move admin/ (2 files)** — Create `services/admin/__init__.py`. `git mv` admin_config_service.py, admin_management_service.py. Update imports in: `app/api/admin.py`, `app/api/deps.py`, `app/providers/metered_provider.py`, `services/billing/metering_service.py` (just moved), `services/billing/reservation_sweep.py`, and test files. Verify `pytest -v` passes. REQ-031 §5.1 admin section. | `plan` | ✅ |
 | 4 | **Move onboarding/ (2 files)** — Create `services/onboarding/__init__.py`. `git mv` onboarding_workflow.py, onboarding_utils.py. Update imports in: `app/api/onboarding.py` and test files. Verify `pytest -v` passes. REQ-031 §5.1 onboarding section. | `plan` | ✅ |
-| 5 | **Phase gate — full test suite + push** — Run full backend test suite (`pytest tests/ -v`), `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 5 | **Phase gate — full test suite + push** — Run full backend test suite (`pytest tests/ -v`), `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - billing/ has the most external callers (auth routers, credits, webhooks, deps, metered_provider, main.py) — good stress test
