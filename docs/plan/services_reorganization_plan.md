@@ -210,7 +210,7 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 16 | **Move rendering/ (8 files)** — Create `services/rendering/__init__.py`. `git mv` pdf_generation, cover_letter_pdf_generation, cover_letter_pdf_storage, cover_letter_editing, markdown_pdf_renderer, markdown_docx_renderer, resume_template_service, resume_parsing_service. Update internal cross-refs (cover_letter_pdf_generation → cover_letter_pdf_storage). Update external imports: `app/api/base_resumes.py`, `app/api/job_variants.py`, `app/api/onboarding.py`, `app/api/resume_templates.py`, `app/services/generation/resume_generation_service.py`, and test files. Verify `pytest -v` passes. | `plan` | ⬜ |
+| 16 | **Move rendering/ (8 files)** — Create `services/rendering/__init__.py`. `git mv` pdf_generation, cover_letter_pdf_generation, cover_letter_pdf_storage, cover_letter_editing, markdown_pdf_renderer, markdown_docx_renderer, resume_template_service, resume_parsing_service. Update internal cross-refs (cover_letter_pdf_generation → cover_letter_pdf_storage). Update external imports: `app/api/base_resumes.py`, `app/api/job_variants.py`, `app/api/onboarding.py`, `app/api/resume_templates.py`, `app/services/generation/resume_generation_service.py`, and test files. Verify `pytest -v` passes. | `plan` | ✅ |
 | 17 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
 
 ---

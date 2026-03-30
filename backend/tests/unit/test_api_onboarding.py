@@ -17,7 +17,7 @@ from httpx import AsyncClient
 
 from app.api.deps import require_sufficient_balance
 from app.core.errors import InsufficientBalanceError
-from app.services.resume_parsing_service import (
+from app.services.rendering.resume_parsing_service import (
     _EMPTY_PDF_MSG,
     _EXTRACT_FAILURE_MSG,
     _PARSE_FAILURE_MSG,

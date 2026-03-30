@@ -9,7 +9,7 @@ import io
 import pytest
 from docx import Document
 
-from app.services.markdown_docx_renderer import render_docx
+from app.services.rendering.markdown_docx_renderer import render_docx
 
 
 def _load_docx(docx_bytes: bytes) -> Document:

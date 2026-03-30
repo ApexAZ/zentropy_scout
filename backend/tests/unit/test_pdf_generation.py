@@ -25,7 +25,7 @@ from app.models.persona_content import (
 )
 from app.models.resume import BaseResume, JobVariant
 from app.models.user import User
-from app.services.pdf_generation import (
+from app.services.rendering.pdf_generation import (
     ResumeContent,
     gather_base_resume_content,
     gather_variant_content,
@@ -600,7 +600,7 @@ class TestRenderResumePdf:
     @staticmethod
     def _make_content(**kwargs: Any) -> ResumeContent:
         """Build a ResumeContent with defaults for any unspecified fields."""
-        from app.services.pdf_generation import (
+        from app.services.rendering.pdf_generation import (
             ResumeCertificationEntry,
             ResumeContactInfo,
             ResumeEducationEntry,
@@ -712,7 +712,7 @@ class TestRenderResumePdf:
 
     def test_xml_special_characters_do_not_crash(self) -> None:
         """User content with XML chars renders without error."""
-        from app.services.pdf_generation import (
+        from app.services.rendering.pdf_generation import (
             ResumeContactInfo,
             ResumeJobEntry,
         )

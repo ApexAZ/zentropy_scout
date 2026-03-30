@@ -17,7 +17,7 @@ from app.core.errors import ValidationError
 from app.core.file_validation import read_file_with_size_limit, validate_file_content
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse
-from app.services.resume_parsing_service import (
+from app.services.rendering.resume_parsing_service import (
     _EMPTY_PDF_MSG,
     _EXTRACT_FAILURE_MSG,
     _PARSE_FAILURE_MSG,

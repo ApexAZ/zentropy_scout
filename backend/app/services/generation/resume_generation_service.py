@@ -29,7 +29,7 @@ from app.prompts.resume_generation import (
 from app.providers.errors import ProviderError
 from app.providers.llm.base import LLMMessage, LLMProvider, TaskType
 from app.services.generation.voice_prompt_block import build_voice_profile_block
-from app.services.pdf_generation import (
+from app.services.rendering.pdf_generation import (
     ResumeContent,
     ResumeJobEntry,
     gather_base_resume_content,

@@ -6,7 +6,7 @@ to valid PDF bytes, and edge cases are handled gracefully.
 
 import pytest
 
-from app.services.markdown_pdf_renderer import render_pdf
+from app.services.rendering.markdown_pdf_renderer import render_pdf
 
 
 class TestRenderPdfBasic:

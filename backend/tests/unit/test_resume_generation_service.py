@@ -22,7 +22,7 @@ from datetime import date
 from unittest.mock import AsyncMock, patch
 
 from app.services.generation.resume_generation_service import template_fill
-from app.services.pdf_generation import (
+from app.services.rendering.pdf_generation import (
     ResumeCertificationEntry,
     ResumeContactInfo,
     ResumeContent,

@@ -7,7 +7,7 @@ used during template creation and update.
 import pytest
 
 from app.core.errors import ValidationError
-from app.services.resume_template_service import validate_template_markdown
+from app.services.rendering.resume_template_service import validate_template_markdown
 
 
 class TestValidateTemplateMarkdown:

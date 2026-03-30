@@ -28,7 +28,7 @@ from app.services.generation.resume_generation_service import (
     ResumeGenerationError,
     llm_generate,
 )
-from app.services.pdf_generation import (
+from app.services.rendering.pdf_generation import (
     ResumeCertificationEntry,
     ResumeContactInfo,
     ResumeContent,

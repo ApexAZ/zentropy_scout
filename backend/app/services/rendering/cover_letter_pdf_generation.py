@@ -37,7 +37,7 @@ from sqlalchemy.orm import joinedload
 
 from app.core.errors import InvalidStateError, NotFoundError
 from app.models.cover_letter import CoverLetter
-from app.services.cover_letter_pdf_storage import (
+from app.services.rendering.cover_letter_pdf_storage import (
     get_existing_cover_letter_pdf,
     store_cover_letter_pdf,
 )

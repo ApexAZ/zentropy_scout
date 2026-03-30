@@ -28,8 +28,8 @@ from app.models.job_posting import JobPosting
 from app.models.persona_job import PersonaJob
 from app.models.resume import JobVariant
 from app.services.generation.resume_tailoring_service import tailor_resume_markdown
-from app.services.markdown_docx_renderer import render_docx
-from app.services.markdown_pdf_renderer import render_pdf
+from app.services.rendering.markdown_docx_renderer import render_docx
+from app.services.rendering.markdown_pdf_renderer import render_pdf
 
 logger = logging.getLogger(__name__)
 

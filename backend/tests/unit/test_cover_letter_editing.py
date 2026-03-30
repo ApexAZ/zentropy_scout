@@ -109,7 +109,9 @@ class TestUpdateCoverLetterDraft:
     @pytest.mark.asyncio
     async def test_updates_draft_text(self, db_session, editing_scenario):
         """Draft text is replaced with new content."""
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         await update_cover_letter_draft(
             db=db_session,
@@ -124,7 +126,9 @@ class TestUpdateCoverLetterDraft:
     @pytest.mark.asyncio
     async def test_preserves_draft_status(self, db_session, editing_scenario):
         """Status remains Draft after editing."""
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         await update_cover_letter_draft(
             db=db_session,
@@ -139,7 +143,9 @@ class TestUpdateCoverLetterDraft:
     @pytest.mark.asyncio
     async def test_refreshes_updated_at(self, db_session, editing_scenario):
         """updated_at timestamp is refreshed after edit."""
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         cl_before = await db_session.get(CoverLetter, editing_scenario.draft_cl_id)
         original_updated_at = cl_before.updated_at
@@ -158,7 +164,9 @@ class TestUpdateCoverLetterDraft:
         self, db_session, editing_scenario
     ):
         """Result contains the cover letter ID."""
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         result = await update_cover_letter_draft(
             db=db_session,
@@ -173,7 +181,9 @@ class TestUpdateCoverLetterDraft:
     async def test_rejects_approved_cover_letter(self, db_session, editing_scenario):
         """Cannot edit a cover letter that is already Approved."""
         from app.core.errors import InvalidStateError
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         with pytest.raises(InvalidStateError, match="Approved"):
             await update_cover_letter_draft(
@@ -186,7 +196,9 @@ class TestUpdateCoverLetterDraft:
     async def test_rejects_nonexistent_cover_letter(self, db_session):
         """NotFoundError when cover letter does not exist."""
         from app.core.errors import NotFoundError
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         with pytest.raises(NotFoundError):
             await update_cover_letter_draft(
@@ -199,7 +211,9 @@ class TestUpdateCoverLetterDraft:
     async def test_rejects_empty_draft_text(self, db_session, editing_scenario):
         """Empty draft text is rejected."""
         from app.core.errors import ValidationError
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         with pytest.raises(ValidationError, match="empty"):
             await update_cover_letter_draft(
@@ -214,7 +228,9 @@ class TestUpdateCoverLetterDraft:
     ):
         """Whitespace-only draft text is rejected."""
         from app.core.errors import ValidationError
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         with pytest.raises(ValidationError, match="empty"):
             await update_cover_letter_draft(
@@ -227,7 +243,9 @@ class TestUpdateCoverLetterDraft:
     async def test_rejects_archived_cover_letter(self, db_session, editing_scenario):
         """Cannot edit a cover letter with Archived status."""
         from app.core.errors import InvalidStateError
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         # Change the draft to Archived status
         cl = await db_session.get(CoverLetter, editing_scenario.draft_cl_id)
@@ -247,7 +265,9 @@ class TestUpdateCoverLetterDraft:
     ):
         """Cannot edit a soft-deleted cover letter."""
         from app.core.errors import NotFoundError
-        from app.services.cover_letter_editing import update_cover_letter_draft
+        from app.services.rendering.cover_letter_editing import (
+            update_cover_letter_draft,
+        )
 
         cl = await db_session.get(CoverLetter, editing_scenario.draft_cl_id)
         cl.archived_at = datetime.now(UTC)
@@ -264,7 +284,7 @@ class TestUpdateCoverLetterDraft:
     async def test_rejects_oversized_draft_text(self, db_session, editing_scenario):
         """Draft text exceeding max length is rejected."""
         from app.core.errors import ValidationError
-        from app.services.cover_letter_editing import (
+        from app.services.rendering.cover_letter_editing import (
             _MAX_DRAFT_TEXT_LENGTH,
             update_cover_letter_draft,
         )
