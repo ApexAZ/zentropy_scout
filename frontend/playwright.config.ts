@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const integrationEnabled = process.env.INTEGRATION === "true";
+
 // ---------------------------------------------------------------------------
 // Visual regression baseline workflow (Docker-based)
 //
@@ -62,16 +64,36 @@ export default defineConfig({
 	projects: [
 		{
 			name: "chromium",
+			testMatch: "e2e/**/*.spec.ts",
 			use: { ...devices["Desktop Chrome"] },
 		},
 		{
 			name: "firefox",
+			testMatch: "e2e/**/*.spec.ts",
 			use: { ...devices["Desktop Firefox"] },
 		},
 		{
 			name: "webkit",
+			testMatch: "e2e/**/*.spec.ts",
 			use: { ...devices["Desktop Safari"] },
 		},
+		// Integration tests: real backend + DB, no mock storageState.
+		// Only included when INTEGRATION=true (opt-in).
+		...(integrationEnabled
+			? [
+					{
+						name: "integration",
+						testDir: "./tests/integration",
+						testMatch: "**/*.spec.ts",
+						use: {
+							...devices["Desktop Chrome"],
+							// Override global storageState — real backend validates JWT,
+							// so tests must authenticate via API (no mock cookie).
+							storageState: undefined,
+						},
+					},
+				]
+			: []),
 	],
 	webServer: {
 		command: "npm run dev",

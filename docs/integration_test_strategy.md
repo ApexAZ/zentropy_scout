@@ -232,34 +232,39 @@ This overhead is acceptable on push-to-main but would slow PR feedback loops. Mo
 import { test, expect } from "@playwright/test";
 
 test.describe("Integration: Feature X", () => {
-  let testEmail: string;
-  const testPassword = "TestPass123!";
+  test("verifies API contract", async ({ page }) => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).slice(2, 8);
+    const testEmail = `integ-${timestamp}-${random}@test.example.com`;
 
-  test.beforeEach(async ({ page }) => {
     // Register a unique user for this test
-    testEmail = `integ-${Date.now()}-${Math.random().toString(36).slice(2)}@test.example.com`;
-
     // Use page.request (shares browser cookie jar) instead of standalone request context
-    await page.request.post("/api/v1/auth/register", {
-      data: { email: testEmail, password: testPassword },
+    const registerResponse = await page.request.post("/api/v1/auth/register", {
+      data: { email: testEmail, password: "TestPass123!" },
     });
+    expect(registerResponse.status()).toBe(201);
 
-    // Login -- backend sets httpOnly cookie on the browser context directly
-    const loginResponse = await page.request.post("/api/v1/auth/verify-password", {
-      data: { email: testEmail, password: testPassword },
-    });
-    expect(loginResponse.ok()).toBeTruthy();
-    // Cookie is now set on the page's browser context (httpOnly, set by backend)
-  });
-
-  test("does something with real backend", async ({ page }) => {
-    await page.goto("/dashboard");
-    // ... assertions against real backend data
+    // Assert on response shape (catches schema drift)
+    const data = await registerResponse.json();
+    expect(data.data.email).toBe(testEmail);
+    expect(data.data.id).toBeTruthy();
   });
 });
 ```
 
 **Note:** Use `page.request` (not the standalone `request` fixture) so that cookies set by the backend's `Set-Cookie` response header are applied to the browser context. The standalone `request` fixture has its own cookie jar that is not shared with `page`.
+
+### Email Verification Gate
+
+Password-based registration creates users with `email_verified=null`. The `verify-password` endpoint blocks login for unverified users (403 `EMAIL_NOT_VERIFIED`). This is a correct security control.
+
+**Current limitation:** Full authenticated-user integration tests (login → navigate → assert on dashboard content) require email verification infrastructure that does not yet exist. Options for future implementation:
+
+1. **Test-only verify endpoint** -- `POST /api/v1/test/verify-email` gated behind a `TESTING=true` env var, absent from production
+2. **Direct DB verification** -- `globalSetup` script that marks test users as verified via SQL
+3. **Email interception** -- Capture the verification token from the background task before it is "sent"
+
+Until one of these is implemented, integration smoke tests validate the API contracts (status codes, response shapes, error codes) and verify security controls work correctly (401 for unauthenticated, 403 for unverified, 409 for duplicates).
 
 ### What This Catches (That Mocks Miss)
 

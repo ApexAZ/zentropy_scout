@@ -19,6 +19,7 @@
 		"test:e2e:firefox": "playwright test --project=firefox",
 		"test:e2e:webkit": "playwright test --project=webkit",
 		"test:e2e:all": "playwright test",
+		"test:e2e:integration": "INTEGRATION=true playwright test --project=integration",
 		"test:e2e:visual": "docker compose -f docker/docker-compose.playwright.yml run --rm playwright npx playwright test tests/e2e/visual-regression.spec.ts",
 		"test:e2e:visual:update": "docker compose -f docker/docker-compose.playwright.yml run --rm playwright npx playwright test tests/e2e/visual-regression.spec.ts --update-snapshots"
 	},
