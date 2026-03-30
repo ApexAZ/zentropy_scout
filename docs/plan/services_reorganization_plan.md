@@ -132,7 +132,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 3: scoring/ (17 files)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Move all 17 scoring files. Heavy internal cross-references but no renames. This is the most interconnected domain internally (fit_score is imported by 8+ files within scoring).*
 
@@ -151,7 +151,7 @@ Phase 9: Final Verification + Cleanup
 |---|------|-------|--------|
 | 9 | **Move scoring/ — core files (9 files)** — Create `services/scoring/__init__.py`. `git mv` the 5 Fit Score components (fit_score, hard_skills_match, soft_skills_match, experience_level, role_title_match, location_logistics) + stretch_score + score_types + score_explanation. Update all internal cross-references (these files heavily import each other via fit_score.FIT_NEUTRAL_SCORE, soft_skills_match.cosine_similarity, etc.). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ✅ |
 | 10 | **Move scoring/ — orchestration + validation files (8 files)** — `git mv` non_negotiables_filter, scoring_flow, batch_scoring, job_scoring_service, pool_scoring, explanation_generation, score_correlation, golden_set. Update internal cross-refs (batch_scoring imports from all component files, job_scoring_service imports batch_scoring + scoring_flow, explanation_generation imports fit_score + stretch_score). Update external imports: `app/services/discovery/job_fetch_service.py` (job_scoring_service), `app/services/discovery/pool_surfacing_service.py` (pool_scoring), `app/services/generation/ghostwriter_triggers.py` (if any), and test files. Verify `pytest -v` passes. | `plan` | ✅ |
-| 11 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 11 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - Splitting into two tasks (core + orchestration) keeps each task under context limits
