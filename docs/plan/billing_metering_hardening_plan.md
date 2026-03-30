@@ -2,7 +2,7 @@
 
 **Created:** 2026-03-27
 **Last Updated:** 2026-03-29
-**Status:** ✅ Complete (all 8 phases, 45 tasks)
+**Status:** 🟡 In Progress (Phase 9 added 2026-03-29)
 **Branch:** `feat/billing-metering-hardening`
 **Backlog Item:** #29
 
@@ -59,6 +59,9 @@ Phase 7: Post-Audit Hardening (12 findings from adversarial red-team audit)
     │
     ▼
 Phase 8: Post-Merge Red-Team Audit R2 (3 findings from second audit)
+    │
+    ▼
+Phase 9: Settlement Retry & Revenue Protection (AF-16)
 ```
 
 **Ordering rationale:** Phase 1 is the migration — everything else depends on the new columns/tables existing. Phase 2 is the core architectural change (reservation pipeline). Phase 3 is webhook hardening (independent of reservation but needs the migration for `expired` status). Phase 4 is quick fixes that can land anytime after Phase 1. Phase 5 is the background sweep (needs the reservation pipeline from Phase 2). Phase 6 is integration testing across all changes.
@@ -509,6 +512,68 @@ Zero-trust posture across embedding metering and reconciliation coverage:
 
 ---
 
+## Phase 9: Settlement Retry & Revenue Protection
+
+**Status:** ⬜ Incomplete
+
+*Closes a revenue protection gap: when settle() fails after a successful LLM/embedding call, the user gets free usage. Fix: persist response metadata on the reservation row (outbox pattern), then sweep attempts settlement before releasing.*
+
+#### Audit Context
+
+Revenue protection analysis traced the full reserve → call → settle pipeline and identified that settlement failure after successful LLM calls results in unrecorded, unbilled usage. The background sweep releases the held balance without collecting, because it has no way to know the call succeeded. The fix persists response metadata (outbox pattern) and modifies the sweep to attempt settlement before releasing. This also protects against systemic failures (e.g., DB connectivity blip during peak usage causing hundreds of simultaneous settlement failures).
+
+#### Workflow
+
+| Step | Action |
+|------|--------|
+| 📖 **Before** | Read REQ-030 §5.2–§5.3, §11.1 |
+| 🧪 **TDD** | Write failing test first — follow `zentropy-tdd` |
+| 🗃️ **Patterns** | Use `zentropy-db` for migration, `zentropy-tdd` for mocking |
+| ✅ **Verify** | `pytest -v` affected tests, lint, typecheck |
+| 🔍 **Review** | Use `code-reviewer` + `security-reviewer` agents |
+| 📝 **Commit** | Follow `zentropy-git` |
+
+#### Tasks
+
+| § | Task | Hints | Status |
+|---|------|-------|--------|
+| 46 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Verdicts: CLEAR → mark complete, proceed. VULNERABLE → fix immediately. FALSE POSITIVE → complete full PROSECUTION PROTOCOL before dismissing. NEEDS INVESTIGATION → escalate to user via AskUserQuestion. | `plan, security` | ⬜ |
+| 47 | **Schema: add response metadata columns + migration 029** — Add 4 nullable columns to `UsageReservation` model (`response_model`, `response_input_tokens`, `response_output_tokens`, `call_completed_at`). Create migration `029_settlement_retry.py` with `down_revision = "028_billing_hardening"`. | `plan, tdd, db` | ⬜ |
+| | **Read:** `usage_reservation.py` (existing columns/constraints). `028_billing_hardening.py` (migration pattern). | | |
+| | **TDD:** Test migration upgrade adds 4 columns. Test migration downgrade drops them. Test model accepts new column values. | | |
+| | **Done when:** Columns exist in DB. Migration roundtrips cleanly. | | |
+| 48 | **MeteringService.persist_response_metadata()** — New method that writes response metadata to the reservation row using raw SQL `UPDATE ... WHERE status = 'held'`. Best-effort: catches SQLAlchemyError, logs, does not block settlement. | `plan, tdd, security` | ⬜ |
+| | **Read:** `metering_service.py` (settle at 222, release at 373, constructor at 60). `usage_reservation.py` (new columns from §47). | | |
+| | **TDD:** Test metadata written correctly. Test guard: only 'held' reservations get metadata. Test failure is isolated (does not prevent settle). | | |
+| | **Done when:** Method exists, writes 4 columns atomically, handles errors gracefully. | | |
+| 49 | **Wire persist_response_metadata into MeteredLLMProvider and MeteredEmbeddingProvider** — Call `persist_response_metadata()` after LLM/embedding call succeeds but before `settle()`. Wrap in try/except so persist failure doesn't block settlement or response return. | `plan, tdd, provider` | ⬜ |
+| | **Read:** `metered_provider.py` (complete at 112, embed at 280). `test_metered_provider.py` (existing mock patterns). | | |
+| | **TDD:** Test persist called with correct args after call success. Test persist NOT called on call failure (release path). Test persist failure doesn't block settle or response return. Same for embedding. | | |
+| | **Done when:** Both providers persist metadata. Failure is isolated. Existing tests still pass. | | |
+| 50 | **Sweep settlement retry** — Modify `sweep_stale_reservations()` to attempt settlement before releasing stale reservations with `call_completed_at IS NOT NULL`. Three-tier fallback: (1) `MeteringService.settle()` with stored response data, (2) settle at estimated cost with inline SQL (insert usage record + credit txn, debit balance), (3) release as stale (last resort). Extract `_attempt_settlement_retry()` helper. Pass `MeteringService` as optional param to sweep; create in `run_once()`. | `plan, tdd, security, db` | ⬜ |
+| | **Read:** `reservation_sweep.py` (sweep at 38, run_once at 298). `metering_service.py` (settle at 222, constructor at 60). `admin_config_service.py` (constructor). | | |
+| | **TDD:** Test retry succeeds → reservation 'settled' not 'stale'. Test `call_completed_at IS NULL` → stale release unchanged. Test retry fails, fallback succeeds → settled at estimated cost with correct records. Test retry AND fallback fail → stale release. Test run_once passes MeteringService to sweep. | | |
+| | **Done when:** Sweep retries settlement for completed calls. Fallback charges estimated cost. Stale release is last resort. All paths produce correct LLMUsageRecord + CreditTransaction entries. | | |
+| 51 | **Amend REQ-030 with §5.8 and §11.3** — Document response metadata persistence (outbox pattern) and sweep settlement retry (three-tier fallback). Update §14 (files) and §15 (testing). | `plan` | ⬜ |
+| | **Done when:** REQ reflects implemented behavior. Traceability is clear. | | |
+| 52 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
+
+#### Phase 9 Notes
+
+- Tasks ordered: §47 (schema) → §48 (persist method) → §49 (provider wiring) → §50 (sweep retry) → §51 (docs) → §52 (gate)
+- §47 must land first — all code tasks depend on the new columns existing
+- §48 before §49 — method must exist before callers use it
+- §50 is the most complex task — introduces MeteringService dependency into the sweep
+- Edge cases: pricing changes between call and retry use current pricing (intentional). persist_response_metadata failure narrows the free-usage window but doesn't eliminate it (strictly better than current behavior). Fallback settle uses estimated_cost_usd with margin_multiplier=1.00 since estimated already includes margin from reserve time.
+
+#### Audit Findings Register (Round 3)
+
+| ID | Severity | Title | Task | Impact |
+|----|----------|-------|------|--------|
+| AF-16 | MEDIUM | Settlement failure after successful LLM call = free usage (no retry) | §48–§50 | Financial: unrecorded, unbilled usage when settle() fails; systemic DB blip causes bulk revenue loss |
+
+---
+
 ## Task Count Summary
 
 | Phase | Tasks | Subtasks | Gates |
@@ -521,7 +586,8 @@ Zero-trust posture across embedding metering and reconciliation coverage:
 | Phase 6: Integration Testing & Polish | 5 | 3 | 1 security + 1 phase |
 | Phase 7: Post-Audit Hardening | 11 | 9 | 1 security + 1 phase |
 | Phase 8: Post-Merge Red-Team Audit R2 | 5 | 3 | 1 security + 1 phase |
-| **Total** | **45** | **30** | **7 security + 8 phase** |
+| Phase 9: Settlement Retry & Revenue Protection | 7 | 5 | 1 security + 1 phase |
+| **Total** | **52** | **35** | **8 security + 9 phase** |
 
 ---
 
@@ -529,11 +595,11 @@ Zero-trust posture across embedding metering and reconciliation coverage:
 
 | File | Phase(s) | REQ-030 Section |
 |------|----------|----------------|
-| `backend/app/models/usage_reservation.py` | 1 | §4.2 |
+| `backend/app/models/usage_reservation.py` | 1, 9 | §4.2, §5.8 |
 | `backend/app/models/user.py` | 1 | §4.1 |
 | `backend/app/models/stripe.py` | 1 | §4.3, §7.3 |
-| `backend/app/services/metering_service.py` | 2, 7, 8 | §5.2, §5.3, §5.5 + AF-01–AF-05, AF-07, AF-13 |
-| `backend/app/providers/metered_provider.py` | 2, 7, 8 | §5.4, §5.6, §5.7 + AF-07, AF-09, AF-13 |
+| `backend/app/services/metering_service.py` | 2, 7, 8, 9 | §5.2, §5.3, §5.5, §5.8 + AF-01–AF-05, AF-07, AF-13, AF-16 |
+| `backend/app/providers/metered_provider.py` | 2, 7, 8, 9 | §5.4, §5.6, §5.7, §5.8 + AF-07, AF-09, AF-13, AF-16 |
 | `backend/app/api/deps.py` | 2 | §6.1 |
 | `backend/app/services/stripe_webhook_service.py` | 3, 7 | §7.2, §7.3 + AF-06, AF-08 |
 | `backend/app/repositories/stripe_repository.py` | 3 | §7.3 |
@@ -542,7 +608,8 @@ Zero-trust posture across embedding metering and reconciliation coverage:
 | `backend/app/api/v1/credits.py` | 4 | §10.1 |
 | `frontend/src/components/usage/usage-page.tsx` | 4, 7 | §10.2 + AF-10 |
 | `CLAUDE.md` | 4 | §10.3 |
-| `backend/app/services/reservation_sweep.py` | 5, 8 | §11.1, §11.2 + AF-15 |
+| `backend/app/services/reservation_sweep.py` | 5, 8, 9 | §11.1, §11.2, §11.3 + AF-15, AF-16 |
+| `backend/migrations/versions/029_settlement_retry.py` | 9 | §5.8 |
 | `backend/app/services/discovery_workflow.py` | 8 | §5.7 + AF-14 |
 | `backend/app/core/config.py` | 1, 7 | §9.1, §9.2, AF-12 |
 | `backend/migrations/versions/028_billing_hardening.py` | 1, 7 | §4.4, AF-11 |
@@ -556,3 +623,4 @@ Zero-trust posture across embedding metering and reconciliation coverage:
 | 2026-03-27 | 0.1 | Initial plan. 6 phases, 29 tasks (18 implementation + 5 security gates + 6 phase gates). |
 | 2026-03-28 | 0.2 | Added Phase 7: Post-Audit Hardening. 12 findings from adversarial red-team audit (3 HIGH, 4 MEDIUM, 5 LOW). 11 new tasks (§30–§40). Total: 7 phases, 40 tasks. |
 | 2026-03-29 | 0.3 | Added Phase 8: Post-Merge Red-Team Audit R2. 3 findings from second adversarial audit (2 MEDIUM, 1 LOW). 5 new tasks (§41–§45). Total: 8 phases, 45 tasks. |
+| 2026-03-29 | 0.4 | Added Phase 9: Settlement Retry & Revenue Protection. 1 finding from adversarial analysis (AF-16 MEDIUM). 7 new tasks (§46–§52). Total: 9 phases, 52 tasks. |
