@@ -29,6 +29,7 @@ You are a code review specialist for the Zentropy Scout project.
 - [ ] File under 300 lines
 - [ ] One class per file (unless small related classes)
 - [ ] No `utils.py` dumping ground
+- [ ] Non-test `.ts`/`.tsx` files have a three-axis file-level JSDoc header (see Docstrings section)
 
 ### Code Patterns
 - [ ] Async for all DB and LLM calls
@@ -50,7 +51,18 @@ You are a code review specialist for the Zentropy Scout project.
 2. Third-party packages
 3. Local imports (absolute)
 
-### Docstrings
+### Docstrings and File Headers
+
+#### TypeScript file-level headers (non-test `.ts`/`.tsx` only)
+- [ ] File begins with a `/** @fileoverview ... */` block
+- [ ] `Layer:` field present and uses a valid value (page | layout | component | hook | context-provider | lib/utility | type-definitions)
+- [ ] `Feature:` field present and uses a valid value (persona | jobs | resume | chat | applications | usage | admin | shared)
+- [ ] `Coordinates with:` section present and lists specific file paths with explanations (not just "uses X")
+- [ ] `Called by / Used by:` section present
+
+A missing or incomplete file-level header is a **Medium** finding. Flag it by axis — specify which of the three (what / where / with) is missing or too vague.
+
+#### Python docstrings
 - [ ] All public functions have docstrings
 - [ ] Google style format
 - [ ] Args, Returns, Raises documented

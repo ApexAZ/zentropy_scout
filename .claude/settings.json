@@ -38,6 +38,15 @@
             "command": "bash -c 'FILE=\"$1\"; if [[ \"$FILE\" == *.py ]]; then cd backend 2>/dev/null && ruff check --fix \"$FILE\" 2>/dev/null && ruff format \"$FILE\" 2>/dev/null || true; fi' -- "
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'FILE=\"$1\"; if [[ \"$FILE\" == *.ts || \"$FILE\" == *.tsx ]] && [[ \"$FILE\" != *.test.ts && \"$FILE\" != *.test.tsx ]]; then FIRST=$(head -1 \"$FILE\" 2>/dev/null); if [[ \"$FIRST\" != \"/**\"* ]]; then echo \"JSDOC REMINDER: $FILE is missing a file-level JSDoc header. See zentropy-docs skill — three-axis template required (what / layer+feature / coordinates-with).\" >&2; fi; fi' -- "
+          }
+        ]
       }
     ]
   },

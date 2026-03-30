@@ -124,6 +124,7 @@ Hints trigger skill auto-loading during implementation. **Before finalizing any 
 | `playwright` / `e2e` | zentropy-playwright | E2E tests, UI testing, browser automation |
 | `commands` | zentropy-commands | Docker, alembic, npm, CLI operations |
 | `ui` | ui-reviewer | Brand palette, colors, elevation, typography, spacing, interactive states, accessibility |
+| `docs` | zentropy-docs | Any task creating new source files or significantly refactoring existing ones |
 | `plan` | zentropy-planner | Always include — triggers this skill |
 
 **Rules:**
@@ -132,6 +133,7 @@ Hints trigger skill auto-loading during implementation. **Before finalizing any 
 - Include `security` for any task handling user input, auth, or external data
 - Include `ui` for any task that creates or modifies frontend UI components (`.tsx` files)
 - Include `e2e` / `playwright` at phase boundaries where UI behavior changes
+- Include `docs` for any task that creates new .ts, .tsx, or .py files — triggers the file-level header template and three-axis standard
 - When in doubt, include the hint — loading an extra skill is cheap, missing one is expensive
 
 ### Task Sizing

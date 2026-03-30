@@ -207,6 +207,7 @@ Run these checks at the start of every session AND after every compaction (befor
 - Keep changes focused — one logical change per commit
 - Ask before adding new dependencies
 - Follow existing patterns in the codebase
+- When opening an existing .ts or .tsx file (non-test) that lacks a three-axis file-level JSDoc header, add the header before moving on — even if the file wasn't your primary target. Treat it as a 2-minute opportunistic improvement, and include the header addition in the current subtask's commit.
 
 ### DON'T:
 - Write implementation code without a failing test first
@@ -227,7 +228,7 @@ A task is complete when:
 3. ✅ Linter passes (`ruff check .` / `npm run lint`)
 4. ✅ Types check (`pyright` / `npm run typecheck`)
 5. ✅ Migration tested (upgrade AND downgrade)
-6. ✅ Docstrings on public interfaces
+6. ✅ File-level JSDoc header present on all new/modified non-test .ts/.tsx files, passing the three-axis test (what / where / coordinates-with) — see zentropy-docs skill. Backend: Google-style docstrings on all public interfaces.
 7. ✅ No `# TODO` left behind
 8. ✅ Committed with conventional commit message
 9. ✅ Plan updated (status → ✅)
@@ -465,4 +466,4 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ---
 
-*Last updated: 2026-03-11*
+*Last updated: 2026-03-29*

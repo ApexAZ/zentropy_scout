@@ -119,6 +119,65 @@ async function getPersona(id: string): Promise<Persona | null> {
 }
 ```
 
+## TypeScript File-Level Headers
+
+Every non-test `.ts` and `.tsx` file must begin with a file-level JSDoc header. This is distinct from per-function docs — it orients an LLM reading the file cold, without needing to open any other file.
+
+### Required Template
+```typescript
+/**
+ * @fileoverview [One sentence: what this file does]
+ *
+ * Layer: [page | layout | component | hook | context-provider | lib/utility | type-definitions]
+ * Feature: [persona | jobs | resume | chat | applications | usage | admin | shared]
+ *
+ * Coordinates with:
+ * - [relative/path/to/file]: [why — e.g., "calls apiGet for persona data"]
+ * - [relative/path/to/file]: [why — e.g., "consumed by PersonaOverview to render editor"]
+ *
+ * Called by / Used by:
+ * - [relative/path/to/file]: [context]
+ */
+```
+
+### Three-Axis Pass/Fail Test
+
+All three axes must pass before a header is acceptable:
+
+- ✅ **What**: The `@fileoverview` line answers "what does this file do" as a standalone sentence — no file tree needed
+- ✅ **Where**: `Layer:` + `Feature:` places it in the system without reading directory structure
+- ✅ **With**: `Coordinates with:` names specific files by relative path and explains *why* each relationship exists — not just "uses X", but what X provides
+
+### When to Skip
+
+- Test files (`*.test.ts`, `*.test.tsx`)
+- shadcn-generated UI primitives in `components/ui/` that are thin Radix wrappers with no custom logic
+
+### Example — Good
+```typescript
+/**
+ * @fileoverview Bridges SSE events to TanStack Query cache invalidation.
+ *
+ * Layer: lib/utility
+ * Feature: shared
+ *
+ * Coordinates with:
+ * - lib/sse-provider.tsx: subscribes to the SSE event stream it provides
+ * - lib/query-keys.ts: uses query key constants to target specific cache entries
+ * - lib/query-client.ts: calls queryClient.invalidateQueries() on matching keys
+ *
+ * Called by / Used by:
+ * - lib/sse-provider.tsx: instantiated inside SSEProvider on mount
+ */
+```
+
+### Example — Bad (fails all three axes)
+```typescript
+/**
+ * SSE query bridge utilities.
+ */
+```
+
 ## README Files
 
 Each major directory should have a brief README if the purpose isn't obvious:
