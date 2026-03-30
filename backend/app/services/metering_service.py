@@ -9,6 +9,9 @@ REQ-030 §5.3: Settlement via settle() — atomically records usage, debits
 balance, releases hold, and marks reservation as settled within a savepoint.
 REQ-030 §5.5: Release via release() — decrements held balance and marks
 reservation as released when the LLM call fails.
+REQ-030 §5.8: Response metadata persistence via persist_response_metadata()
+— best-effort outbox pattern that writes LLM response data to the reservation
+row before settle(), enabling the background sweep to retry settlement.
 """
 
 import logging
@@ -441,6 +444,60 @@ class MeteringService:
             logger.exception(
                 "Release failed for reservation %s (user %s) — "
                 "hold remains active, background sweep will release",
+                reservation.id,
+                reservation.user_id,
+            )
+
+    async def persist_response_metadata(
+        self,
+        reservation: UsageReservation,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+    ) -> None:
+        """Persist LLM response metadata on the reservation row (outbox pattern).
+
+        REQ-030 §5.8: Writes response metadata before settle() so the
+        background sweep can retry settlement if settle() fails. Uses
+        raw SQL UPDATE with WHERE status = 'held' guard to prevent
+        writing to reservations already handled by the sweep.
+
+        Best-effort: catches SQLAlchemyError, logs at error level, does
+        NOT re-raise. A persist failure must not prevent settle() from
+        being attempted or the response from being returned.
+
+        Does NOT use a savepoint (begin_nested) — this is a simple
+        idempotent UPDATE that should not interfere with the subsequent
+        settle() savepoint.
+
+        Args:
+            reservation: The held reservation to annotate.
+            model: Exact model identifier from the LLM response.
+            input_tokens: Actual input tokens from the LLM response.
+            output_tokens: Actual output tokens from the LLM response.
+        """
+        try:
+            await self._db.execute(
+                text(
+                    "UPDATE usage_reservations "
+                    "SET response_model = :response_model, "
+                    "    response_input_tokens = :input_tokens, "
+                    "    response_output_tokens = :output_tokens, "
+                    "    call_completed_at = :completed_at "
+                    "WHERE id = :id AND status = 'held'"
+                ),
+                {
+                    "response_model": model,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "completed_at": datetime.now(UTC),
+                    "id": reservation.id,
+                },
+            )
+        except SQLAlchemyError:
+            logger.exception(
+                "Failed to persist response metadata for reservation %s "
+                "(user %s) — settlement will proceed without outbox data",
                 reservation.id,
                 reservation.user_id,
             )

@@ -542,7 +542,7 @@ Revenue protection analysis traced the full reserve → call → settle pipeline
 | | **Read:** `usage_reservation.py` (existing columns/constraints). `028_billing_hardening.py` (migration pattern). | | |
 | | **TDD:** Test migration upgrade adds 4 columns. Test migration downgrade drops them. Test model accepts new column values. | | |
 | | **Done when:** Columns exist in DB. Migration roundtrips cleanly. | | |
-| 48 | **MeteringService.persist_response_metadata()** — New method that writes response metadata to the reservation row using raw SQL `UPDATE ... WHERE status = 'held'`. Best-effort: catches SQLAlchemyError, logs, does not block settlement. | `plan, tdd, security` | ⬜ |
+| 48 | **MeteringService.persist_response_metadata()** — New method that writes response metadata to the reservation row using raw SQL `UPDATE ... WHERE status = 'held'`. Best-effort: catches SQLAlchemyError, logs, does not block settlement. | `plan, tdd, security` | ✅ |
 | | **Read:** `metering_service.py` (settle at 222, release at 373, constructor at 60). `usage_reservation.py` (new columns from §47). | | |
 | | **TDD:** Test metadata written correctly. Test guard: only 'held' reservations get metadata. Test failure is isolated (does not prevent settle). | | |
 | | **Done when:** Method exists, writes 4 columns atomically, handles errors gracefully. | | |

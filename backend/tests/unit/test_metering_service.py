@@ -7,6 +7,8 @@ UsageReservation creation, and held_balance_usd increment.
 REQ-030 §5.3: Verifies settle() — savepoint-wrapped recording, balance debit,
 held release, and fail-closed error handling.
 REQ-030 §5.5: Verifies release() — held balance decrement and status update.
+REQ-030 §5.8: Verifies persist_response_metadata() — best-effort outbox
+pattern that writes response metadata to the reservation row.
 """
 
 import logging
@@ -1274,3 +1276,193 @@ class TestRelease:
         service = MeteringService(mock_db_with_savepoint, mock_admin_config)
         with pytest.raises(TypeError, match=_PROGRAMMING_ERROR_MSG):
             await service.release(reservation)
+
+
+# =============================================================================
+# TestPersistResponseMetadata
+# =============================================================================
+
+
+class TestPersistResponseMetadata:
+    """Tests for MeteringService.persist_response_metadata().
+
+    REQ-030 §5.8: Writes LLM response metadata to the reservation row using
+    raw SQL UPDATE ... WHERE status = 'held'. Best-effort: catches
+    SQLAlchemyError, logs, does not block settlement.
+    """
+
+    @pytest.fixture
+    def reservation(self) -> UsageReservation:
+        """Pre-built held reservation."""
+        return _make_held_reservation()
+
+    @pytest.mark.asyncio
+    async def test_writes_metadata_to_held_reservation(
+        self,
+        service: MeteringService,
+        mock_db: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """persist_response_metadata() UPDATEs the 4 outbox columns."""
+        await service.persist_response_metadata(
+            reservation=reservation,
+            model=_HAIKU_MODEL,
+            input_tokens=1500,
+            output_tokens=800,
+        )
+        mock_db.execute.assert_called()
+        # Get the persist call (first execute after the fixture's default)
+        call_args = mock_db.execute.call_args_list[-1]
+        sql = str(call_args[0][0])
+        params = call_args[0][1]
+
+        assert "response_model" in sql
+        assert "response_input_tokens" in sql
+        assert "response_output_tokens" in sql
+        assert "call_completed_at" in sql
+        assert "AND status = 'held'" in sql
+        assert params["response_model"] == _HAIKU_MODEL
+        assert params["input_tokens"] == 1500
+        assert params["output_tokens"] == 800
+        assert params["id"] == reservation.id
+
+    @pytest.mark.asyncio
+    async def test_only_updates_held_reservations(
+        self,
+        service: MeteringService,
+        mock_db: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """SQL includes WHERE status = 'held' guard — prevents writing to
+        reservations already handled by the sweep."""
+        await service.persist_response_metadata(
+            reservation=reservation,
+            model=_HAIKU_MODEL,
+            input_tokens=100,
+            output_tokens=50,
+        )
+        call_args = mock_db.execute.call_args_list[-1]
+        sql = str(call_args[0][0])
+        assert "WHERE id = :id AND status = 'held'" in sql
+
+    @pytest.mark.asyncio
+    async def test_db_error_does_not_raise(
+        self,
+        mock_db: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """SQLAlchemyError is caught — persist failure must not block settle()."""
+        mock_db.execute.side_effect = SQLAlchemyError(_DB_ERROR_MSG)
+        service = MeteringService(mock_db, mock_admin_config)
+        # Should not raise
+        await service.persist_response_metadata(
+            reservation=reservation,
+            model=_HAIKU_MODEL,
+            input_tokens=100,
+            output_tokens=50,
+        )
+
+    @pytest.mark.asyncio
+    async def test_db_error_logs_error(
+        self,
+        mock_db: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Persist DB failure logs error with reservation ID."""
+        mock_db.execute.side_effect = SQLAlchemyError(_DB_ERROR_MSG)
+        service = MeteringService(mock_db, mock_admin_config)
+        with caplog.at_level(logging.ERROR):
+            await service.persist_response_metadata(
+                reservation=reservation,
+                model=_HAIKU_MODEL,
+                input_tokens=100,
+                output_tokens=50,
+            )
+        assert any(
+            "persist" in r.message.lower() and str(reservation.id) in r.message
+            for r in caplog.records
+            if r.levelno == logging.ERROR
+        )
+
+    @pytest.mark.asyncio
+    async def test_does_not_use_savepoint(
+        self,
+        service: MeteringService,
+        mock_db: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """persist_response_metadata() does NOT use begin_nested().
+
+        REQ-030 §5.8: Simple idempotent UPDATE, no savepoint needed —
+        must not interfere with the subsequent settle() savepoint.
+        """
+        await service.persist_response_metadata(
+            reservation=reservation,
+            model=_HAIKU_MODEL,
+            input_tokens=100,
+            output_tokens=50,
+        )
+        mock_db.begin_nested.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_sets_call_completed_at_timestamp(
+        self,
+        service: MeteringService,
+        mock_db: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """call_completed_at is set to a current timestamp."""
+        await service.persist_response_metadata(
+            reservation=reservation,
+            model=_HAIKU_MODEL,
+            input_tokens=100,
+            output_tokens=50,
+        )
+        call_args = mock_db.execute.call_args_list[-1]
+        params = call_args[0][1]
+        assert "completed_at" in params
+        assert params["completed_at"] is not None
+
+    @pytest.mark.asyncio
+    async def test_zero_output_tokens_accepted(
+        self,
+        service: MeteringService,
+        mock_db: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """Zero output tokens is valid (embeddings produce no output)."""
+        await service.persist_response_metadata(
+            reservation=reservation,
+            model="text-embedding-3-small",
+            input_tokens=500,
+            output_tokens=0,
+        )
+        call_args = mock_db.execute.call_args_list[-1]
+        params = call_args[0][1]
+        assert params["output_tokens"] == 0
+
+    @pytest.mark.asyncio
+    async def test_programming_error_propagates(
+        self,
+        mock_db: AsyncMock,
+        mock_admin_config: AsyncMock,
+        reservation: UsageReservation,
+    ) -> None:
+        """AF-07: Programming errors (TypeError, AttributeError) must NOT be
+        silently swallowed — they propagate so callers can react.
+
+        Expected DB errors (SQLAlchemyError) are still caught, but a TypeError
+        inside the execute indicates a bug that must be surfaced.
+        """
+        mock_db.execute.side_effect = TypeError(_PROGRAMMING_ERROR_MSG)
+        service = MeteringService(mock_db, mock_admin_config)
+        with pytest.raises(TypeError, match=_PROGRAMMING_ERROR_MSG):
+            await service.persist_response_metadata(
+                reservation=reservation,
+                model=_HAIKU_MODEL,
+                input_tokens=100,
+                output_tokens=50,
+            )
