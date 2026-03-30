@@ -10,7 +10,6 @@ Modules:
     state: LangGraph state schemas for the Chat Agent (REQ-007 §3.2)
     checkpoint: Checkpointer and graph config utilities (REQ-007 §3.3)
     chat: User-facing conversational interface (REQ-007 §4)
-    onboarding: Post-onboarding update utilities (REQ-019 §5)
 """
 
 from app.agents.chat import (
@@ -26,21 +25,6 @@ from app.agents.chat import (
 from app.agents.checkpoint import (
     create_checkpointer,
     create_graph_config,
-)
-from app.agents.onboarding import (
-    ACHIEVEMENT_STORY_PROMPT,
-    SECTIONS_REQUIRING_RESCORE,
-    VOICE_PROFILE_DERIVATION_PROMPT,
-    WORK_HISTORY_EXPANSION_PROMPT,
-    detect_update_section,
-    format_gathered_data_summary,
-    get_achievement_story_prompt,
-    get_affected_embeddings,
-    get_update_completion_message,
-    get_voice_profile_prompt,
-    get_work_history_prompt,
-    is_update_request,
-    should_start_onboarding,
 )
 from app.agents.state import (
     BaseAgentState,
@@ -71,20 +55,6 @@ __all__ = [
     "request_clarification",
     "route_by_intent",
     "select_tools",
-    # Onboarding Utilities
-    "ACHIEVEMENT_STORY_PROMPT",
-    "SECTIONS_REQUIRING_RESCORE",
-    "VOICE_PROFILE_DERIVATION_PROMPT",
-    "WORK_HISTORY_EXPANSION_PROMPT",
-    "detect_update_section",
-    "format_gathered_data_summary",
-    "get_achievement_story_prompt",
-    "get_affected_embeddings",
-    "get_update_completion_message",
-    "get_voice_profile_prompt",
-    "get_work_history_prompt",
-    "is_update_request",
-    "should_start_onboarding",
     # Strategist Prompts
     "NON_NEGOTIABLES_SYSTEM_PROMPT",
     "SCORE_RATIONALE_SYSTEM_PROMPT",

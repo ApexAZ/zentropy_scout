@@ -13,7 +13,7 @@ These tests verify:
 
 from typing import Any
 
-from app.agents.onboarding import (
+from app.services.onboarding_utils import (
     ACHIEVEMENT_STORY_PROMPT,
     SECTIONS_REQUIRING_RESCORE,
     VOICE_PROFILE_DERIVATION_PROMPT,
