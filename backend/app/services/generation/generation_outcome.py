@@ -14,7 +14,7 @@ passes the result to the repository layer for persistence.
 from dataclasses import dataclass
 from enum import Enum
 
-from app.services.regeneration import FeedbackCategory
+from app.services.generation.regeneration import FeedbackCategory
 
 _MAX_FEEDBACK_INPUT: int = 500
 """Safety bound on feedback text before categorization (REQ-010 §7.2)."""

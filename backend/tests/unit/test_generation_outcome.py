@@ -9,14 +9,14 @@ keyword matching.
 
 from dataclasses import replace
 
-from app.services.generation_outcome import (
+from app.services.generation.generation_outcome import (
     _MAX_GENERATION_ID_LENGTH,
     _MAX_REASON_LENGTH,
     GenerationOutcome,
     categorize_feedback,
     create_outcome_record,
 )
-from app.services.regeneration import FeedbackCategory
+from app.services.generation.regeneration import FeedbackCategory
 
 _GEN_ID = "abc-123"
 _GEN_ID_APPROVED = "gen-001"

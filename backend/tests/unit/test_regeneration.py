@@ -8,7 +8,7 @@ from dataclasses import replace
 
 import pytest
 
-from app.services.regeneration import (
+from app.services.generation.regeneration import (
     MAX_FEEDBACK_LENGTH,
     MAX_TONE_LENGTH,
     MAX_WORD_COUNT,

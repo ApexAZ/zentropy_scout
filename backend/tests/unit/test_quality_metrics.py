@@ -6,7 +6,7 @@ Five metrics with targets and alert thresholds for monitoring content
 generation quality over time.
 """
 
-from app.services.quality_metrics import (
+from app.services.generation.quality_metrics import (
     ALL_METRICS,
     AVG_REGENERATIONS_PER_LETTER,
     FIRST_DRAFT_APPROVAL_RATE,
