@@ -496,6 +496,27 @@ class TestGetPurchases:
 
         assert resp.status_code == 401
 
+    async def test_sub_cent_amount_rounds_correctly(
+        self, auth_client: AsyncClient, db_session: AsyncSession
+    ) -> None:
+        """Sub-cent amounts round instead of truncating (F-08).
+
+        REQ-030 §10.1: int() truncates — Decimal("4.999") → 4 cents.
+        round() gives correct rounding — Decimal("4.999") → 5 cents.
+        """
+        await _seed_transaction(
+            db_session,
+            TEST_USER_ID,
+            amount_usd=Decimal("0.049990"),  # 4.999 cents
+            transaction_type="purchase",
+            description="Sub-cent rounding test",
+        )
+
+        resp = await auth_client.get(f"{_PREFIX}/purchases")
+
+        data = resp.json()["data"]
+        assert data[0]["amount_display"] == "$0.05"  # Rounded, not $0.04
+
     async def test_refund_shows_negative_display(
         self, auth_client: AsyncClient, db_session: AsyncSession
     ) -> None:

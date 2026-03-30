@@ -1,7 +1,10 @@
 """Metered provider wrappers.
 
-REQ-020 §6.2, §6.5: Proxy providers that record token usage
-after successful LLM/embedding calls and debit user balances.
+REQ-030 §5.4: MeteredLLMProvider.complete() uses reserve→call→settle
+pattern — pre-debit reservation before LLM call, settlement after.
+REQ-030 §5.6: stream() logs warning about unmetered streaming.
+REQ-030 §5.7: MeteredEmbeddingProvider.embed() uses reserve→embed→settle
+pattern with token estimation heuristic.
 REQ-028 §4: Cross-provider dispatch via registry — routes each
 task to the correct provider+model based on DB routing table.
 """
@@ -24,6 +27,11 @@ from app.services.metering_service import MeteringService
 
 logger = logging.getLogger(__name__)
 
+_RELEASE_FAILED_LOG = "Release also failed for user %s — hold orphaned until sweep"
+_SETTLE_FAILED_LOG = (
+    "Unexpected settlement error for user %s — %s returned, hold orphaned until sweep"
+)
+
 
 class MeteredLLMProvider(LLMProvider):
     """Proxy that records token usage and debits the user's balance.
@@ -40,6 +48,7 @@ class MeteredLLMProvider(LLMProvider):
         metering_service: Service for recording usage and debiting balance.
         admin_config: Service for resolving task-to-model routing from DB.
         user_id: User who made the API call.
+        credits_enabled: If True, stream() is fail-closed (AF-09).
     """
 
     def __init__(
@@ -49,6 +58,8 @@ class MeteredLLMProvider(LLMProvider):
         metering_service: MeteringService,
         admin_config: AdminConfigService,
         user_id: uuid.UUID,
+        *,
+        credits_enabled: bool = True,
     ) -> None:
         # Don't call super().__init__() — no ProviderConfig needed.
         # The inner provider already has its config.
@@ -57,6 +68,7 @@ class MeteredLLMProvider(LLMProvider):
         self._metering_service = metering_service
         self._admin_config = admin_config
         self._user_id = user_id
+        self._credits_enabled = credits_enabled
 
     @property
     def provider_name(self) -> str:
@@ -108,11 +120,11 @@ class MeteredLLMProvider(LLMProvider):
         json_mode: bool = False,
         _model_override: str | None = None,
     ) -> LLMResponse:
-        """Dispatch to the correct provider, then record usage.
+        """Dispatch to the correct provider using reserve→call→settle.
 
-        REQ-028 §4.2: Resolves (provider, model) from DB routing table.
-        Dispatches to the correct adapter from the registry.
-        Falls back to inner provider when no routing is configured.
+        REQ-030 §5.4: Reserves estimated cost before the LLM call,
+        settles with actual cost after success, or releases the hold
+        on failure. Eliminates the post-debit fire-and-forget pattern.
 
         Args:
             messages: Conversation history.
@@ -129,34 +141,54 @@ class MeteredLLMProvider(LLMProvider):
 
         Raises:
             ProviderError: If routed provider is not in registry.
+            NoPricingConfigError: If no routing/pricing exists.
+            UnregisteredModelError: If routed model not in registry.
         """
-        # REQ-028 §4: Resolve cross-provider routing from DB.
+        # 1. Resolve cross-provider routing from DB
         routing = await self._admin_config.get_routing_for_task(task.value)
         adapter, model_override = self._resolve_adapter(routing)
 
-        response = await adapter.complete(
-            messages,
-            task,
+        # 2. Reserve estimated cost (fail-closed: no reservation = no LLM call)
+        reservation = await self._metering_service.reserve(
+            user_id=self._user_id,
+            task_type=task.value,
             max_tokens=max_tokens,
-            temperature=temperature,
-            stop_sequences=stop_sequences,
-            tools=tools,
-            json_mode=json_mode,
-            model_override=model_override,
         )
+
+        # 3. Make the LLM call (release hold on any adapter failure)
         try:
-            await self._metering_service.record_and_debit(
-                user_id=self._user_id,
+            response = await adapter.complete(
+                messages,
+                task,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stop_sequences=stop_sequences,
+                tools=tools,
+                json_mode=json_mode,
+                model_override=model_override,
+            )
+        except Exception:
+            try:
+                await self._metering_service.release(reservation)
+            except Exception:
+                logger.exception(_RELEASE_FAILED_LOG, self._user_id)
+            raise
+
+        # 4. Settle with actual cost. settle() catches expected errors
+        # (SQLAlchemyError, pricing errors) internally. Unexpected errors
+        # (AF-07: programming bugs) propagate — catch them here so the
+        # LLM response is still returned to the user.
+        try:
+            await self._metering_service.settle(
+                reservation=reservation,
                 provider=adapter.provider_name,
                 model=response.model,
-                task_type=task.value,
                 input_tokens=max(0, response.input_tokens),
                 output_tokens=max(0, response.output_tokens),
             )
         except Exception:
-            logger.exception(
-                "Failed to record metered usage for user %s", self._user_id
-            )
+            logger.exception(_SETTLE_FAILED_LOG, self._user_id, "response")
+
         return response
 
     async def stream(
@@ -168,10 +200,10 @@ class MeteredLLMProvider(LLMProvider):
     ) -> AsyncGenerator[str, None]:
         """Stream from the correct provider based on DB routing.
 
-        REQ-028 §4.2: Applies cross-provider dispatch to streaming.
-        Note: model_override is not supported for streaming — the adapter
-        uses its default model for the task. The correct provider is
-        selected, but DB-configured model is not applied.
+        AF-09: Fail-closed when credits are enabled — stream metering is
+        not implemented, so allowing streaming would bypass billing.
+        REQ-030 §5.6: When credits are disabled, logs a warning and
+        passes through to the inner provider.
 
         Args:
             messages: Conversation history.
@@ -181,7 +213,22 @@ class MeteredLLMProvider(LLMProvider):
 
         Yields:
             Text chunks from the dispatched provider's stream.
+
+        Raises:
+            ProviderError: If credits_enabled is True (unmetered streaming
+                would bypass billing).
         """
+        if self._credits_enabled:
+            raise ProviderError(
+                "Streaming is not supported while credits are enabled. "
+                "Use complete() instead."
+            )
+
+        logger.warning(
+            "stream() called with metering enabled but stream metering is not "
+            "implemented — usage will not be recorded for user %s",
+            self._user_id,
+        )
         routing = await self._admin_config.get_routing_for_task(task.value)
         adapter, _model_override = self._resolve_adapter(routing)
 
@@ -198,8 +245,8 @@ class MeteredLLMProvider(LLMProvider):
 class MeteredEmbeddingProvider(EmbeddingProvider):
     """Proxy that records embedding usage and debits the user's balance.
 
-    REQ-020 §6.5: Wraps a real EmbeddingProvider, delegates all calls,
-    and records usage after successful embed() calls.
+    REQ-030 §5.7: Wraps a real EmbeddingProvider, delegates all calls,
+    and uses reserve→embed→settle pattern for usage recording.
     REQ-022 §8.5: No routing change for embeddings — only pricing
     lookup migrated to DB via AdminConfigService in MeteringService.
 
@@ -231,10 +278,12 @@ class MeteredEmbeddingProvider(EmbeddingProvider):
         return self._inner.provider_name
 
     async def embed(self, texts: list[str]) -> EmbeddingResult:
-        """Call inner provider, then record usage and debit balance.
+        """Reserve estimated cost, call inner provider, settle with actuals.
 
-        REQ-020 §6.5: Records with task_type="embedding" and output_tokens=0.
-        If total_tokens is -1 (chunked batch), estimates as sum(len(text))/4.
+        REQ-030 §5.7: Uses reserve→embed→settle pattern. Estimates input
+        tokens as sum(len(text))/4 for the reservation. After the call,
+        settles with actual total_tokens (or the estimate for chunked batches
+        where total_tokens is -1).
 
         Args:
             texts: List of texts to embed.
@@ -243,33 +292,58 @@ class MeteredEmbeddingProvider(EmbeddingProvider):
             EmbeddingResult from the inner provider.
 
         Raises:
-            ProviderError: If the inner provider fails (no usage recorded).
+            ProviderError: If the inner provider fails (hold released).
+            NoPricingConfigError: If no pricing exists for embedding model.
+            UnregisteredModelError: If embedding model not in registry.
         """
-        result = await self._inner.embed(texts)
+        # 1. Estimate input tokens for reservation (REQ-020 §6.5 heuristic)
+        estimated_tokens = sum(len(text) for text in texts) // 4
+
+        # 2. Reserve estimated cost (fail-closed: no reservation = no embed call)
+        # AF-13: Input tokens go to max_input_tokens; embeddings produce zero
+        # output tokens so max_tokens=0 (avoids inflated output cost component).
+        reservation = await self._metering_service.reserve(
+            user_id=self._user_id,
+            task_type="embedding",
+            max_input_tokens=estimated_tokens,
+            max_tokens=0,
+        )
+
+        # 3. Execute embedding call (release hold on any failure)
         try:
-            input_tokens = result.total_tokens
-            if input_tokens < 0:
-                # Chunked batch — estimate tokens (REQ-020 §6.5)
-                input_tokens = sum(len(text) for text in texts) // 4
-                logger.warning(
-                    "Estimated %d embedding tokens for chunked batch "
-                    "(provider returned %d)",
-                    input_tokens,
-                    result.total_tokens,
-                )
-            await self._metering_service.record_and_debit(
-                user_id=self._user_id,
+            result = await self._inner.embed(texts)
+        except Exception:
+            try:
+                await self._metering_service.release(reservation)
+            except Exception:
+                logger.exception(_RELEASE_FAILED_LOG, self._user_id)
+            raise
+
+        # 4. Resolve actual token count (use estimate for chunked batches)
+        input_tokens = result.total_tokens
+        if input_tokens < 0:
+            input_tokens = estimated_tokens
+            logger.warning(
+                "Estimated %d embedding tokens for chunked batch "
+                "(provider returned %d)",
+                input_tokens,
+                result.total_tokens,
+            )
+
+        # 5. Settle with actual cost. settle() catches expected errors
+        # internally. Unexpected errors (AF-07) propagate — catch here
+        # so the embedding result is still returned.
+        try:
+            await self._metering_service.settle(
+                reservation=reservation,
                 provider=self._inner.provider_name,
                 model=result.model,
-                task_type="embedding",
-                input_tokens=input_tokens,
+                input_tokens=max(0, input_tokens),
                 output_tokens=0,
             )
         except Exception:
-            logger.exception(
-                "Failed to record metered embedding usage for user %s",
-                self._user_id,
-            )
+            logger.exception(_SETTLE_FAILED_LOG, self._user_id, "result")
+
         return result
 
     @property

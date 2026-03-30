@@ -28,6 +28,7 @@ from app.core.null_byte_middleware import NullByteMiddleware
 from app.core.rate_limiting import limiter, rate_limit_exceeded_handler
 from app.core.responses import ErrorDetail, ErrorResponse
 from app.services.pool_surfacing_worker import PoolSurfacingWorker
+from app.services.reservation_sweep import ReservationSweepWorker
 
 logger = structlog.get_logger()
 
@@ -180,16 +181,23 @@ def internal_error_handler(request: Request, exc: Exception) -> JSONResponse:
 async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan: start/stop background services.
 
-    REQ-015 §7.1: Starts the pool surfacing worker on startup,
-    stops it gracefully on shutdown.
+    REQ-015 §7.1: Starts the pool surfacing worker on startup.
+    REQ-030 §11.1: Starts the reservation sweep worker on startup.
+    Both are stopped gracefully on shutdown.
     """
-    worker = PoolSurfacingWorker(async_session_factory)
-    app.state.surfacing_worker = worker
-    worker.start()
+    surfacing_worker = PoolSurfacingWorker(async_session_factory)
+    app.state.surfacing_worker = surfacing_worker
+    surfacing_worker.start()
+
+    sweep_worker = ReservationSweepWorker(async_session_factory)
+    app.state.sweep_worker = sweep_worker
+    sweep_worker.start()
+
     try:
         yield
     finally:
-        await worker.stop()
+        await sweep_worker.stop()
+        await surfacing_worker.stop()
 
 
 def create_app() -> FastAPI:

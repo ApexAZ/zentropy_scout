@@ -20,7 +20,7 @@ from app.models.admin_config import (
     PricingConfig,
     TaskRoutingConfig,
 )
-from app.models.usage import CreditTransaction, LLMUsageRecord
+from app.models.usage import LLMUsageRecord
 from app.models.user import User
 from app.providers.llm.base import LLMResponse, TaskType
 from app.providers.metered_provider import MeteredLLMProvider
@@ -349,101 +349,6 @@ class TestEffectiveDateTransitions:
 
 
 # ===========================================================================
-# Record and debit — full pipeline
-# ===========================================================================
-
-
-@pytest.mark.asyncio
-class TestRecordAndDebit:
-    """MeteringService.record_and_debit creates records and debits balance."""
-
-    async def test_creates_usage_record_and_transaction(
-        self, db_session: AsyncSession
-    ) -> None:
-        """record_and_debit inserts LLMUsageRecord + CreditTransaction."""
-        user = await _seed_user(db_session)
-        await _seed_model(db_session)
-        await _seed_pricing(db_session, margin=_MARGIN_DEFAULT)
-
-        svc, _ = _make_services(db_session)
-        await svc.record_and_debit(
-            user_id=user.id,
-            provider=_PROVIDER,
-            model=_MODEL_HAIKU,
-            task_type=_TASK_EXTRACTION,
-            input_tokens=1000,
-            output_tokens=500,
-        )
-        await db_session.flush()
-
-        # Verify usage record exists
-        usage_result = await db_session.execute(
-            select(LLMUsageRecord).where(LLMUsageRecord.user_id == user.id)
-        )
-        usage = usage_result.scalar_one()
-        assert usage.provider == _PROVIDER
-        assert usage.model == _MODEL_HAIKU
-        assert usage.input_tokens == 1000
-        assert usage.output_tokens == 500
-        assert usage.margin_multiplier == _MARGIN_DEFAULT
-
-        # Verify transaction exists
-        txn_result = await db_session.execute(
-            select(CreditTransaction).where(CreditTransaction.user_id == user.id)
-        )
-        txn = txn_result.scalar_one()
-        assert txn.transaction_type == "usage_debit"
-        assert txn.amount_usd < 0  # Debit is negative
-
-    async def test_debits_user_balance(self, db_session: AsyncSession) -> None:
-        """record_and_debit reduces the user's balance."""
-        user = await _seed_user(db_session, balance=_INITIAL_BALANCE)
-        await _seed_model(db_session)
-        await _seed_pricing(db_session, margin=_MARGIN_DEFAULT)
-
-        svc, _ = _make_services(db_session)
-        await svc.record_and_debit(
-            user_id=user.id,
-            provider=_PROVIDER,
-            model=_MODEL_HAIKU,
-            task_type=_TASK_EXTRACTION,
-            input_tokens=1000,
-            output_tokens=500,
-        )
-        await db_session.flush()
-
-        # Re-read user balance
-        result = await db_session.execute(text(_BALANCE_QUERY), {"uid": user.id})
-        new_balance = result.scalar_one()
-        assert new_balance < _INITIAL_BALANCE
-
-    async def test_per_model_margin_in_usage_record(
-        self, db_session: AsyncSession
-    ) -> None:
-        """Usage record stores the per-model margin from DB pricing."""
-        user = await _seed_user(db_session)
-        await _seed_model(db_session)
-        await _seed_pricing(db_session, margin=Decimal("2.50"))
-
-        svc, _ = _make_services(db_session)
-        await svc.record_and_debit(
-            user_id=user.id,
-            provider=_PROVIDER,
-            model=_MODEL_HAIKU,
-            task_type=_TASK_EXTRACTION,
-            input_tokens=100,
-            output_tokens=50,
-        )
-        await db_session.flush()
-
-        result = await db_session.execute(
-            select(LLMUsageRecord).where(LLMUsageRecord.user_id == user.id)
-        )
-        usage = result.scalar_one()
-        assert usage.margin_multiplier == Decimal("2.50")
-
-
-# ===========================================================================
 # Task routing — MeteredLLMProvider with real DB
 # ===========================================================================
 
@@ -492,10 +397,14 @@ class TestRoutingPipeline:
 
         assert inner.complete.call_args.kwargs[_MODEL_OVERRIDE_KEY] == _MODEL_SONNET
 
-    async def test_routing_none_passes_none_override(
+    async def test_routing_none_blocks_call_fail_closed(
         self, db_session: AsyncSession
     ) -> None:
-        """No routing at all passes model_override=None (adapter uses hardcoded)."""
+        """No routing at all blocks the call (fail-closed).
+
+        REQ-030 §5.2: reserve() raises NoPricingConfigError when no
+        routing exists. The LLM call never happens.
+        """
         user = await _seed_user(db_session)
         await _seed_model(db_session, model=_MODEL_HAIKU)
         await _seed_pricing(db_session, model=_MODEL_HAIKU)
@@ -508,9 +417,10 @@ class TestRoutingPipeline:
             inner, {_PROVIDER: inner}, metering, admin_config, user.id
         )
 
-        await provider.complete([], TaskType.EXTRACTION)
+        with pytest.raises(NoPricingConfigError):
+            await provider.complete([], TaskType.EXTRACTION)
 
-        assert inner.complete.call_args.kwargs[_MODEL_OVERRIDE_KEY] is None
+        inner.complete.assert_not_called()
 
     async def test_routing_override_changes_model_used(
         self, db_session: AsyncSession
@@ -617,12 +527,15 @@ class TestFullAdminPipeline:
         routed = await admin_config.get_model_for_task(_PROVIDER, _TASK_COVER_LETTER)
         assert routed == new_model
 
-        # Verify record_and_debit works end-to-end
-        await svc.record_and_debit(
+        # Verify reserve/settle pipeline works end-to-end
+        reservation = await svc.reserve(
             user_id=user.id,
+            task_type=_TASK_COVER_LETTER,
+        )
+        await svc.settle(
+            reservation,
             provider=_PROVIDER,
             model=new_model,
-            task_type=_TASK_COVER_LETTER,
             input_tokens=2000,
             output_tokens=1000,
         )

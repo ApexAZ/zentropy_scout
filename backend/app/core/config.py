@@ -3,10 +3,12 @@
 REQ-006 §6.1, REQ-013 §7.2, §11, REQ-029 §11: Settings for database, API,
 LLM providers, authentication, and Stripe. Uses pydantic-settings for
 validation and .env file support.
+REQ-030 §9: Reservation system config and production metering validation.
 """
 
 import logging
 import uuid
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import SecretStr, model_validator
@@ -100,10 +102,12 @@ class Settings(BaseSettings):
     stripe_publishable_key: str = ""
     credits_enabled: bool = True
 
-    # Metering (REQ-020 §11)
+    # Metering (REQ-020 §11, REQ-030 §9.2)
     metering_enabled: bool = True
     # REMOVED: metering_margin_multiplier (REQ-022 §7.7 — now per-model in pricing_config table)
-    metering_minimum_balance: float = 0.00
+    metering_minimum_balance: str = "0.00"
+    reservation_ttl_seconds: int = 300
+    reservation_sweep_interval_seconds: int = 300
 
     # Rate Limiting (Security)
     # Limits LLM-calling endpoints to prevent abuse and cost explosion
@@ -149,7 +153,21 @@ class Settings(BaseSettings):
             raise ValueError(msg)
 
         # Metering config invariants (all environments)
-        if self.metering_minimum_balance < 0:
+        try:
+            min_bal = Decimal(self.metering_minimum_balance)
+        except (ArithmeticError, ValueError):
+            msg = (
+                "METERING_MINIMUM_BALANCE must be a valid decimal string. "
+                f"Got: {self.metering_minimum_balance!r}"
+            )
+            raise ValueError(msg) from None
+        if not min_bal.is_finite():
+            msg = (
+                "METERING_MINIMUM_BALANCE must be a finite decimal. "
+                f"Got: {self.metering_minimum_balance!r}"
+            )
+            raise ValueError(msg)
+        if min_bal < 0:
             msg = (
                 "METERING_MINIMUM_BALANCE cannot be negative. "
                 f"Got: {self.metering_minimum_balance}"
@@ -166,6 +184,11 @@ class Settings(BaseSettings):
             raise ValueError(msg)
 
         if self.credits_enabled and not self.metering_enabled:
+            if self.environment == "production":
+                raise ValueError(
+                    "credits_enabled=True requires metering_enabled=True in production. "
+                    "Users can purchase credits but usage will not be deducted."
+                )
             logger.warning(
                 "Invalid configuration: credits_enabled=True but "
                 "metering_enabled=False. Credits require metering to "

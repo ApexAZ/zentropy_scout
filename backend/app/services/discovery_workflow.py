@@ -28,6 +28,7 @@ from app.agents.scouter import (
     is_source_added_trigger,
     should_poll,
 )
+from app.providers.embedding.base import EmbeddingProvider
 from app.services.job_fetch_service import JobFetchService
 
 # =============================================================================
@@ -211,6 +212,7 @@ async def run_discovery(
     enabled_sources: list[str],
     trigger: DiscoveryTrigger | None,
     polling_frequency: str = "daily",
+    embedding_provider: EmbeddingProvider | None = None,
 ) -> DiscoveryResult:
     """Run the full discovery workflow.
 
@@ -228,6 +230,9 @@ async def run_discovery(
         enabled_sources: List of enabled source names.
         trigger: Detected trigger (or None to skip discovery).
         polling_frequency: "twice_daily", "daily", or "weekly".
+        embedding_provider: Optional metered embedding provider (AF-14).
+            When supplied, all embedding calls in the scoring pipeline
+            are metered. When None, falls back to factory singleton.
 
     Returns:
         DiscoveryResult with discovered jobs sorted by fit_score.
@@ -242,7 +247,12 @@ async def run_discovery(
         )
 
     # Run the fetch pipeline via JobFetchService
-    service = JobFetchService(db=db, user_id=user_id, persona_id=persona_id)
+    service = JobFetchService(
+        db=db,
+        user_id=user_id,
+        persona_id=persona_id,
+        embedding_provider=embedding_provider,
+    )
     poll_result = await service.run_poll(
         enabled_sources=enabled_sources,
         polling_frequency=polling_frequency,

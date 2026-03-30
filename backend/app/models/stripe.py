@@ -3,13 +3,14 @@
 REQ-029 §4.3: StripePurchase tracks Stripe checkout sessions from creation
 through completion to potential refund. Separate from the append-only
 credit_transactions ledger to allow mutable status lifecycle tracking.
+REQ-030 §4.3: grant_cents type aligned to Integer (was BigInteger).
+REQ-030 §7.3: 'expired' status added for checkout.session.expired webhook.
 """
 
 import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    BigInteger,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -42,7 +43,7 @@ class StripePurchase(Base, TimestampMixin):
         amount_cents: Price in cents at time of purchase (snapshot).
         grant_cents: Grant amount in cents at time of purchase (snapshot).
         currency: ISO 4217 currency code. Default 'usd'.
-        status: Lifecycle state: pending | completed | refunded | partial_refund.
+        status: Lifecycle state: pending | completed | refunded | partial_refund | expired.
         completed_at: Timestamp when webhook confirmed payment.
         refunded_at: Timestamp when refund webhook received.
         refund_amount_cents: Cumulative refund amount in cents.
@@ -65,7 +66,7 @@ class StripePurchase(Base, TimestampMixin):
             name="ck_stripe_purchases_refund_nonneg",
         ),
         CheckConstraint(
-            "status IN ('pending', 'completed', 'refunded', 'partial_refund')",
+            "status IN ('pending', 'completed', 'refunded', 'partial_refund', 'expired')",
             name="ck_stripe_purchases_status_valid",
         ),
     )
@@ -106,7 +107,7 @@ class StripePurchase(Base, TimestampMixin):
         nullable=False,
     )
     grant_cents: Mapped[int] = mapped_column(
-        BigInteger,
+        Integer,
         nullable=False,
     )
     currency: Mapped[str] = mapped_column(

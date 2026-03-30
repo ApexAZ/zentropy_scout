@@ -6,7 +6,7 @@
  * REQ-020 §9.2: Usage page at /usage with balance card,
  * period summary, cost breakdowns, and paginated tables.
  * REQ-029 §9.1: Funding packs, purchase history, low-balance warning.
- * REQ-029 §9.4: Stripe redirect success/cancel handling.
+ * REQ-029 §9.4; REQ-030 §10.2: Stripe redirect success/cancel handling.
  */
 
 import { Suspense, useEffect, useState } from "react";
@@ -62,6 +62,10 @@ function StripeRedirectHandler() {
 		if (status === "success") {
 			showToast.success("Payment successful! Your balance has been updated.");
 			queryClient.invalidateQueries({ queryKey: queryKeys.balance });
+			queryClient.invalidateQueries({ queryKey: queryKeys.purchases });
+			queryClient.invalidateQueries({
+				queryKey: queryKeys.usageTransactionsAll,
+			});
 		} else if (status === "cancelled") {
 			showToast.info("Purchase cancelled.");
 		}

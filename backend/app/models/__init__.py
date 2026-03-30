@@ -19,6 +19,7 @@ Models are organized by domain:
 - cover_letter.py: CoverLetter, SubmittedCoverLetterPDF
 - application.py: Application, TimelineEvent
 - usage.py: LLMUsageRecord, CreditTransaction (Tier 2 - metering)
+- usage_reservation.py: UsageReservation (Tier 2 - pre-debit reservation holds)
 - stripe.py: StripePurchase (Tier 2 - Stripe checkout lifecycle)
 - admin_config.py: ModelRegistry, PricingConfig, TaskRoutingConfig, FundingPack, SystemConfig
 """
@@ -57,6 +58,7 @@ from app.models.resume_template import ResumeTemplate
 from app.models.session import Session
 from app.models.stripe import StripePurchase
 from app.models.usage import CreditTransaction, LLMUsageRecord
+from app.models.usage_reservation import UsageReservation
 from app.models.user import User
 from app.models.verification_token import VerificationToken
 
@@ -101,6 +103,8 @@ __all__ = [
     # Tier 2 - Metering
     "LLMUsageRecord",
     "CreditTransaction",
+    # Tier 2 - Reservations
+    "UsageReservation",
     # Tier 2 - Stripe
     "StripePurchase",
     # Tier 2 - Admin config

@@ -1,6 +1,7 @@
 """Tests for InsufficientBalanceError and require_sufficient_balance dependency.
 
 REQ-020 §7.1-§7.4: Balance gating for LLM-triggering endpoints.
+REQ-030 §6.1: Available balance = balance_usd - held_balance_usd.
 Raises 402 Payment Required when user has insufficient balance.
 """
 
@@ -18,12 +19,17 @@ from app.models import User
 TEST_USER_ID = uuid.UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 _TEST_EMAIL = "test-gating@example.com"
 _ZERO_BALANCE = Decimal("0.000000")
+_FIVE_DOLLARS = Decimal("5.000000")
+_CUSTOM_THRESHOLD = "0.05"
+_CUSTOM_THRESHOLD_DECIMAL = Decimal("0.050000")
+_SETTINGS_PATCH = "app.api.deps.settings"
 
 
 async def _create_test_user(
     db: AsyncSession,
     balance: Decimal,
     user_id: uuid.UUID = TEST_USER_ID,
+    held: Decimal = _ZERO_BALANCE,
 ) -> User:
     """Insert a user with a specific balance for gating tests.
 
@@ -31,11 +37,14 @@ async def _create_test_user(
         db: Database session.
         balance: Initial balance_usd value.
         user_id: User UUID (defaults to TEST_USER_ID).
+        held: Initial held_balance_usd value (defaults to 0).
 
     Returns:
         The created User instance.
     """
-    user = User(id=user_id, email=_TEST_EMAIL, balance_usd=balance)
+    user = User(
+        id=user_id, email=_TEST_EMAIL, balance_usd=balance, held_balance_usd=held
+    )
     db.add(user)
     await db.commit()
     return user
@@ -95,7 +104,7 @@ class TestInsufficientBalanceError:
         """Details contain minimum_required as 6-decimal-place string."""
         error = InsufficientBalanceError(
             balance=_ZERO_BALANCE,
-            minimum_required=Decimal("0.050000"),
+            minimum_required=_CUSTOM_THRESHOLD_DECIMAL,
         )
         assert error.details is not None
         assert error.details[0]["minimum_required"] == "0.050000"
@@ -122,7 +131,7 @@ class TestRequireSufficientBalance:
 
     async def test_allows_when_balance_positive(self, db_session: AsyncSession) -> None:
         """No error raised when user has positive balance."""
-        await _create_test_user(db_session, Decimal("5.000000"))
+        await _create_test_user(db_session, _FIVE_DOLLARS)
         await require_sufficient_balance(TEST_USER_ID, db_session)
 
     async def test_raises_when_balance_zero(self, db_session: AsyncSession) -> None:
@@ -162,7 +171,7 @@ class TestRequireSufficientBalance:
         """No balance check when metering_enabled=False."""
         await _create_test_user(db_session, _ZERO_BALANCE)
 
-        with patch("app.api.deps.settings") as mock_settings:
+        with patch(_SETTINGS_PATCH) as mock_settings:
             mock_settings.metering_enabled = False
             # Should NOT raise even with zero balance
             await require_sufficient_balance(TEST_USER_ID, db_session)
@@ -173,9 +182,9 @@ class TestRequireSufficientBalance:
         """Balance below custom threshold is blocked."""
         await _create_test_user(db_session, Decimal("0.030000"))
 
-        with patch("app.api.deps.settings") as mock_settings:
+        with patch(_SETTINGS_PATCH) as mock_settings:
             mock_settings.metering_enabled = True
-            mock_settings.metering_minimum_balance = 0.05
+            mock_settings.metering_minimum_balance = _CUSTOM_THRESHOLD
 
             with pytest.raises(InsufficientBalanceError):
                 await require_sufficient_balance(TEST_USER_ID, db_session)
@@ -186,9 +195,9 @@ class TestRequireSufficientBalance:
         """Balance above custom threshold is allowed."""
         await _create_test_user(db_session, Decimal("1.000000"))
 
-        with patch("app.api.deps.settings") as mock_settings:
+        with patch(_SETTINGS_PATCH) as mock_settings:
             mock_settings.metering_enabled = True
-            mock_settings.metering_minimum_balance = 0.05
+            mock_settings.metering_minimum_balance = _CUSTOM_THRESHOLD
 
             await require_sufficient_balance(TEST_USER_ID, db_session)
 
@@ -196,11 +205,11 @@ class TestRequireSufficientBalance:
         self, db_session: AsyncSession
     ) -> None:
         """Balance exactly equal to threshold is blocked (strict >)."""
-        await _create_test_user(db_session, Decimal("0.050000"))
+        await _create_test_user(db_session, _CUSTOM_THRESHOLD_DECIMAL)
 
-        with patch("app.api.deps.settings") as mock_settings:
+        with patch(_SETTINGS_PATCH) as mock_settings:
             mock_settings.metering_enabled = True
-            mock_settings.metering_minimum_balance = 0.05
+            mock_settings.metering_minimum_balance = _CUSTOM_THRESHOLD
 
             with pytest.raises(InsufficientBalanceError):
                 await require_sufficient_balance(TEST_USER_ID, db_session)
@@ -215,3 +224,94 @@ class TestRequireSufficientBalance:
         missing_id = uuid.UUID("11111111-2222-3333-4444-555555555555")
         with pytest.raises(InsufficientBalanceError):
             await require_sufficient_balance(missing_id, db_session)
+
+
+# =============================================================================
+# require_sufficient_balance — held balance (REQ-030 §6.1)
+# =============================================================================
+
+
+class TestRequireSufficientBalanceHeld:
+    """REQ-030 §6.1: available = balance_usd - held_balance_usd."""
+
+    async def test_held_balance_reduces_available(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Held balance makes otherwise-sufficient balance insufficient.
+
+        balance=5.00, held=5.00 → available=0.00 → blocks (≤ threshold 0).
+        """
+        await _create_test_user(db_session, _FIVE_DOLLARS, held=_FIVE_DOLLARS)
+        with pytest.raises(InsufficientBalanceError):
+            await require_sufficient_balance(TEST_USER_ID, db_session)
+
+    async def test_allows_when_available_after_hold(
+        self, db_session: AsyncSession
+    ) -> None:
+        """User passes when balance minus held is still positive.
+
+        balance=10.00, held=3.00 → available=7.00 → passes.
+        """
+        await _create_test_user(
+            db_session, Decimal("10.000000"), held=Decimal("3.000000")
+        )
+        await require_sufficient_balance(TEST_USER_ID, db_session)
+
+    async def test_zero_held_unchanged_from_no_held(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Zero held balance behaves identically to pre-REQ-030 behavior.
+
+        balance=5.00, held=0.00 → available=5.00 → passes.
+        """
+        await _create_test_user(db_session, _FIVE_DOLLARS, held=_ZERO_BALANCE)
+        await require_sufficient_balance(TEST_USER_ID, db_session)
+
+    async def test_error_reports_available_not_total(
+        self, db_session: AsyncSession
+    ) -> None:
+        """InsufficientBalanceError reports available balance, not total.
+
+        REQ-030 §6.1: Users see spendable balance, not gross balance.
+        balance=5.00, held=5.00 → available=0.00 → error shows $0.00.
+        """
+        await _create_test_user(db_session, _FIVE_DOLLARS, held=_FIVE_DOLLARS)
+        with pytest.raises(InsufficientBalanceError) as exc_info:
+            await require_sufficient_balance(TEST_USER_ID, db_session)
+        assert "$0.00" in exc_info.value.message
+        assert exc_info.value.details is not None
+        assert exc_info.value.details[0]["balance_usd"] == "0.000000"
+
+    async def test_negative_available_clamped_to_zero(
+        self, db_session: AsyncSession
+    ) -> None:
+        """When held exceeds balance, available is clamped to zero.
+
+        balance=1.00, held=3.00 → raw=-2.00 → clamped to 0.00.
+        Error shows $0.00, never a negative dollar amount.
+        """
+        await _create_test_user(
+            db_session, Decimal("1.000000"), held=Decimal("3.000000")
+        )
+        with pytest.raises(InsufficientBalanceError) as exc_info:
+            await require_sufficient_balance(TEST_USER_ID, db_session)
+        assert "$0.00" in exc_info.value.message
+        assert exc_info.value.details is not None
+        assert Decimal(exc_info.value.details[0]["balance_usd"]) >= 0
+
+    async def test_held_balance_with_custom_threshold(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Available balance checked against custom threshold.
+
+        balance=1.00, held=0.96 → available=0.04 → below 0.05 threshold.
+        """
+        await _create_test_user(
+            db_session, Decimal("1.000000"), held=Decimal("0.960000")
+        )
+        with patch(_SETTINGS_PATCH) as mock_settings:
+            mock_settings.metering_enabled = True
+            mock_settings.metering_minimum_balance = _CUSTOM_THRESHOLD
+
+            with pytest.raises(InsufficientBalanceError):
+                await require_sufficient_balance(TEST_USER_ID, db_session)
