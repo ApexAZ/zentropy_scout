@@ -3,6 +3,10 @@
 REQ-030 §4.2: UsageReservation tracks estimated cost holds placed before
 LLM API calls. Reservations are created as 'held', then settled (success),
 released (LLM failure), or marked stale (TTL exceeded).
+
+REQ-030 §5.8: Response metadata columns (response_model, response_input_tokens,
+response_output_tokens, call_completed_at) support the outbox pattern for
+settlement retry — persisted after a successful LLM call, before settle().
 """
 
 import uuid
@@ -46,6 +50,10 @@ class UsageReservation(Base):
         max_tokens: Upper bound used for cost estimation.
         created_at: When the reservation was created.
         settled_at: When settlement or release occurred.
+        response_model: Exact model from LLM response (outbox pattern, §5.8).
+        response_input_tokens: Actual input tokens from LLM response.
+        response_output_tokens: Actual output tokens from LLM response.
+        call_completed_at: When the LLM/embedding call succeeded.
     """
 
     __tablename__ = "usage_reservations"
@@ -61,6 +69,21 @@ class UsageReservation(Base):
         CheckConstraint(
             "actual_cost_usd IS NULL OR actual_cost_usd >= 0",
             name="ck_reservation_actual_nonneg",
+        ),
+        CheckConstraint(
+            "response_input_tokens IS NULL OR response_input_tokens >= 0",
+            name="ck_reservation_resp_input_tokens_nonneg",
+        ),
+        CheckConstraint(
+            "response_output_tokens IS NULL OR response_output_tokens >= 0",
+            name="ck_reservation_resp_output_tokens_nonneg",
+        ),
+        CheckConstraint(
+            "(call_completed_at IS NULL AND response_model IS NULL "
+            "AND response_input_tokens IS NULL AND response_output_tokens IS NULL) "
+            "OR (call_completed_at IS NOT NULL AND response_model IS NOT NULL "
+            "AND response_input_tokens IS NOT NULL AND response_output_tokens IS NOT NULL)",
+            name="ck_reservation_response_metadata_complete",
         ),
         Index(
             "ix_reservation_user_status",
@@ -119,6 +142,25 @@ class UsageReservation(Base):
         nullable=False,
     )
     settled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # REQ-030 §5.8: Response metadata for settlement retry (outbox pattern).
+    # Populated after successful LLM/embedding call, before settle().
+    response_model: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+    response_input_tokens: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    response_output_tokens: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    call_completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

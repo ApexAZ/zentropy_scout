@@ -5,6 +5,9 @@ pattern — pre-debit reservation before LLM call, settlement after.
 REQ-030 §5.6: stream() logs warning about unmetered streaming.
 REQ-030 §5.7: MeteredEmbeddingProvider.embed() uses reserve→embed→settle
 pattern with token estimation heuristic.
+REQ-030 §5.8: Both providers call persist_response_metadata() after
+successful LLM/embed call but before settle() — outbox pattern for
+settlement retry by background sweep.
 REQ-028 §4: Cross-provider dispatch via registry — routes each
 task to the correct provider+model based on DB routing table.
 """
@@ -30,6 +33,10 @@ logger = logging.getLogger(__name__)
 _RELEASE_FAILED_LOG = "Release also failed for user %s — hold orphaned until sweep"
 _SETTLE_FAILED_LOG = (
     "Unexpected settlement error for user %s — %s returned, hold orphaned until sweep"
+)
+_PERSIST_FAILED_LOG = (
+    "persist_response_metadata failed for user %s — "
+    "settlement will proceed without outbox data"
 )
 
 
@@ -174,7 +181,19 @@ class MeteredLLMProvider(LLMProvider):
                 logger.exception(_RELEASE_FAILED_LOG, self._user_id)
             raise
 
-        # 4. Settle with actual cost. settle() catches expected errors
+        # 4. Persist response metadata (outbox pattern — REQ-030 §5.8).
+        # Best-effort: failure must not block settle() or response return.
+        try:
+            await self._metering_service.persist_response_metadata(
+                reservation=reservation,
+                model=response.model,
+                input_tokens=max(0, response.input_tokens),
+                output_tokens=max(0, response.output_tokens),
+            )
+        except Exception:
+            logger.exception(_PERSIST_FAILED_LOG, self._user_id)
+
+        # 5. Settle with actual cost. settle() catches expected errors
         # (SQLAlchemyError, pricing errors) internally. Unexpected errors
         # (AF-07: programming bugs) propagate — catch them here so the
         # LLM response is still returned to the user.
@@ -330,7 +349,19 @@ class MeteredEmbeddingProvider(EmbeddingProvider):
                 result.total_tokens,
             )
 
-        # 5. Settle with actual cost. settle() catches expected errors
+        # 5. Persist response metadata (outbox pattern — REQ-030 §5.8).
+        # Best-effort: failure must not block settle() or result return.
+        try:
+            await self._metering_service.persist_response_metadata(
+                reservation=reservation,
+                model=result.model,
+                input_tokens=max(0, input_tokens),
+                output_tokens=0,
+            )
+        except Exception:
+            logger.exception(_PERSIST_FAILED_LOG, self._user_id)
+
+        # 6. Settle with actual cost. settle() catches expected errors
         # internally. Unexpected errors (AF-07) propagate — catch here
         # so the embedding result is still returned.
         try:

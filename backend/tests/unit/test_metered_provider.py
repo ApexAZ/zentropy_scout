@@ -5,6 +5,8 @@ pattern — pre-debit reservation before LLM call, settlement after.
 REQ-030 §5.6: stream() logs warning about unmetered streaming.
 REQ-030 §5.7: MeteredEmbeddingProvider.embed() uses reserve→embed→settle
 pattern with token estimation heuristic.
+REQ-030 §5.8: persist_response_metadata() called after successful LLM/embed
+call but before settle() — outbox pattern for settlement retry.
 REQ-028 §4: Cross-provider dispatch via registry.
 """
 
@@ -45,11 +47,12 @@ _EMBED_HELLO = ["Hello"]
 
 @pytest.fixture
 def mock_metering() -> AsyncMock:
-    """Create a mock MeteringService with reserve/settle/release."""
+    """Create a mock MeteringService with reserve/settle/release/persist."""
     service = AsyncMock()
     service.reserve = AsyncMock(return_value=MagicMock())
     service.settle = AsyncMock(return_value=None)
     service.release = AsyncMock(return_value=None)
+    service.persist_response_metadata = AsyncMock(return_value=None)
     return service
 
 
@@ -234,6 +237,120 @@ class TestMeteredLLMProviderComplete:
         await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
         call_kwargs = mock_metering.reserve.call_args.kwargs
         assert call_kwargs["max_tokens"] is None
+
+
+# =============================================================================
+# MeteredLLMProvider — persist_response_metadata (REQ-030 §5.8)
+# =============================================================================
+
+
+class TestMeteredLLMProviderPersistMetadata:
+    """REQ-030 §5.8: persist_response_metadata called after LLM success, before settle."""
+
+    async def test_persist_called_with_correct_args(
+        self, metered_llm: MeteredLLMProvider, mock_metering: AsyncMock
+    ) -> None:
+        """persist_response_metadata receives reservation, model, and token counts."""
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        mock_metering.persist_response_metadata.assert_called_once_with(
+            reservation=mock_metering.reserve.return_value,
+            model=_MOCK_MODEL,
+            input_tokens=100,
+            output_tokens=50,
+        )
+
+    async def test_persist_not_called_on_provider_failure(
+        self,
+        metered_llm: MeteredLLMProvider,
+        inner_llm: MockLLMProvider,
+        mock_metering: AsyncMock,
+    ) -> None:
+        """persist_response_metadata is NOT called when the LLM call fails."""
+        inner_llm.complete = AsyncMock(side_effect=RuntimeError(_PROVIDER_UNAVAILABLE))
+        with pytest.raises(RuntimeError, match=_PROVIDER_UNAVAILABLE):
+            await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        mock_metering.persist_response_metadata.assert_not_called()
+
+    async def test_persist_failure_does_not_block_settle(
+        self, metered_llm: MeteredLLMProvider, mock_metering: AsyncMock
+    ) -> None:
+        """If persist_response_metadata raises, settle() is still called."""
+        mock_metering.persist_response_metadata.side_effect = RuntimeError(
+            _DB_ERROR_MSG
+        )
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        mock_metering.settle.assert_called_once()
+
+    async def test_persist_failure_does_not_block_response(
+        self, metered_llm: MeteredLLMProvider, mock_metering: AsyncMock
+    ) -> None:
+        """If persist_response_metadata raises, response is still returned."""
+        mock_metering.persist_response_metadata.side_effect = RuntimeError(
+            _DB_ERROR_MSG
+        )
+        response = await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        assert response.model == _MOCK_MODEL
+
+    async def test_persist_failure_logs_error(
+        self,
+        metered_llm: MeteredLLMProvider,
+        mock_metering: AsyncMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """persist_response_metadata failure is logged at error level."""
+        mock_metering.persist_response_metadata.side_effect = RuntimeError(
+            _DB_ERROR_MSG
+        )
+        with caplog.at_level(logging.ERROR):
+            await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        assert any(
+            "persist_response_metadata" in record.message for record in caplog.records
+        )
+
+    async def test_persist_called_before_settle(
+        self, metered_llm: MeteredLLMProvider, mock_metering: AsyncMock
+    ) -> None:
+        """persist_response_metadata is called before settle (call ordering)."""
+        call_order: list[str] = []
+        mock_metering.persist_response_metadata.side_effect = (
+            lambda **_: call_order.append("persist")
+        )
+        mock_metering.settle.side_effect = lambda **_: call_order.append("settle")
+        await metered_llm.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        assert call_order == ["persist", "settle"]
+
+    async def test_persist_clamps_negative_tokens(
+        self,
+        inner_llm: MockLLMProvider,
+        llm_registry: dict[str, MockLLMProvider],
+        mock_metering: AsyncMock,
+        mock_admin_config: AsyncMock,
+    ) -> None:
+        """Negative token counts are clamped to 0 via max(0, ...) guard."""
+        from app.providers.llm.base import LLMResponse
+
+        inner_llm.complete = AsyncMock(
+            return_value=LLMResponse(
+                content="ok",
+                model=_MOCK_MODEL,
+                input_tokens=-5,
+                output_tokens=-3,
+                finish_reason="stop",
+                latency_ms=100.0,
+            )
+        )
+        provider = MeteredLLMProvider(
+            inner_llm,
+            llm_registry,
+            mock_metering,
+            mock_admin_config,
+            TEST_USER_ID,
+            credits_enabled=False,
+        )
+        await provider.complete(_HELLO_MESSAGES, TaskType.EXTRACTION)
+        call_kwargs = mock_metering.persist_response_metadata.call_args.kwargs
+        assert call_kwargs["input_tokens"] == 0
+        assert call_kwargs["output_tokens"] == 0
 
 
 # =============================================================================
@@ -654,6 +771,111 @@ class TestMeteredEmbeddingProviderEmbed:
         """Embedding settle() always passes output_tokens=0."""
         await metered_embedding.embed(_EMBED_HELLO)
         call_kwargs = mock_metering.settle.call_args.kwargs
+        assert call_kwargs["output_tokens"] == 0
+
+
+# =============================================================================
+# MeteredEmbeddingProvider — persist_response_metadata (REQ-030 §5.8)
+# =============================================================================
+
+
+class TestMeteredEmbeddingProviderPersistMetadata:
+    """REQ-030 §5.8: persist_response_metadata called after embed success, before settle."""
+
+    async def test_persist_called_with_correct_args(
+        self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
+    ) -> None:
+        """persist_response_metadata receives reservation, model, tokens (output=0)."""
+        await metered_embedding.embed(_EMBED_HELLO)
+        mock_metering.persist_response_metadata.assert_called_once_with(
+            reservation=mock_metering.reserve.return_value,
+            model=_MOCK_EMBEDDING_MODEL,
+            input_tokens=10,  # MockEmbeddingProvider: len(texts) * 10
+            output_tokens=0,
+        )
+
+    async def test_persist_not_called_on_embed_failure(
+        self,
+        metered_embedding: MeteredEmbeddingProvider,
+        inner_embedding: MockEmbeddingProvider,
+        mock_metering: AsyncMock,
+    ) -> None:
+        """persist_response_metadata is NOT called when the embed call fails."""
+        inner_embedding.embed = AsyncMock(
+            side_effect=RuntimeError(_EMBEDDING_SERVICE_DOWN)
+        )
+        with pytest.raises(RuntimeError, match=_EMBEDDING_SERVICE_DOWN):
+            await metered_embedding.embed(_EMBED_HELLO)
+        mock_metering.persist_response_metadata.assert_not_called()
+
+    async def test_persist_failure_does_not_block_settle(
+        self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
+    ) -> None:
+        """If persist_response_metadata raises, settle() is still called."""
+        mock_metering.persist_response_metadata.side_effect = RuntimeError(
+            _DB_ERROR_MSG
+        )
+        await metered_embedding.embed(_EMBED_HELLO)
+        mock_metering.settle.assert_called_once()
+
+    async def test_persist_failure_does_not_block_result(
+        self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
+    ) -> None:
+        """If persist_response_metadata raises, embedding result is still returned."""
+        mock_metering.persist_response_metadata.side_effect = RuntimeError(
+            _DB_ERROR_MSG
+        )
+        result = await metered_embedding.embed(_EMBED_HELLO)
+        assert result.model == _MOCK_EMBEDDING_MODEL
+
+    async def test_persist_failure_logs_error(
+        self,
+        metered_embedding: MeteredEmbeddingProvider,
+        mock_metering: AsyncMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """persist_response_metadata failure is logged at error level."""
+        mock_metering.persist_response_metadata.side_effect = RuntimeError(
+            _DB_ERROR_MSG
+        )
+        with caplog.at_level(logging.ERROR):
+            await metered_embedding.embed(_EMBED_HELLO)
+        assert any(
+            "persist_response_metadata" in record.message for record in caplog.records
+        )
+
+    async def test_persist_called_before_settle(
+        self, metered_embedding: MeteredEmbeddingProvider, mock_metering: AsyncMock
+    ) -> None:
+        """persist_response_metadata is called before settle (call ordering)."""
+        call_order: list[str] = []
+        mock_metering.persist_response_metadata.side_effect = (
+            lambda **_: call_order.append("persist")
+        )
+        mock_metering.settle.side_effect = lambda **_: call_order.append("settle")
+        await metered_embedding.embed(_EMBED_HELLO)
+        assert call_order == ["persist", "settle"]
+
+    async def test_persist_clamps_negative_tokens(
+        self,
+        metered_embedding: MeteredEmbeddingProvider,
+        inner_embedding: MockEmbeddingProvider,
+        mock_metering: AsyncMock,
+    ) -> None:
+        """Negative input tokens from provider are clamped to 0 via max(0, ...)."""
+        original_embed = inner_embedding.embed
+
+        async def embed_with_neg_tokens(texts: list[str]) -> EmbeddingResult:
+            result = await original_embed(texts)
+            result.total_tokens = -1
+            return result
+
+        inner_embedding.embed = embed_with_neg_tokens  # type: ignore[assignment]
+
+        await metered_embedding.embed(["Hello world"])  # len=11, estimate=2
+        call_kwargs = mock_metering.persist_response_metadata.call_args.kwargs
+        # When total_tokens is -1, falls back to estimate (2), but max(0, 2) = 2
+        assert call_kwargs["input_tokens"] == 2
         assert call_kwargs["output_tokens"] == 0
 
 
