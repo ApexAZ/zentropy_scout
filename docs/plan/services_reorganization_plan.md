@@ -162,7 +162,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 4: generation/ (24 files)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Largest domain. Heavy internal cross-references. Split into 3 tasks by subgroup: cover letter pipeline, resume pipeline, edge cases + quality.*
 
@@ -182,7 +182,7 @@ Phase 9: Final Verification + Cleanup
 | 12 | **Move generation/ — orchestration + resume (10 files)** — Create `services/generation/__init__.py`. `git mv` content_generation_service, resume_generation_service, resume_tailoring_service, ghostwriter_triggers, base_resume_selection, tailoring_decision, bullet_reordering, modification_limits, content_utils, voice_prompt_block. Update internal cross-refs and external imports (routers: base_resumes, job_variants; providers; test files). Verify `pytest -v` passes. | `plan` | ✅ |
 | 13 | **Move generation/ — cover letter pipeline (7 files)** — `git mv` cover_letter_generation, cover_letter_structure, cover_letter_output, cover_letter_validation, voice_validation, story_selection, reasoning_explanation. Update internal cross-refs (cover_letter_output → cover_letter_validation, cover_letter_validation → cover_letter_structure, story_selection → content_utils, content_generation_service refs). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ✅ |
 | 14 | **Move generation/ — edge cases + quality (7 files)** — `git mv` regeneration, data_availability, job_expiry, persona_change, duplicate_story, quality_metrics, generation_outcome. Update internal cross-refs (generation_outcome → regeneration). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ✅ |
-| 15 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 15 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - content_generation_service imports from 5+ generation files — move it in the first batch so internal refs within generation/ get fixed early
