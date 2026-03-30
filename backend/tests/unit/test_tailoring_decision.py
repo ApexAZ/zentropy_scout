@@ -11,7 +11,7 @@ bullet relevance mismatches, producing a TailoringDecision with action
 
 import pytest
 
-from app.services.tailoring_decision import (
+from app.services.generation.tailoring_decision import (
     BulletSkillData,
     evaluate_tailoring_need,
 )

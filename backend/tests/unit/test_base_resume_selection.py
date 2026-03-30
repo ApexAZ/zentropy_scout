@@ -16,7 +16,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.services.base_resume_selection import (
+from app.services.generation.base_resume_selection import (
     role_type_matches,
     select_base_resume,
 )

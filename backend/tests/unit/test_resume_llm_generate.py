@@ -24,6 +24,10 @@ import pytest
 
 from app.providers.errors import ProviderError
 from app.providers.llm.base import TaskType
+from app.services.generation.resume_generation_service import (
+    ResumeGenerationError,
+    llm_generate,
+)
 from app.services.pdf_generation import (
     ResumeCertificationEntry,
     ResumeContactInfo,
@@ -32,13 +36,9 @@ from app.services.pdf_generation import (
     ResumeJobEntry,
     ResumeSkillEntry,
 )
-from app.services.resume_generation_service import (
-    ResumeGenerationError,
-    llm_generate,
-)
 
 # Module path for patching
-_MODULE = "app.services.resume_generation_service"
+_MODULE = "app.services.generation.resume_generation_service"
 _MOCK_VOICE_BLOCK = "<voice_profile>...</voice_profile>"
 _MOCK_PROMPT = "mocked prompt"
 

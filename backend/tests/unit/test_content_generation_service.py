@@ -19,14 +19,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.core.errors import ValidationError
-from app.services.content_generation_service import (
+from app.services.generation.content_generation_service import (
     ContentGenerationService,
     GenerationResult,
 )
-from app.services.ghostwriter_triggers import TriggerType
+from app.services.generation.ghostwriter_triggers import TriggerType
 
 # Module path for patching
-_MODULE = "app.services.content_generation_service"
+_MODULE = "app.services.generation.content_generation_service"
 
 # Test constants
 _USER_ID = "user-1"

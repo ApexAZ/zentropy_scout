@@ -21,6 +21,7 @@ import re
 from datetime import date
 from unittest.mock import AsyncMock, patch
 
+from app.services.generation.resume_generation_service import template_fill
 from app.services.pdf_generation import (
     ResumeCertificationEntry,
     ResumeContactInfo,
@@ -29,10 +30,9 @@ from app.services.pdf_generation import (
     ResumeJobEntry,
     ResumeSkillEntry,
 )
-from app.services.resume_generation_service import template_fill
 
 # Module path for patching
-_MODULE = "app.services.resume_generation_service"
+_MODULE = "app.services.generation.resume_generation_service"
 _GATHER_TARGET = f"{_MODULE}.gather_base_resume_content"
 
 # ---------------------------------------------------------------------------

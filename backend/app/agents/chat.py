@@ -707,7 +707,9 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
     Returns:
         State with ghostwriter result in tool_results.
     """
-    from app.services.content_generation_service import ContentGenerationService
+    from app.services.generation.content_generation_service import (
+        ContentGenerationService,
+    )
 
     new_state = _copy_state(state)
 

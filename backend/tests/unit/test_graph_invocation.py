@@ -18,7 +18,7 @@ _USER_ID = "user-123"
 _PERSONA_ID = "persona-456"
 _JOB_ID = "job-789"
 _PATCH_CONTENT_GEN_SERVICE = (
-    "app.services.content_generation_service.ContentGenerationService"
+    "app.services.generation.content_generation_service.ContentGenerationService"
 )
 
 

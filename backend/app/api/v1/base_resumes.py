@@ -25,10 +25,13 @@ from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models import BaseResume, Persona
 from app.models.resume_template import ResumeTemplate
 from app.schemas.resume import GenerateResumeRequest, GenerateResumeResponse
+from app.services.generation.resume_generation_service import (
+    llm_generate,
+    template_fill,
+)
 from app.services.markdown_docx_renderer import render_docx
 from app.services.markdown_pdf_renderer import render_pdf
 from app.services.pdf_generation import render_base_resume_pdf
-from app.services.resume_generation_service import llm_generate, template_fill
 
 _MAX_JSONB_LIST_LENGTH = 200
 """Safety bound on JSONB list field lengths (defense-in-depth)."""

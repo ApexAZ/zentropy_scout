@@ -9,7 +9,7 @@ quantified outcome bonus (20%), and recency boost (10%).
 
 import pytest
 
-from app.services.bullet_reordering import (
+from app.services.generation.bullet_reordering import (
     BulletData,
     calculate_bullet_relevance,
     reorder_bullets_for_job,
@@ -257,7 +257,9 @@ class TestCombinedScoring:
             has_metrics=True,
             is_current_job=True,
         )
-        with patch("app.services.bullet_reordering._SKILL_OVERLAP_WEIGHT", 0.8):
+        with patch(
+            "app.services.generation.bullet_reordering._SKILL_OVERLAP_WEIGHT", 0.8
+        ):
             score = calculate_bullet_relevance(
                 bullet=bullet,
                 job_skills={"python", "sql"},

@@ -25,7 +25,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import date
 
-from app.services.content_utils import has_metrics
+from app.services.generation.content_utils import has_metrics
 
 logger = logging.getLogger(__name__)
 
