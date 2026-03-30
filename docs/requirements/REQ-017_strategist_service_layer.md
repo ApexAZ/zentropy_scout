@@ -4,7 +4,7 @@
 **Version:** 1.0
 **Supersedes:** REQ-007 §7 (Strategist Agent), §15.4 (Strategist Agent Graph)
 **PRD Reference:** §4.3 Strategist
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-29
 
 ---
 
@@ -479,5 +479,6 @@ Code-only changes. No database schema modifications. Git revert restores previou
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-03-29 | 0.3 | Errata: Service files reorganized into domain subdirectories per REQ-031. `fit_score.py`, `stretch_score.py`, `non_negotiables_filter.py`, `scoring_flow.py`, `score_types.py`, `score_explanation.py`, `score_correlation.py`, `job_scoring_service.py`, `batch_scoring.py`, `pool_scoring.py`, `hard_skills_match.py`, `soft_skills_match.py`, `experience_level.py`, `role_title_match.py`, `location_logistics.py`, `explanation_generation.py`, `golden_set.py` → `services/scoring/`. See REQ-031 §5 for complete mapping. |
 | 2026-02-23 | 0.2 | Audit fixes: added 2 missing test files to §11 (test_batch_scoring, test_score_correlation), fixed ScoreResult destination to score_types.py, fixed E2E test counts, added cross-REQ implementation order to §2. |
 | 2026-02-23 | 0.1 | Initial draft. Specifies replacement of LangGraph Strategist with `JobScoringService`. |

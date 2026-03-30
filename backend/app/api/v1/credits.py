@@ -27,7 +27,7 @@ from app.schemas.credits import (
     PurchaseResponse,
     format_usd_display,
 )
-from app.services.stripe_service import create_checkout_session
+from app.services.billing.stripe_service import create_checkout_session
 
 router = APIRouter()
 

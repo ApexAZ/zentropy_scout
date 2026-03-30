@@ -22,8 +22,8 @@ import uuid
 from collections import OrderedDict
 from dataclasses import dataclass
 
-from app.services.embedding_storage import compute_source_hash
-from app.services.persona_embedding_generator import PersonaEmbeddingsResult
+from app.services.embedding.persona_generator import PersonaEmbeddingsResult
+from app.services.embedding.storage import compute_source_hash
 
 # =============================================================================
 # Constants

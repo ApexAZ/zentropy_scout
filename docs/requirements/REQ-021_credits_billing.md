@@ -1,10 +1,10 @@
 # REQ-021: Credits & Billing
 
 **Status:** Not Started
-**Version:** 0.6
+**Version:** 0.7
 **PRD Reference:** §6 Technical Architecture
 **Backlog Item:** #13
-**Last Updated:** 2026-03-10
+**Last Updated:** 2026-03-29
 
 > **Supersession Notice (v0.6):** REQ-029 (Stripe Checkout Integration) supersedes the Stripe SDK and implementation sections of this document. See REQ-029 §1 for the precise traceability map. This document remains the authoritative source for design decision rationale (§2), signup grant integration points (§8), frontend UX patterns (§9.3 Suspense/toast/query keys), webhook rate limiting rationale (§11.2), and resolved questions (§15). When REQ-021 and REQ-029 conflict, **REQ-029 takes precedence**.
 >
@@ -1019,3 +1019,4 @@ No new frontend dependencies. The hosted redirect flow uses `window.location.hre
 | 2026-03-02 | 0.4 | **Errata: USD-direct billing replaces abstract credits.** Design review (documented in backlog PBI #19 and REQ-023) rejected abstract credits in favor of USD-direct billing. Key changes: (1) All "abstract credits" references replaced with USD amounts throughout. (2) Pack definitions updated from $5/50K, $15/175K, $40/500K with volume bonuses to $5/$10/$15 dollar-for-dollar with volume-based descriptions. (3) `signup_grant_credits` → `signup_grant_cents` (10 = $0.10 default). (4) Display strings changed from "50,000 credits" to "$5.00". (5) Column renames cancelled — `balance_usd` and `amount_usd` are correct as-is. (6) Dependencies updated: backlog #19 now provides corrected seed data and config key (REQ-023), not `credits_per_dollar` and formatting utility. (7) Resolved question #4 changed from "Abstract credits" to "USD-direct." (8) Added errata notice to §1. See REQ-023 §6.1 for full change map. |
 | 2026-03-10 | 0.6 | **REQ-029 supersession + errata.** (1) Added supersession notice — REQ-029 supersedes Stripe SDK/implementation sections; REQ-021 remains authoritative for design rationale, signup grant integration points, frontend UX patterns, webhook rate limiting rationale, and resolved questions. (2) Added `**Backlog Item:** #13` header field. (3) Fixed `funding_packs.stripe_price_id` from `NOT NULL` to nullable — matches actual schema (column is nullable until admin configures Stripe). (4) Marked REQ-023 as ✅ in §3.3 prerequisite order. (5) Fixed all frontend page routes from `/credits` to `/usage` — the actual page lives at `frontend/src/app/(main)/usage/page.tsx`, not `/credits`. Affects §7.2 redirect URLs, §9.1 route, §9.2 redirect flows, §9.3 `router.replace()` calls, §9.4 nav link. API routes (`/api/v1/credits/*`) are unchanged. |
 | 2026-03-02 | 0.5 | **Naming alignment with REQ-023.** All table/column/metadata references updated to match REQ-023's rename migration (§4.1, §2.3): (1) `credit_packs` → `funding_packs` throughout (§2.2, §3.1, §3.3, §4.3, §5.2, §6.2, §10.1, §15). (2) `credit_amount` → `grant_cents` throughout (§4.3 CREATE TABLE, §5.1 pack definitions, §6.2 service pseudocode, §6.3 metadata, §6.7 SQL, §7.1 JSON responses, §11.4). (3) §4.3 section header renamed "Credit Packs Table" → "Funding Packs Table" with naming history note. (4) Updated errata notice to cover both v0.4 and v0.5. (5) §3.3 prerequisite order now notes REQ-023 handles the rename migration. (6) §5 section header renamed "Credit Packs" → "Funding Packs". |
+| 2026-03-29 | 0.7 | Errata: `stripe_service.py` → `services/billing/stripe_service.py` per REQ-031 (Services Reorganization). See REQ-031 §5 for complete mapping. |

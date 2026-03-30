@@ -3,52 +3,13 @@
 REQ-008 §6.5-6.6: Utilities for embedding storage and staleness detection.
 
 Provides:
-- Embedding type enums for type safety
 - Source hash computation for staleness detection
 - Freshness check for detecting stale embeddings
+
+Embedding type enums are defined in embedding/types.py (REQ-031 §6.2).
 """
 
 import hashlib
-from enum import Enum
-
-# =============================================================================
-# Embedding Type Enums
-# =============================================================================
-
-
-class PersonaEmbeddingType(str, Enum):
-    """Types of persona embeddings.
-
-    REQ-008 §6.3: Three embedding types per persona.
-
-    Values:
-        HARD_SKILLS: Technical skills with proficiency levels.
-        SOFT_SKILLS: Soft skills (names only, no proficiency).
-        LOGISTICS: Location, remote preference, exclusions.
-    """
-
-    HARD_SKILLS = "hard_skills"
-    SOFT_SKILLS = "soft_skills"
-    LOGISTICS = "logistics"
-
-
-class JobEmbeddingType(str, Enum):
-    """Types of job embeddings.
-
-    REQ-008 §6.4: Two embedding types per job.
-
-    Values:
-        REQUIREMENTS: Required/preferred skills with experience levels.
-        CULTURE: Company values and culture text.
-    """
-
-    REQUIREMENTS = "requirements"
-    CULTURE = "culture"
-
-
-# Union type for any embedding type
-EmbeddingType = PersonaEmbeddingType | JobEmbeddingType
-
 
 # =============================================================================
 # Source Hash Computation

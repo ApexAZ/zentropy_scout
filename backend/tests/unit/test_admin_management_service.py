@@ -22,7 +22,7 @@ from app.models.admin_config import (
     TaskRoutingConfig,
 )
 from app.models.user import User
-from app.services.admin_management_service import AdminManagementService
+from app.services.admin.admin_management_service import AdminManagementService
 
 # ---------------------------------------------------------------------------
 # Constants

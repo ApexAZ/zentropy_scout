@@ -15,7 +15,7 @@ from app.models.admin_config import FundingPack
 from app.models.stripe import StripePurchase
 from app.models.usage import CreditTransaction
 from app.models.user import User
-from app.services.stripe_webhook_service import handle_charge_refunded
+from app.services.billing.stripe_webhook_service import handle_charge_refunded
 
 # ===============================================================================
 # Constants & Helpers (duplicated from test_stripe_webhook_refund.py)
@@ -135,7 +135,7 @@ class TestRefundSavepointAtomicity:
         event = _make_refund_event()
 
         with patch(
-            "app.services.stripe_webhook_service.StripePurchaseRepository.mark_refunded",
+            "app.services.billing.stripe_webhook_service.StripePurchaseRepository.mark_refunded",
             side_effect=RuntimeError("simulated DB failure"),
         ):
             # Handler catches all exceptions (never-raise contract)
@@ -240,7 +240,7 @@ class TestNullPaymentIntentGuard:
         _user, _purchase = await _setup_completed_purchase(db_session)
         event = _make_refund_event(payment_intent=None)
 
-        with patch("app.services.stripe_webhook_service.logger") as mock_logger:
+        with patch("app.services.billing.stripe_webhook_service.logger") as mock_logger:
             await handle_charge_refunded(db_session, event=event)
 
         mock_logger.error.assert_called_once()

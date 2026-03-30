@@ -11,7 +11,7 @@ Tests cover:
 
 from app.models.job_posting import JobEmbedding
 from app.models.persona_settings import PersonaEmbedding
-from app.services.embedding_storage import compute_source_hash
+from app.services.embedding.storage import compute_source_hash
 
 # =============================================================================
 # Source Hash Tests

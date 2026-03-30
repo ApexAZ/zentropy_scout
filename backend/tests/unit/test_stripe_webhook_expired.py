@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.admin_config import FundingPack
 from app.models.stripe import StripePurchase
 from app.models.user import User
-from app.services.stripe_webhook_service import handle_checkout_expired
+from app.services.billing.stripe_webhook_service import handle_checkout_expired
 
 # ===============================================================================
 # Constants & Helpers
@@ -165,10 +165,10 @@ class TestHandleCheckoutExpiredErrorHandling:
 
         with (
             patch(
-                "app.services.stripe_webhook_service.StripePurchaseRepository.mark_expired",
+                "app.services.billing.stripe_webhook_service.StripePurchaseRepository.mark_expired",
                 side_effect=RuntimeError("simulated DB failure"),
             ),
-            patch("app.services.stripe_webhook_service.logger") as mock_logger,
+            patch("app.services.billing.stripe_webhook_service.logger") as mock_logger,
         ):
             await handle_checkout_expired(db_session, event=event)
 

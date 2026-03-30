@@ -333,7 +333,7 @@ class TestPostCheckout:
         self, auth_client: AsyncClient, db_session: AsyncSession
     ) -> None:
         """Returns STRIPE_ERROR when Stripe API fails."""
-        from app.services.stripe_service import StripeServiceError
+        from app.services.billing.stripe_service import StripeServiceError
 
         pack = await _seed_pack(db_session)
 

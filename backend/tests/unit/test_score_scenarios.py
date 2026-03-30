@@ -38,7 +38,7 @@ from datetime import UTC, datetime
 import pytest
 
 from app.services.batch_scoring import batch_score_jobs
-from app.services.persona_embedding_generator import (
+from app.services.embedding.persona_generator import (
     PersonaEmbeddingData,
     PersonaEmbeddingsResult,
 )

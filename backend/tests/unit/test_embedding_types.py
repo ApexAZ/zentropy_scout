@@ -7,9 +7,11 @@ Zentropy Scout uses five embedding types for job-persona matching:
 - Job: requirements, culture
 """
 
-from app.services.embedding_types import (
+from app.services.embedding.types import (
     EMBEDDING_CONFIGS,
-    EmbeddingType,
+    JobEmbeddingType,
+    PersonaEmbeddingType,
+    get_all_embedding_types,
     get_job_embedding_types,
     get_persona_embedding_types,
 )
@@ -26,11 +28,11 @@ class TestGetPersonaEmbeddingTypes:
         """Returns only persona-related embedding types."""
         types = get_persona_embedding_types()
 
-        assert EmbeddingType.PERSONA_HARD_SKILLS in types
-        assert EmbeddingType.PERSONA_SOFT_SKILLS in types
-        assert EmbeddingType.PERSONA_LOGISTICS in types
-        assert EmbeddingType.JOB_REQUIREMENTS not in types
-        assert EmbeddingType.JOB_CULTURE not in types
+        assert PersonaEmbeddingType.HARD_SKILLS in types
+        assert PersonaEmbeddingType.SOFT_SKILLS in types
+        assert PersonaEmbeddingType.LOGISTICS in types
+        assert JobEmbeddingType.REQUIREMENTS not in types
+        assert JobEmbeddingType.CULTURE not in types
 
 
 class TestGetJobEmbeddingTypes:
@@ -40,11 +42,11 @@ class TestGetJobEmbeddingTypes:
         """Returns only job-related embedding types."""
         types = get_job_embedding_types()
 
-        assert EmbeddingType.JOB_REQUIREMENTS in types
-        assert EmbeddingType.JOB_CULTURE in types
-        assert EmbeddingType.PERSONA_HARD_SKILLS not in types
-        assert EmbeddingType.PERSONA_SOFT_SKILLS not in types
-        assert EmbeddingType.PERSONA_LOGISTICS not in types
+        assert JobEmbeddingType.REQUIREMENTS in types
+        assert JobEmbeddingType.CULTURE in types
+        assert PersonaEmbeddingType.HARD_SKILLS not in types
+        assert PersonaEmbeddingType.SOFT_SKILLS not in types
+        assert PersonaEmbeddingType.LOGISTICS not in types
 
 
 # =============================================================================
@@ -57,7 +59,7 @@ class TestEmbeddingConfigs:
 
     def test_all_types_have_configs(self) -> None:
         """Every embedding type has a configuration entry."""
-        for embed_type in EmbeddingType:
+        for embed_type in get_all_embedding_types():
             assert embed_type in EMBEDDING_CONFIGS, f"Missing config for {embed_type}"
 
     def test_config_has_required_fields(self) -> None:
@@ -68,27 +70,27 @@ class TestEmbeddingConfigs:
 
     def test_persona_hard_skills_config(self) -> None:
         """Persona hard skills config matches REQ-008 §6.1."""
-        config = EMBEDDING_CONFIGS[EmbeddingType.PERSONA_HARD_SKILLS]
+        config = EMBEDDING_CONFIGS[PersonaEmbeddingType.HARD_SKILLS]
         assert "Skill" in config["source"]
         assert "proficiency" in config["description"].lower()
 
     def test_persona_soft_skills_config(self) -> None:
         """Persona soft skills config matches REQ-008 §6.1."""
-        config = EMBEDDING_CONFIGS[EmbeddingType.PERSONA_SOFT_SKILLS]
+        config = EMBEDDING_CONFIGS[PersonaEmbeddingType.SOFT_SKILLS]
         assert "Skill" in config["source"]
 
     def test_persona_logistics_config(self) -> None:
         """Persona logistics config matches REQ-008 §6.1."""
-        config = EMBEDDING_CONFIGS[EmbeddingType.PERSONA_LOGISTICS]
+        config = EMBEDDING_CONFIGS[PersonaEmbeddingType.LOGISTICS]
         assert "NonNegotiables" in config["source"]
 
     def test_job_requirements_config(self) -> None:
         """Job requirements config matches REQ-008 §6.1."""
-        config = EMBEDDING_CONFIGS[EmbeddingType.JOB_REQUIREMENTS]
+        config = EMBEDDING_CONFIGS[JobEmbeddingType.REQUIREMENTS]
         assert "ExtractedSkill" in config["source"]
 
     def test_job_culture_config(self) -> None:
         """Job culture config matches REQ-008 §6.1 (LLM-extracted)."""
-        config = EMBEDDING_CONFIGS[EmbeddingType.JOB_CULTURE]
+        config = EMBEDDING_CONFIGS[JobEmbeddingType.CULTURE]
         # Job culture requires LLM extraction, not structured fields
         assert "LLM" in config["source"] or "extract" in config["source"].lower()

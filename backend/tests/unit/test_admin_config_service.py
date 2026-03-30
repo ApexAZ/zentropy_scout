@@ -19,7 +19,7 @@ from app.models.admin_config import (
     SystemConfig,
     TaskRoutingConfig,
 )
-from app.services.admin_config_service import AdminConfigService
+from app.services.admin.admin_config_service import AdminConfigService
 
 # ---------------------------------------------------------------------------
 # Constants

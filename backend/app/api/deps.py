@@ -32,8 +32,8 @@ from app.providers.factory import (
 )
 from app.providers.llm.base import LLMProvider
 from app.providers.metered_provider import MeteredEmbeddingProvider, MeteredLLMProvider
-from app.services.admin_config_service import AdminConfigService
-from app.services.metering_service import MeteringService
+from app.services.admin.admin_config_service import AdminConfigService
+from app.services.billing.metering_service import MeteringService
 
 # Generic 401 detail — intentionally vague to prevent information leakage.
 # Security: Never include specifics about WHY auth failed (expired, bad sig, etc.).

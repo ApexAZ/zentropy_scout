@@ -23,8 +23,8 @@ from app.providers.errors import ProviderError
 from app.providers.llm.base import LLMMessage, LLMResponse, TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
 from app.providers.metered_provider import MeteredLLMProvider
-from app.services.admin_config_service import AdminConfigService
-from app.services.metering_service import MeteringService
+from app.services.admin.admin_config_service import AdminConfigService
+from app.services.billing.metering_service import MeteringService
 
 # =============================================================================
 # Constants

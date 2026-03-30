@@ -18,7 +18,7 @@ from app.services.batch_scoring import (
     _MAX_BATCH_SIZE,
     batch_score_jobs,
 )
-from app.services.persona_embedding_generator import (
+from app.services.embedding.persona_generator import (
     PersonaEmbeddingData,
     PersonaEmbeddingsResult,
 )

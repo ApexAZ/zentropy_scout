@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.services.persona_embedding_generator import (
+from app.services.embedding.persona_generator import (
     build_hard_skills_text,
     build_logistics_text,
     build_soft_skills_text,
