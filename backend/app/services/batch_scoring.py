@@ -20,17 +20,17 @@ from app.services.embedding.job_generator import (
     get_neutral_embedding,
 )
 from app.services.embedding.persona_generator import PersonaEmbeddingsResult
-from app.services.experience_level import calculate_experience_score
-from app.services.fit_score import FitScoreResult, calculate_fit_score
-from app.services.hard_skills_match import (
+from app.services.scoring.experience_level import calculate_experience_score
+from app.services.scoring.fit_score import FitScoreResult, calculate_fit_score
+from app.services.scoring.hard_skills_match import (
     JobSkillInput,
     PersonaSkillInput,
     calculate_hard_skills_score,
 )
-from app.services.location_logistics import calculate_logistics_score
-from app.services.role_title_match import calculate_role_title_score
-from app.services.soft_skills_match import calculate_soft_skills_score
-from app.services.stretch_score import (
+from app.services.scoring.location_logistics import calculate_logistics_score
+from app.services.scoring.role_title_match import calculate_role_title_score
+from app.services.scoring.soft_skills_match import calculate_soft_skills_score
+from app.services.scoring.stretch_score import (
     StretchScoreResult,
     calculate_growth_trajectory,
     calculate_stretch_score,

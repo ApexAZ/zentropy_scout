@@ -20,7 +20,7 @@ Location modifier (non-remote only):
 - Job NOT in commutable city: score * 0.7 (30% penalty)
 """
 
-from app.services.fit_score import FIT_NEUTRAL_SCORE
+from app.services.scoring.fit_score import FIT_NEUTRAL_SCORE
 
 # =============================================================================
 # Constants

@@ -11,7 +11,7 @@ Tests cover:
 
 import pytest
 
-from app.services.location_logistics import calculate_logistics_score
+from app.services.scoring.location_logistics import calculate_logistics_score
 
 # =============================================================================
 # Work Model Preference Tests — Remote Only

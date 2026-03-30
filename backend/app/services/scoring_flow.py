@@ -24,7 +24,7 @@ from app.services.non_negotiables_filter import (
     check_remote_preference,
     check_visa_sponsorship,
 )
-from app.services.score_types import ScoreResult
+from app.services.scoring.score_types import ScoreResult
 
 _JobT = TypeVar("_JobT", bound="JobFilterDataLike")
 

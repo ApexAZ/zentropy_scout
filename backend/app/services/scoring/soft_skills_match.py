@@ -21,7 +21,7 @@ This scales cosine similarity from [-1, 1] to score [0, 100]:
 
 import math
 
-from app.services.fit_score import FIT_NEUTRAL_SCORE
+from app.services.scoring.fit_score import FIT_NEUTRAL_SCORE
 
 # =============================================================================
 # Constants

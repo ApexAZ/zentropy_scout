@@ -10,7 +10,7 @@ Tests cover:
 
 import pytest
 
-from app.services.hard_skills_match import (
+from app.services.scoring.hard_skills_match import (
     calculate_hard_skills_score,
     get_proficiency_weight,
     normalize_skill,

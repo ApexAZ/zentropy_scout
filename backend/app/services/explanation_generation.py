@@ -12,10 +12,10 @@ after scoring is complete.
 
 from typing import Any, Protocol
 
-from app.services.fit_score import FitScoreResult
-from app.services.hard_skills_match import normalize_skill
-from app.services.score_explanation import ScoreExplanation
-from app.services.stretch_score import StretchScoreResult
+from app.services.scoring.fit_score import FitScoreResult
+from app.services.scoring.hard_skills_match import normalize_skill
+from app.services.scoring.score_explanation import ScoreExplanation
+from app.services.scoring.stretch_score import StretchScoreResult
 
 # =============================================================================
 # Input Size Limits (defense in depth)

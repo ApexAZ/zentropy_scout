@@ -14,7 +14,7 @@ import math
 
 import pytest
 
-from app.services.stretch_score import calculate_stretch_score
+from app.services.scoring.stretch_score import calculate_stretch_score
 
 # =============================================================================
 # Weighted Sum Calculation Tests

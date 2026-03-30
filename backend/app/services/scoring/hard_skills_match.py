@@ -14,7 +14,7 @@ based on proficiency match between user skills and job requirements.
 
 from typing import TypedDict
 
-from app.services.fit_score import FIT_NEUTRAL_SCORE
+from app.services.scoring.fit_score import FIT_NEUTRAL_SCORE
 
 # =============================================================================
 # Type Definitions

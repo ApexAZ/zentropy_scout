@@ -19,19 +19,19 @@ CURRENT behavior without that boost.
 
 from dataclasses import dataclass
 
-from app.services.experience_level import calculate_experience_score
 from app.services.explanation_generation import generate_explanation
-from app.services.fit_score import (
+from app.services.scoring.experience_level import calculate_experience_score
+from app.services.scoring.fit_score import (
     FIT_NEUTRAL_SCORE,
     FitScoreResult,
     calculate_fit_score,
 )
-from app.services.hard_skills_match import (
+from app.services.scoring.hard_skills_match import (
     JobSkillInput,
     PersonaSkillInput,
     calculate_hard_skills_score,
 )
-from app.services.stretch_score import (
+from app.services.scoring.stretch_score import (
     StretchScoreResult,
     calculate_growth_trajectory,
     calculate_stretch_score,

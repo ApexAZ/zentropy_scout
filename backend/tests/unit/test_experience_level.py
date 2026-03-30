@@ -10,7 +10,7 @@ Tests cover:
 
 import pytest
 
-from app.services.experience_level import calculate_experience_score
+from app.services.scoring.experience_level import calculate_experience_score
 
 # =============================================================================
 # No Requirements Specified Tests

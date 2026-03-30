@@ -10,7 +10,7 @@ Tests cover:
 
 import pytest
 
-from app.services.soft_skills_match import (
+from app.services.scoring.soft_skills_match import (
     calculate_soft_skills_score,
     cosine_similarity,
 )

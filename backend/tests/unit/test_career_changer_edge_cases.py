@@ -24,14 +24,14 @@ from app.services.explanation_generation import (
     get_missing_skills,
     get_target_skill_matches,
 )
-from app.services.fit_score import (
+from app.services.scoring.fit_score import (
     FIT_NEUTRAL_SCORE,
     FitScoreResult,
     calculate_fit_score,
 )
-from app.services.hard_skills_match import calculate_hard_skills_score
-from app.services.soft_skills_match import calculate_soft_skills_score
-from app.services.stretch_score import (
+from app.services.scoring.hard_skills_match import calculate_hard_skills_score
+from app.services.scoring.soft_skills_match import calculate_soft_skills_score
+from app.services.scoring.stretch_score import (
     StretchScoreResult,
     calculate_stretch_score,
     calculate_target_role_alignment,

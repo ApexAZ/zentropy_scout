@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Literal, Protocol
 from uuid import UUID
 
-from app.services.role_title_match import normalize_title
+from app.services.scoring.role_title_match import normalize_title
 
 logger = logging.getLogger(__name__)
 

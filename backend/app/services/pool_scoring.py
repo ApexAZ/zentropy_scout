@@ -11,7 +11,7 @@ without LLM calls.
 from app.models.job_posting import JobPosting
 from app.models.persona import Persona
 from app.models.persona_content import Skill
-from app.services.fit_score import (
+from app.services.scoring.fit_score import (
     FIT_NEUTRAL_SCORE,
     FitScoreResult,
     calculate_fit_score,

@@ -24,9 +24,9 @@ from dataclasses import dataclass
 from enum import Enum
 
 from app.services.embedding.utils import validate_embeddings
-from app.services.hard_skills_match import normalize_skill
-from app.services.role_title_match import normalize_title
-from app.services.soft_skills_match import cosine_similarity
+from app.services.scoring.hard_skills_match import normalize_skill
+from app.services.scoring.role_title_match import normalize_title
+from app.services.scoring.soft_skills_match import cosine_similarity
 
 # =============================================================================
 # Component Weights (REQ-008 §5.1)

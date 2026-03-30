@@ -15,7 +15,7 @@ employers strongly prefer candidates who meet requirements, but are less
 concerned about "overqualified" candidates (who may just want the job).
 """
 
-from app.services.fit_score import FIT_NEUTRAL_SCORE
+from app.services.scoring.fit_score import FIT_NEUTRAL_SCORE
 
 # =============================================================================
 # Constants

@@ -11,7 +11,7 @@ Tests cover:
 
 import pytest
 
-from app.services.stretch_score import (
+from app.services.scoring.stretch_score import (
     StretchScoreLabel,
     calculate_stretch_score,
     interpret_stretch_score,

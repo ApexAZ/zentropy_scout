@@ -8,7 +8,7 @@ Zentropy Scout uses three score types:
 - Ghost Score (0-100): Likelihood posting is stale/fake (REQ-003 §7)
 """
 
-from app.services.score_types import (
+from app.services.scoring.score_types import (
     ScoreInterpretation,
     interpret_fit_score,
     interpret_ghost_score,

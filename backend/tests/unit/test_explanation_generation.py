@@ -20,8 +20,8 @@ from app.services.explanation_generation import (
     get_missing_skills,
     get_target_skill_matches,
 )
-from app.services.fit_score import FitScoreResult
-from app.services.stretch_score import StretchScoreResult
+from app.services.scoring.fit_score import FitScoreResult
+from app.services.scoring.stretch_score import StretchScoreResult
 
 # =============================================================================
 # Test Data Fixtures
