@@ -554,13 +554,13 @@ Revenue protection analysis traced the full reserve → call → settle pipeline
 | | **Read:** `reservation_sweep.py` (sweep at 38, run_once at 298). `metering_service.py` (settle at 222, constructor at 60). `admin_config_service.py` (constructor). | | |
 | | **TDD:** Test retry succeeds → reservation 'settled' not 'stale'. Test `call_completed_at IS NULL` → stale release unchanged. Test retry fails, fallback succeeds → settled at estimated cost with correct records. Test retry AND fallback fail → stale release. Test run_once passes MeteringService to sweep. | | |
 | | **Done when:** Sweep retries settlement for completed calls. Fallback charges estimated cost. Stale release is last resort. All paths produce correct LLMUsageRecord + CreditTransaction entries. | | |
-| 51 | **Amend REQ-030 with §5.8 and §11.3** — Document response metadata persistence (outbox pattern) and sweep settlement retry (three-tier fallback). Update §14 (files) and §15 (testing). | `plan` | ⬜ |
+| 51 | **Amend REQ-030 with §5.8 and §11.3** — Document response metadata persistence (outbox pattern) and sweep settlement retry (three-tier fallback). Update §2.5, §13.1, §14, §15, findings register, change log. | `plan` | ✅ |
 | | **Done when:** REQ reflects implemented behavior. Traceability is clear. | | |
 | 52 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + Playwright + lint + typecheck). Fix regressions, commit, push. | `plan, commands` | ⬜ |
 
 #### Phase 9 Notes
 
-- Tasks ordered: §47 (schema) → §48 (persist method) → §49 (provider wiring) → §50 (sweep retry) → §51 (docs) → §52 (gate)
+- Tasks ordered: §51 (REQ amendment, done first) → §47 (schema) → §48 (persist method) → §49 (provider wiring) → §50 (sweep retry) → §52 (gate)
 - §47 must land first — all code tasks depend on the new columns existing
 - §48 before §49 — method must exist before callers use it
 - §50 is the most complex task — introduces MeteringService dependency into the sweep

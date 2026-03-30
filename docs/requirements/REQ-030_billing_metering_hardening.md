@@ -94,6 +94,7 @@ Separately, harden webhook handlers with savepoints and validation, reject inval
 | F-11 | 3 | `get_or_create_customer` uses `db.rollback()` instead of savepoint | LOW | §8.1 |
 | F-12 | 4 | `grant_cents` BIGINT vs `amount_cents` INTEGER asymmetry | LOW | §4.3 |
 | F-13 | 4 | CLAUDE.md error hierarchy docs out of sync | LOW | §10.3 |
+| F-16 | — | Settlement failure after successful LLM call = free usage | MEDIUM | §5.8, §11.3 |
 
 ---
 
@@ -161,9 +162,9 @@ Reservations with status `held` and `created_at` older than `RESERVATION_TTL_SEC
 The LLM call has already completed — the user received their response and the tokens are consumed at the provider. If settlement fails:
 
 - **Current behavior (fail-open):** Usage goes unrecorded, user gets free service, revenue lost.
-- **New behavior (fail-closed):** Reservation hold stays. User is temporarily over-charged by the estimated amount. The background sweep will eventually release the stale hold, or manual reconciliation can settle it.
+- **New behavior (fail-closed):** Reservation hold stays. Response metadata is persisted to the reservation row before settlement (§5.8). The background sweep attempts settlement retry using stored response data before releasing (§11.3), ensuring the call is billed even if the initial settlement failed.
 
-This is the conservative choice. Over-charges are visible (user sees lower available balance) and reconcilable. Under-charges are invisible and irrecoverable.
+This is the conservative choice. The outbox pattern (§5.8) ensures response metadata survives settlement failure, and the three-tier retry (§11.3) collects payment whenever possible.
 
 ---
 
@@ -591,6 +592,66 @@ The `MeteredEmbeddingProvider.embed()` method also needs the reservation pattern
 
 The same `reserve()` / `settle()` / `release()` methods are reused. The `task_type` is `"embedding"`.
 
+### 5.8 Response Metadata Persistence (Outbox Pattern)
+
+**Problem:** Between `adapter.complete()` returning and `settle()` being called, the response metadata (model, input_tokens, output_tokens) exists only in process memory. If `settle()` fails — or the process crashes — this data is lost. The background sweep (§11.1) cannot distinguish "LLM call failed" from "LLM call succeeded but settlement failed," so it releases both as stale, resulting in free usage.
+
+**Solution:** After the LLM/embedding call succeeds but before calling `settle()`, persist the response metadata to the reservation row. This creates a durable record that enables settlement retry (§11.3).
+
+**New columns on `usage_reservations`:**
+
+| Column | Type | Nullable | Purpose |
+|--------|------|----------|---------|
+| `response_model` | `VARCHAR(100)` | Yes | Exact model identifier from provider response |
+| `response_input_tokens` | `INTEGER` | Yes | Actual input tokens from response |
+| `response_output_tokens` | `INTEGER` | Yes | Actual output tokens from response |
+| `call_completed_at` | `TIMESTAMPTZ` | Yes | Timestamp when the LLM/embedding call succeeded |
+
+All columns are nullable — populated only after a successful LLM call. Existing rows (already settled/released/stale) remain NULL.
+
+**Method: `MeteringService.persist_response_metadata()`**
+
+```python
+async def persist_response_metadata(
+    self,
+    reservation: UsageReservation,
+    provider: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+) -> None:
+```
+
+Implementation requirements:
+- Uses raw SQL `UPDATE ... WHERE id = :id AND status = 'held'` — the status guard prevents writing to a reservation that was already swept.
+- Best-effort: catches `SQLAlchemyError`, logs at error level, does not re-raise. A persist failure must not prevent `settle()` from being attempted or the response from being returned.
+- Does NOT use a savepoint (`begin_nested`) — this is a simple idempotent UPDATE that should not interfere with the subsequent `settle()` savepoint.
+
+**Call site in `MeteredLLMProvider.complete()`:**
+
+```python
+# After LLM call succeeds, before settle:
+try:
+    await self._metering_service.persist_response_metadata(
+        reservation=reservation,
+        provider=adapter.provider_name,
+        model=response.model,
+        input_tokens=max(0, response.input_tokens),
+        output_tokens=max(0, response.output_tokens),
+    )
+except Exception:
+    logger.exception("Failed to persist response metadata for user %s", self._user_id)
+
+# Then proceed to settle as before
+await self._metering_service.settle(...)
+```
+
+Same pattern applies to `MeteredEmbeddingProvider.embed()` with `output_tokens=0`.
+
+**Failure window analysis:**
+- **Before this change:** Settlement failure = free usage (sweep releases hold). Failure window spans the entire `settle()` transaction.
+- **After this change:** Free usage only if both `persist_response_metadata()` AND `settle()` fail. The persist is a single UPDATE — its failure window is orders of magnitude smaller than the full settlement transaction. For the common case (transient DB error during the multi-step settlement), the persist succeeds and the sweep can retry.
+
 ---
 
 ## 6. Balance Gating Amendment
@@ -979,6 +1040,46 @@ HAVING ABS(u.balance_usd - COALESCE(SUM(ct.amount_usd), 0)) > 0.000001;
 
 Log any drift at error level. This detects existing F-01 drift from before the hardening, as well as any future regressions.
 
+### 11.3 Settlement Retry in Stale Sweep
+
+**Problem:** The stale reservation sweep (§11.1) releases all held reservations past TTL, regardless of whether the LLM call succeeded. When `call_completed_at IS NOT NULL` (§5.8), the call succeeded and the user consumed resources — releasing without charging results in revenue loss.
+
+**Solution:** Before releasing a stale reservation, check for persisted response metadata. If present, attempt settlement. Three-tier fallback:
+
+**Tier 1 — Settle at actual cost:**
+Call `MeteringService.settle()` with stored `response_model`, `response_input_tokens`, `response_output_tokens`. Uses current pricing from DB (no cache — pricing changes apply to retries just as they do to normal settlements). If successful, reservation transitions to `settled` (not `stale`). Full `LLMUsageRecord` and `CreditTransaction` are created.
+
+**Tier 2 — Settle at estimated cost (pricing lookup failed):**
+If Tier 1 fails (model deregistered, pricing deleted, DB error), fall back to charging the estimated cost:
+- Insert `LLMUsageRecord` with stored token counts, `estimated_cost_usd` as both `raw_cost_usd` and `billed_cost_usd`, `margin_multiplier = 1.00` (estimated cost already includes margin from reserve time)
+- Insert `CreditTransaction` with `amount_usd = -estimated_cost_usd`, `transaction_type = 'usage_debit'`
+- `UPDATE users SET balance_usd = balance_usd - :estimated, held_balance_usd = held_balance_usd - :estimated`
+- `UPDATE usage_reservations SET status = 'settled', actual_cost_usd = :estimated`
+- All within a savepoint (`begin_nested`)
+- Log at ERROR level: "Settled stale reservation at estimated cost (pricing lookup failed)"
+
+**Tier 3 — Release as stale (last resort):**
+If Tier 2 also fails, fall back to current behavior: release the hold and mark as `stale`. Log at ERROR level. This should only happen in catastrophic failure scenarios (e.g., DB completely down).
+
+**Decision logic:**
+
+```
+for each stale reservation:
+    if call_completed_at IS NOT NULL and metering_service available:
+        try Tier 1 (settle at actual cost)
+        if still held:
+            try Tier 2 (settle at estimated cost)
+        if settled:
+            continue  # skip stale release
+    # Fall through: release as stale (Tier 3 / current behavior)
+```
+
+**For stale reservations where `call_completed_at IS NULL`:** The LLM call either failed or the metadata persist failed. Release as stale (current behavior, unchanged). This is the correct action — the user didn't receive a response, so they shouldn't be charged.
+
+**Race condition safety:** The existing `WHERE status = 'held'` guard on all reservation updates prevents double-processing. If the original `settle()` is merely slow (not failed), both it and the sweep retry use the same conditional update — only one wins. No double-charge is possible.
+
+**MeteringService dependency:** The sweep function accepts `MeteringService` as an optional parameter. `ReservationSweepWorker.run_once()` creates `AdminConfigService(db)` and `MeteringService(db, admin_config)` and passes it. When `metering_service` is `None`, the sweep falls through to Tier 3 for all reservations (backward-compatible).
+
 ---
 
 ## 12. Error Handling
@@ -1006,7 +1107,7 @@ The reservation pattern is fail-closed at every step:
 | Failure Point | Current Behavior (fail-open) | New Behavior (fail-closed) |
 |---------------|------------------------------|---------------------------|
 | Pricing lookup fails | Error swallowed, free LLM call | Error propagates, no LLM call |
-| DB error during recording | Error swallowed, free LLM call | Reservation hold stays, background sweep releases |
+| DB error during recording | Error swallowed, free LLM call | Reservation hold stays; response metadata persisted (§5.8); sweep retries settlement (§11.3) |
 | Atomic debit rowcount=0 | CreditTransaction orphaned, ledger drifts | Savepoint rolls back all records |
 | LLM call fails | N/A | Reservation released, user not charged |
 
@@ -1029,7 +1130,8 @@ The reservation pattern is fail-closed at every step:
 | File | Purpose |
 |------|---------|
 | `backend/app/models/usage_reservation.py` | `UsageReservation` ORM model |
-| `backend/migrations/versions/028_billing_hardening.py` | Schema migration |
+| `backend/migrations/versions/028_billing_hardening.py` | Schema migration (Phase 1) |
+| `backend/migrations/versions/029_settlement_retry.py` | Response metadata columns migration (§5.8) |
 
 ### 14.2 Backend (Modified)
 
@@ -1037,8 +1139,8 @@ The reservation pattern is fail-closed at every step:
 |------|--------|----------|
 | `backend/app/models/user.py` | Add `held_balance_usd` column | F-01, F-02 |
 | `backend/app/models/stripe.py` | `grant_cents` → `INTEGER`, add `'expired'` to status constraint | F-07, F-12 |
-| `backend/app/services/metering_service.py` | Add `reserve()`, `settle()`, `release()`; deprecate `record_and_debit()` | F-01, F-02 |
-| `backend/app/providers/metered_provider.py` | Reservation flow in `complete()`; warning in `stream()` | F-02, F-10 |
+| `backend/app/services/metering_service.py` | Add `reserve()`, `settle()`, `release()`, `persist_response_metadata()`; deprecate `record_and_debit()` | F-01, F-02, F-16 |
+| `backend/app/providers/metered_provider.py` | Reservation flow in `complete()`; warning in `stream()`; persist response metadata before settle (§5.8) | F-02, F-10, F-16 |
 | `backend/app/repositories/credit_repository.py` | New `atomic_reserve()`, `atomic_settle()` if needed | F-01, F-02 |
 | `backend/app/repositories/stripe_repository.py` | Add `mark_expired()` method | F-07 |
 | `backend/app/api/deps.py` | Available balance check (`balance - held`) | F-01, F-02 |
@@ -1083,7 +1185,10 @@ The reservation pattern is fail-closed at every step:
 | `config.check_production_security` | Rejects `credits + !metering` in production; warns in development | F-06 |
 | `get_purchases` | Uses `round()` not `int()` for display amounts | F-08 |
 | `require_sufficient_balance` | Uses `balance - held` for available balance; held balance reduces available | F-01, F-02 |
-| `sweep_stale_reservations` | Releases reservations older than TTL; decrements `held_balance`; counts released | F-01, F-02 |
+| `sweep_stale_reservations` | Releases reservations older than TTL; decrements `held_balance`; counts released; settlement retry for completed calls (§11.3) | F-01, F-02, F-16 |
+| `MeteringService.persist_response_metadata()` | Persists response metadata to reservation; best-effort; status guard | F-16 |
+| `MeteredLLMProvider.complete()` — persist path | Calls `persist_response_metadata()` after call success, before settle | F-16 |
+| `MeteredEmbeddingProvider.embed()` — persist path | Same pattern with `output_tokens=0` | F-16 |
 
 ### 15.2 Integration Tests
 
@@ -1093,6 +1198,9 @@ The reservation pattern is fail-closed at every step:
 | Reservation release | Reserve → provider error → release → balance restored, reservation `released` |
 | Concurrent reservations | Two concurrent reserves → both succeed → one settles, one released → balances correct |
 | Stale reservation sweep | Create old `held` reservation → sweep → status=`stale`, `held_balance` decremented |
+| Settlement retry (Tier 1) | Reservation with `call_completed_at` set → sweep retries settle → status=`settled`, usage record created |
+| Settlement retry (Tier 2) | Tier 1 fails (pricing deleted) → sweep settles at estimated cost → status=`settled`, `estimated_cost_usd` debited |
+| Settlement retry (Tier 3) | Both tiers fail → release as stale (current behavior) |
 | Ledger integrity | After reservation cycle, `SUM(credit_transactions) == balance_usd` |
 | Refund with savepoint | Partial refund failure → ledger and balance unchanged (savepoint rollback) |
 | Expired checkout | Create pending purchase → send expired event → status=`expired` |
@@ -1124,3 +1232,4 @@ The reservation pattern is fail-closed at every step:
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-03-27 | 0.1 | Initial version. Addresses 16 findings from steelman billing/metering review. Core change: reservation-based metering pattern replacing post-debit fire-and-forget. Amends REQ-020 §2.2, §6.2–6.3, §7.1, §11; REQ-029 §4.3, §6.3, §7.1, §7.3, §8.3, §9.4, §11.4; REQ-021 balance model. |
+| 2026-03-29 | 0.2 | Added §5.8 (response metadata persistence / outbox pattern), §11.3 (settlement retry in sweep with three-tier fallback). Addresses F-16: settlement failure after successful LLM call results in free usage. Updated §2.5, §13.1, §14, §15. New migration 029. |
