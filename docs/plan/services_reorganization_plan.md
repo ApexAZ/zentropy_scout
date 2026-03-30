@@ -103,7 +103,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 2: embedding/ (with Enum Unification)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Move 7 embedding files with renames. Unify duplicate PersonaEmbeddingType/JobEmbeddingType enums from embedding_types.py + embedding_storage.py into a single canonical set in embedding/types.py. REQ-031 §5.2, §6.*
 
@@ -122,7 +122,7 @@ Phase 9: Final Verification + Cleanup
 |---|------|-------|--------|
 | 6 | **Move + rename embedding files (7 files)** — Create `services/embedding/__init__.py`. `git mv` with renames per REQ-031 §5.2: embedding_types→types, embedding_storage→storage, embedding_utils→utils, embedding_cost→cost, embedding_cache→cache, job_embedding_generator→job_generator, persona_embedding_generator→persona_generator. Update all internal cross-references within embedding/ files. Update all external imports in: scoring files (batch_scoring, stretch_score, role_title_match, soft_skills_match), `scripts/reembed_all.py`, and test files. Verify `pytest -v` passes. | `plan` | ✅ |
 | 7 | **Unify embedding enums** — Merge PersonaEmbeddingType and JobEmbeddingType from old embedding_types.py and embedding_storage.py into canonical definitions in `embedding/types.py`. Use `str, Enum` base, unprefixed values. Keep EMBEDDING_CONFIGS and helpers. Move compute_source_hash/is_embedding_fresh to `embedding/storage.py` importing from `embedding/types.py`. Update all consumers. REQ-031 §6. Verify `pytest -v` passes. | `plan` | ✅ |
-| 8 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 8 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - Enum unification is the highest-risk task in the entire plan. The values differ (`"persona_hard_skills"` vs `"hard_skills"`). Need to trace which value form is used at runtime/DB boundaries and pick the canonical form.
