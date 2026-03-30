@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from app.services.cover_letter_validation import CoverLetterValidation
+from app.services.generation.cover_letter_validation import CoverLetterValidation
 
 # =============================================================================
 # Constants

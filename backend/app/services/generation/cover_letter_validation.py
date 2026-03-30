@@ -23,7 +23,7 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-from app.services.cover_letter_structure import (
+from app.services.generation.cover_letter_structure import (
     MAX_COVER_LETTER_WORDS,
     MIN_COVER_LETTER_WORDS,
 )

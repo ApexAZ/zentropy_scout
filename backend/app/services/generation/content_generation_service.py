@@ -30,14 +30,20 @@ from app.core.errors import ValidationError
 from app.core.llm_sanitization import sanitize_user_feedback
 from app.providers.llm.base import LLMProvider
 from app.schemas.prompt_params import JobContext, VoiceProfileData
-from app.services.cover_letter_generation import CoverLetterResult
+from app.services.generation.cover_letter_generation import CoverLetterResult
 from app.services.generation.ghostwriter_triggers import TriggerType
+from app.services.generation.reasoning_explanation import (
+    ReasoningStory,
+    format_agent_reasoning,
+)
+from app.services.generation.story_selection import (
+    ScoredStory,
+    select_achievement_stories,
+)
 from app.services.generation.tailoring_decision import (
     TailoringDecision,
     evaluate_tailoring_need,
 )
-from app.services.reasoning_explanation import ReasoningStory, format_agent_reasoning
-from app.services.story_selection import ScoredStory, select_achievement_stories
 
 logger = logging.getLogger(__name__)
 
@@ -322,7 +328,9 @@ class ContentGenerationService:
 
         REQ-018 §7.1 Step 6: Delegates to cover_letter_generation.py.
         """
-        from app.services.cover_letter_generation import generate_cover_letter
+        from app.services.generation.cover_letter_generation import (
+            generate_cover_letter,
+        )
 
         logger.info(
             "Generating cover letter for job %s (stories=%d)",

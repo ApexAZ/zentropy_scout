@@ -6,7 +6,7 @@ Verifies that the cover letter section enum, section specs, and word count
 constants are correctly defined and consistent.
 """
 
-from app.services.cover_letter_structure import (
+from app.services.generation.cover_letter_structure import (
     CoverLetterSection,
     get_section_spec,
 )

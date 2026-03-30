@@ -7,7 +7,7 @@ The validate_no_blacklist function checks generated text against a user's
 things_to_avoid list and returns any violations found.
 """
 
-from app.services.voice_validation import validate_no_blacklist
+from app.services.generation.voice_validation import validate_no_blacklist
 
 # =============================================================================
 # Basic Behavior Tests

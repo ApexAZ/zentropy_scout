@@ -21,7 +21,7 @@ Edge cases (REQ-010 §8.1, §8.4):
 
 from datetime import date, timedelta
 
-from app.services.story_selection import (
+from app.services.generation.story_selection import (
     StoryInput,
     StorySelectionConfig,
     WorkHistoryInfo,

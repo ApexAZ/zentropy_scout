@@ -17,7 +17,7 @@ import pytest
 from app.providers import ProviderError
 from app.providers.llm.base import LLMResponse
 from app.schemas.prompt_params import JobContext, VoiceProfileData
-from app.services.cover_letter_generation import (
+from app.services.generation.cover_letter_generation import (
     CoverLetterGenerationError,
     generate_cover_letter,
 )
@@ -290,7 +290,7 @@ class TestCoverLetterResultFrozen:
 
     def test_cover_letter_result_is_frozen(self) -> None:
         """CoverLetterResult attributes cannot be reassigned after creation."""
-        from app.services.cover_letter_generation import CoverLetterResult
+        from app.services.generation.cover_letter_generation import CoverLetterResult
 
         result = CoverLetterResult(
             content="Dear Hiring Manager",

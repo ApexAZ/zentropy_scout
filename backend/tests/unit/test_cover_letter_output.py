@@ -11,8 +11,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.services.cover_letter_output import GeneratedCoverLetter
-from app.services.cover_letter_validation import (
+from app.services.generation.cover_letter_output import GeneratedCoverLetter
+from app.services.generation.cover_letter_validation import (
     CoverLetterValidation,
     ValidationIssue,
 )
