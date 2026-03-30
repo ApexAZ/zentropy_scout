@@ -14,6 +14,7 @@ import {
 	PACK_IDS,
 	setupCheckoutErrorMocks,
 	setupUsageMocks,
+	setupUsageMocksWithBalance,
 } from "../utils/usage-api-mocks";
 
 // ---------------------------------------------------------------------------
@@ -26,6 +27,7 @@ const MESSAGE_INPUT = "Message";
 const SEND_MESSAGE = "Send message";
 const INSUFFICIENT_BALANCE_TOAST =
 	"Insufficient balance. Please add funds to continue.";
+const LOW_BALANCE_WARNING = "low-balance-warning";
 
 // ---------------------------------------------------------------------------
 // A. Funding Pack Display (2 tests)
@@ -226,5 +228,87 @@ test.describe("402 Insufficient Balance", () => {
 
 		// Toast should still be visible — confirms persistence
 		await expect(toast).toBeVisible({ timeout: 5_000 });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// D. Low Balance Warning (3 tests)
+// ---------------------------------------------------------------------------
+
+test.describe("Low Balance Warning", () => {
+	test("low balance shows amber warning banner", async ({ page }) => {
+		await setupUsageMocksWithBalance(page, "0.500000");
+		await page.goto("/usage");
+
+		const warning = page.getByTestId(LOW_BALANCE_WARNING);
+		await expect(warning).toBeVisible();
+		await expect(
+			warning.getByText("Your balance is running low"),
+		).toBeVisible();
+		await expect(warning).toHaveClass(/text-primary/);
+	});
+
+	test("critically low balance shows red warning banner", async ({ page }) => {
+		await setupUsageMocksWithBalance(page, "0.030000");
+		await page.goto("/usage");
+
+		const warning = page.getByTestId(LOW_BALANCE_WARNING);
+		await expect(warning).toBeVisible();
+		await expect(
+			warning.getByText("Your balance is nearly empty"),
+		).toBeVisible();
+		await expect(warning).toHaveClass(/text-destructive/);
+	});
+
+	test("warning contains Add Funds link to #funding-packs", async ({
+		page,
+	}) => {
+		await setupUsageMocksWithBalance(page, "0.500000");
+		await page.goto("/usage");
+
+		const warning = page.getByTestId(LOW_BALANCE_WARNING);
+		const link = warning.getByRole("link", { name: ADD_FUNDS });
+		await expect(link).toBeVisible();
+		await expect(link).toHaveAttribute("href", "#funding-packs");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// E. Button Loading State (1 test)
+// ---------------------------------------------------------------------------
+
+test.describe("Button Loading State", () => {
+	test("clicking Add Funds shows Redirecting spinner and disables all pack buttons", async ({
+		page,
+	}) => {
+		await setupUsageMocks(page);
+
+		// Override checkout with a never-resolving handler to freeze loading state.
+		// LIFO priority ensures this takes precedence over UsageMockController.
+		await page.route(/\/api\/v1\/credits\/checkout/, () => {
+			// Intentionally never fulfill — keeps the request pending
+		});
+
+		await page.goto("/usage");
+
+		// Click "Add Funds" on the Starter pack
+		await page
+			.getByTestId(`pack-card-${PACK_IDS[0]}`)
+			.getByRole("button", { name: ADD_FUNDS })
+			.click();
+
+		// Clicked button shows "Redirecting…" spinner and is disabled
+		const clickedButton = page
+			.getByTestId(`pack-card-${PACK_IDS[0]}`)
+			.getByRole("button");
+		await expect(clickedButton).toContainText("Redirecting");
+		await expect(clickedButton).toBeDisabled();
+
+		// All other pack buttons are also disabled but retain original text
+		for (const packId of [PACK_IDS[1], PACK_IDS[2]]) {
+			const btn = page.getByTestId(`pack-card-${packId}`).getByRole("button");
+			await expect(btn).toBeDisabled();
+			await expect(btn).toHaveText(ADD_FUNDS);
+		}
 	});
 });
