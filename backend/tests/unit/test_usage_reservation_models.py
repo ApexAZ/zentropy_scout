@@ -249,6 +249,128 @@ class TestUsageReservation:
 
 
 # ---------------------------------------------------------------------------
+# Response metadata columns (REQ-030 §5.8)
+# ---------------------------------------------------------------------------
+
+
+class TestResponseMetadataColumns:
+    """REQ-030 §5.8: Response metadata columns on UsageReservation."""
+
+    @pytest.mark.asyncio
+    async def test_response_metadata_defaults_to_none(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """New reservations have NULL response metadata."""
+        reservation = _make_reservation(test_user.id)
+        db_session.add(reservation)
+        await db_session.flush()
+        await db_session.refresh(reservation)
+
+        assert reservation.response_model is None
+        assert reservation.response_input_tokens is None
+        assert reservation.response_output_tokens is None
+        assert reservation.call_completed_at is None
+
+    @pytest.mark.asyncio
+    async def test_response_metadata_accepts_values(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """Response metadata columns accept valid values."""
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
+        reservation = _make_reservation(
+            test_user.id,
+            response_model="claude-sonnet-4-20250514",
+            response_input_tokens=1500,
+            response_output_tokens=800,
+            call_completed_at=now,
+        )
+        db_session.add(reservation)
+        await db_session.flush()
+        await db_session.refresh(reservation)
+
+        assert reservation.response_model == "claude-sonnet-4-20250514"
+        assert reservation.response_input_tokens == 1500
+        assert reservation.response_output_tokens == 800
+        assert reservation.call_completed_at is not None
+
+    @pytest.mark.asyncio
+    async def test_response_metadata_zero_output_tokens(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """Zero output tokens is valid (embeddings produce no output)."""
+        from datetime import UTC, datetime
+
+        reservation = _make_reservation(
+            test_user.id,
+            response_model="text-embedding-3-small",
+            response_input_tokens=500,
+            response_output_tokens=0,
+            call_completed_at=datetime.now(UTC),
+        )
+        db_session.add(reservation)
+        await db_session.flush()
+        await db_session.refresh(reservation)
+
+        assert reservation.response_output_tokens == 0
+
+    @pytest.mark.asyncio
+    async def test_rejects_negative_input_tokens(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """CHECK constraint rejects negative response_input_tokens."""
+        from datetime import UTC, datetime
+
+        reservation = _make_reservation(
+            test_user.id,
+            response_model="claude-sonnet-4-20250514",
+            response_input_tokens=-1,
+            response_output_tokens=100,
+            call_completed_at=datetime.now(UTC),
+        )
+        db_session.add(reservation)
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+    @pytest.mark.asyncio
+    async def test_rejects_negative_output_tokens(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """CHECK constraint rejects negative response_output_tokens."""
+        from datetime import UTC, datetime
+
+        reservation = _make_reservation(
+            test_user.id,
+            response_model="claude-sonnet-4-20250514",
+            response_input_tokens=100,
+            response_output_tokens=-1,
+            call_completed_at=datetime.now(UTC),
+        )
+        db_session.add(reservation)
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+    @pytest.mark.asyncio
+    async def test_rejects_partial_metadata(
+        self, db_session: AsyncSession, test_user: User
+    ) -> None:
+        """CHECK constraint rejects partially populated metadata."""
+        from datetime import UTC, datetime
+
+        reservation = _make_reservation(
+            test_user.id,
+            response_model="claude-sonnet-4-20250514",
+            response_input_tokens=100,
+            # response_output_tokens deliberately omitted (NULL)
+            call_completed_at=datetime.now(UTC),
+        )
+        db_session.add(reservation)
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+
+# ---------------------------------------------------------------------------
 # User.held_balance_usd (REQ-030 §4.1)
 # ---------------------------------------------------------------------------
 

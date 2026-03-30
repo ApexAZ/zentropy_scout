@@ -537,8 +537,8 @@ Revenue protection analysis traced the full reserve → call → settle pipeline
 
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 46 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Verdicts: CLEAR → mark complete, proceed. VULNERABLE → fix immediately. FALSE POSITIVE → complete full PROSECUTION PROTOCOL before dismissing. NEEDS INVESTIGATION → escalate to user via AskUserQuestion. | `plan, security` | ⬜ |
-| 47 | **Schema: add response metadata columns + migration 029** — Add 4 nullable columns to `UsageReservation` model (`response_model`, `response_input_tokens`, `response_output_tokens`, `call_completed_at`). Create migration `029_settlement_retry.py` with `down_revision = "028_billing_hardening"`. | `plan, tdd, db` | ⬜ |
+| 46 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Verdicts: CLEAR → mark complete, proceed. VULNERABLE → fix immediately. FALSE POSITIVE → complete full PROSECUTION PROTOCOL before dismissing. NEEDS INVESTIGATION → escalate to user via AskUserQuestion. | `plan, security` | ✅ |
+| 47 | **Schema: add response metadata columns + migration 029** — Add 4 nullable columns to `UsageReservation` model (`response_model`, `response_input_tokens`, `response_output_tokens`, `call_completed_at`). Create migration `029_settlement_retry.py` with `down_revision = "028_billing_hardening"`. | `plan, tdd, db` | ✅ |
 | | **Read:** `usage_reservation.py` (existing columns/constraints). `028_billing_hardening.py` (migration pattern). | | |
 | | **TDD:** Test migration upgrade adds 4 columns. Test migration downgrade drops them. Test model accepts new column values. | | |
 | | **Done when:** Columns exist in DB. Migration roundtrips cleanly. | | |
