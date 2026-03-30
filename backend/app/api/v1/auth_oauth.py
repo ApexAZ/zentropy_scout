@@ -32,7 +32,7 @@ from app.core.oauth import (
 )
 from app.core.oauth_client import exchange_code_for_tokens, fetch_userinfo
 from app.core.rate_limiting import limiter
-from app.services.stripe_service import grant_signup_credits
+from app.services.billing.stripe_service import grant_signup_credits
 
 logger = logging.getLogger(__name__)
 

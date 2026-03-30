@@ -17,8 +17,11 @@ from app.models.admin_config import FundingPack
 from app.models.stripe import StripePurchase
 from app.models.usage import CreditTransaction
 from app.models.user import User
-from app.services.stripe_service import StripeServiceError, get_or_create_customer
-from app.services.stripe_webhook_service import (
+from app.services.billing.stripe_service import (
+    StripeServiceError,
+    get_or_create_customer,
+)
+from app.services.billing.stripe_webhook_service import (
     handle_charge_refunded,
     handle_checkout_expired,
 )
@@ -146,7 +149,7 @@ class TestRefundSavepointRollback:
         # First attempt: simulate failure in mark_refunded
         event_fail = _make_refund_event(event_id="evt_fail_int")
         with patch(
-            "app.services.stripe_webhook_service"
+            "app.services.billing.stripe_webhook_service"
             ".StripePurchaseRepository.mark_refunded",
             side_effect=RuntimeError("simulated DB failure"),
         ):

@@ -26,7 +26,7 @@ from app.providers.llm.base import (
     ToolDefinition,
 )
 from app.services.admin_config_service import AdminConfigService
-from app.services.metering_service import MeteringService
+from app.services.billing.metering_service import MeteringService
 
 logger = logging.getLogger(__name__)
 

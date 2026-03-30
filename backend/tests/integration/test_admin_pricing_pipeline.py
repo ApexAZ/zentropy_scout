@@ -25,7 +25,7 @@ from app.models.user import User
 from app.providers.llm.base import LLMResponse, TaskType
 from app.providers.metered_provider import MeteredLLMProvider
 from app.services.admin_config_service import AdminConfigService
-from app.services.metering_service import MeteringService
+from app.services.billing.metering_service import MeteringService
 
 # ---------------------------------------------------------------------------
 # Constants

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.usage import CreditTransaction
 from app.models.user import User
-from app.services.reservation_sweep import detect_balance_drift
+from app.services.billing.reservation_sweep import detect_balance_drift
 
 _USER_BALANCE = Decimal("10.000000")
 
@@ -140,7 +140,7 @@ class TestDetectBalanceDrift:
         await _seed_user(db_session)
         # No transactions — balance of 10.00 is all drift
 
-        with patch("app.services.reservation_sweep.logger") as mock_logger:
+        with patch("app.services.billing.reservation_sweep.logger") as mock_logger:
             await detect_balance_drift(db_session)
 
         mock_logger.error.assert_called_once()

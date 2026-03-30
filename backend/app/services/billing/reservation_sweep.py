@@ -36,7 +36,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core.config import settings
 from app.models.usage_reservation import UsageReservation
 from app.services.admin_config_service import AdminConfigService
-from app.services.metering_service import MeteringService
+from app.services.billing.metering_service import MeteringService
 
 logger = logging.getLogger(__name__)
 

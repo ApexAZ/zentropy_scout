@@ -18,18 +18,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.usage_reservation import UsageReservation
 from app.models.user import User
 from app.services.admin_config_service import AdminConfigService
-from app.services.metering_service import MeteringService
-from app.services.reservation_sweep import (
+from app.services.billing.metering_service import MeteringService
+from app.services.billing.reservation_sweep import (
     ReservationSweepWorker,
     detect_held_balance_drift,
     sweep_stale_reservations,
 )
 
-_PATCH_SETTINGS = "app.services.reservation_sweep.settings"
-_PATCH_SWEEP = "app.services.reservation_sweep.sweep_stale_reservations"
-_PATCH_DRIFT = "app.services.reservation_sweep.detect_balance_drift"
-_PATCH_HELD_DRIFT = "app.services.reservation_sweep.detect_held_balance_drift"
-_PATCH_RETRY = "app.services.reservation_sweep._attempt_settlement_retry"
+_PATCH_SETTINGS = "app.services.billing.reservation_sweep.settings"
+_PATCH_SWEEP = "app.services.billing.reservation_sweep.sweep_stale_reservations"
+_PATCH_DRIFT = "app.services.billing.reservation_sweep.detect_balance_drift"
+_PATCH_HELD_DRIFT = "app.services.billing.reservation_sweep.detect_held_balance_drift"
+_PATCH_RETRY = "app.services.billing.reservation_sweep._attempt_settlement_retry"
 
 _DEFAULT_TTL = 300
 
@@ -322,7 +322,7 @@ class TestDetectHeldBalanceDrift:
             db_session, estimated_cost=_DEFAULT_ESTIMATED, status="settled"
         )
 
-        with patch("app.services.reservation_sweep.logger") as mock_logger:
+        with patch("app.services.billing.reservation_sweep.logger") as mock_logger:
             drifts = await detect_held_balance_drift(db_session)
 
         assert len(drifts) == 1

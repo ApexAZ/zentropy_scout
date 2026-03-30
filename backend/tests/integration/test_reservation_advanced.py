@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.usage import CreditTransaction
 from app.providers.errors import ProviderError
 from app.providers.llm.base import TaskType
-from app.services.reservation_sweep import sweep_stale_reservations
+from app.services.billing.reservation_sweep import sweep_stale_reservations
 from tests.integration._reservation_helpers import (
     BALANCE_QUERY,
     HELD_QUERY,

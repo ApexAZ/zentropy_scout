@@ -23,7 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.errors import NoPricingConfigError, UnregisteredModelError
 from app.models.usage_reservation import UsageReservation
 from app.services.admin_config_service import PricingResult
-from app.services.metering_service import MeteringService
+from app.services.billing.metering_service import MeteringService
 
 # =============================================================================
 # Constants
