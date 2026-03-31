@@ -2,7 +2,7 @@
 
 **Created:** 2026-03-30
 **Last Updated:** 2026-03-30
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 **Branch:** (TBD — will branch from main)
 **REQ:** REQ-032
 
@@ -86,7 +86,7 @@ Phase 2: JSDoc Standardization (REQ-032 §5)
 
 ## Phase 2: JSDoc Standardization
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add three-axis JSDoc headers (`@coordinates-with` tags) to ~55 files in `lib/`, `hooks/`, and `types/`. Add complete headers to 3 files missing all JSDoc. Pure documentation additions — no behavior changes.*
 
@@ -108,7 +108,7 @@ Phase 2: JSDoc Standardization (REQ-032 §5)
 | 9 | **JSDoc — lib/ persona helpers (9 files)** — Strengthen where + add `@coordinates-with` for all 9 persona CRUD helpers: `work-history-helpers.ts`, `certification-helpers.ts`, `education-helpers.ts`, `skills-helpers.ts`, `achievement-stories-helpers.ts`, `voice-profile-helpers.ts`, `non-negotiables-helpers.ts`, `growth-targets-helpers.ts`, `discovery-preferences-helpers.ts`. All follow the same template pattern (toFormValues/toRequestBody). | `plan, docs, lint` | ✅ |
 | 10 | **JSDoc — hooks/ (10 files)** — Add `@coordinates-with` to all 10 hooks: `use-is-mobile.ts`, `use-media-query.ts`, `use-chat-scroll.ts`, `use-delete-with-references.ts`, `use-persona-status.ts`, `use-crud-step.ts`, `use-resume-content-selection.ts`, `use-balance.ts`, `use-auto-save.ts`, `use-resume-detail.ts`. | `plan, docs, lint` | ✅ |
 | 11 | **JSDoc — types/ (14 files)** — Add complete header to `index.ts` (missing all JSDoc). Add `@coordinates-with` to 13 domain type files: `persona.ts`, `job.ts`, `application.ts`, `resume.ts`, `resume-generation.ts`, `api.ts`, `chat.ts`, `sse.ts`, `deletion.ts`, `source.ts`, `ingest.ts`, `admin.ts`, `usage.ts`. | `plan, docs, lint` | ✅ |
-| 12 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + lint + typecheck). Spot-check 5 random files to verify three-axis headers. Fix any issues, commit, push. | `plan, commands` | ⬜ |
+| 12 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + lint + typecheck). Spot-check 5 random files to verify three-axis headers. Fix any issues, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - JSDoc changes are pure documentation — they cannot break tests. Primary risk is stale file references in `@coordinates-with` tags. Verify named paths exist before committing.
