@@ -106,7 +106,7 @@ once upstream headers exist.
 
 ## Phase 1: lib/ Core Infrastructure
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Reformat existing JSDoc headers on 15 core lib/ files to the zentropy-docs template.
 These files are imported by nearly every component -- accurate headers here make all
@@ -125,7 +125,7 @@ subsequent phases faster to trace.*
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
 | 1 | **JSDoc -- lib/ core infrastructure (15 files)** -- Reformat headers: `api-client.ts`, `query-client.ts`, `query-provider.tsx`, `query-keys.ts`, `sse-client.ts`, `sse-provider.tsx`, `sse-query-bridge.ts`, `auth-provider.tsx`, `onboarding-provider.tsx`, `chat-provider.tsx`, `chat-panel-provider.tsx`, `map-server-errors.ts`, `form-errors.ts`, `utils.ts`, `toast.ts`. Use Explore subagent to trace import/export graphs for accurate `Coordinates with:` and `Called by:` entries. | `docs, plan` | ✅ |
-| 2 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 2 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
