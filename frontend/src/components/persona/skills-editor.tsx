@@ -15,7 +15,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { SkillCard } from "@/components/onboarding/steps/skills-card";
 import { SkillForm } from "@/components/onboarding/steps/skills-form";
-import type { SkillFormData } from "@/components/onboarding/steps/skills-form";
 import { Button } from "@/components/ui/button";
 import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
@@ -25,7 +24,11 @@ import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { notifyEmbeddingUpdate } from "@/lib/embedding-staleness";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
-import { toFormValues, toRequestBody } from "@/lib/skills-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type SkillFormData,
+} from "@/lib/skills-helpers";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type { Persona, Skill, SkillType } from "@/types/persona";
 

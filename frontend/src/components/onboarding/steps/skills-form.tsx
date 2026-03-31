@@ -12,7 +12,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { FormActionFooter } from "@/components/form/form-action-footer";
 import { FormInputField } from "@/components/form/form-input-field";
@@ -25,37 +24,20 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	HARD_SKILL_CATEGORIES,
+	MAX_YEARS_USED,
+	skillFormSchema,
+	SOFT_SKILL_CATEGORIES,
+	type SkillFormData,
+} from "@/lib/skills-helpers";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const MAX_SKILL_NAME_LENGTH = 100;
-const MAX_CATEGORY_LENGTH = 100;
-const MAX_LAST_USED_LENGTH = 20;
-const MAX_YEARS_USED = 70;
-
 /** Shared two-column grid layout class. */
 const GRID_TWO_COL = "grid gap-4 sm:grid-cols-2";
-
-/** Hard skill category defaults (REQ-001 §3.4). */
-export const HARD_SKILL_CATEGORIES = [
-	"Programming Language",
-	"Framework / Library",
-	"Tool / Software",
-	"Platform / Infrastructure",
-	"Methodology",
-	"Domain Knowledge",
-] as const;
-
-/** Soft skill category defaults (REQ-001 §3.4). */
-export const SOFT_SKILL_CATEGORIES = [
-	"Leadership & Management",
-	"Communication",
-	"Collaboration",
-	"Problem Solving",
-	"Adaptability",
-] as const;
 
 /** Proficiency levels with tooltip descriptions (REQ-001 §3.4). */
 const PROFICIENCY_OPTIONS = [
@@ -76,45 +58,6 @@ const PROFICIENCY_OPTIONS = [
 		tooltip: "Deep expertise, could teach others, go-to person",
 	},
 ] as const;
-
-// ---------------------------------------------------------------------------
-// Validation schema
-// ---------------------------------------------------------------------------
-
-const skillFormSchema = z.object({
-	skill_name: z
-		.string()
-		.min(1, { message: "Skill name is required" })
-		.max(MAX_SKILL_NAME_LENGTH, { message: "Skill name is too long" }),
-	skill_type: z.enum(["Hard", "Soft"], {
-		message: "Skill type is required",
-	}),
-	category: z
-		.string()
-		.min(1, { message: "Category is required" })
-		.max(MAX_CATEGORY_LENGTH, { message: "Category is too long" }),
-	proficiency: z.enum(["Learning", "Familiar", "Proficient", "Expert"], {
-		message: "Proficiency is required",
-	}),
-	years_used: z
-		.string()
-		.min(1, { message: "Years used is required" })
-		.refine((val) => /^\d+$/.test(val), {
-			message: "Enter a valid number",
-		})
-		.refine((val) => Number.parseInt(val, 10) >= 1, {
-			message: "Must be at least 1",
-		})
-		.refine((val) => Number.parseInt(val, 10) <= MAX_YEARS_USED, {
-			message: `Must be at most ${MAX_YEARS_USED}`,
-		}),
-	last_used: z
-		.string()
-		.min(1, { message: "Last used is required" })
-		.max(MAX_LAST_USED_LENGTH, { message: "Last used is too long" }),
-});
-
-export type SkillFormData = z.infer<typeof skillFormSchema>;
 
 /** Default form values for a new entry. */
 const DEFAULT_VALUES: SkillFormData = {

@@ -15,12 +15,15 @@ import { useCallback, useEffect, useState } from "react";
 
 import { StoryCard } from "@/components/onboarding/steps/story-card";
 import { StoryForm } from "@/components/onboarding/steps/story-form";
-import type { StoryFormData } from "@/components/onboarding/steps/story-form";
 import { Button } from "@/components/ui/button";
 import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
-import { toFormValues, toRequestBody } from "@/lib/achievement-stories-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type StoryFormData,
+} from "@/lib/achievement-stories-helpers";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";

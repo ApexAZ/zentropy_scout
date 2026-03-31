@@ -5,8 +5,44 @@
  * entities, form values, and request bodies.
  */
 
-import type { StoryFormData } from "@/components/onboarding/steps/story-form";
+import { z } from "zod";
+
 import type { AchievementStory } from "@/types/persona";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const MAX_TITLE_LENGTH = 255;
+const MAX_TEXT_LENGTH = 5000;
+
+// ---------------------------------------------------------------------------
+// Validation schema
+// ---------------------------------------------------------------------------
+
+export const storyFormSchema = z.object({
+	title: z
+		.string()
+		.min(1, { message: "Title is required" })
+		.max(MAX_TITLE_LENGTH, { message: "Title is too long" }),
+	context: z
+		.string()
+		.min(1, { message: "Context is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Context is too long" }),
+	action: z
+		.string()
+		.min(1, { message: "Action is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Action is too long" }),
+	outcome: z
+		.string()
+		.min(1, { message: "Outcome is required" })
+		.max(MAX_TEXT_LENGTH, { message: "Outcome is too long" }),
+	skills_demonstrated: z
+		.array(z.uuid({ message: "Invalid skill ID" }))
+		.max(50, { message: "Too many skills selected" }),
+});
+
+export type StoryFormData = z.infer<typeof storyFormSchema>;
 
 // ---------------------------------------------------------------------------
 // Types

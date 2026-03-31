@@ -10,15 +10,18 @@
 
 import { useState } from "react";
 
-import { toFormValues, toRequestBody } from "@/lib/achievement-stories-helpers";
-import { useOnboarding } from "@/lib/onboarding-provider";
 import { useCrudStep } from "@/hooks/use-crud-step";
+import {
+	toFormValues,
+	toRequestBody,
+	type StoryFormData,
+} from "@/lib/achievement-stories-helpers";
+import { useOnboarding } from "@/lib/onboarding-provider";
 import type { AchievementStory, Skill } from "@/types/persona";
 
 import { CrudStepLayout } from "./crud-step-layout";
 import { StoryCard } from "./story-card";
 import { StoryForm } from "./story-form";
-import type { StoryFormData } from "./story-form";
 
 // ---------------------------------------------------------------------------
 // Constants

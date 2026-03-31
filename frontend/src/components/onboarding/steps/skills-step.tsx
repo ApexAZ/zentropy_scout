@@ -10,13 +10,16 @@
 
 import { useCrudStep } from "@/hooks/use-crud-step";
 import { useOnboarding } from "@/lib/onboarding-provider";
-import { toFormValues, toRequestBody } from "@/lib/skills-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type SkillFormData,
+} from "@/lib/skills-helpers";
 import type { Skill } from "@/types/persona";
 
 import { CrudStepLayout } from "./crud-step-layout";
 import { SkillCard } from "./skills-card";
 import { SkillForm } from "./skills-form";
-import type { SkillFormData } from "./skills-form";
 
 // ---------------------------------------------------------------------------
 // Component
