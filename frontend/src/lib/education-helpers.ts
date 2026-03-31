@@ -5,6 +5,12 @@
  * entities, form values, and request bodies. Also owns the Zod
  * validation schema and EducationFormData type so that lib/
  * never imports from components/.
+ *
+ * @module lib/education-helpers
+ * @coordinates-with types/persona (Education — API entity shape),
+ *   components/onboarding/steps/education-form (onboarding form UI),
+ *   components/onboarding/steps/education-step (onboarding step wrapper),
+ *   components/persona/education-editor (post-onboarding editor)
  */
 
 import { z } from "zod";

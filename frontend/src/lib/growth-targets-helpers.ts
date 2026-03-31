@@ -4,6 +4,12 @@
  * REQ-012 §7.2.8: Conversion utilities between Persona growth target
  * fields, form values, and request bodies. Also exports the shared
  * Zod validation schema, constants, and default form values.
+ *
+ * @module lib/growth-targets-helpers
+ * @coordinates-with types/persona (Persona, STRETCH_APPETITES — API entity shape),
+ *   components/onboarding/steps/growth-targets-step (onboarding step wrapper),
+ *   components/persona/growth-targets-form-fields (shared form field component),
+ *   components/persona/growth-targets-editor (post-onboarding editor)
  */
 
 import { z } from "zod";

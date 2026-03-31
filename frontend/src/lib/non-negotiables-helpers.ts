@@ -4,6 +4,12 @@
  * REQ-012 §7.2.7: Conversion utilities between Persona non-negotiable
  * fields, form values, and request bodies. Also exports the shared
  * Zod validation schema, constants, and default form values.
+ *
+ * @module lib/non-negotiables-helpers
+ * @coordinates-with types/persona (Persona + enum constants — API entity shape),
+ *   components/onboarding/steps/non-negotiables-step (onboarding step wrapper),
+ *   components/persona/non-negotiables-form-fields (shared form field component),
+ *   components/persona/non-negotiables-editor (post-onboarding editor)
  */
 
 import { z } from "zod";

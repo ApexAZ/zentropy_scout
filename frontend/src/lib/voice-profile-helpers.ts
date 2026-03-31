@@ -4,6 +4,12 @@
  * REQ-012 §7.2.6: Conversion utilities between API VoiceProfile
  * entities, form values, and request bodies. Also exports the shared
  * Zod validation schema and default form values.
+ *
+ * @module lib/voice-profile-helpers
+ * @coordinates-with types/persona (VoiceProfile — API entity shape),
+ *   components/onboarding/steps/voice-profile-step (onboarding step wrapper),
+ *   components/persona/voice-profile-form-fields (shared form field component),
+ *   components/persona/voice-profile-editor (post-onboarding editor)
  */
 
 import { z } from "zod";

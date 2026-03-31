@@ -5,6 +5,12 @@
  * entities, form values, and request bodies. Also owns the Zod
  * validation schema, WorkHistoryFormData type, and toMonthValue
  * utility so that lib/ never imports from components/.
+ *
+ * @module lib/work-history-helpers
+ * @coordinates-with types/persona (WorkHistory, WorkModel — API entity shapes),
+ *   components/onboarding/steps/work-history-form (onboarding form UI),
+ *   components/onboarding/steps/work-history-step (onboarding step wrapper),
+ *   components/persona/work-history-editor (post-onboarding editor)
  */
 
 import { z } from "zod";

@@ -5,6 +5,12 @@
  * entities, form values, and request bodies. Also owns the Zod
  * validation schema and CertificationFormData type so that lib/
  * never imports from components/.
+ *
+ * @module lib/certification-helpers
+ * @coordinates-with types/persona (Certification — API entity shape),
+ *   components/onboarding/steps/certification-form (onboarding form UI),
+ *   components/onboarding/steps/certification-step (onboarding step wrapper),
+ *   components/persona/certification-editor (post-onboarding editor)
  */
 
 import { z } from "zod";
