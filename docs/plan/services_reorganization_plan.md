@@ -294,7 +294,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 9: Final Verification + Cleanup
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Full quality gate across entire codebase. Verify no stale imports, no orphaned files, all tests green.*
 
@@ -308,9 +308,9 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 28 | **Verify no stale imports remain** — Grep entire codebase for `from app.services.<old_module>` patterns that should have been updated. Check: `from app.services.fit_score`, `from app.services.embedding_types`, `from app.services.stripe_service`, etc. for all 80 moved files. Fix any stragglers. | `plan` | ⬜ |
-| 29 | **Verify no orphaned files** — Confirm old `services/` root has only 7 files: `__init__.py` + 6 cross-cutting. No leftover `.py` files from moves. Confirm all 8 subdirectories have the expected file count. | `plan` | ⬜ |
-| 30 | **Final phase gate — full test suite + push** — Run full backend test suite (`pytest tests/ -v -m ""`), frontend tests (`npm run test:run`), `ruff check .`, `npm run lint`, `npm run typecheck`. Fix any regressions. Commit, push. | `plan, commands` | ⬜ |
+| 28 | **Verify no stale imports remain** — Grep entire codebase for `from app.services.<old_module>` patterns that should have been updated. Check: `from app.services.fit_score`, `from app.services.embedding_types`, `from app.services.stripe_service`, etc. for all 80 moved files. Fix any stragglers. | `plan` | ✅ |
+| 29 | **Verify no orphaned files** — Confirm old `services/` root has only 7 files: `__init__.py` + 6 cross-cutting. No leftover `.py` files from moves. Confirm all 8 subdirectories have the expected file count. | `plan` | ✅ |
+| 30 | **Final phase gate — full test suite + push** — Run full backend test suite (`pytest tests/ -v -m ""`), frontend tests (`npm run test:run`), `ruff check .`, `npm run lint`, `npm run typecheck`. Fix any regressions. Commit, push. | `plan, commands` | ✅ |
 
 ---
 
