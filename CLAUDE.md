@@ -458,6 +458,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 **REQ-023 (USD-Direct Billing):** Complete. `credit_packs` → `funding_packs`, `credit_amount` → `grant_cents`, seed data updated to USD cents, usage bar added to balance card. REQ-021 updated to v0.5 with all errata.
 **TipTap Editor (REQ-025/026/027):** Complete. 9 phases, 28 tasks. TipTap rich text editor, resume generation (AI + template fill), markdown export (PDF/DOCX), job variant tailoring with diff view and approval workflow.
 **Stripe Checkout (REQ-029):** Complete. 6 phases, 28 tasks. Stripe SDK, funding packs API, checkout sessions, webhook fulfillment, usage dashboard (balance card, transaction history, pagination), signup grant wired into all 3 auth flows.
+**Services Reorganization (REQ-031):** Complete. 9 phases, 30 tasks. 80 service files reorganized from flat `services/` into 8 domain subdirectories (scoring/, embedding/, generation/, rendering/, discovery/, billing/, admin/, onboarding/). All import paths updated, module docstrings standardized with Coordinates-with/Called-by sections.
 **Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
 
 **IMPORTANT:** After completing ANY subtask, update the active plan file status (⬜ → ✅). See `zentropy-planner` skill. Discover plan files via `Glob "docs/plan/*_plan.md"` or ask the user which plan is in scope.
@@ -466,4 +467,4 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ---
 
-*Last updated: 2026-03-29*
+*Last updated: 2026-03-30*
