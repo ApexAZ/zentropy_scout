@@ -9,13 +9,16 @@
  */
 
 import { useCrudStep } from "@/hooks/use-crud-step";
-import { toFormValues, toRequestBody } from "@/lib/certification-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type CertificationFormData,
+} from "@/lib/certification-helpers";
 import { useOnboarding } from "@/lib/onboarding-provider";
 import type { Certification } from "@/types/persona";
 
 import { CertificationCard } from "./certification-card";
 import { CertificationForm } from "./certification-form";
-import type { CertificationFormData } from "./certification-form";
 import { CrudStepLayout } from "./crud-step-layout";
 
 // ---------------------------------------------------------------------------

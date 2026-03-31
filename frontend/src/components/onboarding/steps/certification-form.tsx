@@ -12,7 +12,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { FormActionFooter } from "@/components/form/form-action-footer";
 import { FormInputField } from "@/components/form/form-input-field";
@@ -26,60 +25,17 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	certificationFormSchema,
+	type CertificationFormData,
+} from "@/lib/certification-helpers";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const MAX_CERT_NAME_LENGTH = 255;
-const MAX_ISSUER_LENGTH = 255;
-const MAX_CREDENTIAL_ID_LENGTH = 100;
-const MAX_URL_LENGTH = 2083;
-
 /** Shared two-column grid layout class. */
 const GRID_TWO_COL = "grid gap-4 sm:grid-cols-2";
-
-// ---------------------------------------------------------------------------
-// Validation schema
-// ---------------------------------------------------------------------------
-
-const certificationFormSchema = z.object({
-	certification_name: z
-		.string()
-		.min(1, { message: "Certification name is required" })
-		.max(MAX_CERT_NAME_LENGTH, { message: "Certification name is too long" }),
-	issuing_organization: z
-		.string()
-		.min(1, { message: "Issuing organization is required" })
-		.max(MAX_ISSUER_LENGTH, { message: "Issuing organization is too long" }),
-	date_obtained: z.string().min(1, { message: "Date obtained is required" }),
-	does_not_expire: z.boolean(),
-	expiration_date: z.string().optional().or(z.literal("")),
-	credential_id: z
-		.string()
-		.max(MAX_CREDENTIAL_ID_LENGTH, { message: "Credential ID is too long" })
-		.optional()
-		.or(z.literal("")),
-	verification_url: z
-		.string()
-		.max(MAX_URL_LENGTH, { message: "URL is too long" })
-		.optional()
-		.or(z.literal(""))
-		.refine(
-			(val) => {
-				if (!val || val === "") return true;
-				try {
-					const url = new URL(val);
-					return url.protocol === "https:" || url.protocol === "http:";
-				} catch {
-					return false;
-				}
-			},
-			{ message: "Enter a valid URL (http:// or https://)" },
-		),
-});
-
-export type CertificationFormData = z.infer<typeof certificationFormSchema>;
 
 /** Default form values for a new entry. */
 const DEFAULT_VALUES: CertificationFormData = {

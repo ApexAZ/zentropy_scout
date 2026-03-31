@@ -15,13 +15,16 @@ import { useCallback, useEffect, useState } from "react";
 
 import { CertificationCard } from "@/components/onboarding/steps/certification-card";
 import { CertificationForm } from "@/components/onboarding/steps/certification-form";
-import type { CertificationFormData } from "@/components/onboarding/steps/certification-form";
 import { Button } from "@/components/ui/button";
 import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
-import { toFormValues, toRequestBody } from "@/lib/certification-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type CertificationFormData,
+} from "@/lib/certification-helpers";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
 import type { ApiListResponse, ApiResponse } from "@/types/api";

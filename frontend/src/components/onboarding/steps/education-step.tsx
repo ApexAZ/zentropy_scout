@@ -8,14 +8,17 @@
  */
 
 import { useCrudStep } from "@/hooks/use-crud-step";
-import { toFormValues, toRequestBody } from "@/lib/education-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type EducationFormData,
+} from "@/lib/education-helpers";
 import { useOnboarding } from "@/lib/onboarding-provider";
 import type { Education } from "@/types/persona";
 
 import { CrudStepLayout } from "./crud-step-layout";
 import { EducationCard } from "./education-card";
 import { EducationForm } from "./education-form";
-import type { EducationFormData } from "./education-form";
 
 // ---------------------------------------------------------------------------
 // Component

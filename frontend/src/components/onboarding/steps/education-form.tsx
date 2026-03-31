@@ -8,10 +8,8 @@
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { FormActionFooter } from "@/components/form/form-action-footer";
 import { FormInputField } from "@/components/form/form-input-field";
@@ -24,83 +22,17 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	educationFormSchema,
+	type EducationFormData,
+} from "@/lib/education-helpers";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const MAX_INSTITUTION_LENGTH = 255;
-const MAX_DEGREE_LENGTH = 100;
-const MAX_FIELD_LENGTH = 255;
-const MAX_HONORS_LENGTH = 255;
-const MIN_GRADUATION_YEAR = 1950;
-const MAX_GRADUATION_YEAR = 2100;
-const MAX_GPA = 4;
-
 /** Shared two-column grid layout class. */
 const GRID_TWO_COL = "grid gap-4 sm:grid-cols-2";
-
-// ---------------------------------------------------------------------------
-// Validation schema
-// ---------------------------------------------------------------------------
-
-/**
- * Numeric fields stored as strings in the form (HTML inputs return strings).
- * Conversion to numbers happens in toRequestBody() at the step level.
- */
-const educationFormSchema = z.object({
-	institution: z
-		.string()
-		.min(1, { message: "Institution is required" })
-		.max(MAX_INSTITUTION_LENGTH, { message: "Institution name is too long" }),
-	degree: z
-		.string()
-		.min(1, { message: "Degree is required" })
-		.max(MAX_DEGREE_LENGTH, { message: "Degree is too long" }),
-	field_of_study: z
-		.string()
-		.min(1, { message: "Field of study is required" })
-		.max(MAX_FIELD_LENGTH, { message: "Field of study is too long" }),
-	graduation_year: z
-		.string()
-		.min(1, { message: "Graduation year is required" })
-		.refine((val) => /^\d{4}$/.test(val), {
-			message: "Enter a valid 4-digit year",
-		})
-		.refine(
-			(val) => {
-				const year = Number.parseInt(val, 10);
-				return year >= MIN_GRADUATION_YEAR;
-			},
-			{ message: `Year must be ${MIN_GRADUATION_YEAR} or later` },
-		)
-		.refine(
-			(val) => {
-				const year = Number.parseInt(val, 10);
-				return year <= MAX_GRADUATION_YEAR;
-			},
-			{ message: `Year must be ${MAX_GRADUATION_YEAR} or earlier` },
-		),
-	gpa: z
-		.string()
-		.optional()
-		.or(z.literal(""))
-		.refine(
-			(val) => {
-				if (!val || val === "") return true;
-				const num = Number.parseFloat(val);
-				return !Number.isNaN(num) && num >= 0 && num <= MAX_GPA;
-			},
-			{ message: `GPA must be between 0 and ${MAX_GPA}` },
-		),
-	honors: z
-		.string()
-		.max(MAX_HONORS_LENGTH, "Honors is too long")
-		.optional()
-		.or(z.literal("")),
-});
-
-export type EducationFormData = z.infer<typeof educationFormSchema>;
 
 /** Default form values for a new entry. */
 const DEFAULT_VALUES: EducationFormData = {

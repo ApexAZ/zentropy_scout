@@ -15,13 +15,16 @@ import { useCallback, useEffect, useState } from "react";
 
 import { EducationCard } from "@/components/onboarding/steps/education-card";
 import { EducationForm } from "@/components/onboarding/steps/education-form";
-import type { EducationFormData } from "@/components/onboarding/steps/education-form";
 import { Button } from "@/components/ui/button";
 import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 import { useDeleteWithReferences } from "@/hooks/use-delete-with-references";
 import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
-import { toFormValues, toRequestBody } from "@/lib/education-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type EducationFormData,
+} from "@/lib/education-helpers";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
