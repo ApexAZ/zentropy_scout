@@ -1,14 +1,19 @@
 /**
- * Shared Zod schema fields for basic info forms.
+ * @fileoverview Shared Zod schema fields for basic info forms.
  *
- * Used by both the onboarding BasicInfoStep and the persona BasicInfoEditor
- * to validate the 8 common personal fields (full_name, email, phone,
+ * Layer: lib/utility
+ * Feature: persona
+ *
+ * Validates the 8 common personal fields (full_name, email, phone,
  * linkedin_url, portfolio_url, home_city, home_state, home_country).
+ * Used by both the onboarding BasicInfoStep and the persona BasicInfoEditor.
  *
- * @module lib/basic-info-schema
- * @coordinates-with components/onboarding/steps/basic-info-step (onboarding consumer),
- *   components/persona/basic-info-editor (persona management consumer),
- *   types/persona (PersonaBasicInfo — API shape these fields validate against)
+ * Coordinates with:
+ * - types/persona.ts: PersonaBasicInfo — API shape these fields validate against
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/basic-info-step.tsx: onboarding form validation
+ * - components/persona/basic-info-editor.tsx: post-onboarding form validation
  */
 
 import { z } from "zod";

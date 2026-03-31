@@ -1,15 +1,20 @@
 /**
- * Shared helpers for voice profile forms (onboarding + post-onboarding editor).
+ * @fileoverview Shared helpers for voice profile forms (onboarding + post-onboarding editor).
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.6: Conversion utilities between API VoiceProfile
  * entities, form values, and request bodies. Also exports the shared
  * Zod validation schema and default form values.
  *
- * @module lib/voice-profile-helpers
- * @coordinates-with types/persona (VoiceProfile — API entity shape),
- *   components/onboarding/steps/voice-profile-step (onboarding step wrapper),
- *   components/persona/voice-profile-form-fields (shared form field component),
- *   components/persona/voice-profile-editor (post-onboarding editor)
+ * Coordinates with:
+ * - types/persona.ts: VoiceProfile — API entity shape
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/voice-profile-step.tsx: onboarding step wrapper
+ * - components/persona/voice-profile-form-fields.tsx: shared form field component
+ * - components/persona/voice-profile-editor.tsx: post-onboarding editor
  */
 
 import { z } from "zod";

@@ -1,16 +1,21 @@
 /**
- * Shared helpers for education forms (onboarding + post-onboarding editor).
+ * @fileoverview Shared helpers for education forms (onboarding + post-onboarding editor).
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.3: Conversion utilities between API Education
  * entities, form values, and request bodies. Also owns the Zod
  * validation schema and EducationFormData type so that lib/
  * never imports from components/.
  *
- * @module lib/education-helpers
- * @coordinates-with types/persona (Education — API entity shape),
- *   components/onboarding/steps/education-form (onboarding form UI),
- *   components/onboarding/steps/education-step (onboarding step wrapper),
- *   components/persona/education-editor (post-onboarding editor)
+ * Coordinates with:
+ * - types/persona.ts: Education — API entity shape
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/education-form.tsx: onboarding form UI
+ * - components/onboarding/steps/education-step.tsx: onboarding step wrapper
+ * - components/persona/education-editor.tsx: post-onboarding editor
  */
 
 import { z } from "zod";

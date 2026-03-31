@@ -1,15 +1,20 @@
 /**
- * Shared helpers for achievement story forms (onboarding + post-onboarding editor).
+ * @fileoverview Shared helpers for achievement story forms (onboarding + post-onboarding editor).
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.5: Conversion utilities between API AchievementStory
  * entities, form values, and request bodies. Also owns the Zod
  * validation schema and StoryFormData type.
  *
- * @module lib/achievement-stories-helpers
- * @coordinates-with types/persona (AchievementStory — API entity shape),
- *   components/onboarding/steps/story-form (onboarding form UI),
- *   components/onboarding/steps/story-step (onboarding step wrapper),
- *   components/persona/achievement-stories-editor (post-onboarding editor)
+ * Coordinates with:
+ * - types/persona.ts: AchievementStory — API entity shape
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/story-form.tsx: onboarding form UI
+ * - components/onboarding/steps/story-step.tsx: onboarding step wrapper
+ * - components/persona/achievement-stories-editor.tsx: post-onboarding editor
  */
 
 import { z } from "zod";

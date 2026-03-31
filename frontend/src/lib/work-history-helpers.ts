@@ -1,16 +1,21 @@
 /**
- * Shared helpers for work history forms (onboarding + post-onboarding editor).
+ * @fileoverview Shared helpers for work history forms (onboarding + post-onboarding editor).
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.2: Conversion utilities between API WorkHistory
  * entities, form values, and request bodies. Also owns the Zod
  * validation schema, WorkHistoryFormData type, and toMonthValue
  * utility so that lib/ never imports from components/.
  *
- * @module lib/work-history-helpers
- * @coordinates-with types/persona (WorkHistory, WorkModel — API entity shapes),
- *   components/onboarding/steps/work-history-form (onboarding form UI),
- *   components/onboarding/steps/work-history-step (onboarding step wrapper),
- *   components/persona/work-history-editor (post-onboarding editor)
+ * Coordinates with:
+ * - types/persona.ts: WorkHistory, WorkModel — API entity shapes
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/work-history-form.tsx: onboarding form UI
+ * - components/onboarding/steps/work-history-step.tsx: onboarding step wrapper
+ * - components/persona/work-history-editor.tsx: post-onboarding editor
  */
 
 import { z } from "zod";

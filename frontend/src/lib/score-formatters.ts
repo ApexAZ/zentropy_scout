@@ -1,17 +1,22 @@
 /**
- * Shared formatting utilities for fit and stretch score component display.
+ * @fileoverview Formatting utilities for fit and stretch score component display.
  *
- * Extracted from chat-score-card.tsx for reuse across score display
- * components (ChatScoreCard, ScoreBreakdown).
+ * Layer: lib/utility
+ * Feature: jobs
  *
  * REQ-008 §4.1: Fit score component keys and weight order.
  * REQ-008 §5.1: Stretch score component keys and weight order.
  * REQ-012 §8.3: Score display formatting.
  *
- * @module lib/score-formatters
- * @coordinates-with types/job (FitScoreComponentKey, StretchScoreComponentKey types),
- *   components/jobs/score-breakdown (detailed score component bars),
- *   components/chat/chat-score-card (inline score preview in chat)
+ * Extracted from chat-score-card.tsx for reuse across score display
+ * components (ChatScoreCard, ScoreBreakdown).
+ *
+ * Coordinates with:
+ * - types/job.ts: FitScoreComponentKey, StretchScoreComponentKey type definitions
+ *
+ * Called by / Used by:
+ * - components/jobs/score-breakdown.tsx: detailed score component bars
+ * - components/chat/chat-score-card.tsx: inline score preview in chat
  */
 
 import type {

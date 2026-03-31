@@ -1,15 +1,20 @@
 /**
- * Shared helpers for growth targets forms (onboarding + post-onboarding editor).
+ * @fileoverview Shared helpers for growth targets forms (onboarding + post-onboarding editor).
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.8: Conversion utilities between Persona growth target
  * fields, form values, and request bodies. Also exports the shared
  * Zod validation schema, constants, and default form values.
  *
- * @module lib/growth-targets-helpers
- * @coordinates-with types/persona (Persona, STRETCH_APPETITES — API entity shape),
- *   components/onboarding/steps/growth-targets-step (onboarding step wrapper),
- *   components/persona/growth-targets-form-fields (shared form field component),
- *   components/persona/growth-targets-editor (post-onboarding editor)
+ * Coordinates with:
+ * - types/persona.ts: Persona, STRETCH_APPETITES — API entity shape
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/growth-targets-step.tsx: onboarding step wrapper
+ * - components/persona/growth-targets-form-fields.tsx: shared form field component
+ * - components/persona/growth-targets-editor.tsx: post-onboarding editor
  */
 
 import { z } from "zod";

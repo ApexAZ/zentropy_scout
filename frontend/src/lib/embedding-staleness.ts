@@ -1,5 +1,8 @@
 /**
- * Embedding staleness notification utilities.
+ * @fileoverview Embedding staleness notification utilities.
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.7: After persona edits that affect matching (skills,
  * work history, non-negotiables), show a brief "Updating your match
@@ -9,11 +12,14 @@
  *
  * REQ-012 §13.5: Warning toasts use amber styling with 5 s auto-dismiss.
  *
- * @module lib/embedding-staleness
- * @coordinates-with toast (notification display),
- *   sse-provider (calls notifyEmbeddingComplete on embedding events),
- *   persona editors: skills-editor, work-history-editor, non-negotiables-editor
- *     (call notifyEmbeddingUpdate after matching-relevant saves)
+ * Coordinates with:
+ * - lib/toast.ts: notification display via showToast
+ *
+ * Called by / Used by:
+ * - lib/sse-provider.tsx: calls notifyEmbeddingComplete on SSE embedding events
+ * - components/persona/skills-editor.tsx: embedding update notification after save
+ * - components/persona/work-history-editor.tsx: embedding update notification after save
+ * - components/persona/non-negotiables-editor.tsx: embedding update notification after save
  */
 
 import { showToast } from "./toast";

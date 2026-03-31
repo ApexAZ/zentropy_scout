@@ -1,13 +1,18 @@
 /**
- * Shared helpers for discovery preferences editor.
+ * @fileoverview Shared helpers for discovery preferences editor.
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.9: Schema, defaults, and conversion functions for
  * minimum fit threshold (slider 0-100), auto-draft threshold
  * (slider 0-100), and polling frequency (select).
  *
- * @module lib/discovery-preferences-helpers
- * @coordinates-with types/persona (Persona, POLLING_FREQUENCIES — API entity shape),
- *   components/persona/discovery-preferences-editor (sole consumer — post-onboarding only)
+ * Coordinates with:
+ * - types/persona.ts: Persona, POLLING_FREQUENCIES — API entity shape
+ *
+ * Called by / Used by:
+ * - components/persona/discovery-preferences-editor.tsx: sole consumer (post-onboarding only)
  */
 
 import { z } from "zod";

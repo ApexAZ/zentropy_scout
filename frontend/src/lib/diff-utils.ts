@@ -1,12 +1,19 @@
 /**
- * Diff utilities for the variant review page (§8.6).
+ * @fileoverview Word-level diff and bullet-move detection for variant review.
+ *
+ * Layer: lib/utility
+ * Feature: resume
  *
  * REQ-012 §9.3: Changed text highlighted with color.
  * Moved bullets shown with position indicators.
+ * Uses LCS (Longest Common Subsequence) for word-level diff tokens.
  *
- * @module lib/diff-utils
- * @coordinates-with components/resume/variant-review (word diff + bullet move detection),
- *   components/resume/diff-text (renders DiffToken array as highlighted spans)
+ * Coordinates with:
+ * - (no upstream lib imports — pure algorithm)
+ *
+ * Called by / Used by:
+ * - components/resume/variant-review.tsx: word diff + bullet move detection
+ * - components/resume/diff-text.tsx: renders DiffToken array as highlighted spans
  */
 
 // ---------------------------------------------------------------------------

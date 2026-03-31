@@ -1,16 +1,21 @@
 /**
- * Shared helpers for certification forms (onboarding + post-onboarding editor).
+ * @fileoverview Shared helpers for certification forms (onboarding + post-onboarding editor).
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.3: Conversion utilities between API Certification
  * entities, form values, and request bodies. Also owns the Zod
  * validation schema and CertificationFormData type so that lib/
  * never imports from components/.
  *
- * @module lib/certification-helpers
- * @coordinates-with types/persona (Certification — API entity shape),
- *   components/onboarding/steps/certification-form (onboarding form UI),
- *   components/onboarding/steps/certification-step (onboarding step wrapper),
- *   components/persona/certification-editor (post-onboarding editor)
+ * Coordinates with:
+ * - types/persona.ts: Certification — API entity shape
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/certification-form.tsx: onboarding form UI
+ * - components/onboarding/steps/certification-step.tsx: onboarding step wrapper
+ * - components/persona/certification-editor.tsx: post-onboarding editor
  */
 
 import { z } from "zod";

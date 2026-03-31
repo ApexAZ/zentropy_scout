@@ -1,14 +1,20 @@
 /**
- * Credits API client functions.
+ * @fileoverview Credits API client functions for billing and checkout.
+ *
+ * Layer: lib/utility
+ * Feature: usage
  *
  * REQ-029 §8.1–§8.3: Typed functions for credit pack listing,
  * checkout session creation, and purchase history retrieval.
  *
- * @module lib/api/credits
- * @coordinates-with api-client (shared HTTP wrappers),
- *   types/usage (PackItem, CheckoutResponse, PurchaseItem shapes),
- *   components/usage/funding-packs (pack listing + checkout),
- *   components/usage/usage-page (purchase history)
+ * Coordinates with:
+ * - lib/api-client.ts: shared HTTP wrappers (apiGet, apiPost)
+ * - types/usage.ts: PackItem, CheckoutResponse, PurchaseItem type definitions
+ * - types/api.ts: response envelope types (ApiResponse, ApiListResponse)
+ *
+ * Called by / Used by:
+ * - components/usage/funding-packs.tsx: pack listing and checkout
+ * - components/usage/usage-page.tsx: purchase history
  */
 
 import type { ApiListResponse, ApiResponse } from "@/types/api";

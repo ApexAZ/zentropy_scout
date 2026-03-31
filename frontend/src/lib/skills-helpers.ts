@@ -1,16 +1,21 @@
 /**
- * Shared helpers for skill forms (onboarding + post-onboarding editor).
+ * @fileoverview Shared helpers for skill forms (onboarding + post-onboarding editor).
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.4: Conversion utilities between API Skill
  * entities, form values, and request bodies. Also exports
  * HARD_SKILL_CATEGORIES and SOFT_SKILL_CATEGORIES constants,
  * plus the Zod validation schema and SkillFormData type.
  *
- * @module lib/skills-helpers
- * @coordinates-with types/persona (Skill, SkillType, Proficiency — API entity shapes),
- *   components/onboarding/steps/skills-form (onboarding form UI),
- *   components/onboarding/steps/skills-step (onboarding step wrapper),
- *   components/persona/skills-editor (post-onboarding editor)
+ * Coordinates with:
+ * - types/persona.ts: Skill, SkillType, Proficiency — API entity shapes
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/skills-form.tsx: onboarding form UI
+ * - components/onboarding/steps/skills-step.tsx: onboarding step wrapper
+ * - components/persona/skills-editor.tsx: post-onboarding editor
  */
 
 import { z } from "zod";

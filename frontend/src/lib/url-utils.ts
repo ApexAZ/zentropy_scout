@@ -1,14 +1,22 @@
 /**
- * URL validation utilities for safe link rendering.
+ * @fileoverview URL validation utilities for safe link rendering.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-012 §8.2, §9.1: Prevents XSS via javascript:, data:, or other
  * dangerous URL schemes. Only allows http: and https: protocols.
  * Used wherever external URLs from job postings or personas are rendered.
  *
- * @module lib/url-utils
- * @coordinates-with components/editor/* (safe link rendering in toolbar),
- *   components/jobs/job-detail-header (external job posting links),
- *   components/applications/job-snapshot-section (snapshot link display)
+ * Coordinates with:
+ * - (no upstream lib imports — pure validation utility)
+ *
+ * Called by / Used by:
+ * - components/editor/editor-toolbar.tsx: safe link insertion in rich text editor
+ * - components/editor/resume-editor.tsx: link validation in resume content
+ * - components/jobs/job-detail-header.tsx: external job posting links
+ * - components/jobs/mark-as-applied-card.tsx: application URL validation
+ * - components/applications/job-snapshot-section.tsx: snapshot link display
  */
 
 // ---------------------------------------------------------------------------

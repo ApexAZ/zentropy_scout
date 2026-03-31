@@ -1,14 +1,27 @@
 /**
- * Admin API client functions.
+ * @fileoverview Admin API client functions for all admin CRUD endpoints.
  *
- * REQ-022 §11: Typed functions for all admin CRUD endpoints.
+ * Layer: lib/utility
+ * Feature: admin
+ *
+ * REQ-022 §11: Typed functions for model registry, pricing config,
+ * task routing, funding packs, system config, and user management.
  * All functions use the shared apiGet/apiPost/apiPatch/apiPut/apiDelete
  * wrappers from api-client.ts.
  *
- * @module lib/api/admin
- * @coordinates-with api-client (shared HTTP wrappers),
- *   types/admin (all request/response shapes),
- *   components/admin/* tabs (models, pricing, routing, packs, system, users)
+ * Coordinates with:
+ * - lib/api-client.ts: shared HTTP wrappers (apiGet, apiPost, apiPatch, apiPut, apiDelete)
+ * - types/admin.ts: all admin request/response type definitions
+ * - types/api.ts: response envelope types (ApiResponse, ApiListResponse)
+ *
+ * Called by / Used by:
+ * - components/admin/models-tab.tsx: model registry CRUD
+ * - components/admin/pricing-tab.tsx: pricing config CRUD
+ * - components/admin/routing-tab.tsx: task routing CRUD
+ * - components/admin/routing-test-cell.tsx: routing test requests
+ * - components/admin/packs-tab.tsx: funding pack CRUD
+ * - components/admin/system-tab.tsx: system config CRUD
+ * - components/admin/users-tab.tsx: user management CRUD
  */
 
 import type { ApiListResponse, ApiResponse } from "@/types/api";

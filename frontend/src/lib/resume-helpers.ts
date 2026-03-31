@@ -1,13 +1,18 @@
 /**
- * Shared helpers for resume components.
+ * @fileoverview Shared helpers for resume bullet ordering.
  *
- * REQ-012 §9.2-9.3: Utilities used by base resume detail and
+ * Layer: lib/utility
+ * Feature: resume
+ *
+ * REQ-012 §9.2–§9.3: Utilities used by base resume detail and
  * variant review for bullet ordering.
  *
- * @module lib/resume-helpers
- * @coordinates-with types/persona (Bullet type — sorted by these helpers),
- *   components/resume/resume-detail (base resume bullet ordering),
- *   components/resume/variant-review (variant bullet ordering + diff)
+ * Coordinates with:
+ * - types/persona.ts: Bullet type — sorted by these helpers
+ *
+ * Called by / Used by:
+ * - components/resume/resume-detail.tsx: base resume bullet ordering
+ * - components/resume/variant-review.tsx: variant bullet ordering + diff
  */
 
 import type { Bullet } from "@/types/persona";

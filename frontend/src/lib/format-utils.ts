@@ -1,13 +1,24 @@
 /**
- * Shared formatting utilities for financial and numeric display.
+ * @fileoverview Shared formatting utilities for financial and numeric display.
+ *
+ * Layer: lib/utility
+ * Feature: usage
  *
  * REQ-020 §2.5: All monetary values displayed with 2 decimal places.
  * Backend returns 6 decimal places; frontend formats for display.
+ * Includes balance threshold color coding (REQ-020 §9.1).
  *
- * @module lib/format-utils
- * @coordinates-with components/usage/* (balance card, purchase/usage/transaction tables),
- *   components/layout/top-nav (balance display in header),
- *   types/usage (raw string amounts formatted by these helpers)
+ * Coordinates with:
+ * - types/usage.ts: raw string amounts formatted by these helpers
+ *
+ * Called by / Used by:
+ * - components/layout/top-nav.tsx: header balance display
+ * - components/usage/balance-card.tsx: balance amount and color
+ * - components/usage/low-balance-warning.tsx: low balance threshold check
+ * - components/usage/purchase-table.tsx: purchase amounts
+ * - components/usage/transaction-table.tsx: transaction amounts
+ * - components/usage/usage-table.tsx: usage amounts
+ * - components/usage/usage-summary.tsx: usage summary totals
  */
 
 // ---------------------------------------------------------------------------

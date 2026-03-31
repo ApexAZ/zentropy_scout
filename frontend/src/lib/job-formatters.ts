@@ -1,14 +1,23 @@
 /**
- * Shared formatting utilities for job posting display.
+ * @fileoverview Formatting utilities for job posting salary and date display.
+ *
+ * Layer: lib/utility
+ * Feature: jobs
  *
  * REQ-012 §8.1–§8.2: Salary range and date formatting for job
  * dashboard, detail views, application tracking, and resume lists.
  *
- * @module lib/job-formatters
- * @coordinates-with types/job (JobPostingResponse — salary/date fields formatted here),
- *   components/dashboard/opportunities-table (salary + days-ago columns),
- *   components/jobs/job-detail-header (salary badge),
- *   components/applications/* (application list + detail + job snapshot)
+ * Coordinates with:
+ * - types/job.ts: JobPostingResponse — salary/date fields formatted here
+ *
+ * Called by / Used by:
+ * - components/dashboard/opportunities-table.tsx: salary + days-ago columns
+ * - components/jobs/job-detail-header.tsx: salary badge
+ * - components/resume/resume-list.tsx: job info in resume list
+ * - components/resume/variants-list.tsx: job info in variant list
+ * - components/applications/application-columns.tsx: application list salary
+ * - components/applications/application-detail.tsx: application detail salary
+ * - components/applications/job-snapshot-section.tsx: snapshot salary display
  */
 
 import type { JobPostingResponse } from "@/types/job";

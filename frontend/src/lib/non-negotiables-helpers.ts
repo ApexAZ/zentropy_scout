@@ -1,15 +1,20 @@
 /**
- * Shared helpers for non-negotiables forms (onboarding + post-onboarding editor).
+ * @fileoverview Shared helpers for non-negotiables forms (onboarding + post-onboarding editor).
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-012 §7.2.7: Conversion utilities between Persona non-negotiable
  * fields, form values, and request bodies. Also exports the shared
  * Zod validation schema, constants, and default form values.
  *
- * @module lib/non-negotiables-helpers
- * @coordinates-with types/persona (Persona + enum constants — API entity shape),
- *   components/onboarding/steps/non-negotiables-step (onboarding step wrapper),
- *   components/persona/non-negotiables-form-fields (shared form field component),
- *   components/persona/non-negotiables-editor (post-onboarding editor)
+ * Coordinates with:
+ * - types/persona.ts: Persona, COMPANY_SIZE_PREFERENCES, MAX_TRAVEL_PERCENTS, REMOTE_PREFERENCES
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/non-negotiables-step.tsx: onboarding step wrapper
+ * - components/persona/non-negotiables-form-fields.tsx: shared form field component
+ * - components/persona/non-negotiables-editor.tsx: post-onboarding editor
  */
 
 import { z } from "zod";
