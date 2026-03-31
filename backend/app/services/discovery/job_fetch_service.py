@@ -6,6 +6,14 @@ saves/links to pool, and calculates poll state timestamps.
 
 Orchestrates the fetch/merge/pool-check/enrich/save pipeline
 for the job discovery workflow.
+
+Coordinates with:
+  - discovery/job_enrichment_service.py — calls JobEnrichmentService for skill extraction
+  - discovery/scouter_errors.py — imports SourceError and is_retryable_error
+  - discovery/scouter_utils.py — imports calculate_next_poll_time, merge_results
+  - scoring/job_scoring_service.py — imports JobScoringService for post-fetch scoring
+
+Called by: discovery/discovery_workflow.py and unit tests.
 """
 
 import asyncio

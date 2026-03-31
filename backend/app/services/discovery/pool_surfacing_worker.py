@@ -2,6 +2,11 @@
 
 REQ-015 §7.1: asyncio background task via FastAPI lifespan event.
 Runs the surfacing pass on a configurable interval (~15 min).
+
+Coordinates with:
+  - discovery/pool_surfacing_service.py — imports SurfacingPassResult and run_surfacing_pass
+
+Called by: app/main.py (FastAPI lifespan event) and unit tests.
 """
 
 import asyncio

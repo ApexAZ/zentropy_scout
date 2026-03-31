@@ -7,6 +7,8 @@ still in Draft status. Approved cover letters are immutable.
 
 Public API:
 - update_cover_letter_draft — replace draft_text on a Draft cover letter
+
+Called by: Unit tests. Intended for cover letter editing API (pending router wiring).
 """
 
 import uuid

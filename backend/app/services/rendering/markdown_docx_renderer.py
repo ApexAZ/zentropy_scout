@@ -5,6 +5,8 @@ then maps tokens to python-docx elements for DOCX generation.
 
 Public API:
 - render_docx(markdown_content: str) -> bytes
+
+Called by: app/api/v1/job_variants.py, app/api/v1/base_resumes.py, and unit tests.
 """
 
 import io

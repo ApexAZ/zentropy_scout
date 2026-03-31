@@ -11,6 +11,8 @@ Implements detection methods:
 Verification schedule:
 - Daily for first 2 weeks after application
 - Weekly after 2 weeks
+
+Called by: Unit tests. Intended for job expiration scheduler (pending wiring).
 """
 
 from dataclasses import dataclass

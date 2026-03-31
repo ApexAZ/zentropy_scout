@@ -9,6 +9,12 @@ The Discovery Workflow orchestrates the full job discovery process:
 
 This service ties together trigger detection functions from scouter.py
 with the JobFetchService pipeline.
+
+Coordinates with:
+  - discovery/job_fetch_service.py — imports JobFetchService for pipeline execution
+  - discovery/scouter_utils.py — imports trigger detection functions (should_poll, etc.)
+
+Called by: Unit tests. Intended for agent orchestration (pending wiring).
 """
 
 from dataclasses import dataclass, field

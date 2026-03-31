@@ -9,6 +9,9 @@ Mitigations:
 3. Rate limit manual submissions — max 20/user/day
 4. Timing side-channel — handled at endpoint level (background processing)
 5. Sanitize on read — handled at LLM prompt construction sites
+
+Called by: app/api/v1/job_postings.py (manual submission), discovery/global_dedup_service.py,
+discovery/pool_surfacing_service.py, and unit tests.
 """
 
 import logging

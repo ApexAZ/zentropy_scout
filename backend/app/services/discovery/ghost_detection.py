@@ -15,6 +15,8 @@ Score Interpretation (REQ-003 §7.3):
     26-50: Moderate - Light warning about age/history
     51-75: Elevated - Clear warning, recommend verification
     76-100: High Risk - Strong warning, suggest skipping
+
+Called by: discovery/job_enrichment_service.py and unit tests.
 """
 
 import logging

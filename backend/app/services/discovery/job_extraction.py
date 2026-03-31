@@ -6,6 +6,8 @@ WHY SEPARATE SERVICE:
 - Shared between ingest endpoint (sync) and Scouter agent (background)
 - Abstracted from LLM provider details
 - Easy to test with mocked responses
+
+Called by: app/api/v1/job_postings.py (ingest preview endpoint) and unit tests.
 """
 
 import json

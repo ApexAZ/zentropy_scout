@@ -9,6 +9,8 @@ Implements a state machine for job posting statuses:
 - Expired → (terminal, no transitions)
 
 One-way transitions only. No reversing.
+
+Called by: discovery/user_review.py and unit tests.
 """
 
 from dataclasses import dataclass

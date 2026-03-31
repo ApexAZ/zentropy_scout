@@ -2,6 +2,11 @@
 
 REQ-016 §6.3: Enriches raw job postings with extracted skills, culture
 signals, and ghost detection scores.
+
+Coordinates with:
+  - discovery/ghost_detection.py — calls calculate_ghost_score for freshness analysis
+
+Called by: discovery/job_fetch_service.py and unit tests.
 """
 
 import logging

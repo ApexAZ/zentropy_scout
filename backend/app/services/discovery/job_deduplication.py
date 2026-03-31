@@ -18,6 +18,8 @@ Priority Rules for Merging (REQ-003 §9.3):
     - apply_url: Prefer company ATS URL over aggregator
     - posted_date: Prefer earliest date found
     - description: Prefer longest/most complete
+
+Called by: discovery/global_dedup_service.py and unit tests.
 """
 
 import re

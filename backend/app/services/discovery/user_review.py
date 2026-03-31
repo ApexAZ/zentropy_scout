@@ -11,6 +11,11 @@ Implements user actions on Discovered jobs:
 WHY sync functions: These are pure domain logic functions that validate and
 prepare state changes. They don't make DB or LLM calls. The caller (repository
 or API layer) handles async DB operations after receiving the result.
+
+Coordinates with:
+  - discovery/job_status.py — imports status types and transition_status function
+
+Called by: Unit tests. Intended for job review API (pending router wiring).
 """
 
 from dataclasses import dataclass

@@ -2,6 +2,8 @@
 
 REQ-025 §6.2–§6.4, §8: Business logic for resume template CRUD
 with markdown validation.
+
+Called by: Unit tests. Intended for resume template API (pending router wiring).
 """
 
 import uuid

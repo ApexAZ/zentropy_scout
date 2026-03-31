@@ -13,6 +13,12 @@ Flow per surfacing pass:
 6. UNIQUE constraint prevents re-surfacing.
 
 Cross-tenant: runs with system-level privileges (no user_id scope).
+
+Coordinates with:
+  - discovery/content_security.py — calls release_expired_quarantines before surfacing
+  - scoring/pool_scoring.py — calls keyword_pre_screen and calculate_lightweight_fit
+
+Called by: discovery/pool_surfacing_worker.py and unit tests.
 """
 
 import logging

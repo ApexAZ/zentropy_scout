@@ -9,6 +9,8 @@ Pipeline:
 3. Sanitize and truncate extracted text
 4. Send to LLM with structured extraction prompt
 5. Parse JSON response into ResumeParseResult
+
+Called by: app/api/v1/onboarding.py (resume upload step) and unit tests.
 """
 
 import json

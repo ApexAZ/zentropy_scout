@@ -13,6 +13,8 @@ Public API:
 - render_resume_pdf           — pure render: ResumeContent → PDF bytes
 - render_base_resume_pdf      — gather + render for BaseResume
 - render_variant_pdf          — gather + render for JobVariant
+
+Called by: app/api/v1/base_resumes.py, generation/resume_generation_service.py, and unit tests.
 """
 
 import io

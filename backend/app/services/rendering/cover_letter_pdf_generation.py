@@ -12,6 +12,11 @@ Two rendering paths:
 Public API:
 - render_cover_letter_pdf    — pure render: text → PDF bytes
 - generate_cover_letter_pdf  — orchestration: load + render + store
+
+Coordinates with:
+  - rendering/cover_letter_pdf_storage.py — calls store/retrieve functions for PDF persistence
+
+Called by: Unit tests. Intended for cover letter approval flow (pending API wiring).
 """
 
 import io

@@ -10,6 +10,8 @@ approved cover letter, and linked to an Application when the user marks
 Public API:
 - store_cover_letter_pdf    — create SubmittedCoverLetterPDF (idempotent)
 - get_existing_cover_letter_pdf — retrieve existing PDF for a cover letter
+
+Called by: rendering/cover_letter_pdf_generation.py and unit tests.
 """
 
 import re

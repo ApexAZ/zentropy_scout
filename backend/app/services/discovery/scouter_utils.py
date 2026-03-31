@@ -23,6 +23,8 @@ Trigger Conditions (§6.1):
     - Scheduled poll: Based on Persona.polling_frequency
     - Manual refresh: User says "Find new jobs" or clicks refresh
     - Source added: User enables a new job source
+
+Called by: discovery/discovery_workflow.py, discovery/job_fetch_service.py, and unit tests.
 """
 
 import re

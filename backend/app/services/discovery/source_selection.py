@@ -8,6 +8,8 @@ Prioritizes job sources based on user's Persona attributes:
 - General → all enabled sources
 
 The agent explains its reasoning to the user for transparency.
+
+Called by: Unit tests. Intended for discovery workflow (pending source prioritization wiring).
 """
 
 from dataclasses import dataclass

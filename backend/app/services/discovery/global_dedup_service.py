@@ -8,6 +8,12 @@ REQ-015 §6: 4-step global dedup pipeline.
 
 After dedup: create persona_jobs link for discovering user.
 Race condition: savepoint + IntegrityError recovery.
+
+Coordinates with:
+  - discovery/content_security.py — calls lift_quarantine on confirmed jobs
+  - discovery/job_deduplication.py — imports dedup functions and similarity thresholds
+
+Called by: repositories/job_pool_repository.py (pool write path) and unit tests.
 """
 
 import logging

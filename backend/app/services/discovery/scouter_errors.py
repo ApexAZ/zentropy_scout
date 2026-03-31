@@ -10,6 +10,8 @@ Error Handling Strategy:
 
 Key Principle: Fail-forward - continue processing other sources/jobs even
 when individual operations fail, flagging failures for later retry.
+
+Called by: discovery/job_fetch_service.py and unit tests.
 """
 
 from dataclasses import dataclass
