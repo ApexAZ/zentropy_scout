@@ -21,7 +21,7 @@ import pytest
 
 from app.providers.llm.base import LLMResponse, TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
-from app.services.content_utils import (
+from app.services.generation.content_utils import (
     clear_content_caches,
     extract_keywords,
     extract_keywords_cached,

@@ -30,7 +30,7 @@ class TestTriggerConditions:
 
     def test_should_poll_when_next_poll_time_passed(self) -> None:
         """Scheduled poll triggers when next_poll_at is in the past."""
-        from app.services.scouter_utils import should_poll
+        from app.services.discovery.scouter_utils import should_poll
 
         # Poll time is in the past
         past_time = datetime.now(UTC) - timedelta(hours=1)
@@ -38,7 +38,7 @@ class TestTriggerConditions:
 
     def test_should_not_poll_when_next_poll_time_future(self) -> None:
         """Scheduled poll does NOT trigger when next_poll_at is in the future."""
-        from app.services.scouter_utils import should_poll
+        from app.services.discovery.scouter_utils import should_poll
 
         # Poll time is in the future
         future_time = datetime.now(UTC) + timedelta(hours=1)
@@ -46,14 +46,14 @@ class TestTriggerConditions:
 
     def test_should_poll_when_never_polled(self) -> None:
         """Scheduled poll triggers when next_poll_at is None (never polled)."""
-        from app.services.scouter_utils import should_poll
+        from app.services.discovery.scouter_utils import should_poll
 
         # Never polled before
         assert should_poll(next_poll_at=None) is True
 
     def test_manual_refresh_detected_when_job_search_phrases_used(self) -> None:
         """Returns True when user message contains job search intent phrases."""
-        from app.services.scouter_utils import is_manual_refresh_request
+        from app.services.discovery.scouter_utils import is_manual_refresh_request
 
         positive_cases = [
             "Find new jobs",
@@ -78,7 +78,7 @@ class TestTriggerConditions:
 
     def test_manual_refresh_not_detected_when_unrelated_phrases_used(self) -> None:
         """Returns False when user message is unrelated to job searching."""
-        from app.services.scouter_utils import is_manual_refresh_request
+        from app.services.discovery.scouter_utils import is_manual_refresh_request
 
         negative_cases = [
             "What jobs have I applied to?",
@@ -97,7 +97,7 @@ class TestTriggerConditions:
 
     def test_source_added_trigger_fires_when_new_source_enabled(self) -> None:
         """Returns True when current_sources contains sources not in previous."""
-        from app.services.scouter_utils import is_source_added_trigger
+        from app.services.discovery.scouter_utils import is_source_added_trigger
 
         # No previous sources, now has one
         assert is_source_added_trigger(previous_sources=[], current_sources=["Adzuna"])
@@ -109,7 +109,7 @@ class TestTriggerConditions:
 
     def test_source_added_trigger_not_fires_when_sources_unchanged(self) -> None:
         """Returns False when no new sources were added."""
-        from app.services.scouter_utils import is_source_added_trigger
+        from app.services.discovery.scouter_utils import is_source_added_trigger
 
         # Same sources
         assert not is_source_added_trigger(
@@ -130,7 +130,7 @@ class TestInputTruncation:
 
     def test_is_manual_refresh_request_ignores_pattern_beyond_2000_chars(self) -> None:
         """is_manual_refresh_request truncates so patterns beyond 2000 chars are ignored."""
-        from app.services.scouter_utils import is_manual_refresh_request
+        from app.services.discovery.scouter_utils import is_manual_refresh_request
 
         padding = "x" * 2000
         message = padding + " find new jobs"
@@ -138,7 +138,7 @@ class TestInputTruncation:
 
     def test_is_manual_refresh_request_matches_within_2000_chars(self) -> None:
         """is_manual_refresh_request still matches patterns within the first 2000 chars."""
-        from app.services.scouter_utils import is_manual_refresh_request
+        from app.services.discovery.scouter_utils import is_manual_refresh_request
 
         message = "find new jobs" + " x" * 1000
         assert is_manual_refresh_request(message) is True
@@ -152,7 +152,7 @@ class TestManualRefreshPatterns:
 
     def test_patterns_match_when_different_casing_used(self) -> None:
         """Patterns match job search phrases regardless of case."""
-        from app.services.scouter_utils import MANUAL_REFRESH_PATTERNS
+        from app.services.discovery.scouter_utils import MANUAL_REFRESH_PATTERNS
 
         test_phrases = ["FIND NEW JOBS", "Find New Jobs", "find new jobs"]
         for phrase in test_phrases:
@@ -173,14 +173,14 @@ class TestMergeResults:
 
     def test_merge_returns_empty_list_when_no_sources_provided(self) -> None:
         """Returns empty list when source_results dict is empty."""
-        from app.services.scouter_utils import merge_results
+        from app.services.discovery.scouter_utils import merge_results
 
         result = merge_results({})
         assert result == []
 
     def test_merge_returns_jobs_when_single_source_provided(self) -> None:
         """Returns all jobs from single source with preserved order."""
-        from app.services.scouter_utils import merge_results
+        from app.services.discovery.scouter_utils import merge_results
 
         source_results = {
             "Adzuna": [
@@ -195,7 +195,7 @@ class TestMergeResults:
 
     def test_merge_combines_jobs_when_multiple_sources_provided(self) -> None:
         """Returns all jobs from all sources combined into single list."""
-        from app.services.scouter_utils import merge_results
+        from app.services.discovery.scouter_utils import merge_results
 
         source_results = {
             "Adzuna": [{"external_id": "az-1", "job_title": "Python Developer"}],
@@ -207,7 +207,7 @@ class TestMergeResults:
 
     def test_merge_excludes_jobs_when_source_returns_empty_list(self) -> None:
         """Sources with empty results contribute zero jobs to merged list."""
-        from app.services.scouter_utils import merge_results
+        from app.services.discovery.scouter_utils import merge_results
 
         source_results = {
             "Adzuna": [{"external_id": "az-1", "job_title": "Python Developer"}],
@@ -219,7 +219,7 @@ class TestMergeResults:
 
     def test_merge_adds_source_name_when_jobs_merged(self) -> None:
         """Each merged job includes source_name field for origin tracking."""
-        from app.services.scouter_utils import merge_results
+        from app.services.discovery.scouter_utils import merge_results
 
         source_results = {
             "Adzuna": [{"external_id": "az-1", "job_title": "Python Developer"}],
@@ -236,7 +236,7 @@ class TestCalculateNextPollTime:
 
     def test_next_poll_scheduled_24_hours_later_when_daily_frequency(self) -> None:
         """Returns datetime 24 hours after current_time for daily frequency."""
-        from app.services.scouter_utils import calculate_next_poll_time
+        from app.services.discovery.scouter_utils import calculate_next_poll_time
 
         now = datetime.now(UTC)
         next_poll = calculate_next_poll_time(now, frequency="daily")
@@ -249,7 +249,7 @@ class TestCalculateNextPollTime:
         self,
     ) -> None:
         """Returns datetime 12 hours after current_time for twice_daily frequency."""
-        from app.services.scouter_utils import calculate_next_poll_time
+        from app.services.discovery.scouter_utils import calculate_next_poll_time
 
         now = datetime.now(UTC)
         next_poll = calculate_next_poll_time(now, frequency="twice_daily")
@@ -259,7 +259,7 @@ class TestCalculateNextPollTime:
 
     def test_next_poll_scheduled_7_days_later_when_weekly_frequency(self) -> None:
         """Returns datetime 7 days after current_time for weekly frequency."""
-        from app.services.scouter_utils import calculate_next_poll_time
+        from app.services.discovery.scouter_utils import calculate_next_poll_time
 
         now = datetime.now(UTC)
         next_poll = calculate_next_poll_time(now, frequency="weekly")
@@ -269,7 +269,7 @@ class TestCalculateNextPollTime:
 
     def test_next_poll_defaults_to_daily_when_unknown_frequency(self) -> None:
         """Returns datetime 24 hours later when frequency string is unrecognized."""
-        from app.services.scouter_utils import calculate_next_poll_time
+        from app.services.discovery.scouter_utils import calculate_next_poll_time
 
         now = datetime.now(UTC)
         next_poll = calculate_next_poll_time(now, frequency="unknown_value")
@@ -286,7 +286,7 @@ class TestPollingFlowState:
 
     def test_source_error_recorded_when_source_fails(self) -> None:
         """Appends source_name to error_sources list in state."""
-        from app.services.scouter_utils import record_source_error
+        from app.services.discovery.scouter_utils import record_source_error
 
         state = {
             "enabled_sources": ["Adzuna", "RemoteOK"],
@@ -302,7 +302,7 @@ class TestPollingFlowState:
 
     def test_source_error_not_duplicated_when_already_recorded(self) -> None:
         """Returns state unchanged if source_name already in error_sources."""
-        from app.services.scouter_utils import record_source_error
+        from app.services.discovery.scouter_utils import record_source_error
 
         state = {
             "enabled_sources": ["Adzuna", "RemoteOK"],

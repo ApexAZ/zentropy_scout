@@ -17,7 +17,7 @@ from app.models.job_source import JobSource
 from app.models.persona import Persona
 from app.models.persona_content import Skill
 from app.models.user import User
-from app.services.pool_scoring import (
+from app.services.scoring.pool_scoring import (
     calculate_lightweight_fit,
     keyword_pre_screen,
     score_experience_alignment,

@@ -746,6 +746,6 @@ class TestSanitizeUserFeedback:
 
     def test_max_length_matches_regeneration_constant(self) -> None:
         """Sanitization truncation matches RegenerationConfig validation."""
-        from app.services.regeneration import MAX_FEEDBACK_LENGTH
+        from app.services.generation.regeneration import MAX_FEEDBACK_LENGTH
 
         assert _MAX_FEEDBACK_LENGTH == MAX_FEEDBACK_LENGTH

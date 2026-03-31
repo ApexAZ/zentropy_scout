@@ -7,7 +7,7 @@ that is included in ALL content generation prompts. It accepts primitive voice
 profile fields and returns a formatted string ready for prompt embedding.
 """
 
-from app.services.voice_prompt_block import build_voice_profile_block
+from app.services.generation.voice_prompt_block import build_voice_profile_block
 
 # =============================================================================
 # Helper

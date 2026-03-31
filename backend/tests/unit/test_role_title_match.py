@@ -11,7 +11,7 @@ Tests cover:
 
 import pytest
 
-from app.services.role_title_match import (
+from app.services.scoring.role_title_match import (
     calculate_role_title_score,
     normalize_title,
 )

@@ -9,7 +9,7 @@ Tests verify:
 4. Reasoning is provided for source selection
 """
 
-from app.services.source_selection import (
+from app.services.discovery.source_selection import (
     prioritize_sources,
 )
 

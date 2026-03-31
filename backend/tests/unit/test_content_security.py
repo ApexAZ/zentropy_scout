@@ -13,14 +13,14 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.llm_sanitization import detect_injection_patterns
-from app.services.content_security import (
+from app.services.discovery.content_security import (
     build_quarantine_fields,
     check_manual_submission_rate,
     lift_quarantine,
     release_expired_quarantines,
     validate_job_content,
 )
-from app.services.pool_surfacing_service import get_unsurfaced_jobs
+from app.services.discovery.pool_surfacing_service import get_unsurfaced_jobs
 
 # =============================================================================
 # Injection Pattern Detection Tests

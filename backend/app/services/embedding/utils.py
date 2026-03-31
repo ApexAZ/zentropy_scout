@@ -1,7 +1,13 @@
 """Shared embedding utilities for scoring services.
 
 Common validation and helper functions used across embedding-based
-scoring services (role_title_match, stretch_score, soft_skills_match).
+scoring services (role_title_match, stretch_score).
+
+Coordinates with:
+  - scoring/role_title_match.py — imports validate_embeddings for title comparison
+  - scoring/stretch_score.py — imports validate_embeddings for growth scoring
+
+Called by: scoring/role_title_match.py, scoring/stretch_score.py, and unit tests.
 """
 
 

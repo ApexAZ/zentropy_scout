@@ -15,7 +15,7 @@ Warnings are shown but do not block.
 
 import pytest
 
-from app.services.cover_letter_validation import (
+from app.services.generation.cover_letter_validation import (
     CoverLetterValidation,
     extract_draft_metrics,
     validate_cover_letter,

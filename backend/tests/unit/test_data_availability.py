@@ -12,7 +12,7 @@ Five scenarios:
 
 from dataclasses import replace
 
-from app.services.data_availability import check_data_availability
+from app.services.generation.data_availability import check_data_availability
 
 # =============================================================================
 # Scenario 1: No Achievement Stories

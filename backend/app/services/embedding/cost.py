@@ -18,6 +18,8 @@ These estimates assume:
 - text-embedding-3-small model ($0.00002/1K tokens)
 - Average job embedding: ~150 tokens (title + culture)
 - 30 days per month
+
+Called by: Unit tests. Utility module for cost estimation — not imported by other services.
 """
 
 from dataclasses import dataclass

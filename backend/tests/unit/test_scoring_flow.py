@@ -16,7 +16,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.services.scoring_flow import (
+from app.services.scoring.scoring_flow import (
     JobFilterResult,
     build_filtered_score_result,
     build_scored_result,

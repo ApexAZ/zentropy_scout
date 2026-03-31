@@ -7,7 +7,7 @@ The format_agent_reasoning function produces a user-facing markdown
 explanation of generation choices — resume tailoring and story selection.
 """
 
-from app.services.reasoning_explanation import (
+from app.services.generation.reasoning_explanation import (
     ReasoningStory,
     format_agent_reasoning,
 )

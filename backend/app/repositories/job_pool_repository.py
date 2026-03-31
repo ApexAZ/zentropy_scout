@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job_source import JobSource
 from app.repositories.job_posting_repository import JobPostingRepository
-from app.services.global_dedup_service import deduplicate_and_save
+from app.services.discovery.global_dedup_service import deduplicate_and_save
 
 logger = logging.getLogger(__name__)
 

@@ -18,7 +18,7 @@ from dataclasses import replace
 
 import pytest
 
-from app.services.fit_score import (
+from app.services.scoring.fit_score import (
     FitScoreLabel,
     calculate_fit_score,
     interpret_fit_score,

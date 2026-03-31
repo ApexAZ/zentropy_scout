@@ -16,7 +16,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.services.discovery_workflow import (
+from app.services.discovery.discovery_workflow import (
     DiscoveryTrigger,
     TriggerType,
     check_trigger_conditions,
@@ -24,12 +24,12 @@ from app.services.discovery_workflow import (
     run_discovery,
     should_run_discovery,
 )
-from app.services.job_fetch_service import PollResult
+from app.services.discovery.job_fetch_service import PollResult
 
 # S1192: Duplicated source name and patch path strings
 _SOURCE_ADZUNA = "Adzuna"
 _SOURCE_REMOTEOK = "RemoteOK"
-_JOB_FETCH_SERVICE = "app.services.discovery_workflow.JobFetchService"
+_JOB_FETCH_SERVICE = "app.services.discovery.discovery_workflow.JobFetchService"
 
 # =============================================================================
 # Trigger Detection Tests (REQ-003 §13.1)

@@ -12,13 +12,13 @@ Design principle from REQ-008 §1.2:
 "Graceful degradation — Missing data reduces confidence, does not break scoring."
 """
 
-from app.services.experience_level import calculate_experience_score
-from app.services.fit_score import (
+from app.services.scoring.experience_level import calculate_experience_score
+from app.services.scoring.fit_score import (
     FIT_NEUTRAL_SCORE,
     calculate_fit_score,
 )
-from app.services.hard_skills_match import calculate_hard_skills_score
-from app.services.non_negotiables_filter import (
+from app.services.scoring.hard_skills_match import calculate_hard_skills_score
+from app.services.scoring.non_negotiables_filter import (
     NonNegotiablesResult,
     aggregate_filter_results,
     check_industry_exclusions,
@@ -26,9 +26,9 @@ from app.services.non_negotiables_filter import (
     check_remote_preference,
     check_visa_sponsorship,
 )
-from app.services.role_title_match import calculate_role_title_score
-from app.services.soft_skills_match import calculate_soft_skills_score
-from app.services.stretch_score import (
+from app.services.scoring.role_title_match import calculate_role_title_score
+from app.services.scoring.soft_skills_match import calculate_soft_skills_score
+from app.services.scoring.stretch_score import (
     STRETCH_NEUTRAL_SCORE,
     calculate_stretch_score,
     calculate_target_role_alignment,

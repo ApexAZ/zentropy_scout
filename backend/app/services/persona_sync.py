@@ -6,6 +6,16 @@ to stay current. This service implements the flag-for-review mechanism:
 1. raise_change_flag — creates a PersonaChangeFlag when persona data changes
 2. resolve_change_flag — applies the user's resolution to affected BaseResumes
 3. get_pending_flags — retrieves pending flags for a persona
+
+Cross-cutting: Touches persona models AND resume models. Does not belong
+to scoring, generation, or any single pipeline.
+
+Coordinates with:
+  - models/persona.py, models/persona_content.py — reads persona data
+  - models/resume.py — updates BaseResume records (JSONB fields)
+  - models/persona_settings.py — creates and resolves PersonaChangeFlag entities
+
+Called by: Persona API routers (after edits). Currently test-only pending router wiring.
 """
 
 import uuid

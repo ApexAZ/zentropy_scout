@@ -11,6 +11,14 @@ Four cleanup jobs:
 
 SINGLE-TENANT: All cleanup functions operate globally (no user/persona
 scoping). Must add persona_id filtering before multi-tenancy.
+
+Cross-cutting: Runs 4 independent cleanup policies spanning all domains
+(orphan PDFs, change flags, archived records, expired jobs).
+
+Coordinates with:
+  - Database retention functions — calls SQL cleanup via SQLAlchemy text()
+
+Called by: Scheduled task runner (background jobs). Currently test-only pending scheduler wiring.
 """
 
 import logging

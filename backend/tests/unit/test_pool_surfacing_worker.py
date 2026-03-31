@@ -8,13 +8,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.pool_surfacing_service import SurfacingPassResult
-from app.services.pool_surfacing_worker import (
+from app.services.discovery.pool_surfacing_service import SurfacingPassResult
+from app.services.discovery.pool_surfacing_worker import (
     _INITIAL_LOOKBACK,
     PoolSurfacingWorker,
 )
 
-_PATCH_RUN_SURFACING = "app.services.pool_surfacing_worker.run_surfacing_pass"
+_PATCH_RUN_SURFACING = "app.services.discovery.pool_surfacing_worker.run_surfacing_pass"
 
 
 def _make_pass_result(**overrides: int) -> SurfacingPassResult:

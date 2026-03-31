@@ -851,7 +851,7 @@ class TestDelegateOnboarding:
 
 
 _CONTENT_GEN_SERVICE_PATH = (
-    "app.services.content_generation_service.ContentGenerationService"
+    "app.services.generation.content_generation_service.ContentGenerationService"
 )
 
 

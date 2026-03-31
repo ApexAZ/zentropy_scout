@@ -132,7 +132,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 3: scoring/ (17 files)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Move all 17 scoring files. Heavy internal cross-references but no renames. This is the most interconnected domain internally (fit_score is imported by 8+ files within scoring).*
 
@@ -149,9 +149,9 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 9 | **Move scoring/ — core files (9 files)** — Create `services/scoring/__init__.py`. `git mv` the 5 Fit Score components (fit_score, hard_skills_match, soft_skills_match, experience_level, role_title_match, location_logistics) + stretch_score + score_types + score_explanation. Update all internal cross-references (these files heavily import each other via fit_score.FIT_NEUTRAL_SCORE, soft_skills_match.cosine_similarity, etc.). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ⬜ |
-| 10 | **Move scoring/ — orchestration + validation files (8 files)** — `git mv` non_negotiables_filter, scoring_flow, batch_scoring, job_scoring_service, pool_scoring, explanation_generation, score_correlation, golden_set. Update internal cross-refs (batch_scoring imports from all component files, job_scoring_service imports batch_scoring + scoring_flow, explanation_generation imports fit_score + stretch_score). Update external imports: `app/services/discovery/job_fetch_service.py` (job_scoring_service), `app/services/discovery/pool_surfacing_service.py` (pool_scoring), `app/services/generation/ghostwriter_triggers.py` (if any), and test files. Verify `pytest -v` passes. | `plan` | ⬜ |
-| 11 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 9 | **Move scoring/ — core files (9 files)** — Create `services/scoring/__init__.py`. `git mv` the 5 Fit Score components (fit_score, hard_skills_match, soft_skills_match, experience_level, role_title_match, location_logistics) + stretch_score + score_types + score_explanation. Update all internal cross-references (these files heavily import each other via fit_score.FIT_NEUTRAL_SCORE, soft_skills_match.cosine_similarity, etc.). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ✅ |
+| 10 | **Move scoring/ — orchestration + validation files (8 files)** — `git mv` non_negotiables_filter, scoring_flow, batch_scoring, job_scoring_service, pool_scoring, explanation_generation, score_correlation, golden_set. Update internal cross-refs (batch_scoring imports from all component files, job_scoring_service imports batch_scoring + scoring_flow, explanation_generation imports fit_score + stretch_score). Update external imports: `app/services/discovery/job_fetch_service.py` (job_scoring_service), `app/services/discovery/pool_surfacing_service.py` (pool_scoring), `app/services/generation/ghostwriter_triggers.py` (if any), and test files. Verify `pytest -v` passes. | `plan` | ✅ |
+| 11 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - Splitting into two tasks (core + orchestration) keeps each task under context limits
@@ -162,7 +162,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 4: generation/ (24 files)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Largest domain. Heavy internal cross-references. Split into 3 tasks by subgroup: cover letter pipeline, resume pipeline, edge cases + quality.*
 
@@ -179,10 +179,10 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 12 | **Move generation/ — orchestration + resume (10 files)** — Create `services/generation/__init__.py`. `git mv` content_generation_service, resume_generation_service, resume_tailoring_service, ghostwriter_triggers, base_resume_selection, tailoring_decision, bullet_reordering, modification_limits, content_utils, voice_prompt_block. Update internal cross-refs and external imports (routers: base_resumes, job_variants; providers; test files). Verify `pytest -v` passes. | `plan` | ⬜ |
-| 13 | **Move generation/ — cover letter pipeline (7 files)** — `git mv` cover_letter_generation, cover_letter_structure, cover_letter_output, cover_letter_validation, voice_validation, story_selection, reasoning_explanation. Update internal cross-refs (cover_letter_output → cover_letter_validation, cover_letter_validation → cover_letter_structure, story_selection → content_utils, content_generation_service refs). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ⬜ |
-| 14 | **Move generation/ — edge cases + quality (7 files)** — `git mv` regeneration, data_availability, job_expiry, persona_change, duplicate_story, quality_metrics, generation_outcome. Update internal cross-refs (generation_outcome → regeneration). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ⬜ |
-| 15 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 12 | **Move generation/ — orchestration + resume (10 files)** — Create `services/generation/__init__.py`. `git mv` content_generation_service, resume_generation_service, resume_tailoring_service, ghostwriter_triggers, base_resume_selection, tailoring_decision, bullet_reordering, modification_limits, content_utils, voice_prompt_block. Update internal cross-refs and external imports (routers: base_resumes, job_variants; providers; test files). Verify `pytest -v` passes. | `plan` | ✅ |
+| 13 | **Move generation/ — cover letter pipeline (7 files)** — `git mv` cover_letter_generation, cover_letter_structure, cover_letter_output, cover_letter_validation, voice_validation, story_selection, reasoning_explanation. Update internal cross-refs (cover_letter_output → cover_letter_validation, cover_letter_validation → cover_letter_structure, story_selection → content_utils, content_generation_service refs). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ✅ |
+| 14 | **Move generation/ — edge cases + quality (7 files)** — `git mv` regeneration, data_availability, job_expiry, persona_change, duplicate_story, quality_metrics, generation_outcome. Update internal cross-refs (generation_outcome → regeneration). Update external imports in test files. Verify `pytest -v` passes. | `plan` | ✅ |
+| 15 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - content_generation_service imports from 5+ generation files — move it in the first batch so internal refs within generation/ get fixed early
@@ -193,7 +193,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 5: rendering/ (8 files)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Move 8 document rendering/parsing files. Called by generation services and API routers.*
 
@@ -210,14 +210,14 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 16 | **Move rendering/ (8 files)** — Create `services/rendering/__init__.py`. `git mv` pdf_generation, cover_letter_pdf_generation, cover_letter_pdf_storage, cover_letter_editing, markdown_pdf_renderer, markdown_docx_renderer, resume_template_service, resume_parsing_service. Update internal cross-refs (cover_letter_pdf_generation → cover_letter_pdf_storage). Update external imports: `app/api/base_resumes.py`, `app/api/job_variants.py`, `app/api/onboarding.py`, `app/api/resume_templates.py`, `app/services/generation/resume_generation_service.py`, and test files. Verify `pytest -v` passes. | `plan` | ⬜ |
-| 17 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 16 | **Move rendering/ (8 files)** — Create `services/rendering/__init__.py`. `git mv` pdf_generation, cover_letter_pdf_generation, cover_letter_pdf_storage, cover_letter_editing, markdown_pdf_renderer, markdown_docx_renderer, resume_template_service, resume_parsing_service. Update internal cross-refs (cover_letter_pdf_generation → cover_letter_pdf_storage). Update external imports: `app/api/base_resumes.py`, `app/api/job_variants.py`, `app/api/onboarding.py`, `app/api/resume_templates.py`, `app/services/generation/resume_generation_service.py`, and test files. Verify `pytest -v` passes. | `plan` | ✅ |
+| 17 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 ---
 
 ## Phase 6: discovery/ (16 files)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Move 16 job discovery and pool management files. Some depend on scoring/ (pool_scoring uses scoring/fit_score via pool_surfacing_service).*
 
@@ -234,15 +234,15 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 18 | **Move discovery/ — core pipeline (8 files)** — Create `services/discovery/__init__.py`. `git mv` discovery_workflow, job_fetch_service, job_extraction, job_enrichment_service, ghost_detection, job_deduplication, global_dedup_service, content_security. Update internal cross-refs (job_fetch_service → job_enrichment_service, scouter_utils, scouter_errors, job_scoring_service; global_dedup_service → content_security, job_deduplication; job_enrichment_service → ghost_detection). Update external imports: `app/api/job_postings.py`, `app/repositories/job_pool_repository.py`, and test files. Verify `pytest -v` passes. | `plan` | ⬜ |
-| 19 | **Move discovery/ — status + pool + utilities (8 files)** — `git mv` source_selection, expiration_detection, job_status, user_review, scouter_utils, scouter_errors, pool_surfacing_service, pool_surfacing_worker. Update internal cross-refs (user_review → job_status, pool_surfacing_service → content_security + pool_scoring, pool_surfacing_worker → pool_surfacing_service, discovery_workflow → job_fetch_service + scouter_utils). Update external imports: `app/main.py` (pool_surfacing_worker), and test files. Verify `pytest -v` passes. | `plan` | ⬜ |
-| 20 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 18 | **Move discovery/ — core pipeline (8 files)** — Create `services/discovery/__init__.py`. `git mv` discovery_workflow, job_fetch_service, job_extraction, job_enrichment_service, ghost_detection, job_deduplication, global_dedup_service, content_security. Update internal cross-refs (job_fetch_service → job_enrichment_service, scouter_utils, scouter_errors, job_scoring_service; global_dedup_service → content_security, job_deduplication; job_enrichment_service → ghost_detection). Update external imports: `app/api/job_postings.py`, `app/repositories/job_pool_repository.py`, and test files. Verify `pytest -v` passes. | `plan` | ✅ |
+| 19 | **Move discovery/ — status + pool + utilities (8 files)** — `git mv` source_selection, expiration_detection, job_status, user_review, scouter_utils, scouter_errors, pool_surfacing_service, pool_surfacing_worker. Update internal cross-refs (user_review → job_status, pool_surfacing_service → content_security + pool_scoring, pool_surfacing_worker → pool_surfacing_service, discovery_workflow → job_fetch_service + scouter_utils). Update external imports: `app/main.py` (pool_surfacing_worker), and test files. Verify `pytest -v` passes. | `plan` | ✅ |
+| 20 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 ---
 
 ## Phase 7: Cross-Cutting + Package Docstrings
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Update the 6 cross-cutting files' docstrings with coordination context. Write services/__init__.py package docstring and all subdirectory __init__.py docstrings.*
 
@@ -257,14 +257,14 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 21 | **Update cross-cutting file docstrings (6 files)** — Add `Coordinates with:` and `Called by:` to persona_sync.py, application_workflow.py, agent_message.py, agent_handoff.py, retention_cleanup.py, ingest_token_store.py. Update `services/__init__.py` with package-level docstring describing all 8 domains + cross-cutting files (REQ-031 §4.2 descriptions). Update all 8 subdirectory `__init__.py` files with brief domain docstrings. Verify `ruff check .` passes. | `plan` | ⬜ |
-| 22 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 21 | **Update cross-cutting file docstrings (6 files)** — Add `Coordinates with:` and `Called by:` to persona_sync.py, application_workflow.py, agent_message.py, agent_handoff.py, retention_cleanup.py, ingest_token_store.py. Update `services/__init__.py` with package-level docstring describing all 8 domains + cross-cutting files (REQ-031 §4.2 descriptions). Update all 8 subdirectory `__init__.py` files with brief domain docstrings. Verify `ruff check .` passes. | `plan` | ✅ |
+| 22 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 ---
 
 ## Phase 8: Module Docstring Standardization
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Bulk update all 78 non-passing module docstrings (77 partial + 1 missing) to include `Coordinates with:` and `Called by:` sections per REQ-031 §7. Split into 4 tasks by domain to stay within context limits.*
 
@@ -279,11 +279,11 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 23 | **Docstrings — scoring/ (17 files)** — Update module docstrings for all 17 scoring files. Add `Coordinates with:` listing internal dependencies and `Called by:` listing external callers. Use new subdirectory-relative names. Preserve existing REQ references. Flag pool_scoring.py ORM import inconsistency per REQ-031 §7.3 rule 6. Verify `ruff check .` passes. | `plan` | ⬜ |
-| 24 | **Docstrings — embedding/ (7 files) + generation/ (24 files)** — Update module docstrings for all 31 files. Flag content_generation_service.py placeholder status per REQ-031 §7.3 rule 5. Verify `ruff check .` passes. | `plan` | ⬜ |
-| 25 | **Docstrings — rendering/ (8 files) + discovery/ (16 files)** — Update module docstrings for all 24 files. Verify `ruff check .` passes. | `plan` | ⬜ |
-| 26 | **Docstrings — billing/ (4 files) + admin/ (2 files) + onboarding/ (2 files)** — Update module docstrings for all 8 files. Verify `ruff check .` passes. | `plan` | ⬜ |
-| 27 | **Phase gate — full test suite + push** — Run full backend + frontend test suites, `ruff check .`, linters, typecheck. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 23 | **Docstrings — scoring/ (17 files)** — Update module docstrings for all 17 scoring files. Add `Coordinates with:` listing internal dependencies and `Called by:` listing external callers. Use new subdirectory-relative names. Preserve existing REQ references. Flag pool_scoring.py ORM import inconsistency per REQ-031 §7.3 rule 6. Verify `ruff check .` passes. | `plan` | ✅ |
+| 24 | **Docstrings — embedding/ (7 files) + generation/ (24 files)** — Update module docstrings for all 31 files. Flag content_generation_service.py placeholder status per REQ-031 §7.3 rule 5. Verify `ruff check .` passes. | `plan` | ✅ |
+| 25 | **Docstrings — rendering/ (8 files) + discovery/ (16 files)** — Update module docstrings for all 24 files. Verify `ruff check .` passes. | `plan` | ✅ |
+| 26 | **Docstrings — billing/ (4 files) + admin/ (2 files) + onboarding/ (2 files)** — Update module docstrings for all 8 files. Verify `ruff check .` passes. | `plan` | ✅ |
+| 27 | **Phase gate — full test suite + push** — Run full backend + frontend test suites, `ruff check .`, linters, typecheck. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - Docstring-only changes have zero breakage risk — no import paths change, no logic changes
@@ -294,7 +294,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 9: Final Verification + Cleanup
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Full quality gate across entire codebase. Verify no stale imports, no orphaned files, all tests green.*
 
@@ -308,9 +308,9 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 28 | **Verify no stale imports remain** — Grep entire codebase for `from app.services.<old_module>` patterns that should have been updated. Check: `from app.services.fit_score`, `from app.services.embedding_types`, `from app.services.stripe_service`, etc. for all 80 moved files. Fix any stragglers. | `plan` | ⬜ |
-| 29 | **Verify no orphaned files** — Confirm old `services/` root has only 7 files: `__init__.py` + 6 cross-cutting. No leftover `.py` files from moves. Confirm all 8 subdirectories have the expected file count. | `plan` | ⬜ |
-| 30 | **Final phase gate — full test suite + push** — Run full backend test suite (`pytest tests/ -v -m ""`), frontend tests (`npm run test:run`), `ruff check .`, `npm run lint`, `npm run typecheck`. Fix any regressions. Commit, push. | `plan, commands` | ⬜ |
+| 28 | **Verify no stale imports remain** — Grep entire codebase for `from app.services.<old_module>` patterns that should have been updated. Check: `from app.services.fit_score`, `from app.services.embedding_types`, `from app.services.stripe_service`, etc. for all 80 moved files. Fix any stragglers. | `plan` | ✅ |
+| 29 | **Verify no orphaned files** — Confirm old `services/` root has only 7 files: `__init__.py` + 6 cross-cutting. No leftover `.py` files from moves. Confirm all 8 subdirectories have the expected file count. | `plan` | ✅ |
+| 30 | **Final phase gate — full test suite + push** — Run full backend test suite (`pytest tests/ -v -m ""`), frontend tests (`npm run test:run`), `ruff check .`, `npm run lint`, `npm run typecheck`. Fix any regressions. Commit, push. | `plan, commands` | ✅ |
 
 ---
 

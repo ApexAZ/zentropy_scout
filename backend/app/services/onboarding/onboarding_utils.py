@@ -10,6 +10,8 @@ functions used for:
 - Embedding impact mapping for re-scoring
 - Data summary formatting
 - Prompt templates for work history, achievement stories, and voice profiles
+
+Called by: app/agents/chat.py (onboarding chat commands) and unit tests.
 """
 
 import re

@@ -14,7 +14,7 @@ Tests verify:
 
 from datetime import UTC, datetime
 
-from app.services.job_deduplication import (
+from app.services.discovery.job_deduplication import (
     PriorApplicationContext,
     calculate_description_similarity,
     generate_repost_context_message,
@@ -1489,7 +1489,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_adds_source_to_empty_also_found_on(self) -> None:
         """First cross-source find adds source to empty also_found_on."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1518,7 +1518,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_adds_source_to_existing_also_found_on(self) -> None:
         """Second cross-source find appends to existing also_found_on."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1557,7 +1557,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_includes_found_at_timestamp(self) -> None:
         """New source entry includes found_at timestamp."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1584,7 +1584,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_merges_salary_when_new_source_has_it(self) -> None:
         """Salary data is merged when new source has it and existing doesn't."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1613,7 +1613,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_prefers_ats_url_over_aggregator_url(self) -> None:
         """ATS apply_url is preferred over aggregator URL per REQ-003 §9.3."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1640,7 +1640,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_preserves_existing_id(self) -> None:
         """Existing job ID is preserved (no new record created)."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1664,7 +1664,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_does_not_duplicate_same_source(self) -> None:
         """Same source is not added twice to also_found_on."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1699,7 +1699,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_does_not_mutate_input_dicts(self) -> None:
         """Input dicts are not mutated by prepare_cross_source_update."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1725,7 +1725,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_prefers_earlier_posted_date(self) -> None:
         """Earlier posted_date is preferred per REQ-003 §9.3."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1751,7 +1751,7 @@ class TestPrepareCrossSourceUpdate:
 
     def test_prefers_longer_description(self) -> None:
         """Longer description is preferred per REQ-003 §9.3."""
-        from app.services.job_deduplication import prepare_cross_source_update
+        from app.services.discovery.job_deduplication import prepare_cross_source_update
 
         existing = {
             "id": _JOB_ID,
@@ -1791,7 +1791,9 @@ class TestGenerateCrossSourceMessage:
 
     def test_generates_message_with_one_other_source(self) -> None:
         """Message for job found on one other source."""
-        from app.services.job_deduplication import generate_cross_source_message
+        from app.services.discovery.job_deduplication import (
+            generate_cross_source_message,
+        )
 
         also_found_on = {
             "sources": [
@@ -1818,7 +1820,9 @@ class TestGenerateCrossSourceMessage:
 
     def test_generates_message_with_multiple_sources(self) -> None:
         """Message for job found on multiple other sources."""
-        from app.services.job_deduplication import generate_cross_source_message
+        from app.services.discovery.job_deduplication import (
+            generate_cross_source_message,
+        )
 
         also_found_on = {
             "sources": [
@@ -1853,7 +1857,9 @@ class TestGenerateCrossSourceMessage:
 
     def test_returns_none_for_empty_sources(self) -> None:
         """Returns None when no other sources."""
-        from app.services.job_deduplication import generate_cross_source_message
+        from app.services.discovery.job_deduplication import (
+            generate_cross_source_message,
+        )
 
         also_found_on: dict = {"sources": []}
 
@@ -1867,7 +1873,9 @@ class TestGenerateCrossSourceMessage:
 
     def test_returns_none_for_missing_sources_key(self) -> None:
         """Returns None when sources key is missing."""
-        from app.services.job_deduplication import generate_cross_source_message
+        from app.services.discovery.job_deduplication import (
+            generate_cross_source_message,
+        )
 
         also_found_on: dict = {}
 
@@ -1881,7 +1889,9 @@ class TestGenerateCrossSourceMessage:
 
     def test_uses_source_name_when_available(self) -> None:
         """Uses source_name for display if available."""
-        from app.services.job_deduplication import generate_cross_source_message
+        from app.services.discovery.job_deduplication import (
+            generate_cross_source_message,
+        )
 
         also_found_on = {
             "sources": [

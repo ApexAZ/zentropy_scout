@@ -15,7 +15,7 @@ from app.schemas.resume_template import (
     ResumeTemplateResponse,
     UpdateResumeTemplateRequest,
 )
-from app.services import resume_template_service
+from app.services.rendering import resume_template_service
 
 router = APIRouter()
 

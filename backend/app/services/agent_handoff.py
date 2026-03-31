@@ -10,6 +10,14 @@ invoke each other: pipeline (Scouter→Strategist), conditional
 Graph nodes call ``create_agent_handoff`` to build typed handoff records,
 then ``format_for_state`` to convert them to a dict for state updates
 and logging.
+
+Cross-cutting: Pure data definitions with no domain logic. Usable by any
+agent orchestrator.
+
+Coordinates with:
+  - agent_message.py — sibling communication primitive (agent-to-user)
+
+Called by: Agent graph nodes (any orchestrator performing inter-agent invocations).
 """
 
 from dataclasses import dataclass

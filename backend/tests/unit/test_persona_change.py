@@ -11,7 +11,7 @@ optionally regenerate.
 from dataclasses import replace
 from datetime import UTC, datetime
 
-from app.services.persona_change import (
+from app.services.generation.persona_change import (
     _WARNING_MESSAGE,
     check_persona_changed,
 )

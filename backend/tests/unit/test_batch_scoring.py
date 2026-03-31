@@ -14,13 +14,13 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.services.batch_scoring import (
-    _MAX_BATCH_SIZE,
-    batch_score_jobs,
-)
 from app.services.embedding.persona_generator import (
     PersonaEmbeddingData,
     PersonaEmbeddingsResult,
+)
+from app.services.scoring.batch_scoring import (
+    _MAX_BATCH_SIZE,
+    batch_score_jobs,
 )
 
 # =============================================================================

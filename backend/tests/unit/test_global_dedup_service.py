@@ -19,7 +19,7 @@ from app.models.job_posting import JobPosting
 from app.models.job_source import JobSource
 from app.models.persona import Persona
 from app.models.user import User
-from app.services.global_dedup_service import deduplicate_and_save
+from app.services.discovery.global_dedup_service import deduplicate_and_save
 
 _TODAY = date.today()
 _DESC_A = "Build great software at Acme Corp using Python and FastAPI"
@@ -642,7 +642,9 @@ class TestRaceConditionRecovery:
         first call (simulating a concurrent insert), then verifies the
         recovery path looks up the existing job by source + external_id.
         """
-        from app.services.global_dedup_service import _create_with_conflict_recovery
+        from app.services.discovery.global_dedup_service import (
+            _create_with_conflict_recovery,
+        )
 
         job_data = _make_job_data(
             source_linkedin.id,
@@ -653,7 +655,7 @@ class TestRaceConditionRecovery:
 
         mock_create = AsyncMock(side_effect=IntegrityError("UNIQUE", {}, Exception()))
         with patch(
-            "app.services.global_dedup_service.JobPostingRepository.create",
+            "app.services.discovery.global_dedup_service.JobPostingRepository.create",
             mock_create,
         ):
             result = await _create_with_conflict_recovery(db_session, job_data)

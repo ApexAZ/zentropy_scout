@@ -22,6 +22,8 @@ Zentropy Scout uses five embedding types for semantic matching:
 Key Principle (REQ-008 §6.1):
     Job culture embedding must be SEPARATED from requirements to avoid
     technical keywords polluting soft skill similarity matches.
+
+Called by: Unit tests. Defines canonical embedding type enums for future use by embedding pipeline.
 """
 
 from enum import Enum

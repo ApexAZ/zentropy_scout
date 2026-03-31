@@ -6,7 +6,7 @@ Tests cover:
 - get_fit_component_weights() returns values that sum to 100%
 """
 
-from app.services.fit_score import get_fit_component_weights
+from app.services.scoring.fit_score import get_fit_component_weights
 
 # =============================================================================
 # Accessor Function Tests

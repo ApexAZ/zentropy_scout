@@ -4,6 +4,8 @@ REQ-029 §7.2, §7.3, §7.4; REQ-030 §7.2, §7.3: Business logic for processing
 Stripe webhook events. All handlers follow the "never raise" contract — the
 outer function catches all exceptions so the webhook endpoint always returns
 200 (prevents Stripe retries).
+
+Called by: app/api/v1/webhooks.py (Stripe webhook endpoint) and unit tests.
 """
 
 import logging

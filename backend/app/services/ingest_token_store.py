@@ -7,6 +7,11 @@ WHY IN-MEMORY:
 - Token TTL is short (15 min)
 - Preview data is ephemeral, doesn't need persistence
 - Can be replaced with Redis for multi-instance deployments later
+
+Cross-cutting: In-memory ephemeral token management for ingest preview.
+Too small and unique to justify its own subdirectory.
+
+Called by: app/api/v1/job_postings.py (ingest preview endpoints).
 """
 
 import uuid

@@ -7,7 +7,7 @@ Verifies the golden set fixture file is valid and loadable.
 
 from pathlib import Path
 
-from app.services.golden_set import load_golden_set
+from app.services.scoring.golden_set import load_golden_set
 
 
 class TestGoldenSetFixture:

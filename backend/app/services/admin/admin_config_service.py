@@ -7,6 +7,9 @@ model registration checks, and system config accessors.
 This is the READ-SIDE service used by MeteringService and MeteredLLMProvider
 during normal operation. The WRITE-SIDE service (AdminManagementService) is
 separate and used only by admin endpoints.
+
+Called by: billing/metering_service.py, billing/reservation_sweep.py,
+providers/metered_provider.py, app/api/deps.py, app/api/v1/admin.py, and unit tests.
 """
 
 import logging

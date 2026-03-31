@@ -3,6 +3,9 @@
 REQ-029 §6.2, §6.3, §12, §13.3; REQ-030 §8.1: Business logic for Stripe
 Checkout integration. Handles customer management, checkout session creation,
 and signup credit grants. Webhook handlers are in stripe_webhook_service.py.
+
+Called by: app/api/v1/credits.py (checkout), app/api/v1/auth.py, app/api/v1/auth_oauth.py,
+app/api/v1/auth_magic_link.py (signup grant), and unit tests.
 """
 
 import logging

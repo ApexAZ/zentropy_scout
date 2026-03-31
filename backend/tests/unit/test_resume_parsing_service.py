@@ -22,7 +22,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.providers.llm.base import LLMResponse
-from app.services.resume_parsing_service import (
+from app.services.rendering.resume_parsing_service import (
     _MAX_EXTRACTED_TEXT_LENGTH,
     _MAX_PDF_PAGES,
     ResumeParseResult,
@@ -111,8 +111,8 @@ def _full_resume_data() -> dict:
 
 
 _FAKE_PDF_BYTES = b"%PDF-1.4 fake pdf content for testing"
-_PATCH_PDFPLUMBER = "app.services.resume_parsing_service.pdfplumber"
-_PATCH_SANITIZE = "app.services.resume_parsing_service.sanitize_llm_input"
+_PATCH_PDFPLUMBER = "app.services.rendering.resume_parsing_service.pdfplumber"
+_PATCH_SANITIZE = "app.services.rendering.resume_parsing_service.sanitize_llm_input"
 
 
 def _mock_pdfplumber_pages(
@@ -479,7 +479,9 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_oversized_work_history_is_capped(self) -> None:
         """Work history arrays from LLM exceeding the cap are truncated."""
-        from app.services.resume_parsing_service import _MAX_WORK_HISTORY_ENTRIES
+        from app.services.rendering.resume_parsing_service import (
+            _MAX_WORK_HISTORY_ENTRIES,
+        )
 
         data = _full_resume_data()
         data["work_history"] = [
@@ -501,7 +503,7 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_oversized_skills_is_capped(self) -> None:
         """Skills arrays from LLM exceeding the cap are truncated."""
-        from app.services.resume_parsing_service import _MAX_SKILLS_ENTRIES
+        from app.services.rendering.resume_parsing_service import _MAX_SKILLS_ENTRIES
 
         data = _full_resume_data()
         data["skills"] = [

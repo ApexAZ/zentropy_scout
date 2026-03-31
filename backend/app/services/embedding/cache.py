@@ -16,6 +16,12 @@ The skill synonym dictionary and title normalization mappings (also mentioned
 in §10.2) are currently hardcoded in-memory in hard_skills_match.py and
 role_title_match.py respectively. When these become dynamic (loaded from
 database or API), TTL-based caching with 24h expiry should be added here.
+
+Coordinates with:
+  - embedding/persona_generator.py — imports PersonaEmbeddingsResult for cache values
+  - embedding/storage.py — imports compute_source_hash for freshness validation
+
+Called by: Unit tests. Intended for scoring pipeline (pending wiring).
 """
 
 import uuid

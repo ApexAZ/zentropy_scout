@@ -9,7 +9,7 @@ Tests cover:
 - Edge cases (empty titles, whitespace)
 """
 
-from app.services.stretch_score import (
+from app.services.scoring.stretch_score import (
     STRETCH_NEUTRAL_SCORE,
     calculate_growth_trajectory,
     infer_level,

@@ -14,7 +14,7 @@ import math
 
 import pytest
 
-from app.services.fit_score import calculate_fit_score
+from app.services.scoring.fit_score import calculate_fit_score
 
 # =============================================================================
 # Weighted Sum Calculation Tests

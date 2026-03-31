@@ -11,7 +11,7 @@ Tests verify:
 
 import pytest
 
-from app.services.job_status import (
+from app.services.discovery.job_status import (
     InvalidStatusTransitionError,
     JobPostingStatus,
     get_valid_transitions,

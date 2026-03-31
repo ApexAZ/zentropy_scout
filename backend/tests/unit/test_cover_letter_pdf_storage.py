@@ -125,7 +125,9 @@ class TestStoreCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_stores_pdf_bytes(self, db_session, cl_scenario):
         """Stored PDF record contains the exact bytes provided."""
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         result = await store_cover_letter_pdf(
             db=db_session,
@@ -142,7 +144,9 @@ class TestStoreCoverLetterPdf:
         self, db_session, cl_scenario
     ):
         """Filename is derived from persona name and company name."""
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         result = await store_cover_letter_pdf(
             db=db_session,
@@ -159,7 +163,9 @@ class TestStoreCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_returns_existing_when_already_stored(self, db_session, cl_scenario):
         """Second call returns existing PDF instead of creating duplicate."""
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         result1 = await store_cover_letter_pdf(
             db=db_session,
@@ -179,7 +185,9 @@ class TestStoreCoverLetterPdf:
     async def test_rejects_draft_cover_letter(self, db_session, cl_scenario):
         """Cannot store PDF for a cover letter that is still Draft."""
         from app.core.errors import InvalidStateError
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         with pytest.raises(InvalidStateError, match="Approved"):
             await store_cover_letter_pdf(
@@ -192,7 +200,9 @@ class TestStoreCoverLetterPdf:
     async def test_rejects_nonexistent_cover_letter(self, db_session):
         """NotFoundError when cover letter does not exist."""
         from app.core.errors import NotFoundError
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         with pytest.raises(NotFoundError):
             await store_cover_letter_pdf(
@@ -204,7 +214,9 @@ class TestStoreCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_stores_generated_at_timestamp(self, db_session, cl_scenario):
         """PDF record has a generated_at timestamp set by server default."""
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         result = await store_cover_letter_pdf(
             db=db_session,
@@ -219,7 +231,9 @@ class TestStoreCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_result_contains_expected_data(self, db_session, cl_scenario):
         """Result contains pdf_id, file_name, and already_existed flag."""
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         result = await store_cover_letter_pdf(
             db=db_session,
@@ -232,7 +246,9 @@ class TestStoreCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_application_id_is_null_initially(self, db_session, cl_scenario):
         """Stored PDF has application_id=NULL before application creation."""
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         result = await store_cover_letter_pdf(
             db=db_session,
@@ -256,7 +272,7 @@ class TestGetExistingCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_returns_pdf_when_exists(self, db_session, cl_scenario):
         """Returns the stored PDF for a cover letter."""
-        from app.services.cover_letter_pdf_storage import (
+        from app.services.rendering.cover_letter_pdf_storage import (
             get_existing_cover_letter_pdf,
             store_cover_letter_pdf,
         )
@@ -279,7 +295,9 @@ class TestGetExistingCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_returns_none_when_no_pdf(self, db_session, cl_scenario):
         """Returns None when no PDF has been generated yet."""
-        from app.services.cover_letter_pdf_storage import get_existing_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            get_existing_cover_letter_pdf,
+        )
 
         pdf = await get_existing_cover_letter_pdf(
             db=db_session,
@@ -291,7 +309,9 @@ class TestGetExistingCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_returns_none_for_nonexistent_cover_letter(self, db_session):
         """Returns None for a cover letter ID that does not exist."""
-        from app.services.cover_letter_pdf_storage import get_existing_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            get_existing_cover_letter_pdf,
+        )
 
         pdf = await get_existing_cover_letter_pdf(
             db=db_session,
@@ -311,7 +331,7 @@ class TestGenerateCoverLetterFilename:
 
     def test_generates_last_first_format_when_full_name(self):
         """Filename uses Last_First format for two-part names."""
-        from app.services.cover_letter_pdf_storage import (
+        from app.services.rendering.cover_letter_pdf_storage import (
             _generate_cover_letter_filename,
         )
 
@@ -320,7 +340,7 @@ class TestGenerateCoverLetterFilename:
 
     def test_removes_special_characters_when_present(self):
         """Non-ASCII and punctuation characters are stripped."""
-        from app.services.cover_letter_pdf_storage import (
+        from app.services.rendering.cover_letter_pdf_storage import (
             _generate_cover_letter_filename,
         )
 
@@ -332,7 +352,7 @@ class TestGenerateCoverLetterFilename:
 
     def test_uses_single_name_when_no_space(self):
         """Single-word names appear in filename without splitting."""
-        from app.services.cover_letter_pdf_storage import (
+        from app.services.rendering.cover_letter_pdf_storage import (
             _generate_cover_letter_filename,
         )
 
@@ -343,7 +363,7 @@ class TestGenerateCoverLetterFilename:
 
     def test_strips_path_traversal_characters(self):
         """Path traversal sequences are removed from filename."""
-        from app.services.cover_letter_pdf_storage import (
+        from app.services.rendering.cover_letter_pdf_storage import (
             _generate_cover_letter_filename,
         )
 
@@ -355,7 +375,7 @@ class TestGenerateCoverLetterFilename:
 
     def test_strips_control_characters_when_present(self):
         """Control characters (newlines, null bytes) are removed."""
-        from app.services.cover_letter_pdf_storage import (
+        from app.services.rendering.cover_letter_pdf_storage import (
             _generate_cover_letter_filename,
         )
 
@@ -378,7 +398,9 @@ class TestStoreCoverLetterPdfValidation:
     async def test_rejects_empty_pdf_bytes(self, db_session, cl_scenario):
         """Empty bytes are rejected with ValidationError."""
         from app.core.errors import ValidationError
-        from app.services.cover_letter_pdf_storage import store_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_storage import (
+            store_cover_letter_pdf,
+        )
 
         with pytest.raises(ValidationError, match="empty"):
             await store_cover_letter_pdf(
@@ -390,7 +412,7 @@ class TestStoreCoverLetterPdfValidation:
     @pytest.mark.asyncio
     async def test_rejects_oversized_pdf_bytes(self, db_session, cl_scenario):
         """PDF bytes exceeding max size are rejected."""
-        from app.services.cover_letter_pdf_storage import (
+        from app.services.rendering.cover_letter_pdf_storage import (
             _MAX_PDF_SIZE_BYTES,
             store_cover_letter_pdf,
         )

@@ -12,7 +12,7 @@ Pattern follows test_bullet_reordering.py: helper factory, keyword-only args.
 
 import pytest
 
-from app.services.modification_limits import (
+from app.services.generation.modification_limits import (
     VariantValidationData,
     validate_variant_modifications,
 )

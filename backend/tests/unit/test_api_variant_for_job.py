@@ -22,7 +22,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.services.resume_tailoring_service import ResumeTailoringError
+from app.services.generation.resume_tailoring_service import ResumeTailoringError
 from tests.conftest import TEST_JOB_SOURCE_ID, TEST_PERSONA_ID
 
 _BASE_URL = "/api/v1/job-variants"

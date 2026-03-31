@@ -8,6 +8,14 @@ Generates three embedding types from persona data:
 3. logistics: Location, remote preference, commutable cities, exclusions
 
 Called on: Persona creation, Persona update (REQ-007 §7.1).
+
+Coordinates with:
+  - embedding/cache.py — imports PersonaEmbeddingsResult for cache entries
+  - scoring/batch_scoring.py — imports PersonaEmbeddingsResult as batch input
+  - scoring/job_scoring_service.py — calls generate_persona_embeddings
+  - scripts/reembed_all.py — imports generate_persona_embeddings for batch re-embedding
+
+Called by: scoring/job_scoring_service.py, embedding/cache.py, scripts/reembed_all.py, and unit tests.
 """
 
 import uuid

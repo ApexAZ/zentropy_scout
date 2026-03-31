@@ -128,7 +128,7 @@ class TestRenderCoverLetterPdf:
 
     def test_returns_pdf_bytes(self) -> None:
         """Output starts with PDF magic bytes."""
-        from app.services.cover_letter_pdf_generation import (
+        from app.services.rendering.cover_letter_pdf_generation import (
             CoverLetterContact,
             render_cover_letter_pdf,
         )
@@ -149,7 +149,7 @@ class TestRenderCoverLetterPdf:
 
     def test_produces_non_trivial_output(self) -> None:
         """Cover letter with content produces a meaningful-sized PDF."""
-        from app.services.cover_letter_pdf_generation import (
+        from app.services.rendering.cover_letter_pdf_generation import (
             CoverLetterContact,
             render_cover_letter_pdf,
         )
@@ -170,7 +170,7 @@ class TestRenderCoverLetterPdf:
 
     def test_handles_multiline_body(self) -> None:
         """Multiple paragraphs render without error."""
-        from app.services.cover_letter_pdf_generation import (
+        from app.services.rendering.cover_letter_pdf_generation import (
             CoverLetterContact,
             render_cover_letter_pdf,
         )
@@ -196,7 +196,7 @@ class TestRenderCoverLetterPdf:
 
     def test_single_newlines_become_line_breaks(self) -> None:
         """Single newlines within a paragraph are converted to line breaks."""
-        from app.services.cover_letter_pdf_generation import (
+        from app.services.rendering.cover_letter_pdf_generation import (
             CoverLetterContact,
             render_cover_letter_pdf,
         )
@@ -216,7 +216,7 @@ class TestRenderCoverLetterPdf:
 
     def test_xml_special_characters_do_not_crash(self) -> None:
         """User content with XML chars renders without error."""
-        from app.services.cover_letter_pdf_generation import (
+        from app.services.rendering.cover_letter_pdf_generation import (
             CoverLetterContact,
             render_cover_letter_pdf,
         )
@@ -238,7 +238,7 @@ class TestRenderCoverLetterPdf:
 
     def test_minimal_body_text(self) -> None:
         """Short body text renders without error."""
-        from app.services.cover_letter_pdf_generation import (
+        from app.services.rendering.cover_letter_pdf_generation import (
             CoverLetterContact,
             render_cover_letter_pdf,
         )
@@ -269,7 +269,9 @@ class TestGenerateCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_generates_and_stores_pdf(self, db_session, pdf_gen_scenario):
         """Creates a SubmittedCoverLetterPDF record in the database."""
-        from app.services.cover_letter_pdf_generation import generate_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_generation import (
+            generate_cover_letter_pdf,
+        )
 
         result = await generate_cover_letter_pdf(
             db=db_session,
@@ -286,7 +288,9 @@ class TestGenerateCoverLetterPdf:
         self, db_session, pdf_gen_scenario
     ):
         """Second call returns existing PDF (idempotent)."""
-        from app.services.cover_letter_pdf_generation import generate_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_generation import (
+            generate_cover_letter_pdf,
+        )
 
         result1 = await generate_cover_letter_pdf(
             db=db_session,
@@ -304,7 +308,9 @@ class TestGenerateCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_result_contains_pdf_bytes(self, db_session, pdf_gen_scenario):
         """Result includes the rendered PDF bytes."""
-        from app.services.cover_letter_pdf_generation import generate_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_generation import (
+            generate_cover_letter_pdf,
+        )
 
         result = await generate_cover_letter_pdf(
             db=db_session,
@@ -317,7 +323,9 @@ class TestGenerateCoverLetterPdf:
     @pytest.mark.asyncio
     async def test_result_contains_file_name(self, db_session, pdf_gen_scenario):
         """Result includes the generated filename."""
-        from app.services.cover_letter_pdf_generation import generate_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_generation import (
+            generate_cover_letter_pdf,
+        )
 
         result = await generate_cover_letter_pdf(
             db=db_session,
@@ -332,7 +340,9 @@ class TestGenerateCoverLetterPdf:
     async def test_rejects_draft_cover_letter(self, db_session, pdf_gen_scenario):
         """Cannot generate PDF for a cover letter still in Draft status."""
         from app.core.errors import InvalidStateError
-        from app.services.cover_letter_pdf_generation import generate_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_generation import (
+            generate_cover_letter_pdf,
+        )
 
         with pytest.raises(InvalidStateError, match="Approved"):
             await generate_cover_letter_pdf(
@@ -344,7 +354,9 @@ class TestGenerateCoverLetterPdf:
     async def test_rejects_nonexistent_cover_letter(self, db_session):
         """NotFoundError when cover letter does not exist."""
         from app.core.errors import NotFoundError
-        from app.services.cover_letter_pdf_generation import generate_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_generation import (
+            generate_cover_letter_pdf,
+        )
 
         with pytest.raises(NotFoundError):
             await generate_cover_letter_pdf(
@@ -358,7 +370,9 @@ class TestGenerateCoverLetterPdf:
     ):
         """InvalidStateError when cover letter is Approved but final_text is None."""
         from app.core.errors import InvalidStateError
-        from app.services.cover_letter_pdf_generation import generate_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_generation import (
+            generate_cover_letter_pdf,
+        )
 
         with pytest.raises(InvalidStateError, match="final_text"):
             await generate_cover_letter_pdf(
@@ -372,7 +386,9 @@ class TestGenerateCoverLetterPdf:
     ):
         """Cannot generate PDF for a soft-deleted cover letter."""
         from app.core.errors import NotFoundError
-        from app.services.cover_letter_pdf_generation import generate_cover_letter_pdf
+        from app.services.rendering.cover_letter_pdf_generation import (
+            generate_cover_letter_pdf,
+        )
 
         cl = await db_session.get(CoverLetter, pdf_gen_scenario.approved_cl_id)
         cl.archived_at = datetime.now(UTC)

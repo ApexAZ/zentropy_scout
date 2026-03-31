@@ -26,7 +26,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.job_posting import JobPosting
 from app.models.persona_job import PersonaJob
-from app.services.scoring_flow import build_filtered_score_result, build_scored_result
+from app.services.scoring.scoring_flow import (
+    build_filtered_score_result,
+    build_scored_result,
+)
 from tests.conftest import TEST_PERSONA_ID
 
 _JOB_SOURCE_ID = uuid.UUID("30000000-0000-0000-0000-000000000001")
@@ -219,7 +222,7 @@ class TestBuildFilteredScoreResultScoreDetails:
 
     def test_filtered_result_has_none(self) -> None:
         """Filtered jobs should not have score_details."""
-        from app.services.scoring_flow import JobFilterResult
+        from app.services.scoring.scoring_flow import JobFilterResult
 
         filter_result = JobFilterResult(
             job_id=uuid.uuid4(),

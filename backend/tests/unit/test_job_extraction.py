@@ -14,7 +14,7 @@ import pytest
 
 from app.providers.llm.base import TaskType
 from app.providers.llm.mock_adapter import MockLLMProvider
-from app.services.job_extraction import (
+from app.services.discovery.job_extraction import (
     _basic_extraction,
     _build_extraction_prompt,
     _parse_extraction_response,
@@ -323,7 +323,7 @@ class TestResponseParsing:
         """Skills list from LLM exceeding _MAX_EXTRACTED_SKILLS is truncated."""
         import json
 
-        from app.services.job_extraction import _MAX_EXTRACTED_SKILLS
+        from app.services.discovery.job_extraction import _MAX_EXTRACTED_SKILLS
 
         skills = [
             {

@@ -11,6 +11,12 @@ Called on: Job ingestion, Job extraction update.
 Key Principle (REQ-008 §6.1):
     Culture embedding must be SEPARATED from requirements to avoid
     technical keywords polluting soft skill similarity matches.
+
+Coordinates with:
+  - scoring/batch_scoring.py — imports build_culture_text and get_neutral_embedding
+  - scripts/reembed_all.py — imports generate_job_embeddings for batch re-embedding
+
+Called by: scoring/batch_scoring.py, scripts/reembed_all.py, and unit tests.
 """
 
 import uuid

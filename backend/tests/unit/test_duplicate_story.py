@@ -11,7 +11,7 @@ Four scenarios:
 
 from dataclasses import replace
 
-from app.services.duplicate_story import (
+from app.services.generation.duplicate_story import (
     check_duplicate_story_selection,
 )
 

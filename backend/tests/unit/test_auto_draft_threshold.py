@@ -12,7 +12,7 @@ Tests cover:
 
 import pytest
 
-from app.services.fit_score import qualifies_for_auto_draft
+from app.services.scoring.fit_score import qualifies_for_auto_draft
 
 # =============================================================================
 # Qualification Tests (REQ-008 §7.4)

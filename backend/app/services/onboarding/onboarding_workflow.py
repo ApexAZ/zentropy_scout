@@ -9,6 +9,8 @@ the interview flow, this service persists everything atomically:
    Certifications, AchievementStories, VoiceProfile)
 4. Creates BaseResume entries from base_resume_setup
 5. Sets persona.onboarding_complete = True
+
+Called by: Unit tests. Intended for onboarding finalization API (pending router wiring).
 """
 
 import re

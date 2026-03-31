@@ -7,7 +7,7 @@ Two phases:
 2. Post-generation: If job expired mid-generation, preserve content + warning.
 """
 
-from app.services.job_expiry import (
+from app.services.generation.job_expiry import (
     check_job_expiry_after,
     check_job_expiry_before,
 )

@@ -11,7 +11,7 @@ Tests cover:
 
 import pytest
 
-from app.services.stretch_score import (
+from app.services.scoring.stretch_score import (
     STRETCH_NEUTRAL_SCORE,
     calculate_target_role_alignment,
 )

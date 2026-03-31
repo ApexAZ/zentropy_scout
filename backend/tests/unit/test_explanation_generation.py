@@ -13,15 +13,15 @@ Tests cover:
 
 import pytest
 
-from app.services.explanation_generation import (
+from app.services.scoring.explanation_generation import (
     generate_explanation,
     generate_summary_sentence,
     get_matched_skills,
     get_missing_skills,
     get_target_skill_matches,
 )
-from app.services.fit_score import FitScoreResult
-from app.services.stretch_score import StretchScoreResult
+from app.services.scoring.fit_score import FitScoreResult
+from app.services.scoring.stretch_score import StretchScoreResult
 
 # =============================================================================
 # Test Data Fixtures

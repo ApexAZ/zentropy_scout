@@ -9,6 +9,14 @@ confirmation, clarification request, HITL pause, and error explanation.
 Graph nodes call ``create_agent_message`` to build typed messages, then
 ``format_for_state`` to convert them to the ``BaseAgentState.messages``
 dict format for state updates.
+
+Cross-cutting: Pure data definitions with no domain logic. Usable by any
+agent orchestrator.
+
+Coordinates with:
+  - agent_handoff.py — sibling communication primitive (agent-to-agent)
+
+Called by: Agent graph nodes (any orchestrator that sends user-facing messages).
 """
 
 from dataclasses import dataclass

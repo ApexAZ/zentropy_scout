@@ -7,8 +7,8 @@ Verify algorithm scores correlate with human labels (r > 0.8).
 
 import pytest
 
-from app.services.golden_set import GoldenSet, GoldenSetEntry, GoldenSetMetadata
-from app.services.score_correlation import (
+from app.services.scoring.golden_set import GoldenSet, GoldenSetEntry, GoldenSetMetadata
+from app.services.scoring.score_correlation import (
     CorrelationResult,
     compute_pearson_correlation,
     validate_scores_against_golden_set,
