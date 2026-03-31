@@ -13,6 +13,11 @@
  *   so one additional retry at the query layer covers transient failures.
  * - retry 0 for mutations: Mutations should not auto-retry — side effects
  *   could be duplicated.
+ *
+ * @module lib/query-client
+ * @coordinates-with query-provider (wraps client in React tree),
+ *   api-client (401 interceptor clears cache via getActiveQueryClient),
+ *   auth-provider (logout clears cache)
  */
 
 import { QueryClient } from "@tanstack/react-query";

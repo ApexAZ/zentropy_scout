@@ -7,6 +7,11 @@
  *
  * The bridge provides callback functions suitable for SSEClientConfig's
  * `onDataChanged` and `onReconnect` fields.
+ *
+ * @module lib/sse-query-bridge
+ * @coordinates-with query-keys (resource → query key mapping),
+ *   sse-provider (wires bridge callbacks to SSE client),
+ *   sse-client (consumes onDataChanged/onReconnect in SSEClientConfig)
  */
 
 import type { QueryClient } from "@tanstack/react-query";

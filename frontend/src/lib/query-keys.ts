@@ -5,6 +5,11 @@
  * SSE-driven invalidation. List keys are prefixes of detail keys
  * so that `invalidateQueries({ queryKey: ['jobs'] })` also clears
  * individual job entries.
+ *
+ * @module lib/query-keys
+ * @coordinates-with sse-query-bridge (maps SSE events to these keys),
+ *   query-provider (provides the QueryClient these keys target),
+ *   all data-fetching hooks and page components
  */
 
 const PERSONAS = "personas" as const;

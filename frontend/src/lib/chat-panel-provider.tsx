@@ -7,6 +7,11 @@
  *
  * Provides `isOpen`, `toggle`, `open`, and `close` to the component tree
  * via the `useChatPanel` hook.
+ *
+ * @module lib/chat-panel-provider
+ * @coordinates-with components/layout/app-shell (mounts provider),
+ *   components/layout/top-nav (toggle button),
+ *   components/layout/chat-sidebar (reads isOpen state)
  */
 
 import {

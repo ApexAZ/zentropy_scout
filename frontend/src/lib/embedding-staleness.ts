@@ -8,6 +8,12 @@
  * changed." and refresh job queries.
  *
  * REQ-012 §13.5: Warning toasts use amber styling with 5 s auto-dismiss.
+ *
+ * @module lib/embedding-staleness
+ * @coordinates-with toast (notification display),
+ *   sse-provider (calls notifyEmbeddingComplete on embedding events),
+ *   persona editors: skills-editor, work-history-editor, non-negotiables-editor
+ *     (call notifyEmbeddingUpdate after matching-relevant saves)
  */
 
 import { showToast } from "./toast";

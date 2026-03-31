@@ -15,6 +15,12 @@
  * Chat-related callbacks are forwarded through refs so that the ChatProvider
  * (mounted later in the tree) can register its handlers without requiring
  * the SSE client to be recreated.
+ *
+ * @module lib/sse-provider
+ * @coordinates-with sse-client (connection lifecycle management),
+ *   sse-query-bridge (cache invalidation on data_changed events),
+ *   chat-provider (registers chat streaming handlers via refs),
+ *   embedding-staleness (notifyEmbeddingComplete on embedding events)
  */
 
 import { useQueryClient } from "@tanstack/react-query";

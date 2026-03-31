@@ -6,6 +6,11 @@
  * REQ-012 §4.2.1: QueryClientProvider wraps the application tree.
  * Must be a client component ("use client") because QueryClientProvider
  * uses React context.
+ *
+ * @module lib/query-provider
+ * @coordinates-with query-client (factory + setActiveQueryClient),
+ *   app/layout.tsx (mounted in root provider tree),
+ *   sse-provider (peer provider — depends on QueryClient for invalidation)
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

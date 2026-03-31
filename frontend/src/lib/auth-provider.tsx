@@ -8,6 +8,11 @@
  * Revalidates on tab focus (visibility change) for defense-in-depth.
  *
  * Status lifecycle: "loading" → "authenticated" | "unauthenticated"
+ *
+ * @module lib/auth-provider
+ * @coordinates-with api-client (GET /auth/me, POST /auth/logout),
+ *   query-client (logout clears all cached queries),
+ *   proxy.ts (redirects unauthenticated users to /login)
  */
 
 import {

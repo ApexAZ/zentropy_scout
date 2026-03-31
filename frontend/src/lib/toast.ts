@@ -1,3 +1,15 @@
+/**
+ * Toast notification facade with variant-specific durations.
+ *
+ * REQ-012 §13.5: Wraps Sonner's toast API with project-standard
+ * duration defaults — errors persist, success auto-dismisses at 3 s.
+ *
+ * @module lib/toast
+ * @coordinates-with api-client (error/401 toasts),
+ *   embedding-staleness (status toasts),
+ *   app/layout.tsx (mounts Sonner Toaster via components/ui/sonner)
+ */
+
 import { type ExternalToast, toast } from "sonner";
 
 /**

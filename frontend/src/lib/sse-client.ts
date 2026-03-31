@@ -3,6 +3,11 @@
  *
  * REQ-012 §4.4: Custom EventSource wrapper with exponential backoff
  * reconnection and tab inactive detection.
+ *
+ * @module lib/sse-client
+ * @coordinates-with types/sse (event parsing + type definitions),
+ *   sse-provider (React wrapper — creates and manages SSEClient),
+ *   sse-query-bridge (provides onDataChanged/onReconnect callbacks)
  */
 
 import { parseSSEEvent } from "../types/sse";

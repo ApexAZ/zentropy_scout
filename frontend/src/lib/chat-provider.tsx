@@ -9,6 +9,11 @@
  *
  * Must be rendered inside an SSEProvider so that `useSSE()` is
  * available for registering chat event handlers.
+ *
+ * @module lib/chat-provider
+ * @coordinates-with types/chat (ChatMessage, ToolExecution types),
+ *   sse-provider (registers onChatToken/onChatDone/onTool* handlers),
+ *   components/layout/chat-sidebar (primary useChat consumer)
  */
 
 import {

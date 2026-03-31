@@ -8,6 +8,11 @@
  * and parsed resume data for form pre-population.
  *
  * Must be rendered inside a QueryClientProvider.
+ *
+ * @module lib/onboarding-provider
+ * @coordinates-with components/onboarding/onboarding-steps (step definitions),
+ *   components/onboarding/steps/* (step consumer components),
+ *   api-client (persona CRUD calls)
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";

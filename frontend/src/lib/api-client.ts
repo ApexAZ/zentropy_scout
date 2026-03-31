@@ -10,6 +10,12 @@
  * - Typed error responses (ApiError class)
  * - 429 retry with exponential backoff (max 3 retries)
  * - AbortSignal support for request cancellation
+ *
+ * @module lib/api-client
+ * @coordinates-with types/api (response envelope types),
+ *   query-client (401 logout clears cache),
+ *   toast (error notifications),
+ *   lib/api/* route modules and all data-fetching hooks/components
  */
 
 import type { ErrorResponse } from "../types/api";
