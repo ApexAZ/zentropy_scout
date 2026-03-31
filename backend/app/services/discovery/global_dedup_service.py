@@ -26,8 +26,8 @@ from app.repositories.job_posting_repository import (
     JobPostingRepository,
 )
 from app.repositories.persona_job_repository import PersonaJobRepository
-from app.services.content_security import lift_quarantine
-from app.services.job_deduplication import (
+from app.services.discovery.content_security import lift_quarantine
+from app.services.discovery.job_deduplication import (
     DESCRIPTION_SIMILARITY_THRESHOLD_HIGH,
     DESCRIPTION_SIMILARITY_THRESHOLD_MEDIUM,
     calculate_description_similarity,

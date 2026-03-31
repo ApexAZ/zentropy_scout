@@ -21,7 +21,7 @@ from app.providers.llm.base import TaskType
 # WHY GHOST_DETECTION: Vagueness assessment is part of ghost detection pipeline,
 # uses TaskType.GHOST_DETECTION for model routing (Haiku for cost efficiency).
 from app.providers.llm.mock_adapter import MockLLMProvider
-from app.services.ghost_detection import (
+from app.services.discovery.ghost_detection import (
     GhostSignals,
     calculate_days_open_score,
     calculate_ghost_score,

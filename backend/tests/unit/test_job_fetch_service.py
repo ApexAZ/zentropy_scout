@@ -12,12 +12,12 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.services.job_fetch_service import JobFetchService
+from app.services.discovery.job_fetch_service import JobFetchService
 
 # Module paths for patching
-_GET_ADAPTER = "app.services.job_fetch_service.get_source_adapter"
-_POOL_REPO = "app.services.job_fetch_service.JobPoolRepository"
-_ENRICHMENT = "app.services.job_fetch_service.JobEnrichmentService"
+_GET_ADAPTER = "app.services.discovery.job_fetch_service.get_source_adapter"
+_POOL_REPO = "app.services.discovery.job_fetch_service.JobPoolRepository"
+_ENRICHMENT = "app.services.discovery.job_fetch_service.JobEnrichmentService"
 
 # S1192: Duplicated source name strings used across tests
 _SOURCE_ADZUNA = "Adzuna"

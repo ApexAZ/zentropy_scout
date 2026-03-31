@@ -20,7 +20,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.providers.embedding.base import EmbeddingProvider
-from app.services.job_fetch_service import JobFetchService
+from app.services.discovery.job_fetch_service import JobFetchService
 
 # WHY Any: Job data flows through multiple layers (source adapters,
 # services, API endpoints) with varying schemas. Using dict[str, Any]

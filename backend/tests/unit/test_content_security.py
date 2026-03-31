@@ -13,7 +13,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.llm_sanitization import detect_injection_patterns
-from app.services.content_security import (
+from app.services.discovery.content_security import (
     build_quarantine_fields,
     check_manual_submission_rate,
     lift_quarantine,

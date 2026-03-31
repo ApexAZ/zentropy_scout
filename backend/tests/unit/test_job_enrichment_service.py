@@ -8,9 +8,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.job_enrichment_service import JobEnrichmentService
+from app.services.discovery.job_enrichment_service import JobEnrichmentService
 
-_GHOST_SCORE_MOCK_TARGET = "app.services.job_enrichment_service.calculate_ghost_score"
+_GHOST_SCORE_MOCK_TARGET = (
+    "app.services.discovery.job_enrichment_service.calculate_ghost_score"
+)
 
 
 # ---------------------------------------------------------------------------

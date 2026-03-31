@@ -62,13 +62,13 @@ from app.schemas.job_posting import (
     PersonaJobResponse,
     UpdatePersonaJobRequest,
 )
-from app.services.content_security import (
+from app.services.discovery.content_security import (
     build_quarantine_fields,
     check_manual_submission_rate,
     validate_job_content,
 )
+from app.services.discovery.job_extraction import extract_job_data
 from app.services.ingest_token_store import get_token_store
-from app.services.job_extraction import extract_job_data
 
 logger = logging.getLogger(__name__)
 

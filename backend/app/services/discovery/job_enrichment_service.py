@@ -9,7 +9,7 @@ from typing import Any
 
 from app.core.llm_sanitization import sanitize_llm_input
 from app.providers.llm.base import LLMProvider
-from app.services.ghost_detection import calculate_ghost_score
+from app.services.discovery.ghost_detection import calculate_ghost_score
 
 logger = logging.getLogger(__name__)
 
