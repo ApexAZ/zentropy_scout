@@ -9,6 +9,17 @@ Three public functions matching the application lifecycle:
 1. persist_draft_materials — Creates draft JobVariant + CoverLetter
 2. approve_materials — Approves materials with snapshot population
 3. create_application — Creates Application + TimelineEvent
+
+Cross-cutting: Bridges generation/ output (drafts) to database persistence
+(JobVariant, CoverLetter, Application). Spans the generation → storage boundary.
+
+Coordinates with:
+  - generation/ — receives ghostwriter output dicts from upstream orchestration
+  - models/resume.py — creates/updates JobVariant (draft and approved)
+  - models/cover_letter.py — creates/updates CoverLetter entities
+  - models/application.py — creates Application with TimelineEvent
+
+Called by: Generation pipeline (post-ghostwriter). Currently test-only pending orchestration wiring.
 """
 
 import uuid
