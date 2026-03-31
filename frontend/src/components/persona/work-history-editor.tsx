@@ -16,7 +16,6 @@ import { useCallback, useEffect, useState } from "react";
 import { BulletEditor } from "@/components/onboarding/steps/bullet-editor";
 import { WorkHistoryCard } from "@/components/onboarding/steps/work-history-card";
 import { WorkHistoryForm } from "@/components/onboarding/steps/work-history-form";
-import type { WorkHistoryFormData } from "@/components/onboarding/steps/work-history-form";
 import { Button } from "@/components/ui/button";
 import { DeleteReferenceDialog } from "@/components/ui/delete-reference-dialog";
 import { ReorderableList } from "@/components/ui/reorderable-list";
@@ -25,7 +24,11 @@ import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { notifyEmbeddingUpdate } from "@/lib/embedding-staleness";
 import { toFriendlyError } from "@/lib/form-errors";
 import { queryKeys } from "@/lib/query-keys";
-import { toFormValues, toRequestBody } from "@/lib/work-history-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type WorkHistoryFormData,
+} from "@/lib/work-history-helpers";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type { Bullet, Persona, WorkHistory } from "@/types/persona";
 

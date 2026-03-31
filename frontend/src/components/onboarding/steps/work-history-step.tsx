@@ -12,14 +12,17 @@ import { useCallback, useState } from "react";
 
 import { useCrudStep } from "@/hooks/use-crud-step";
 import { useOnboarding } from "@/lib/onboarding-provider";
-import { toFormValues, toRequestBody } from "@/lib/work-history-helpers";
+import {
+	toFormValues,
+	toRequestBody,
+	type WorkHistoryFormData,
+} from "@/lib/work-history-helpers";
 import type { Bullet, WorkHistory } from "@/types/persona";
 
 import { BulletEditor } from "./bullet-editor";
 import { CrudStepLayout } from "./crud-step-layout";
 import { WorkHistoryCard } from "./work-history-card";
 import { WorkHistoryForm } from "./work-history-form";
-import type { WorkHistoryFormData } from "./work-history-form";
 
 // ---------------------------------------------------------------------------
 // Component

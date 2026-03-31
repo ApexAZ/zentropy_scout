@@ -10,7 +10,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
 
 import { FormActionFooter } from "@/components/form/form-action-footer";
 import { FormInputField } from "@/components/form/form-input-field";
@@ -25,6 +24,10 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	workHistoryFormSchema,
+	type WorkHistoryFormData,
+} from "@/lib/work-history-helpers";
 import { WORK_MODELS } from "@/types/persona";
 import type { WorkModel } from "@/types/persona";
 
@@ -32,69 +35,8 @@ import type { WorkModel } from "@/types/persona";
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Max length for text fields. */
-const MAX_TEXT_LENGTH = 255;
-
-/** Max length for industry field. */
-const MAX_INDUSTRY_LENGTH = 100;
-
-/** Max length for description. */
-const MAX_DESCRIPTION_LENGTH = 5000;
-
 /** Shared two-column grid layout class. */
 const GRID_TWO_COL = "grid gap-4 sm:grid-cols-2";
-
-/** Expected format for month input values. */
-const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
-
-// ---------------------------------------------------------------------------
-// Validation schema
-// ---------------------------------------------------------------------------
-
-const workHistoryFormSchema = z
-	.object({
-		job_title: z
-			.string()
-			.min(1, { message: "Job title is required" })
-			.max(MAX_TEXT_LENGTH, { message: "Job title is too long" }),
-		company_name: z
-			.string()
-			.min(1, { message: "Company name is required" })
-			.max(MAX_TEXT_LENGTH, { message: "Company name is too long" }),
-		company_industry: z
-			.string()
-			.max(MAX_INDUSTRY_LENGTH, { message: "Industry is too long" })
-			.optional()
-			.or(z.literal("")),
-		location: z
-			.string()
-			.min(1, { message: "Location is required" })
-			.max(MAX_TEXT_LENGTH, { message: "Location is too long" }),
-		work_model: z.enum(["Remote", "Hybrid", "Onsite"] as const, {
-			message: "Work model is required",
-		}),
-		start_date: z
-			.string()
-			.min(1, { message: "Start date is required" })
-			.regex(MONTH_PATTERN, { message: "Invalid date format" }),
-		end_date: z
-			.string()
-			.regex(MONTH_PATTERN, { message: "Invalid date format" })
-			.optional()
-			.or(z.literal("")),
-		is_current: z.boolean(),
-		description: z
-			.string()
-			.max(MAX_DESCRIPTION_LENGTH, { message: "Description is too long" })
-			.optional()
-			.or(z.literal("")),
-	})
-	.refine(
-		(data) => data.is_current || (data.end_date && data.end_date.length > 0),
-		{ message: "End date is required when not current", path: ["end_date"] },
-	);
-
-export type WorkHistoryFormData = z.infer<typeof workHistoryFormSchema>;
 
 /** Default form values for a new entry. */
 const DEFAULT_VALUES: WorkHistoryFormData = {
@@ -124,16 +66,6 @@ export interface WorkHistoryFormProps {
 	isSubmitting: boolean;
 	/** Error message to display below the form. */
 	submitError: string | null;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Convert YYYY-MM-DD to YYYY-MM for the month input. */
-export function toMonthValue(isoDate: string | null | undefined): string {
-	if (!isoDate) return "";
-	return isoDate.slice(0, 7); // "2020-01-01" → "2020-01"
 }
 
 // ---------------------------------------------------------------------------
