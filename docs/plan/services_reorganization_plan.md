@@ -242,7 +242,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 7: Cross-Cutting + Package Docstrings
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Update the 6 cross-cutting files' docstrings with coordination context. Write services/__init__.py package docstring and all subdirectory __init__.py docstrings.*
 
@@ -258,7 +258,7 @@ Phase 9: Final Verification + Cleanup
 | § | Task | Hints | Status |
 |---|------|-------|--------|
 | 21 | **Update cross-cutting file docstrings (6 files)** — Add `Coordinates with:` and `Called by:` to persona_sync.py, application_workflow.py, agent_message.py, agent_handoff.py, retention_cleanup.py, ingest_token_store.py. Update `services/__init__.py` with package-level docstring describing all 8 domains + cross-cutting files (REQ-031 §4.2 descriptions). Update all 8 subdirectory `__init__.py` files with brief domain docstrings. Verify `ruff check .` passes. | `plan` | ✅ |
-| 22 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 22 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 ---
 
