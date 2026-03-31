@@ -102,7 +102,7 @@ Phase 2: JSDoc Standardization (REQ-032 §5)
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 6 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Same verdicts as §1. | `plan, security` | ⬜ |
+| 6 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). Same verdicts as §1. | `plan, security` | ✅ |
 | 7 | **JSDoc — lib/ providers + API + SSE (14 files)** — Add `@coordinates-with` to 12 files with existing JSDoc: `api-client.ts`, `query-keys.ts`, `query-client.ts`, `query-provider.tsx`, `auth-provider.tsx`, `onboarding-provider.tsx`, `sse-client.ts`, `sse-query-bridge.ts`, `sse-provider.tsx`, `chat-provider.tsx`, `chat-panel-provider.tsx`, `embedding-staleness.ts`. Add complete three-axis headers to 2 files missing all JSDoc: `utils.ts`, `toast.ts`. | `plan, docs, lint` | ⬜ |
 | 8 | **JSDoc — lib/ utilities + form infrastructure (11 files)** — Add/strengthen JSDoc for: `form-errors.ts`, `map-server-errors.ts`, `basic-info-schema.ts`, `format-utils.ts`, `job-formatters.ts`, `score-formatters.ts`, `diff-utils.ts`, `url-utils.ts`, `resume-helpers.ts`, `api/admin.ts`, `api/credits.ts`. | `plan, docs, lint` | ⬜ |
 | 9 | **JSDoc — lib/ persona helpers (9 files)** — Strengthen where + add `@coordinates-with` for all 9 persona CRUD helpers: `work-history-helpers.ts`, `certification-helpers.ts`, `education-helpers.ts`, `skills-helpers.ts`, `achievement-stories-helpers.ts`, `voice-profile-helpers.ts`, `non-negotiables-helpers.ts`, `growth-targets-helpers.ts`, `discovery-preferences-helpers.ts`. All follow the same template pattern (toFormValues/toRequestBody). | `plan, docs, lint` | ⬜ |
