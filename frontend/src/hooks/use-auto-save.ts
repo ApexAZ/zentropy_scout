@@ -4,6 +4,12 @@
  * REQ-026 §7.1: Debounced save (2s after last keystroke).
  * REQ-026 §7.2: Save status indicator states.
  * REQ-026 §7.3: Handles 409 Conflict for optimistic concurrency.
+ *
+ * @module hooks/use-auto-save
+ * @coordinates-with lib/api-client (apiPatch — debounced save calls),
+ *   components/editor/editor-status-bar (SaveStatus type — status indicator states),
+ *   types/resume (BaseResume — PATCH response shape),
+ *   components/resume/resume-content-view (sole consumer — TipTap editor auto-save)
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";

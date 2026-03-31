@@ -8,6 +8,11 @@
  *
  * When the backend reference endpoint returns 404, the hook degrades
  * gracefully to the "no references" path (immediate delete + toast).
+ *
+ * @module hooks/use-delete-with-references
+ * @coordinates-with lib/api-client (apiGet, apiDelete — reference check + delete calls),
+ *   types/deletion (DeletableItemType, DeleteFlowState, ReferenceCheckResponse — state machine types),
+ *   components/persona/*-editor (5 post-onboarding editors — sole consumers)
  */
 
 import { useCallback, useRef, useState } from "react";

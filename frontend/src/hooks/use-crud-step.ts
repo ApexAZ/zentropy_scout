@@ -6,6 +6,12 @@
  * onboarding steps (certification, education, work-history, skills, story).
  *
  * REQ-012 §6.3.3–§6.3.7: CRUD steps share identical state management.
+ *
+ * @module hooks/use-crud-step
+ * @coordinates-with lib/api-client (CRUD operations — apiGet, apiPost, apiPatch, apiDelete),
+ *   lib/form-errors (toFriendlyError — user-facing error messages),
+ *   components/onboarding/steps/*-step (5 CRUD step wrappers — sole consumers),
+ *   components/onboarding/steps/crud-step-layout (shared step layout skeleton)
  */
 
 import { useCallback, useEffect, useState } from "react";

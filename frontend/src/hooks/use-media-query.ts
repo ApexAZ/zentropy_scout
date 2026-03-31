@@ -3,6 +3,10 @@
  *
  * REQ-012 §5.1: Responsive breakpoint detection.
  * SSR-safe — returns false when matchMedia is unavailable.
+ *
+ * @module hooks/use-media-query
+ * @coordinates-with hooks/use-is-mobile (primary consumer — mobile breakpoint wrapper),
+ *   components/layout/chat-sidebar (responsive sidebar behavior)
  */
 
 import { useEffect, useState } from "react";

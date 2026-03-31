@@ -4,6 +4,12 @@
  * REQ-012 §9.2: Manages checkbox state (included jobs, bullet selections,
  * bullet order, education, certifications, skills emphasis) and toggle
  * handlers used by both the new-resume wizard and the resume detail editor.
+ *
+ * @module hooks/use-resume-content-selection
+ * @coordinates-with types/persona (WorkHistory — bullet toggle needs Bullet shape),
+ *   hooks/use-resume-detail (composes this hook for the resume editor page),
+ *   components/resume/new-resume-wizard (standalone consumer for new resume flow),
+ *   components/resume/resume-content-checkboxes (checkbox UI driven by this state)
  */
 
 import { useCallback, useState } from "react";

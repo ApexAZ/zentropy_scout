@@ -7,6 +7,9 @@
  *
  * Uses IntersectionObserver on a bottom sentinel element to detect
  * whether the user is at the bottom of the scroll container.
+ *
+ * @module hooks/use-chat-scroll
+ * @coordinates-with components/chat/chat-message-list (sole consumer — scroll container + sentinel)
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";

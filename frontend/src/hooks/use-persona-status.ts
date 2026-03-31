@@ -5,6 +5,12 @@
  * - No persona exists → needs onboarding
  * - Persona exists, onboarding_complete = false → needs onboarding
  * - Persona exists, onboarding_complete = true → onboarded
+ *
+ * @module hooks/use-persona-status
+ * @coordinates-with lib/api-client (apiGet — persona list fetch),
+ *   lib/query-keys (queryKeys.personas — cache key),
+ *   components/layout/onboarding-gate (routing gate — primary consumer),
+ *   app/(main)/ pages (page-level consumers — persona-aware routing)
  */
 
 import { useQuery } from "@tanstack/react-query";
