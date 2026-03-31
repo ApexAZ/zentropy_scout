@@ -16,6 +16,12 @@ but do not block. The ``passed`` field is True only when there are no errors.
 Pattern follows modification_limits.py: pure functions with pre-extracted data.
 The caller (Ghostwriter agent) pre-extracts metrics, skills, and voice profile
 data before calling validate_cover_letter().
+
+Coordinates with:
+  - generation/cover_letter_structure.py — imports word count bounds (MIN/MAX_COVER_LETTER_WORDS)
+  - generation/cover_letter_output.py — imports CoverLetterValidation for output assembly
+
+Called by: generation/cover_letter_output.py and unit tests.
 """
 
 import logging

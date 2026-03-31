@@ -10,6 +10,8 @@ returns a structured result with flags and user-facing warnings:
 3. No matching stories (all scores < threshold) → use top 2 + disclaimer
 4. Job posting minimal (< 2 skills) → generic approach + flag
 5. No culture_text → skip culture alignment section
+
+Called by: Unit tests. Intended for content generation pipeline (pending pre-generation checks wiring).
 """
 
 from dataclasses import dataclass

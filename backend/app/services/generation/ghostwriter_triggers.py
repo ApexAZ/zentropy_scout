@@ -22,6 +22,11 @@ Trigger Conditions (§8.1):
     - Auto-draft: fit_score >= persona.auto_draft_threshold
     - Manual request: User says "Draft materials for this job"
     - Regeneration: User says "Try a different approach"
+
+Coordinates with:
+  - generation/content_generation_service.py — imports TriggerType enum
+
+Called by: generation/content_generation_service.py and unit tests.
 """
 
 import re

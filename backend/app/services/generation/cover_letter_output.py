@@ -15,6 +15,11 @@ Flow:
     validate_cover_letter() -> CoverLetterValidation (§5.4)
     -> GeneratedCoverLetter (§5.5, this module)
     -> to_cover_letter_record() -> dict for ORM insert
+
+Coordinates with:
+  - generation/cover_letter_validation.py — imports CoverLetterValidation as input
+
+Called by: Unit tests. Intended for content generation pipeline (pending wiring).
 """
 
 from dataclasses import dataclass

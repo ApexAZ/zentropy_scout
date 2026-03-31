@@ -9,6 +9,11 @@ computation (REQ-010 §10.1).
 
 The graph node calls ``create_outcome_record`` after user action and
 passes the result to the repository layer for persistence.
+
+Coordinates with:
+  - generation/regeneration.py — imports FeedbackCategory for keyword categorization
+
+Called by: Unit tests. Intended for content generation pipeline (pending outcome persistence wiring).
 """
 
 from dataclasses import dataclass

@@ -5,6 +5,8 @@ REQ-010 §8.2: Expired Job During Generation.
 Two-phase expiry check:
 1. Pre-generation: If job status is already "Expired", abort with error + suggestion.
 2. Post-generation: If job expired mid-generation, preserve content + add warning.
+
+Called by: Unit tests. Intended for content generation pipeline (pending expiry check wiring).
 """
 
 from dataclasses import dataclass

@@ -6,6 +6,8 @@ During the 10-30s generation window, the user's persona may be updated.
 This module detects the change by comparing ``persona.updated_at``
 timestamps before and after generation, then returns a structured result
 with a warning while preserving the generated content.
+
+Called by: Unit tests. Intended for content generation pipeline (pending mid-generation check wiring).
 """
 
 from dataclasses import dataclass

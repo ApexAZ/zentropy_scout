@@ -14,6 +14,11 @@ voice application across all generated content.
 WHY PURE FUNCTION: Accepts primitive inputs (strings + lists) rather than ORM
 models. The caller extracts fields from VoiceProfile before calling. This keeps
 the function testable and decoupled from data access.
+
+Coordinates with:
+  - generation/resume_generation_service.py — calls build_voice_profile_block for LLM prompts
+
+Called by: generation/resume_generation_service.py and unit tests.
 """
 
 from app.core.llm_sanitization import sanitize_llm_input

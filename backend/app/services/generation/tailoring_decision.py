@@ -18,6 +18,11 @@ Decision Matrix:
     - No signals: action="use_base" (resume aligns well)
     - Total priority < 0.3: action="use_base" (gaps too minor)
     - Total priority >= 0.3: action="create_variant" (tailoring recommended)
+
+Coordinates with:
+  - generation/content_generation_service.py — calls evaluate_tailoring_need in step 3
+
+Called by: generation/content_generation_service.py and unit tests.
 """
 
 import logging

@@ -21,6 +21,19 @@ Cross-references:
     - REQ-018 §7: Behavioral specification (pipeline flow, duplicate rules)
     - REQ-010 §4–§5: Tailoring and cover letter generation details
     - REQ-007 §8: Original ghostwriter agent specification
+
+NOTE: This is a pipeline skeleton — private methods use placeholder inputs
+pending DB/API wiring. The orchestration structure and service calls are real,
+but data flow from repositories is not yet connected.
+
+Coordinates with:
+  - generation/cover_letter_generation.py — calls generate_cover_letter (step 6)
+  - generation/ghostwriter_triggers.py — imports TriggerType enum
+  - generation/reasoning_explanation.py — calls format_agent_reasoning (step 8)
+  - generation/story_selection.py — calls select_achievement_stories (step 5)
+  - generation/tailoring_decision.py — calls evaluate_tailoring_need (step 3)
+
+Called by: app/agents/chat.py (chat agent orchestration).
 """
 
 import logging

@@ -7,6 +7,11 @@ Provides:
 - Freshness check for detecting stale embeddings
 
 Embedding type enums are defined in embedding/types.py (REQ-031 §6.2).
+
+Coordinates with:
+  - embedding/cache.py — imports compute_source_hash for freshness validation
+
+Called by: embedding/cache.py, scripts/reembed_all.py, and unit tests.
 """
 
 import hashlib

@@ -12,6 +12,12 @@ bounds used by downstream modules:
 
 Cross-reference: REQ-002b §8.1 defines the same structure from the storage
 perspective (Opening, Body 1, Body 2, Closing).
+
+Coordinates with:
+  - generation/cover_letter_validation.py — imports MIN/MAX_COVER_LETTER_WORDS for validation
+  - prompts/ghostwriter.py — mirrors section structure in LLM system prompt
+
+Called by: generation/cover_letter_validation.py and unit tests.
 """
 
 from dataclasses import dataclass

@@ -19,6 +19,12 @@ WHY PURE FUNCTIONS: This service accepts pre-extracted data (skill sets,
 culture keywords, work history map) rather than querying the database directly.
 This keeps the function pure, testable, and decoupled from data access. The
 graph node is responsible for fetching data and passing it in.
+
+Coordinates with:
+  - generation/content_utils.py — imports has_metrics for quantified outcome scoring
+  - generation/content_generation_service.py — calls select_achievement_stories in step 5
+
+Called by: generation/content_generation_service.py and unit tests.
 """
 
 import logging

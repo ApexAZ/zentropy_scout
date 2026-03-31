@@ -9,6 +9,11 @@ Algorithm:
 3. If match found → use matched resume
 4. Fallback → use is_primary=True resume
 5. If no primary → raise error
+
+Coordinates with:
+  - scoring/role_title_match.py — imports normalize_title for role matching
+
+Called by: Unit tests. Intended for content generation pipeline (pending base resume selection wiring).
 """
 
 import logging

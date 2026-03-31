@@ -15,6 +15,8 @@ Relevance is scored 0.0–1.0 using four weighted factors:
 Pattern follows tailoring_decision.py: pure functions with pre-extracted data.
 The caller (Ghostwriter agent) extracts skills/keywords/metrics before calling
 these functions, keeping this module free of LLM and DB dependencies.
+
+Called by: Unit tests. Intended for content generation pipeline (pending variant creation wiring).
 """
 
 import logging

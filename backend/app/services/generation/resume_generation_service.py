@@ -7,6 +7,12 @@ gather_base_resume_content() and mechanically slots it into template
 REQ-026 §4.4: LLM-assisted generation — gathers persona data, builds prompt
 with template structure + persona + voice profile + generation options, calls
 LLM via MeteredLLMProvider, returns (markdown, metadata).
+
+Coordinates with:
+  - generation/voice_prompt_block.py — calls build_voice_profile_block for LLM prompts
+  - rendering/pdf_generation.py — imports ResumeContent, gather_base_resume_content
+
+Called by: app/api/v1/base_resumes.py (resume generation endpoints).
 """
 
 import logging

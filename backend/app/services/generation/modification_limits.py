@@ -14,6 +14,8 @@ Pattern follows bullet_reordering.py: pure functions with pre-extracted data.
 The caller (Ghostwriter agent) extracts bullet IDs, summary text, and
 skills before calling these functions, keeping this module free of LLM
 and DB dependencies.
+
+Called by: Unit tests. Intended for content generation pipeline (pending variant validation wiring).
 """
 
 import logging

@@ -13,6 +13,8 @@ Metrics:
 3. Avg regenerations per letter: regeneration request count (< 1.5)
 4. Voice adherence score: manual review sample 1-5 (> 4.0)
 5. Story selection satisfaction: user kept selected stories (> 70%)
+
+Called by: Unit tests. Intended for admin dashboard metrics (pending wiring).
 """
 
 from dataclasses import dataclass

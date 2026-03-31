@@ -9,6 +9,8 @@ result with adjusted word count targets and user-facing warnings:
 2. Top 2 stories from same job → substitute if outcomes similar
 3. User excluded all high-scoring stories → use best available + disclaimer
 4. All stories used recently → ignore freshness penalty
+
+Called by: Unit tests. Intended for story selection pipeline (pending edge case wiring).
 """
 
 from dataclasses import dataclass

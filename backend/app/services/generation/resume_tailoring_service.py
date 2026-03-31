@@ -2,6 +2,8 @@
 
 REQ-027 §6.2: Calls LLM to tailor a base resume's markdown for a specific
 job posting. Uses RESUME_TAILORING_SYSTEM_PROMPT with TaskType.RESUME_TAILORING.
+
+Called by: app/api/v1/job_variants.py (tailored variant endpoint).
 """
 
 import logging

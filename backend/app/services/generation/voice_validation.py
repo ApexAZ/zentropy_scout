@@ -10,6 +10,8 @@ in the voice profile system prompt block (§3.3).
 WHY PURE FUNCTION: Accepts primitive inputs (text + list) rather than ORM
 models. This keeps the function testable and decoupled from data access —
 the caller extracts things_to_avoid from VoiceProfile before calling.
+
+Called by: Unit tests. Intended for content generation pipeline (pending wiring).
 """
 
 import logging

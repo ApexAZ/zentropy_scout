@@ -12,6 +12,11 @@ Feedback Categories (§7.1):
     LENGTH_ADJUSTMENT — Adjust word count target
     FOCUS_SHIFT      — Add emphasis instruction
     COMPLETE_REDO    — Clear context, regenerate from scratch
+
+Coordinates with:
+  - generation/generation_outcome.py — imports FeedbackCategory for outcome tracking
+
+Called by: generation/generation_outcome.py and unit tests.
 """
 
 from dataclasses import dataclass

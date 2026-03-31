@@ -11,6 +11,11 @@ WHY PURE FUNCTION: This service accepts pre-extracted data (tailoring action,
 signal details, story titles/rationales) rather than querying the database.
 This keeps the function pure, testable, and decoupled from data access. The
 graph node is responsible for extracting data from state and passing it in.
+
+Coordinates with:
+  - generation/content_generation_service.py — calls format_agent_reasoning in step 8
+
+Called by: generation/content_generation_service.py and unit tests.
 """
 
 import logging

@@ -9,6 +9,11 @@ Functions:
     extract_skills_from_text: Extract skill mentions from free text via LLM.
     has_metrics: Fast synchronous metric detection via string scan.
     extract_metrics: Regex fast path + LLM slow path for metric extraction.
+
+Coordinates with:
+  - generation/story_selection.py — imports has_metrics for outcome scoring
+
+Called by: generation/story_selection.py and unit tests.
 """
 
 import hashlib
