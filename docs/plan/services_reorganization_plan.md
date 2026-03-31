@@ -217,7 +217,7 @@ Phase 9: Final Verification + Cleanup
 
 ## Phase 6: discovery/ (16 files)
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Move 16 job discovery and pool management files. Some depend on scoring/ (pool_scoring uses scoring/fit_score via pool_surfacing_service).*
 
@@ -236,7 +236,7 @@ Phase 9: Final Verification + Cleanup
 |---|------|-------|--------|
 | 18 | **Move discovery/ — core pipeline (8 files)** — Create `services/discovery/__init__.py`. `git mv` discovery_workflow, job_fetch_service, job_extraction, job_enrichment_service, ghost_detection, job_deduplication, global_dedup_service, content_security. Update internal cross-refs (job_fetch_service → job_enrichment_service, scouter_utils, scouter_errors, job_scoring_service; global_dedup_service → content_security, job_deduplication; job_enrichment_service → ghost_detection). Update external imports: `app/api/job_postings.py`, `app/repositories/job_pool_repository.py`, and test files. Verify `pytest -v` passes. | `plan` | ✅ |
 | 19 | **Move discovery/ — status + pool + utilities (8 files)** — `git mv` source_selection, expiration_detection, job_status, user_review, scouter_utils, scouter_errors, pool_surfacing_service, pool_surfacing_worker. Update internal cross-refs (user_review → job_status, pool_surfacing_service → content_security + pool_scoring, pool_surfacing_worker → pool_surfacing_service, discovery_workflow → job_fetch_service + scouter_utils). Update external imports: `app/main.py` (pool_surfacing_worker), and test files. Verify `pytest -v` passes. | `plan` | ✅ |
-| 20 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 20 | **Phase gate — full test suite + push** — Run full backend test suite, `ruff check .`. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 ---
 
