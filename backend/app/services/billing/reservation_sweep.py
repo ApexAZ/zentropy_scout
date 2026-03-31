@@ -19,6 +19,12 @@ against SUM(usage_reservations.estimated_cost_usd WHERE status='held').
 
 REQ-030 §2.4: Runs every RESERVATION_SWEEP_INTERVAL_SECONDS (default 300).
 TTL controlled by RESERVATION_TTL_SECONDS (default 300).
+
+Coordinates with:
+  - admin/admin_config_service.py — imports AdminConfigService for pricing lookups
+  - billing/metering_service.py — imports MeteringService for settlement retry
+
+Called by: app/main.py (FastAPI lifespan event) and unit tests.
 """
 
 import asyncio

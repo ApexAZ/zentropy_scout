@@ -12,6 +12,12 @@ reservation as released when the LLM call fails.
 REQ-030 §5.8: Response metadata persistence via persist_response_metadata()
 — best-effort outbox pattern that writes LLM response data to the reservation
 row before settle(), enabling the background sweep to retry settlement.
+
+Coordinates with:
+  - admin/admin_config_service.py — imports AdminConfigService for pricing lookups
+
+Called by: providers/metered_provider.py, billing/reservation_sweep.py, app/api/deps.py,
+and unit tests.
 """
 
 import logging

@@ -5,6 +5,8 @@ validation rules and error codes per §14.
 
 This is the WRITE-SIDE service used only by admin endpoints. The READ-SIDE
 service (AdminConfigService) is separate and used by the metering pipeline.
+
+Called by: app/api/v1/admin.py (admin CRUD endpoints) and unit tests.
 """
 
 import logging
