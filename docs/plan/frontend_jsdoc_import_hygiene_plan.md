@@ -53,7 +53,7 @@ Phase 2: JSDoc Standardization (REQ-032 §5)
 
 ## Phase 1: Import Direction Fix
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Extract Zod schemas, FormData types, `toMonthValue()`, and skill category constants from 5 component files into their corresponding `lib/*-helpers.ts` files. Update all import paths so components import FROM lib/ (correct direction). Verify zero `from.*@/components` imports remain in `lib/` (except `onboarding-provider.tsx` which imports step metadata, not FormData — out of scope).*
 
@@ -74,7 +74,7 @@ Phase 2: JSDoc Standardization (REQ-032 §5)
 | 2 | **Extract work-history schema, type, and toMonthValue into lib/** — From `work-history-form.tsx`, extract `workHistoryFormSchema` (Zod), `WorkHistoryFormData` (inferred type), `toMonthValue()` (runtime function), and schema-only constants (`MAX_TEXT_LENGTH`, `MONTH_PATTERN`, etc.) into `lib/work-history-helpers.ts`. Update component to import FROM helpers. Update consumers: `work-history-step.tsx`, `work-history-editor.tsx`. Verify: grep confirms no `@/components` imports in helpers, all work-history tests pass. | `plan, tdd, lint, docs` | ✅ |
 | 3 | **Extract certification + education schemas/types into lib/** — From `certification-form.tsx`, extract `certificationFormSchema` + `CertificationFormData` + schema constants into `lib/certification-helpers.ts`. From `education-form.tsx`, extract `educationFormSchema` + `EducationFormData` + schema constants into `lib/education-helpers.ts`. Update both components to import FROM helpers. Update consumers: `{certification,education}-step.tsx`, `{certification,education}-editor.tsx`. Verify: all certification + education tests pass. | `plan, tdd, lint, docs` | ✅ |
 | 4 | **Extract skills + story schemas/types into lib/** — From `skills-form.tsx`, extract `skillFormSchema` + `SkillFormData` + `HARD_SKILL_CATEGORIES` + `SOFT_SKILL_CATEGORIES` + schema constants into `lib/skills-helpers.ts`. From `story-form.tsx`, extract `storyFormSchema` + `StoryFormData` + schema constants into `lib/achievement-stories-helpers.ts`. Update consumers. Final verification: `grep -r "from.*@/components" frontend/src/lib/` returns only `onboarding-provider.tsx` (step metadata import — out of scope). | `plan, tdd, lint, docs` | ✅ |
-| 5 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + lint + typecheck). Verify import direction fix is complete. Fix regressions, commit, push. | `plan, commands` | ⬜ |
+| 5 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + Vitest + lint + typecheck). Verify import direction fix is complete. Fix regressions, commit, push. | `plan, commands` | ✅ |
 
 #### Notes
 - **Constants that live in BOTH schema and JSX:** If a constant like `MAX_TEXT_LENGTH` is used in both the Zod schema refinement AND the component template (e.g., character count display), export it from the helper file and import it in the component. If used only in the schema, it moves silently.
