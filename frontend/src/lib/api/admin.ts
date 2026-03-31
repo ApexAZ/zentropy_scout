@@ -4,6 +4,11 @@
  * REQ-022 §11: Typed functions for all admin CRUD endpoints.
  * All functions use the shared apiGet/apiPost/apiPatch/apiPut/apiDelete
  * wrappers from api-client.ts.
+ *
+ * @module lib/api/admin
+ * @coordinates-with api-client (shared HTTP wrappers),
+ *   types/admin (all request/response shapes),
+ *   components/admin/* tabs (models, pricing, routing, packs, system, users)
  */
 
 import type { ApiListResponse, ApiResponse } from "@/types/api";

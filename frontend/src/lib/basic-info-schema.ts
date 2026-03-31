@@ -4,6 +4,11 @@
  * Used by both the onboarding BasicInfoStep and the persona BasicInfoEditor
  * to validate the 8 common personal fields (full_name, email, phone,
  * linkedin_url, portfolio_url, home_city, home_state, home_country).
+ *
+ * @module lib/basic-info-schema
+ * @coordinates-with components/onboarding/steps/basic-info-step (onboarding consumer),
+ *   components/persona/basic-info-editor (persona management consumer),
+ *   types/persona (PersonaBasicInfo — API shape these fields validate against)
  */
 
 import { z } from "zod";

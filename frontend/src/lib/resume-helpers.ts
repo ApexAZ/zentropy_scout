@@ -3,6 +3,11 @@
  *
  * REQ-012 §9.2-9.3: Utilities used by base resume detail and
  * variant review for bullet ordering.
+ *
+ * @module lib/resume-helpers
+ * @coordinates-with types/persona (Bullet type — sorted by these helpers),
+ *   components/resume/resume-detail (base resume bullet ordering),
+ *   components/resume/variant-review (variant bullet ordering + diff)
  */
 
 import type { Bullet } from "@/types/persona";

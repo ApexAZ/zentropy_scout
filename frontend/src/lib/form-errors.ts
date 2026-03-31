@@ -1,8 +1,14 @@
 /**
  * Shared error utilities for form components.
  *
- * Provides consistent user-facing error messages across all
- * onboarding and persona editor forms.
+ * REQ-012 §13.2: Provides consistent user-facing error messages
+ * across all onboarding and persona editor forms. Maps API error
+ * codes to friendly strings so components stay presentation-only.
+ *
+ * @module lib/form-errors
+ * @coordinates-with api-client (ApiError class used for instanceof check),
+ *   all onboarding step and persona editor forms (import toFriendlyError),
+ *   hooks/use-crud-step (centralised error handling for onboarding steps)
  */
 
 import { ApiError } from "@/lib/api-client";

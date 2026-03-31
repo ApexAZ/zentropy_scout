@@ -1,8 +1,14 @@
 /**
  * Shared formatting utilities for job posting display.
  *
- * Used by OpportunitiesTable and JobDetailHeader to avoid
- * cross-file duplication of formatting logic.
+ * REQ-012 §8.1–§8.2: Salary range and date formatting for job
+ * dashboard, detail views, application tracking, and resume lists.
+ *
+ * @module lib/job-formatters
+ * @coordinates-with types/job (JobPostingResponse — salary/date fields formatted here),
+ *   components/dashboard/opportunities-table (salary + days-ago columns),
+ *   components/jobs/job-detail-header (salary badge),
+ *   components/applications/* (application list + detail + job snapshot)
  */
 
 import type { JobPostingResponse } from "@/types/job";

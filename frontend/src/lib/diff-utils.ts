@@ -3,6 +3,10 @@
  *
  * REQ-012 §9.3: Changed text highlighted with color.
  * Moved bullets shown with position indicators.
+ *
+ * @module lib/diff-utils
+ * @coordinates-with components/resume/variant-review (word diff + bullet move detection),
+ *   components/resume/diff-text (renders DiffToken array as highlighted spans)
  */
 
 // ---------------------------------------------------------------------------

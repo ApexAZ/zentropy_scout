@@ -3,6 +3,12 @@
  *
  * REQ-029 §8.1–§8.3: Typed functions for credit pack listing,
  * checkout session creation, and purchase history retrieval.
+ *
+ * @module lib/api/credits
+ * @coordinates-with api-client (shared HTTP wrappers),
+ *   types/usage (PackItem, CheckoutResponse, PurchaseItem shapes),
+ *   components/usage/funding-packs (pack listing + checkout),
+ *   components/usage/usage-page (purchase history)
  */
 
 import type { ApiListResponse, ApiResponse } from "@/types/api";

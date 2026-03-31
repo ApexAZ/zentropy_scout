@@ -1,8 +1,14 @@
 /**
  * URL validation utilities for safe link rendering.
  *
- * Prevents XSS via javascript:, data:, or other dangerous URL schemes.
- * Only allows http: and https: protocols.
+ * REQ-012 §8.2, §9.1: Prevents XSS via javascript:, data:, or other
+ * dangerous URL schemes. Only allows http: and https: protocols.
+ * Used wherever external URLs from job postings or personas are rendered.
+ *
+ * @module lib/url-utils
+ * @coordinates-with components/editor/* (safe link rendering in toolbar),
+ *   components/jobs/job-detail-header (external job posting links),
+ *   components/applications/job-snapshot-section (snapshot link display)
  */
 
 // ---------------------------------------------------------------------------

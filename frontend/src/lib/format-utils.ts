@@ -3,6 +3,11 @@
  *
  * REQ-020 §2.5: All monetary values displayed with 2 decimal places.
  * Backend returns 6 decimal places; frontend formats for display.
+ *
+ * @module lib/format-utils
+ * @coordinates-with components/usage/* (balance card, purchase/usage/transaction tables),
+ *   components/layout/top-nav (balance display in header),
+ *   types/usage (raw string amounts formatted by these helpers)
  */
 
 // ---------------------------------------------------------------------------
