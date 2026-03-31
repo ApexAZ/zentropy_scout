@@ -5,6 +5,11 @@
  * REQ-029 §8: Response shapes for credit pack, checkout, and purchase endpoints.
  * All monetary values are strings with 6 decimal places from the API;
  * frontend displays 2 decimal places (REQ-020 §2.5).
+ *
+ * @module types/usage
+ * @coordinates-with hooks/use-balance (balance polling hook),
+ *   lib/api/credits (credits API client functions),
+ *   components/usage/ (usage dashboard — balance card, transactions, funding packs)
  */
 
 // ---------------------------------------------------------------------------

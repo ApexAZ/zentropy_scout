@@ -6,6 +6,12 @@
  * REQ-005 §4.5: Database schema (Application, TimelineEvent).
  * REQ-005 §4.3: Database schema (CoverLetter, SubmittedCoverLetterPDF).
  * REQ-012 §11: Application tracking page.
+ *
+ * @module types/application
+ * @coordinates-with types/persona (WorkModel — inbound import),
+ *   components/applications/ (application tracking UI — columns, detail, timeline, dialogs),
+ *   components/jobs/ (mark-as-applied card, review materials, draft materials),
+ *   components/cover-letter/cover-letter-review (cover letter review page)
  */
 
 import type { WorkModel } from "./persona";

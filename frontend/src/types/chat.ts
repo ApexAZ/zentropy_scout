@@ -4,6 +4,11 @@
  * REQ-012 §5.2: Message types include user, agent, system notices,
  * and inline tool execution indicators.
  * REQ-012 §5.3: Structured chat cards (job card, score summary).
+ *
+ * @module types/chat
+ * @coordinates-with types/persona + types/job (WorkModel, FitScoreResult, etc. — inbound imports),
+ *   lib/chat-provider + lib/chat-panel-provider (chat state management),
+ *   components/chat/ (message list, bubbles, cards, tool badges — chat UI)
  */
 
 import type { WorkModel } from "./persona";

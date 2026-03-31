@@ -3,6 +3,9 @@
  *
  * REQ-006 §5.6: Chrome extension / manual job posting ingest.
  * Mirrors backend schemas in backend/app/schemas/ingest.py.
+ *
+ * @module types/ingest
+ * @coordinates-with components/dashboard/add-job-modal (sole consumer — manual job ingest form)
  */
 
 // ---------------------------------------------------------------------------

@@ -1,3 +1,18 @@
+/**
+ * Barrel re-export of all public domain types.
+ *
+ * Aggregates type exports from the 11 domain type modules so consumers
+ * can import from `@/types` instead of `@/types/<module>`. In practice,
+ * consumers import directly from the specific module files.
+ *
+ * @module types/index
+ * @coordinates-with types/api (response envelope types),
+ *   types/persona (persona + sub-entity types),
+ *   types/job (job posting + scoring types),
+ *   types/resume + types/application (document domain types),
+ *   types/chat + types/sse (real-time communication types)
+ */
+
 export type {
 	ApiListResponse,
 	ApiResponse,

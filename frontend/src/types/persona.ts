@@ -4,6 +4,13 @@
  * REQ-001: Professional persona data model.
  * REQ-005 §4.1: Database schema (Tier 1 Persona, Tier 2 sub-entities).
  * REQ-012 §4: Frontend architecture.
+ *
+ * @module types/persona
+ * @coordinates-with types/job + types/application + types/chat (cross-references — import WorkModel, SkillType),
+ *   lib/*-helpers (9 persona CRUD helpers — schema validation + API transforms),
+ *   hooks/use-persona-status (persona onboarding check),
+ *   components/onboarding/steps/ (onboarding step forms),
+ *   components/persona/ (post-onboarding editors)
  */
 
 // ---------------------------------------------------------------------------

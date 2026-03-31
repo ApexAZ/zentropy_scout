@@ -5,6 +5,10 @@
  * for references in BaseResumes and CoverLetters, then show the
  * appropriate dialog variant (three-option for mutable refs, block
  * for immutable refs) or delete immediately (no refs).
+ *
+ * @module types/deletion
+ * @coordinates-with hooks/use-delete-with-references (deletion flow state machine — primary consumer),
+ *   components/ui/delete-reference-dialog (delete confirmation dialog UI)
  */
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,13 @@
  * REQ-008 §4–8: Scoring components (Fit, Stretch, Explanation).
  * REQ-012 §8: Job dashboard & scoring display.
  * REQ-015 §8: Shared job pool — PersonaJobResponse wraps JobPostingResponse.
+ *
+ * @module types/job
+ * @coordinates-with types/persona (SkillType, WorkModel — inbound imports),
+ *   types/chat (FitScoreResult, ScoreExplanation, StretchScoreResult — outbound to chat cards),
+ *   lib/score-formatters + lib/job-formatters (scoring display + job field formatting),
+ *   components/jobs/ (job dashboard, score breakdown, detail views),
+ *   components/dashboard/opportunities-table (job opportunities listing)
  */
 
 import type { SkillType, WorkModel } from "./persona";

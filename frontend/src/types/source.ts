@@ -3,6 +3,9 @@
  * backend/app/models/job_source.py.
  *
  * REQ-012 §12.2: Job source preferences.
+ *
+ * @module types/source
+ * @coordinates-with components/settings/job-sources-section (sole consumer — job source preferences UI)
  */
 
 // ---------------------------------------------------------------------------

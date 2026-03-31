@@ -4,6 +4,11 @@
  * REQ-026 §4.2: Generation options panel.
  * REQ-026 §4.3: Page limit control.
  * REQ-026 §4.6: Generation request/response.
+ *
+ * @module types/resume-generation
+ * @coordinates-with hooks/use-resume-detail (generation handler — GenerationMethod, GenerationOptions),
+ *   components/resume/resume-content-view (resume editor — generation trigger),
+ *   components/editor/generation-options-panel (generation options UI — ResumeSection, labels)
  */
 
 // ---------------------------------------------------------------------------

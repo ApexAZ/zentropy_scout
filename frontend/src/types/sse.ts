@@ -3,6 +3,10 @@
  *
  * REQ-006 §2.5: SSE event types for real-time communication.
  * REQ-012 §4.4: SSE client with typed events.
+ *
+ * @module types/sse
+ * @coordinates-with lib/sse-client (sole runtime consumer — parses SSE stream into typed events),
+ *   lib/sse-query-bridge (bridges SSE events to React Query cache invalidation)
  */
 
 /** Streaming LLM token — append text to current chat message. */

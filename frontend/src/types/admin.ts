@@ -3,6 +3,10 @@
  *
  * REQ-022 §10: TypeScript interfaces for all admin endpoint resources.
  * All monetary values are strings to preserve decimal precision.
+ *
+ * @module types/admin
+ * @coordinates-with lib/api/admin (admin API client functions — CRUD operations),
+ *   components/admin/ (admin dashboard tabs — models, pricing, routing, packs, system, users)
  */
 
 // =============================================================================

@@ -5,6 +5,12 @@
  * REQ-002: Resume generation and management.
  * REQ-005 §4.2: Database schema (ResumeFile, BaseResume, JobVariant, SubmittedResumePDF).
  * REQ-012 §9: Resume management page.
+ *
+ * @module types/resume
+ * @coordinates-with hooks/use-resume-detail + hooks/use-auto-save (resume data + auto-save hooks),
+ *   components/resume/ (resume list, detail, wizard, variants, guardrail banner),
+ *   components/editor/template-picker (resume template selection),
+ *   components/jobs/ (create-variant card, mark-as-applied, review materials)
  */
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,10 @@
  *
  * REQ-006 §7.2: Consistent response format for all API endpoints.
  * REQ-012 §4.3: Typed API client with response envelope parsing.
+ *
+ * @module types/api
+ * @coordinates-with lib/api-client (response envelope parsing — foundational consumer),
+ *   lib/ helpers + hooks/ + components/ (all modules making typed API calls import these envelopes)
  */
 
 /**
