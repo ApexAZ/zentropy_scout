@@ -19,6 +19,11 @@ Usage:
     }
     result = validate_scores_against_golden_set(golden_set, algorithm_scores)
     print(f"Passed: {result.passed}, Fit r={result.correlation.fit_correlation:.3f}")
+
+Coordinates with:
+  - scoring/golden_set.py — imports GoldenSet schema for human-labeled data
+
+Called by: Validation scripts. Currently test-only pending CI wiring.
 """
 
 import math

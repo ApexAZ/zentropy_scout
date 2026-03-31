@@ -13,6 +13,12 @@ Key formulas:
 Rationale: Under-qualified is penalized 3x more than over-qualified because
 employers strongly prefer candidates who meet requirements, but are less
 concerned about "overqualified" candidates (who may just want the job).
+
+Coordinates with:
+  - scoring/fit_score.py — imports FIT_NEUTRAL_SCORE for missing-data default
+  - scoring/batch_scoring.py — calls calculate_experience_score for batch fit scoring
+
+Called by: scoring/batch_scoring.py and unit tests.
 """
 
 from app.services.scoring.fit_score import FIT_NEUTRAL_SCORE

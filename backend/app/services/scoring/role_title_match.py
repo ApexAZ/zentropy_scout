@@ -11,6 +11,16 @@ Key formula for semantic matching:
     score = (cosine_similarity + 1) * 50
 
 This scales cosine similarity from [-1, 1] to score [0, 100].
+
+Coordinates with:
+  - scoring/fit_score.py — imports FIT_NEUTRAL_SCORE for missing-data default
+  - scoring/soft_skills_match.py — imports cosine_similarity for semantic matching
+  - embedding/utils.py — imports validate_embeddings for dimension safety
+  - scoring/stretch_score.py — imports normalize_title for target role alignment
+  - scoring/batch_scoring.py — calls calculate_role_title_score for batch fit scoring
+  - generation/base_resume_selection.py — imports normalize_title for resume selection
+
+Called by: scoring/batch_scoring.py, scoring/stretch_score.py, generation/base_resume_selection.py, and unit tests.
 """
 
 import re

@@ -7,6 +7,11 @@ Jobs that fail are stored but not scored (transparency without wasted effort).
 
 Key principle: Jobs fail on disclosed violations, but undisclosed data often
 passes (benefit of doubt) — see §3.2 for specific rules.
+
+Coordinates with:
+  - scoring/scoring_flow.py — calls filter functions as the pre-scoring gate
+
+Called by: scoring/scoring_flow.py and unit tests.
 """
 
 from dataclasses import dataclass, field

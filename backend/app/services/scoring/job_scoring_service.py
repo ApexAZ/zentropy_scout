@@ -12,6 +12,14 @@ Orchestrates the complete scoring pipeline:
 7. Build score_details JSONB for frontend drill-down
 8. Save scores to persona_jobs
 9. Check auto-draft threshold (no-op at MVP)
+
+Coordinates with:
+  - scoring/batch_scoring.py — calls batch_score_jobs for fit/stretch calculation
+  - scoring/scoring_flow.py — calls filter_jobs_batch and result builders
+  - scoring/score_types.py — imports ScoreResult for score dict format
+  - embedding/persona_generator.py — calls generate_persona_embeddings
+
+Called by: discovery/job_fetch_service.py (Strategist scoring pipeline).
 """
 
 import logging

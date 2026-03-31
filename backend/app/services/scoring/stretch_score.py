@@ -16,6 +16,16 @@ Design principles:
 2. Final score is weighted sum: sum(component * weight)
 3. Missing growth targets defaults to 50 (neutral) — see REQ-008 §5.2, §5.3, §5.4
 4. Role alignment is weighted highest because title indicates career direction
+
+Coordinates with:
+  - scoring/hard_skills_match.py — imports normalize_skill for target skills comparison
+  - scoring/role_title_match.py — imports normalize_title for target role alignment
+  - scoring/soft_skills_match.py — imports cosine_similarity for semantic matching
+  - embedding/utils.py — imports validate_embeddings for dimension safety
+  - scoring/batch_scoring.py — calls calculate_stretch_score and sub-components for batch scoring
+  - scoring/explanation_generation.py — imports StretchScoreResult for explanation logic
+
+Called by: scoring/batch_scoring.py, scoring/explanation_generation.py, and unit tests.
 """
 
 import math

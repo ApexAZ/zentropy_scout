@@ -24,6 +24,12 @@ REQ-008 §1.2: Scoring Philosophy:
     - Configurability: Users can adjust weights (future feature)
     - Graceful degradation: Missing data reduces confidence, does not break scoring
     - Bias awareness: Avoid penalizing non-traditional backgrounds
+
+Coordinates with:
+  - scoring/scoring_flow.py — builds ScoreResult dicts for filtered/scored jobs
+  - scoring/job_scoring_service.py — reads ScoreResult to persist scores to DB
+
+Called by: scoring/scoring_flow.py, scoring/job_scoring_service.py, and unit tests.
 """
 
 from enum import Enum

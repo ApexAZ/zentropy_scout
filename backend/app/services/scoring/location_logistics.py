@@ -18,6 +18,12 @@ Key scoring rules:
 Location modifier (non-remote only):
 - Job in commutable city: no penalty
 - Job NOT in commutable city: score * 0.7 (30% penalty)
+
+Coordinates with:
+  - scoring/fit_score.py — imports FIT_NEUTRAL_SCORE for missing-data default
+  - scoring/batch_scoring.py — calls calculate_logistics_score for batch fit scoring
+
+Called by: scoring/batch_scoring.py and unit tests.
 """
 
 from app.services.scoring.fit_score import FIT_NEUTRAL_SCORE

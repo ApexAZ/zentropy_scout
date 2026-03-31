@@ -13,6 +13,11 @@ Usage:
     for entry in golden_set.entries:
         # Run algorithm and compare to entry.human_fit_score, entry.human_stretch_score
         pass
+
+Coordinates with:
+  - scoring/score_correlation.py — imports GoldenSet for correlation validation
+
+Called by: scoring/score_correlation.py and unit tests.
 """
 
 import json

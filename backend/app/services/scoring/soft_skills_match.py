@@ -17,6 +17,14 @@ This scales cosine similarity from [-1, 1] to score [0, 100]:
 | 0.0    | 50    | No correlation |
 | -0.5   | 25    | Poor match     |
 | -1.0   | 0     | Opposite       |
+
+Coordinates with:
+  - scoring/fit_score.py — imports FIT_NEUTRAL_SCORE for missing-data default
+  - scoring/role_title_match.py — imports cosine_similarity for semantic title comparison
+  - scoring/stretch_score.py — imports cosine_similarity for target role alignment
+  - scoring/batch_scoring.py — calls calculate_soft_skills_score for batch fit scoring
+
+Called by: scoring/batch_scoring.py, scoring/role_title_match.py, scoring/stretch_score.py, and unit tests.
 """
 
 import math

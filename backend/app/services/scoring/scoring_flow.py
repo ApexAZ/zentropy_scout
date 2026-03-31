@@ -7,7 +7,12 @@ Orchestrates the complete scoring flow:
 2. Score calculation for passing jobs
 3. Result aggregation into ScoreResult format
 
-Called by JobScoringService.score_batch() in job_scoring_service.py.
+Coordinates with:
+  - scoring/non_negotiables_filter.py — calls all filter functions for the pre-scoring gate
+  - scoring/score_types.py — imports ScoreResult for result aggregation
+  - scoring/job_scoring_service.py — called by JobScoringService.score_batch()
+
+Called by: scoring/job_scoring_service.py.
 """
 
 from collections.abc import Sequence

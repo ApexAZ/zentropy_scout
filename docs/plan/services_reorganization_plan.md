@@ -279,7 +279,7 @@ Phase 9: Final Verification + Cleanup
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 23 | **Docstrings — scoring/ (17 files)** — Update module docstrings for all 17 scoring files. Add `Coordinates with:` listing internal dependencies and `Called by:` listing external callers. Use new subdirectory-relative names. Preserve existing REQ references. Flag pool_scoring.py ORM import inconsistency per REQ-031 §7.3 rule 6. Verify `ruff check .` passes. | `plan` | ⬜ |
+| 23 | **Docstrings — scoring/ (17 files)** — Update module docstrings for all 17 scoring files. Add `Coordinates with:` listing internal dependencies and `Called by:` listing external callers. Use new subdirectory-relative names. Preserve existing REQ references. Flag pool_scoring.py ORM import inconsistency per REQ-031 §7.3 rule 6. Verify `ruff check .` passes. | `plan` | ✅ |
 | 24 | **Docstrings — embedding/ (7 files) + generation/ (24 files)** — Update module docstrings for all 31 files. Flag content_generation_service.py placeholder status per REQ-031 §7.3 rule 5. Verify `ruff check .` passes. | `plan` | ⬜ |
 | 25 | **Docstrings — rendering/ (8 files) + discovery/ (16 files)** — Update module docstrings for all 24 files. Verify `ruff check .` passes. | `plan` | ⬜ |
 | 26 | **Docstrings — billing/ (4 files) + admin/ (2 files) + onboarding/ (2 files)** — Update module docstrings for all 8 files. Verify `ruff check .` passes. | `plan` | ⬜ |

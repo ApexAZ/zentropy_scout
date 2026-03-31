@@ -7,7 +7,18 @@ Key optimizations:
 2. Generate job embeddings in batch (single API call instead of N calls)
 3. Score sequentially (CPU-bound calculation, no benefit from async)
 
-Called by: Strategist agent when Scouter discovers many jobs at once.
+Coordinates with:
+  - scoring/fit_score.py — imports FitScoreResult and calculate_fit_score for aggregation
+  - scoring/stretch_score.py — imports StretchScoreResult and sub-component calculators
+  - scoring/hard_skills_match.py — calls calculate_hard_skills_score
+  - scoring/soft_skills_match.py — calls calculate_soft_skills_score
+  - scoring/experience_level.py — calls calculate_experience_score
+  - scoring/location_logistics.py — calls calculate_logistics_score
+  - scoring/role_title_match.py — calls calculate_role_title_score
+  - embedding/job_generator.py — imports build_culture_text, get_neutral_embedding
+  - embedding/persona_generator.py — imports PersonaEmbeddingsResult
+
+Called by: scoring/job_scoring_service.py.
 """
 
 import uuid

@@ -8,6 +8,14 @@ insights about strengths, gaps, stretch opportunities, and warnings.
 
 The generate_explanation function is called by the Strategist agent (REQ-007 §7.6)
 after scoring is complete.
+
+Coordinates with:
+  - scoring/fit_score.py — imports FitScoreResult for component score analysis
+  - scoring/stretch_score.py — imports StretchScoreResult for growth analysis
+  - scoring/hard_skills_match.py — imports normalize_skill for skill comparison
+  - scoring/score_explanation.py — imports ScoreExplanation return type
+
+Called by: Strategist pipeline (post-scoring). Currently test-only pending orchestration wiring.
 """
 
 from typing import Any, Protocol

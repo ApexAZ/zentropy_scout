@@ -10,6 +10,14 @@ Key formula:
 
 Where required_score and nice_to_have_score are weighted averages (0-100)
 based on proficiency match between user skills and job requirements.
+
+Coordinates with:
+  - scoring/fit_score.py — imports FIT_NEUTRAL_SCORE for missing-data default
+  - scoring/batch_scoring.py — calls calculate_hard_skills_score for batch fit scoring
+  - scoring/stretch_score.py — imports normalize_skill for target skills comparison
+  - scoring/explanation_generation.py — imports normalize_skill for skill gap analysis
+
+Called by: scoring/batch_scoring.py, scoring/stretch_score.py, scoring/explanation_generation.py, and unit tests.
 """
 
 from typing import TypedDict

@@ -11,6 +11,11 @@ why a job received particular Fit and Stretch scores, including:
 - What's missing (gaps)
 - Career growth potential (stretch opportunities)
 - Concerns to be aware of (warnings)
+
+Coordinates with:
+  - scoring/explanation_generation.py — imports ScoreExplanation as return type
+
+Called by: scoring/explanation_generation.py and unit tests.
 """
 
 from dataclasses import dataclass

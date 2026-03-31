@@ -18,6 +18,18 @@ Design principles:
 2. Final score is weighted sum: sum(component * weight)
 3. Missing data defaults to 70 (neutral) — see REQ-008 §9.1
 4. Proficiency levels matter — "Learning" != "5+ years"
+
+Coordinates with:
+  - scoring/hard_skills_match.py — imports FIT_NEUTRAL_SCORE for missing-data default
+  - scoring/soft_skills_match.py — imports FIT_NEUTRAL_SCORE
+  - scoring/experience_level.py — imports FIT_NEUTRAL_SCORE
+  - scoring/location_logistics.py — imports FIT_NEUTRAL_SCORE
+  - scoring/role_title_match.py — imports FIT_NEUTRAL_SCORE
+  - scoring/pool_scoring.py — imports FIT_NEUTRAL_SCORE, FitScoreResult, calculate_fit_score
+  - scoring/batch_scoring.py — imports FitScoreResult and calculate_fit_score for batch aggregation
+  - scoring/explanation_generation.py — imports FitScoreResult for explanation logic
+
+Called by: All scoring component files (central dependency), scoring/batch_scoring.py, scoring/pool_scoring.py, and unit tests.
 """
 
 import math

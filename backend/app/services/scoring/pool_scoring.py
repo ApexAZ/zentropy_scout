@@ -6,6 +6,16 @@ keyword overlap. No database access, no side effects.
 
 Used by pool_surfacing_service.py for background job-persona matching
 without LLM calls.
+
+NOTE: This file imports ORM models (JobPosting, Persona, Skill) directly, unlike
+other scoring files which use TypedDict/Protocol inputs. The functions are pure
+(no DB access) but do not follow the protocol pattern used elsewhere in scoring/.
+
+Coordinates with:
+  - scoring/fit_score.py — imports FIT_NEUTRAL_SCORE, FitScoreResult, calculate_fit_score
+  - discovery/pool_surfacing_service.py — calls pool scoring functions for background matching
+
+Called by: discovery/pool_surfacing_service.py.
 """
 
 from app.models.job_posting import JobPosting
