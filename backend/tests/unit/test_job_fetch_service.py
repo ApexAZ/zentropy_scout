@@ -169,7 +169,7 @@ class TestFetchFromSources:
         make_adapter,
     ) -> None:
         """SourceError from one adapter doesn't block others (fail-forward)."""
-        from app.services.scouter_errors import SourceError, SourceErrorType
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
 
         adzuna_job = make_raw_job(external_id="az-001")
         error = SourceError(_SOURCE_REMOTEOK, SourceErrorType.API_DOWN, "503 error")

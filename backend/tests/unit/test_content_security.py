@@ -20,7 +20,7 @@ from app.services.discovery.content_security import (
     release_expired_quarantines,
     validate_job_content,
 )
-from app.services.pool_surfacing_service import get_unsurfaced_jobs
+from app.services.discovery.pool_surfacing_service import get_unsurfaced_jobs
 
 # =============================================================================
 # Injection Pattern Detection Tests

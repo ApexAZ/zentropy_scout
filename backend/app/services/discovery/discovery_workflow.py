@@ -26,7 +26,7 @@ from app.services.discovery.job_fetch_service import JobFetchService
 # services, API endpoints) with varying schemas. Using dict[str, Any]
 # provides flexibility while strict typing happens when creating
 # JobPosting models at persistence.
-from app.services.scouter_utils import (
+from app.services.discovery.scouter_utils import (
     is_manual_refresh_request,
     is_source_added_trigger,
     should_poll,

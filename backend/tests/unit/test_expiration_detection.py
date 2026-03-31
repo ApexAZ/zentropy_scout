@@ -12,7 +12,7 @@ Tests cover:
 
 from datetime import UTC, datetime, timedelta
 
-from app.services.expiration_detection import (
+from app.services.discovery.expiration_detection import (
     ExpirationDetectionResult,
     ExpirationMethod,
     VerificationSchedule,

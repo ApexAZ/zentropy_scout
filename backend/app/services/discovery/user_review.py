@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
 
-from app.services.job_status import (
+from app.services.discovery.job_status import (
     InvalidStatusTransitionError,
     JobPostingStatus,
     transition_status,

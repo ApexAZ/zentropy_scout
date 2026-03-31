@@ -11,7 +11,10 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.services.pool_surfacing_service import SurfacingPassResult, run_surfacing_pass
+from app.services.discovery.pool_surfacing_service import (
+    SurfacingPassResult,
+    run_surfacing_pass,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -11,8 +11,8 @@ User actions on Discovered jobs:
 
 from datetime import UTC, datetime
 
-from app.services.job_status import JobPostingStatus
-from app.services.user_review import (
+from app.services.discovery.job_status import JobPostingStatus
+from app.services.discovery.user_review import (
     ReviewAction,
     apply_to_job,
     dismiss_job,
