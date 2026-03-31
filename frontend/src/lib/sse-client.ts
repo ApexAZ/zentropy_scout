@@ -1,13 +1,20 @@
 /**
- * SSE client wrapper with reconnection and tab visibility management.
+ * @fileoverview SSE client wrapper with reconnection and tab visibility management.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-012 §4.4: Custom EventSource wrapper with exponential backoff
  * reconnection and tab inactive detection.
  *
- * @module lib/sse-client
- * @coordinates-with types/sse (event parsing + type definitions),
- *   sse-provider (React wrapper — creates and manages SSEClient),
- *   sse-query-bridge (provides onDataChanged/onReconnect callbacks)
+ * Coordinates with:
+ * - types/sse.ts: event parsing (parseSSEEvent) and type definitions
+ * - lib/sse-provider.tsx: React wrapper — creates and manages SSEClient lifecycle
+ * - lib/sse-query-bridge.ts: provides onDataChanged/onReconnect callbacks
+ *
+ * Called by / Used by:
+ * - lib/sse-provider.tsx: instantiates SSEClient on provider mount
+ * - components/ui/connection-status.tsx: reads ConnectionStatus for UI indicator
  */
 
 import { parseSSEEvent } from "../types/sse";

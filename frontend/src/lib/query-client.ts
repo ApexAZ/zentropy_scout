@@ -1,5 +1,8 @@
 /**
- * TanStack Query client factory.
+ * @fileoverview TanStack Query client factory with SSE-optimized defaults.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-012 §4.2.1: Server state managed by TanStack Query v5.
  * REQ-012 §13.9: Retry behaviour — 1 retry for queries, 0 for mutations.
@@ -14,10 +17,15 @@
  * - retry 0 for mutations: Mutations should not auto-retry — side effects
  *   could be duplicated.
  *
- * @module lib/query-client
- * @coordinates-with query-provider (wraps client in React tree),
- *   api-client (401 interceptor clears cache via getActiveQueryClient),
- *   auth-provider (logout clears cache)
+ * Coordinates with:
+ * - lib/query-provider.tsx: wraps the QueryClient in the React tree
+ * - lib/api-client.ts: 401 interceptor clears cache via getActiveQueryClient()
+ * - lib/auth-provider.tsx: logout clears cache via getActiveQueryClient()
+ *
+ * Called by / Used by:
+ * - lib/query-provider.tsx: creates and registers the client on mount
+ * - lib/api-client.ts: retrieves the active client for 401 cache clearing
+ * - lib/auth-provider.tsx: retrieves the active client for logout cache clearing
  */
 
 import { QueryClient } from "@tanstack/react-query";

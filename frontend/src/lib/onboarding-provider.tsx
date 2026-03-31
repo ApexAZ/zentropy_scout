@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * Onboarding state provider.
+ * @fileoverview Onboarding wizard state provider with checkpoint/resume behavior.
+ *
+ * Layer: context-provider
+ * Feature: persona
  *
  * REQ-019 §7: 11-step wizard with checkpoint/resume behavior.
  * Manages current step, persisted step position, resume prompts,
@@ -9,10 +12,16 @@
  *
  * Must be rendered inside a QueryClientProvider.
  *
- * @module lib/onboarding-provider
- * @coordinates-with components/onboarding/onboarding-steps (step definitions),
- *   components/onboarding/steps/* (step consumer components),
- *   api-client (persona CRUD calls)
+ * Coordinates with:
+ * - components/onboarding/onboarding-steps.ts: step definitions (getStepByKey, TOTAL_STEPS)
+ * - lib/api-client.ts: persona CRUD and step persistence calls
+ * - lib/query-keys.ts: persona query key for cache invalidation
+ * - types/persona.ts: Persona type for state management
+ * - types/api.ts: ApiListResponse for sub-entity fetches
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: mounts the provider around the onboarding layout
+ * - components/onboarding/steps/*: 12 step components consume useOnboarding() hook
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";

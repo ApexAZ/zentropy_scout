@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * SSE React context provider.
+ * @fileoverview SSE React context provider with TanStack Query bridge wiring.
+ *
+ * Layer: context-provider
+ * Feature: shared
  *
  * REQ-012 §4.4: Wraps the SSEClient in a React context and wires
  * the SSE-to-TanStack-Query bridge for cache invalidation.
@@ -16,11 +19,15 @@
  * (mounted later in the tree) can register its handlers without requiring
  * the SSE client to be recreated.
  *
- * @module lib/sse-provider
- * @coordinates-with sse-client (connection lifecycle management),
- *   sse-query-bridge (cache invalidation on data_changed events),
- *   chat-provider (registers chat streaming handlers via refs),
- *   embedding-staleness (notifyEmbeddingComplete on embedding events)
+ * Coordinates with:
+ * - lib/sse-client.ts: SSEClient connection lifecycle management
+ * - lib/sse-query-bridge.ts: cache invalidation on data_changed events
+ * - lib/chat-provider.tsx: registers chat streaming handlers via refs
+ * - lib/embedding-staleness.ts: notifyEmbeddingComplete on embedding events
+ *
+ * Called by / Used by:
+ * - app/layout.tsx: mounted in the root provider tree
+ * - lib/chat-provider.tsx: useSSE() hook for chat event registration
  */
 
 import { useQueryClient } from "@tanstack/react-query";

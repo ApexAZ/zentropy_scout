@@ -1,5 +1,8 @@
 /**
- * Typed API client with fetch wrapper and response envelope parsing.
+ * @fileoverview Typed API client with fetch wrapper and response envelope parsing.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-012 §4.3: All REST calls wrapped with consistent error handling.
  * REQ-006: Response envelope format (ApiResponse, ApiListResponse, ErrorResponse).
@@ -11,11 +14,19 @@
  * - 429 retry with exponential backoff (max 3 retries)
  * - AbortSignal support for request cancellation
  *
- * @module lib/api-client
- * @coordinates-with types/api (response envelope types),
- *   query-client (401 logout clears cache),
- *   toast (error notifications),
- *   lib/api/* route modules and all data-fetching hooks/components
+ * Coordinates with:
+ * - types/api.ts: response envelope types (ErrorResponse)
+ * - lib/query-client.ts: 401 interceptor clears cache via getActiveQueryClient()
+ * - lib/toast.ts: error and 401 notifications via showToast
+ *
+ * Called by / Used by:
+ * - lib/api/admin.ts, lib/api/credits.ts: route-specific API modules
+ * - lib/form-errors.ts: ApiError class for instanceof checks
+ * - lib/auth-provider.tsx: login/logout/session validation calls
+ * - hooks/*: data-fetching hooks (use-balance, use-persona-status, etc.)
+ * - components/onboarding/steps/*: onboarding step API calls
+ * - components/persona/*: persona editor CRUD operations
+ * - components/*: ~50+ data-fetching components across all feature domains
  */
 
 import type { ErrorResponse } from "../types/api";

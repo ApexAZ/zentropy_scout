@@ -1,17 +1,25 @@
 "use client";
 
 /**
- * Chat panel state provider.
+ * @fileoverview Chat panel open/closed state provider.
+ *
+ * Layer: context-provider
+ * Feature: chat
  *
  * REQ-012 §4.2: Chat panel open/closed state is global React Context.
  *
  * Provides `isOpen`, `toggle`, `open`, and `close` to the component tree
  * via the `useChatPanel` hook.
  *
- * @module lib/chat-panel-provider
- * @coordinates-with components/layout/app-shell (mounts provider),
- *   components/layout/top-nav (toggle button),
- *   components/layout/chat-sidebar (reads isOpen state)
+ * Coordinates with:
+ * - components/layout/app-shell.tsx: mounts the provider in the layout tree
+ * - components/layout/top-nav.tsx: toggle button triggers open/close
+ * - components/layout/chat-sidebar.tsx: reads isOpen state for panel visibility
+ *
+ * Called by / Used by:
+ * - components/layout/app-shell.tsx: wraps the main layout with this provider
+ * - components/layout/top-nav.tsx: useChatPanel() for toggle
+ * - components/layout/chat-sidebar.tsx: useChatPanel() for visibility
  */
 
 import {

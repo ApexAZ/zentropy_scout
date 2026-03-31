@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * AuthProvider — session context for the frontend.
+ * @fileoverview AuthProvider — session context for JWT-based authentication.
+ *
+ * Layer: context-provider
+ * Feature: shared
  *
  * REQ-013 §8.4–§8.5: On mount, calls GET /api/v1/auth/me to validate
  * the JWT cookie. Provides session state via useSession() hook.
@@ -9,10 +12,17 @@
  *
  * Status lifecycle: "loading" → "authenticated" | "unauthenticated"
  *
- * @module lib/auth-provider
- * @coordinates-with api-client (GET /auth/me, POST /auth/logout),
- *   query-client (logout clears all cached queries),
- *   proxy.ts (redirects unauthenticated users to /login)
+ * Coordinates with:
+ * - lib/api-client.ts: GET /auth/me validation, POST /auth/logout
+ * - lib/query-client.ts: logout clears all cached queries via getActiveQueryClient()
+ * - proxy.ts: redirects unauthenticated users to /login
+ *
+ * Called by / Used by:
+ * - app/layout.tsx: mounted in the root provider tree
+ * - app/login/page.tsx, app/register/page.tsx: login/register calls
+ * - components/layout/top-nav.tsx: logout button and user display
+ * - components/settings/account-section.tsx: account management
+ * - app/(main)/admin/config/page.tsx: admin session check
  */
 
 import {

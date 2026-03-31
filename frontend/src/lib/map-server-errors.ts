@@ -1,13 +1,20 @@
 /**
- * Maps server-side validation errors to React Hook Form field errors.
+ * @fileoverview Maps server-side validation errors to React Hook Form field errors.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-012 §13.2: Converts API field-level error arrays into React
  * Hook Form `setError` calls so validation messages appear inline.
  * Includes prototype-pollution guard for defence-in-depth.
  *
- * @module lib/map-server-errors
- * @coordinates-with form-errors (sibling error utility — friendly messages),
- *   react-hook-form (setError integration point for all form components)
+ * Coordinates with:
+ * - lib/form-errors.ts: sibling error utility — friendly user-facing messages
+ * - react-hook-form: setError integration point for all form components
+ *
+ * Called by / Used by:
+ * - Currently no production consumers (available for form components needing
+ *   server-error → field-error mapping)
  */
 
 import type { FieldValues, Path, UseFormSetError } from "react-hook-form";

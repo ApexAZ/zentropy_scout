@@ -1,5 +1,8 @@
 /**
- * SSE-to-TanStack-Query bridge.
+ * @fileoverview Bridges SSE data_changed events to TanStack Query cache invalidation.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-012 §4.2.1: Maps SSE `data_changed` events to TanStack Query
  * cache invalidation. On reconnect, invalidates all active queries
@@ -8,10 +11,12 @@
  * The bridge provides callback functions suitable for SSEClientConfig's
  * `onDataChanged` and `onReconnect` fields.
  *
- * @module lib/sse-query-bridge
- * @coordinates-with query-keys (resource → query key mapping),
- *   sse-provider (wires bridge callbacks to SSE client),
- *   sse-client (consumes onDataChanged/onReconnect in SSEClientConfig)
+ * Coordinates with:
+ * - lib/query-keys.ts: resource name → query key mapping
+ * - lib/sse-client.ts: consumes onDataChanged/onReconnect in SSEClientConfig
+ *
+ * Called by / Used by:
+ * - lib/sse-provider.tsx: wires bridge callbacks into the SSEClient on mount
  */
 
 import type { QueryClient } from "@tanstack/react-query";

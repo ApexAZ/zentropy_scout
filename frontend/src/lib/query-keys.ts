@@ -1,15 +1,23 @@
 /**
- * TanStack Query key factory.
+ * @fileoverview TanStack Query key factory for cache management and SSE-driven invalidation.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-012 §4.2.1: Query key hierarchy for cache management and
  * SSE-driven invalidation. List keys are prefixes of detail keys
  * so that `invalidateQueries({ queryKey: ['jobs'] })` also clears
  * individual job entries.
  *
- * @module lib/query-keys
- * @coordinates-with sse-query-bridge (maps SSE events to these keys),
- *   query-provider (provides the QueryClient these keys target),
- *   all data-fetching hooks and page components
+ * Coordinates with:
+ * - lib/sse-query-bridge.ts: maps SSE data_changed events to these keys
+ * - lib/query-provider.tsx: provides the QueryClient these keys target
+ *
+ * Called by / Used by:
+ * - hooks/*: data-fetching hooks (use-balance, use-persona-status, use-resume-detail)
+ * - components/persona/*: persona editor cache invalidation
+ * - components/jobs/*: job list and detail cache invalidation
+ * - components/*: ~55 data-fetching components across all feature domains
  */
 
 const PERSONAS = "personas" as const;

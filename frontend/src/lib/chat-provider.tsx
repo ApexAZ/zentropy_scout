@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * Chat state provider.
+ * @fileoverview Chat state provider with SSE streaming and message management.
+ *
+ * Layer: context-provider
+ * Feature: chat
  *
  * REQ-012 §5: Manages the chat message list, streaming state, and
  * SSE callback wiring. Provides `useChat` hook for components to
@@ -10,10 +13,16 @@
  * Must be rendered inside an SSEProvider so that `useSSE()` is
  * available for registering chat event handlers.
  *
- * @module lib/chat-provider
- * @coordinates-with types/chat (ChatMessage, ToolExecution types),
- *   sse-provider (registers onChatToken/onChatDone/onTool* handlers),
- *   components/layout/chat-sidebar (primary useChat consumer)
+ * Coordinates with:
+ * - types/chat.ts: ChatMessage, ChatCard, ToolExecution type definitions
+ * - lib/sse-provider.tsx: registers onChatToken/onChatDone/onTool* handlers via useSSE()
+ * - lib/api-client.ts: GET /chat/history, POST /chat/send
+ *
+ * Called by / Used by:
+ * - app/layout.tsx: mounted in the root provider tree
+ * - components/layout/chat-sidebar.tsx: primary useChat() consumer
+ * - components/onboarding/steps/base-resume-setup-step.tsx: resume chat interaction
+ * - components/jobs/draft-materials-card.tsx: draft chat trigger
  */
 
 import {

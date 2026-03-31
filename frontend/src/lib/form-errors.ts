@@ -1,14 +1,23 @@
 /**
- * Shared error utilities for form components.
+ * @fileoverview Shared error utilities mapping API error codes to user-friendly messages.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-012 §13.2: Provides consistent user-facing error messages
  * across all onboarding and persona editor forms. Maps API error
  * codes to friendly strings so components stay presentation-only.
  *
- * @module lib/form-errors
- * @coordinates-with api-client (ApiError class used for instanceof check),
- *   all onboarding step and persona editor forms (import toFriendlyError),
- *   hooks/use-crud-step (centralised error handling for onboarding steps)
+ * Coordinates with:
+ * - lib/api-client.ts: ApiError class used for instanceof check
+ * - lib/map-server-errors.ts: sibling utility — server error → field error mapping
+ *
+ * Called by / Used by:
+ * - hooks/use-crud-step.ts: centralised error handling for onboarding steps
+ * - hooks/use-delete-with-references.ts: deletion error formatting
+ * - components/onboarding/steps/*: onboarding form error display
+ * - components/persona/*: persona editor error display
+ * - components/*: ~25 form components import toFriendlyError()
  */
 
 import { ApiError } from "@/lib/api-client";
