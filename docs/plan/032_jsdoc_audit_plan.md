@@ -301,7 +301,7 @@ components.*
 
 ## Phase 9: components/applications/ and components/usage/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add three-axis JSDoc headers to 12 application tracking components and 8 usage/billing
 components.*
@@ -318,8 +318,8 @@ components.*
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 21 | **JSDoc -- applications/ + usage/ (20 files)** -- Add headers: `applications/add-timeline-event-dialog.tsx`, `applications/application-columns.tsx`, `applications/application-detail.tsx`, `applications/application-timeline.tsx`, `applications/applications-list.tsx`, `applications/interview-stage-dialog.tsx`, `applications/job-snapshot-section.tsx`, `applications/offer-details-card.tsx`, `applications/offer-details-dialog.tsx`, `applications/rejection-details-card.tsx`, `applications/rejection-details-dialog.tsx`, `applications/status-transition-dropdown.tsx`, `usage/balance-card.tsx`, `usage/funding-packs.tsx`, `usage/low-balance-warning.tsx`, `usage/purchase-table.tsx`, `usage/transaction-table.tsx`, `usage/usage-page.tsx`, `usage/usage-summary.tsx`, `usage/usage-table.tsx`. | `docs, plan` | ⬜ |
-| 22 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 21 | **JSDoc -- applications/ + usage/ (20 files)** -- Add headers: `applications/add-timeline-event-dialog.tsx`, `applications/application-columns.tsx`, `applications/application-detail.tsx`, `applications/application-timeline.tsx`, `applications/applications-list.tsx`, `applications/interview-stage-dialog.tsx`, `applications/job-snapshot-section.tsx`, `applications/offer-details-card.tsx`, `applications/offer-details-dialog.tsx`, `applications/rejection-details-card.tsx`, `applications/rejection-details-dialog.tsx`, `applications/status-transition-dropdown.tsx`, `usage/balance-card.tsx`, `usage/funding-packs.tsx`, `usage/low-balance-warning.tsx`, `usage/purchase-table.tsx`, `usage/transaction-table.tsx`, `usage/usage-page.tsx`, `usage/usage-summary.tsx`, `usage/usage-table.tsx`. | `docs, plan` | ✅ |
+| 22 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
