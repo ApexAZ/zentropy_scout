@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * Generic expandable score breakdown for the job detail page.
+ * @fileoverview Generic expandable score breakdown for the job detail page.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.3: Score section showing total with tier badge.
  * REQ-012 §8.4: Drill-down with component rows displaying
@@ -9,6 +12,15 @@
  *
  * Replaces the former FitScoreBreakdown and StretchScoreBreakdown
  * components with a single parameterized implementation.
+ *
+ * Coordinates with:
+ * - lib/score-formatters.ts: FIT_COMPONENT_ORDER, STRETCH_COMPONENT_ORDER, formatComponentLabel
+ * - lib/utils.ts: cn utility for conditional class merging
+ * - components/ui/score-tier-badge.tsx: ScoreTierBadge for score display
+ * - types/job.ts: FitScoreResult, StretchScoreResult types
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { useState } from "react";

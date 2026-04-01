@@ -1,11 +1,33 @@
 "use client";
 
 /**
- * Two-step modal for manually ingesting a job posting.
+ * @fileoverview Two-step modal for manually ingesting a job posting.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.7: "Add Job" modal in the Opportunities toolbar.
  * Step 1: Paste raw job text + select source → extract preview.
  * Step 2: Review extracted fields → confirm to create JobPosting.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: ApiError, apiPost for ingest and confirm endpoints
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.jobs cache key
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/form/form-input-field.tsx: source URL text input
+ * - components/form/form-select-field.tsx: source name select
+ * - components/form/form-textarea-field.tsx: raw text textarea
+ * - components/form/submit-button.tsx: extract action button
+ * - components/ui/button.tsx: cancel, back, confirm buttons
+ * - components/ui/dialog.tsx: Dialog, DialogContent, DialogHeader, DialogFooter
+ * - components/ui/form.tsx: Form wrapper
+ * - types/api.ts: ApiResponse envelope
+ * - types/ingest.ts: IngestJobPostingResponse, IngestPreview, INGEST_SOURCE_NAMES
+ * - types/job.ts: PersonaJobResponse type
+ *
+ * Called by / Used by:
+ * - components/dashboard/opportunities-table.tsx: opened from "Add Job" toolbar button
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";

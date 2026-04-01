@@ -1,7 +1,17 @@
 /**
- * Culture signals display with quoted italic style.
+ * @fileoverview Culture signals display with quoted italic style.
  *
- * REQ-012 §8.3: Culture text section in job detail body.
+ * Layer: component
+ * Feature: jobs
+ *
+ * REQ-012 §8.3: Culture text section in job detail body. Renders
+ * culture text as a quoted italic paragraph, or a "not available" badge.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn utility for conditional class merging
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { cn } from "@/lib/utils";

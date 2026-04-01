@@ -1,11 +1,24 @@
 "use client";
 
 /**
- * Job detail page action buttons: Rescore, Dismiss, Undismiss.
+ * @fileoverview Job detail page action buttons: Rescore, Dismiss, Undismiss.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-015 §9.2: Rescore triggers re-scoring of all discovered jobs.
  * REQ-015 §4.5: Dismiss is reversible (Discovered ↔ Dismissed).
  * Shared data is immutable — only per-user persona_jobs fields change.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiPatch, apiPost for status changes and rescoring
+ * - lib/query-keys.ts: queryKeys.jobs cache key
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: action buttons
+ * - types/job.ts: JobPostingStatus type
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { useCallback, useState } from "react";

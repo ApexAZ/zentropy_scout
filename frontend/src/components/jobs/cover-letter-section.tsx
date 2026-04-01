@@ -1,11 +1,27 @@
 "use client";
 
 /**
- * Cover letter section for the job detail page.
+ * @fileoverview Cover letter section for the job detail page.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §10.1: Cover letters accessed from job detail page.
  * REQ-012 §15.9: Shows status badge (None/Draft/Approved),
  * embeds CoverLetterReview inline when draft, download link when approved.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, buildUrl for cover letter fetching and download URL
+ * - lib/query-keys.ts: queryKeys.coverLetters cache key
+ * - components/cover-letter/cover-letter-review.tsx: inline draft review component
+ * - components/ui/button.tsx: download button
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle layout
+ * - components/ui/status-badge.tsx: status badge (None/Draft/Approved)
+ * - types/api.ts: ApiListResponse envelope
+ * - types/application.ts: CoverLetter, CoverLetterStatus types
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { useQuery } from "@tanstack/react-query";

@@ -1,11 +1,29 @@
 "use client";
 
 /**
- * Application data table for In Progress and History dashboard tabs.
+ * @fileoverview Application data table for In Progress and History dashboard tabs.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §8.1: In Progress (Applied, Interviewing, Offer) and
  * History (Accepted, Rejected, Withdrawn) tabs share the same table
  * columns but differ in statuses fetched, default sort, and toolbar options.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for application data fetching
+ * - lib/query-keys.ts: queryKeys.applications cache key
+ * - components/applications/application-columns.tsx: APPLICATION_COLUMNS column definitions
+ * - components/data-table/data-table.tsx: DataTable generic table component
+ * - components/data-table/data-table-toolbar.tsx: DataTableToolbar wrapper
+ * - components/data-table/toolbar-select.tsx: ToolbarSelect filter dropdowns
+ * - components/ui/checkbox.tsx: "Show archived" toggle
+ * - components/ui/error-states.tsx: FailedState error display
+ * - types/api.ts: ApiListResponse envelope
+ * - types/application.ts: Application type
+ *
+ * Called by / Used by:
+ * - components/dashboard/dashboard-tabs.tsx: In Progress and History tab content
  */
 
 import { useCallback, useMemo, useState } from "react";

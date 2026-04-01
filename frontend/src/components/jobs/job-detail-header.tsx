@@ -1,12 +1,31 @@
 "use client";
 
 /**
- * Job detail page header with metadata, ghost detection breakdown,
+ * @fileoverview Job detail page header with metadata, ghost detection breakdown,
  * and repost history.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.3: Job detail page header section.
  * REQ-003 §7: Ghost detection signals display.
  * REQ-015 §8.2: Privacy — also_found_on excluded from UI.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: ApiError, apiGet, apiPatch for job data and favorites
+ * - lib/job-formatters.ts: formatDateTimeAgo, formatSalary display helpers
+ * - lib/query-keys.ts: queryKeys.job, queryKeys.jobs cache keys
+ * - lib/toast.ts: showToast for error feedback
+ * - lib/url-utils.ts: isSafeUrl for external link validation
+ * - lib/utils.ts: cn utility for conditional class merging
+ * - components/ui/button.tsx: action buttons
+ * - components/ui/error-states.tsx: FailedState, NotFoundState error displays
+ * - components/ui/status-badge.tsx: job status badge
+ * - types/api.ts: ApiResponse envelope
+ * - types/job.ts: GhostScoreTier, PersonaJobResponse types
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { useCallback, useState } from "react";

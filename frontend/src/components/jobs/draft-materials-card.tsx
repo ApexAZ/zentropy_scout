@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * "Draft Materials" card for the job detail page.
+ * @fileoverview "Draft Materials" card for the job detail page.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.3: Bottom action bar includes "Draft Materials" button.
  * REQ-012 §15.7: Sends chat message to trigger ghostwriter agent,
@@ -9,6 +12,20 @@
  *
  * Hidden when any non-archived variant or cover letter already exists
  * for this job, since materials have already been started or completed.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for checking existing materials
+ * - lib/chat-provider.tsx: useChat for sending draft message to chat
+ * - lib/query-keys.ts: queryKeys.variants, queryKeys.coverLetters cache keys
+ * - lib/toast.ts: showToast for info/error feedback
+ * - components/ui/button.tsx: draft action button
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle layout
+ * - types/api.ts: ApiListResponse envelope
+ * - types/application.ts: CoverLetter type
+ * - types/resume.ts: JobVariant type
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { useCallback, useState } from "react";

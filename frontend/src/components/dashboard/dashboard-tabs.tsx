@@ -1,11 +1,22 @@
 "use client";
 
 /**
- * Three-tab dashboard layout with URL-persisted tab state.
+ * @fileoverview Three-tab dashboard layout with URL-persisted tab state.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §8.1: Opportunities (scored, not applied), In Progress
  * (active applications), and History (terminal + archived) tabs.
  * Active tab is persisted in the URL as `?tab=<value>`.
+ *
+ * Coordinates with:
+ * - components/dashboard/applications-table.tsx: In Progress and History tab content
+ * - components/dashboard/opportunities-table.tsx: Opportunities tab content
+ * - components/ui/tabs.tsx: Tabs, TabsContent, TabsList, TabsTrigger
+ *
+ * Called by / Used by:
+ * - app/(main)/dashboard/page.tsx: dashboard page route
  */
 
 import { useRouter, useSearchParams } from "next/navigation";

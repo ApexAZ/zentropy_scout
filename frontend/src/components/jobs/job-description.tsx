@@ -1,7 +1,16 @@
 /**
- * Full job description text display.
+ * @fileoverview Full job description text display with preserved whitespace.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.3: Description section in job detail body.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn utility for conditional class merging
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { cn } from "@/lib/utils";

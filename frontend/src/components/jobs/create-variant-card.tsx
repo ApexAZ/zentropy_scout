@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Variant creation card for the job detail page.
+ * @fileoverview Variant creation card for the job detail page.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-027 §4.1–§4.3: Two creation paths — "Draft Resume" (AI tailoring)
  * and "Create Variant" (manual copy). Both call POST /job-variants/create-for-job
  * and navigate to the variant editor on success.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPost for resume fetching and variant creation
+ * - lib/query-keys.ts: queryKeys.baseResumes cache key
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: action buttons
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle layout
+ * - types/api.ts: ApiListResponse, ApiResponse envelopes
+ * - types/resume.ts: BaseResume, JobVariant types
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { useCallback, useMemo, useState } from "react";

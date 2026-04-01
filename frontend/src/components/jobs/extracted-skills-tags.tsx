@@ -1,8 +1,18 @@
 /**
- * Grouped skill tag chips for extracted job skills.
+ * @fileoverview Grouped skill tag chips for extracted job skills.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.3: Extracted skills display with Required / Preferred grouping.
  * REQ-005 §4.2: ExtractedSkill model shape.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn utility for conditional class merging
+ * - types/job.ts: ExtractedSkill type
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import type { ExtractedSkill } from "@/types/job";

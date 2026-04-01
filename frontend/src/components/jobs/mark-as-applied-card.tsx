@@ -1,11 +1,28 @@
 "use client";
 
 /**
- * "Mark as Applied" card for the job detail page.
+ * @fileoverview "Mark as Applied" card for the job detail page.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §11.4: Three-step flow — download materials, apply externally,
  * confirm application creation. Shows "Already applied" if application exists.
  * Hidden when no approved resume variant exists for this job.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPost, buildUrl for data and download URLs
+ * - lib/query-keys.ts: queryKeys.variants, queryKeys.coverLetters, queryKeys.applications cache keys
+ * - lib/toast.ts: showToast for success/error feedback
+ * - lib/url-utils.ts: isSafeUrl, getHostname for external apply link
+ * - components/ui/button.tsx: action and download buttons
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle layout
+ * - types/api.ts: ApiListResponse, ApiResponse envelopes
+ * - types/application.ts: Application, CoverLetter types
+ * - types/resume.ts: JobVariant type
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { useCallback, useState } from "react";

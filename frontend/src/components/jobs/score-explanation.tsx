@@ -1,8 +1,18 @@
 /**
- * Score explanation display with summary and categorized icon lists.
+ * @fileoverview Score explanation display with summary and categorized icon lists.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.3: Explanation section below score breakdowns.
  * REQ-008 §8.1: Summary paragraph + strengths, gaps, stretch, warnings.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn utility for conditional class merging
+ * - types/job.ts: ScoreExplanation type
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import { AlertTriangle, CheckCircle2, Info, TrendingUp } from "lucide-react";

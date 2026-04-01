@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * Opportunities tab content — job table with scoring and favorites.
+ * @fileoverview Opportunities tab content — job table with scoring and favorites.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.2: Table/list view with favorite, title, location,
  * salary, fit, stretch, ghost, and discovered columns.
@@ -11,6 +14,30 @@
  * REQ-012 §8.5: "Show filtered jobs" toggle — dimmed rows,
  * Filtered badge, expandable failure reasons.
  * REQ-012 §8.6: Ghost detection — severity-based icon and tooltip.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch, apiPost for job data and bulk actions
+ * - lib/job-formatters.ts: formatDateTimeAgo, formatSalary display helpers
+ * - lib/query-keys.ts: queryKeys.jobs cache key
+ * - lib/toast.ts: showToast for success/error/warning feedback
+ * - lib/utils.ts: cn utility for conditional class merging
+ * - components/dashboard/add-job-modal.tsx: AddJobModal for manual job ingestion
+ * - components/data-table/data-table.tsx: DataTable generic table component
+ * - components/data-table/data-table-column-header.tsx: DataTableColumnHeader sortable headers
+ * - components/data-table/data-table-select-column.tsx: getSelectColumn for multi-select mode
+ * - components/data-table/data-table-toolbar.tsx: DataTableToolbar wrapper
+ * - components/data-table/toolbar-select.tsx: ToolbarSelect filter dropdowns
+ * - components/ui/button.tsx: toolbar and bulk action buttons
+ * - components/ui/checkbox.tsx: "Show filtered" toggle
+ * - components/ui/error-states.tsx: FailedState error display
+ * - components/ui/score-tier-badge.tsx: ScoreTierBadge for fit/stretch scores
+ * - components/ui/status-badge.tsx: StatusBadge for job and filter status
+ * - components/ui/tooltip.tsx: Tooltip for ghost score icon
+ * - types/api.ts: ApiListResponse, ApiResponse, BulkActionResult types
+ * - types/job.ts: FailedNonNegotiable, JobPostingResponse, JobPostingStatus, PersonaJobResponse, JOB_POSTING_STATUSES
+ *
+ * Called by / Used by:
+ * - components/dashboard/dashboard-tabs.tsx: Opportunities tab content
  */
 
 import { useCallback, useMemo, useState } from "react";

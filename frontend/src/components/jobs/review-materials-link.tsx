@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * "Review Materials" link for the job detail page.
+ * @fileoverview "Review Materials" link for the job detail page.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §10.7, §15.8: After the ghostwriter completes, show a link
  * to the unified review at /jobs/[id]/review. Visible when both a
@@ -9,6 +12,18 @@
  *
  * Complement to DraftMaterialsCard — that shows when no materials exist,
  * this shows when materials exist and need review.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for checking existing materials
+ * - lib/query-keys.ts: queryKeys.variants, queryKeys.coverLetters cache keys
+ * - components/ui/button.tsx: review action button
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle layout
+ * - types/api.ts: ApiListResponse envelope
+ * - types/application.ts: CoverLetter type
+ * - types/resume.ts: JobVariant type
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/page.tsx: job detail page
  */
 
 import Link from "next/link";
