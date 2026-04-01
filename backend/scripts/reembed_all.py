@@ -14,6 +14,20 @@ Prerequisites:
     - Migration 024 applied (vector columns resized to 768)
     - GOOGLE_API_KEY set in .env (or whichever EMBEDDING_PROVIDER is configured)
     - Docker/PostgreSQL running
+
+Coordinates with:
+  - core/database.py (async_session_factory)
+  - models/job_posting.py (JobEmbedding, JobPosting)
+  - models/persona.py (Persona)
+  - models/persona_settings.py (PersonaEmbedding)
+  - providers/config.py (ProviderConfig)
+  - providers/embedding/base.py (EmbeddingProvider)
+  - providers/factory.py (get_embedding_provider)
+  - services/embedding/job_generator.py (generate_job_embeddings)
+  - services/embedding/persona_generator.py (EmbedFunction,
+    generate_persona_embeddings)
+
+Called by: CLI only (python -m scripts.reembed_all).
 """
 
 import argparse

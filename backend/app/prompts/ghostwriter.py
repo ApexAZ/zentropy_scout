@@ -15,6 +15,16 @@ Contains:
 5. Resume tailoring prompt for job variant creation
 
 Pattern: module-level constants + builder functions with sanitize_llm_input().
+
+Coordinates with:
+  - core/llm_sanitization.py (sanitize_llm_input, sanitize_user_feedback)
+  - schemas/prompt_params.py (JobContext, VoiceProfileData)
+
+Called by:
+  - services/generation/cover_letter_generation.py
+    (build_cover_letter_prompt, COVER_LETTER_SYSTEM_PROMPT)
+  - services/generation/resume_tailoring_service.py
+    (build_resume_tailoring_prompt, RESUME_TAILORING_SYSTEM_PROMPT)
 """
 
 from app.core.llm_sanitization import sanitize_llm_input, sanitize_user_feedback

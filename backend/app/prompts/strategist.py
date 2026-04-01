@@ -7,6 +7,13 @@ Contains two prompt sets:
 2. Non-Negotiables Explanation (§8.2) — one sentence per failed requirement
 
 Relocated from app.agents.strategist_prompts during LLM redesign (REQ-017 §5.2).
+
+Coordinates with:
+  - core/llm_sanitization.py (sanitize_llm_input)
+  - schemas/prompt_params.py (ScoreData)
+
+Called by: services/scoring/job_scoring_service.py
+  (build_score_rationale_prompt, SCORE_RATIONALE_SYSTEM_PROMPT).
 """
 
 from app.core.llm_sanitization import sanitize_llm_input

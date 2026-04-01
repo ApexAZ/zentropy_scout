@@ -1,6 +1,16 @@
 """Abstract base class and types for job source adapters.
 
 REQ-007 §6.3: JobSourceAdapter interface with fetch_jobs() and normalize().
+
+Coordinates with:
+  - (standalone — no app-internal imports)
+
+Called by:
+  - adapters/sources/adzuna.py, adapters/sources/remoteok.py,
+    adapters/sources/themuse.py, adapters/sources/usajobs.py
+    (JobSourceAdapter subclasses, RawJob, SearchParams)
+  - services/discovery/job_fetch_service.py (JobSourceAdapter,
+    RawJob, SearchParams)
 """
 
 from abc import ABC, abstractmethod

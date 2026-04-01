@@ -4,6 +4,11 @@ REQ-007 §6.3: The Muse REST API adapter.
 
 Rate limits: 3600 requests/hour
 Coverage: Curated companies, often with culture info
+
+Coordinates with:
+  - adapters/sources/base.py (JobSourceAdapter, RawJob, SearchParams)
+
+Called by: services/discovery/job_fetch_service.py (TheMuseAdapter).
 """
 
 from typing import Any

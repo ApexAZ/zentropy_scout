@@ -10,6 +10,12 @@ Checkpoint Storage:
     MVP uses MemorySaver (in-memory, no cross-session persistence).
     PostgreSQL checkpointing is deferred until multi-tenant hosted mode
     requires persistent conversation history across sessions.
+
+Coordinates with:
+  - (standalone — uses only langgraph library types)
+
+Called by: agents/__init__.py (re-exports create_checkpointer,
+  create_graph_config).
 """
 
 from typing import Any

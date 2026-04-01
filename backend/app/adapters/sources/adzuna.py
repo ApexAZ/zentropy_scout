@@ -4,6 +4,11 @@ REQ-007 §6.3: Adzuna REST API adapter.
 
 Rate limits: 250 requests/day (free tier)
 Coverage: Good US/UK coverage
+
+Coordinates with:
+  - adapters/sources/base.py (JobSourceAdapter, RawJob, SearchParams)
+
+Called by: services/discovery/job_fetch_service.py (AdzunaAdapter).
 """
 
 from typing import Any

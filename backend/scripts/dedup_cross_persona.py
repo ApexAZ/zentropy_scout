@@ -16,6 +16,11 @@ Steps per duplicate group:
     5. Handle persona_jobs UNIQUE conflicts
     6. Merge also_found_on JSONB arrays
     7. Delete duplicate rows
+
+Coordinates with:
+  - core/config.py (settings — deferred, CLI entry point only)
+
+Called by: CLI only (python -m scripts.dedup_cross_persona).
 """
 
 import json

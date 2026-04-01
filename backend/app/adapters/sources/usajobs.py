@@ -4,6 +4,11 @@ REQ-007 §6.3: USAJobs REST API adapter.
 
 Rate limits: 200 requests/day
 Coverage: US federal government jobs
+
+Coordinates with:
+  - adapters/sources/base.py (JobSourceAdapter, RawJob, SearchParams)
+
+Called by: services/discovery/job_fetch_service.py (USAJobsAdapter).
 """
 
 from typing import Any

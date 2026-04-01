@@ -24,6 +24,13 @@ Architecture:
              │
              ▼
         ChatAgentState    Extends with classified_intent, target_job_id
+
+Coordinates with:
+  - (standalone — no app-internal imports)
+
+Called by:
+  - agents/chat.py (ChatAgentState, CheckpointReason, ClassifiedIntent)
+  - agents/__init__.py (re-exports state types)
 """
 
 from enum import Enum

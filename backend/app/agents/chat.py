@@ -34,6 +34,15 @@ Intent Types (REQ-007 §4.3):
     - draft_materials: "Draft materials for this job"
     - onboarding_request: "Update my skills"
     - direct_question: "How does job matching work?"
+
+Coordinates with:
+  - agents/state.py (ChatAgentState, CheckpointReason, ClassifiedIntent)
+  - core/errors.py (APIError, NotFoundError, ValidationError)
+  - services/onboarding/onboarding_utils.py (deferred, onboarding redirect)
+  - services/generation/content_generation_service.py (deferred,
+    ghostwriter delegation)
+
+Called by: agents/__init__.py (re-exports graph functions).
 """
 
 import logging

@@ -4,6 +4,11 @@ REQ-007 §6.3: RemoteOK REST API adapter.
 
 Rate limits: Generous (no specific limit documented)
 Coverage: Remote-focused jobs worldwide
+
+Coordinates with:
+  - adapters/sources/base.py (JobSourceAdapter, RawJob, SearchParams)
+
+Called by: services/discovery/job_fetch_service.py (RemoteOKAdapter).
 """
 
 from typing import Any

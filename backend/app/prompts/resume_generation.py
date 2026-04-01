@@ -8,6 +8,12 @@ REQ-026 §4.5: Generation constraints — truthfulness, no fabrication,
 voice consistency, template adherence, page limit respect.
 
 Pattern: module-level constants + builder function with sanitize_llm_input().
+
+Coordinates with:
+  - core/llm_sanitization.py (sanitize_llm_input)
+
+Called by: services/generation/resume_generation_service.py
+  (build_resume_generation_prompt, RESUME_GENERATION_SYSTEM_PROMPT).
 """
 
 from app.core.llm_sanitization import sanitize_llm_input
