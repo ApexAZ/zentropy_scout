@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Application detail page route.
+ * @fileoverview Application detail page route.
+ *
+ * Layer: page
+ * Feature: applications
  *
  * REQ-012 §11.2: Application detail page with header,
  * documents panel, notes section, and timeline.
+ *
+ * Coordinates with:
+ * - components/applications/application-detail.tsx: detail UI component
+ * - hooks/use-persona-status.ts: persona status check for guard
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /applications/[id]
  */
 
 import { useParams } from "next/navigation";

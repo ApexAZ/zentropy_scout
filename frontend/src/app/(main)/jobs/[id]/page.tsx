@@ -1,11 +1,30 @@
 "use client";
 
 /**
- * Job detail page route.
+ * @fileoverview Job detail page with scores, description, and actions.
+ *
+ * Layer: page
+ * Feature: jobs
  *
  * REQ-012 §8.3: Displays job metadata, scores, description,
  * ghost detection, and actions for a single job posting.
  * REQ-015 §8: Uses PersonaJobResponse (nested shared + per-user).
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for job and extracted skills fetches
+ * - lib/query-keys.ts: queryKeys.job, queryKeys.extractedSkills
+ * - hooks/use-persona-status.ts: persona status check for guard
+ * - components/jobs/job-detail-header.tsx, job-detail-actions.tsx: header and actions
+ * - components/jobs/score-breakdown.tsx, score-explanation.tsx: scoring display
+ * - components/jobs/job-description.tsx, culture-signals.tsx, extracted-skills-tags.tsx: posting content
+ * - components/jobs/cover-letter-section.tsx, create-variant-card.tsx: materials generation
+ * - components/jobs/draft-materials-card.tsx, review-materials-link.tsx: materials navigation
+ * - components/jobs/mark-as-applied-card.tsx: application tracking action
+ * - types/api.ts: ApiResponse, ApiListResponse envelope types
+ * - types/job.ts: PersonaJobResponse, ExtractedSkill types
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /jobs/[id]
  */
 
 import { useParams } from "next/navigation";

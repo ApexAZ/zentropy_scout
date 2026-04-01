@@ -1,10 +1,30 @@
 "use client";
 
 /**
- * Variant edit page route.
+ * @fileoverview Variant edit page with TipTap editor and reference panels.
  *
- * REQ-027 §3.5, §4.3–§4.4: TipTap editor with job requirements panel
+ * Layer: page
+ * Feature: resume
+ *
+ * REQ-027 §3.5, §4.3-§4.4: TipTap editor with job requirements panel
  * and persona reference panel for editing job variants.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch for variant and resume data
+ * - lib/query-keys.ts: queryKeys.variant, queryKeys.baseResume
+ * - lib/toast.ts: showToast for save notifications
+ * - components/editor/resume-editor.tsx: TipTap rich text editor
+ * - components/editor/job-requirements-panel.tsx: job requirements side panel
+ * - components/editor/persona-reference-panel.tsx: persona reference side panel
+ * - components/ui/button.tsx: primary action button
+ * - components/ui/error-states.tsx: FailedState error display
+ * - components/ui/status-badge.tsx: variant status indicator
+ * - hooks/use-persona-status.ts: persona status check for guard
+ * - types/api.ts: ApiResponse envelope type
+ * - types/resume.ts: BaseResume, JobVariant types
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /resumes/[id]/variants/[variantId]/edit
  */
 
 import { useCallback, useState } from "react";

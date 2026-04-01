@@ -1,13 +1,27 @@
 "use client";
 
 /**
- * Ghostwriter review page route.
+ * @fileoverview Ghostwriter review page for unified variant + cover letter review.
+ *
+ * Layer: page
+ * Feature: jobs
  *
  * REQ-012 §10.7: Unified review of resume variant + cover letter.
  * REQ-012 §15.8: Route /jobs/[id]/review — resolves materials for a job
  * and renders GhostwriterReview with tabbed approve actions.
- *
  * Only rendered for onboarded users (OnboardingGate in parent layout).
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for variants and cover letters fetch
+ * - lib/query-keys.ts: queryKeys.variants, queryKeys.coverLetters
+ * - components/ghostwriter/ghostwriter-review.tsx: review UI component
+ * - hooks/use-persona-status.ts: persona status check for guard
+ * - types/api.ts: ApiListResponse envelope type
+ * - types/application.ts: CoverLetter type
+ * - types/resume.ts: JobVariant type
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /jobs/[id]/review
  */
 
 import { useParams } from "next/navigation";

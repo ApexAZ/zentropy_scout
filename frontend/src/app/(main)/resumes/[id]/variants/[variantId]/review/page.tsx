@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * Variant review page route.
+ * @fileoverview Variant review page with side-by-side diff comparison.
  *
- * REQ-012 §9.3: Side-by-side comparison at /resumes/[id]/variants/[variantId]/review.
+ * Layer: page
+ * Feature: resume
+ *
+ * REQ-012 §9.3: Side-by-side comparison at
+ * /resumes/[id]/variants/[variantId]/review.
  * Only rendered for onboarded users (OnboardingGate in parent layout).
+ *
+ * Coordinates with:
+ * - components/resume/variant-review.tsx: diff review UI component
+ * - hooks/use-persona-status.ts: persona status check for guard
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /resumes/[id]/variants/[variantId]/review
  */
 
 import { useParams } from "next/navigation";

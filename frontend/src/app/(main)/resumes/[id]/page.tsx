@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Resume detail page route.
+ * @fileoverview Resume detail page route.
+ *
+ * Layer: page
+ * Feature: resume
  *
  * REQ-012 §9.2: Base resume editor at /resumes/[id].
  * Only rendered for onboarded users (OnboardingGate in parent layout).
+ *
+ * Coordinates with:
+ * - components/resume/resume-detail.tsx: resume editor UI component
+ * - hooks/use-persona-status.ts: persona status check for guard
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /resumes/[id]
  */
 
 import { useParams } from "next/navigation";
