@@ -1,9 +1,19 @@
 /**
- * Inline badge for tool execution status during chat streaming.
+ * @fileoverview Inline badge for tool execution status during chat streaming.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.4: On tool_start, show inline badge with spinner.
  * On tool_result, replace spinner with success (checkmark) or
  * failure (X) icon.
+ *
+ * Coordinates with:
+ * - types/chat.ts: ToolExecution, ToolExecutionStatus types
+ * - lib/utils.ts: cn class-name helper
+ *
+ * Called by / Used by:
+ * - components/chat/message-bubble.tsx: tool status badges below agent messages
  */
 
 import { Check, Loader2, X } from "lucide-react";

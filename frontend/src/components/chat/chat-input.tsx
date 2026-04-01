@@ -1,9 +1,18 @@
 /**
- * Chat input component with textarea and send button.
+ * @fileoverview Chat input component with textarea and send button.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.7: Textarea with send button, Enter to send,
  * Shift+Enter for newline, disabled during streaming,
  * contextual placeholder text.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn class-name helper
+ *
+ * Called by / Used by:
+ * - components/layout/chat-sidebar.tsx: chat input below message list
  */
 
 import { SendHorizontal } from "lucide-react";

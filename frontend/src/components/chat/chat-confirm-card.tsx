@@ -1,9 +1,19 @@
 /**
- * Destructive confirmation card for inline chat confirmations.
+ * @fileoverview Destructive confirmation card for inline chat confirmations.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.6: Destructive confirmations render as a distinct card
  * with explicit "Proceed" / "Cancel" buttons. The proceed button
  * uses destructive styling when the action is destructive.
+ *
+ * Coordinates with:
+ * - types/chat.ts: ConfirmCardData type
+ * - lib/utils.ts: cn class-name helper
+ *
+ * Called by / Used by:
+ * - components/chat/message-bubble.tsx: inline confirm card rendering
  */
 
 import type { ConfirmCardData } from "@/types/chat";

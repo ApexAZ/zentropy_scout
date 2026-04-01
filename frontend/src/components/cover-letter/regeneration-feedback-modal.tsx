@@ -1,10 +1,25 @@
 "use client";
 
 /**
- * Regeneration feedback modal for cover letter re-generation.
+ * @fileoverview Regeneration feedback modal for cover letter re-generation.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §10.4: Feedback panel with free-text input, story exclusion
  * checkboxes, and quick option chips.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiPost for regeneration request
+ * - lib/form-errors.ts: toFriendlyError for API error display
+ * - lib/query-keys.ts: queryKeys for cache invalidation
+ * - lib/toast.ts: showToast for success/error notifications
+ * - components/ui/dialog.tsx: Dialog, DialogContent, DialogHeader, DialogFooter
+ * - components/ui/button.tsx: Button for cancel and regenerate actions
+ * - components/ui/checkbox.tsx: Checkbox for story exclusion toggles
+ *
+ * Called by / Used by:
+ * - (not currently imported by production code)
  */
 
 import { useCallback, useState } from "react";

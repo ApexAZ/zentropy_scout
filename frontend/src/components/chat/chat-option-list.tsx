@@ -1,9 +1,19 @@
 /**
- * Clickable option list card for ambiguity resolution.
+ * @fileoverview Clickable option list card for ambiguity resolution.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.6: When the agent presents numbered options, they render
  * as clickable list items within a chat card. Clicking sends the
  * selection as a user message. Users can also type free-text instead.
+ *
+ * Coordinates with:
+ * - types/chat.ts: OptionListData type
+ * - lib/utils.ts: cn class-name helper
+ *
+ * Called by / Used by:
+ * - components/chat/message-bubble.tsx: inline option list rendering
  */
 
 import type { OptionListData } from "@/types/chat";

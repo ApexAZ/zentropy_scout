@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Story override modal for cover letter regeneration.
+ * @fileoverview Story override modal for cover letter regeneration.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §10.5: Modal showing all achievement stories split into
  * "Currently selected" and "Available" groups with relevance scores,
  * allowing users to override the agent's story selection.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiPost for regeneration request
+ * - lib/form-errors.ts: toFriendlyError for API error display
+ * - lib/query-keys.ts: queryKeys for cache invalidation
+ * - lib/toast.ts: showToast for success/error notifications
+ * - components/ui/dialog.tsx: Dialog, DialogContent, DialogHeader, DialogFooter
+ * - components/ui/button.tsx: Button for cancel and regenerate actions
+ * - components/ui/checkbox.tsx: Checkbox for story selection toggles
+ *
+ * Called by / Used by:
+ * - (not currently imported by production code)
  */
 
 import { useCallback, useMemo, useState } from "react";

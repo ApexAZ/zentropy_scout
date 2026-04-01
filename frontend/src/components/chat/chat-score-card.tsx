@@ -1,9 +1,21 @@
 /**
- * Score summary card displayed inline in chat messages.
+ * @fileoverview Score summary card displayed inline in chat messages.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.3: Structured chat card showing fit score breakdown
  * (5 components with weights), stretch score with tier,
  * strengths, and gaps.
+ *
+ * Coordinates with:
+ * - types/chat.ts: ScoreCardData type
+ * - lib/score-formatters.ts: FIT_COMPONENT_ORDER, formatComponentLabel
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/score-tier-badge.tsx: ScoreTierBadge for fit/stretch tiers
+ *
+ * Called by / Used by:
+ * - components/chat/message-bubble.tsx: inline score card rendering
  */
 
 import type { ScoreCardData } from "@/types/chat";

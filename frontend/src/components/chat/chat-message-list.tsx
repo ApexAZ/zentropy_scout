@@ -1,10 +1,22 @@
 /**
- * Scrollable chat message list container.
+ * @fileoverview Scrollable chat message list container.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.8: Renders chat messages in a scrollable container
  * with auto-scroll to bottom on new messages, "Jump to latest"
  * floating button when scrolled up, loading state for history
  * fetch, and empty state.
+ *
+ * Coordinates with:
+ * - hooks/use-chat-scroll.ts: auto-scroll and jump-to-latest logic
+ * - lib/utils.ts: cn class-name helper
+ * - types/chat.ts: ChatMessage type
+ * - components/chat/message-bubble.tsx: MessageBubble for individual messages
+ *
+ * Called by / Used by:
+ * - components/layout/chat-sidebar.tsx: scrollable message area in chat panel
  */
 
 import { ArrowDown } from "lucide-react";

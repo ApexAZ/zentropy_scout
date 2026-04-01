@@ -1,8 +1,17 @@
 /**
- * Blinking cursor for streaming chat messages.
+ * @fileoverview Blinking cursor for streaming chat messages.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.4: Show a blinking cursor at the end of the message
  * bubble during streaming. Removed on chat_done.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn class-name helper
+ *
+ * Called by / Used by:
+ * - components/chat/message-bubble.tsx: appended to agent message during streaming
  */
 
 import { cn } from "@/lib/utils";

@@ -1,9 +1,20 @@
 /**
- * Compact job card displayed inline in chat messages.
+ * @fileoverview Compact job card displayed inline in chat messages.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.3: Structured chat card showing job title,
  * company/location/work model, scores, salary range,
  * and action buttons (View, Favorite, Dismiss).
+ *
+ * Coordinates with:
+ * - types/chat.ts: JobCardData type
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/score-tier-badge.tsx: ScoreTierBadge for fit/stretch scores
+ *
+ * Called by / Used by:
+ * - components/chat/message-bubble.tsx: inline job card rendering
  */
 
 import { Eye, Heart, X } from "lucide-react";

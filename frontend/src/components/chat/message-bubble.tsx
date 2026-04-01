@@ -1,13 +1,27 @@
 /**
- * Chat message bubble components.
+ * @fileoverview Chat message bubble with role-based alignment, card rendering,
+ * and tool execution badges.
  *
- * REQ-012 §5.2: Renders chat messages with role-based alignment
- * and styling. User messages right-aligned with primary color,
- * agent messages left-aligned with muted background, system
- * notices centered with small muted text.
- * REQ-012 §5.3: Renders structured chat cards (job, score) for
- * agent messages.
- * REQ-012 §5.6: Renders ambiguity resolution cards (options, confirm).
+ * Layer: component
+ * Feature: chat
+ *
+ * REQ-012 §5.2: Role-based alignment and styling (user right, agent left,
+ * system centered).
+ * REQ-012 §5.3: Structured chat cards (job, score) for agent messages.
+ * REQ-012 §5.6: Ambiguity resolution cards (options, confirm).
+ *
+ * Coordinates with:
+ * - types/chat.ts: ChatCard, ChatMessage types
+ * - lib/utils.ts: cn class-name helper
+ * - components/chat/chat-confirm-card.tsx: inline confirm card
+ * - components/chat/chat-job-card.tsx: inline job card
+ * - components/chat/chat-option-list.tsx: inline option list
+ * - components/chat/chat-score-card.tsx: inline score card
+ * - components/chat/streaming-cursor.tsx: blinking cursor during streaming
+ * - components/chat/tool-execution-badge.tsx: tool status badges
+ *
+ * Called by / Used by:
+ * - components/chat/chat-message-list.tsx: individual message rendering
  */
 
 import type { ChatCard, ChatMessage } from "@/types/chat";

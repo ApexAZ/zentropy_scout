@@ -1,12 +1,33 @@
 "use client";
 
 /**
- * Cover letter review with agent reasoning, stories used,
+ * @fileoverview Cover letter review with agent reasoning, stories used,
  * editable textarea, word count indicator, validation display,
  * and voice check badge.
  *
+ * Layer: component
+ * Feature: applications
+ *
  * REQ-012 §10.2: Cover letter review component.
  * REQ-012 §10.3: Validation display with error/warning banners.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch, buildUrl for cover letter CRUD and PDF download
+ * - lib/form-errors.ts: toFriendlyError for API error display
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error notifications
+ * - components/ui/agent-reasoning.tsx: AgentReasoning collapsible panel
+ * - components/ui/button.tsx: Button for approve and download actions
+ * - components/ui/error-states.tsx: FailedState for error display
+ * - components/ui/status-badge.tsx: StatusBadge for cover letter status
+ * - types/api.ts: ApiListResponse, ApiResponse envelopes
+ * - types/application.ts: CoverLetter, ValidationIssue types
+ * - types/job.ts: PersonaJobResponse for job posting data
+ * - types/persona.ts: AchievementStory, Skill, VoiceProfile types
+ *
+ * Called by / Used by:
+ * - components/ghostwriter/ghostwriter-review.tsx: embedded cover letter review in unified review
+ * - components/jobs/cover-letter-section.tsx: cover letter section on job detail page
  */
 
 import { Fragment, useCallback, useMemo, useState } from "react";

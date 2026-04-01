@@ -1,9 +1,18 @@
 /**
- * Typing indicator for streaming chat messages.
+ * @fileoverview Typing indicator for streaming chat messages.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.4: While tokens are streaming, show a
  * "Scout is typing..." indicator above the input.
  * Disappear on chat_done.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn class-name helper
+ *
+ * Called by / Used by:
+ * - components/layout/chat-sidebar.tsx: typing indicator above chat input
  */
 
 import { cn } from "@/lib/utils";
