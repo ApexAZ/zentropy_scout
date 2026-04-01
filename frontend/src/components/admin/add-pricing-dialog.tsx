@@ -1,8 +1,23 @@
 /**
- * Add Pricing dialog form with live cost preview.
+ * @fileoverview Add Pricing dialog form with live cost preview.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-022 §11.2, §11.5: Form with provider, model, costs, margin,
  * effective date. Shows live cost preview for example token counts.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for create action
+ * - components/ui/dialog.tsx: Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle for modal
+ * - components/ui/input.tsx: Input for model, cost, margin, and date fields
+ * - components/ui/label.tsx: Label for form fields
+ * - components/ui/select.tsx: Select, SelectContent, SelectItem, SelectTrigger, SelectValue for provider dropdown
+ * - components/admin/constants.ts: PROVIDERS for provider dropdown options
+ * - types/admin.ts: PricingConfigCreateRequest type
+ *
+ * Called by / Used by:
+ * - components/admin/pricing-tab.tsx: add pricing dialog in pricing config tab
  */
 
 import { useCallback, useMemo, useState } from "react";

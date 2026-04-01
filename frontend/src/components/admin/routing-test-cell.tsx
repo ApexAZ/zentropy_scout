@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * Inline routing test cell — test button + result badge.
+ * @fileoverview Inline routing test cell — test button with result badge.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-028 §6.2: Each row has a test button that sends a test prompt to
  * POST /admin/routing/test with the row's task type.
+ *
+ * Coordinates with:
+ * - lib/api/admin.ts: testRouting for test endpoint API call
+ * - components/ui/button.tsx: Button for test action
+ * - types/admin.ts: RoutingTestRequest type
+ *
+ * Called by / Used by:
+ * - components/admin/routing-tab.tsx: test cell in each routing table row
  */
 
 import { useCallback, useState } from "react";

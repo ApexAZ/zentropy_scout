@@ -1,10 +1,23 @@
 "use client";
 
 /**
- * User admin management tab.
+ * @fileoverview User admin management tab for the admin page.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-022 §11.2, §10.6: User list with admin toggle, env-protected badge,
  * balance display, and pagination.
+ *
+ * Coordinates with:
+ * - lib/api/admin.ts: fetchUsers, toggleAdmin for API calls
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: Button for toggle and pagination actions
+ * - components/ui/table.tsx: Table, TableBody, TableCell, TableHead, TableHeader, TableRow for layout
+ *
+ * Called by / Used by:
+ * - components/admin/admin-config-page.tsx: Users tab content
  */
 
 import { useState } from "react";

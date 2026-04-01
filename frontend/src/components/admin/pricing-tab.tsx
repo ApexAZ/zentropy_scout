@@ -1,10 +1,26 @@
 "use client";
 
 /**
- * Pricing config management tab.
+ * @fileoverview Pricing config management tab for the admin page.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-022 §11.2, §11.5: Table of pricing entries with effective dates,
  * "Current" badge, add/edit form with live cost preview.
+ *
+ * Coordinates with:
+ * - lib/api/admin.ts: createPricing, deletePricing, fetchPricing for API calls
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: Button for add and delete actions
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for delete confirmation
+ * - components/ui/table.tsx: Table, TableBody, TableCell, TableHead, TableHeader, TableRow for layout
+ * - components/admin/add-pricing-dialog.tsx: AddPricingDialog for pricing creation form
+ * - types/admin.ts: PricingConfigCreateRequest, PricingConfigItem types
+ *
+ * Called by / Used by:
+ * - components/admin/admin-config-page.tsx: Pricing tab content
  */
 
 import { useState } from "react";

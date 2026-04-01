@@ -1,8 +1,22 @@
 /**
- * Account settings section — displayed at the top of the Settings page.
+ * @fileoverview Account settings section — email, name, password, sign out.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-013 §8.3a: Email display + verified badge, name edit,
  * password change/set, sign out, sign out all devices.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: ApiError, apiPatch, apiPost for profile and password API calls
+ * - lib/auth-provider.tsx: useSession for session data, logout, logoutAllDevices
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: Button for action controls
+ * - components/ui/input.tsx: Input for name and password fields
+ * - components/ui/label.tsx: Label for form fields
+ *
+ * Called by / Used by:
+ * - components/settings/settings-page.tsx: Account card in settings layout
  */
 
 import { useEffect, useState } from "react";

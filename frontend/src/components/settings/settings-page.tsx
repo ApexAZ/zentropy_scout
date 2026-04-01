@@ -1,8 +1,20 @@
 /**
- * Settings page layout component.
+ * @fileoverview Settings page layout with account, job sources, agent config, and about/legal sections.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §12.1: Settings page with Account, Job Sources, Agent Configuration, and About.
  * REQ-024 §5.4: Legal section with ToS and Privacy placeholder links.
+ *
+ * Coordinates with:
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for section cards
+ * - components/settings/account-section.tsx: AccountSection for account management
+ * - components/settings/agent-configuration-section.tsx: AgentConfigurationSection for routing display
+ * - components/settings/job-sources-section.tsx: JobSourcesSection for source preferences
+ *
+ * Called by / Used by:
+ * - app/(main)/settings/page.tsx: settings route page
  */
 
 import Link from "next/link";

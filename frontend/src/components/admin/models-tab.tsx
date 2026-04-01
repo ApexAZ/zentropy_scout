@@ -1,10 +1,26 @@
 "use client";
 
 /**
- * Model registry management tab.
+ * @fileoverview Model registry management tab for the admin page.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-022 §11.2: Table of registered models with add/edit/deactivate
  * controls. Uses TanStack Query for data fetching and mutations.
+ *
+ * Coordinates with:
+ * - lib/api/admin.ts: createModel, deleteModel, fetchModels, updateModel for API calls
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: Button for add, toggle, and delete actions
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for delete confirmation
+ * - components/ui/table.tsx: Table, TableBody, TableCell, TableHead, TableHeader, TableRow for layout
+ * - components/admin/add-model-dialog.tsx: AddModelDialog for model creation form
+ * - types/admin.ts: ModelRegistryCreateRequest, ModelRegistryItem types
+ *
+ * Called by / Used by:
+ * - components/admin/admin-config-page.tsx: Models tab content
  */
 
 import { useState } from "react";

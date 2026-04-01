@@ -1,7 +1,21 @@
 /**
- * Add Model dialog form.
+ * @fileoverview Add Model dialog form for the admin model registry.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-022 §11.2: Form with provider, model ID, display name, and model type.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for create action
+ * - components/ui/dialog.tsx: Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle for modal
+ * - components/ui/input.tsx: Input for model and display name fields
+ * - components/ui/label.tsx: Label for form fields
+ * - components/ui/select.tsx: Select, SelectContent, SelectItem, SelectTrigger, SelectValue for provider/type dropdowns
+ * - components/admin/constants.ts: MODEL_TYPES, PROVIDERS for dropdown options
+ *
+ * Called by / Used by:
+ * - components/admin/models-tab.tsx: add model dialog in model registry tab
  */
 
 import { useCallback, useState } from "react";

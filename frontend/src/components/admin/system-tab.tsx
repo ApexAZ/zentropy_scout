@@ -1,10 +1,28 @@
 "use client";
 
 /**
- * System config management tab.
+ * @fileoverview System config management tab for the admin page.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-022 §11.2, §10.5: Key-value config entries with add form
  * and delete confirmation. Uses PUT upsert for create/update.
+ *
+ * Coordinates with:
+ * - lib/api/admin.ts: deleteConfig, fetchConfig, upsertConfig for API calls
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: Button for add and delete actions
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for delete confirmation
+ * - components/ui/dialog.tsx: Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle for add form
+ * - components/ui/input.tsx: Input for key, value, and description fields
+ * - components/ui/label.tsx: Label for form fields
+ * - components/ui/table.tsx: Table, TableBody, TableCell, TableHead, TableHeader, TableRow for layout
+ * - types/admin.ts: SystemConfigItem type
+ *
+ * Called by / Used by:
+ * - components/admin/admin-config-page.tsx: System tab content
  */
 
 import { useState } from "react";

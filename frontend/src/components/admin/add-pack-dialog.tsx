@@ -1,8 +1,20 @@
 /**
- * Add Pack dialog form.
+ * @fileoverview Add Pack dialog form for the admin funding packs tab.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-022 §11.2, §10.4: Form with name, price (cents), grant amount,
  * and optional description. Validates numeric fields before submit.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for create action
+ * - components/ui/dialog.tsx: Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle for modal
+ * - components/ui/input.tsx: Input for name, price, grant, and description fields
+ * - components/ui/label.tsx: Label for form fields
+ *
+ * Called by / Used by:
+ * - components/admin/packs-tab.tsx: add pack dialog in funding packs tab
  */
 
 import { useCallback, useState } from "react";

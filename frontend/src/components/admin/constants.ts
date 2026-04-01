@@ -1,8 +1,19 @@
 /**
- * Shared constants for admin components.
+ * @fileoverview Shared constants for admin configuration components.
+ *
+ * Layer: lib/utility
+ * Feature: admin
  *
  * REQ-022 §11: Provider and model type options used across admin tabs.
  * REQ-028 §6.1: Fixed task type rows for routing table.
+ *
+ * Coordinates with:
+ * - (no external dependencies — pure constant definitions)
+ *
+ * Called by / Used by:
+ * - components/admin/add-model-dialog.tsx: MODEL_TYPES, PROVIDERS for dropdown options
+ * - components/admin/add-pricing-dialog.tsx: PROVIDERS for provider dropdown
+ * - components/admin/routing-tab.tsx: PROVIDERS, TASK_TYPES for routing table
  */
 
 export const PROVIDERS = ["claude", "openai", "gemini"] as const;

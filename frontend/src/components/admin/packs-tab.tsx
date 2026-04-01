@@ -1,10 +1,26 @@
 "use client";
 
 /**
- * Funding packs management tab.
+ * @fileoverview Funding packs management tab for the admin page.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-022 §11.2, §10.4: Funding pack definitions with price formatting,
  * grant amounts, and highlight labels.
+ *
+ * Coordinates with:
+ * - lib/api/admin.ts: createPack, deletePack, fetchPacks for API calls
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: Button for add and delete actions
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for delete confirmation
+ * - components/ui/table.tsx: Table, TableBody, TableCell, TableHead, TableHeader, TableRow for layout
+ * - components/admin/add-pack-dialog.tsx: AddPackDialog for pack creation form
+ * - types/admin.ts: FundingPackCreateRequest, FundingPackItem types
+ *
+ * Called by / Used by:
+ * - components/admin/admin-config-page.tsx: Packs tab content
  */
 
 import { useState } from "react";

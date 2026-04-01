@@ -1,11 +1,28 @@
 "use client";
 
 /**
- * Task routing management tab — fixed editable table.
+ * @fileoverview Task routing management tab with fixed editable table.
+ *
+ * Layer: component
+ * Feature: admin
  *
  * REQ-028 §6.1: Fixed 10-row table (one per TaskType), inline provider/model
  * dropdowns, no add/delete. Provider changes use delete+create; model changes
  * use PATCH.
+ *
+ * Coordinates with:
+ * - lib/api/admin.ts: createRouting, deleteRouting, fetchAvailableProviders, fetchModels, fetchRouting, updateRouting for API calls
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error feedback
+ * - components/ui/button.tsx: Button for retry action
+ * - components/ui/select.tsx: Select, SelectContent, SelectItem, SelectTrigger, SelectValue for inline dropdowns
+ * - components/ui/table.tsx: Table, TableBody, TableCell, TableHead, TableHeader, TableRow for layout
+ * - components/admin/constants.ts: PROVIDERS, TASK_TYPES for dropdown options and row definitions
+ * - components/admin/routing-test-cell.tsx: RoutingTestCell for inline test button per row
+ * - types/admin.ts: ModelRegistryItem, TaskRoutingCreateRequest, TaskRoutingItem, TaskRoutingUpdateRequest types
+ *
+ * Called by / Used by:
+ * - components/admin/admin-config-page.tsx: Routing tab content
  */
 
 import { useMemo, useState } from "react";

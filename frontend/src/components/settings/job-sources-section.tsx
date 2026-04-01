@@ -1,11 +1,29 @@
 "use client";
 
 /**
- * Job source preferences section for the settings page.
+ * @fileoverview Job source preferences with toggle, reorder, and tooltips.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §12.2: Toggle switches to enable/disable job sources,
  * drag-and-drop reorder, source description tooltips, and
  * grayed-out styling for system-inactive sources.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch for fetching and updating preferences
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error feedback
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/switch.tsx: Switch for source enable/disable toggle
+ * - components/ui/error-states.tsx: EmptyState, FailedState for loading states
+ * - components/ui/reorderable-list.tsx: ReorderableList for drag-and-drop reorder
+ * - components/ui/tooltip.tsx: Tooltip, TooltipContent, TooltipProvider, TooltipTrigger for descriptions
+ * - types/api.ts: ApiListResponse envelope type
+ * - types/source.ts: JobSource, UserSourcePreference types
+ *
+ * Called by / Used by:
+ * - components/settings/settings-page.tsx: Job Sources card in settings layout
  */
 
 import { useCallback, useMemo } from "react";

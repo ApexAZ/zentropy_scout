@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Admin configuration page with tabbed navigation.
+ * @fileoverview Admin configuration page with tabbed navigation.
  *
- * REQ-022 §11.1–§11.2: Single page with 6 tabs — Models, Pricing,
+ * Layer: component
+ * Feature: admin
+ *
+ * REQ-022 §11.1-§11.2: Single page with 6 tabs — Models, Pricing,
  * Routing, Packs, System, Users. Each tab delegates to its own
  * component for CRUD operations.
+ *
+ * Coordinates with:
+ * - components/ui/tabs.tsx: Tabs, TabsContent, TabsList, TabsTrigger for tab navigation
+ * - components/admin/models-tab.tsx: ModelsTab for model registry management
+ * - components/admin/packs-tab.tsx: PacksTab for funding pack management
+ * - components/admin/pricing-tab.tsx: PricingTab for pricing config management
+ * - components/admin/routing-tab.tsx: RoutingTab for task routing management
+ * - components/admin/system-tab.tsx: SystemTab for system config management
+ * - components/admin/users-tab.tsx: UsersTab for user admin management
+ *
+ * Called by / Used by:
+ * - app/(main)/admin/config/page.tsx: admin configuration route page
  */
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

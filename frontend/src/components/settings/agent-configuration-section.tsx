@@ -1,8 +1,17 @@
 /**
- * Agent configuration section for the settings page.
+ * @fileoverview Read-only agent model routing display for the settings page.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §12.1: Read-only display of model routing categories
  * and provider info. Simplified view of backend DEFAULT_CLAUDE_ROUTING.
+ *
+ * Coordinates with:
+ * - components/ui/table.tsx: Table, TableBody, TableCell, TableHead, TableHeader, TableRow for layout
+ *
+ * Called by / Used by:
+ * - components/settings/settings-page.tsx: Agent Configuration card in settings layout
  */
 
 import {
