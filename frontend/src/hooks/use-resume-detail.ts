@@ -1,14 +1,22 @@
 /**
- * Data fetching, state management, and handlers for the resume detail page.
+ * @fileoverview Data fetching, state management, and handlers for the resume detail page.
+ *
+ * Layer: hook
+ * Feature: resume
  *
  * REQ-012 §9.2: Base resume editor with content selection.
  *
- * @module hooks/use-resume-detail
- * @coordinates-with lib/api-client (CRUD operations — apiGet, apiPatch, apiPost),
- *   lib/query-keys (queryKeys.baseResume, workHistory, education, etc.),
- *   hooks/use-resume-content-selection (content selection state — composed internally),
- *   types/resume + types/resume-generation (BaseResume, GenerateResumeResponse — API shapes),
- *   components/resume/resume-detail (sole consumer — resume detail page)
+ * Coordinates with:
+ * - lib/api-client.ts: CRUD operations (apiGet, apiPatch, apiPost)
+ * - lib/query-keys.ts: queryKeys.baseResume, workHistory, education, etc.
+ * - lib/toast.ts: showToast for success/error notifications
+ * - hooks/use-resume-content-selection.ts: content selection state (composed internally)
+ * - types/resume.ts, types/resume-generation.ts: BaseResume, GenerateResumeResponse API shapes
+ * - types/persona.ts: WorkHistory, Bullet, Education, Certification, Skill types
+ * - types/api.ts: ApiListResponse, ApiResponse envelope types
+ *
+ * Called by / Used by:
+ * - components/resume/resume-detail.tsx: sole consumer — resume detail page
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";

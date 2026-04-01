@@ -1,15 +1,21 @@
 /**
- * Auto-save hook with debounced persistence for the resume editor.
+ * @fileoverview Auto-save hook with debounced persistence for the resume editor.
+ *
+ * Layer: hook
+ * Feature: resume
  *
  * REQ-026 §7.1: Debounced save (2s after last keystroke).
  * REQ-026 §7.2: Save status indicator states.
  * REQ-026 §7.3: Handles 409 Conflict for optimistic concurrency.
  *
- * @module hooks/use-auto-save
- * @coordinates-with lib/api-client (apiPatch — debounced save calls),
- *   components/editor/editor-status-bar (SaveStatus type — status indicator states),
- *   types/resume (BaseResume — PATCH response shape),
- *   components/resume/resume-content-view (sole consumer — TipTap editor auto-save)
+ * Coordinates with:
+ * - lib/api-client.ts: apiPatch for debounced save calls
+ * - components/editor/editor-status-bar.tsx: SaveStatus type for status indicator states
+ * - types/resume.ts: BaseResume PATCH response shape
+ * - types/api.ts: ApiResponse envelope type
+ *
+ * Called by / Used by:
+ * - components/resume/resume-content-view.tsx: sole consumer — TipTap editor auto-save
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";

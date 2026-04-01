@@ -1,17 +1,26 @@
 /**
- * Shared CRUD state management hook for onboarding step components.
+ * @fileoverview Shared CRUD state management hook for onboarding step components.
  *
- * Extracts the common pattern of fetch-on-mount, add/edit/delete/reorder
- * handlers, and associated loading/error/view state from the five CRUD
- * onboarding steps (certification, education, work-history, skills, story).
+ * Layer: hook
+ * Feature: persona
  *
- * REQ-012 §6.3.3–§6.3.7: CRUD steps share identical state management.
+ * REQ-012 §6.3.3–§6.3.7: Extracts the common pattern of fetch-on-mount,
+ * add/edit/delete/reorder handlers, and associated loading/error/view state
+ * from the five CRUD onboarding steps (certification, education, work-history,
+ * skills, story).
  *
- * @module hooks/use-crud-step
- * @coordinates-with lib/api-client (CRUD operations — apiGet, apiPost, apiPatch, apiDelete),
- *   lib/form-errors (toFriendlyError — user-facing error messages),
- *   components/onboarding/steps/*-step (5 CRUD step wrappers — sole consumers),
- *   components/onboarding/steps/crud-step-layout (shared step layout skeleton)
+ * Coordinates with:
+ * - lib/api-client.ts: CRUD operations (apiGet, apiPost, apiPatch, apiDelete)
+ * - lib/form-errors.ts: toFriendlyError for user-facing error messages
+ * - types/api.ts: ApiListResponse, ApiResponse envelope types
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/certification-step.tsx: certification CRUD step
+ * - components/onboarding/steps/education-step.tsx: education CRUD step
+ * - components/onboarding/steps/work-history-step.tsx: work history CRUD step
+ * - components/onboarding/steps/skills-step.tsx: skills CRUD step
+ * - components/onboarding/steps/story-step.tsx: achievement story CRUD step
+ * - components/onboarding/steps/crud-step-layout.tsx: shared step layout skeleton
  */
 
 import { useCallback, useEffect, useState } from "react";

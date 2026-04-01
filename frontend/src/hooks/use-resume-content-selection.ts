@@ -1,15 +1,20 @@
 /**
- * Shared hook for resume content selection state management.
+ * @fileoverview Shared hook for resume content selection state management.
+ *
+ * Layer: hook
+ * Feature: resume
  *
  * REQ-012 §9.2: Manages checkbox state (included jobs, bullet selections,
  * bullet order, education, certifications, skills emphasis) and toggle
  * handlers used by both the new-resume wizard and the resume detail editor.
  *
- * @module hooks/use-resume-content-selection
- * @coordinates-with types/persona (WorkHistory — bullet toggle needs Bullet shape),
- *   hooks/use-resume-detail (composes this hook for the resume editor page),
- *   components/resume/new-resume-wizard (standalone consumer for new resume flow),
- *   components/resume/resume-content-checkboxes (checkbox UI driven by this state)
+ * Coordinates with:
+ * - types/persona.ts: WorkHistory, Bullet types for toggle logic
+ *
+ * Called by / Used by:
+ * - hooks/use-resume-detail.ts: composes this hook for the resume editor page
+ * - components/resume/new-resume-wizard.tsx: standalone consumer for new resume flow
+ * - components/resume/resume-content-checkboxes.tsx: checkbox UI driven by this state
  */
 
 import { useCallback, useState } from "react";

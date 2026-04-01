@@ -1,5 +1,8 @@
 /**
- * Chat scroll management hook.
+ * @fileoverview Chat scroll management hook.
+ *
+ * Layer: hook
+ * Feature: chat
  *
  * REQ-012 §5.8: Auto-scroll to bottom on new messages (unless user
  * has scrolled up). "Jump to latest" button appears when scrolled
@@ -8,8 +11,11 @@
  * Uses IntersectionObserver on a bottom sentinel element to detect
  * whether the user is at the bottom of the scroll container.
  *
- * @module hooks/use-chat-scroll
- * @coordinates-with components/chat/chat-message-list (sole consumer — scroll container + sentinel)
+ * Coordinates with:
+ * - (no upstream lib imports — pure DOM hook)
+ *
+ * Called by / Used by:
+ * - components/chat/chat-message-list.tsx: sole consumer — scroll container + sentinel
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";

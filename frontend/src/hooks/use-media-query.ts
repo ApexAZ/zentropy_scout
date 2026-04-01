@@ -1,12 +1,18 @@
 /**
- * Generic media query hook.
+ * @fileoverview Generic media query hook.
+ *
+ * Layer: hook
+ * Feature: shared
  *
  * REQ-012 §5.1: Responsive breakpoint detection.
  * SSR-safe — returns false when matchMedia is unavailable.
  *
- * @module hooks/use-media-query
- * @coordinates-with hooks/use-is-mobile (primary consumer — mobile breakpoint wrapper),
- *   components/layout/chat-sidebar (responsive sidebar behavior)
+ * Coordinates with:
+ * - (no upstream lib imports — pure DOM hook)
+ *
+ * Called by / Used by:
+ * - hooks/use-is-mobile.ts: primary consumer — mobile breakpoint wrapper
+ * - components/layout/chat-sidebar.tsx: responsive sidebar behavior
  */
 
 import { useEffect, useState } from "react";

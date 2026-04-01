@@ -1,16 +1,23 @@
 /**
- * Hook to check persona onboarding status.
+ * @fileoverview Hook to check persona onboarding status.
+ *
+ * Layer: hook
+ * Feature: persona
  *
  * REQ-012 §3.3: Persona check on first load determines routing.
- * - No persona exists → needs onboarding
- * - Persona exists, onboarding_complete = false → needs onboarding
- * - Persona exists, onboarding_complete = true → onboarded
+ * - No persona exists -> needs onboarding
+ * - Persona exists, onboarding_complete = false -> needs onboarding
+ * - Persona exists, onboarding_complete = true -> onboarded
  *
- * @module hooks/use-persona-status
- * @coordinates-with lib/api-client (apiGet — persona list fetch),
- *   lib/query-keys (queryKeys.personas — cache key),
- *   components/layout/onboarding-gate (routing gate — primary consumer),
- *   app/(main)/ pages (page-level consumers — persona-aware routing)
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for persona list fetch
+ * - lib/query-keys.ts: queryKeys.personas cache key
+ * - types/api.ts: ApiListResponse envelope type
+ * - types/persona.ts: Persona type for onboarding check
+ *
+ * Called by / Used by:
+ * - components/layout/onboarding-gate.tsx: routing gate (primary consumer)
+ * - app/(main)/ pages: ~24 page-level consumers for persona-aware routing
  */
 
 import { useQuery } from "@tanstack/react-query";

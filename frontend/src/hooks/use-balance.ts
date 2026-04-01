@@ -1,15 +1,21 @@
 /**
- * Hook to fetch the user's current balance.
+ * @fileoverview Hook to fetch the user's current balance.
+ *
+ * Layer: hook
+ * Feature: usage
  *
  * REQ-020 §9.1: Balance display in the navigation bar. Fetches from
  * GET /api/v1/usage/balance and auto-refetches every 60 seconds.
  *
- * @module hooks/use-balance
- * @coordinates-with lib/api-client (apiGet — balance endpoint fetch),
- *   lib/query-keys (queryKeys.balance — cache key),
- *   types/usage (BalanceResponse — API response shape),
- *   components/layout/top-nav (nav bar balance display),
- *   components/usage/usage-page (usage dashboard balance card)
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for balance endpoint fetch
+ * - lib/query-keys.ts: queryKeys.balance cache key
+ * - types/usage.ts: BalanceResponse API response shape
+ * - types/api.ts: ApiResponse envelope type
+ *
+ * Called by / Used by:
+ * - components/layout/top-nav.tsx: nav bar balance display
+ * - components/usage/usage-page.tsx: usage dashboard balance card
  */
 
 import { useQuery } from "@tanstack/react-query";

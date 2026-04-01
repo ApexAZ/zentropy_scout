@@ -1,18 +1,30 @@
 /**
- * Hook for deleting persona items with reference checking.
+ * @fileoverview Hook for deleting persona items with reference checking.
+ *
+ * Layer: hook
+ * Feature: persona
  *
  * REQ-012 §7.5 / REQ-001 §7b: Before deleting, checks whether the
  * item is referenced by any BaseResumes or CoverLetters. Drives a
- * state machine that transitions through checking → mutable-refs /
+ * state machine that transitions through checking -> mutable-refs /
  * immutable-block / immediate-delete depending on the API response.
  *
  * When the backend reference endpoint returns 404, the hook degrades
  * gracefully to the "no references" path (immediate delete + toast).
  *
- * @module hooks/use-delete-with-references
- * @coordinates-with lib/api-client (apiGet, apiDelete — reference check + delete calls),
- *   types/deletion (DeletableItemType, DeleteFlowState, ReferenceCheckResponse — state machine types),
- *   components/persona/*-editor (5 post-onboarding editors — sole consumers)
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiDelete for reference check + delete calls
+ * - lib/form-errors.ts: toFriendlyError for user-facing error messages
+ * - lib/toast.ts: showToast for success/error notifications
+ * - types/deletion.ts: DeletableItemType, DeleteFlowState, ReferenceCheckResponse types
+ * - types/api.ts: ApiResponse envelope type
+ *
+ * Called by / Used by:
+ * - components/persona/work-history-editor.tsx: work history delete with references
+ * - components/persona/skills-editor.tsx: skill delete with references
+ * - components/persona/education-editor.tsx: education delete with references
+ * - components/persona/certification-editor.tsx: certification delete with references
+ * - components/persona/achievement-stories-editor.tsx: story delete with references
  */
 
 import { useCallback, useRef, useState } from "react";
