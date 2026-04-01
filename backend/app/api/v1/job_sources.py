@@ -1,6 +1,12 @@
 """Job Sources API router.
 
 REQ-006 §5.2: System-managed job sources (read-only).
+
+Coordinates with:
+  - api/deps.py (CurrentUserId)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+
+Called by: api/v1/router.py.
 """
 
 import uuid

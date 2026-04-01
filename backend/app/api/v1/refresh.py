@@ -1,6 +1,12 @@
 """Refresh API router.
 
 REQ-006 §5.2: Force re-fetch from external job sources.
+
+Coordinates with:
+  - api/deps.py (CurrentUserId)
+  - core/responses.py (DataResponse)
+
+Called by: api/v1/router.py.
 """
 
 from fastapi import APIRouter

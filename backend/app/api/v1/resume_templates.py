@@ -1,6 +1,17 @@
 """Resume template API endpoints.
 
 REQ-025 §6.4: CRUD endpoints for resume templates.
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/resume_template.py (ResumeTemplate)
+  - schemas/resume_template.py (CreateResumeTemplateRequest,
+    ResumeTemplateResponse, UpdateResumeTemplateRequest)
+  - services/rendering/resume_template_service.py (list_templates,
+    get_template, create_template, update_template, delete_template)
+
+Called by: api/v1/router.py.
 """
 
 import uuid

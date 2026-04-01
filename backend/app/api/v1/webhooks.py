@@ -6,6 +6,15 @@ endpoint — security comes from signature verification, not JWT authentication.
 
 Rate-limiting exempt (REQ-029 §10.2): Stripe may send bursts of
 webhooks; the @limiter.limit decorator is intentionally omitted.
+
+Coordinates with:
+  - api/deps.py (DbSession)
+  - core/config.py (settings)
+  - core/errors.py (APIError)
+  - services/billing/stripe_webhook_service.py (handle_charge_refunded,
+    handle_checkout_completed, handle_checkout_expired)
+
+Called by: api/v1/router.py.
 """
 
 import logging

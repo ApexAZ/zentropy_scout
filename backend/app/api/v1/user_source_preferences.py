@@ -2,6 +2,15 @@
 
 REQ-006 §5.2: Per-user job source settings (read/update only).
 REQ-014 §5.2: Ownership verification via JOIN through persona.
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/errors.py (NotFoundError)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/persona.py (Persona — via barrel import, ownership scoping)
+  - models/job_source.py (UserSourcePreference)
+
+Called by: api/v1/router.py.
 """
 
 import uuid

@@ -22,6 +22,16 @@ Endpoints:
 - /personas/{id}/voice-profile - Voice profile (stub)
 - /personas/{id}/custom-non-negotiables - Custom job filters (stub)
 - /personas/{id}/embeddings/regenerate - Trigger embedding regeneration (stub)
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/config.py (settings)
+  - core/errors.py (ConflictError, NotFoundError)
+  - core/rate_limiting.py (limiter)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/persona.py (Persona)
+
+Called by: api/v1/router.py.
 """
 
 import uuid

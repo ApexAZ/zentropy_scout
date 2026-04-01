@@ -3,6 +3,22 @@
 REQ-006 §5.2: Job-specific resume variants.
 REQ-002 §4.3: Job Variant — Snapshot Logic.
 REQ-027 §3: Job variant creation (manual + AI tailoring).
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession, MeteredProvider,
+    require_sufficient_balance)
+  - core/errors.py (InvalidStateError, NotFoundError, ValidationError)
+  - core/file_validation.py (sanitize_filename_for_header)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/resume.py (BaseResume, JobVariant — via barrel and direct imports)
+  - models/persona.py (Persona — via barrel import, ownership scoping)
+  - models/job_posting.py (JobPosting)
+  - models/persona_job.py (PersonaJob)
+  - services/generation/resume_tailoring_service.py (tailor_resume_markdown)
+  - services/rendering/markdown_docx_renderer.py (render_docx)
+  - services/rendering/markdown_pdf_renderer.py (render_pdf)
+
+Called by: api/v1/router.py.
 """
 
 import logging

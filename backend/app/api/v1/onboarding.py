@@ -4,6 +4,18 @@ REQ-019 §6.3: Resume parsing endpoint for onboarding flow.
 
 Endpoints:
 - POST /resume-parse — Upload PDF, return structured persona data.
+
+Coordinates with:
+  - api/deps.py (BalanceCheck, CurrentUserId, MeteredProvider)
+  - core/config.py (settings)
+  - core/errors.py (ValidationError)
+  - core/file_validation.py (read_file_with_size_limit, validate_file_content)
+  - core/rate_limiting.py (limiter)
+  - core/responses.py (DataResponse)
+  - services/rendering/resume_parsing_service.py (ResumeParsingService,
+    error message constants)
+
+Called by: api/v1/router.py.
 """
 
 from typing import Annotated

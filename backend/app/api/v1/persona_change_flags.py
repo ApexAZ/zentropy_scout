@@ -5,6 +5,15 @@ REQ-006 §5.2, §5.4: HITL sync for persona changes.
 Persona change flags track pending changes to Persona data (new skills, jobs, etc.)
 that may need to be synced to BaseResumes. This supports a Human-in-the-Loop (HITL)
 workflow where users review and approve changes before they propagate.
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/errors.py (InvalidStateError, NotFoundError)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/persona.py (Persona — via barrel import, ownership scoping)
+  - models/persona_settings.py (PersonaChangeFlag)
+
+Called by: api/v1/router.py.
 """
 
 import uuid

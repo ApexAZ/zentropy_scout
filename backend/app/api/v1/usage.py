@@ -2,6 +2,18 @@
 
 REQ-020 §8: Endpoints for balance, usage summary, history, and transactions.
 All endpoints require authentication. Monetary values are strings with 6 decimals.
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/pagination.py (PaginationParams, pagination_params)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - repositories/credit_repository.py (CreditRepository)
+  - repositories/usage_repository.py (UsageRepository)
+  - schemas/usage.py (BalanceResponse, CreditTransactionResponse,
+    ProviderSummary, TaskTypeSummary, UsageRecordResponse,
+    UsageSummaryResponse)
+
+Called by: api/v1/router.py.
 """
 
 from datetime import UTC, date, datetime, timedelta
