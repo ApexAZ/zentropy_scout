@@ -1,12 +1,30 @@
 "use client";
 
 /**
- * Basic info step for onboarding wizard (Step 2).
+ * @fileoverview Basic info step for onboarding wizard (Step 2).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.2: 8-field form (full name, email, phone, LinkedIn URL,
  * portfolio URL, city, state, country) with pre-fill from resume
  * extraction, client-side Zod validation, and PATCH /personas/{id}
  * submission.
+ *
+ * Coordinates with:
+ * - components/form/form-input-field.tsx: FormInputField for text/email/url/tel fields
+ * - components/form/form-error-summary.tsx: FormErrorSummary for validation error display
+ * - components/ui/button.tsx: Button for Back and Submit actions
+ * - components/ui/form.tsx: Form for React Hook Form integration
+ * - lib/api-client.ts: apiGet, apiPatch for persona data fetching and submission
+ * - lib/basic-info-schema.ts: BASIC_INFO_FIELDS for Zod validation schema
+ * - lib/form-errors.ts: toFriendlyError for API error normalization
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - types/api.ts: ApiListResponse type for persona list response
+ * - types/persona.ts: Persona type for persona data
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 2 component
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

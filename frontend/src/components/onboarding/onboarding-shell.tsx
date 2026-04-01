@@ -1,11 +1,22 @@
 "use client";
 
 /**
- * Onboarding shell layout component.
+ * @fileoverview Onboarding shell layout component.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.2: Full-screen layout (no main navigation bar) with
  * logo, step counter, horizontal progress bar, content area,
  * and Back/Skip/Next navigation buttons.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for Back, Skip, and Next navigation
+ * - components/ui/progress.tsx: Progress for horizontal progress bar
+ * - lib/utils.ts: cn for conditional class merging
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: full-screen onboarding layout wrapper
  */
 
 import { Loader2 } from "lucide-react";

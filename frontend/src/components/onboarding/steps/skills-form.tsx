@@ -1,12 +1,26 @@
 "use client";
 
 /**
- * Skills form for adding/editing a skill entry.
+ * @fileoverview Skills form for adding/editing a skill entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.5: All 6 fields required — skill_name, skill_type,
  * category, proficiency, years_used, last_used.
  * Category dropdown changes based on skill_type.
  * Proficiency uses radio buttons per wireframe.
+ *
+ * Coordinates with:
+ * - components/form/form-action-footer.tsx: FormActionFooter for submit/cancel buttons
+ * - components/form/form-input-field.tsx: FormInputField for text input fields
+ * - components/ui/form.tsx: Form, FormControl, FormField, FormItem, FormLabel, FormMessage for RHF integration
+ * - components/ui/input.tsx: Input for years used field
+ * - lib/skills-helpers.ts: HARD_SKILL_CATEGORIES, MAX_YEARS_USED, skillFormSchema, SOFT_SKILL_CATEGORIES, SkillFormData for validation and category options
+ *
+ * Called by / Used by:
+ * - onboarding/steps/skills-step.tsx: skill form in onboarding wizard
+ * - persona/skills-editor.tsx: skill form in persona management
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

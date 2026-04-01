@@ -1,11 +1,27 @@
 /**
- * Shared layout for CRUD onboarding steps.
+ * @fileoverview Shared layout for CRUD onboarding steps.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * Renders the standard step structure: loading spinner, header,
  * form view toggle, empty/list state with ReorderableList,
  * add button, navigation footer, and delete confirmation dialog.
  *
  * Each step provides entity-specific text and render props.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for Add, Back, Skip, Next actions
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for delete confirmation
+ * - components/ui/reorderable-list.tsx: ReorderableList for drag-and-drop entity ordering
+ * - hooks/use-crud-step.ts: UseCrudStepReturn type for CRUD state management
+ *
+ * Called by / Used by:
+ * - onboarding/steps/work-history-step.tsx: work history CRUD layout
+ * - onboarding/steps/education-step.tsx: education CRUD layout
+ * - onboarding/steps/skills-step.tsx: skills CRUD layout
+ * - onboarding/steps/certification-step.tsx: certification CRUD layout
+ * - onboarding/steps/story-step.tsx: achievement stories CRUD layout
  */
 
 import type { ReactNode } from "react";

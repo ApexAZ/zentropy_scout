@@ -1,11 +1,27 @@
 "use client";
 
 /**
- * Work history step for onboarding wizard (Step 3).
+ * @fileoverview Work history step for onboarding wizard (Step 3).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.3: Display jobs in editable cards with add/edit/delete
  * and ordering. Minimum 1 job required to proceed. Each card expands
  * to show accomplishment bullets with min 1 bullet per job.
+ *
+ * Coordinates with:
+ * - hooks/use-crud-step.ts: useCrudStep for CRUD state management
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - lib/work-history-helpers.ts: toFormValues, toRequestBody, WorkHistoryFormData for form data conversion
+ * - types/persona.ts: Bullet, WorkHistory types for entity data
+ * - onboarding/steps/bullet-editor.tsx: BulletEditor for per-job bullet editing
+ * - onboarding/steps/crud-step-layout.tsx: CrudStepLayout for shared CRUD layout
+ * - onboarding/steps/work-history-card.tsx: WorkHistoryCard for entry display
+ * - onboarding/steps/work-history-form.tsx: WorkHistoryForm for add/edit form
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 3 component
  */
 
 import { useCallback, useState } from "react";

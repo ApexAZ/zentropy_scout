@@ -1,10 +1,27 @@
 "use client";
 
 /**
- * Work history form for adding/editing a job entry.
+ * @fileoverview Work history form for adding/editing a job entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.3: Fields — title, company, dates, location, work model.
  * Conditional end_date validation when is_current is false.
+ *
+ * Coordinates with:
+ * - components/form/form-action-footer.tsx: FormActionFooter for submit/cancel buttons
+ * - components/form/form-input-field.tsx: FormInputField for text input fields
+ * - components/form/form-textarea-field.tsx: FormTextareaField for description field
+ * - components/ui/checkbox.tsx: Checkbox for "current role" toggle
+ * - components/ui/form.tsx: Form, FormControl, FormField, FormItem, FormLabel, FormMessage for RHF integration
+ * - components/ui/input.tsx: Input for date fields
+ * - lib/work-history-helpers.ts: workHistoryFormSchema, WorkHistoryFormData for validation
+ * - types/persona.ts: WORK_MODELS, WorkModel for work model dropdown options
+ *
+ * Called by / Used by:
+ * - onboarding/steps/work-history-step.tsx: work history form in onboarding wizard
+ * - persona/work-history-editor.tsx: work history form in persona management
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

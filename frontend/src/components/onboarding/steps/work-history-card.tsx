@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * Work history card for displaying a job entry in the onboarding wizard.
+ * @fileoverview Work history card for displaying a job entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.3: Each card shows title, company, dates, location, work model
- * with edit/delete action buttons.
+ * with edit/delete action buttons and expandable bullet section.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit and delete actions
+ * - types/persona.ts: WorkHistory type for entry data
+ *
+ * Called by / Used by:
+ * - onboarding/steps/work-history-step.tsx: work history card in onboarding wizard
+ * - persona/work-history-editor.tsx: work history card in persona management
  */
 
 import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";

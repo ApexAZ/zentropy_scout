@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Skills step for onboarding wizard (Step 5).
+ * @fileoverview Skills step for onboarding wizard (Step 5).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.5: Not skippable. Skills editor with proficiency
  * selector, conditional category dropdown, CRUD, and reordering.
  * All 6 fields required per skill entry.
+ *
+ * Coordinates with:
+ * - hooks/use-crud-step.ts: useCrudStep for CRUD state management
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - lib/skills-helpers.ts: toFormValues, toRequestBody, SkillFormData for form data conversion
+ * - types/persona.ts: Skill type for entity data
+ * - onboarding/steps/crud-step-layout.tsx: CrudStepLayout for shared CRUD layout
+ * - onboarding/steps/skills-card.tsx: SkillCard for entry display
+ * - onboarding/steps/skills-form.tsx: SkillForm for add/edit form
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 5 component
  */
 
 import { useCrudStep } from "@/hooks/use-crud-step";

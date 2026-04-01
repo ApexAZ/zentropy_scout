@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * Skills card for displaying a skill entry in the onboarding wizard.
+ * @fileoverview Skills card for displaying a skill entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.5: Each card shows skill_name, skill_type badge,
  * category, proficiency, years_used, last_used with edit/delete buttons.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit and delete actions
+ * - types/persona.ts: Skill type for entry data
+ *
+ * Called by / Used by:
+ * - onboarding/steps/skills-step.tsx: skill card in onboarding wizard
+ * - persona/skills-editor.tsx: skill card in persona management
  */
 
 import { Pencil, Trash2 } from "lucide-react";

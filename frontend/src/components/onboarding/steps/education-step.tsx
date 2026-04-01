@@ -1,10 +1,25 @@
 "use client";
 
 /**
- * Education step for onboarding wizard (Step 4).
+ * @fileoverview Education step for onboarding wizard (Step 4).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.4: Skippable step. Display education entries in editable
  * cards with add/edit/delete and ordering. 0 entries is valid (skip).
+ *
+ * Coordinates with:
+ * - hooks/use-crud-step.ts: useCrudStep for CRUD state management
+ * - lib/education-helpers.ts: toFormValues, toRequestBody, EducationFormData for form data conversion
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - types/persona.ts: Education type for entity data
+ * - onboarding/steps/crud-step-layout.tsx: CrudStepLayout for shared CRUD layout
+ * - onboarding/steps/education-card.tsx: EducationCard for entry display
+ * - onboarding/steps/education-form.tsx: EducationForm for add/edit form
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 4 component
  */
 
 import { useCrudStep } from "@/hooks/use-crud-step";

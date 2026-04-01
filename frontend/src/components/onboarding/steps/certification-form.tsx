@@ -1,12 +1,27 @@
 "use client";
 
 /**
- * Certification form for adding/editing a certification entry.
+ * @fileoverview Certification form for adding/editing a certification entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.6: Fields — certification_name, issuing_organization,
  * date_obtained (required), expiration_date, credential_id,
  * verification_url (optional). "Does not expire" checkbox nulls
  * the expiration_date field.
+ *
+ * Coordinates with:
+ * - components/form/form-action-footer.tsx: FormActionFooter for submit/cancel buttons
+ * - components/form/form-input-field.tsx: FormInputField for text input fields
+ * - components/ui/checkbox.tsx: Checkbox for "does not expire" toggle
+ * - components/ui/form.tsx: Form, FormControl, FormField, FormItem, FormLabel, FormMessage for RHF integration
+ * - components/ui/input.tsx: Input for date fields
+ * - lib/certification-helpers.ts: certificationFormSchema, CertificationFormData for validation
+ *
+ * Called by / Used by:
+ * - onboarding/steps/certification-step.tsx: certification form in onboarding wizard
+ * - persona/certification-editor.tsx: certification form in persona management
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

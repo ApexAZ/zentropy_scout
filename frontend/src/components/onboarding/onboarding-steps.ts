@@ -1,8 +1,17 @@
 /**
- * Onboarding wizard step definitions.
+ * @fileoverview Onboarding wizard step definitions.
+ *
+ * Layer: lib/utility
+ * Feature: persona
  *
  * REQ-019 §7.1: 11-step onboarding wizard.
  * Each step maps to a section of the persona data model.
+ *
+ * Coordinates with:
+ * - (pure data — no external dependencies)
+ *
+ * Called by / Used by:
+ * - lib/onboarding-provider.tsx: ONBOARDING_STEPS, TOTAL_STEPS, getStepByNumber, getStepByKey for wizard state management
  */
 
 // ---------------------------------------------------------------------------

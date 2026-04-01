@@ -1,10 +1,24 @@
 "use client";
 
 /**
- * Education form for adding/editing an education entry.
+ * @fileoverview Education form for adding/editing an education entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.4: Fields — degree, field_of_study, institution,
  * graduation_year (required), gpa, honors (optional).
+ *
+ * Coordinates with:
+ * - components/form/form-action-footer.tsx: FormActionFooter for submit/cancel buttons
+ * - components/form/form-input-field.tsx: FormInputField for text input fields
+ * - components/ui/form.tsx: Form, FormControl, FormField, FormItem, FormLabel, FormMessage for RHF integration
+ * - components/ui/input.tsx: Input for year and GPA fields
+ * - lib/education-helpers.ts: educationFormSchema, EducationFormData for validation
+ *
+ * Called by / Used by:
+ * - onboarding/steps/education-step.tsx: education form in onboarding wizard
+ * - persona/education-editor.tsx: education form in persona management
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

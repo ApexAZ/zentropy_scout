@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * Education card for displaying an education entry in the onboarding wizard.
+ * @fileoverview Education card for displaying an education entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.4: Each card shows degree, field, institution, year,
  * optional GPA/honors with edit/delete action buttons.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit and delete actions
+ * - types/persona.ts: Education type for entry data
+ *
+ * Called by / Used by:
+ * - onboarding/steps/education-step.tsx: education card in onboarding wizard
+ * - persona/education-editor.tsx: education card in persona management
  */
 
 import { Pencil, Trash2 } from "lucide-react";

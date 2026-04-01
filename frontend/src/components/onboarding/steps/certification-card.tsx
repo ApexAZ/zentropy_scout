@@ -1,13 +1,23 @@
 "use client";
 
 /**
- * Certification card for displaying a certification entry in the
- * onboarding wizard.
+ * @fileoverview Certification card for displaying a certification entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.6: Each card shows certification_name,
  * issuing_organization, date_obtained, expiration_date (or
  * "Does not expire"), credential_id, verification_url with
  * edit/delete buttons.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit and delete actions
+ * - types/persona.ts: Certification type for entry data
+ *
+ * Called by / Used by:
+ * - onboarding/steps/certification-step.tsx: certification card in onboarding wizard
+ * - persona/certification-editor.tsx: certification card in persona management
  */
 
 import { Pencil, Trash2 } from "lucide-react";

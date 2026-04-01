@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Certification step for onboarding wizard (Step 6).
+ * @fileoverview Certification step for onboarding wizard (Step 6).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.6: Skippable step. Certifications editor with
  * "Does not expire" toggle, CRUD, and reordering.
  * Skip button: "Skip — No certifications".
+ *
+ * Coordinates with:
+ * - hooks/use-crud-step.ts: useCrudStep for CRUD state management
+ * - lib/certification-helpers.ts: toFormValues, toRequestBody, CertificationFormData for form data conversion
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - types/persona.ts: Certification type for entity data
+ * - onboarding/steps/certification-card.tsx: CertificationCard for entry display
+ * - onboarding/steps/certification-form.tsx: CertificationForm for add/edit form
+ * - onboarding/steps/crud-step-layout.tsx: CrudStepLayout for shared CRUD layout
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 6 component
  */
 
 import { useCrudStep } from "@/hooks/use-crud-step";
