@@ -379,7 +379,7 @@ headers.*
 
 ## Phase 12: Backend core/ + app root
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add `Coordinates with:` and `Called by:` sections to 18 core infrastructure files.
 These files (config, database, auth, errors, etc.) are imported by nearly every backend
@@ -398,7 +398,7 @@ module -- accurate headers here make all subsequent backend phases faster to tra
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
 | 30 | **Docstrings -- core/ + app root (18 files)** -- Add Coordinates-with/Called-by: `app/main.py`, `core/config.py`, `core/database.py`, `core/errors.py`, `core/auth.py`, `core/account_linking.py`, `core/email.py`, `core/file_validation.py`, `core/filtering.py`, `core/llm_sanitization.py`, `core/null_byte_middleware.py`, `core/oauth.py`, `core/oauth_client.py`, `core/pagination.py`, `core/rate_limiting.py`, `core/responses.py`, `core/stripe_client.py`, `core/tenant_session.py`. Use Explore subagent to trace import/export graphs. | `docs, plan` | ✅ |
-| 31 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ⬜ |
+| 31 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ✅ |
 
 ---
 
