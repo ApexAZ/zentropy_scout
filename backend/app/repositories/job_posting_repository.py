@@ -2,6 +2,12 @@
 
 REQ-015 §6, §9: Global CRUD and dedup lookups for the shared job pool.
 Job postings are Tier 0 — no per-user scoping at this level.
+
+Coordinates with:
+  - models/job_posting.py (JobPosting ORM model)
+
+Called by: repositories/job_pool_repository.py,
+services/discovery/global_dedup_service.py, api/v1/job_postings.py.
 """
 
 import uuid

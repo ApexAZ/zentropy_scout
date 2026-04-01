@@ -2,6 +2,11 @@
 
 REQ-025 §4.3, §6.4: Database access for resume templates with
 access control scoping (system templates + user's own templates).
+
+Coordinates with:
+  - models/resume_template.py (ResumeTemplate ORM model)
+
+Called by: services/rendering/resume_template_service.py.
 """
 
 import uuid

@@ -2,6 +2,13 @@
 
 REQ-015 §8, §9: Per-user job relationship management.
 All read/write operations are scoped to user_id via Persona JOIN.
+
+Coordinates with:
+  - models/persona.py (Persona ORM model — ownership scoping via JOIN)
+  - models/persona_job.py (PersonaJob ORM model)
+
+Called by: services/scoring/job_scoring_service.py,
+services/discovery/global_dedup_service.py, api/v1/job_postings.py.
 """
 
 import uuid

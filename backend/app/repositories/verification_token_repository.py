@@ -2,6 +2,11 @@
 
 REQ-013 §4.4, §6.4: Single-use magic link tokens stored as hashed values
 with composite key (identifier, token) and time-limited expiry.
+
+Coordinates with:
+  - models/verification_token.py (VerificationToken ORM model)
+
+Called by: api/v1/auth_magic_link.py, api/v1/auth.py.
 """
 
 from datetime import UTC, datetime

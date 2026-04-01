@@ -8,6 +8,20 @@ WHY DEPENDENCY INJECTION:
 - Consistent auth across all endpoints
 - Easy to swap implementations (local → hosted)
 - Testable with mocked dependencies
+
+Coordinates with:
+  - core/config.py (settings — auth, metering, credits flags)
+  - core/database.py (get_db session factory)
+  - core/errors.py (AdminRequiredError, InsufficientBalanceError)
+  - models/user.py (User ORM model — balance, token_invalidated_before)
+  - providers/embedding/base.py (EmbeddingProvider interface)
+  - providers/llm/base.py (LLMProvider interface)
+  - providers/factory.py (provider singletons and registry)
+  - providers/metered_provider.py (MeteredLLMProvider, MeteredEmbeddingProvider)
+  - services/admin/admin_config_service.py (AdminConfigService — pricing)
+  - services/billing/metering_service.py (MeteringService — usage recording)
+
+Called by: all api/v1/ router modules (21 files).
 """
 
 import uuid

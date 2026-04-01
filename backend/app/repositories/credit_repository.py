@@ -2,6 +2,14 @@
 
 REQ-020 §4, §8: Provides database access for the credit_transactions table
 and atomic balance operations on the users table.
+
+Coordinates with:
+  - models/usage.py (CreditTransaction ORM model)
+  - models/user.py (User ORM model — balance_usd column)
+
+Called by: services/billing/stripe_service.py,
+services/billing/stripe_webhook_service.py, api/v1/credits.py,
+api/v1/usage.py.
 """
 
 import uuid

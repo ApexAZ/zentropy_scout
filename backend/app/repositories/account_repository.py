@@ -2,6 +2,11 @@
 
 REQ-013 §5, §6.2: Provides database access for the accounts table.
 Follows the repository pattern established by UserRepository.
+
+Coordinates with:
+  - models/account.py (Account ORM model)
+
+Called by: core/account_linking.py.
 """
 
 import uuid

@@ -2,6 +2,13 @@
 
 REQ-013 §7.5, REQ-005 §4.0: Provides database access for the users table.
 First repository class — establishes the pattern for all future repositories.
+
+Coordinates with:
+  - models/user.py (User ORM model)
+
+Called by: core/account_linking.py, services/billing/stripe_service.py,
+services/billing/stripe_webhook_service.py, api/v1/auth.py,
+api/v1/auth_magic_link.py, api/v1/auth_oauth.py, api/v1/credits.py.
 """
 
 import uuid

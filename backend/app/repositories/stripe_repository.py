@@ -3,6 +3,12 @@
 REQ-029 §7.2, §7.3, §8.3: Provides CRUD, lifecycle transitions
 (mark_completed, mark_refunded), and paginated queries for the
 stripe_purchases table.
+
+Coordinates with:
+  - models/stripe.py (StripePurchase ORM model)
+
+Called by: services/billing/stripe_service.py,
+services/billing/stripe_webhook_service.py.
 """
 
 import uuid

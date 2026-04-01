@@ -2,6 +2,11 @@
 
 REQ-020 §4, §8: Provides database access for the llm_usage_records table.
 Supports CRUD, paginated listing, and aggregation for the usage API.
+
+Coordinates with:
+  - models/usage.py (LLMUsageRecord ORM model)
+
+Called by: api/v1/usage.py.
 """
 
 import uuid

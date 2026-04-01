@@ -2,6 +2,13 @@
 
 REQ-016 §6.4: Pool check, save, link, and source resolution.
 Standalone repository for shared pool operations.
+
+Coordinates with:
+  - models/job_source.py (JobSource ORM model)
+  - repositories/job_posting_repository.py (JobPostingRepository for CRUD)
+  - services/discovery/global_dedup_service.py (deduplicate_and_save)
+
+Called by: services/discovery/job_fetch_service.py.
 """
 
 import hashlib
