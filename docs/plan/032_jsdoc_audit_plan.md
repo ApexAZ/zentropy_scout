@@ -325,7 +325,7 @@ components.*
 
 ## Phase 10: components/settings/, admin/, form/, data-table/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add three-axis JSDoc headers to 4 settings components, 12 admin components, 8 form
 helpers, and 7 data-table components.*
@@ -344,7 +344,7 @@ helpers, and 7 data-table components.*
 |---|------|-------|--------|
 | 23 | **JSDoc -- settings/ + admin/ (16 files)** -- Add headers: `settings/account-section.tsx`, `settings/agent-configuration-section.tsx`, `settings/job-sources-section.tsx`, `settings/settings-page.tsx`, `admin/add-model-dialog.tsx`, `admin/add-pack-dialog.tsx`, `admin/add-pricing-dialog.tsx`, `admin/admin-config-page.tsx`, `admin/constants.ts`, `admin/models-tab.tsx`, `admin/packs-tab.tsx`, `admin/pricing-tab.tsx`, `admin/routing-tab.tsx`, `admin/routing-test-cell.tsx`, `admin/system-tab.tsx`, `admin/users-tab.tsx`. | `docs, plan` | ✅ |
 | 24 | **JSDoc -- form/ + data-table/ (15 files)** -- Add headers: `form/form-action-footer.tsx`, `form/form-error-summary.tsx`, `form/form-input-field.tsx`, `form/form-select-field.tsx`, `form/form-tag-field.tsx`, `form/form-textarea-field.tsx`, `form/index.ts`, `form/submit-button.tsx`, `data-table/data-table.tsx`, `data-table/data-table-column-header.tsx`, `data-table/data-table-pagination.tsx`, `data-table/data-table-select-column.tsx`, `data-table/data-table-toolbar.tsx`, `data-table/index.ts`, `data-table/toolbar-select.tsx`. | `docs, plan` | ✅ |
-| 25 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 25 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
