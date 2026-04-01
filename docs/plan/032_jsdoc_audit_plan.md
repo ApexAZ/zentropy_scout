@@ -421,7 +421,7 @@ module -- accurate headers here make all subsequent backend phases faster to tra
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 32 | **Docstrings -- models/ (19 files)** -- Add Coordinates-with/Called-by: `models/account.py`, `models/admin_config.py`, `models/application.py`, `models/base.py`, `models/cover_letter.py`, `models/job_posting.py`, `models/job_source.py`, `models/persona.py`, `models/persona_content.py`, `models/persona_job.py`, `models/persona_settings.py`, `models/resume.py`, `models/resume_template.py`, `models/session.py`, `models/stripe.py`, `models/usage.py`, `models/usage_reservation.py`, `models/user.py`, `models/verification_token.py`. | `docs, plan` | ⬜ |
+| 32 | **Docstrings -- models/ (19 files)** -- Add Coordinates-with/Called-by: `models/account.py`, `models/admin_config.py`, `models/application.py`, `models/base.py`, `models/cover_letter.py`, `models/job_posting.py`, `models/job_source.py`, `models/persona.py`, `models/persona_content.py`, `models/persona_job.py`, `models/persona_settings.py`, `models/resume.py`, `models/resume_template.py`, `models/session.py`, `models/stripe.py`, `models/usage.py`, `models/usage_reservation.py`, `models/user.py`, `models/verification_token.py`. | `docs, plan` | ✅ |
 | 33 | **Docstrings -- schemas/ (10 files)** -- Add Coordinates-with/Called-by: `schemas/admin.py`, `schemas/bulk.py`, `schemas/chat.py`, `schemas/credits.py`, `schemas/ingest.py`, `schemas/job_posting.py`, `schemas/prompt_params.py`, `schemas/resume.py`, `schemas/resume_template.py`, `schemas/usage.py`. | `docs, plan` | ⬜ |
 | 34 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ⬜ |
 
