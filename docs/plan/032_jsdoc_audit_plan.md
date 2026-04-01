@@ -254,7 +254,7 @@ Most have partial JSDoc (what + REQ refs) but lack Layer:/Feature:/Coordinates w
 
 ## Phase 7: components/resume/ and components/editor/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add three-axis JSDoc headers to 11 resume management components and 8 TipTap editor
 components.*
@@ -271,8 +271,8 @@ components.*
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 17 | **JSDoc -- resume/ + editor/ (19 files)** -- Add headers: `resume/creation-method-buttons.tsx`, `resume/diff-text.tsx`, `resume/export-buttons.tsx`, `resume/guardrail-violation-banner.tsx`, `resume/new-resume-wizard.tsx`, `resume/resume-content-checkboxes.tsx`, `resume/resume-content-view.tsx`, `resume/resume-detail.tsx`, `resume/resume-list.tsx`, `resume/variant-review.tsx`, `resume/variants-list.tsx`, `editor/diff-view.tsx`, `editor/editor-status-bar.tsx`, `editor/editor-toolbar.tsx`, `editor/generation-options-panel.tsx`, `editor/job-requirements-panel.tsx`, `editor/persona-reference-panel.tsx`, `editor/resume-editor.tsx`, `editor/template-picker.tsx`. | `docs, plan` | ⬜ |
-| 18 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 17 | **JSDoc -- resume/ + editor/ (19 files)** -- Add headers: `resume/creation-method-buttons.tsx`, `resume/diff-text.tsx`, `resume/export-buttons.tsx`, `resume/guardrail-violation-banner.tsx`, `resume/new-resume-wizard.tsx`, `resume/resume-content-checkboxes.tsx`, `resume/resume-content-view.tsx`, `resume/resume-detail.tsx`, `resume/resume-list.tsx`, `resume/variant-review.tsx`, `resume/variants-list.tsx`, `editor/diff-view.tsx`, `editor/editor-status-bar.tsx`, `editor/editor-toolbar.tsx`, `editor/generation-options-panel.tsx`, `editor/job-requirements-panel.tsx`, `editor/persona-reference-panel.tsx`, `editor/resume-editor.tsx`, `editor/template-picker.tsx`. | `docs, plan` | ✅ |
+| 18 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
