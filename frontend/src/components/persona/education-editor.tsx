@@ -1,11 +1,29 @@
 "use client";
 
 /**
- * Post-onboarding education editor (§6.6).
+ * @fileoverview Post-onboarding education editor with CRUD and drag-drop reordering.
  *
- * REQ-012 §7.2.3: CRUD for education entries with drag-drop
- * reordering. Adapts onboarding EducationStep logic to the
- * post-onboarding pattern.
+ * Layer: component
+ * Feature: persona
+ *
+ * REQ-012 §7.2.3: CRUD for education entries with drag-drop reordering.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch, apiPost for education CRUD
+ * - lib/education-helpers.ts: toFormValues, toRequestBody, EducationFormData
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.education cache key
+ * - hooks/use-delete-with-references.ts: delete with reference checking
+ * - components/onboarding/steps/education-card.tsx: education display card
+ * - components/onboarding/steps/education-form.tsx: education add/edit form
+ * - components/ui/button.tsx: add button
+ * - components/ui/delete-reference-dialog.tsx: delete confirmation dialog
+ * - components/ui/reorderable-list.tsx: drag-drop reordering container
+ * - types/api.ts: ApiListResponse, ApiResponse envelope types
+ * - types/persona.ts: Education, Persona types
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/education/page.tsx: education page route
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";

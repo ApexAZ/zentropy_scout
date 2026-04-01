@@ -1,11 +1,32 @@
 "use client";
 
 /**
- * Post-onboarding work history editor (§6.4).
+ * @fileoverview Post-onboarding work history editor with CRUD, bullets, and drag-drop reordering.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §7.2.2: CRUD for work history entries with drag-drop
- * reordering and interactive bullet editing. Adapts onboarding
- * WorkHistoryStep logic to the post-onboarding pattern.
+ * reordering and interactive bullet editing.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch, apiPost for work history CRUD
+ * - lib/work-history-helpers.ts: toFormValues, toRequestBody, WorkHistoryFormData
+ * - lib/embedding-staleness.ts: notifyEmbeddingUpdate after work history changes
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.workHistory cache key
+ * - hooks/use-delete-with-references.ts: delete with reference checking
+ * - components/onboarding/steps/bullet-editor.tsx: inline bullet editor
+ * - components/onboarding/steps/work-history-card.tsx: work history display card
+ * - components/onboarding/steps/work-history-form.tsx: work history add/edit form
+ * - components/ui/button.tsx: add button
+ * - components/ui/delete-reference-dialog.tsx: delete confirmation dialog
+ * - components/ui/reorderable-list.tsx: drag-drop reordering container
+ * - types/api.ts: ApiListResponse, ApiResponse envelope types
+ * - types/persona.ts: Bullet, Persona, WorkHistory types
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/work-history/page.tsx: work history page route
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";

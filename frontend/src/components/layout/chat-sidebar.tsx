@@ -1,17 +1,28 @@
 "use client";
 
 /**
- * Responsive chat sidebar.
+ * @fileoverview Responsive chat sidebar with desktop inline and mobile sheet modes.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §3.2, §5.1: Persistent collapsible chat sidebar with three
- * responsive modes:
- * - Desktop (lg+, >=1024px): Inline right sidebar, 400px. CSS collapse
- *   preserves scroll position when minimized.
- * - Tablet (md, 768-1023px): Slide-over sheet from right edge, 400px max.
- * - Mobile (<768px): Full-screen sheet with back button.
+ * responsive modes: desktop inline (lg+, 400px), tablet slide-over (md),
+ * mobile full-screen sheet. Chat content wired via ChatProvider/useChat.
  *
- * Chat content (message list, typing indicator, input) is wired via
- * the ChatProvider / useChat hook.
+ * Coordinates with:
+ * - hooks/use-is-mobile.ts: mobile breakpoint detection
+ * - hooks/use-media-query.ts: desktop breakpoint detection
+ * - lib/chat-panel-provider.tsx: useChatPanel for open/close state
+ * - lib/chat-provider.tsx: useChat for messages, streaming, history
+ * - lib/utils.ts: cn class name helper
+ * - components/chat/chat-input.tsx: message input component
+ * - components/chat/chat-message-list.tsx: message list component
+ * - components/chat/typing-indicator.tsx: streaming indicator
+ * - components/ui/sheet.tsx: Sheet, SheetContent for overlay mode
+ *
+ * Called by / Used by:
+ * - components/layout/app-shell.tsx: rendered inside app shell layout
  */
 
 import { useEffect } from "react";

@@ -1,11 +1,28 @@
 "use client";
 
 /**
- * Post-onboarding non-negotiables editor (§6.10).
+ * @fileoverview Post-onboarding non-negotiables editor with sectioned form and custom filters.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §7.2.7: Sectioned form for location preferences, compensation,
- * other filters, and embedded custom filters CRUD. Pre-fills from persona
- * prop, PATCHes on save, invalidates cache, shows success message.
+ * other filters, and embedded custom filters CRUD.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiPatch for persona update
+ * - lib/embedding-staleness.ts: notifyEmbeddingUpdate after non-negotiable changes
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/non-negotiables-helpers.ts: schema, defaults, toFormValues, toRequestBody
+ * - lib/query-keys.ts: queryKeys.personas cache key
+ * - components/onboarding/steps/custom-filters-section.tsx: custom filters CRUD section
+ * - components/persona/non-negotiables-form-fields.tsx: non-negotiables form fields
+ * - components/ui/button.tsx: submit button
+ * - components/ui/form.tsx: Form context provider
+ * - types/persona.ts: Persona type
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/non-negotiables/page.tsx: non-negotiables page route
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

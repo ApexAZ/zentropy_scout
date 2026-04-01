@@ -1,11 +1,27 @@
 "use client";
 
 /**
- * Post-onboarding voice profile editor (§6.9).
+ * @fileoverview Post-onboarding voice profile editor with form fields and tag inputs.
  *
- * REQ-012 §7.2.6: Single form with text inputs, tag inputs
- * (sample_phrases, things_to_avoid), and optional textarea.
- * Fetches via useQuery, PATCHes on save, invalidates cache.
+ * Layer: component
+ * Feature: persona
+ *
+ * REQ-012 §7.2.6: Single form with text inputs, tag inputs, and
+ * optional textarea. Fetches via useQuery, PATCHes on save.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch for voice profile fetch and save
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.voiceProfile cache key
+ * - lib/voice-profile-helpers.ts: schema, defaults, toFormValues, toRequestBody
+ * - components/persona/voice-profile-form-fields.tsx: voice profile form fields
+ * - components/ui/button.tsx: submit button
+ * - components/ui/form.tsx: Form context provider
+ * - types/api.ts: ApiResponse envelope type
+ * - types/persona.ts: Persona, VoiceProfile types
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/voice-profile/page.tsx: voice profile page route
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

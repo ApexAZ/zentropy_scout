@@ -1,10 +1,19 @@
 "use client";
 
 /**
- * Entry gate that redirects unonboarded users to /onboarding.
+ * @fileoverview Entry gate that redirects unonboarded users to /onboarding.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §3.3: All non-onboarding routes redirect to /onboarding
  * until persona exists and onboarding_complete = true.
+ *
+ * Coordinates with:
+ * - hooks/use-persona-status.ts: persona status check for redirect logic
+ *
+ * Called by / Used by:
+ * - app/(main)/layout.tsx: wraps all main route group pages
  */
 
 import { useRouter } from "next/navigation";

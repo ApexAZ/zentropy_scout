@@ -1,12 +1,29 @@
 "use client";
 
 /**
- * Basic info and professional overview editor (§6.3).
+ * @fileoverview Basic info and professional overview editor with two-column form.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §7.2.1: Two-column form (desktop) / stacked (mobile) for all
  * 12 basic info and professional overview fields. Pre-filled from persona
- * prop, validates with Zod, PATCHes /personas/{id}, invalidates cache,
- * and navigates back to /persona.
+ * prop, validates with Zod, PATCHes /personas/{id}, invalidates cache.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiPatch for persona update
+ * - lib/basic-info-schema.ts: BASIC_INFO_FIELDS shared Zod schema
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.personas cache key
+ * - components/form/form-error-summary.tsx: form-level error display
+ * - components/form/form-input-field.tsx: controlled text input
+ * - components/form/form-textarea-field.tsx: controlled textarea input
+ * - components/ui/button.tsx: submit button
+ * - components/ui/form.tsx: Form context provider
+ * - types/persona.ts: Persona type
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/basic-info/page.tsx: basic info page route
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

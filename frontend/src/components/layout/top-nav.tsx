@@ -1,11 +1,24 @@
 "use client";
 
 /**
- * Top navigation bar.
+ * @fileoverview Top navigation bar with links, badges, balance, and chat toggle.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §3.2: Horizontal top bar with links to major sections,
  * chat toggle button, and critical info badge indicators.
  * REQ-020 §9.1: Balance indicator with color coding.
+ *
+ * Coordinates with:
+ * - hooks/use-balance.ts: account balance fetch for balance indicator
+ * - lib/auth-provider.tsx: useSession for admin check
+ * - lib/chat-panel-provider.tsx: useChatPanel for chat toggle
+ * - lib/format-utils.ts: formatBalance, getBalanceColorClass
+ * - lib/utils.ts: cn class name helper
+ *
+ * Called by / Used by:
+ * - components/layout/app-shell.tsx: rendered as top nav in app shell
  */
 
 import {

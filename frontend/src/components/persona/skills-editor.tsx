@@ -1,11 +1,32 @@
 "use client";
 
 /**
- * Post-onboarding skills editor (§6.7).
+ * @fileoverview Post-onboarding skills editor with CRUD, Hard/Soft tabs, and drag-drop reordering.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §7.2.4: CRUD for skill entries with Hard/Soft tabs and
- * per-type drag-drop reordering. Adapts onboarding SkillsStep logic
- * to the post-onboarding pattern.
+ * per-type drag-drop reordering.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch, apiPost for skill CRUD
+ * - lib/skills-helpers.ts: toFormValues, toRequestBody, SkillFormData
+ * - lib/embedding-staleness.ts: notifyEmbeddingUpdate after skill changes
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.skills cache key
+ * - hooks/use-delete-with-references.ts: delete with reference checking
+ * - components/onboarding/steps/skills-card.tsx: skill display card
+ * - components/onboarding/steps/skills-form.tsx: skill add/edit form
+ * - components/ui/button.tsx: add button
+ * - components/ui/delete-reference-dialog.tsx: delete confirmation dialog
+ * - components/ui/reorderable-list.tsx: drag-drop reordering container
+ * - components/ui/tabs.tsx: Tabs, TabsList, TabsTrigger, TabsContent
+ * - types/api.ts: ApiListResponse, ApiResponse envelope types
+ * - types/persona.ts: Persona, Skill, SkillType types
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/skills/page.tsx: skills page route
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";

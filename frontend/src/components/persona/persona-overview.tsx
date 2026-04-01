@@ -1,11 +1,24 @@
 "use client";
 
 /**
- * Persona overview page component (§6.1).
+ * @fileoverview Persona overview with header, section cards, and discovery preferences.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §7.1: Dashboard showing persona header, 8-card section grid
  * with counts and edit links, and a Discovery Preferences block.
- * Each card links to its section editor (§6.3–§6.14).
+ * Each card links to its section editor.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for sub-entity fetches
+ * - lib/query-keys.ts: queryKeys for work history, skills, education, etc.
+ * - components/persona/change-flags-banner.tsx: persona change flags banner
+ * - types/api.ts: ApiListResponse, ApiResponse envelope types
+ * - types/persona.ts: Persona, WorkHistory, Skill, Education, Certification, AchievementStory, VoiceProfile, CustomNonNegotiable types
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/page.tsx: persona overview page route
  */
 
 import { useQuery } from "@tanstack/react-query";
