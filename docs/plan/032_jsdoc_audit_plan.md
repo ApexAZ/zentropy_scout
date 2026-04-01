@@ -429,7 +429,7 @@ module -- accurate headers here make all subsequent backend phases faster to tra
 
 ## Phase 14: Backend repositories/ + api/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add `Coordinates with:` and `Called by:` sections to 10 repository files and 23 API
 router files. Repositories handle DB access; API routers define the HTTP layer.*
@@ -446,10 +446,10 @@ router files. Repositories handle DB access; API routers define the HTTP layer.*
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 35 | **Docstrings -- repositories/ + api/deps (11 files)** -- Add Coordinates-with/Called-by: `repositories/account_repository.py`, `repositories/credit_repository.py`, `repositories/job_pool_repository.py`, `repositories/job_posting_repository.py`, `repositories/persona_job_repository.py`, `repositories/resume_template_repository.py`, `repositories/stripe_repository.py`, `repositories/usage_repository.py`, `repositories/user_repository.py`, `repositories/verification_token_repository.py`, `api/deps.py`. | `docs, plan` | ⬜ |
-| 36 | **Docstrings -- api/v1/ first half (12 files)** -- Add Coordinates-with/Called-by: `api/v1/router.py`, `api/v1/admin.py`, `api/v1/applications.py`, `api/v1/auth.py`, `api/v1/auth_magic_link.py`, `api/v1/auth_oauth.py`, `api/v1/base_resumes.py`, `api/v1/chat.py`, `api/v1/cover_letters.py`, `api/v1/credits.py`, `api/v1/files.py`, `api/v1/job_postings.py`. | `docs, plan` | ⬜ |
-| 37 | **Docstrings -- api/v1/ second half (10 files)** -- Add Coordinates-with/Called-by: `api/v1/job_sources.py`, `api/v1/job_variants.py`, `api/v1/onboarding.py`, `api/v1/persona_change_flags.py`, `api/v1/personas.py`, `api/v1/refresh.py`, `api/v1/resume_templates.py`, `api/v1/usage.py`, `api/v1/user_source_preferences.py`, `api/v1/webhooks.py`. | `docs, plan` | ⬜ |
-| 38 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ⬜ |
+| 35 | **Docstrings -- repositories/ + api/deps (11 files)** -- Add Coordinates-with/Called-by: `repositories/account_repository.py`, `repositories/credit_repository.py`, `repositories/job_pool_repository.py`, `repositories/job_posting_repository.py`, `repositories/persona_job_repository.py`, `repositories/resume_template_repository.py`, `repositories/stripe_repository.py`, `repositories/usage_repository.py`, `repositories/user_repository.py`, `repositories/verification_token_repository.py`, `api/deps.py`. | `docs, plan` | ✅ |
+| 36 | **Docstrings -- api/v1/ first half (12 files)** -- Add Coordinates-with/Called-by: `api/v1/router.py`, `api/v1/admin.py`, `api/v1/applications.py`, `api/v1/auth.py`, `api/v1/auth_magic_link.py`, `api/v1/auth_oauth.py`, `api/v1/base_resumes.py`, `api/v1/chat.py`, `api/v1/cover_letters.py`, `api/v1/credits.py`, `api/v1/files.py`, `api/v1/job_postings.py`. | `docs, plan` | ✅ |
+| 37 | **Docstrings -- api/v1/ second half (10 files)** -- Add Coordinates-with/Called-by: `api/v1/job_sources.py`, `api/v1/job_variants.py`, `api/v1/onboarding.py`, `api/v1/persona_change_flags.py`, `api/v1/personas.py`, `api/v1/refresh.py`, `api/v1/resume_templates.py`, `api/v1/usage.py`, `api/v1/user_source_preferences.py`, `api/v1/webhooks.py`. | `docs, plan` | ✅ |
+| 38 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ✅ |
 
 ---
 
