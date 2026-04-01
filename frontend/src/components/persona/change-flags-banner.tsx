@@ -1,11 +1,23 @@
 "use client";
 
 /**
- * Pending change flags warning banner (§6.2).
+ * @fileoverview Pending change flags warning banner with count and review link.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §7.6: Shows count of pending PersonaChangeFlags with a
  * link to the resolution page. Returns null when there are no
- * pending flags (covers loading, error, and zero-count states).
+ * pending flags.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for pending change flags fetch
+ * - lib/query-keys.ts: queryKeys.changeFlags cache key
+ * - types/api.ts: ApiListResponse envelope type
+ * - types/persona.ts: PersonaChangeFlag type
+ *
+ * Called by / Used by:
+ * - components/persona/persona-overview.tsx: displayed on persona overview
  */
 
 import { useQuery } from "@tanstack/react-query";

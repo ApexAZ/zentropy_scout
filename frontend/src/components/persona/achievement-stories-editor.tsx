@@ -1,11 +1,30 @@
 "use client";
 
 /**
- * Post-onboarding achievement stories editor (§6.8).
+ * @fileoverview Post-onboarding achievement stories editor with CRUD and drag-drop reordering.
  *
- * REQ-012 §7.2.5: CRUD for achievement story entries with
- * C/A/O display, skill links, and drag-drop reordering.
- * Adapts onboarding StoryStep logic to the post-onboarding pattern.
+ * Layer: component
+ * Feature: persona
+ *
+ * REQ-012 §7.2.5: CRUD for achievement story entries with C/A/O display,
+ * skill links, and drag-drop reordering.
+ *
+ * Coordinates with:
+ * - lib/achievement-stories-helpers.ts: toFormValues, toRequestBody, StoryFormData
+ * - lib/api-client.ts: apiGet, apiPatch, apiPost for story CRUD
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.achievementStories, queryKeys.skills cache keys
+ * - hooks/use-delete-with-references.ts: delete with reference checking
+ * - components/onboarding/steps/story-card.tsx: story display card
+ * - components/onboarding/steps/story-form.tsx: story add/edit form
+ * - components/ui/button.tsx: add button
+ * - components/ui/delete-reference-dialog.tsx: delete confirmation dialog
+ * - components/ui/reorderable-list.tsx: drag-drop reordering container
+ * - types/api.ts: ApiListResponse, ApiResponse envelope types
+ * - types/persona.ts: AchievementStory, Persona, Skill types
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/achievement-stories/page.tsx: achievement stories page route
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";

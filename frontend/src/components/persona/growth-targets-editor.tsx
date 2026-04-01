@@ -1,11 +1,27 @@
 "use client";
 
 /**
- * Post-onboarding growth targets editor (§6.11).
+ * @fileoverview Post-onboarding growth targets editor with tag inputs and stretch appetite.
  *
- * REQ-012 §7.2.8: Simple form matching §6.3.9 — tag inputs for target
- * roles and skills, and a stretch appetite radio group with descriptions.
- * Pre-fills from persona prop, PATCHes on save, invalidates cache.
+ * Layer: component
+ * Feature: persona
+ *
+ * REQ-012 §7.2.8: Tag inputs for target roles and skills, and a stretch
+ * appetite radio group with descriptions. Pre-fills from persona prop,
+ * PATCHes on save, invalidates cache.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiPatch for persona update
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/growth-targets-helpers.ts: schema, defaults, toFormValues, toRequestBody
+ * - lib/query-keys.ts: queryKeys.personas cache key
+ * - components/persona/growth-targets-form-fields.tsx: growth targets form fields
+ * - components/ui/button.tsx: submit button
+ * - components/ui/form.tsx: Form context provider
+ * - types/persona.ts: Persona type
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/growth/page.tsx: growth targets page route
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

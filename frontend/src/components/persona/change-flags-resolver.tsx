@@ -1,12 +1,30 @@
 "use client";
 
 /**
- * PersonaChangeFlags resolution UI (§6.13).
+ * @fileoverview Change flags resolution UI with per-flag actions and resume checklist.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §7.6: Review each pending change flag and choose
  * "Add to all resumes", "Add to some" (expands base resume
  * checklist), or "Skip". Each flag resolves independently via
  * PATCH /persona-change-flags/:id.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch for flags and resumes
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.changeFlags, queryKeys.baseResumes cache keys
+ * - lib/toast.ts: showToast for resolution notifications
+ * - components/ui/button.tsx: action buttons
+ * - components/ui/checkbox.tsx: resume selection checkboxes
+ * - components/ui/error-states.tsx: EmptyState, FailedState displays
+ * - types/api.ts: ApiListResponse envelope type
+ * - types/persona.ts: ChangeType, ChangeFlagResolution, PersonaChangeFlag types
+ * - types/resume.ts: BaseResume type
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/change-flags/page.tsx: change flags page route
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";

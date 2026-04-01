@@ -1,11 +1,27 @@
 "use client";
 
 /**
- * Post-onboarding discovery preferences editor (§6.11).
+ * @fileoverview Post-onboarding discovery preferences editor with threshold sliders and polling.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §7.2.9: Two threshold sliders (0-100) with behavioral
  * explanations, polling frequency select, and cross-field validation
  * warning when auto-draft < minimum fit threshold.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiPatch for persona update
+ * - lib/discovery-preferences-helpers.ts: schema, defaults, EXPLANATION_TEXT, THRESHOLD_WARNING, toFormValues, toRequestBody
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys.personas cache key
+ * - components/form/form-error-summary.tsx: form-level error display
+ * - components/ui/button.tsx: submit button
+ * - components/ui/form.tsx: Form, FormControl, FormField, FormItem, FormLabel, FormMessage
+ * - types/persona.ts: Persona type, POLLING_FREQUENCIES constant
+ *
+ * Called by / Used by:
+ * - app/(main)/persona/discovery/page.tsx: discovery preferences page route
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

@@ -1,10 +1,23 @@
 /**
- * Shared form fields for the growth targets editor and onboarding step.
+ * @fileoverview Shared form fields for growth targets (tag inputs + stretch appetite radio).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.9 / §7.2.8: Tag inputs for target roles and skills,
- * and a stretch appetite radio group with descriptions — identical
- * fields used by both the onboarding wizard step and the post-onboarding
- * editor.
+ * and a stretch appetite radio group with descriptions. Shared between
+ * the onboarding wizard step and the post-onboarding editor.
+ *
+ * Coordinates with:
+ * - lib/growth-targets-helpers.ts: STRETCH_DESCRIPTIONS, GrowthTargetsFormData
+ * - components/form/form-error-summary.tsx: form-level error display
+ * - components/form/form-tag-field.tsx: tag input field
+ * - components/ui/form.tsx: FormControl, FormField, FormItem, FormMessage
+ * - types/persona.ts: STRETCH_APPETITES constant
+ *
+ * Called by / Used by:
+ * - components/persona/growth-targets-editor.tsx: post-onboarding editor
+ * - components/onboarding/steps/growth-targets-step.tsx: onboarding wizard step
  */
 
 import type { UseFormReturn } from "react-hook-form";

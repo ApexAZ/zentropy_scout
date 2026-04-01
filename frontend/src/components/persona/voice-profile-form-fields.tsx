@@ -1,10 +1,25 @@
 /**
- * Shared form fields for the voice profile editor and onboarding step.
+ * @fileoverview Shared form fields for voice profile (text inputs, tag inputs, writing sample).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.10 / §7.2.6: Text inputs (tone, style, vocabulary,
  * personality), tag inputs (sample phrases, things to avoid), and
- * optional textarea (writing sample) — identical fields used by both
- * the onboarding wizard step and the post-onboarding editor.
+ * optional textarea (writing sample). Shared between the onboarding
+ * wizard step and the post-onboarding editor.
+ *
+ * Coordinates with:
+ * - lib/voice-profile-helpers.ts: VoiceProfileFormData type
+ * - components/form/form-error-summary.tsx: form-level error display
+ * - components/form/form-input-field.tsx: controlled text input
+ * - components/form/form-tag-field.tsx: tag input field
+ * - components/ui/form.tsx: FormControl, FormField, FormItem, FormLabel, FormMessage
+ * - components/ui/textarea.tsx: textarea for writing sample
+ *
+ * Called by / Used by:
+ * - components/persona/voice-profile-editor.tsx: post-onboarding editor
+ * - components/onboarding/steps/voice-profile-step.tsx: onboarding wizard step
  */
 
 import type { UseFormReturn } from "react-hook-form";

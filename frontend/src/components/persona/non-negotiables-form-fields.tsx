@@ -1,9 +1,25 @@
 /**
- * Shared form fields for the non-negotiables editor and onboarding step.
+ * @fileoverview Shared form fields for non-negotiables (location, compensation, filters).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.8 / §7.2.7: Location preferences, compensation,
- * and other filters — identical fields used by both the onboarding
- * wizard step and the post-onboarding editor.
+ * and other filters. Shared between the onboarding wizard step and
+ * the post-onboarding editor.
+ *
+ * Coordinates with:
+ * - lib/non-negotiables-helpers.ts: CURRENCIES, NonNegotiablesFormData
+ * - components/form/form-error-summary.tsx: form-level error display
+ * - components/form/form-tag-field.tsx: tag input field
+ * - components/ui/checkbox.tsx: boolean toggle checkboxes
+ * - components/ui/input.tsx: text/number inputs
+ * - components/ui/form.tsx: FormControl, FormField, FormItem, FormLabel, FormMessage
+ * - types/persona.ts: RemotePreference, COMPANY_SIZE_PREFERENCES, MAX_TRAVEL_PERCENTS, REMOTE_PREFERENCES
+ *
+ * Called by / Used by:
+ * - components/persona/non-negotiables-editor.tsx: post-onboarding editor
+ * - components/onboarding/steps/non-negotiables-step.tsx: onboarding wizard step
  */
 
 import type { UseFormReturn } from "react-hook-form";
