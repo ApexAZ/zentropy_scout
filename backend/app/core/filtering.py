@@ -3,16 +3,22 @@
 REQ-006 §5.5: Standard filtering & sorting for collection endpoints.
 
 Sorting:
-    - `?sort=created_at` - Ascending by field
-    - `?sort=-created_at` - Descending (prefix with `-`)
-    - `?sort=-fit_score,title` - Multiple fields, comma-separated
+    - ``?sort=created_at`` - Ascending by field
+    - ``?sort=-created_at`` - Descending (prefix with ``-``)
+    - ``?sort=-fit_score,title`` - Multiple fields, comma-separated
 
 Filtering:
-    - `?status=Applied` - Exact match
-    - `?status=Applied,Interviewing` - Match any (OR)
+    - ``?status=Applied`` - Exact match
+    - ``?status=Applied,Interviewing`` - Match any (OR)
 
 Example:
-    GET /job-postings?status=Discovered&is_favorite=true&sort=-fit_score
+    ``GET /job-postings?status=Discovered&is_favorite=true&sort=-fit_score``
+
+Coordinates with:
+  - (no internal app imports — standalone filtering utilities)
+
+Called by: (not currently imported by production code — utilities available
+for future endpoint use).
 """
 
 import uuid

@@ -6,6 +6,12 @@ WHY PAGINATION:
 - Prevents memory issues with large result sets
 - Improves response time for list endpoints
 - Standard REST API pattern
+
+Coordinates with:
+  - (no internal app imports — standalone pagination utilities)
+
+Called by: api/v1/credits.py (transaction history pagination),
+api/v1/usage.py (usage history pagination).
 """
 
 from dataclasses import dataclass

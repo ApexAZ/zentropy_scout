@@ -14,6 +14,11 @@ Scope:
 
 This is a raw ASGI middleware (not BaseHTTPMiddleware) for direct access
 to scope["query_string"] and the receive callable.
+
+Coordinates with:
+  - (no internal app imports — standalone ASGI middleware)
+
+Called by: main.py (middleware registration in app factory).
 """
 
 from __future__ import annotations

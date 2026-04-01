@@ -8,6 +8,14 @@ Rules:
 2. If email exists AND both sides verified → link accounts (same user)
 3. If email exists but either side unverified → REJECT (pre-hijack defense)
 4. If no matching email → create new user
+
+Coordinates with:
+  - core/errors.py — imports APIError for AccountLinkingBlockedError base
+  - models/user.py — imports User model for user creation
+  - repositories/account_repository.py — imports AccountRepository for provider lookup
+  - repositories/user_repository.py — imports UserRepository for email lookup
+
+Called by: api/v1/auth_oauth.py (OAuth callback account linking).
 """
 
 import logging

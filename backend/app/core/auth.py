@@ -7,6 +7,13 @@ Pipeline:
 - validate_password_strength: Format rules (sync, no network)
 - check_password_breached: HIBP k-anonymity check (async, network)
 - DUMMY_HASH: Timing-safe constant for user enumeration defense
+
+Coordinates with:
+  - core/config.py — imports settings for auth_secret, auth_issuer, cookie config
+  - core/errors.py — imports ValidationError for password validation failures
+
+Called by: api/v1/auth.py, api/v1/auth_magic_link.py, api/v1/auth_oauth.py
+(all three auth endpoint modules).
 """
 
 import hashlib

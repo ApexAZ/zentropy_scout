@@ -11,10 +11,18 @@ Architecture:
     All queries automatically filter by the user_id set at construction.
     This prevents accidental cross-tenant data access.
 
-Usage:
+Usage::
+
     scoped = TenantScopedSession(db, user_id)
     persona = await scoped.get_persona(persona_id)  # Ownership verified
     personas = await scoped.list_personas()  # Only user's personas
+
+Coordinates with:
+  - core/errors.py — imports NotFoundError for ownership verification failures
+  - models/persona.py — imports Persona model for tenant-scoped queries
+
+Called by: (not currently imported — available for future scoped DB access
+outside the API layer).
 """
 
 import uuid

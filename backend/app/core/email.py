@@ -2,6 +2,12 @@
 
 REQ-013 §3.3, §4.4: Simple HTTP POST to Resend for magic link emails.
 Uses plain-text email format initially (custom templates deferred per §12).
+
+Coordinates with:
+  - core/config.py — imports settings for Resend API key, frontend URL, email sender
+
+Called by: api/v1/auth.py (registration email), api/v1/auth_magic_link.py
+(magic link sign-in email).
 """
 
 import logging

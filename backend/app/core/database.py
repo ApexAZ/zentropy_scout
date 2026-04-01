@@ -2,6 +2,12 @@
 
 REQ-005 §2.2: Configures SQLAlchemy async engine with connection pooling
 and provides dependency injection for database sessions.
+
+Coordinates with:
+  - core/config.py — imports settings for database_url and environment
+
+Called by: main.py (async_session_factory for lifespan), api/deps.py (get_db
+for endpoint dependency injection).
 """
 
 from collections.abc import AsyncGenerator

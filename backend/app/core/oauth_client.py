@@ -2,6 +2,12 @@
 
 REQ-013 §4.1, §4.2: HTTP client functions for exchanging authorization
 codes for tokens and fetching user info from OAuth providers.
+
+Coordinates with:
+  - core/config.py — imports settings for OAuth client credentials
+  - core/oauth.py — imports get_provider_config for endpoint URLs
+
+Called by: api/v1/auth_oauth.py (OAuth callback token exchange and userinfo).
 """
 
 from typing import Any

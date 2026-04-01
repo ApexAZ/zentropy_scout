@@ -7,6 +7,19 @@ This module creates and configures the FastAPI application, including:
 - API v1 router mounting
 - Health check endpoint
 - Pool surfacing background worker (REQ-015 §7)
+
+Coordinates with:
+  - api/v1/router.py — imports v1_router for API route mounting
+  - core/config.py — imports settings for CORS, environment, and auth config
+  - core/database.py — imports async_session_factory for lifespan session
+  - core/errors.py — imports APIError for exception handler registration
+  - core/null_byte_middleware.py — imports NullByteMiddleware for CWE-158 defense
+  - core/rate_limiting.py — imports limiter and rate_limit_exceeded_handler
+  - core/responses.py — imports ErrorDetail, ErrorResponse for error formatting
+  - services/billing/reservation_sweep.py — imports ReservationSweepWorker for lifespan
+  - services/discovery/pool_surfacing_worker.py — imports PoolSurfacingWorker for lifespan
+
+Called by: uvicorn (entry point: ``uvicorn app.main:app``).
 """
 
 from collections.abc import AsyncGenerator

@@ -7,6 +7,12 @@ WHY RESPONSE ENVELOPES:
 - Easy to distinguish success from error responses
 - Pagination metadata in a predictable location
 - Type-safe response building in endpoints
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic response models)
+
+Called by: main.py (ErrorDetail, ErrorResponse for exception handlers) and
+18+ API endpoint modules across api/v1/.
 """
 
 from typing import Generic, TypeVar

@@ -3,6 +3,12 @@
 REQ-013 §4.1, §4.2, §10.4: PKCE code verifier/challenge generation,
 state parameter management via signed JWT cookies, and OAuth provider
 endpoint configuration for Google and LinkedIn.
+
+Coordinates with:
+  - (no internal app imports — standalone OAuth utilities)
+
+Called by: core/oauth_client.py (get_provider_config for token exchange),
+api/v1/auth_oauth.py (PKCE, state cookies, provider config).
 """
 
 import base64

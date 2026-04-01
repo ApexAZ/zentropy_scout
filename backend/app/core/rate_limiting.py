@@ -7,13 +7,21 @@ REQ-013 §7.4: When auth is enabled, rate limiting keys on the JWT subject
 (per-user) to prevent abuse from shared IP addresses. Unauthenticated
 requests fall back to IP-based keying.
 
-Usage in routers:
+Usage in routers::
+
     from app.core.rate_limiting import limiter
 
     @router.post("/ingest")
     @limiter.limit(lambda: settings.rate_limit_llm)
     async def ingest_job_posting(request: Request, ...):
         ...
+
+Coordinates with:
+  - core/config.py — imports settings for rate_limit_enabled and auth config
+
+Called by: main.py (limiter state + rate_limit_exceeded_handler) and 8 API
+endpoint modules (auth, auth_magic_link, auth_oauth, chat, job_postings,
+personas, onboarding, admin).
 """
 
 import jwt

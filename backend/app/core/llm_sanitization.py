@@ -5,6 +5,13 @@ before user-provided text is embedded in LLM prompts.
 
 This is defense-in-depth, not a complete solution. LLM prompts should also
 use clear delimiters and system-level guardrails where available.
+
+Coordinates with:
+  - (no internal app imports — standalone sanitization pipeline)
+
+Called by: 13 files across services/ and prompts/ — content generation,
+discovery extraction, resume parsing, ghostwriter prompts, strategist
+prompts, and admin endpoints.
 """
 
 import re

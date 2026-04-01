@@ -2,6 +2,13 @@
 
 Security: Validates file content (magic bytes), enforces size limits,
 and sanitizes filenames to prevent injection attacks.
+
+Coordinates with:
+  - core/errors.py — imports ValidationError for validation failures
+
+Called by: api/v1/onboarding.py (resume parse upload), api/v1/files.py (file
+upload), api/v1/base_resumes.py (resume file upload), api/v1/job_variants.py
+(variant file upload).
 """
 
 import re

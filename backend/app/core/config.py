@@ -4,6 +4,11 @@ REQ-006 §6.1, REQ-013 §7.2, §11, REQ-029 §11: Settings for database, API,
 LLM providers, authentication, and Stripe. Uses pydantic-settings for
 validation and .env file support.
 REQ-030 §9: Reservation system config and production metering validation.
+
+Coordinates with:
+  - (no internal app imports — standalone configuration module)
+
+Called by: widely imported (17+ files across main, core/, api/, services/).
 """
 
 import logging

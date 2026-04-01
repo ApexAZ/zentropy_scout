@@ -7,6 +7,12 @@ WHY CUSTOM ERROR CLASSES:
 - Consistent error response format across all endpoints
 - Easy to map to HTTP status codes in exception handlers
 - Type-safe error handling in services/repositories
+
+Coordinates with:
+  - (no internal app imports — standalone error definitions)
+
+Called by: widely imported (30+ files across main, core/, api/, services/,
+repositories/, providers/).
 """
 
 from decimal import Decimal

@@ -2,6 +2,12 @@
 
 REQ-029 §5.2: Creates StripeClient instances with pinned API version.
 Uses the StripeClient pattern (not deprecated stripe.api_key global).
+
+Coordinates with:
+  - core/config.py — imports settings for stripe_secret_key
+
+Called by: api/v1/credits.py (StripeClientDep for checkout and webhook
+endpoints).
 """
 
 from typing import Annotated
