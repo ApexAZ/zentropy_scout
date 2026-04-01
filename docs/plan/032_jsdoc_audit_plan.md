@@ -180,7 +180,7 @@ Types define the domain model; hooks encapsulate reusable stateful logic.*
 
 ## Phase 4: app/ Pages and Layouts
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add three-axis JSDoc headers to all ~38 page and layout files in app/ plus proxy.ts.
 Most have minimal or no existing JSDoc. Split into 3 subtasks by route group.*
@@ -197,10 +197,10 @@ Most have minimal or no existing JSDoc. Split into 3 subtasks by route group.*
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 8 | **JSDoc -- app/ root + (public) + proxy (12 files)** -- Add headers: `app/layout.tsx`, `app/login/page.tsx`, `app/register/page.tsx`, `app/onboarding/page.tsx`, `app/(public)/layout.tsx`, `app/(public)/page.tsx`, `app/(public)/components/feature-cards.tsx`, `app/(public)/components/hero-section.tsx`, `app/(public)/components/how-it-works.tsx`, `app/(public)/components/landing-footer.tsx`, `app/(public)/components/landing-nav.tsx`, `proxy.ts`. | `docs, plan` | ⬜ |
-| 9 | **JSDoc -- app/(main) persona pages (12 files)** -- Add headers: `app/(main)/layout.tsx`, `app/(main)/persona/page.tsx`, `app/(main)/persona/basic-info/page.tsx`, `app/(main)/persona/work-history/page.tsx`, `app/(main)/persona/education/page.tsx`, `app/(main)/persona/certifications/page.tsx`, `app/(main)/persona/skills/page.tsx`, `app/(main)/persona/achievement-stories/page.tsx`, `app/(main)/persona/voice-profile/page.tsx`, `app/(main)/persona/non-negotiables/page.tsx`, `app/(main)/persona/growth/page.tsx`, `app/(main)/persona/discovery/page.tsx`. | `docs, plan` | ⬜ |
-| 10 | **JSDoc -- app/(main) remaining pages (14 files)** -- Add headers: `app/(main)/persona/change-flags/page.tsx`, `app/(main)/dashboard/page.tsx`, `app/(main)/settings/page.tsx`, `app/(main)/usage/page.tsx`, `app/(main)/admin/config/page.tsx`, `app/(main)/applications/page.tsx`, `app/(main)/applications/[id]/page.tsx`, `app/(main)/jobs/[id]/page.tsx`, `app/(main)/jobs/[id]/review/page.tsx`, `app/(main)/resumes/page.tsx`, `app/(main)/resumes/[id]/page.tsx`, `app/(main)/resumes/new/page.tsx`, `app/(main)/resumes/[id]/variants/[variantId]/edit/page.tsx`, `app/(main)/resumes/[id]/variants/[variantId]/review/page.tsx`. | `docs, plan` | ⬜ |
-| 11 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 8 | **JSDoc -- app/ root + (public) + proxy (12 files)** -- Add headers: `app/layout.tsx`, `app/login/page.tsx`, `app/register/page.tsx`, `app/onboarding/page.tsx`, `app/(public)/layout.tsx`, `app/(public)/page.tsx`, `app/(public)/components/feature-cards.tsx`, `app/(public)/components/hero-section.tsx`, `app/(public)/components/how-it-works.tsx`, `app/(public)/components/landing-footer.tsx`, `app/(public)/components/landing-nav.tsx`, `proxy.ts`. | `docs, plan` | ✅ |
+| 9 | **JSDoc -- app/(main) persona pages (12 files)** -- Add headers: `app/(main)/layout.tsx`, `app/(main)/persona/page.tsx`, `app/(main)/persona/basic-info/page.tsx`, `app/(main)/persona/work-history/page.tsx`, `app/(main)/persona/education/page.tsx`, `app/(main)/persona/certifications/page.tsx`, `app/(main)/persona/skills/page.tsx`, `app/(main)/persona/achievement-stories/page.tsx`, `app/(main)/persona/voice-profile/page.tsx`, `app/(main)/persona/non-negotiables/page.tsx`, `app/(main)/persona/growth/page.tsx`, `app/(main)/persona/discovery/page.tsx`. | `docs, plan` | ✅ |
+| 10 | **JSDoc -- app/(main) remaining pages (14 files)** -- Add headers: `app/(main)/persona/change-flags/page.tsx`, `app/(main)/dashboard/page.tsx`, `app/(main)/settings/page.tsx`, `app/(main)/usage/page.tsx`, `app/(main)/admin/config/page.tsx`, `app/(main)/applications/page.tsx`, `app/(main)/applications/[id]/page.tsx`, `app/(main)/jobs/[id]/page.tsx`, `app/(main)/jobs/[id]/review/page.tsx`, `app/(main)/resumes/page.tsx`, `app/(main)/resumes/[id]/page.tsx`, `app/(main)/resumes/new/page.tsx`, `app/(main)/resumes/[id]/variants/[variantId]/edit/page.tsx`, `app/(main)/resumes/[id]/variants/[variantId]/review/page.tsx`. | `docs, plan` | ✅ |
+| 11 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
