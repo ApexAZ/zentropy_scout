@@ -1,8 +1,18 @@
 /**
- * Low-balance warning banner for the usage page.
+ * @fileoverview Low-balance warning banner for the usage page.
+ *
+ * Layer: component
+ * Feature: usage
  *
  * REQ-029 §9.5: Threshold-based color coding with CTA to
  * scroll to funding packs section.
+ *
+ * Coordinates with:
+ * - lib/format-utils.ts: BALANCE_THRESHOLD_HIGH, BALANCE_THRESHOLD_LOW for threshold constants
+ * - lib/utils.ts: cn class-name helper
+ *
+ * Called by / Used by:
+ * - components/usage/usage-page.tsx: low-balance warning on usage dashboard
  */
 
 import {

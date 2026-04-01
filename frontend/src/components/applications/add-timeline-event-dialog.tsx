@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Dialog for adding a manual timeline event to an application.
+ * @fileoverview Dialog for adding a manual timeline event to an application.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.7: "Add Event" button opens a form with event type selector
  * (manual types only), description, conditional interview stage, and date/time.
  * Timeline events are immutable — no edit, only append.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/button.tsx: Button for submit and cancel actions
+ * - components/ui/input.tsx: Input for date/time field
+ * - components/ui/label.tsx: Label for form field labels
+ * - components/ui/select.tsx: Select for event type and interview stage dropdowns
+ * - components/ui/textarea.tsx: Textarea for event description
+ * - types/application.ts: INTERVIEW_STAGES constant, InterviewStage and TimelineEventType types
+ *
+ * Called by / Used by:
+ * - components/applications/application-detail.tsx: "Add Event" button on timeline section
  */
 
 import { useCallback, useState } from "react";

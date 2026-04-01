@@ -1,10 +1,25 @@
 "use client";
 
 /**
- * Vertical chronological timeline displaying application events.
+ * @fileoverview Vertical chronological timeline displaying application events.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.7: Timeline with event type icons, immutable events,
  * and "Add Event" button for manual entries.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for fetching timeline events
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - components/ui/button.tsx: Button for "Add Event" action
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - components/ui/error-states.tsx: FailedState for error display
+ * - types/api.ts: ApiListResponse envelope type
+ * - types/application.ts: TimelineEvent, TimelineEventType types
+ *
+ * Called by / Used by:
+ * - components/applications/application-detail.tsx: timeline section on application detail page
  */
 
 import { useQuery } from "@tanstack/react-query";

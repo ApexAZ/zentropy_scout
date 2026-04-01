@@ -1,8 +1,22 @@
 /**
- * Purchase history table for the usage dashboard.
+ * @fileoverview Purchase history table for the usage dashboard.
+ *
+ * Layer: component
+ * Feature: usage
  *
  * REQ-029 §8.3: Paginated table of purchases, grants, and refunds
  * with color-coded signed amounts.
+ *
+ * Coordinates with:
+ * - lib/format-utils.ts: formatDate for date display
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - components/ui/skeleton.tsx: Skeleton for loading state
+ * - components/ui/table-pagination.tsx: TablePagination for page navigation
+ * - types/usage.ts: PurchaseItem type
+ *
+ * Called by / Used by:
+ * - components/usage/usage-page.tsx: purchase history table on usage dashboard
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

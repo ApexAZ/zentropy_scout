@@ -1,12 +1,34 @@
 "use client";
 
 /**
- * Usage dashboard page layout component.
+ * @fileoverview Usage dashboard page layout component.
+ *
+ * Layer: component
+ * Feature: usage
  *
  * REQ-020 §9.2: Usage page at /usage with balance card,
  * period summary, cost breakdowns, and paginated tables.
  * REQ-029 §9.1: Funding packs, purchase history, low-balance warning.
  * REQ-029 §9.4; REQ-030 §10.2: Stripe redirect success/cancel handling.
+ *
+ * Coordinates with:
+ * - hooks/use-balance.ts: useBalance hook for current balance data
+ * - lib/api-client.ts: apiGet for usage records, transactions, and summary
+ * - lib/api/credits.ts: fetchPurchases for purchase history
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for Stripe redirect notifications
+ * - components/usage/balance-card.tsx: BalanceCard for balance display
+ * - components/usage/funding-packs.tsx: FundingPacks for pack selection
+ * - components/usage/low-balance-warning.tsx: LowBalanceWarning for threshold alert
+ * - components/usage/purchase-table.tsx: PurchaseTable for purchase history
+ * - components/usage/transaction-table.tsx: TransactionTable for transaction history
+ * - components/usage/usage-summary.tsx: UsageSummary for period summary
+ * - components/usage/usage-table.tsx: UsageTable for usage records
+ * - types/api.ts: ApiListResponse, ApiResponse envelope types
+ * - types/usage.ts: CreditTransactionResponse, UsageRecordResponse, UsageSummaryResponse types
+ *
+ * Called by / Used by:
+ * - app/(main)/usage/page.tsx: usage dashboard route page
  */
 
 import { Suspense, useEffect, useState } from "react";

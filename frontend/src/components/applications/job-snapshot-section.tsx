@@ -1,10 +1,23 @@
 /**
- * Expandable job snapshot section for application detail page.
+ * @fileoverview Expandable job snapshot section for application detail page.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.10: Shows frozen job data at application time in a
  * collapsible card. Always displays captured_at and optional
  * "View live posting" link. Expanded view shows description,
  * requirements, salary, location, and work model.
+ *
+ * Coordinates with:
+ * - lib/job-formatters.ts: formatDateTimeAgo, formatSnapshotSalary for display formatting
+ * - lib/url-utils.ts: isSafeUrl for external link validation
+ * - components/ui/button.tsx: Button for expand toggle and external link
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - types/application.ts: JobSnapshot type
+ *
+ * Called by / Used by:
+ * - components/applications/application-detail.tsx: job snapshot section on detail page
  */
 
 import { useState } from "react";

@@ -1,10 +1,23 @@
 "use client";
 
 /**
- * Dialog for selecting interview stage during Interviewing status transition.
+ * @fileoverview Dialog for selecting interview stage during Interviewing status transition.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.3: When transitioning to Interviewing, prompt for stage:
  * Phone Screen, Onsite, or Final Round.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/button.tsx: Button for confirm and cancel actions
+ * - components/ui/label.tsx: Label for radio group label
+ * - components/ui/radio-group.tsx: RadioGroup, RadioGroupItem for stage selection
+ * - types/application.ts: INTERVIEW_STAGES constant, InterviewStage type
+ *
+ * Called by / Used by:
+ * - components/applications/status-transition-dropdown.tsx: interview stage prompt on Interviewing transition
  */
 
 import { useState } from "react";

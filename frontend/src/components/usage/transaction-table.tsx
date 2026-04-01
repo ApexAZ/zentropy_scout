@@ -1,8 +1,22 @@
 /**
- * Transaction history table for the usage dashboard.
+ * @fileoverview Transaction history table for the usage dashboard.
+ *
+ * Layer: component
+ * Feature: usage
  *
  * REQ-020 §9.2: Transaction history — paginated table with
  * color-coded amounts (green for credits, red for debits).
+ *
+ * Coordinates with:
+ * - lib/format-utils.ts: formatDate for date display
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - components/ui/skeleton.tsx: Skeleton for loading state
+ * - components/ui/table-pagination.tsx: TablePagination for page navigation
+ * - types/usage.ts: CreditTransactionResponse type
+ *
+ * Called by / Used by:
+ * - components/usage/usage-page.tsx: transaction history table on usage dashboard
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

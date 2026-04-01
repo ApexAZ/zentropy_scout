@@ -1,8 +1,21 @@
 /**
- * Balance card component for the usage dashboard.
+ * @fileoverview Balance card component for the usage dashboard.
+ *
+ * Layer: component
+ * Feature: usage
  *
  * REQ-020 §9.2: Large balance display with color coding.
  * REQ-029 §9.1: "Add Funds" button links to funding packs section.
+ *
+ * Coordinates with:
+ * - lib/format-utils.ts: BALANCE_THRESHOLD_HIGH, BALANCE_THRESHOLD_LOW, formatBalance, getBalanceColorClass
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/button.tsx: Button for "Add Funds" CTA
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - components/ui/skeleton.tsx: Skeleton for loading state
+ *
+ * Called by / Used by:
+ * - components/usage/usage-page.tsx: balance card section on usage dashboard
  */
 
 import { Button } from "@/components/ui/button";

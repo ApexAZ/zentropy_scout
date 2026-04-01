@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * Read-only card displaying captured offer details with deadline countdown.
+ * @fileoverview Read-only card displaying captured offer details with deadline countdown.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.5: Offer details display with response deadline countdown.
  * Shown on application detail page when status is Offer or Accepted.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit action
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - types/application.ts: OfferDetails type
+ *
+ * Called by / Used by:
+ * - components/applications/application-detail.tsx: offer details card on detail page
  */
 
 import { Pencil } from "lucide-react";

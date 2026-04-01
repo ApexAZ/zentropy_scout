@@ -1,10 +1,26 @@
 "use client";
 
 /**
- * Funding pack selection cards with checkout redirect.
+ * @fileoverview Funding pack selection cards with checkout redirect.
+ *
+ * Layer: component
+ * Feature: usage
  *
  * REQ-029 §9.2: Pack cards with name, description, price, highlight badge.
  * REQ-029 §9.3: Checkout via location.assign redirect (no Stripe JS).
+ *
+ * Coordinates with:
+ * - lib/api/credits.ts: createCheckoutSession, fetchCreditPacks for Stripe checkout and pack data
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for error notifications
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/button.tsx: Button for "Add Funds" action
+ * - components/ui/card.tsx: Card, CardContent, CardDescription, CardHeader, CardTitle for pack cards
+ * - components/ui/skeleton.tsx: Skeleton for loading state
+ * - types/usage.ts: PackItem type
+ *
+ * Called by / Used by:
+ * - components/usage/usage-page.tsx: funding packs section on usage dashboard
  */
 
 import { useState } from "react";

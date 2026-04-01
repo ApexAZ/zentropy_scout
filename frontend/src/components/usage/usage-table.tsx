@@ -1,8 +1,21 @@
 /**
- * Usage records table for the usage dashboard.
+ * @fileoverview Usage records table for the usage dashboard.
+ *
+ * Layer: component
+ * Feature: usage
  *
  * REQ-020 §9.2: Recent activity — paginated table showing
  * provider, model, task type, tokens, cost, and date.
+ *
+ * Coordinates with:
+ * - lib/format-utils.ts: formatCost, formatDate, formatNumber for display formatting
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - components/ui/skeleton.tsx: Skeleton for loading state
+ * - components/ui/table-pagination.tsx: TablePagination for page navigation
+ * - types/usage.ts: UsageRecordResponse type
+ *
+ * Called by / Used by:
+ * - components/usage/usage-page.tsx: usage records table on usage dashboard
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

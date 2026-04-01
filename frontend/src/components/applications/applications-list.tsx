@@ -1,11 +1,32 @@
 "use client";
 
 /**
- * Dedicated applications list page component.
+ * @fileoverview Dedicated applications list page component.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.1: Full application tracking table with all statuses,
  * toolbar (search, filter, sort, show archived, select mode),
  * multi-select with bulk archive, and row click navigation.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPost for application list and bulk actions
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error notifications
+ * - components/applications/application-columns.tsx: APPLICATION_COLUMNS shared column definitions
+ * - components/ui/button.tsx: Button for bulk actions
+ * - components/ui/checkbox.tsx: Checkbox for row selection
+ * - components/data-table/data-table.tsx: DataTable for sortable/paginated table
+ * - components/data-table/data-table-select-column.tsx: getSelectColumn for checkbox column
+ * - components/data-table/data-table-toolbar.tsx: DataTableToolbar for search/filter bar
+ * - components/data-table/toolbar-select.tsx: ToolbarSelect for status filter dropdown
+ * - components/ui/error-states.tsx: FailedState for error display
+ * - types/api.ts: ApiListResponse, ApiResponse, BulkActionResult envelope types
+ * - types/application.ts: Application type
+ *
+ * Called by / Used by:
+ * - app/(main)/applications/page.tsx: applications list route page
  */
 
 import { useCallback, useMemo, useState } from "react";

@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Dialog for capturing offer details during Offer status transition.
+ * @fileoverview Dialog for capturing offer details during Offer status transition.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.5: Offer details form with all-optional fields.
  * Triggered from StatusTransitionDropdown when user selects Offer,
  * or from the OfferDetailsCard Edit button.
+ *
+ * Coordinates with:
+ * - components/ui/form-alert-dialog.tsx: FormAlertDialog for modal form wrapper
+ * - components/ui/input.tsx: Input for salary, equity, and deadline fields
+ * - components/ui/label.tsx: Label for form field labels
+ * - components/ui/select.tsx: Select for currency and equity type dropdowns
+ * - components/ui/textarea.tsx: Textarea for benefits and notes fields
+ * - types/application.ts: OfferDetails type
+ *
+ * Called by / Used by:
+ * - components/applications/application-detail.tsx: offer edit dialog on detail page
+ * - components/applications/status-transition-dropdown.tsx: offer capture on Offer transition
  */
 
 import { useCallback, useState } from "react";

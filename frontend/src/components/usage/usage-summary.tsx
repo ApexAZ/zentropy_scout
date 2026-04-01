@@ -1,8 +1,20 @@
 /**
- * Usage summary component for the usage dashboard.
+ * @fileoverview Usage summary component for the usage dashboard.
+ *
+ * Layer: component
+ * Feature: usage
  *
  * REQ-020 §9.2: Period summary showing total cost, call count,
  * token usage, and breakdowns by task type and provider.
+ *
+ * Coordinates with:
+ * - lib/format-utils.ts: formatCost, formatNumber for display formatting
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - components/ui/skeleton.tsx: Skeleton for loading state
+ * - types/usage.ts: UsageSummaryResponse type
+ *
+ * Called by / Used by:
+ * - components/usage/usage-page.tsx: period summary section on usage dashboard
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

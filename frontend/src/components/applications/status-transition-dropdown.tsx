@@ -1,20 +1,37 @@
 "use client";
 
 /**
- * Status transition dropdown for application detail pages.
+ * @fileoverview Status transition dropdown for application detail pages.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.3: Status update dropdown with conditional prompts.
  * Transition matrix:
- *   Applied → Interviewing, Rejected, Withdrawn
- *   Interviewing → Offer, Rejected, Withdrawn
- *   Offer → Accepted, Rejected, Withdrawn
- *   Accepted/Rejected/Withdrawn → (terminal, disabled)
+ *   Applied -> Interviewing, Rejected, Withdrawn
+ *   Interviewing -> Offer, Rejected, Withdrawn
+ *   Offer -> Accepted, Rejected, Withdrawn
+ *   Accepted/Rejected/Withdrawn -> (terminal, disabled)
  *
  * Conditional prompts:
- *   → Interviewing: Interview stage selector (Phone Screen / Onsite / Final Round)
- *   → Accepted/Withdrawn: Simple confirmation dialog
- *   → Offer: Opens OfferDetailsDialog (§10.5)
- *   → Rejected: Opens RejectionDetailsDialog (§10.6)
+ *   -> Interviewing: Interview stage selector (Phone Screen / Onsite / Final Round)
+ *   -> Accepted/Withdrawn: Simple confirmation dialog
+ *   -> Offer: Opens OfferDetailsDialog (§11.5)
+ *   -> Rejected: Opens RejectionDetailsDialog (§11.6)
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiPatch for status update requests
+ * - lib/query-keys.ts: queryKeys for cache invalidation
+ * - lib/toast.ts: showToast for success/error notifications
+ * - components/ui/select.tsx: Select for status dropdown
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for simple transitions
+ * - components/applications/interview-stage-dialog.tsx: InterviewStageDialog for stage selection
+ * - components/applications/offer-details-dialog.tsx: OfferDetailsDialog for offer capture
+ * - components/applications/rejection-details-dialog.tsx: RejectionDetailsDialog for rejection capture
+ * - types/application.ts: ApplicationStatus, InterviewStage, OfferDetails, RejectionDetails types
+ *
+ * Called by / Used by:
+ * - components/applications/application-detail.tsx: status dropdown on application detail page
  */
 
 import { useCallback, useState } from "react";

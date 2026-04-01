@@ -1,13 +1,41 @@
 "use client";
 
 /**
- * Application detail page component.
+ * @fileoverview Application detail page component.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.2: Header with back link, job title/company, applied date,
  * status badge with interview stage, documents panel (resume, cover letter,
  * job snapshot), and editable notes section.
  * REQ-012 §11.5: Offer details card with deadline countdown and edit dialog.
  * REQ-012 §11.6: Rejection details card with stage, reason, feedback, and date.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: ApiError, apiDelete, apiGet, apiPatch, apiPost, buildUrl for application CRUD
+ * - lib/job-formatters.ts: formatDateTimeAgo for relative date display
+ * - lib/query-keys.ts: queryKeys for cache key management
+ * - lib/toast.ts: showToast for success/error notifications
+ * - lib/utils.ts: cn class-name helper
+ * - components/ui/button.tsx: Button for action buttons
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - components/ui/error-states.tsx: FailedState, NotFoundState for error display
+ * - components/ui/status-badge.tsx: StatusBadge for application status pills
+ * - components/ui/textarea.tsx: Textarea for notes editing
+ * - components/applications/offer-details-card.tsx: OfferDetailsCard for offer display
+ * - components/applications/offer-details-dialog.tsx: OfferDetailsDialog for offer capture
+ * - components/applications/rejection-details-card.tsx: RejectionDetailsCard for rejection display
+ * - components/applications/rejection-details-dialog.tsx: RejectionDetailsDialog for rejection capture
+ * - components/applications/add-timeline-event-dialog.tsx: AddTimelineEventDialog for manual events
+ * - components/applications/application-timeline.tsx: ApplicationTimeline for event history
+ * - components/applications/job-snapshot-section.tsx: JobSnapshotSection for frozen job data
+ * - components/applications/status-transition-dropdown.tsx: StatusTransitionDropdown for status changes
+ * - types/api.ts: ApiResponse envelope type
+ * - types/application.ts: Application, OfferDetails, RejectionDetails types
+ *
+ * Called by / Used by:
+ * - app/(main)/applications/[id]/page.tsx: application detail route page
  */
 
 import { useCallback, useState } from "react";

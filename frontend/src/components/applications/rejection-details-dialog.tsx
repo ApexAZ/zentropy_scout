@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Dialog for capturing rejection details during Rejected status transition.
+ * @fileoverview Dialog for capturing rejection details during Rejected status transition.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.6: Rejection details form with pre-populated stage.
  * Triggered from StatusTransitionDropdown when user selects Rejected,
  * or from the RejectionDetailsCard Edit button.
+ *
+ * Coordinates with:
+ * - components/ui/form-alert-dialog.tsx: FormAlertDialog for modal form wrapper
+ * - components/ui/input.tsx: Input for rejection date field
+ * - components/ui/label.tsx: Label for form field labels
+ * - components/ui/select.tsx: Select for stage dropdown
+ * - components/ui/textarea.tsx: Textarea for reason and feedback fields
+ * - types/application.ts: INTERVIEW_STAGES constant, RejectionDetails type
+ *
+ * Called by / Used by:
+ * - components/applications/application-detail.tsx: rejection edit dialog on detail page
+ * - components/applications/status-transition-dropdown.tsx: rejection capture on Rejected transition
  */
 
 import { useCallback, useState } from "react";

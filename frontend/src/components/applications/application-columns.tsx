@@ -1,8 +1,21 @@
 /**
- * Shared column renderers and definitions for application tables.
+ * @fileoverview Shared column renderers and definitions for application tables.
+ *
+ * Layer: lib/utility
+ * Feature: applications
  *
  * Used by both ApplicationsTable (dashboard tabs) and ApplicationsList
  * (dedicated applications page) to avoid duplicating column definitions.
+ *
+ * Coordinates with:
+ * - lib/job-formatters.ts: formatDateTimeAgo for relative date display
+ * - components/data-table/data-table-column-header.tsx: DataTableColumnHeader for sortable headers
+ * - components/ui/status-badge.tsx: StatusBadge for application status pills
+ * - types/application.ts: Application type for column typing
+ *
+ * Called by / Used by:
+ * - components/applications/applications-list.tsx: column definitions for dedicated applications page
+ * - components/dashboard/applications-table.tsx: column definitions for dashboard applications tab
  */
 
 import type {

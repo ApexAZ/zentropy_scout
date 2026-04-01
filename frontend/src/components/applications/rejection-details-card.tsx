@@ -1,11 +1,22 @@
 "use client";
 
 /**
- * Read-only card displaying captured rejection details.
+ * @fileoverview Read-only card displaying captured rejection details.
+ *
+ * Layer: component
+ * Feature: applications
  *
  * REQ-012 §11.6: Rejection details display with stage, reason,
  * feedback, and rejection date.
  * Shown on application detail page when status is Rejected.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit action
+ * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for layout
+ * - types/application.ts: RejectionDetails type
+ *
+ * Called by / Used by:
+ * - components/applications/application-detail.tsx: rejection details card on detail page
  */
 
 import { Pencil } from "lucide-react";
