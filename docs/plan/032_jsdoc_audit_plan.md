@@ -131,7 +131,7 @@ subsequent phases faster to trace.*
 
 ## Phase 2: lib/ Helpers and Formatters
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Reformat existing JSDoc headers on 19 helper/formatter files in lib/. These handle
 persona CRUD transforms, API modules, and display formatting.*
@@ -149,7 +149,7 @@ persona CRUD transforms, API modules, and display formatting.*
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
 | 3 | **JSDoc -- lib/ helpers and formatters (19 files)** -- Reformat headers: `api/admin.ts`, `api/credits.ts`, `format-utils.ts`, `url-utils.ts`, `diff-utils.ts`, `score-formatters.ts`, `job-formatters.ts`, `resume-helpers.ts`, `embedding-staleness.ts`, `basic-info-schema.ts`, `skills-helpers.ts`, `work-history-helpers.ts`, `education-helpers.ts`, `certification-helpers.ts`, `achievement-stories-helpers.ts`, `non-negotiables-helpers.ts`, `growth-targets-helpers.ts`, `voice-profile-helpers.ts`, `discovery-preferences-helpers.ts`. | `docs, plan` | ✅ |
-| 4 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 4 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
