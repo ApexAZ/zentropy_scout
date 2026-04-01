@@ -11,6 +11,10 @@ WHY IN-MEMORY:
 Cross-cutting: In-memory ephemeral token management for ingest preview.
 Too small and unique to justify its own subdirectory.
 
+Coordinates with:
+  - core/errors.py — raises ValidationError for capacity/per-user limits
+  - schemas/ingest.py — stores ExtractedJobData in preview tokens
+
 Called by: app/api/v1/job_postings.py (ingest preview endpoints).
 """
 
