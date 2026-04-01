@@ -206,7 +206,7 @@ Most have minimal or no existing JSDoc. Split into 3 subtasks by route group.*
 
 ## Phase 5: components/layout/ and components/persona/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add three-axis JSDoc headers to 4 layout components and 16 persona editor components.
 Most have partial JSDoc (what + REQ refs) but lack Layer:/Feature:/Coordinates with:.*
@@ -223,9 +223,9 @@ Most have partial JSDoc (what + REQ refs) but lack Layer:/Feature:/Coordinates w
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 12 | **JSDoc -- layout/ + persona/ first half (12 files)** -- Add headers: `layout/app-shell.tsx`, `layout/chat-sidebar.tsx`, `layout/onboarding-gate.tsx`, `layout/top-nav.tsx`, `persona/persona-overview.tsx`, `persona/basic-info-editor.tsx`, `persona/certification-editor.tsx`, `persona/education-editor.tsx`, `persona/skills-editor.tsx`, `persona/work-history-editor.tsx`, `persona/voice-profile-editor.tsx`, `persona/non-negotiables-editor.tsx`. | `docs, plan` | ⬜ |
-| 13 | **JSDoc -- persona/ second half (8 files)** -- Add headers: `persona/growth-targets-editor.tsx`, `persona/growth-targets-form-fields.tsx`, `persona/achievement-stories-editor.tsx`, `persona/change-flags-banner.tsx`, `persona/change-flags-resolver.tsx`, `persona/discovery-preferences-editor.tsx`, `persona/non-negotiables-form-fields.tsx`, `persona/voice-profile-form-fields.tsx`. | `docs, plan` | ⬜ |
-| 14 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 12 | **JSDoc -- layout/ + persona/ first half (12 files)** -- Add headers: `layout/app-shell.tsx`, `layout/chat-sidebar.tsx`, `layout/onboarding-gate.tsx`, `layout/top-nav.tsx`, `persona/persona-overview.tsx`, `persona/basic-info-editor.tsx`, `persona/certification-editor.tsx`, `persona/education-editor.tsx`, `persona/skills-editor.tsx`, `persona/work-history-editor.tsx`, `persona/voice-profile-editor.tsx`, `persona/non-negotiables-editor.tsx`. | `docs, plan` | ✅ |
+| 13 | **JSDoc -- persona/ second half (8 files)** -- Add headers: `persona/growth-targets-editor.tsx`, `persona/growth-targets-form-fields.tsx`, `persona/achievement-stories-editor.tsx`, `persona/change-flags-banner.tsx`, `persona/change-flags-resolver.tsx`, `persona/discovery-preferences-editor.tsx`, `persona/non-negotiables-form-fields.tsx`, `persona/voice-profile-form-fields.tsx`. | `docs, plan` | ✅ |
+| 14 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
