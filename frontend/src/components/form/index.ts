@@ -1,8 +1,22 @@
 /**
- * Form component barrel export.
+ * @fileoverview Form component barrel export.
  *
- * Re-exports all form field components, error summary, submit button,
- * and the shadcn/ui Form primitives for convenience.
+ * Layer: lib/utility
+ * Feature: shared
+ *
+ * Re-exports all form field components, error summary, and submit button
+ * for convenience.
+ *
+ * Coordinates with:
+ * - components/form/form-input-field.tsx: FormInputField re-export
+ * - components/form/form-tag-field.tsx: FormTagField re-export
+ * - components/form/form-textarea-field.tsx: FormTextareaField re-export
+ * - components/form/form-select-field.tsx: FormSelectField, SelectOption re-export
+ * - components/form/form-error-summary.tsx: FormErrorSummary re-export
+ * - components/form/submit-button.tsx: SubmitButton re-export
+ *
+ * Called by / Used by:
+ * - (barrel index — consumers import individual files directly)
  */
 
 export { FormInputField } from "./form-input-field";

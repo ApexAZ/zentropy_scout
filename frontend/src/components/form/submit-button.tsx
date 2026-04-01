@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Submit button with loading spinner.
+ * @fileoverview Submit button with loading spinner.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.2: Spinner on buttons during async operations.
  * Disabled inputs during submission.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for the submit action
+ * - lib/utils.ts: cn for conditional class merging
+ *
+ * Called by / Used by:
+ * - components/dashboard/add-job-modal.tsx: submit button in add job form
  */
 
 import { Loader2 } from "lucide-react";

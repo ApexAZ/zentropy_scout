@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Form select field with React Hook Form integration.
+ * @fileoverview Form select field with React Hook Form integration.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.2: Inline errors below each field on blur.
  * Wraps shadcn/ui Select with FormField, FormLabel, FormDescription, FormMessage.
+ *
+ * Coordinates with:
+ * - components/ui/form.tsx: FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage for RHF integration
+ * - components/ui/select.tsx: Select, SelectContent, SelectItem, SelectTrigger, SelectValue for dropdown control
+ *
+ * Called by / Used by:
+ * - components/dashboard/add-job-modal.tsx: job type select field
  */
 
 import type { Control, FieldPath, FieldValues } from "react-hook-form";

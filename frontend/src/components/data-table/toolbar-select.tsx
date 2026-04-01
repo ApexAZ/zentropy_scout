@@ -1,9 +1,19 @@
 /**
- * Compact select dropdown for data table toolbars.
+ * @fileoverview Compact select dropdown for data table toolbars.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * Wraps the Select/SelectTrigger/SelectContent/SelectItem pattern
- * used across opportunities, applications-list, and applications-table
- * toolbars to eliminate duplicated markup.
+ * used across toolbar components to eliminate duplicated markup.
+ *
+ * Coordinates with:
+ * - components/ui/select.tsx: Select, SelectContent, SelectItem, SelectTrigger, SelectValue for dropdown control
+ *
+ * Called by / Used by:
+ * - components/applications/applications-list.tsx: status filter dropdown in toolbar
+ * - components/dashboard/applications-table.tsx: status filter dropdown in toolbar
+ * - components/dashboard/opportunities-table.tsx: status filter dropdown in toolbar
  */
 
 import {

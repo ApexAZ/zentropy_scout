@@ -1,12 +1,22 @@
 "use client";
 
 /**
- * Pagination controls for DataTable.
+ * @fileoverview Pagination controls for DataTable.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.3: Page selector with per-page options 20/50/100.
- *
  * Renders page info, previous/next navigation, and a page-size
  * selector. Receives the TanStack table instance as a prop.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/button.tsx: Button for Previous/Next navigation
+ * - components/ui/select.tsx: Select, SelectContent, SelectItem, SelectTrigger, SelectValue for page size dropdown
+ *
+ * Called by / Used by:
+ * - (exported via barrel — no direct consumers currently)
  */
 
 import type { Table } from "@tanstack/react-table";

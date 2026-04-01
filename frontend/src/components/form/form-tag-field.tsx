@@ -1,14 +1,23 @@
 "use client";
 
 /**
- * Tag/chip input for JSONB string arrays with React Hook Form integration.
+ * @fileoverview Tag/chip input for JSONB string arrays with React Hook Form integration.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.2: Used for skills, cities, exclusions, target roles,
  * sample phrases, and things-to-avoid fields across onboarding and
  * persona management.
  *
- * Wraps a composite input (tag chips + text input) with FormField,
- * FormLabel, FormDescription, FormMessage.
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/form.tsx: FormDescription, FormField, FormItem, FormLabel, FormMessage, useFormField for RHF integration and ARIA wiring
+ *
+ * Called by / Used by:
+ * - components/persona/growth-targets-form-fields.tsx: target roles, cities tag fields
+ * - components/persona/non-negotiables-form-fields.tsx: exclusion tag fields
+ * - components/persona/voice-profile-form-fields.tsx: sample phrases, things-to-avoid tag fields
  */
 
 import { useRef } from "react";

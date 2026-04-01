@@ -1,14 +1,20 @@
 "use client";
 
 /**
- * Checkbox column factory for DataTable row selection.
+ * @fileoverview Checkbox column factory for DataTable row selection.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.3: Multi-select with checkbox column.
  *
- * Usage:
- * ```tsx
- * const columns = [getSelectColumn<MyRow>(), ...myColumns];
- * ```
+ * Coordinates with:
+ * - components/ui/checkbox.tsx: Checkbox for select-all and per-row selection
+ *
+ * Called by / Used by:
+ * - components/data-table/data-table.tsx: SELECT_ROW_LABEL for mobile card selection ARIA label
+ * - components/applications/applications-list.tsx: getSelectColumn for row selection
+ * - components/dashboard/opportunities-table.tsx: getSelectColumn for row selection
  */
 
 import type { ColumnDef } from "@tanstack/react-table";

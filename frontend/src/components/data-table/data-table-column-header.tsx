@@ -1,14 +1,19 @@
 "use client";
 
 /**
- * Sortable column header for DataTable.
+ * @fileoverview Sortable column header for DataTable.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.3: Column sorting — click header to toggle asc/desc.
  *
- * Usage in column definitions:
- * ```tsx
- * { accessorKey: "name", header: ({ column }) => <DataTableColumnHeader column={column} title="Name" /> }
- * ```
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ *
+ * Called by / Used by:
+ * - components/applications/application-columns.tsx: sortable column headers in application table
+ * - components/dashboard/opportunities-table.tsx: sortable column headers in opportunities table
  */
 
 import type { Column } from "@tanstack/react-table";

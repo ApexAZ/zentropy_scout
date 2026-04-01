@@ -1,8 +1,23 @@
 /**
- * Shared form footer with error summary, submit error, and action buttons.
+ * @fileoverview Shared form footer with error summary, submit error, and action buttons.
  *
- * Used by onboarding step forms and persona editor forms to render
- * the consistent Cancel/Save button pair with loading state.
+ * Layer: component
+ * Feature: shared
+ *
+ * REQ-012 §13.2: Renders the consistent Cancel/Save button pair with
+ * loading state and embedded form-level error summary.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for Cancel and Save actions
+ * - components/form/form-error-summary.tsx: FormErrorSummary for validation error display
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/skills-form.tsx: skills CRUD form footer
+ * - components/onboarding/steps/education-form.tsx: education CRUD form footer
+ * - components/onboarding/steps/certification-form.tsx: certification CRUD form footer
+ * - components/onboarding/steps/custom-filter-form.tsx: custom filter CRUD form footer
+ * - components/onboarding/steps/work-history-form.tsx: work history CRUD form footer
+ * - components/onboarding/steps/story-form.tsx: story CRUD form footer
  */
 
 import { Loader2 } from "lucide-react";

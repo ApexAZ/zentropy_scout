@@ -2,14 +2,25 @@
 "use no memo";
 
 /**
- * Generic data table with TanStack Table and responsive card fallback.
+ * @fileoverview Generic data table with TanStack Table and responsive card fallback.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.3: Table/List component with column definitions,
  * row click navigation, responsive card fallback, sorting,
  * column filtering, and global search.
  *
- * §3.3 covers the base table. §3.4 adds sorting, filtering, and toolbar.
- * §3.5–§3.6 add pagination and multi-select.
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/checkbox.tsx: Checkbox for mobile card row selection
+ * - components/ui/table.tsx: Table, TableBody, TableCell, TableHead, TableHeader, TableRow for layout
+ * - components/data-table/data-table-select-column.tsx: SELECT_ROW_LABEL for consistent ARIA labels
+ *
+ * Called by / Used by:
+ * - components/applications/applications-list.tsx: application tracking table
+ * - components/dashboard/applications-table.tsx: dashboard applications table
+ * - components/dashboard/opportunities-table.tsx: dashboard opportunities table
  */
 
 import * as React from "react";

@@ -1,10 +1,24 @@
 "use client";
 
 /**
- * Form textarea field with React Hook Form integration.
+ * @fileoverview Form textarea field with React Hook Form integration.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.2: Inline errors below each field on blur.
  * Wraps shadcn/ui Textarea with FormField, FormLabel, FormDescription, FormMessage.
+ *
+ * Coordinates with:
+ * - components/ui/textarea.tsx: Textarea for the multi-line input control
+ * - components/ui/form.tsx: FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage for RHF integration
+ *
+ * Called by / Used by:
+ * - components/onboarding/steps/bullet-form.tsx: bullet description field
+ * - components/onboarding/steps/work-history-form.tsx: job description field
+ * - components/onboarding/steps/story-form.tsx: story content field
+ * - components/persona/basic-info-editor.tsx: summary textarea field
+ * - components/dashboard/add-job-modal.tsx: job description field
  */
 
 import type { Control, FieldPath, FieldValues } from "react-hook-form";

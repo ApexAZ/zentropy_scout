@@ -1,11 +1,23 @@
 "use client";
 
 /**
- * Toolbar for DataTable with search input and filter reset.
+ * @fileoverview Toolbar for DataTable with search input and filter reset.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §13.3: Toolbar search across table data.
- *
  * Accepts children for page-specific filter controls (e.g., status dropdown).
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/button.tsx: Button for filter reset action
+ * - components/ui/input.tsx: Input for global search field
+ *
+ * Called by / Used by:
+ * - components/applications/applications-list.tsx: application list toolbar
+ * - components/dashboard/applications-table.tsx: dashboard applications toolbar
+ * - components/dashboard/opportunities-table.tsx: dashboard opportunities toolbar
  */
 
 import type { Table } from "@tanstack/react-table";
