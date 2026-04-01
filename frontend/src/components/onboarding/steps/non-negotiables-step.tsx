@@ -1,11 +1,29 @@
 "use client";
 
 /**
- * Non-negotiables step for onboarding wizard (Step 8).
+ * @fileoverview Non-negotiables step for onboarding wizard (Step 8).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.8: Form with sections for location preferences,
  * compensation, and other filters. Uses shared NonNegotiablesFormFields
- * component for the form body.
+ * component for the form body, plus CustomFiltersSection for CRUD
+ * custom filters.
+ *
+ * Coordinates with:
+ * - components/persona/non-negotiables-form-fields.tsx: NonNegotiablesFormFields for shared form body
+ * - components/ui/button.tsx: Button for Back and Next navigation
+ * - components/ui/form.tsx: Form for RHF integration
+ * - lib/api-client.ts: ApiError, apiGet, apiPatch for API calls
+ * - lib/non-negotiables-helpers.ts: NON_NEGOTIABLES_DEFAULT_VALUES, nonNegotiablesSchema, toFormValues, toRequestBody, NonNegotiablesFormData for validation and conversion
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - types/api.ts: ApiListResponse for persona fetch response
+ * - types/persona.ts: Persona type for entity data
+ * - onboarding/steps/custom-filters-section.tsx: CustomFiltersSection for custom filter CRUD
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 8 component
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

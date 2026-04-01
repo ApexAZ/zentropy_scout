@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Bullet item displaying a single accomplishment bullet.
+ * @fileoverview Bullet item displaying a single accomplishment bullet.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.3: Each bullet shows text with edit/delete actions.
  * REQ-001 §3.2: Optional metrics field shown as a badge.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit and delete actions
+ * - types/persona.ts: Bullet type for entry data
+ *
+ * Called by / Used by:
+ * - onboarding/steps/bullet-editor.tsx: bullet item in bullet CRUD list
  */
 
 import { Pencil, Trash2 } from "lucide-react";

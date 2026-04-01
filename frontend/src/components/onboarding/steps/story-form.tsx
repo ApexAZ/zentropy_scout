@@ -1,11 +1,27 @@
 "use client";
 
 /**
- * Story form for adding/editing an achievement story entry.
+ * @fileoverview Story form for adding/editing an achievement story entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.7: Fields — title, context, action, outcome (required),
  * skills_demonstrated (optional checkboxes). Context/Action/Outcome
  * follows the CAO structured format.
+ *
+ * Coordinates with:
+ * - components/form/form-action-footer.tsx: FormActionFooter for submit/cancel buttons
+ * - components/form/form-input-field.tsx: FormInputField for text input fields
+ * - components/form/form-textarea-field.tsx: FormTextareaField for multiline input fields
+ * - components/ui/checkbox.tsx: Checkbox for skills demonstrated picker
+ * - components/ui/form.tsx: Form, FormControl, FormField, FormItem, FormLabel for RHF integration
+ * - lib/achievement-stories-helpers.ts: storyFormSchema, StoryFormData for validation and types
+ * - types/persona.ts: Skill type for skills picker data
+ *
+ * Called by / Used by:
+ * - onboarding/steps/story-step.tsx: story form in onboarding wizard
+ * - persona/achievement-stories-editor.tsx: story form in persona management
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

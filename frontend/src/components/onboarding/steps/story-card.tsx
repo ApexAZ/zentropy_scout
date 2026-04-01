@@ -1,11 +1,21 @@
 "use client";
 
 /**
- * Story card for displaying an achievement story entry in the
- * onboarding wizard.
+ * @fileoverview Story card for displaying an achievement story entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.7: Each card shows title, Context, Action, Outcome,
  * skills demonstrated, with edit/delete buttons.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit and delete actions
+ * - types/persona.ts: AchievementStory, Skill types for entry data
+ *
+ * Called by / Used by:
+ * - onboarding/steps/story-step.tsx: story card in onboarding wizard
+ * - persona/achievement-stories-editor.tsx: story card in persona management
  */
 
 import { Pencil, Trash2 } from "lucide-react";

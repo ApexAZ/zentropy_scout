@@ -1,12 +1,26 @@
 "use client";
 
 /**
- * Resume upload step for onboarding wizard (Step 1).
+ * @fileoverview Resume upload step for onboarding wizard (Step 1).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-019 §7.2: Drag-and-drop or file picker for PDF upload,
  * client-side validation (10MB max), upload progress indicator,
  * skip option, and auto-advance on success. Calls the resume
  * parse endpoint to extract structured data for form pre-population.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for retry and skip actions
+ * - components/ui/progress.tsx: Progress for upload progress bar
+ * - lib/api-client.ts: ApiError, apiUploadFile for file upload and error handling
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation, ResumeParseData for parsed data type
+ * - lib/utils.ts: cn for conditional class merging
+ * - types/api.ts: ApiResponse for upload response type
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 1 component
  */
 
 import { AlertCircle, CheckCircle2, FileUp, Loader2 } from "lucide-react";

@@ -1,11 +1,28 @@
 "use client";
 
 /**
- * Growth targets step for onboarding wizard (Step 9).
+ * @fileoverview Growth targets step for onboarding wizard (Step 9).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.9: Form with tag inputs for target roles and skills,
  * and a stretch appetite radio group with descriptions
  * (Low / Medium / High, default Medium).
+ *
+ * Coordinates with:
+ * - components/persona/growth-targets-form-fields.tsx: GrowthTargetsFormFields for shared form body
+ * - components/ui/button.tsx: Button for Back and Next navigation
+ * - components/ui/form.tsx: Form for RHF integration
+ * - lib/api-client.ts: apiGet, apiPatch for API calls
+ * - lib/form-errors.ts: toFriendlyError for error message mapping
+ * - lib/growth-targets-helpers.ts: GROWTH_TARGETS_DEFAULT_VALUES, growthTargetsSchema, toFormValues, toRequestBody, GrowthTargetsFormData for validation and conversion
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - types/api.ts: ApiListResponse for persona fetch response
+ * - types/persona.ts: Persona type for entity data
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 9 component
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

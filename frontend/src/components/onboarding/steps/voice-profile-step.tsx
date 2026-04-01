@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * Voice profile step for onboarding wizard (Step 10).
+ * @fileoverview Voice profile step for onboarding wizard (Step 10).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.10: Agent-derived voice profile review card with
  * per-field inline editing. Two modes:
@@ -9,6 +12,20 @@
  * - Edit: form with text inputs + tag inputs for all voice fields
  *
  * Falls back to edit mode when no profile exists (GUI-first path).
+ *
+ * Coordinates with:
+ * - components/persona/voice-profile-form-fields.tsx: VoiceProfileFormFields for shared form body
+ * - components/ui/button.tsx: Button for navigation and mode toggle
+ * - components/ui/form.tsx: Form for RHF integration
+ * - lib/api-client.ts: apiGet, apiPatch for API calls
+ * - lib/form-errors.ts: toFriendlyError for error message mapping
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - lib/voice-profile-helpers.ts: VOICE_PROFILE_DEFAULT_VALUES, toFormValues, toRequestBody, voiceProfileSchema, VoiceProfileFormData for validation and conversion
+ * - types/api.ts: ApiResponse for voice profile fetch response
+ * - types/persona.ts: VoiceProfile type for entity data
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 10 component
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

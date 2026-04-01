@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Card for displaying a custom non-negotiable filter entry.
+ * @fileoverview Card for displaying a custom non-negotiable filter entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.8: Each card shows filter_name, filter_type badge,
  * filter_field, and filter_value with edit/delete buttons.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for edit and delete actions
+ * - types/persona.ts: CustomNonNegotiable type for entry data
+ *
+ * Called by / Used by:
+ * - onboarding/steps/custom-filters-section.tsx: filter card in custom filters CRUD
  */
 
 import { Pencil, Trash2 } from "lucide-react";

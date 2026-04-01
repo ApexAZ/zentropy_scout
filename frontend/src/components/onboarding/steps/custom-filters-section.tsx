@@ -1,11 +1,28 @@
 "use client";
 
 /**
- * Custom filters section for the non-negotiables onboarding step.
+ * @fileoverview Custom filters section for the non-negotiables step.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.8: CRUD for custom non-negotiable filters.
  * Manages its own state and API calls for the
  * /personas/{id}/custom-non-negotiables endpoint.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for add filter action
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for delete confirmation
+ * - lib/api-client.ts: apiDelete, apiGet, apiPatch, apiPost for CRUD API calls
+ * - lib/form-errors.ts: toFriendlyError for error message mapping
+ * - types/api.ts: ApiListResponse, ApiResponse for API response types
+ * - types/persona.ts: CustomNonNegotiable type for entity data
+ * - onboarding/steps/custom-filter-card.tsx: CustomFilterCard for entry display
+ * - onboarding/steps/custom-filter-form.tsx: CustomFilterForm, resolveFilterField, fieldToFormValues for add/edit form
+ *
+ * Called by / Used by:
+ * - onboarding/steps/non-negotiables-step.tsx: custom filters section in onboarding wizard
+ * - persona/non-negotiables-editor.tsx: custom filters section in persona management
  */
 
 import { Loader2, Plus } from "lucide-react";

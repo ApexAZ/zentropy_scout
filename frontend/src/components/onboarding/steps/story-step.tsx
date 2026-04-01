@@ -1,11 +1,26 @@
 "use client";
 
 /**
- * Achievement Stories step for onboarding wizard (Step 7).
+ * @fileoverview Achievement Stories step for onboarding wizard (Step 7).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.7: Conversational capture of Context/Action/Outcome
  * structured stories. Minimum 3 stories required before proceeding.
  * Review cards with edit/delete and reordering.
+ *
+ * Coordinates with:
+ * - hooks/use-crud-step.ts: useCrudStep for CRUD state management
+ * - lib/achievement-stories-helpers.ts: toFormValues, toRequestBody, StoryFormData for form data conversion
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation
+ * - types/persona.ts: AchievementStory, Skill types for entity data
+ * - onboarding/steps/crud-step-layout.tsx: CrudStepLayout for shared CRUD layout
+ * - onboarding/steps/story-card.tsx: StoryCard for entry display
+ * - onboarding/steps/story-form.tsx: StoryForm for add/edit form
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 7 component
  */
 
 import { useState } from "react";

@@ -1,12 +1,26 @@
 "use client";
 
 /**
- * Review step for onboarding wizard (Step 11 — final step).
+ * @fileoverview Review step for onboarding wizard (Step 11 — final step).
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-019 §7.1: Structured summary of the full persona in
  * collapsible sections. Each section has an "Edit" link that
  * navigates back to the relevant onboarding step. Read-only —
  * "Complete Onboarding" finalizes the persona.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for Back and Complete Onboarding navigation
+ * - lib/api-client.ts: apiGet for fetching all persona data
+ * - lib/form-errors.ts: toFriendlyError for error message mapping
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation, completion, and goToStep
+ * - types/api.ts: ApiListResponse, ApiResponse for API response types
+ * - types/persona.ts: AchievementStory, Certification, Education, Persona, Skill, VoiceProfile, WorkHistory types for review display
+ *
+ * Called by / Used by:
+ * - app/onboarding/page.tsx: onboarding step 11 component
  */
 
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2 } from "lucide-react";

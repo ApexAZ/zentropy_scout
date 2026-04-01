@@ -1,10 +1,23 @@
 "use client";
 
 /**
- * Bullet form for adding/editing an accomplishment bullet.
+ * @fileoverview Bullet form for adding/editing an accomplishment bullet.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.3: Per-job bullet editing with text and optional metrics.
  * REQ-001 §3.2: Bullet fields — text (required), metrics (optional).
+ *
+ * Coordinates with:
+ * - components/form/form-error-summary.tsx: FormErrorSummary for validation error display
+ * - components/form/form-input-field.tsx: FormInputField for metrics text input
+ * - components/form/form-textarea-field.tsx: FormTextareaField for bullet text input
+ * - components/ui/button.tsx: Button for save and cancel actions
+ * - components/ui/form.tsx: Form for RHF integration
+ *
+ * Called by / Used by:
+ * - onboarding/steps/bullet-editor.tsx: bullet form in bullet CRUD
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

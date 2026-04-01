@@ -1,10 +1,27 @@
 "use client";
 
 /**
- * Bullet editor for managing accomplishment bullets within a work history entry.
+ * @fileoverview Bullet editor for managing accomplishment bullets within a work history entry.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.3: Per-job bullet editing — expandable list within each
  * job card with add/edit/delete and drag-and-drop reordering.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for add bullet action
+ * - components/ui/reorderable-list.tsx: ReorderableList for drag-and-drop ordering
+ * - lib/api-client.ts: apiDelete, apiPatch, apiPost for CRUD API calls
+ * - lib/form-errors.ts: toFriendlyError for error message mapping
+ * - types/api.ts: ApiResponse for API response type
+ * - types/persona.ts: Bullet type for entity data
+ * - onboarding/steps/bullet-form.tsx: BulletForm, BulletFormData for add/edit form
+ * - onboarding/steps/bullet-item.tsx: BulletItem for entry display
+ *
+ * Called by / Used by:
+ * - onboarding/steps/work-history-step.tsx: bullet editor in onboarding wizard
+ * - persona/work-history-editor.tsx: bullet editor in persona management
  */
 
 import { Plus } from "lucide-react";

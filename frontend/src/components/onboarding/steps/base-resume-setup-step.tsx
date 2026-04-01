@@ -1,13 +1,33 @@
 "use client";
 
 /**
- * Base resume setup step for onboarding wizard (Step 12).
+ * @fileoverview Base resume setup step for onboarding wizard.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.12: Resume creation form with item selection checkboxes.
  * User enters resume name, role type, and summary, then selects which
  * work history entries (with bullets), education, certifications, and
  * skills to include. All items are checked by default. POST creates
  * the base resume and completes onboarding.
+ *
+ * Coordinates with:
+ * - components/form/form-error-summary.tsx: FormErrorSummary for validation error display
+ * - components/form/form-input-field.tsx: FormInputField for name and role type inputs
+ * - components/ui/button.tsx: Button for Back and Create Resume navigation
+ * - components/ui/checkbox.tsx: Checkbox for item selection toggles
+ * - components/ui/form.tsx: Form, FormControl, FormField, FormItem, FormLabel, FormMessage for RHF integration
+ * - components/ui/textarea.tsx: Textarea for summary input
+ * - lib/api-client.ts: apiGet, apiPost for fetching persona data and creating resume
+ * - lib/chat-provider.tsx: useChat for posting welcome message after completion
+ * - lib/form-errors.ts: toFriendlyError for error message mapping
+ * - lib/onboarding-provider.tsx: useOnboarding for wizard navigation and completion
+ * - types/api.ts: ApiListResponse for persona data fetch responses
+ * - types/persona.ts: Certification, Education, Skill, WorkHistory types for item selection
+ *
+ * Called by / Used by:
+ * - (not currently wired into onboarding page — retained from 12-step design)
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

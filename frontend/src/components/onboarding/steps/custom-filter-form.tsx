@@ -1,10 +1,24 @@
 "use client";
 
 /**
- * Form for adding/editing a custom non-negotiable filter.
+ * @fileoverview Form for adding/editing a custom non-negotiable filter.
+ *
+ * Layer: component
+ * Feature: persona
  *
  * REQ-012 §6.3.8: Filter name, type (Exclude/Require), field to
  * check (dropdown with suggestions + custom), and value to match.
+ * Exports resolveFilterField and fieldToFormValues helpers for
+ * form-to-API conversion.
+ *
+ * Coordinates with:
+ * - components/form/form-action-footer.tsx: FormActionFooter for submit/cancel buttons
+ * - components/form/form-input-field.tsx: FormInputField for text input fields
+ * - components/ui/form.tsx: Form, FormControl, FormField, FormItem, FormLabel, FormMessage for RHF integration
+ * - components/ui/input.tsx: Input for custom field name input
+ *
+ * Called by / Used by:
+ * - onboarding/steps/custom-filters-section.tsx: CustomFilterForm, resolveFilterField, fieldToFormValues, CustomFilterFormData for filter CRUD
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
