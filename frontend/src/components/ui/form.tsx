@@ -1,5 +1,26 @@
 "use client";
 
+/**
+ * @fileoverview React Hook Form integration primitives (Form, FormField,
+ * FormItem, FormLabel, FormControl, FormDescription, FormMessage).
+ *
+ * Layer: component
+ * Feature: shared
+ *
+ * Provides context-based form field components that wire RHF's
+ * Controller to accessible labels, descriptions, and error messages
+ * via React context. useFormField hook exposes field state and
+ * generated ARIA IDs.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/label.tsx: Label for accessible form labels
+ *
+ * Called by / Used by:
+ * - (widely used — 35+ components across onboarding, persona, admin,
+ *   form helpers, dashboard, auth)
+ */
+
 import * as React from "react";
 import type { Label as LabelPrimitive } from "radix-ui";
 import { Slot } from "radix-ui";

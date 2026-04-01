@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * Dialog for deletion with reference checking.
+ * @fileoverview Dialog for deletion with reference checking.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §7.5 / REQ-001 §7b: Shows different dialog variants
  * depending on the deletion flow state:
@@ -14,6 +17,19 @@
  * Uses Dialog (not AlertDialog) because the "review-each" variant
  * needs interactive checkboxes. onInteractOutside is prevented to
  * keep the blocking UX.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for action buttons in each flow state
+ * - components/ui/checkbox.tsx: Checkbox for review-each reference selection
+ * - components/ui/dialog.tsx: Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle for modal chrome
+ * - types/deletion.ts: DeleteFlowState, ReferencingEntity for flow state types
+ *
+ * Called by / Used by:
+ * - persona/achievement-stories-editor.tsx: delete dialog in stories editor
+ * - persona/work-history-editor.tsx: delete dialog in work history editor
+ * - persona/education-editor.tsx: delete dialog in education editor
+ * - persona/certification-editor.tsx: delete dialog in certification editor
+ * - persona/skills-editor.tsx: delete dialog in skills editor
  */
 
 import { AlertTriangle, Loader2 } from "lucide-react";

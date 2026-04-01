@@ -1,3 +1,22 @@
+/**
+ * @fileoverview Embeddable PDF viewer with zoom, download, and fullscreen controls.
+ *
+ * Layer: component
+ * Feature: shared
+ *
+ * Renders a PDF in an iframe with a toolbar providing zoom in/out,
+ * download, and fullscreen toggle. Accepts Blob or URL source;
+ * manages blob URL lifecycle. URL protocol is validated to prevent
+ * injection (only https, http, blob allowed).
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/button.tsx: Button for toolbar actions
+ *
+ * Called by / Used by:
+ * - resume/resume-detail.tsx: PDF preview in resume detail view
+ */
+
 import * as React from "react";
 import { Download, Maximize, Minimize, ZoomIn, ZoomOut } from "lucide-react";
 

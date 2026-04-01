@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Progress bar UI primitive.
+ * @fileoverview Progress bar UI primitive.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * Built on Radix UI Progress primitive following shadcn/ui patterns.
  * Displays a horizontal progress indicator with ARIA attributes.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ *
+ * Called by / Used by:
+ * - onboarding/onboarding-shell.tsx: step progress bar
+ * - onboarding/steps/resume-upload-step.tsx: upload progress indicator
  */
 
 import * as React from "react";

@@ -1,9 +1,20 @@
 /**
- * Reusable AlertDialog wrapper for form dialogs.
+ * @fileoverview Reusable AlertDialog wrapper for form dialogs.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * Provides the standard dialog chrome (overlay, content panel, title,
  * description, cancel/save buttons) used by rejection-details-dialog
  * and offer-details-dialog.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/button.tsx: Button for cancel and save actions
+ *
+ * Called by / Used by:
+ * - applications/rejection-details-dialog.tsx: form dialog for rejection details
+ * - applications/offer-details-dialog.tsx: form dialog for offer details
  */
 
 import type { ReactNode } from "react";

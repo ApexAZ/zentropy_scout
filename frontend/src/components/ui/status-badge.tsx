@@ -1,5 +1,8 @@
 /**
- * Color-coded status badge for application, document, and job posting statuses.
+ * @fileoverview Color-coded status badge for application, document, and job posting statuses.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §11.1: Application status badge colors (Applied=Blue, Interviewing=Amber,
  *   Offer=Green, Accepted=Green bold, Rejected=Red, Withdrawn=Gray).
@@ -10,6 +13,16 @@
  * color. Covers ApplicationStatus, JobPostingStatus, document statuses
  * (Draft/Approved/Archived), BaseResumeStatus (Active/Archived), and the
  * special "Filtered" status for non-negotiable filter failures.
+ *
+ * Coordinates with:
+ * - types/application.ts: ApplicationStatus, CoverLetterStatus for application/cover letter status types
+ * - types/job.ts: JobPostingStatus for job posting status type
+ * - types/resume.ts: BaseResumeStatus, JobVariantStatus for document status types
+ * - lib/utils.ts: cn for conditional class merging
+ *
+ * Called by / Used by:
+ * - (widely used — 10+ components across applications, resume, jobs,
+ *   cover-letter, dashboard)
  */
 
 import type { ApplicationStatus, CoverLetterStatus } from "@/types/application";

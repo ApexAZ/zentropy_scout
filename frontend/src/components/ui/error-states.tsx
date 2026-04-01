@@ -1,3 +1,23 @@
+/**
+ * @fileoverview Shared error/empty state components (EmptyState, FailedState,
+ * NotFoundState, ConflictState).
+ *
+ * Layer: component
+ * Feature: shared
+ *
+ * Provides four pre-composed state display components used across the
+ * application for loading failures, empty collections, 404 responses,
+ * and optimistic concurrency conflicts.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/button.tsx: Button for retry, go-back, and refresh actions
+ *
+ * Called by / Used by:
+ * - (widely used — 16+ components across ghostwriter, applications, jobs,
+ *   resume, cover-letter, persona, dashboard, settings)
+ */
+
 import * as React from "react";
 import { CircleAlert, FileQuestion, Inbox, RefreshCw } from "lucide-react";
 

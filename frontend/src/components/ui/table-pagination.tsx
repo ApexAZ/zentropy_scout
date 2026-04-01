@@ -1,8 +1,20 @@
 /**
- * Shared pagination controls for data tables.
+ * @fileoverview Shared pagination controls for data tables.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * Extracted from usage-table.tsx and transaction-table.tsx
- * to eliminate duplicated pagination UI.
+ * to eliminate duplicated pagination UI. Renders Previous/Next
+ * buttons with page counter.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for Previous and Next actions
+ *
+ * Called by / Used by:
+ * - usage/transaction-table.tsx: pagination in transaction history table
+ * - usage/purchase-table.tsx: pagination in purchase history table
+ * - usage/usage-table.tsx: pagination in usage details table
  */
 
 import { Button } from "@/components/ui/button";

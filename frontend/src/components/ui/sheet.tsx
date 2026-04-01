@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * Sheet component built on Radix Dialog.
+ * @fileoverview Sheet component built on Radix Dialog.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §5.1: Side sheet for tablet/mobile chat panel overlay.
  * Follows shadcn/ui Sheet pattern — Portal + Overlay + side-positioned Content.
+ * Supports four side positions (top/right/bottom/left) with slide animations.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ *
+ * Called by / Used by:
+ * - layout/chat-sidebar.tsx: mobile chat panel overlay
+ * - resume/resume-content-view.tsx: content editing side sheet
  */
 
 import * as React from "react";

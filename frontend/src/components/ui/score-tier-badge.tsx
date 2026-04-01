@@ -1,5 +1,8 @@
 /**
- * Score tier badge displaying a numeric score with tier label and color.
+ * @fileoverview Score tier badge displaying a numeric score with tier label and color.
+ *
+ * Layer: component
+ * Feature: jobs
  *
  * REQ-012 §8.4: Fit and Stretch score tiers with color-coded badges.
  * REQ-008 §7.1: Fit tier ranges — High (90-100), Medium (75-89), Low (60-74), Poor (0-59).
@@ -9,6 +12,17 @@
  * Accepts score and scoreType as props. Derives tier label and color
  * automatically from the numeric score. Renders "Not scored" when score
  * is null.
+ *
+ * Coordinates with:
+ * - types/job.ts: FitScoreTier, StretchScoreTier for tier type definitions
+ * - lib/utils.ts: cn for conditional class merging
+ *
+ * Called by / Used by:
+ * - editor/job-requirements-panel.tsx: score badges in variant editor
+ * - dashboard/opportunities-table.tsx: score badges in job dashboard
+ * - chat/chat-job-card.tsx: score badge in chat job card
+ * - chat/chat-score-card.tsx: score badge in chat score card
+ * - jobs/score-breakdown.tsx: score badges in job detail breakdown
  */
 
 import type { FitScoreTier, StretchScoreTier } from "@/types/job";

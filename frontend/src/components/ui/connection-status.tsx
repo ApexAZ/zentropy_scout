@@ -1,5 +1,8 @@
 /**
- * Connection status indicator with colored dot and label.
+ * @fileoverview Connection status indicator with colored dot and label.
+ *
+ * Layer: component
+ * Feature: chat
  *
  * REQ-012 §5.5: Reconnection UX — green/amber/red dot in chat header.
  * REQ-012 §13.8: prefers-reduced-motion respected for pulse animation.
@@ -7,6 +10,13 @@
  * Accepts status as a prop rather than consuming useSSE() directly,
  * allowing the chat header to pass status down and keeping the
  * component testable without SSE context.
+ *
+ * Coordinates with:
+ * - lib/sse-client.ts: ConnectionStatus type for status prop
+ * - lib/utils.ts: cn for conditional class merging
+ *
+ * Called by / Used by:
+ * - (not currently imported — designed for chat header per REQ-012 §5.5)
  */
 
 import * as React from "react";

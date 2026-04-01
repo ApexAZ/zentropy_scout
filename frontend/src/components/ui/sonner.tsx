@@ -1,19 +1,25 @@
 "use client";
 
+/**
+ * @fileoverview Toast notification container wrapping Sonner with project defaults.
+ *
+ * Layer: component
+ * Feature: shared
+ *
+ * REQ-012 §13.5, §13.8: Toast notifications with rich colors, close buttons,
+ * Lucide icons matching the design system, and aria-live="polite".
+ *
+ * Coordinates with:
+ * - (no local module dependencies — wraps third-party Sonner with project defaults)
+ *
+ * Called by / Used by:
+ * - app/layout.tsx: root layout toast container
+ */
+
 import { CircleAlert, CircleCheck, Info, TriangleAlert } from "lucide-react";
 import { Toaster as SonnerToaster, type ToasterProps } from "sonner";
 
 const ICON_CLASS = "size-5";
-
-/**
- * Toast notification container — REQ-012 §13.5, §13.8.
- *
- * Wraps Sonner's `<Toaster>` with project defaults:
- * - `richColors` for semantic variant styling
- * - `closeButton` on every toast
- * - Lucide icons matching the design system
- * - `aria-live="polite"` (built into Sonner)
- */
 function Toaster(props: Readonly<ToasterProps>) {
 	return (
 		<SonnerToaster

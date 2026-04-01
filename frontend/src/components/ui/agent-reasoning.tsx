@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Collapsible agent reasoning display.
+ * @fileoverview Collapsible agent reasoning display.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * Shared by variant review (§8.7) and cover letter review (§9.1).
  * Shows the LLM's explanation for its decisions in a collapsible panel.
+ *
+ * Coordinates with:
+ * - (no local module dependencies — uses only React and Lucide icons)
+ *
+ * Called by / Used by:
+ * - cover-letter/cover-letter-review.tsx: reasoning panel in cover letter review
+ * - resume/variant-review.tsx: reasoning panel in variant review
  */
 
 import { useState } from "react";

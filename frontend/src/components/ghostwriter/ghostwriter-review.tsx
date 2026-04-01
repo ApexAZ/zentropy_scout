@@ -1,11 +1,31 @@
 "use client";
 
 /**
- * Unified Ghostwriter review: tabbed resume variant + cover letter
+ * @fileoverview Unified Ghostwriter review: tabbed resume variant + cover letter
  * with "Approve Both" action.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-012 §10.7: Combined review experience when Ghostwriter
  * completes both resume variant and cover letter.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPatch, apiPost for data fetching and approval
+ * - lib/query-keys.ts: queryKeys for React Query cache keys
+ * - lib/toast.ts: showToast for approval success/error notifications
+ * - components/ui/button.tsx: Button for approval actions
+ * - components/ui/error-states.tsx: FailedState for fetch error display
+ * - components/ui/tabs.tsx: Tabs, TabsContent, TabsList, TabsTrigger for resume/cover letter tabs
+ * - components/cover-letter/cover-letter-review.tsx: CoverLetterReview for cover letter tab content
+ * - components/resume/variant-review.tsx: VariantReview for resume variant tab content
+ * - types/api.ts: ApiResponse for API response type
+ * - types/application.ts: CoverLetter type for cover letter data
+ * - types/job.ts: PersonaJobResponse for job posting header
+ * - types/resume.ts: JobVariant type for variant data
+ *
+ * Called by / Used by:
+ * - app/(main)/jobs/[id]/review/page.tsx: ghostwriter review page
  */
 
 import { useCallback, useMemo, useState } from "react";

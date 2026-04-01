@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * Generic drag-and-drop reorderable list component.
+ * @fileoverview Generic drag-and-drop reorderable list component.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §7.4: Drag-and-drop reorder for persona collections.
  * REQ-012 §9.2: Resume bullet ordering.
@@ -9,6 +12,18 @@
  *
  * Desktop: DndContext + SortableContext with drag handles.
  * Mobile (<768px): Up/down arrow buttons (no DnD context mounted).
+ *
+ * Coordinates with:
+ * - hooks/use-is-mobile.ts: useIsMobile for responsive mode switching
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/button.tsx: Button for drag handles and mobile arrows
+ *
+ * Called by / Used by:
+ * - resume/resume-detail.tsx: bullet reordering in resume detail
+ * - settings/job-sources-section.tsx: job source priority ordering
+ * - onboarding/steps/crud-step-layout.tsx: CRUD step list reordering
+ * - onboarding/steps/bullet-editor.tsx: bullet reordering in work history
+ * - persona/*-editor.tsx: entity reordering in 5 persona management editors
  */
 
 import {

@@ -1,7 +1,10 @@
 "use client";
 
 /**
- * Pre-composed confirmation dialog with optional destructive variant.
+ * @fileoverview Pre-composed confirmation dialog with optional destructive variant.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-012 §7.5: Deletion confirmation dialogs.
  * REQ-012 §11.3: Status transition confirmations.
@@ -9,6 +12,13 @@
  * Built on Radix UI AlertDialog — blocks interaction until the user
  * explicitly confirms or cancels. Unlike Dialog, clicking the overlay
  * does NOT close an AlertDialog.
+ *
+ * Coordinates with:
+ * - lib/utils.ts: cn for conditional class merging
+ * - components/ui/button.tsx: Button for confirm and cancel actions
+ *
+ * Called by / Used by:
+ * - (widely used — 9+ components across applications, resume, admin, onboarding)
  */
 
 import * as React from "react";
