@@ -3,6 +3,11 @@
 REQ-006 §5.1: URL structure with /api/v1 prefix.
 
 All v1 endpoint routers are included here.
+
+Coordinates with:
+  - All 21 api/v1/ router modules (admin through webhooks)
+
+Called by: main.py.
 """
 
 from fastapi import APIRouter

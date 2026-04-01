@@ -10,6 +10,21 @@ Endpoints:
 - GET /auth/me — return current user info
 - PATCH /auth/profile — update user profile (name)
 - POST /auth/invalidate-sessions — sign out all devices
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession, PasswordResetEligible)
+  - core/auth.py (create_jwt, set_auth_cookie)
+  - core/config.py (settings)
+  - core/email.py (send_magic_link_email)
+  - core/errors.py (UnauthorizedError, ValidationError)
+  - core/rate_limiting.py (limiter)
+  - core/responses.py (DataResponse)
+  - models/user.py (User)
+  - repositories/user_repository.py (UserRepository)
+  - repositories/verification_token_repository.py (VerificationTokenRepository)
+  - services/billing/stripe_service.py (grant_signup_credits)
+
+Called by: api/v1/router.py.
 """
 
 import hashlib

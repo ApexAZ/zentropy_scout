@@ -2,6 +2,21 @@
 
 REQ-013 §4.1, §4.2, §7.5: OAuth initiation and callback for
 Google and LinkedIn. Uses PKCE for authorization code flow.
+
+Coordinates with:
+  - api/deps.py (DbSession)
+  - core/account_linking.py (AccountLinkingBlockedError,
+    find_or_create_user_for_oauth)
+  - core/auth.py (create_jwt, set_auth_cookie)
+  - core/config.py (settings)
+  - core/errors.py (ValidationError)
+  - core/oauth.py (state cookies, PKCE helpers, provider config)
+  - core/oauth_client.py (exchange_code_for_tokens, fetch_userinfo)
+  - core/rate_limiting.py (limiter)
+  - repositories/user_repository.py (UserRepository — deferred, admin bootstrap)
+  - services/billing/stripe_service.py (grant_signup_credits)
+
+Called by: api/v1/router.py.
 """
 
 import logging

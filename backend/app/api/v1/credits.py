@@ -3,6 +3,22 @@
 REQ-029 §8.1–§8.3; REQ-030 §10.1: Endpoints for pack listing (public),
 checkout session creation (auth), and purchase history (auth). All follow
 REQ-006 response envelope conventions.
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/config.py (settings)
+  - core/errors.py (APIError)
+  - core/pagination.py (PaginationParams, pagination_params)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - core/stripe_client.py (StripeClientDep)
+  - models/admin_config.py (FundingPack)
+  - repositories/credit_repository.py (CreditRepository)
+  - repositories/user_repository.py (UserRepository)
+  - schemas/credits.py (CheckoutRequest, CheckoutResponse, PackResponse,
+    PurchaseResponse, format_usd_display)
+  - services/billing/stripe_service.py (create_checkout_session)
+
+Called by: api/v1/router.py.
 """
 
 from decimal import Decimal

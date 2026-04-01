@@ -6,6 +6,23 @@ REQ-028 §5: Routing test endpoint for cross-provider dispatch verification.
 
 All endpoints require the AdminUser dependency (§5.3).
 Response envelopes follow REQ-006 §7.2.
+
+Coordinates with:
+  - api/deps.py (AdminUser, DbSession, FallbackProvider, LLMRegistry)
+  - core/config.py (settings)
+  - core/errors.py (LLMProviderError, LLMTimeoutError, ProviderUnavailableError)
+  - core/llm_sanitization.py (sanitize_llm_input)
+  - core/rate_limiting.py (limiter)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/admin_config.py (FundingPack, ModelRegistry, PricingConfig)
+  - models/user.py (User)
+  - providers/errors.py (ProviderError)
+  - providers/llm/base.py (LLMMessage, TaskType)
+  - schemas/admin.py (request/response models)
+  - services/admin/admin_config_service.py (AdminConfigService)
+  - services/admin/admin_management_service.py (AdminManagementService)
+
+Called by: api/v1/router.py.
 """
 
 import asyncio

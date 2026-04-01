@@ -2,6 +2,17 @@
 
 REQ-006 §5.2: Cover letter management.
 REQ-014 §5.2: Ownership verification via JOIN through persona.
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/errors.py (NotFoundError)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/persona.py (Persona — via barrel import, ownership scoping)
+  - models/cover_letter.py (CoverLetter)
+  - models/job_posting.py (JobPosting)
+  - models/persona_job.py (PersonaJob)
+
+Called by: api/v1/router.py.
 """
 
 import uuid

@@ -13,6 +13,15 @@ Event Types (REQ-006 §2.5):
 - tool_result: Agent tool call completed
 - data_changed: Data modification notification for UI refresh
 - heartbeat: Keepalive for SSE connection
+
+Coordinates with:
+  - api/deps.py (CurrentUserId)
+  - core/config.py (settings)
+  - core/rate_limiting.py (limiter)
+  - core/responses.py (DataResponse)
+  - schemas/chat.py (ChatMessageRequest, HeartbeatEvent)
+
+Called by: api/v1/router.py.
 """
 
 import asyncio

@@ -6,6 +6,20 @@ REQ-014 §5.2: Ownership verification via JOIN through persona.
 NOTE: This file exceeds 300 lines because it serves three logical sub-resources
 (Application CRUD, Timeline events, Bulk operations) that share the
 `_get_owned_application()` ownership helper. Splitting would fragment cohesion.
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/errors.py (NotFoundError)
+  - core/responses.py (DataResponse, ErrorDetail, ErrorResponse, ListResponse,
+    PaginationMeta)
+  - models/persona.py (Persona — ownership scoping)
+  - models/application.py (Application, TimelineEvent)
+  - models/cover_letter.py (CoverLetter)
+  - models/persona_job.py (PersonaJob)
+  - models/resume.py (BaseResume, JobVariant)
+  - schemas/bulk.py (BulkArchiveRequest, BulkFailedItem, BulkOperationResult)
+
+Called by: api/v1/router.py.
 """
 
 import json

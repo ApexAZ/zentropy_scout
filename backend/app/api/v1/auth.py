@@ -6,6 +6,21 @@ Security considerations:
 - verify-password: constant-time comparison via DUMMY_HASH prevents user enumeration
 - register: bcrypt cost 12, HIBP breach check, email uniqueness, verification email
 - change-password: verifies current password, invalidates all sessions
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession, PasswordResetEligible)
+  - core/auth.py (DUMMY_HASH, check_password_breached, create_jwt,
+    set_auth_cookie, validate_password_strength)
+  - core/config.py (settings)
+  - core/email.py (send_magic_link_email)
+  - core/errors.py (APIError, ConflictError, UnauthorizedError, ValidationError)
+  - core/rate_limiting.py (limiter)
+  - core/responses.py (DataResponse)
+  - repositories/user_repository.py (UserRepository)
+  - repositories/verification_token_repository.py (VerificationTokenRepository)
+  - services/billing/stripe_service.py (grant_signup_credits)
+
+Called by: api/v1/router.py.
 """
 
 import hashlib

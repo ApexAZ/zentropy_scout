@@ -16,6 +16,31 @@ Endpoints:
 - /job-postings/bulk-dismiss - Bulk dismiss jobs
 - /job-postings/bulk-favorite - Bulk favorite/unfavorite jobs
 - /job-postings/rescore - Re-run Strategist scoring
+
+Coordinates with:
+  - api/deps.py (BalanceCheck, CurrentUserId, DbSession, MeteredProvider)
+  - core/config.py (settings)
+  - core/errors.py (ConflictError, ContentSecurityError, NotFoundError,
+    ValidationError)
+  - core/rate_limiting.py (limiter)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/job_posting.py (JobPosting)
+  - models/job_source.py (JobSource)
+  - models/persona.py (Persona)
+  - models/persona_job.py (PersonaJob)
+  - repositories/job_posting_repository.py (JobPostingRepository)
+  - repositories/persona_job_repository.py (PersonaJobRepository)
+  - schemas/bulk.py (BulkDismissRequest, BulkFavoriteRequest,
+    BulkFailedItem, BulkOperationResult)
+  - schemas/ingest.py (ingest request/response models)
+  - schemas/job_posting.py (CreateJobPostingRequest, PersonaJobResponse,
+    UpdatePersonaJobRequest)
+  - services/discovery/content_security.py (build_quarantine_fields,
+    check_manual_submission_rate, validate_job_content)
+  - services/discovery/job_extraction.py (extract_job_data)
+  - services/ingest_token_store.py (get_token_store)
+
+Called by: api/v1/router.py.
 """
 
 import hashlib

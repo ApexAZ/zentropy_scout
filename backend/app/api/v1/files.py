@@ -3,6 +3,19 @@
 REQ-006 §2.7, §5.2: File handling endpoints.
 
 All files are stored as BYTEA in PostgreSQL (no S3, no filesystem paths).
+
+Coordinates with:
+  - api/deps.py (CurrentUserId, DbSession)
+  - core/errors.py (NotFoundError)
+  - core/file_validation.py (read_file_with_size_limit,
+    sanitize_filename_for_header, validate_file_content)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/resume.py (BaseResume, ResumeFile, JobVariant,
+    SubmittedResumePDF — via barrel and direct imports)
+  - models/persona.py (Persona — via barrel import)
+  - models/cover_letter.py (CoverLetter, SubmittedCoverLetterPDF)
+
+Called by: api/v1/router.py.
 """
 
 import uuid

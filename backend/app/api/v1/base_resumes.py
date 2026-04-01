@@ -2,6 +2,23 @@
 
 REQ-006 §5.2: Base resumes CRUD, filtered by current user's persona.
 REQ-002 §4.2: Base Resume — Rendered Document Storage.
+
+Coordinates with:
+  - api/deps.py (BalanceCheck, CurrentUserId, DbSession, MeteredProvider)
+  - core/errors.py (ConflictError, InvalidStateError, NotFoundError,
+    ValidationError)
+  - core/file_validation.py (sanitize_filename_for_header)
+  - core/responses.py (DataResponse, ListResponse, PaginationMeta)
+  - models/resume.py (BaseResume — via barrel import)
+  - models/persona.py (Persona — via barrel import)
+  - models/resume_template.py (ResumeTemplate)
+  - schemas/resume.py (GenerateResumeRequest, GenerateResumeResponse)
+  - services/generation/resume_generation_service.py (llm_generate, template_fill)
+  - services/rendering/markdown_docx_renderer.py (render_docx)
+  - services/rendering/markdown_pdf_renderer.py (render_pdf)
+  - services/rendering/pdf_generation.py (render_base_resume_pdf)
+
+Called by: api/v1/router.py.
 """
 
 import uuid
