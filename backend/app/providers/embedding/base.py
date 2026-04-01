@@ -1,6 +1,20 @@
 """Abstract base class and types for embedding providers.
 
 REQ-009 §5.1: EmbeddingProvider abstract interface with batch-first API.
+
+Coordinates with:
+  - providers/config.py (ProviderConfig — TYPE_CHECKING only)
+
+Called by:
+  - providers/embedding/openai_adapter.py,
+    providers/embedding/gemini_adapter.py,
+    providers/embedding/mock_adapter.py (EmbeddingProvider subclasses)
+  - providers/factory.py (EmbeddingProvider type)
+  - providers/metered_provider.py (EmbeddingProvider, EmbeddingResult)
+  - api/deps.py
+  - services/scoring/job_scoring_service.py,
+    services/discovery/discovery_workflow.py,
+    services/discovery/job_fetch_service.py
 """
 
 from abc import ABC, abstractmethod

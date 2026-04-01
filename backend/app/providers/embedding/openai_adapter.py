@@ -7,6 +7,12 @@ WHY OPENAI FOR EMBEDDINGS (even when using Claude for LLM):
 - Well-documented, stable API
 - Good batch support (up to 2048 texts)
 - Anthropic doesn't offer embeddings (as of early 2025)
+
+Coordinates with:
+  - providers/embedding/base.py (EmbeddingProvider, EmbeddingResult)
+  - providers/config.py (ProviderConfig — TYPE_CHECKING only)
+
+Called by: providers/factory.py (OpenAIEmbeddingAdapter).
 """
 
 from typing import TYPE_CHECKING

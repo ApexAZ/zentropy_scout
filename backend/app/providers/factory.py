@@ -2,6 +2,21 @@
 
 REQ-009 §6.3: Singleton pattern for provider instances.
 REQ-028 §3: Registry factory for cross-provider dispatch.
+
+Coordinates with:
+  - providers/config.py (ProviderConfig)
+  - providers/embedding/base.py (EmbeddingProvider)
+  - providers/embedding/gemini_adapter.py (GeminiEmbeddingAdapter)
+  - providers/embedding/openai_adapter.py (OpenAIEmbeddingAdapter)
+  - providers/llm/base.py (LLMProvider)
+  - providers/llm/claude_adapter.py (ClaudeAdapter)
+  - providers/llm/gemini_adapter.py (GeminiAdapter)
+  - providers/llm/openai_adapter.py (OpenAIAdapter)
+
+Called by:
+  - api/deps.py (get_llm_provider, get_llm_registry,
+    get_embedding_provider)
+  - services/generation/content_utils.py (get_llm_provider)
 """
 
 from app.providers.config import ProviderConfig

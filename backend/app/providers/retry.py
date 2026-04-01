@@ -10,6 +10,12 @@ WHY EXPONENTIAL BACKOFF:
 WHY JITTER:
 - Prevents synchronized retries from multiple clients
 - Spreads load more evenly
+
+Coordinates with:
+  - providers/errors.py (RateLimitError, TransientError)
+  - providers/config.py (ProviderConfig — TYPE_CHECKING only)
+
+Called by: tests only (not used in app/ at runtime).
 """
 
 import asyncio

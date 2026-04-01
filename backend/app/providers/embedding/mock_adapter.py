@@ -1,6 +1,11 @@
 """Mock embedding provider for testing.
 
 REQ-009 §9.2: MockEmbeddingProvider enables unit testing without hitting real APIs.
+
+Coordinates with:
+  - providers/embedding/base.py (EmbeddingProvider, EmbeddingResult)
+
+Called by: test fixtures (not used in app/ at runtime).
 """
 
 from typing import Any

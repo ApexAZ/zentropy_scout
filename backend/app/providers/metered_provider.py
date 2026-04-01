@@ -10,6 +10,16 @@ successful LLM/embed call but before settle() — outbox pattern for
 settlement retry by background sweep.
 REQ-028 §4: Cross-provider dispatch via registry — routes each
 task to the correct provider+model based on DB routing table.
+
+Coordinates with:
+  - providers/embedding/base.py (EmbeddingProvider, EmbeddingResult)
+  - providers/errors.py (ProviderError)
+  - providers/llm/base.py (LLMMessage, LLMProvider, LLMResponse,
+    TaskType, ToolDefinition)
+  - services/admin/admin_config_service.py (AdminConfigService)
+  - services/billing/metering_service.py (MeteringService)
+
+Called by: api/deps.py (MeteredLLMProvider, MeteredEmbeddingProvider).
 """
 
 import logging

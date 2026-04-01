@@ -2,6 +2,14 @@
 
 Maps Gemini SDK exceptions to the internal error taxonomy.
 Used by both the Gemini LLM adapter and Gemini embedding adapter.
+
+Coordinates with:
+  - providers/errors.py (AuthenticationError, ContentFilterError,
+    ContextLengthError, ProviderError, RateLimitError, TransientError)
+
+Called by:
+  - providers/llm/gemini_adapter.py (classify_gemini_error)
+  - providers/embedding/gemini_adapter.py (classify_gemini_error)
 """
 
 from app.providers.errors import (

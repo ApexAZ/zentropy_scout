@@ -6,6 +6,19 @@ WHY SEPARATE ERROR CLASSES:
 - Enables callers to handle errors differently based on type
 - Clear distinction between retryable and non-retryable errors
 - Provider-agnostic error handling (adapters map to these)
+
+Coordinates with:
+  - core/errors.py (APIError — base class)
+
+Called by:
+  - providers/gemini_errors.py, providers/retry.py,
+    providers/metered_provider.py
+  - providers/llm/claude_adapter.py, providers/llm/openai_adapter.py
+  - providers/embedding/gemini_adapter.py
+  - api/v1/admin.py
+  - services/generation/resume_generation_service.py,
+    services/generation/resume_tailoring_service.py,
+    services/rendering/resume_parsing_service.py
 """
 
 from app.core.errors import APIError

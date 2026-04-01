@@ -7,6 +7,15 @@ WHY ANTHROPIC AS PRIMARY:
 - Superior at maintaining persona (onboarding)
 - Strong at structured extraction
 - Competitive pricing with Haiku for high-volume tasks
+
+Coordinates with:
+  - providers/errors.py (AuthenticationError, ContentFilterError,
+    ContextLengthError, ProviderError, RateLimitError, TransientError)
+  - providers/llm/base.py (LLMMessage, LLMProvider, LLMResponse,
+    TaskType, ToolCall, ToolDefinition)
+  - providers/config.py (ProviderConfig — TYPE_CHECKING only)
+
+Called by: providers/factory.py (ClaudeAdapter).
 """
 
 import contextlib

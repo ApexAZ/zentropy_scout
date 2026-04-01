@@ -1,6 +1,12 @@
 """Mock LLM provider for testing.
 
 REQ-009 §9.1: MockLLMProvider enables unit testing without hitting real LLM APIs.
+
+Coordinates with:
+  - providers/llm/base.py (LLMMessage, LLMProvider, LLMResponse,
+    TaskType, ToolDefinition)
+
+Called by: test fixtures (not used in app/ at runtime).
 """
 
 from collections.abc import AsyncGenerator

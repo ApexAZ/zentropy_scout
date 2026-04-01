@@ -2,6 +2,20 @@
 
 REQ-009 §4.1: LLMProvider abstract interface with TaskType enum,
 message types, tool calling support, and JSON mode.
+
+Coordinates with:
+  - providers/config.py (ProviderConfig — TYPE_CHECKING only)
+
+Called by:
+  - providers/llm/claude_adapter.py, providers/llm/gemini_adapter.py,
+    providers/llm/openai_adapter.py, providers/llm/mock_adapter.py
+    (LLMProvider subclasses)
+  - providers/factory.py (LLMProvider type)
+  - providers/metered_provider.py (LLMMessage, LLMProvider, LLMResponse,
+    TaskType, ToolDefinition)
+  - api/deps.py, api/v1/admin.py, schemas/admin.py
+  - Multiple service modules in services/generation/,
+    services/scoring/, services/discovery/, services/rendering/
 """
 
 from abc import ABC, abstractmethod

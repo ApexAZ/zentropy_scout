@@ -8,6 +8,14 @@ WHY SUPPORT GEMINI:
 - Good multimodal capabilities (future)
 
 Uses the unified google-genai SDK (successor to google-generativeai).
+
+Coordinates with:
+  - providers/gemini_errors.py (classify_gemini_error)
+  - providers/llm/base.py (LLMMessage, LLMProvider, LLMResponse,
+    TaskType, ToolCall, ToolDefinition)
+  - providers/config.py (ProviderConfig — TYPE_CHECKING only)
+
+Called by: providers/factory.py (GeminiAdapter).
 """
 
 import time

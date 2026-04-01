@@ -6,6 +6,15 @@ WHY SUPPORT OPENAI:
 - Some users may prefer GPT for specific tasks
 - BYOK scenarios where user has OpenAI credits
 - Fallback option if Anthropic has outage (future)
+
+Coordinates with:
+  - providers/errors.py (AuthenticationError, ContentFilterError,
+    ContextLengthError, ProviderError, RateLimitError, TransientError)
+  - providers/llm/base.py (LLMMessage, LLMProvider, LLMResponse,
+    TaskType, ToolCall, ToolDefinition)
+  - providers/config.py (ProviderConfig — TYPE_CHECKING only)
+
+Called by: providers/factory.py (OpenAIAdapter).
 """
 
 import contextlib

@@ -6,6 +6,14 @@ WHY GEMINI FOR EMBEDDINGS:
 - Eliminates OpenAI API key dependency when using Claude + Gemini
 - text-embedding-004 offers competitive quality at 768 dimensions
 - Same SDK (google-genai) already used for Gemini LLM adapter
+
+Coordinates with:
+  - providers/embedding/base.py (EmbeddingProvider, EmbeddingResult)
+  - providers/errors.py (ProviderError)
+  - providers/gemini_errors.py (classify_gemini_error)
+  - providers/config.py (ProviderConfig — TYPE_CHECKING only)
+
+Called by: providers/factory.py (GeminiEmbeddingAdapter).
 """
 
 from typing import TYPE_CHECKING, cast

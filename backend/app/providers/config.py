@@ -1,6 +1,16 @@
 """Provider configuration management.
 
 REQ-009 §6.1: Centralized configuration for LLM and embedding providers.
+
+Coordinates with:
+  - (standalone — no app-internal imports at runtime)
+
+Called by:
+  - providers/factory.py (ProviderConfig.from_env)
+  - providers/llm/base.py, providers/embedding/base.py, providers/retry.py,
+    providers/llm/claude_adapter.py, providers/llm/gemini_adapter.py,
+    providers/llm/openai_adapter.py, providers/embedding/openai_adapter.py,
+    providers/embedding/gemini_adapter.py (TYPE_CHECKING only)
 """
 
 import os
