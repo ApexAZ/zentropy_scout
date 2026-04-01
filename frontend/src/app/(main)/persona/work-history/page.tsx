@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Work history editor page route.
+ * @fileoverview Work history editor page route.
+ *
+ * Layer: page
+ * Feature: persona
  *
  * REQ-012 §7.2.2: Post-onboarding editor for work history
  * entries with CRUD and reordering. Only rendered for onboarded users.
+ *
+ * Coordinates with:
+ * - components/persona/work-history-editor.tsx: editor UI component
+ * - hooks/use-persona-status.ts: persona status check for guard
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /persona/work-history
  */
 
 import { WorkHistoryEditor } from "@/components/persona/work-history-editor";

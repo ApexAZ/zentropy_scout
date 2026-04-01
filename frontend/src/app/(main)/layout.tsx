@@ -1,11 +1,25 @@
 "use client";
 
 /**
- * Main route group layout.
+ * @fileoverview Main route group layout with app shell and onboarding gate.
+ *
+ * Layer: layout
+ * Feature: shared
  *
  * REQ-012 §3.2: Protected routes use AppShell (top nav + chat sidebar).
  * REQ-012 §3.3: OnboardingGate checks persona status before rendering.
  * REQ-012 §7.6: Nav badge shows pending PersonaChangeFlags count.
+ *
+ * Coordinates with:
+ * - components/layout/app-shell.tsx: AppShell with top nav and chat sidebar
+ * - components/layout/onboarding-gate.tsx: persona status check before rendering
+ * - lib/api-client.ts: apiGet for change flags fetch
+ * - lib/query-keys.ts: queryKeys.changeFlags cache key
+ * - types/api.ts: ApiListResponse envelope type
+ * - types/persona.ts: PersonaChangeFlag type for badge count
+ *
+ * Called by / Used by:
+ * - Next.js framework: layout for all (main) route group pages
  */
 
 import { useQuery } from "@tanstack/react-query";

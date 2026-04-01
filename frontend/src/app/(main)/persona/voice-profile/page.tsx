@@ -1,11 +1,21 @@
 "use client";
 
 /**
- * Voice profile editor page route.
+ * @fileoverview Voice profile editor page route.
+ *
+ * Layer: page
+ * Feature: persona
  *
  * REQ-012 §7.2.6: Post-onboarding editor for voice profile
  * with text fields, tag inputs, and optional textarea.
  * Only rendered for onboarded users.
+ *
+ * Coordinates with:
+ * - components/persona/voice-profile-editor.tsx: editor UI component
+ * - hooks/use-persona-status.ts: persona status check for guard
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /persona/voice-profile
  */
 
 import { VoiceProfileEditor } from "@/components/persona/voice-profile-editor";
