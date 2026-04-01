@@ -231,7 +231,7 @@ Most have partial JSDoc (what + REQ refs) but lack Layer:/Feature:/Coordinates w
 
 ## Phase 6: components/jobs/ and components/dashboard/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add three-axis JSDoc headers to 12 job detail components and 4 dashboard components.*
 
@@ -247,8 +247,8 @@ Most have partial JSDoc (what + REQ refs) but lack Layer:/Feature:/Coordinates w
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 15 | **JSDoc -- jobs/ + dashboard/ (16 files)** -- Add headers: `jobs/cover-letter-section.tsx`, `jobs/create-variant-card.tsx`, `jobs/culture-signals.tsx`, `jobs/draft-materials-card.tsx`, `jobs/extracted-skills-tags.tsx`, `jobs/job-description.tsx`, `jobs/job-detail-actions.tsx`, `jobs/job-detail-header.tsx`, `jobs/mark-as-applied-card.tsx`, `jobs/review-materials-link.tsx`, `jobs/score-breakdown.tsx`, `jobs/score-explanation.tsx`, `dashboard/add-job-modal.tsx`, `dashboard/applications-table.tsx`, `dashboard/dashboard-tabs.tsx`, `dashboard/opportunities-table.tsx`. | `docs, plan` | ⬜ |
-| 16 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 15 | **JSDoc -- jobs/ + dashboard/ (16 files)** -- Add headers: `jobs/cover-letter-section.tsx`, `jobs/create-variant-card.tsx`, `jobs/culture-signals.tsx`, `jobs/draft-materials-card.tsx`, `jobs/extracted-skills-tags.tsx`, `jobs/job-description.tsx`, `jobs/job-detail-actions.tsx`, `jobs/job-detail-header.tsx`, `jobs/mark-as-applied-card.tsx`, `jobs/review-materials-link.tsx`, `jobs/score-breakdown.tsx`, `jobs/score-explanation.tsx`, `dashboard/add-job-modal.tsx`, `dashboard/applications-table.tsx`, `dashboard/dashboard-tabs.tsx`, `dashboard/opportunities-table.tsx`. | `docs, plan` | ✅ |
+| 16 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
