@@ -13,6 +13,8 @@ Accepts an optional LLM provider; falls back to
 factory.get_llm_provider() if not supplied.
 
 Coordinates with:
+  - prompts/ghostwriter.py — imports COVER_LETTER_SYSTEM_PROMPT
+    and build_cover_letter_prompt
   - generation/content_generation_service.py — called in pipeline step 6
 
 Called by: generation/content_generation_service.py and unit tests.

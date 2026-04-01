@@ -3,6 +3,10 @@
 REQ-027 §6.2: Calls LLM to tailor a base resume's markdown for a specific
 job posting. Uses RESUME_TAILORING_SYSTEM_PROMPT with TaskType.RESUME_TAILORING.
 
+Coordinates with:
+  - prompts/ghostwriter.py — imports RESUME_TAILORING_SYSTEM_PROMPT
+    and build_resume_tailoring_prompt
+
 Called by: app/api/v1/job_variants.py (tailored variant endpoint).
 """
 
