@@ -5,6 +5,11 @@ pack listing, checkout session creation, and purchase history.
 
 All monetary values are serialized as strings to preserve decimal precision.
 All schemas use ConfigDict(extra="forbid") to reject unexpected fields.
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic schemas)
+
+Called by: api/v1/credits.py.
 """
 
 import uuid

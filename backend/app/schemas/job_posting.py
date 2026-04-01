@@ -6,6 +6,11 @@ REQ-015 §8.3: Response models enforce privacy boundaries.
 REQ-015 §9: Request models for API endpoint updates.
 - UpdatePersonaJobRequest: per-user fields only (shared data immutable)
 - CreateJobPostingRequest: manual job creation with dedup
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic schemas)
+
+Called by: api/v1/job_postings.py.
 """
 
 import uuid

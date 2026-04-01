@@ -4,6 +4,11 @@ REQ-006 §2.6: Bulk operations for efficiency.
 
 These schemas define the request and response format for bulk operations
 that allow partial success (some items succeed, some fail).
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic schemas)
+
+Called by: api/v1/job_postings.py, api/v1/applications.py.
 """
 
 from uuid import UUID

@@ -2,6 +2,11 @@
 
 REQ-026 §4.6: Generation API — request and response models for
 POST /base-resumes/{id}/generate.
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic schemas)
+
+Called by: api/v1/base_resumes.py.
 """
 
 import uuid

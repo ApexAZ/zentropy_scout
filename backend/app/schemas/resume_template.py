@@ -1,6 +1,11 @@
 """Resume template Pydantic schemas.
 
 REQ-025 §4.3, §6.4: Request/response models for resume template API.
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic schemas)
+
+Called by: api/v1/resume_templates.py.
 """
 
 import uuid

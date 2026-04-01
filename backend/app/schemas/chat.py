@@ -9,6 +9,11 @@ Event Types:
 - tool_result: Agent tool call completed
 - data_changed: Data modification notification for UI refresh
 - heartbeat: Keepalive for SSE connection
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic schemas)
+
+Called by: api/v1/chat.py.
 """
 
 from typing import Any, Literal

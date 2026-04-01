@@ -5,6 +5,12 @@ REQ-006 §5.6: Chrome extension job posting ingest flow.
 This module defines schemas for the two-step ingest workflow:
 1. POST /ingest: Submit raw text, get preview with confirmation token
 2. POST /ingest/confirm: Confirm preview to create JobPosting
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic schemas)
+
+Called by: services/ingest_token_store.py, api/v1/job_postings.py,
+services/discovery/job_extraction.py.
 """
 
 from datetime import datetime

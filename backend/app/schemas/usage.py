@@ -2,6 +2,11 @@
 
 REQ-020 §8: Response models for the 4 usage API endpoints.
 All monetary values are strings with 6 decimal places per §2.5.
+
+Coordinates with:
+  - (no internal app imports — standalone Pydantic schemas)
+
+Called by: api/v1/usage.py.
 """
 
 from datetime import date, datetime

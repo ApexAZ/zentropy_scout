@@ -2,6 +2,14 @@
 
 Bundles related parameters into frozen dataclasses to reduce function
 parameter counts (SonarCloud S107: max 13 parameters).
+
+Coordinates with:
+  - (no internal app imports — standalone frozen dataclasses)
+
+Called by: services/generation/cover_letter_generation.py,
+services/generation/content_generation_service.py,
+services/scoring/job_scoring_service.py, prompts/ghostwriter.py,
+prompts/strategist.py.
 """
 
 from dataclasses import dataclass

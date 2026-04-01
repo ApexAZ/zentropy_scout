@@ -6,6 +6,11 @@ admin users, and cache refresh.
 
 All monetary values are serialized as strings to preserve decimal precision.
 All schemas use ConfigDict(extra="forbid") to reject unexpected fields.
+
+Coordinates with:
+  - providers/llm/base.py — imports TaskType for route validation
+
+Called by: api/v1/admin.py.
 """
 
 from datetime import date, datetime
