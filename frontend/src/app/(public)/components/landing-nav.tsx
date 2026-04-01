@@ -1,8 +1,17 @@
 /**
- * Landing page navigation bar.
+ * @fileoverview Landing page navigation bar with logo and CTA.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-024 §4.1: Logo, sign-in link, and amber CTA button.
  * Minimal nav — no hamburger menu, all items fit on mobile.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button component for CTA
+ *
+ * Called by / Used by:
+ * - app/(public)/page.tsx: landing page composition
  */
 
 import Image from "next/image";

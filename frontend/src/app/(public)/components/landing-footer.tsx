@@ -1,8 +1,17 @@
 /**
- * Landing page footer.
+ * @fileoverview Landing page footer with copyright and links.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-024 §4.5: Copyright, Sign In, ToS, and Privacy links.
  * ToS and Privacy are placeholder links (#) until PBI #26 adds real routes.
+ *
+ * Coordinates with:
+ * - (no upstream lib imports — self-contained presentational component)
+ *
+ * Called by / Used by:
+ * - app/(public)/page.tsx: landing page composition
  */
 
 import Link from "next/link";

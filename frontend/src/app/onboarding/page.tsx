@@ -1,11 +1,22 @@
 "use client";
 
 /**
- * Onboarding page.
+ * @fileoverview Onboarding wizard page with 11-step persona builder.
  *
- * REQ-019 §7.1: 11-step onboarding wizard.
- * Wraps all step components in OnboardingProvider and OnboardingShell,
- * routing to the correct step based on provider state.
+ * Layer: page
+ * Feature: persona
+ *
+ * REQ-019 §7.1: 11-step onboarding wizard. Wraps all step components
+ * in OnboardingProvider and OnboardingShell, routing to the correct
+ * step based on provider state.
+ *
+ * Coordinates with:
+ * - lib/onboarding-provider.tsx: OnboardingProvider context + useOnboarding hook
+ * - components/onboarding/onboarding-shell.tsx: step shell with progress and navigation
+ * - components/onboarding/steps/: 11 step components (resume-upload through review)
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /onboarding
  */
 
 import { Loader2 } from "lucide-react";

@@ -1,13 +1,24 @@
 "use client";
 
 /**
- * Login page — full-screen layout without app shell.
+ * @fileoverview Login page with email/password and OAuth sign-in.
+ *
+ * Layer: page
+ * Feature: shared
  *
  * REQ-013 §8.2: Email/password login, OAuth (Google, LinkedIn),
  * forgot password via magic link, post-auth redirect.
  *
- * States: idle → submitting → redirect | error
- * Magic link sub-states: idle → sending → magic-link-sent | error
+ * States: idle -> submitting -> redirect | error
+ * Magic link sub-states: idle -> sending -> magic-link-sent | error
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: ApiError, apiPost for auth endpoints, buildUrl for OAuth
+ * - lib/auth-provider.tsx: useSession for auth status redirect
+ * - components/ui/button.tsx, card.tsx, form.tsx, input.tsx: UI primitives
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /login
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

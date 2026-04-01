@@ -1,13 +1,24 @@
 "use client";
 
 /**
- * Register page — full-screen layout without app shell.
+ * @fileoverview Registration page with email/password and OAuth sign-up.
+ *
+ * Layer: page
+ * Feature: shared
  *
  * REQ-013 §8.3: Email/password registration, OAuth (Google, LinkedIn),
  * real-time password strength indicator, post-registration email
  * confirmation flow.
  *
- * States: idle → submitting → email-sent | error
+ * States: idle -> submitting -> email-sent | error
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: ApiError, apiPost for registration, buildUrl for OAuth
+ * - lib/auth-provider.tsx: useSession for auth status redirect
+ * - components/ui/button.tsx, card.tsx, form.tsx, input.tsx: UI primitives
+ *
+ * Called by / Used by:
+ * - Next.js framework: route /register
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";

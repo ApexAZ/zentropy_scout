@@ -1,8 +1,17 @@
 /**
- * Landing page "How It Works" section.
+ * @fileoverview Landing page "How It Works" 3-step walkthrough section.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-024 §4.4: 3-step walkthrough with Lucide icons.
  * Horizontal row on desktop, vertical stack on mobile.
+ *
+ * Coordinates with:
+ * - (no upstream lib imports — self-contained presentational component)
+ *
+ * Called by / Used by:
+ * - app/(public)/page.tsx: landing page composition
  */
 
 import { Radar, Sparkles, UserPlus } from "lucide-react";

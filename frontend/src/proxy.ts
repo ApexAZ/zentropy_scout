@@ -1,17 +1,24 @@
 /**
- * Next.js proxy for auth-based routing and route protection.
+ * @fileoverview Next.js proxy for auth-based routing and route protection.
+ *
+ * Layer: lib/utility
+ * Feature: shared
  *
  * REQ-024 §5.2: Cookie-presence routing — authenticated users on public
- * routes (/, /login, /register) redirect to /dashboard. Unauthenticated
- * users on public routes see the landing page or auth forms.
+ * routes (/, /login, /register) redirect to /dashboard.
  *
  * REQ-013 §8.6: Server-side route protection — redirects unauthenticated
  * users to /login before any page renders.
  *
  * REQ-022 §5.4: Admin route guard — redirects non-admin users to /
  * for paths under /admin. Decodes JWT payload (base64, no verification)
- * to check the `adm` claim. This is a UX convenience only — the backend
- * `require_admin` dependency is the authoritative security check.
+ * to check the `adm` claim (UX convenience only — backend is authoritative).
+ *
+ * Coordinates with:
+ * - (no upstream lib imports — uses next/server only)
+ *
+ * Called by / Used by:
+ * - Next.js framework: runs on every matched request before page rendering
  */
 
 import { NextRequest, NextResponse } from "next/server";

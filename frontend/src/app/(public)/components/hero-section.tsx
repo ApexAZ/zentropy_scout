@@ -1,8 +1,17 @@
 /**
- * Landing page hero section.
+ * @fileoverview Landing page hero section with headline and CTA.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-024 §4.2: Headline, subtitle, CTA button, sign-in link,
  * and gradient placeholder graphic.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button component for CTA
+ *
+ * Called by / Used by:
+ * - app/(public)/page.tsx: landing page composition
  */
 
 import Link from "next/link";

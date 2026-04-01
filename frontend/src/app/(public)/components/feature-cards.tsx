@@ -1,8 +1,17 @@
 /**
- * Landing page feature highlight cards.
+ * @fileoverview Landing page feature highlight cards.
+ *
+ * Layer: component
+ * Feature: shared
  *
  * REQ-024 §4.3: 4 cards with Lucide icons, titles, and descriptions.
- * Responsive grid: 1 col mobile → 2 col tablet → 4 col desktop.
+ * Responsive grid: 1 col mobile, 2 col tablet, 4 col desktop.
+ *
+ * Coordinates with:
+ * - (no upstream lib imports — self-contained presentational component)
+ *
+ * Called by / Used by:
+ * - app/(public)/page.tsx: landing page composition
  */
 
 import { BarChart3, FileText, Search, UserCircle } from "lucide-react";
