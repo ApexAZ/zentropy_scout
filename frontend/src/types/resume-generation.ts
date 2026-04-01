@@ -1,14 +1,19 @@
 /**
- * Resume generation types matching backend/app/schemas/resume.py.
+ * @fileoverview Resume generation types matching backend/app/schemas/resume.py.
+ *
+ * Layer: type-definitions
+ * Feature: resume
  *
  * REQ-026 §4.2: Generation options panel.
  * REQ-026 §4.3: Page limit control.
  * REQ-026 §4.6: Generation request/response.
  *
- * @module types/resume-generation
- * @coordinates-with hooks/use-resume-detail (generation handler — GenerationMethod, GenerationOptions),
- *   components/resume/resume-content-view (resume editor — generation trigger),
- *   components/editor/generation-options-panel (generation options UI — ResumeSection, labels)
+ * Coordinates with:
+ * - hooks/use-resume-detail.ts: generation handler (GenerationMethod, GenerationOptions)
+ *
+ * Called by / Used by:
+ * - components/resume/resume-content-view.tsx: resume editor generation trigger
+ * - components/editor/generation-options-panel.tsx: generation options UI (ResumeSection, labels)
  */
 
 // ---------------------------------------------------------------------------

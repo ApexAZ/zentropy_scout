@@ -1,12 +1,18 @@
 /**
- * Admin API resource types matching backend/app/schemas/admin.py.
+ * @fileoverview Admin API resource types matching backend/app/schemas/admin.py.
+ *
+ * Layer: type-definitions
+ * Feature: admin
  *
  * REQ-022 §10: TypeScript interfaces for all admin endpoint resources.
  * All monetary values are strings to preserve decimal precision.
  *
- * @module types/admin
- * @coordinates-with lib/api/admin (admin API client functions — CRUD operations),
- *   components/admin/ (admin dashboard tabs — models, pricing, routing, packs, system, users)
+ * Coordinates with:
+ * - lib/api/admin.ts: admin API client functions (CRUD operations)
+ *
+ * Called by / Used by:
+ * - lib/api/admin.ts: request/response types for all admin API calls
+ * - components/admin/*: admin dashboard tabs (models, pricing, routing, packs, system, users)
  */
 
 // =============================================================================

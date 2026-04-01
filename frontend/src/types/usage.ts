@@ -1,15 +1,22 @@
 /**
- * Usage, billing, and credits response types.
+ * @fileoverview Usage, billing, and credits response types.
+ *
+ * Layer: type-definitions
+ * Feature: usage
  *
  * REQ-020 §8: Response shapes for the 4 usage API endpoints.
  * REQ-029 §8: Response shapes for credit pack, checkout, and purchase endpoints.
  * All monetary values are strings with 6 decimal places from the API;
  * frontend displays 2 decimal places (REQ-020 §2.5).
  *
- * @module types/usage
- * @coordinates-with hooks/use-balance (balance polling hook),
- *   lib/api/credits (credits API client functions),
- *   components/usage/ (usage dashboard — balance card, transactions, funding packs)
+ * Coordinates with:
+ * - hooks/use-balance.ts: balance polling hook
+ * - lib/api/credits.ts: credits API client functions
+ *
+ * Called by / Used by:
+ * - hooks/use-balance.ts: balance and usage summary types
+ * - lib/api/credits.ts: pack and checkout response types
+ * - components/usage/*: usage dashboard (balance card, transactions, funding packs)
  */
 
 // ---------------------------------------------------------------------------

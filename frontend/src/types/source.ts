@@ -1,11 +1,17 @@
 /**
- * Job source and user source preference types matching
+ * @fileoverview Job source and user source preference types matching
  * backend/app/models/job_source.py.
+ *
+ * Layer: type-definitions
+ * Feature: shared
  *
  * REQ-012 §12.2: Job source preferences.
  *
- * @module types/source
- * @coordinates-with components/settings/job-sources-section (sole consumer — job source preferences UI)
+ * Coordinates with:
+ * - (no upstream type imports)
+ *
+ * Called by / Used by:
+ * - components/settings/job-sources-section.tsx: sole consumer — job source preferences UI
  */
 
 // ---------------------------------------------------------------------------

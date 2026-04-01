@@ -1,11 +1,17 @@
 /**
- * TypeScript types for the two-step job ingest flow.
+ * @fileoverview TypeScript types for the two-step job ingest flow.
+ *
+ * Layer: type-definitions
+ * Feature: jobs
  *
  * REQ-006 §5.6: Chrome extension / manual job posting ingest.
  * Mirrors backend schemas in backend/app/schemas/ingest.py.
  *
- * @module types/ingest
- * @coordinates-with components/dashboard/add-job-modal (sole consumer — manual job ingest form)
+ * Coordinates with:
+ * - (no upstream type imports)
+ *
+ * Called by / Used by:
+ * - components/dashboard/add-job-modal.tsx: sole consumer — manual job ingest form
  */
 
 // ---------------------------------------------------------------------------

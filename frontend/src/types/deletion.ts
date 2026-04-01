@@ -1,14 +1,21 @@
 /**
- * Types for the deletion reference check system.
+ * @fileoverview Types for the deletion reference check system.
+ *
+ * Layer: type-definitions
+ * Feature: persona
  *
  * REQ-012 §7.5 / REQ-001 §7b: Before deleting a persona item, check
  * for references in BaseResumes and CoverLetters, then show the
  * appropriate dialog variant (three-option for mutable refs, block
  * for immutable refs) or delete immediately (no refs).
  *
- * @module types/deletion
- * @coordinates-with hooks/use-delete-with-references (deletion flow state machine — primary consumer),
- *   components/ui/delete-reference-dialog (delete confirmation dialog UI)
+ * Coordinates with:
+ * - hooks/use-delete-with-references.ts: deletion flow state machine (primary consumer)
+ * - components/ui/delete-reference-dialog.tsx: delete confirmation dialog UI
+ *
+ * Called by / Used by:
+ * - hooks/use-delete-with-references.ts: deletion state and API types
+ * - components/ui/delete-reference-dialog.tsx: dialog props and reference display
  */
 
 // ---------------------------------------------------------------------------

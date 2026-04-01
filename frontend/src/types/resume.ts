@@ -1,16 +1,21 @@
 /**
- * Resume domain types matching backend/app/models/resume.py and
+ * @fileoverview Resume domain types matching backend/app/models/resume.py and
  * backend/app/services/ guardrail structures.
+ *
+ * Layer: type-definitions
+ * Feature: resume
  *
  * REQ-002: Resume generation and management.
  * REQ-005 §4.2: Database schema (ResumeFile, BaseResume, JobVariant, SubmittedResumePDF).
  * REQ-012 §9: Resume management page.
  *
- * @module types/resume
- * @coordinates-with hooks/use-resume-detail + hooks/use-auto-save (resume data + auto-save hooks),
- *   components/resume/ (resume list, detail, wizard, variants, guardrail banner),
- *   components/editor/template-picker (resume template selection),
- *   components/jobs/ (create-variant card, mark-as-applied, review materials)
+ * Coordinates with:
+ * - hooks/use-resume-detail.ts, hooks/use-auto-save.ts: resume data and auto-save hooks
+ *
+ * Called by / Used by:
+ * - components/resume/*: resume list, detail, wizard, variants, guardrail banner
+ * - components/editor/template-picker.tsx: resume template selection
+ * - components/jobs/*: create-variant card, mark-as-applied, review materials
  */
 
 // ---------------------------------------------------------------------------

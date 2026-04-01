@@ -1,16 +1,24 @@
 /**
- * Barrel re-export of all public domain types.
+ * @fileoverview Barrel re-export of all public domain types.
+ *
+ * Layer: type-definitions
+ * Feature: shared
  *
  * Aggregates type exports from the 11 domain type modules so consumers
  * can import from `@/types` instead of `@/types/<module>`. In practice,
- * consumers import directly from the specific module files.
+ * most consumers import directly from the specific module files.
  *
- * @module types/index
- * @coordinates-with types/api (response envelope types),
- *   types/persona (persona + sub-entity types),
- *   types/job (job posting + scoring types),
- *   types/resume + types/application (document domain types),
- *   types/chat + types/sse (real-time communication types)
+ * Coordinates with:
+ * - types/api.ts: response envelope types
+ * - types/persona.ts: persona + sub-entity types
+ * - types/job.ts: job posting + scoring types
+ * - types/resume.ts, types/application.ts: document domain types
+ * - types/chat.ts, types/sse.ts: real-time communication types
+ * - types/ingest.ts, types/source.ts: job ingest and source preferences
+ * - types/usage.ts, types/admin.ts: billing and admin resource types
+ *
+ * Called by / Used by:
+ * - (barrel file — most consumers import from specific type modules directly)
  */
 
 export type {

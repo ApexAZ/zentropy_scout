@@ -1,6 +1,9 @@
 /**
- * Job domain types matching backend/app/schemas/job_posting.py
+ * @fileoverview Job domain types matching backend/app/schemas/job_posting.py
  * and backend/app/services/ scoring dataclasses.
+ *
+ * Layer: type-definitions
+ * Feature: jobs
  *
  * REQ-001: Job posting analysis.
  * REQ-003 §7: Ghost detection signals.
@@ -9,12 +12,15 @@
  * REQ-012 §8: Job dashboard & scoring display.
  * REQ-015 §8: Shared job pool — PersonaJobResponse wraps JobPostingResponse.
  *
- * @module types/job
- * @coordinates-with types/persona (SkillType, WorkModel — inbound imports),
- *   types/chat (FitScoreResult, ScoreExplanation, StretchScoreResult — outbound to chat cards),
- *   lib/score-formatters + lib/job-formatters (scoring display + job field formatting),
- *   components/jobs/ (job dashboard, score breakdown, detail views),
- *   components/dashboard/opportunities-table (job opportunities listing)
+ * Coordinates with:
+ * - types/persona.ts: SkillType, WorkModel — inbound imports
+ * - types/chat.ts: FitScoreResult, ScoreExplanation, StretchScoreResult — outbound to chat cards
+ *
+ * Called by / Used by:
+ * - lib/score-formatters.ts: score component display order and labels
+ * - lib/job-formatters.ts: salary and date formatting
+ * - components/jobs/*: job dashboard, score breakdown, detail views
+ * - components/dashboard/opportunities-table.tsx: job opportunities listing
  */
 
 import type { SkillType, WorkModel } from "./persona";

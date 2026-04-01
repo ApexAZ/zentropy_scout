@@ -1,12 +1,18 @@
 /**
- * SSE event types matching backend/app/schemas/chat.py.
+ * @fileoverview SSE event types matching backend/app/schemas/chat.py.
+ *
+ * Layer: type-definitions
+ * Feature: shared
  *
  * REQ-006 §2.5: SSE event types for real-time communication.
  * REQ-012 §4.4: SSE client with typed events.
  *
- * @module types/sse
- * @coordinates-with lib/sse-client (sole runtime consumer — parses SSE stream into typed events),
- *   lib/sse-query-bridge (bridges SSE events to React Query cache invalidation)
+ * Coordinates with:
+ * - lib/sse-client.ts: sole runtime consumer — parses SSE stream into typed events
+ * - lib/sse-query-bridge.ts: bridges SSE data_changed events to React Query invalidation
+ *
+ * Called by / Used by:
+ * - lib/sse-client.ts: parses raw SSE messages via parseSSEEvent()
  */
 
 /** Streaming LLM token — append text to current chat message. */

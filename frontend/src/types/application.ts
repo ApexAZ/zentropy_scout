@@ -1,17 +1,22 @@
 /**
- * Application & CoverLetter domain types matching
+ * @fileoverview Application and CoverLetter domain types matching
  * backend/app/models/application.py and backend/app/models/cover_letter.py.
+ *
+ * Layer: type-definitions
+ * Feature: applications
  *
  * REQ-004: Application tracking pipeline.
  * REQ-005 §4.5: Database schema (Application, TimelineEvent).
  * REQ-005 §4.3: Database schema (CoverLetter, SubmittedCoverLetterPDF).
  * REQ-012 §11: Application tracking page.
  *
- * @module types/application
- * @coordinates-with types/persona (WorkModel — inbound import),
- *   components/applications/ (application tracking UI — columns, detail, timeline, dialogs),
- *   components/jobs/ (mark-as-applied card, review materials, draft materials),
- *   components/cover-letter/cover-letter-review (cover letter review page)
+ * Coordinates with:
+ * - types/persona.ts: WorkModel — inbound import
+ *
+ * Called by / Used by:
+ * - components/applications/*: application tracking UI (columns, detail, timeline, dialogs)
+ * - components/jobs/*: mark-as-applied card, review materials, draft materials
+ * - components/cover-letter/cover-letter-review.tsx: cover letter review page
  */
 
 import type { WorkModel } from "./persona";

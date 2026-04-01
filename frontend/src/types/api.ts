@@ -1,12 +1,20 @@
 /**
- * API response envelope types matching backend/app/core/responses.py.
+ * @fileoverview API response envelope types matching backend/app/core/responses.py.
+ *
+ * Layer: type-definitions
+ * Feature: shared
  *
  * REQ-006 §7.2: Consistent response format for all API endpoints.
  * REQ-012 §4.3: Typed API client with response envelope parsing.
  *
- * @module types/api
- * @coordinates-with lib/api-client (response envelope parsing — foundational consumer),
- *   lib/ helpers + hooks/ + components/ (all modules making typed API calls import these envelopes)
+ * Coordinates with:
+ * - lib/api-client.ts: response envelope parsing (foundational consumer)
+ *
+ * Called by / Used by:
+ * - lib/api-client.ts: ApiError class uses ErrorResponse
+ * - lib/api/*.ts: admin and credits API modules import ApiResponse, ApiListResponse
+ * - hooks/*: data-fetching hooks use response envelope types
+ * - components/*: ~30+ components import these envelopes for typed API calls
  */
 
 /**
