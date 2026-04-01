@@ -278,7 +278,7 @@ components.*
 
 ## Phase 8: components/chat/ and components/cover-letter/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add three-axis JSDoc headers to 10 chat UI components and 3 cover letter components.*
 
@@ -294,8 +294,8 @@ components.*
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 19 | **JSDoc -- chat/ + cover-letter/ (13 files)** -- Add headers: `chat/chat-confirm-card.tsx`, `chat/chat-input.tsx`, `chat/chat-job-card.tsx`, `chat/chat-message-list.tsx`, `chat/chat-option-list.tsx`, `chat/chat-score-card.tsx`, `chat/message-bubble.tsx`, `chat/streaming-cursor.tsx`, `chat/tool-execution-badge.tsx`, `chat/typing-indicator.tsx`, `cover-letter/cover-letter-review.tsx`, `cover-letter/regeneration-feedback-modal.tsx`, `cover-letter/story-override-modal.tsx`. | `docs, plan` | ⬜ |
-| 20 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 19 | **JSDoc -- chat/ + cover-letter/ (13 files)** -- Add headers: `chat/chat-confirm-card.tsx`, `chat/chat-input.tsx`, `chat/chat-job-card.tsx`, `chat/chat-message-list.tsx`, `chat/chat-option-list.tsx`, `chat/chat-score-card.tsx`, `chat/message-bubble.tsx`, `chat/streaming-cursor.tsx`, `chat/tool-execution-badge.tsx`, `chat/typing-indicator.tsx`, `cover-letter/cover-letter-review.tsx`, `cover-letter/regeneration-feedback-modal.tsx`, `cover-letter/story-override-modal.tsx`. | `docs, plan` | ✅ |
+| 20 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
