@@ -481,7 +481,7 @@ external source adapters (5 files), agent infrastructure (3 files), prompt templ
 
 ## Phase 16: Backend services/ — Verify/Update Existing
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Verify and update `Coordinates with:` / `Called by:` sections on ~86 service files.
 These were standardized during REQ-031 but may have drifted or have inaccurate paths.
@@ -504,7 +504,7 @@ still exist, update if needed. Larger batches are acceptable.*
 | 42 | **Verify -- services/ top-level + scoring/ + embedding/ (30 files)** -- Verify/update: `services/agent_handoff.py`, `services/agent_message.py`, `services/application_workflow.py`, `services/ingest_token_store.py`, `services/persona_sync.py`, `services/retention_cleanup.py` (6 top-level) + `services/scoring/` (17 files: batch_scoring, experience_level, explanation_generation, fit_score, golden_set, hard_skills_match, job_scoring_service, location_logistics, non_negotiables_filter, pool_scoring, role_title_match, score_correlation, score_explanation, score_types, scoring_flow, soft_skills_match, stretch_score) + `services/embedding/` (7 files: cache, cost, job_generator, persona_generator, storage, types, utils). | `docs, plan` | ✅ |
 | 43 | **Verify -- services/generation/ (24 files)** -- Verify/update all 24 files: base_resume_selection, bullet_reordering, content_generation_service, content_utils, cover_letter_generation, cover_letter_output, cover_letter_structure, cover_letter_validation, data_availability, duplicate_story, generation_outcome, ghostwriter_triggers, job_expiry, modification_limits, persona_change, quality_metrics, reasoning_explanation, regeneration, resume_generation_service, resume_tailoring_service, story_selection, tailoring_decision, voice_prompt_block, voice_validation. | `docs, plan` | ✅ |
 | 44 | **Verify -- services/rendering/ + discovery/ + billing/ + admin/ + onboarding/ (32 files)** -- Verify/update: `services/rendering/` (8 files: cover_letter_editing, cover_letter_pdf_generation, cover_letter_pdf_storage, markdown_docx_renderer, markdown_pdf_renderer, pdf_generation, resume_parsing_service, resume_template_service) + `services/discovery/` (16 files: content_security, discovery_workflow, expiration_detection, ghost_detection, global_dedup_service, job_deduplication, job_enrichment_service, job_extraction, job_fetch_service, job_status, pool_surfacing_service, pool_surfacing_worker, scouter_errors, scouter_utils, source_selection, user_review) + `services/billing/` (4 files) + `services/admin/` (2 files) + `services/onboarding/` (2 files). | `docs, plan` | ✅ |
-| 45 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ⬜ |
+| 45 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ✅ |
 
 ---
 
