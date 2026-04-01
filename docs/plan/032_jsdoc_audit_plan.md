@@ -155,7 +155,7 @@ persona CRUD transforms, API modules, and display formatting.*
 
 ## Phase 3: types/ and hooks/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Reformat existing JSDoc headers on all 14 type definition files and 10 hook files.
 Types define the domain model; hooks encapsulate reusable stateful logic.*
@@ -172,9 +172,9 @@ Types define the domain model; hooks encapsulate reusable stateful logic.*
 #### Tasks
 | SS | Task | Hints | Status |
 |---|------|-------|--------|
-| 5 | **JSDoc -- types/ (14 files)** -- Reformat headers: `index.ts`, `persona.ts`, `job.ts`, `application.ts`, `resume.ts`, `resume-generation.ts`, `api.ts`, `chat.ts`, `sse.ts`, `deletion.ts`, `source.ts`, `ingest.ts`, `admin.ts`, `usage.ts`. | `docs, plan` | ⬜ |
-| 6 | **JSDoc -- hooks/ (10 files)** -- Reformat headers: `use-auto-save.ts`, `use-balance.ts`, `use-chat-scroll.ts`, `use-crud-step.ts`, `use-delete-with-references.ts`, `use-is-mobile.ts`, `use-media-query.ts`, `use-persona-status.ts`, `use-resume-content-selection.ts`, `use-resume-detail.ts`. | `docs, plan` | ⬜ |
-| 7 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ⬜ |
+| 5 | **JSDoc -- types/ (14 files)** -- Reformat headers: `index.ts`, `persona.ts`, `job.ts`, `application.ts`, `resume.ts`, `resume-generation.ts`, `api.ts`, `chat.ts`, `sse.ts`, `deletion.ts`, `source.ts`, `ingest.ts`, `admin.ts`, `usage.ts`. | `docs, plan` | ✅ |
+| 6 | **JSDoc -- hooks/ (10 files)** -- Reformat headers: `use-auto-save.ts`, `use-balance.ts`, `use-chat-scroll.ts`, `use-crud-step.ts`, `use-delete-with-references.ts`, `use-is-mobile.ts`, `use-media-query.ts`, `use-persona-status.ts`, `use-resume-content-selection.ts`, `use-resume-detail.ts`. | `docs, plan` | ✅ |
+| 7 | **Phase gate -- lint + typecheck + push** | `plan, commands` | ✅ |
 
 ---
 
