@@ -2,6 +2,17 @@
 
 REQ-005 §4.4 - JobPosting (Tier 0 shared pool), ExtractedSkill (Tier 3).
 REQ-015 §4.1 - Shared job pool: per-user fields moved to PersonaJob.
+
+Coordinates with:
+  - models/base.py — imports Base, EmbeddingColumnsMixin, TimestampMixin
+  - models/application.py — imports Application (TYPE_CHECKING)
+  - models/cover_letter.py — imports CoverLetter (TYPE_CHECKING)
+  - models/job_source.py — imports JobSource (TYPE_CHECKING)
+  - models/persona_job.py — imports PersonaJob (TYPE_CHECKING)
+  - models/resume.py — imports JobVariant (TYPE_CHECKING)
+
+Called by: widely imported (15+ files across services/scoring/,
+services/discovery/, api/v1/, repositories/, models/).
 """
 
 import uuid

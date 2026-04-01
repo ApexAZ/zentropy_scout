@@ -6,6 +6,17 @@ REQ-020 §4.1 - balance_usd for token metering.
 REQ-022 §4.1 - is_admin for admin access control.
 REQ-029 §4.1 - stripe_customer_id for Stripe Customer mapping.
 REQ-030 §4.1 - held_balance_usd for reservation-based metering.
+
+Coordinates with:
+  - models/base.py — imports Base, TimestampMixin
+  - models/account.py — imports Account (TYPE_CHECKING)
+  - models/persona.py — imports Persona (TYPE_CHECKING)
+  - models/session.py — imports Session (TYPE_CHECKING)
+
+Called by: core/account_linking.py, services/admin/admin_management_service.py,
+api/v1/auth_magic_link.py, api/v1/admin.py, api/deps.py,
+repositories/credit_repository.py, repositories/user_repository.py,
+and 4 sibling model files (TYPE_CHECKING cross-references).
 """
 
 import uuid

@@ -7,6 +7,12 @@ released (LLM failure), or marked stale (TTL exceeded).
 REQ-030 §5.8: Response metadata columns (response_model, response_input_tokens,
 response_output_tokens, call_completed_at) support the outbox pattern for
 settlement retry — persisted after a successful LLM call, before settle().
+
+Coordinates with:
+  - models/base.py — imports Base
+
+Called by: services/billing/metering_service.py,
+services/billing/reservation_sweep.py.
 """
 
 import uuid

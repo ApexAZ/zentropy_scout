@@ -1,6 +1,20 @@
 """Persona model - user's professional identity.
 
 REQ-005 §4.1 - Tier 1, references User.
+
+Coordinates with:
+  - models/base.py — imports Base, TimestampMixin
+  - models/application.py — imports Application (TYPE_CHECKING)
+  - models/cover_letter.py — imports CoverLetter (TYPE_CHECKING)
+  - models/job_source.py — imports PollingConfiguration, UserSourcePreference (TYPE_CHECKING)
+  - models/persona_content.py — imports AchievementStory, Certification, Education, Skill, WorkHistory (TYPE_CHECKING)
+  - models/persona_job.py — imports PersonaJob (TYPE_CHECKING)
+  - models/persona_settings.py — imports CustomNonNegotiable, PersonaChangeFlag, PersonaEmbedding, VoiceProfile (TYPE_CHECKING)
+  - models/resume.py — imports BaseResume, ResumeFile (TYPE_CHECKING)
+  - models/user.py — imports User (TYPE_CHECKING)
+
+Called by: widely imported (26+ files across core/, services/, api/v1/,
+repositories/, models/).
 """
 
 import uuid

@@ -4,6 +4,12 @@ REQ-020 §4.2–§4.3: LLMUsageRecord tracks every LLM/embedding API call.
 CreditTransaction is an append-only ledger of all balance changes.
 Both tables are immutable — records are never updated or deleted.
 REQ-029 §4.2: stripe_event_id on CreditTransaction for webhook idempotency.
+
+Coordinates with:
+  - models/base.py — imports Base
+
+Called by: services/billing/metering_service.py,
+repositories/credit_repository.py, repositories/usage_repository.py.
 """
 
 import uuid

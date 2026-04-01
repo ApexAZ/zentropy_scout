@@ -1,6 +1,15 @@
 """Job source models - where jobs come from.
 
 REQ-005 §4.4 - JobSource (Tier 0), UserSourcePreference, PollingConfiguration (Tier 2).
+
+Coordinates with:
+  - models/base.py — imports Base, TimestampMixin
+  - models/job_posting.py — imports JobPosting (TYPE_CHECKING)
+  - models/persona.py — imports Persona (TYPE_CHECKING)
+
+Called by: api/v1/job_postings.py, api/v1/user_source_preferences.py,
+repositories/job_pool_repository.py, and 2 sibling model files
+(TYPE_CHECKING cross-references).
 """
 
 import uuid

@@ -1,6 +1,15 @@
 """Resume template model for markdown-based resume generation.
 
 REQ-025 §4.3 - ResumeTemplate (Tier 1 - references User optionally).
+
+Coordinates with:
+  - models/base.py — imports Base
+  - models/user.py — imports User (TYPE_CHECKING, ORM relationship)
+
+Called by: services/generation/resume_generation_service.py,
+services/rendering/resume_template_service.py, api/v1/base_resumes.py,
+api/v1/resume_templates.py, repositories/resume_template_repository.py,
+models/resume.py (TYPE_CHECKING).
 """
 
 import uuid

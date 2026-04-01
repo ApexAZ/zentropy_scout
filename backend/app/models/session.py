@@ -2,6 +2,12 @@
 
 REQ-013 §6.3 - Tracks active JWT sessions for session management
 and "sign out everywhere" functionality.
+
+Coordinates with:
+  - models/base.py — imports Base
+  - models/user.py — imports User (TYPE_CHECKING, ORM relationship)
+
+Called by: models/user.py (TYPE_CHECKING).
 """
 
 import uuid

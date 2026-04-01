@@ -2,6 +2,11 @@
 
 REQ-005 §2.1: Defines the declarative base and reusable mixins for
 timestamp tracking, soft delete, and embedding storage across all models.
+
+Coordinates with:
+  - (no internal app imports — standalone SQLAlchemy declarative base)
+
+Called by: all 18 model files in models/ + models/__init__.py.
 """
 
 from datetime import datetime

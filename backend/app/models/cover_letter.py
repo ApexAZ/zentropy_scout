@@ -1,6 +1,16 @@
 """Cover letter models - generated letters and submitted PDFs.
 
 REQ-005 §4.3 - CoverLetter (Tier 3), SubmittedCoverLetterPDF (Tier 4).
+
+Coordinates with:
+  - models/base.py — imports Base, SoftDeleteMixin, TimestampMixin
+  - models/application.py — imports Application (TYPE_CHECKING)
+  - models/job_posting.py — imports JobPosting (TYPE_CHECKING)
+  - models/persona.py — imports Persona (TYPE_CHECKING)
+
+Called by: services/rendering/ (cover_letter_editing, cover_letter_pdf_generation,
+cover_letter_pdf_storage), services/application_workflow.py,
+api/v1/applications.py, api/v1/cover_letters.py, api/v1/files.py.
 """
 
 import uuid

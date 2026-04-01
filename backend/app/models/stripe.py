@@ -5,6 +5,11 @@ through completion to potential refund. Separate from the append-only
 credit_transactions ledger to allow mutable status lifecycle tracking.
 REQ-030 §4.3: grant_cents type aligned to Integer (was BigInteger).
 REQ-030 §7.3: 'expired' status added for checkout.session.expired webhook.
+
+Coordinates with:
+  - models/base.py — imports Base, TimestampMixin
+
+Called by: repositories/stripe_repository.py.
 """
 
 import uuid

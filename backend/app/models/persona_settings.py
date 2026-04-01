@@ -1,6 +1,14 @@
 """Persona settings models - voice, preferences, embeddings.
 
 REQ-005 §4.1 - Tier 2 tables for persona metadata and settings.
+
+Coordinates with:
+  - models/base.py — imports Base, EmbeddingColumnsMixin, TimestampMixin
+  - models/persona.py — imports Persona (TYPE_CHECKING)
+
+Called by: services/generation/resume_generation_service.py,
+services/onboarding/onboarding_workflow.py, services/persona_sync.py,
+api/v1/persona_change_flags.py, models/persona.py (TYPE_CHECKING).
 """
 
 import uuid

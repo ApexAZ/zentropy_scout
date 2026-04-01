@@ -2,6 +2,14 @@
 
 REQ-005 §4.1 - Tier 2 tables that hold persona's professional content.
 Bullet is Tier 3 (references WorkHistory).
+
+Coordinates with:
+  - models/base.py — imports Base
+  - models/persona.py — imports Persona (circular import at module end)
+
+Called by: services/onboarding/onboarding_workflow.py,
+services/persona_sync.py, services/rendering/pdf_generation.py,
+services/scoring/pool_scoring.py, models/persona.py (TYPE_CHECKING).
 """
 
 import uuid

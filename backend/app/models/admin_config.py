@@ -5,6 +5,13 @@ Five tables: ModelRegistry, PricingConfig, TaskRoutingConfig, FundingPack,
 SystemConfig. These replace hardcoded pricing dicts and routing tables with
 admin-configurable database records.
 REQ-030 §4.3: FundingPack.grant_cents type aligned to Integer (was BigInteger).
+
+Coordinates with:
+  - models/base.py — imports Base, TimestampMixin
+
+Called by: services/admin/admin_config_service.py,
+services/admin/admin_management_service.py, services/billing/stripe_service.py,
+api/v1/credits.py, api/v1/admin.py.
 """
 
 import uuid

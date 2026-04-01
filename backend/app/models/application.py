@@ -1,6 +1,17 @@
 """Application models - job applications and timeline events.
 
 REQ-005 §4.5 - Application (Tier 4), TimelineEvent (Tier 5).
+
+Coordinates with:
+  - models/base.py — imports Base, SoftDeleteMixin, TimestampMixin
+  - models/cover_letter.py — imports CoverLetter, SubmittedCoverLetterPDF (TYPE_CHECKING)
+  - models/job_posting.py — imports JobPosting (TYPE_CHECKING)
+  - models/persona.py — imports Persona (TYPE_CHECKING)
+  - models/persona_job.py — imports PersonaJob (TYPE_CHECKING)
+  - models/resume.py — imports JobVariant, SubmittedResumePDF (TYPE_CHECKING)
+
+Called by: services/application_workflow.py, api/v1/applications.py, and
+5 sibling model files (TYPE_CHECKING cross-references).
 """
 
 import uuid

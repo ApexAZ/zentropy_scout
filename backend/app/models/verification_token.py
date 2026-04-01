@@ -2,6 +2,11 @@
 
 REQ-013 §6.4 - Stores magic link tokens. Single-use, time-limited.
 No id column — looked up by (identifier, token) composite key.
+
+Coordinates with:
+  - models/base.py — imports Base
+
+Called by: repositories/verification_token_repository.py.
 """
 
 from datetime import datetime

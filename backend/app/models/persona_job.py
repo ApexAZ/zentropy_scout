@@ -6,6 +6,18 @@ This table holds all user-specific fields that will be removed from
 job_postings in migration 014 (status, is_favorite, scores, discovery
 metadata). Each row represents one persona's relationship with one
 shared job posting.
+
+Coordinates with:
+  - models/base.py — imports Base, TimestampMixin
+  - models/application.py — imports Application (TYPE_CHECKING)
+  - models/job_posting.py — imports JobPosting (TYPE_CHECKING)
+  - models/persona.py — imports Persona (TYPE_CHECKING)
+
+Called by: services/scoring/job_scoring_service.py,
+services/discovery/ (content_security, pool_surfacing_service,
+global_dedup_service), api/v1/job_postings.py, api/v1/job_variants.py,
+api/v1/applications.py, api/v1/cover_letters.py,
+repositories/persona_job_repository.py.
 """
 
 import uuid

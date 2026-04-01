@@ -2,6 +2,13 @@
 
 REQ-013 §6.2 - Stores identity provider connections.
 Multiple rows per user (one per provider).
+
+Coordinates with:
+  - models/base.py — imports Base
+  - models/user.py — imports User (TYPE_CHECKING, ORM relationship)
+
+Called by: repositories/account_repository.py, models/user.py
+(TYPE_CHECKING).
 """
 
 import uuid

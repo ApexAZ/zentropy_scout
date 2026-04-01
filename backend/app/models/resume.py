@@ -1,6 +1,19 @@
 """Resume models - files, base resumes, variants, submitted PDFs.
 
 REQ-005 §4.2 - ResumeFile, BaseResume (Tier 2), JobVariant (Tier 3), SubmittedResumePDF (Tier 4).
+
+Coordinates with:
+  - models/base.py — imports Base, SoftDeleteMixin, TimestampMixin
+  - models/application.py — imports Application (TYPE_CHECKING)
+  - models/job_posting.py — imports JobPosting (TYPE_CHECKING)
+  - models/persona.py — imports Persona (TYPE_CHECKING)
+  - models/resume_template.py — imports ResumeTemplate (TYPE_CHECKING)
+
+Called by: services/generation/resume_generation_service.py,
+services/onboarding/onboarding_workflow.py, services/persona_sync.py,
+services/rendering/pdf_generation.py, services/application_workflow.py,
+api/v1/base_resumes.py, api/v1/job_variants.py, api/v1/applications.py,
+api/v1/files.py.
 """
 
 import uuid
