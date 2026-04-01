@@ -455,7 +455,7 @@ router files. Repositories handle DB access; API routers define the HTTP layer.*
 
 ## Phase 15: Backend providers/ + adapters/ + agents/ + prompts/ + scripts/
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Add `Coordinates with:` and `Called by:` sections to LLM provider adapters (15 files),
 external source adapters (5 files), agent infrastructure (3 files), prompt templates
@@ -475,7 +475,7 @@ external source adapters (5 files), agent infrastructure (3 files), prompt templ
 |---|------|-------|--------|
 | 39 | **Docstrings -- providers/ (15 files)** -- Add Coordinates-with/Called-by: `providers/config.py`, `providers/errors.py`, `providers/factory.py`, `providers/gemini_errors.py`, `providers/metered_provider.py`, `providers/retry.py`, `providers/llm/base.py`, `providers/llm/claude_adapter.py`, `providers/llm/gemini_adapter.py`, `providers/llm/mock_adapter.py`, `providers/llm/openai_adapter.py`, `providers/embedding/base.py`, `providers/embedding/gemini_adapter.py`, `providers/embedding/mock_adapter.py`, `providers/embedding/openai_adapter.py`. | `docs, plan` | ✅ |
 | 40 | **Docstrings -- adapters/ + agents/ + prompts/ + scripts/ (13 files)** -- Add Coordinates-with/Called-by: `adapters/sources/base.py`, `adapters/sources/adzuna.py`, `adapters/sources/remoteok.py`, `adapters/sources/themuse.py`, `adapters/sources/usajobs.py`, `agents/chat.py`, `agents/checkpoint.py`, `agents/state.py`, `prompts/ghostwriter.py`, `prompts/resume_generation.py`, `prompts/strategist.py`, `scripts/dedup_cross_persona.py`, `scripts/reembed_all.py`. | `docs, plan` | ✅ |
-| 41 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ⬜ |
+| 41 | **Phase gate -- ruff + pyright + push** | `plan, commands` | ✅ |
 
 ---
 
