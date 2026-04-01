@@ -1,13 +1,40 @@
 "use client";
 
 /**
- * Variant review page with side-by-side diff (§8.6, §8.7).
+ * @fileoverview Variant review page with side-by-side diff comparison.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-012 §9.3: Side-by-side comparison of base resume and
  * tailored variant with diff highlighting, move indicators,
  * and Approve/Regenerate/Archive actions.
  * REQ-012 §9.3-9.4: Agent reasoning display and guardrail
  * violation banners with blocking behavior.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiDelete, apiGet, apiPost for variant data and actions
+ * - lib/diff-utils.ts: computeBulletMoves, computeWordDiff for diff computation
+ * - lib/query-keys.ts: queryKeys for variant, base resume, work history, job cache keys
+ * - lib/resume-helpers.ts: orderBullets for bullet ordering
+ * - lib/toast.ts: showToast for approve/archive success/error feedback
+ * - components/editor/diff-view.tsx: DiffView for markdown content diff
+ * - components/resume/diff-text.tsx: DiffText for word-level summary diff
+ * - components/resume/export-buttons.tsx: ExportButtons for PDF/DOCX export
+ * - components/resume/guardrail-violation-banner.tsx: GuardrailViolationBanner
+ * - components/ui/agent-reasoning.tsx: AgentReasoning for variant reasoning display
+ * - components/ui/button.tsx: Approve, Regenerate, Edit, Archive action buttons
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for approve/archive confirmation
+ * - components/ui/error-states.tsx: FailedState error display
+ * - components/ui/status-badge.tsx: StatusBadge for variant status
+ * - types/api.ts: ApiListResponse, ApiResponse envelopes
+ * - types/job.ts: PersonaJobResponse for job posting data
+ * - types/persona.ts: WorkHistory type
+ * - types/resume.ts: BaseResume, JobVariant types
+ *
+ * Called by / Used by:
+ * - app/(main)/resumes/[id]/variants/[variantId]/review/page.tsx: variant review page
+ * - components/ghostwriter/ghostwriter-review.tsx: embedded variant review
  */
 
 import { useCallback, useMemo, useState } from "react";

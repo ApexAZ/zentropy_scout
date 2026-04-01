@@ -1,10 +1,29 @@
 "use client";
 
 /**
- * Resume list page showing base resume cards.
+ * @fileoverview Resume list page showing base resume cards.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-012 §9.1: Card-based resume list with primary badge, status,
  * variant count, last updated, and actions (View & Edit, Download PDF, Archive).
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiDelete, apiGet, buildUrl for resume data and actions
+ * - lib/job-formatters.ts: formatDateTimeAgo for relative timestamps
+ * - lib/query-keys.ts: queryKeys.baseResumes, queryKeys.variants cache keys
+ * - lib/toast.ts: showToast for archive success/error feedback
+ * - components/ui/button.tsx: New Resume, View & Edit, Download PDF, Archive buttons
+ * - components/ui/card.tsx: Card, CardAction, CardContent, CardHeader, CardTitle layout
+ * - components/ui/checkbox.tsx: "Show archived" toggle
+ * - components/ui/error-states.tsx: EmptyState, FailedState display
+ * - components/ui/status-badge.tsx: StatusBadge for resume status
+ * - types/api.ts: ApiListResponse envelope
+ * - types/resume.ts: BaseResume, JobVariant types
+ *
+ * Called by / Used by:
+ * - app/(main)/resumes/page.tsx: resumes list page
  */
 
 import { useCallback, useMemo, useState } from "react";

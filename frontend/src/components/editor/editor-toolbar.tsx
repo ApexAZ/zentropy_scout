@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Formatting toolbar for the TipTap resume editor.
+ * @fileoverview Formatting toolbar for the TipTap resume editor.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-025 §3.4: Button groups for text style, headings, lists,
  * insert (HR, link), and undo/redo with active state highlighting.
+ *
+ * Coordinates with:
+ * - lib/url-utils.ts: isSafeUrl for link URL validation
+ * - components/ui/button.tsx: Button for toolbar actions and link dialog
+ *
+ * Called by / Used by:
+ * - components/editor/resume-editor.tsx: toolbar above TipTap editor in edit mode
  */
 
 import { useCallback, useState } from "react";

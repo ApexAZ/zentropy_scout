@@ -1,10 +1,19 @@
 "use client";
 
 /**
- * Inline word-level diff text for structured resume comparison.
+ * @fileoverview Inline word-level diff text for structured resume comparison.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * Renders diff tokens with color highlighting, filtering by side
  * (base shows removals, variant shows additions).
+ *
+ * Coordinates with:
+ * - lib/diff-utils.ts: DiffToken type consumed by this component
+ *
+ * Called by / Used by:
+ * - components/resume/variant-review.tsx: summary diff display (base and variant sides)
  */
 
 import type { DiffToken } from "@/lib/diff-utils";

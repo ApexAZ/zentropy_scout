@@ -1,13 +1,33 @@
 "use client";
 
 /**
- * New resume creation wizard with persona item selection and template picker.
+ * @fileoverview New resume creation wizard with persona item selection and template picker.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-012 §9.2, §6.3.12: Form for creating a base resume —
  * name, role type, summary, hierarchical job/bullet checkboxes,
  * education/certification/skill selection, POST to /base-resumes.
  * REQ-025 §6.3: Template selection during resume creation.
  * REQ-026 §3.1–§3.2: Two creation paths — "Generate with AI" vs "Start from Template".
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet, apiPost for persona data fetching and resume creation
+ * - lib/form-errors.ts: toFriendlyError for error display
+ * - lib/query-keys.ts: queryKeys for work history, education, certifications, skills, base resumes
+ * - lib/toast.ts: showToast for success/error feedback
+ * - hooks/use-resume-content-selection.ts: useResumeContentSelection for checkbox state management
+ * - components/resume/creation-method-buttons.tsx: AI vs template creation path buttons
+ * - components/resume/resume-content-checkboxes.tsx: hierarchical job/education/skill checkboxes
+ * - components/editor/template-picker.tsx: template selection grid
+ * - components/ui/error-states.tsx: FailedState error display
+ * - types/api.ts: ApiListResponse, ApiResponse envelopes
+ * - types/persona.ts: WorkHistory, Education, Certification, Skill types
+ * - types/resume.ts: BaseResume type
+ *
+ * Called by / Used by:
+ * - app/(main)/resumes/new/page.tsx: new resume creation page
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";

@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * TipTap-based rich text editor for resume markdown editing.
+ * @fileoverview TipTap-based rich text editor for resume markdown editing.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-025 §3.2: Client-side editor with markdown round-trip via
  * @tiptap/markdown, SSR-safe with immediatelyRender: false.
+ *
+ * Coordinates with:
+ * - lib/url-utils.ts: isSafeUrl for link URL validation in editor config
+ * - components/editor/editor-toolbar.tsx: EditorToolbar formatting toolbar
+ *
+ * Called by / Used by:
+ * - components/resume/resume-content-view.tsx: preview and edit mode rendering
+ * - app/(main)/resumes/[id]/variants/[variantId]/edit/page.tsx: variant editor
  */
 
 import { useEffect } from "react";

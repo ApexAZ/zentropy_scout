@@ -1,13 +1,32 @@
 "use client";
 
 /**
- * Resume content toggle view: Preview, Edit, and no-content states.
+ * @fileoverview Resume content toggle view: Preview, Edit, and no-content states.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-026 §6.1: Toggle view (Preview/Edit) with TipTap editor.
  * REQ-026 §6.2: Action buttons per mode.
  * REQ-026 §6.3: Content preview via read-only TipTap.
  * REQ-026 §4.2: Generation options panel integration.
  * REQ-026 §4.7: Regeneration via options panel.
+ *
+ * Coordinates with:
+ * - lib/toast.ts: showToast for credit fallback hint
+ * - hooks/use-auto-save.ts: useAutoSave for edit mode auto-save
+ * - components/editor/generation-options-panel.tsx: AI generation options panel
+ * - components/editor/editor-status-bar.tsx: word count and save status bar
+ * - components/editor/persona-reference-panel.tsx: persona data reference sidebar
+ * - components/editor/resume-editor.tsx: TipTap rich text editor (preview and edit modes)
+ * - components/resume/export-buttons.tsx: PDF and DOCX export actions
+ * - components/ui/button.tsx: action buttons (Edit, Regenerate, Done Editing)
+ * - components/ui/sheet.tsx: Sheet for mobile persona panel
+ * - components/ui/tabs.tsx: Tabs for Preview/Edit toggle
+ * - types/resume-generation.ts: GenerateResumeResponse, GenerationMethod, GenerationOptions types
+ *
+ * Called by / Used by:
+ * - components/resume/resume-detail.tsx: content view within resume detail page
  */
 
 import { useCallback, useMemo, useState } from "react";

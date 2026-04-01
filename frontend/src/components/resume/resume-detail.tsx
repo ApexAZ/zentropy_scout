@@ -1,11 +1,29 @@
 "use client";
 
 /**
- * Resume detail page with toggle view (Preview/Edit) and content
- * selection checkboxes.
+ * @fileoverview Resume detail page with toggle view (Preview/Edit) and content selection checkboxes.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-012 §9.2: Base resume editor with content selection.
  * REQ-026 §6.1–§6.3: Toggle view delegated to ResumeContentView.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: buildUrl for PDF download URL
+ * - lib/resume-helpers.ts: orderBullets for drag-and-drop bullet reordering
+ * - hooks/use-resume-detail.ts: useResumeDetail hook for resume data, state, and handlers
+ * - components/resume/resume-content-checkboxes.tsx: hierarchical job/education/skill checkboxes
+ * - components/resume/resume-content-view.tsx: toggle view (Preview/Edit) with TipTap editor
+ * - components/resume/variants-list.tsx: job variant cards for the resume
+ * - components/ui/button.tsx: Save and Render PDF action buttons
+ * - components/ui/checkbox.tsx: Checkbox for bullet selection in drag-and-drop list
+ * - components/ui/error-states.tsx: FailedState error display
+ * - components/ui/pdf-viewer.tsx: PdfViewer for rendered PDF preview
+ * - components/ui/reorderable-list.tsx: ReorderableList for drag-and-drop bullet ordering
+ *
+ * Called by / Used by:
+ * - app/(main)/resumes/[id]/page.tsx: resume detail page
  */
 
 import { ArrowLeft, Loader2 } from "lucide-react";

@@ -1,10 +1,19 @@
 "use client";
 
 /**
- * Side-by-side diff view for comparing master and variant resume content.
+ * @fileoverview Side-by-side diff view for comparing master and variant resume markdown.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-027 §4.1–§4.4: Word-level diff with color highlighting.
  * REQ-027 §8: Fallback — show variant without highlighting if diff fails.
+ *
+ * Coordinates with:
+ * - diff (npm): diffWords for word-level change detection
+ *
+ * Called by / Used by:
+ * - components/resume/variant-review.tsx: markdown content diff in variant review
  */
 
 import { diffWords, type Change } from "diff";

@@ -1,8 +1,21 @@
 /**
- * Job requirements panel for the variant editor.
+ * @fileoverview Job requirements panel for the variant editor.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-027 §4.4: Shows job posting key skills, fit score, and
  * requirements context when editing a job variant.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for job posting and extracted skills data
+ * - lib/query-keys.ts: queryKeys.job, queryKeys.extractedSkills cache keys
+ * - components/ui/score-tier-badge.tsx: ScoreTierBadge for fit score display
+ * - types/api.ts: ApiListResponse, ApiResponse envelopes
+ * - types/job.ts: ExtractedSkill, PersonaJobResponse types
+ *
+ * Called by / Used by:
+ * - app/(main)/resumes/[id]/variants/[variantId]/edit/page.tsx: variant editor sidebar
  */
 
 import { useQuery } from "@tanstack/react-query";

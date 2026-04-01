@@ -1,10 +1,21 @@
 "use client";
 
 /**
- * Template picker for resume creation.
+ * @fileoverview Template picker for resume creation.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-025 §6.3: Grid of template cards with selection state.
  * Fetches templates from GET /resume-templates.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for fetching resume templates
+ * - lib/query-keys.ts: queryKeys.resumeTemplates cache key
+ * - types/resume.ts: ResumeTemplate type
+ *
+ * Called by / Used by:
+ * - components/resume/new-resume-wizard.tsx: template selection step in new resume wizard
  */
 
 import { useEffect } from "react";

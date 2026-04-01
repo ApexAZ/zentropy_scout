@@ -1,10 +1,22 @@
 "use client";
 
 /**
- * Generation options panel for AI resume generation.
+ * @fileoverview Generation options panel for AI resume generation.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-026 §4.2: Page limit, emphasis, section checkboxes, Generate button.
  * REQ-026 §4.7: Supports pre-filled defaults for regeneration.
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Generate and Cancel action buttons
+ * - components/ui/checkbox.tsx: Checkbox for section inclusion toggles
+ * - components/ui/select.tsx: Select for page limit and emphasis dropdowns
+ * - types/resume-generation.ts: EmphasisOption, GenerationOptions, PageLimit, ResumeSection types and constants
+ *
+ * Called by / Used by:
+ * - components/resume/resume-content-view.tsx: generation options during initial/regeneration
  */
 
 import { useState } from "react";

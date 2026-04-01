@@ -1,9 +1,21 @@
 /**
- * Shared checkbox sections for resume content selection.
+ * @fileoverview Shared checkbox sections for resume content selection.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-012 §9.2: Renders hierarchical job/bullet checkboxes plus flat
  * education, certification, and skill checkbox lists. Used by both
  * the new-resume wizard and the resume detail editor.
+ *
+ * Coordinates with:
+ * - hooks/use-resume-content-selection.ts: UseResumeContentSelectionReturn type for selection state
+ * - components/ui/checkbox.tsx: Checkbox for job, bullet, education, certification, skill toggles
+ * - types/persona.ts: WorkHistory, Education, Certification, Skill types
+ *
+ * Called by / Used by:
+ * - components/resume/new-resume-wizard.tsx: content selection in new resume creation
+ * - components/resume/resume-detail.tsx: content selection in resume editing
  */
 
 import { Checkbox } from "@/components/ui/checkbox";

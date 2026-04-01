@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * Status bar for the TipTap resume editor.
+ * @fileoverview Status bar for the TipTap resume editor.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-025 §3.5: Word count, page estimate, and save status indicator.
  * REQ-026 §7.2: Four save status states (Saved, Saving, Unsaved, Error).
+ *
+ * Coordinates with:
+ * - (standalone — no project imports)
+ *
+ * Called by / Used by:
+ * - components/resume/resume-content-view.tsx: status bar below editor in edit mode
+ * - hooks/use-auto-save.ts: imports SaveStatus type for save state tracking
  */
 
 // ---------------------------------------------------------------------------

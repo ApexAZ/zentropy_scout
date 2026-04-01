@@ -1,10 +1,19 @@
 "use client";
 
 /**
- * Guardrail violation banner for variant review.
+ * @fileoverview Guardrail violation banner for variant review.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-012 §9.4: Shows guardrail violations with severity indicators
  * and a link to fix persona data.
+ *
+ * Coordinates with:
+ * - types/resume.ts: GuardrailViolation type
+ *
+ * Called by / Used by:
+ * - components/resume/variant-review.tsx: displayed when variant has guardrail violations
  */
 
 import { AlertTriangle } from "lucide-react";

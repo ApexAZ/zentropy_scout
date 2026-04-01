@@ -1,9 +1,23 @@
 /**
- * Persona reference panel for the resume editor.
+ * @fileoverview Persona reference panel for the resume editor.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-026 §5.1–§5.2: Collapsible sections showing Contact Info,
  * Work History, Education, Skills, and Certifications.
  * Click any item to copy its text to clipboard.
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiGet for persona, work history, education, skills, certifications
+ * - lib/query-keys.ts: queryKeys for persona data cache keys
+ * - lib/toast.ts: showToast for clipboard copy feedback
+ * - types/api.ts: ApiListResponse, ApiResponse envelopes
+ * - types/persona.ts: Persona, WorkHistory, Education, Skill, Certification types
+ *
+ * Called by / Used by:
+ * - components/resume/resume-content-view.tsx: persona reference sidebar in edit mode
+ * - app/(main)/resumes/[id]/variants/[variantId]/edit/page.tsx: persona reference in variant editor
  */
 
 import { useCallback, useState } from "react";

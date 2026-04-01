@@ -1,12 +1,31 @@
 "use client";
 
 /**
- * Job variants list for a base resume detail page.
+ * @fileoverview Job variants list for a base resume detail page.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-012 §9.2: Variant cards with status badges (Draft/Approved),
  * relative timestamps, and status-dependent actions:
  * - Draft: Review & Approve, Archive (with confirmation)
  * - Approved: View
+ *
+ * Coordinates with:
+ * - lib/api-client.ts: apiDelete, apiGet for variant data and archive action
+ * - lib/job-formatters.ts: formatDateTimeAgo for relative timestamps
+ * - lib/query-keys.ts: queryKeys.variants, queryKeys.jobs cache keys
+ * - lib/toast.ts: showToast for archive success/error feedback
+ * - components/ui/button.tsx: Review & Approve, View, Archive action buttons
+ * - components/ui/confirmation-dialog.tsx: ConfirmationDialog for archive confirmation
+ * - components/ui/error-states.tsx: FailedState error display
+ * - components/ui/status-badge.tsx: StatusBadge for variant status (Draft/Approved)
+ * - types/api.ts: ApiListResponse envelope
+ * - types/job.ts: PersonaJobResponse for job title/company lookup
+ * - types/resume.ts: JobVariant type
+ *
+ * Called by / Used by:
+ * - components/resume/resume-detail.tsx: job variants section on resume detail page
  */
 
 import { useCallback, useMemo, useState } from "react";

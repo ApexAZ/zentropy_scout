@@ -1,10 +1,19 @@
 "use client";
 
 /**
- * Creation method choice for the new resume wizard.
+ * @fileoverview Creation method choice buttons for the new resume wizard.
+ *
+ * Layer: component
+ * Feature: resume
  *
  * REQ-026 §3.1–§3.2: Two creation paths — "Generate with AI" (requires credits)
  * vs "Start from Template" (free, deterministic fill).
+ *
+ * Coordinates with:
+ * - components/ui/button.tsx: Button for each creation path
+ *
+ * Called by / Used by:
+ * - components/resume/new-resume-wizard.tsx: creation method selection step
  */
 
 import { FileText, Loader2, Sparkles } from "lucide-react";
