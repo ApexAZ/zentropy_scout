@@ -363,12 +363,15 @@ class JobScoringService:
             return results
 
         # Steps 5-6: Calculate fit/stretch scores
-        # WHY type: ignore: passing_jobs came from filter_jobs_batch which
-        # returns list[JobFilterDataLike]; batch_score_jobs expects
-        # list[JobPostingLike]. Both are satisfied by JobPosting ORM model.
+        # WHY type: ignore on jobs: passing_jobs came from filter_jobs_batch which
+        # returns list[JobFilterDataLike]; batch_score_jobs expects list[JobPostingLike].
+        # Both are satisfied by JobPosting ORM model.
+        # WHY type: ignore on persona: Persona ORM model satisfies PersonaLike protocol
+        # structurally, but pyright sees list[Skill] vs list[Any] as incompatible due
+        # to invariant generic list typing.
         scored_jobs = await batch_score_jobs(
             jobs=passing_jobs,
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=embedding_provider,
         )

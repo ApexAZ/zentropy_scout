@@ -25,11 +25,13 @@ from xml.sax.saxutils import (
     escape as _xml_escape,  # nosec B406 — output escaping, not XML parsing
 )
 
+from reportlab.lib.colors import HexColor, black
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import (
+    Flowable,
     HRFlowable,
     Paragraph,
     SimpleDocTemplate,
@@ -193,7 +195,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
             leading=14,
             spaceBefore=8,
             spaceAfter=4,
-            textColor="black",
+            textColor=black,
         ),
         "job_title": ParagraphStyle(
             "JobTitle",
@@ -210,7 +212,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
             fontSize=9,
             leading=11,
             spaceAfter=2,
-            textColor="#444444",
+            textColor=HexColor("#444444"),
         ),
         "bullet": ParagraphStyle(
             "Bullet",
@@ -558,7 +560,7 @@ async def gather_variant_content(
 
 
 def _render_experience_section(
-    elements: list[object],
+    elements: list[Flowable],
     jobs: list,
     styles: dict[str, ParagraphStyle],
 ) -> None:
@@ -610,7 +612,7 @@ def render_resume_pdf(content: ResumeContent) -> bytes:
     )
 
     styles = _build_styles()
-    elements: list[object] = []
+    elements: list[Flowable] = []
 
     # --- Header ---
     # WHY _xml_escape: ReportLab Paragraph interprets XML/HTML markup.

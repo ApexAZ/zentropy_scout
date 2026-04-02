@@ -736,8 +736,8 @@ async def delegate_ghostwriter(state: ChatAgentState) -> ChatAgentState:
     try:
         service = ContentGenerationService()
         result = await service.generate(
-            user_id=state["user_id"],
-            persona_id=state["persona_id"],
+            user_id=state["user_id"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
+            persona_id=state["persona_id"],  # pyright: ignore[reportTypedDictNotRequiredAccess]
             job_posting_id=target_job_id,
         )
         new_state["tool_results"] = [

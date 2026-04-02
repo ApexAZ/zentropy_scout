@@ -286,10 +286,10 @@ class OpenAIAdapter(LLMProvider):
                 temperature=temperature
                 if temperature is not None
                 else self.config.default_temperature,
-                messages=api_messages,
+                messages=api_messages,  # pyright: ignore[reportArgumentType]
                 stop=stop_sequences,
-                tools=api_tools,
-                response_format=response_format,
+                tools=api_tools,  # pyright: ignore[reportArgumentType]
+                response_format=response_format,  # pyright: ignore[reportArgumentType]
             )
         except (
             openai.RateLimitError,
@@ -311,21 +311,23 @@ class OpenAIAdapter(LLMProvider):
         content, tool_calls, finish_reason = _parse_openai_response(response)
 
         # Log request complete
+        input_tokens = response.usage.prompt_tokens if response.usage else 0
+        output_tokens = response.usage.completion_tokens if response.usage else 0
         logger.info(
             "llm_request_complete",
             provider="openai",
             model=model,
             task=task.value,
-            input_tokens=response.usage.prompt_tokens,
-            output_tokens=response.usage.completion_tokens,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
             latency_ms=latency_ms,
         )
 
         return LLMResponse(
             content=content,
             model=model,
-            input_tokens=response.usage.prompt_tokens,
-            output_tokens=response.usage.completion_tokens,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
             finish_reason=finish_reason,
             latency_ms=latency_ms,
             tool_calls=tool_calls,

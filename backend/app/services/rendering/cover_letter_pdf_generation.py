@@ -31,6 +31,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import (
+    Flowable,
     HRFlowable,
     Paragraph,
     SimpleDocTemplate,
@@ -157,7 +158,7 @@ def render_cover_letter_pdf(
     )
 
     styles = _build_styles()
-    elements: list[object] = []
+    elements: list[Flowable] = []
 
     # WHY _xml_escape: ReportLab Paragraph interprets XML/HTML markup.
     # All user-controlled strings must be escaped to prevent PDF injection.

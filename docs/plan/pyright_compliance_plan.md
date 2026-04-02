@@ -46,7 +46,7 @@ Phase 4: Stragglers, CI Integration & Documentation
 
 ## Phase 1: Post-Mortem Analysis & Pyright Configuration
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Determine when pyright errors first appeared, create configuration, and establish the true fix scope.*
 
@@ -64,7 +64,7 @@ Phase 4: Stragglers, CI Integration & Documentation
 |---|------|-------|--------|
 | 1 | **Post-mortem analysis** — (a) Identify the commit just before REQ-031 started (pre `d0751e5`, ~March 29). (b) Run `npx pyright` at that commit in a worktree to establish baseline error count. (c) Compare with current 539 errors — categorize which errors are new vs pre-existing. (d) Check if any REQ-031 import path changes introduced errors (moved modules breaking pyright resolution). (e) Document findings: was the "cascade" real, or were errors always there but invisible because mypy was the configured checker? (f) Write findings to `docs/plan/pyright_postmortem.md`. | `plan, lint, commands` | ✅ |
 | 2 | **Create pyrightconfig.json & measure config wins** — (a) Create `backend/pyrightconfig.json` with: `pythonVersion: "3.11"`, `venvPath: "."`, `venv: ".venv"`, `include: ["app", "tests"]`, `typeCheckingMode: "basic"`. (b) Run pyright, capture new error count. (c) Document which categories resolved (expected: ~96 UTC imports via pythonVersion, ~57 missing imports via venvPath, ~16 missing module source, ~1 asyncio.timeout = ~170 config wins). (d) Update postmortem with actual vs expected. (e) Commit config + postmortem. **Actual: 539 → 385 (-154 resolved, +42 newly surfaced). reportIncompatibleMethodOverride fully resolved by config.** | `plan, lint, commands` | ✅ |
-| 3 | **Phase gate — push** — Run full test suite (pytest + vitest + lint). Fix regressions. Push. | `plan, commands` | ⬜ |
+| 3 | **Phase gate — push** — Run full test suite (pytest + vitest + lint). Fix regressions. Push. | `plan, commands` | ✅ |
 
 #### Notes
 - **Key investigation question:** Did `from datetime import UTC` always fail with pyright, or only after some change? Python 3.11 added `datetime.UTC` — pyright's typeshed should know about it if pythonVersion is set correctly.
