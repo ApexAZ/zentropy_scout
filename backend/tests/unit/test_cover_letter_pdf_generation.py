@@ -110,11 +110,11 @@ async def pdf_gen_scenario(db_session: AsyncSession):
         pass
 
     s = Scenario()
-    s.approved_cl_id = approved_cl.id
-    s.draft_cl_id = draft_cl.id
-    s.approved_no_final_cl_id = approved_no_final.id
-    s.persona_full_name = "Alice Johnson"
-    s.company_name = "DataCo"
+    s.approved_cl_id = approved_cl.id  # pyright: ignore[reportAttributeAccessIssue]
+    s.draft_cl_id = draft_cl.id  # pyright: ignore[reportAttributeAccessIssue]
+    s.approved_no_final_cl_id = approved_no_final.id  # pyright: ignore[reportAttributeAccessIssue]
+    s.persona_full_name = "Alice Johnson"  # pyright: ignore[reportAttributeAccessIssue]
+    s.company_name = "DataCo"  # pyright: ignore[reportAttributeAccessIssue]
     return s
 
 

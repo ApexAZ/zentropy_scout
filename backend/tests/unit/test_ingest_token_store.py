@@ -110,7 +110,7 @@ class TestCreate:
         assert preview.raw_text == "Full posting text"
         assert preview.source_url == "https://example.com/job/2"
         assert preview.source_name == "LinkedIn"
-        assert preview.extracted_data["job_title"] == "Senior Engineer"
+        assert preview.extracted_data["job_title"] == "Senior Engineer"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_create_unique_tokens(self, store: IngestTokenStore) -> None:
         """Each create() call generates a unique token."""

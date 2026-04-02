@@ -186,7 +186,7 @@ class TestScoreDetailsColumn:
         refreshed = result.scalar_one()
         assert refreshed.fit_score == 85
         assert refreshed.stretch_score == 72
-        assert refreshed.score_details["fit"]["total"] == 85.0
+        assert refreshed.score_details["fit"]["total"] == 85.0  # pyright: ignore[reportOptionalSubscript]
 
 
 # =============================================================================
@@ -207,7 +207,7 @@ class TestBuildScoredResultScoreDetails:
             explanation="Good match.",
             score_details=details,
         )
-        assert result["score_details"] == details
+        assert result["score_details"] == details  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_defaults_to_none(self) -> None:
         """build_scored_result should default score_details to None."""

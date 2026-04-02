@@ -496,6 +496,6 @@ class TestEdgeCases:
         result = await extract_job_data(long_text, mock_llm)
 
         assert (
-            len(result["description_snippet"]) == 503
+            len(result["description_snippet"]) == 503  # pyright: ignore[reportTypedDictNotRequiredAccess]
         )  # 500 + "..."  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert result["description_snippet"].endswith("...")  # pyright: ignore[reportTypedDictNotRequiredAccess]

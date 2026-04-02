@@ -65,13 +65,13 @@ class TestAuthConfigDefaults:
     def test_auth_enabled_defaults_to_false(self, monkeypatch: pytest.MonkeyPatch):
         """Auth is disabled by default for local development."""
         monkeypatch.delenv("AUTH_ENABLED", raising=False)
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.auth_enabled is False
 
     def test_auth_secret_defaults_to_empty(self, monkeypatch: pytest.MonkeyPatch):
         """Auth secret is empty by default (not required in local mode)."""
         monkeypatch.delenv("AUTH_SECRET", raising=False)
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.auth_secret.get_secret_value() == ""
 
     def test_auth_cookie_name_defaults_to_zentropy_session_token(
@@ -79,13 +79,13 @@ class TestAuthConfigDefaults:
     ):
         """Cookie name defaults to 'zentropy.session-token'."""
         monkeypatch.delenv("AUTH_COOKIE_NAME", raising=False)
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.auth_cookie_name == "zentropy.session-token"
 
     def test_auth_cookie_secure_defaults_to_true(self, monkeypatch: pytest.MonkeyPatch):
         """Cookie Secure flag defaults to True (HTTPS only)."""
         monkeypatch.delenv("AUTH_COOKIE_SECURE", raising=False)
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.auth_cookie_secure is True
 
 
@@ -99,7 +99,7 @@ class TestAuthProductionValidation:
                 environment=_PRODUCTION,
                 database_password=_SECURE_DB_PASSWORD,
                 auth_enabled=True,
-                auth_secret="",
+                auth_secret="",  # pyright: ignore[reportArgumentType]
             )
         assert "AUTH_SECRET must be set" in str(exc_info.value)
 
@@ -110,7 +110,7 @@ class TestAuthProductionValidation:
                 environment=_PRODUCTION,
                 database_password=_SECURE_DB_PASSWORD,
                 auth_enabled=True,
-                auth_secret="too-short",
+                auth_secret="too-short",  # pyright: ignore[reportArgumentType]
             )
         assert "AUTH_SECRET must be at least 32 characters" in str(exc_info.value)
 
@@ -121,7 +121,7 @@ class TestAuthProductionValidation:
                 environment=_PRODUCTION,
                 database_password=_SECURE_DB_PASSWORD,
                 auth_enabled=True,
-                auth_secret="a" * 31,
+                auth_secret="a" * 31,  # pyright: ignore[reportArgumentType]
             )
         assert "AUTH_SECRET must be at least 32 characters" in str(exc_info.value)
 
@@ -131,7 +131,7 @@ class TestAuthProductionValidation:
             environment=_PRODUCTION,
             database_password=_SECURE_DB_PASSWORD,
             auth_enabled=True,
-            auth_secret="a" * 32,
+            auth_secret="a" * 32,  # pyright: ignore[reportArgumentType]
             credits_enabled=False,
         )
         assert len(s.auth_secret.get_secret_value()) == 32
@@ -142,14 +142,14 @@ class TestAuthProductionValidation:
             environment=_PRODUCTION,
             database_password=_SECURE_DB_PASSWORD,
             auth_enabled=False,
-            auth_secret="",
+            auth_secret="",  # pyright: ignore[reportArgumentType]
             credits_enabled=False,
         )
         assert s.auth_secret.get_secret_value() == ""
 
     def test_allows_empty_auth_secret_in_development_with_auth_enabled(self):
         """Auth secret not required in development even with auth enabled."""
-        s = Settings(auth_enabled=True, auth_secret="")
+        s = Settings(auth_enabled=True, auth_secret="")  # pyright: ignore[reportArgumentType]
         assert s.auth_secret.get_secret_value() == ""
 
     def test_allows_valid_auth_secret_in_production(self):
@@ -158,7 +158,7 @@ class TestAuthProductionValidation:
             environment=_PRODUCTION,
             database_password=_SECURE_DB_PASSWORD,
             auth_enabled=True,
-            auth_secret=_TEST_AUTH_SECRET,
+            auth_secret=_TEST_AUTH_SECRET,  # pyright: ignore[reportArgumentType]
             credits_enabled=False,
         )
         assert s.auth_secret.get_secret_value() == _TEST_AUTH_SECRET
@@ -185,7 +185,7 @@ class TestAuthCookieSameSiteValidation:
     def test_rejects_invalid_value(self):
         """SameSite rejects invalid values."""
         with pytest.raises(ValidationError):
-            Settings(auth_cookie_samesite="invalid")
+            Settings(auth_cookie_samesite="invalid")  # pyright: ignore[reportArgumentType]
 
     def test_rejects_none_without_secure(self):
         """SameSite 'none' requires Secure flag (browser requirement)."""

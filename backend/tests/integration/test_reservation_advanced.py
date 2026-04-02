@@ -87,7 +87,7 @@ class TestConcurrentReservations:
         bal = await db_session.execute(text(BALANCE_QUERY), {"uid": user.id})
         row = bal.one()
         assert row.balance_usd < INITIAL_BALANCE
-        assert row.balance_usd == INITIAL_BALANCE - r1.actual_cost_usd
+        assert row.balance_usd == INITIAL_BALANCE - r1.actual_cost_usd  # pyright: ignore[reportOperatorIssue]
 
 
 # ===========================================================================

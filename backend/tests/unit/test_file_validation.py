@@ -56,7 +56,7 @@ class TestReadFileWithSizeLimit:
             await read_file_with_size_limit(mock_file)
 
         assert "File too large" in exc_info.value.message
-        assert exc_info.value.details[0]["error"] == "FILE_TOO_LARGE"
+        assert exc_info.value.details[0]["error"] == "FILE_TOO_LARGE"  # pyright: ignore[reportOptionalSubscript]
 
     @pytest.mark.asyncio
     async def test_respects_custom_size_limit(self) -> None:
@@ -109,7 +109,7 @@ class TestValidateFileContent:
             assert "Invalid file type" in exc_info.value.message
             # Security: MIME type must NOT leak in client-facing error
             assert "application/x-dosexec" not in exc_info.value.message
-            assert exc_info.value.details[0]["error"] == "INVALID_FILE_CONTENT"
+            assert exc_info.value.details[0]["error"] == "INVALID_FILE_CONTENT"  # pyright: ignore[reportOptionalSubscript]
 
     def test_rejects_html(self) -> None:
         """Should reject HTML files disguised as documents."""
@@ -123,7 +123,7 @@ class TestValidateFileContent:
 
             assert "Invalid file type" in exc_info.value.message
             assert "text/html" not in exc_info.value.message
-            assert exc_info.value.details[0]["error"] == "INVALID_FILE_CONTENT"
+            assert exc_info.value.details[0]["error"] == "INVALID_FILE_CONTENT"  # pyright: ignore[reportOptionalSubscript]
 
     def test_does_not_leak_detected_mime_type(self) -> None:
         """Error must NOT include detected MIME type (information disclosure)."""
@@ -134,7 +134,7 @@ class TestValidateFileContent:
                 validate_file_content(b"fake jpeg", "image.pdf")
 
             # Security: detected MIME must not leak to client
-            assert "detected_mime" not in exc_info.value.details[0]
+            assert "detected_mime" not in exc_info.value.details[0]  # pyright: ignore[reportOptionalSubscript]
             assert "image/jpeg" not in exc_info.value.message
 
 

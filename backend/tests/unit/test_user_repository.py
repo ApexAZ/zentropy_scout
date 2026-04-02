@@ -206,7 +206,7 @@ class TestUpdate:
     async def test_rejects_id_update(self, db_session: AsyncSession, test_user):
         """id field cannot be updated (primary key is immutable)."""
         with pytest.raises(ValueError, match="id"):
-            await UserRepository.update(db_session, test_user.id, id=uuid.uuid4())
+            await UserRepository.update(db_session, test_user.id, id=uuid.uuid4())  # pyright: ignore[reportArgumentType]
 
     async def test_rejects_email_update(self, db_session: AsyncSession, test_user):
         """email field cannot be updated via generic update."""

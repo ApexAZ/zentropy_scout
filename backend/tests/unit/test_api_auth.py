@@ -306,7 +306,7 @@ class TestJwtValidation:
             with pytest.raises(HTTPException) as exc_info:
                 await get_current_user_id(request, db)
             detail = exc_info.value.detail
-            assert detail["code"] == "UNAUTHORIZED"
+            assert detail["code"] == "UNAUTHORIZED"  # pyright: ignore[reportArgumentType]
 
     async def test_missing_iat_raises_401(self):
         """JWT without iat claim should be rejected.
@@ -478,4 +478,4 @@ class TestGetCurrentUser:
 
         with pytest.raises(HTTPException) as exc_info:
             await get_current_user(user_id=test_id, db=mock_db)
-        assert exc_info.value.detail["code"] == "UNAUTHORIZED"
+        assert exc_info.value.detail["code"] == "UNAUTHORIZED"  # pyright: ignore[reportArgumentType]

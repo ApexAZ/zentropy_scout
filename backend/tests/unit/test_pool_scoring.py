@@ -143,7 +143,7 @@ async def data_job(db_session: AsyncSession, source: JobSource) -> JobPosting:
 
 async def _load_persona_with_skills(
     db: AsyncSession,
-    persona_id: "uuid.UUID",  # noqa: F821
+    persona_id: "uuid.UUID",  # noqa: F821  # pyright: ignore[reportUndefinedVariable]
 ) -> Persona:
     """Helper to reload a persona with skills eagerly loaded."""
     stmt = (

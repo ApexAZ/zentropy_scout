@@ -59,7 +59,7 @@ class TestJobNoSkillsExtracted:
         ]
         job_skills: list[dict] = []  # No skills extracted
 
-        result = calculate_hard_skills_score(persona_skills, job_skills)
+        result = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
 
         assert result == FIT_NEUTRAL_SCORE  # 70
 
@@ -75,7 +75,7 @@ class TestJobNoSkillsExtracted:
             {"skill_name": "Communication", "skill_type": "Soft", "is_required": True},
         ]
 
-        result = calculate_hard_skills_score(persona_skills, job_skills)
+        result = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
 
         # No hard skills to match → neutral
         assert result == FIT_NEUTRAL_SCORE
@@ -119,7 +119,7 @@ class TestPersonaNoSkills:
             {"skill_name": "FastAPI", "skill_type": "Hard", "is_required": True},
         ]
 
-        result = calculate_hard_skills_score(persona_skills, job_skills)
+        result = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
 
         # No matches on required skills → 0
         # Score formula: 80% * required_score + 20% * nice_to_have_score

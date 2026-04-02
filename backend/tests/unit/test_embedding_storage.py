@@ -80,7 +80,7 @@ class TestJobEmbeddingModel:
 
     def test_embedding_type_check_constraint(self) -> None:
         """embedding_type has CHECK constraint for valid values."""
-        constraints = [c.name for c in JobEmbedding.__table__.constraints]
+        constraints = [c.name for c in JobEmbedding.__table__.constraints]  # pyright: ignore[reportAttributeAccessIssue]
 
         # Should have a check constraint for embedding_type
         assert any("jobembedding_type" in (c or "") for c in constraints)
@@ -109,7 +109,7 @@ class TestPersonaEmbeddingModel:
 
     def test_embedding_type_check_constraint(self) -> None:
         """embedding_type has CHECK constraint for valid values."""
-        constraints = [c.name for c in PersonaEmbedding.__table__.constraints]
+        constraints = [c.name for c in PersonaEmbedding.__table__.constraints]  # pyright: ignore[reportAttributeAccessIssue]
 
         # Should have a check constraint for embedding_type
         assert any("personaembedding_type" in (c or "") for c in constraints)

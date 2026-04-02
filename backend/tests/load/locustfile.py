@@ -28,7 +28,7 @@ Prerequisites:
     - Server running on the specified --host
 """
 
-from locust import HttpUser, between, task
+from locust import HttpUser, between, task  # pyright: ignore[reportMissingImports]
 
 
 class RateLimitUser(HttpUser):

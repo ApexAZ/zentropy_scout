@@ -197,7 +197,7 @@ class TestCareerChangerHardSkillsMatch:
             {"skill_name": "Agile", "skill_type": "Hard", "is_required": True},
         ]
 
-        result = calculate_hard_skills_score(persona_skills, job_skills)
+        result = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
 
         # Career changer has 0% hard skill match
         # Formula: (required_score × 0.80) + (nice_score × 0.20)
@@ -227,7 +227,7 @@ class TestCareerChangerHardSkillsMatch:
             {"skill_name": "Data Analysis", "skill_type": "Hard", "is_required": False},
         ]
 
-        result = calculate_hard_skills_score(persona_skills, job_skills)
+        result = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
 
         # 0/1 required skills matched (Product Strategy not matched)
         # 1/2 nice-to-have skills matched (SQL matched, Data Analysis not)

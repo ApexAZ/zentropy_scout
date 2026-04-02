@@ -84,7 +84,7 @@ class TestDelegateGhostwriter:
         with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             result = await delegate_ghostwriter(_make_chat_state())
 
-        tool_results = result["tool_results"]
+        tool_results = result["tool_results"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert len(tool_results) == 1
         assert tool_results[0]["tool"] == "invoke_ghostwriter"
         assert tool_results[0]["error"] is None
@@ -101,7 +101,7 @@ class TestDelegateGhostwriter:
         with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             result = await delegate_ghostwriter(_make_chat_state())
 
-        data = result["tool_results"][0]["result"]
+        data = result["tool_results"][0]["result"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert data["has_cover_letter"] is False
 
     @pytest.mark.asyncio
@@ -113,7 +113,7 @@ class TestDelegateGhostwriter:
             result = await delegate_ghostwriter(_make_chat_state(target_job_id=None))
 
         mock_service.generate.assert_not_called()
-        tool_results = result["tool_results"]
+        tool_results = result["tool_results"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert len(tool_results) == 1
         assert tool_results[0]["error"] is not None
         assert "job" in tool_results[0]["error"].lower()
@@ -122,14 +122,14 @@ class TestDelegateGhostwriter:
     async def test_does_not_mutate_input_state(self) -> None:
         """Delegate returns new state, does not mutate the input."""
         state = _make_chat_state()
-        original_results = state["tool_results"]
+        original_results = state["tool_results"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         mock_service = MagicMock()
         mock_service.generate = AsyncMock(return_value=_mock_generation_result())
         with patch(_PATCH_CONTENT_GEN_SERVICE, return_value=mock_service):
             result = await delegate_ghostwriter(state)
 
         assert result is not state
-        assert state["tool_results"] is original_results
+        assert state["tool_results"] is original_results  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert len(original_results) == 0
 
 
@@ -144,10 +144,10 @@ class TestDelegateOnboarding:
     def test_does_not_mutate_input_state(self) -> None:
         """Delegate returns new state, does not mutate the input."""
         state = _make_chat_state(current_message="Change my salary requirement")
-        original_results = state["tool_results"]
+        original_results = state["tool_results"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         result = delegate_onboarding(state)
 
         assert result is not state
-        assert state["tool_results"] is original_results
+        assert state["tool_results"] is original_results  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert len(original_results) == 0

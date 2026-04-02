@@ -100,13 +100,13 @@ async def cl_scenario(db_session: AsyncSession):
         pass
 
     s = Scenario()
-    s.user_id = user.id
-    s.persona_id = persona.id
-    s.persona_full_name = "Jane Smith"
-    s.company_name = "Acme Corp"
-    s.job_posting_id = job_posting.id
-    s.cover_letter_id = cover_letter.id
-    s.draft_cover_letter_id = draft_cover_letter.id
+    s.user_id = user.id  # pyright: ignore[reportAttributeAccessIssue]
+    s.persona_id = persona.id  # pyright: ignore[reportAttributeAccessIssue]
+    s.persona_full_name = "Jane Smith"  # pyright: ignore[reportAttributeAccessIssue]
+    s.company_name = "Acme Corp"  # pyright: ignore[reportAttributeAccessIssue]
+    s.job_posting_id = job_posting.id  # pyright: ignore[reportAttributeAccessIssue]
+    s.cover_letter_id = cover_letter.id  # pyright: ignore[reportAttributeAccessIssue]
+    s.draft_cover_letter_id = draft_cover_letter.id  # pyright: ignore[reportAttributeAccessIssue]
     return s
 
 

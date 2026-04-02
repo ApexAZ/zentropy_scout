@@ -95,7 +95,7 @@ class TestRegenerationConfigValidation:
             category=FeedbackCategory.TONE_ADJUSTMENT,
             tone_override="x" * MAX_TONE_LENGTH,
         )
-        assert len(config.tone_override) == MAX_TONE_LENGTH
+        assert len(config.tone_override) == MAX_TONE_LENGTH  # pyright: ignore[reportArgumentType]
 
     def test_tone_override_exceeding_max_raises(self) -> None:
         """Tone override exceeding MAX_TONE_LENGTH raises ValueError."""

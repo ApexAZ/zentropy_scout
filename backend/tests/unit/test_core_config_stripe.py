@@ -25,33 +25,33 @@ class TestStripeConfigDefaults:
 
     def test_stripe_secret_key_defaults_to_empty(self):
         """Stripe secret key defaults to empty string (not required locally)."""
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.stripe_secret_key.get_secret_value() == ""
 
     def test_stripe_webhook_secret_defaults_to_empty(self):
         """Stripe webhook secret defaults to empty string."""
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.stripe_webhook_secret.get_secret_value() == ""
 
     def test_stripe_publishable_key_defaults_to_empty(self):
         """Stripe publishable key defaults to empty string."""
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.stripe_publishable_key == ""
 
     def test_credits_enabled_defaults_to_true(self):
         """Credits enabled defaults to true."""
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.credits_enabled is True
 
     def test_stripe_secret_key_is_secret_str(self):
         """Stripe secret key uses SecretStr for masking in logs."""
-        s = Settings(stripe_secret_key=_STRIPE_TEST_KEY)
+        s = Settings(stripe_secret_key=_STRIPE_TEST_KEY)  # pyright: ignore[reportArgumentType]
         assert _STRIPE_TEST_KEY not in repr(s)
         assert s.stripe_secret_key.get_secret_value() == _STRIPE_TEST_KEY
 
     def test_stripe_webhook_secret_is_secret_str(self):
         """Stripe webhook secret uses SecretStr for masking in logs."""
-        s = Settings(stripe_webhook_secret="whsec_abc123")
+        s = Settings(stripe_webhook_secret="whsec_abc123")  # pyright: ignore[reportArgumentType]
         assert "whsec_abc123" not in repr(s)
         assert s.stripe_webhook_secret.get_secret_value() == "whsec_abc123"
 
@@ -100,8 +100,8 @@ class TestStripeProductionValidation:
                 environment=_PRODUCTION,
                 database_password=_SECURE_DB_PASSWORD,
                 credits_enabled=True,
-                stripe_secret_key="",
-                stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,
+                stripe_secret_key="",  # pyright: ignore[reportArgumentType]
+                stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,  # pyright: ignore[reportArgumentType]
             )
         assert "STRIPE_SECRET_KEY required in production" in str(exc_info.value)
 
@@ -114,8 +114,8 @@ class TestStripeProductionValidation:
                 environment=_PRODUCTION,
                 database_password=_SECURE_DB_PASSWORD,
                 credits_enabled=True,
-                stripe_secret_key=_STRIPE_LIVE_KEY,
-                stripe_webhook_secret="",
+                stripe_secret_key=_STRIPE_LIVE_KEY,  # pyright: ignore[reportArgumentType]
+                stripe_webhook_secret="",  # pyright: ignore[reportArgumentType]
             )
         assert "STRIPE_WEBHOOK_SECRET required in production" in str(exc_info.value)
 
@@ -126,8 +126,8 @@ class TestStripeProductionValidation:
                 environment=_PRODUCTION,
                 database_password=_SECURE_DB_PASSWORD,
                 credits_enabled=True,
-                stripe_secret_key=_STRIPE_TEST_KEY,
-                stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,
+                stripe_secret_key=_STRIPE_TEST_KEY,  # pyright: ignore[reportArgumentType]
+                stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,  # pyright: ignore[reportArgumentType]
             )
         assert "must use live keys in production" in str(exc_info.value)
 
@@ -137,8 +137,8 @@ class TestStripeProductionValidation:
             environment=_PRODUCTION,
             database_password=_SECURE_DB_PASSWORD,
             credits_enabled=True,
-            stripe_secret_key=_STRIPE_LIVE_KEY,
-            stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,
+            stripe_secret_key=_STRIPE_LIVE_KEY,  # pyright: ignore[reportArgumentType]
+            stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,  # pyright: ignore[reportArgumentType]
         )
         assert s.stripe_secret_key.get_secret_value() == _STRIPE_LIVE_KEY
 
@@ -148,8 +148,8 @@ class TestStripeProductionValidation:
             environment=_PRODUCTION,
             database_password=_SECURE_DB_PASSWORD,
             credits_enabled=False,
-            stripe_secret_key="",
-            stripe_webhook_secret="",
+            stripe_secret_key="",  # pyright: ignore[reportArgumentType]
+            stripe_webhook_secret="",  # pyright: ignore[reportArgumentType]
         )
         assert s.credits_enabled is False
 
@@ -158,8 +158,8 @@ class TestStripeProductionValidation:
         s = Settings(
             environment="development",
             credits_enabled=True,
-            stripe_secret_key=_STRIPE_TEST_KEY,
-            stripe_webhook_secret="whsec_test",
+            stripe_secret_key=_STRIPE_TEST_KEY,  # pyright: ignore[reportArgumentType]
+            stripe_webhook_secret="whsec_test",  # pyright: ignore[reportArgumentType]
         )
         assert s.stripe_secret_key.get_secret_value() == _STRIPE_TEST_KEY
 
@@ -191,8 +191,8 @@ class TestStripeConfigMatrix:
                 metering_enabled=False,
                 environment=_PRODUCTION,
                 database_password=_SECURE_DB_PASSWORD,
-                stripe_secret_key=_STRIPE_LIVE_KEY,
-                stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,
+                stripe_secret_key=_STRIPE_LIVE_KEY,  # pyright: ignore[reportArgumentType]
+                stripe_webhook_secret=_STRIPE_WEBHOOK_SECRET,  # pyright: ignore[reportArgumentType]
             )
 
     def test_no_warning_when_both_disabled(self, caplog):
@@ -219,20 +219,20 @@ class TestReservationConfig:
 
     def test_reservation_ttl_defaults_to_300(self):
         """reservation_ttl_seconds defaults to 300."""
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.reservation_ttl_seconds == 300
 
     def test_reservation_sweep_interval_defaults_to_300(self):
         """reservation_sweep_interval_seconds defaults to 300."""
-        s = Settings(_env_file=None)
+        s = Settings(_env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.reservation_sweep_interval_seconds == 300
 
     def test_reservation_ttl_can_be_overridden(self):
         """reservation_ttl_seconds can be set via constructor."""
-        s = Settings(reservation_ttl_seconds=600, _env_file=None)
+        s = Settings(reservation_ttl_seconds=600, _env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.reservation_ttl_seconds == 600
 
     def test_reservation_sweep_interval_can_be_overridden(self):
         """reservation_sweep_interval_seconds can be set via constructor."""
-        s = Settings(reservation_sweep_interval_seconds=120, _env_file=None)
+        s = Settings(reservation_sweep_interval_seconds=120, _env_file=None)  # pyright: ignore[reportCallIssue]
         assert s.reservation_sweep_interval_seconds == 120

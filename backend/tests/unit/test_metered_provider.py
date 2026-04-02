@@ -116,7 +116,7 @@ def metered_llm(
     """Create a MeteredLLMProvider wrapping a mock inner provider."""
     return MeteredLLMProvider(
         inner_llm,
-        llm_registry,
+        llm_registry,  # pyright: ignore[reportArgumentType]
         mock_metering,
         mock_admin_config,
         TEST_USER_ID,
@@ -341,7 +341,7 @@ class TestMeteredLLMProviderPersistMetadata:
         )
         provider = MeteredLLMProvider(
             inner_llm,
-            llm_registry,
+            llm_registry,  # pyright: ignore[reportArgumentType]
             mock_metering,
             mock_admin_config,
             TEST_USER_ID,
@@ -372,7 +372,7 @@ class TestMeteredLLMProviderStream:
         preventing accidental unmetered usage."""
         provider = MeteredLLMProvider(
             inner_llm,
-            llm_registry,
+            llm_registry,  # pyright: ignore[reportArgumentType]
             mock_metering,
             mock_admin_config,
             TEST_USER_ID,
@@ -395,7 +395,7 @@ class TestMeteredLLMProviderStream:
         """AF-09: stream() still works when credits_enabled=False."""
         provider = MeteredLLMProvider(
             inner_llm,
-            llm_registry,
+            llm_registry,  # pyright: ignore[reportArgumentType]
             mock_metering,
             mock_admin_config,
             TEST_USER_ID,

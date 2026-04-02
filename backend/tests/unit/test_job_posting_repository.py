@@ -210,7 +210,9 @@ class TestUpdate:
         """id field cannot be updated."""
         with pytest.raises(ValueError, match="id"):
             await JobPostingRepository.update(
-                db_session, job_posting.id, id=uuid.uuid4()
+                db_session,
+                job_posting.id,
+                id=uuid.uuid4(),  # pyright: ignore[reportArgumentType]
             )
 
     async def test_rejects_source_id_update(
@@ -219,7 +221,9 @@ class TestUpdate:
         """source_id cannot be changed after creation."""
         with pytest.raises(ValueError, match="source_id"):
             await JobPostingRepository.update(
-                db_session, job_posting.id, source_id=uuid.uuid4()
+                db_session,
+                job_posting.id,
+                source_id=uuid.uuid4(),  # pyright: ignore[reportArgumentType]
             )
 
     async def test_preserves_unmodified_fields(

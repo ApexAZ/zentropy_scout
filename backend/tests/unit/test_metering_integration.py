@@ -210,7 +210,7 @@ def metered_provider(
 # Helpers
 # =============================================================================
 
-_SIMPLE_MESSAGES: list[LLMMessage] = [{"role": "user", "content": "Hello"}]
+_SIMPLE_MESSAGES: list[LLMMessage] = [{"role": "user", "content": "Hello"}]  # pyright: ignore[reportAssignmentType]
 
 
 async def _get_balance(db: AsyncSession, user_id: uuid.UUID) -> Decimal:

@@ -20,7 +20,7 @@ class TestIngestSchemas:
                 raw_text="Job posting text",
                 source_url="https://example.com/job/123",
                 source_name="LinkedIn",
-                malicious_field="should not be allowed",
+                malicious_field="should not be allowed",  # pyright: ignore[reportCallIssue]
             )
 
         errors = exc_info.value.errors()
@@ -33,7 +33,7 @@ class TestIngestSchemas:
         with pytest.raises(ValidationError) as exc_info:
             IngestConfirmRequest(
                 confirmation_token="abc123",
-                extra_field="not allowed",
+                extra_field="not allowed",  # pyright: ignore[reportCallIssue]
             )
 
         errors = exc_info.value.errors()
@@ -50,7 +50,7 @@ class TestChatSchemas:
         with pytest.raises(ValidationError) as exc_info:
             ChatMessageRequest(
                 content="Hello",
-                hidden_instruction="should not work",
+                hidden_instruction="should not work",  # pyright: ignore[reportCallIssue]
             )
 
         errors = exc_info.value.errors()
@@ -69,7 +69,7 @@ class TestBulkSchemas:
         with pytest.raises(ValidationError) as exc_info:
             BulkDismissRequest(
                 ids=[uuid4()],
-                force_delete=True,  # Not a valid field
+                force_delete=True,  # Not a valid field  # pyright: ignore[reportCallIssue]
             )
 
         errors = exc_info.value.errors()
@@ -85,7 +85,7 @@ class TestBulkSchemas:
             BulkFavoriteRequest(
                 ids=[uuid4()],
                 is_favorite=True,
-                notify_user=True,  # Not a valid field
+                notify_user=True,  # Not a valid field  # pyright: ignore[reportCallIssue]
             )
 
         errors = exc_info.value.errors()
@@ -100,7 +100,7 @@ class TestBulkSchemas:
         with pytest.raises(ValidationError) as exc_info:
             BulkArchiveRequest(
                 ids=[uuid4()],
-                delete_permanently=True,  # Not a valid field
+                delete_permanently=True,  # Not a valid field  # pyright: ignore[reportCallIssue]
             )
 
         errors = exc_info.value.errors()

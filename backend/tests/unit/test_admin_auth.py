@@ -380,7 +380,7 @@ class TestAdminEmailsConfig:
 
         monkeypatch.delenv("ADMIN_EMAILS", raising=False)
         s = Settings(
-            _env_file=None,
+            _env_file=None,  # pyright: ignore[reportCallIssue]
             database_password="test_password",  # nosec B106  # gitleaks:allow
         )
         assert s.admin_emails == ""

@@ -170,7 +170,7 @@ class TestGetOrCreateCustomerNew:
 def _make_race_session_mock() -> tuple[AsyncMock, AsyncMock]:
     """Create a mock session that raises IntegrityError on flush inside savepoint."""
     mock_db = AsyncMock(spec=AsyncSession)
-    mock_db.flush = AsyncMock(side_effect=IntegrityError("duplicate key", {}, None))
+    mock_db.flush = AsyncMock(side_effect=IntegrityError("duplicate key", {}, None))  # pyright: ignore[reportArgumentType]
     mock_nested = AsyncMock()
     mock_nested.__aenter__ = AsyncMock(return_value=mock_nested)
     mock_nested.__aexit__ = AsyncMock(return_value=False)

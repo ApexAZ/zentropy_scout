@@ -746,10 +746,10 @@ _isinstance_only_warnings: list[str] = []
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:
     """Check each test for antipattern usage after it runs."""
-    if not hasattr(item, "obj") or not callable(item.obj):
+    if not hasattr(item, "obj") or not callable(item.obj):  # pyright: ignore[reportAttributeAccessIssue]
         return
     try:
-        source = inspect.getsource(item.obj)
+        source = inspect.getsource(item.obj)  # pyright: ignore[reportAttributeAccessIssue]
     except (OSError, TypeError):
         return
 

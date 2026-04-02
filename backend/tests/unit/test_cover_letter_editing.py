@@ -93,8 +93,8 @@ async def editing_scenario(db_session: AsyncSession):
         pass
 
     s = Scenario()
-    s.draft_cl_id = draft_cl.id
-    s.approved_cl_id = approved_cl.id
+    s.draft_cl_id = draft_cl.id  # pyright: ignore[reportAttributeAccessIssue]
+    s.approved_cl_id = approved_cl.id  # pyright: ignore[reportAttributeAccessIssue]
     return s
 
 

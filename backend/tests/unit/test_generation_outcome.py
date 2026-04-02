@@ -385,7 +385,7 @@ class TestEdgeCases:
             outcome=GenerationOutcome.REGENERATED,
             regeneration_reason=long_reason,
         )
-        assert len(record.regeneration_reason) == _MAX_REASON_LENGTH
+        assert len(record.regeneration_reason) == _MAX_REASON_LENGTH  # pyright: ignore[reportArgumentType]
 
 
 # =============================================================================

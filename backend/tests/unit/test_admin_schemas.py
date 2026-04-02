@@ -123,7 +123,7 @@ class TestModelRegistryUpdate:
 
     def test_accepts_display_name_at_100_chars(self) -> None:
         schema = ModelRegistryUpdate(display_name="x" * 100)
-        assert len(schema.display_name) == 100
+        assert len(schema.display_name) == 100  # pyright: ignore[reportArgumentType]
 
 
 # =============================================================================

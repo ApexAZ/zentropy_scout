@@ -60,7 +60,7 @@ class TestRateLimitExceededHandler:
         exc.detail = "10 per 1 minute"
 
         response = rate_limit_exceeded_handler(request, exc)
-        body = json.loads(response.body.decode())
+        body = json.loads(response.body.decode())  # pyright: ignore[reportAttributeAccessIssue]
 
         assert "error" in body
         assert body["error"]["code"] == "RATE_LIMITED"

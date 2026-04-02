@@ -214,7 +214,7 @@ class TestMarkCompleted:
             stripe_payment_intent="pi_test_tz",
         )
         await db_session.refresh(purchase)
-        assert purchase.completed_at.tzinfo is not None
+        assert purchase.completed_at.tzinfo is not None  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_skips_already_completed_purchase(
         self, db_session: AsyncSession, user_a: User

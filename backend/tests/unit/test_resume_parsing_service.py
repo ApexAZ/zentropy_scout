@@ -604,7 +604,7 @@ class TestPageCountLimit:
         texts = ["page"] * (_MAX_PDF_PAGES + 1)
         mock_provider = AsyncMock()
 
-        with patch(_PATCH_PDFPLUMBER, _mock_pdfplumber_pages(texts)):
+        with patch(_PATCH_PDFPLUMBER, _mock_pdfplumber_pages(texts)):  # pyright: ignore[reportArgumentType]
             service = ResumeParsingService()
             with pytest.raises(ValueError, match="too many pages"):
                 await service.parse_resume(_FAKE_PDF_BYTES, mock_provider)
@@ -619,7 +619,7 @@ class TestPageCountLimit:
         )
 
         with (
-            patch(_PATCH_PDFPLUMBER, _mock_pdfplumber_pages(texts)),
+            patch(_PATCH_PDFPLUMBER, _mock_pdfplumber_pages(texts)),  # pyright: ignore[reportArgumentType]
             patch(_PATCH_SANITIZE, side_effect=lambda x: x),
         ):
             service = ResumeParsingService()

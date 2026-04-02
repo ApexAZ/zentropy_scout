@@ -12,7 +12,7 @@ from docx import Document
 from app.services.rendering.markdown_docx_renderer import render_docx
 
 
-def _load_docx(docx_bytes: bytes) -> Document:
+def _load_docx(docx_bytes: bytes) -> Document:  # pyright: ignore[reportGeneralTypeIssues]
     """Helper: load DOCX bytes into a python-docx Document for inspection."""
     return Document(io.BytesIO(docx_bytes))
 

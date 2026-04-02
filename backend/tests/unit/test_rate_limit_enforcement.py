@@ -42,7 +42,7 @@ def _build_test_app(*, enabled: bool = True) -> FastAPI:
     limiter = Limiter(key_func=get_remote_address, enabled=enabled)
     app = FastAPI()
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # pyright: ignore[reportArgumentType]
 
     @app.get(_ENDPOINT_LOW)
     @limiter.limit(_TEST_LIMIT_LOW)

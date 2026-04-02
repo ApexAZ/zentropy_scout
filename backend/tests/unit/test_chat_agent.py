@@ -102,7 +102,7 @@ class TestIntentClassification:
         assert intent is not None
         assert intent["type"] == "draft_materials"  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert (
-            intent["requires_tools"] is False
+            intent["requires_tools"] is False  # pyright: ignore[reportTypedDictNotRequiredAccess]
         )  # Delegates to Ghostwriter sub-graph  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_classify_onboarding_intent(self) -> None:

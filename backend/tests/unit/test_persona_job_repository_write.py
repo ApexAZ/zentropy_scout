@@ -94,7 +94,7 @@ class TestUpdate:
                 db_session,
                 pj_a.id,
                 user_id=user_a.id,
-                persona_id=uuid.uuid4(),
+                persona_id=uuid.uuid4(),  # pyright: ignore[reportArgumentType]
             )
 
     async def test_rejects_job_posting_id_update(
@@ -106,7 +106,7 @@ class TestUpdate:
                 db_session,
                 pj_a.id,
                 user_id=user_a.id,
-                job_posting_id=uuid.uuid4(),
+                job_posting_id=uuid.uuid4(),  # pyright: ignore[reportArgumentType]
             )
 
     async def test_preserves_unmodified_fields(
