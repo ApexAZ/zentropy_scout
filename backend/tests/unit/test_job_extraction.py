@@ -88,7 +88,7 @@ class TestTextTruncation:
         # Should still work (truncation happens before LLM call)
         assert result is not None
         # Description snippet should be 500 chars + "..."
-        assert len(result["description_snippet"]) == 503
+        assert len(result["description_snippet"]) == 503  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 # =============================================================================
@@ -127,7 +127,7 @@ class TestLLMExtraction:
 
         result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
-        assert result["job_title"] == "Senior Software Engineer"
+        assert result["job_title"] == "Senior Software Engineer"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     @pytest.mark.asyncio
     async def test_extract_parses_company_name(self, mock_llm: MockLLMProvider) -> None:
@@ -139,7 +139,7 @@ class TestLLMExtraction:
 
         result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
-        assert result["company_name"] == "Acme Corporation"
+        assert result["company_name"] == "Acme Corporation"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     @pytest.mark.asyncio
     async def test_extract_parses_skills_with_full_structure(
@@ -162,7 +162,7 @@ class TestLLMExtraction:
 
         result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
-        skills = result["extracted_skills"]
+        skills = result["extracted_skills"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert len(skills) == 3
 
         # Check Python skill
@@ -197,7 +197,7 @@ class TestLLMExtraction:
         result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
         assert (
-            result["culture_text"]
+            result["culture_text"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
             == "We value innovation and work-life balance. Remote-first culture."
         )
 
@@ -219,9 +219,9 @@ class TestLLMExtraction:
 
         result = await extract_job_data(_SAMPLE_JOB_TEXT, mock_llm)
 
-        assert result["salary_min"] == 150000
-        assert result["salary_max"] == 200000
-        assert result["salary_currency"] == "USD"
+        assert result["salary_min"] == 150000  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["salary_max"] == 200000  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["salary_currency"] == "USD"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 # =============================================================================
@@ -242,8 +242,8 @@ class TestResponseParsing:
         )
         result = _parse_extraction_response(response)
 
-        assert result["job_title"] == "Engineer"
-        assert result["company_name"] == "Acme"
+        assert result["job_title"] == "Engineer"  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["company_name"] == "Acme"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_json_in_markdown_code_block(self) -> None:
         """Parse JSON wrapped in ```json ... ``` block."""
@@ -254,7 +254,7 @@ class TestResponseParsing:
 """
         result = _parse_extraction_response(response)
 
-        assert result["job_title"] == "Engineer"
+        assert result["job_title"] == "Engineer"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_json_in_plain_code_block(self) -> None:
         """Parse JSON wrapped in ``` ... ``` block (no language)."""
@@ -265,7 +265,7 @@ class TestResponseParsing:
 """
         result = _parse_extraction_response(response)
 
-        assert result["job_title"] == "Engineer"
+        assert result["job_title"] == "Engineer"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_invalid_json_returns_fallback(self) -> None:
         """Invalid JSON falls back to basic extraction result."""
@@ -273,29 +273,29 @@ class TestResponseParsing:
         result = _parse_extraction_response(response)
 
         # Should return a valid ExtractedJobData with null fields
-        assert result["job_title"] is None
-        assert result["extracted_skills"] == []
+        assert result["job_title"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["extracted_skills"] == []  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_missing_skills_returns_empty_list(self) -> None:
         """Missing extracted_skills field returns empty list."""
         response = '{"job_title": "Engineer", "company_name": "Acme"}'
         result = _parse_extraction_response(response)
 
-        assert result["extracted_skills"] == []
+        assert result["extracted_skills"] == []  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_null_skills_returns_empty_list(self) -> None:
         """null extracted_skills returns empty list."""
         response = '{"job_title": "Engineer", "company_name": "Acme", "extracted_skills": null}'
         result = _parse_extraction_response(response)
 
-        assert result["extracted_skills"] == []
+        assert result["extracted_skills"] == []  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_string_skills_returns_empty_list(self) -> None:
         """String extracted_skills (LLM error) returns empty list."""
         response = '{"job_title": "Engineer", "extracted_skills": "Python, AWS"}'
         result = _parse_extraction_response(response)
 
-        assert result["extracted_skills"] == []
+        assert result["extracted_skills"] == []  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_filters_non_dict_skill_entries(self) -> None:
         """Non-dict entries in skills list are silently dropped."""
@@ -305,8 +305,8 @@ class TestResponseParsing:
         )
         result = _parse_extraction_response(response)
 
-        assert len(result["extracted_skills"]) == 1
-        assert result["extracted_skills"][0]["skill_name"] == "AWS"
+        assert len(result["extracted_skills"]) == 1  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["extracted_skills"][0]["skill_name"] == "AWS"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_filters_skill_missing_skill_name(self) -> None:
         """Skill dicts without skill_name are silently dropped."""
@@ -316,8 +316,8 @@ class TestResponseParsing:
         )
         result = _parse_extraction_response(response)
 
-        assert len(result["extracted_skills"]) == 1
-        assert result["extracted_skills"][0]["skill_name"] == "AWS"
+        assert len(result["extracted_skills"]) == 1  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["extracted_skills"][0]["skill_name"] == "AWS"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_caps_extracted_skills_at_limit(self) -> None:
         """Skills list from LLM exceeding _MAX_EXTRACTED_SKILLS is truncated."""
@@ -337,7 +337,7 @@ class TestResponseParsing:
         response = json.dumps({"job_title": "Engineer", "extracted_skills": skills})
         result = _parse_extraction_response(response)
 
-        assert len(result["extracted_skills"]) == _MAX_EXTRACTED_SKILLS
+        assert len(result["extracted_skills"]) == _MAX_EXTRACTED_SKILLS  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_parse_validates_field_types_via_pydantic(self) -> None:
         """Invalid field types (e.g., list for job_title) trigger fallback."""
@@ -350,8 +350,8 @@ class TestResponseParsing:
 
         # Should fall back to basic extraction (null fields) because
         # Pydantic validation rejects the invalid types
-        assert result["job_title"] is None
-        assert result["extracted_skills"] == []
+        assert result["job_title"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["extracted_skills"] == []  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 # =============================================================================
@@ -370,55 +370,55 @@ class TestFallbackExtraction:
         text = "Salary: $150k-$200k per year"
         result = _basic_extraction(text)
 
-        assert result["salary_min"] == 150000
-        assert result["salary_max"] == 200000
-        assert result["salary_currency"] == "USD"
+        assert result["salary_min"] == 150000  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["salary_max"] == 200000  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["salary_currency"] == "USD"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_basic_extraction_extracts_salary_range_full_numbers(self) -> None:
         """Extract salary range with full numbers."""
         text = "Compensation: $150,000 - $200,000"
         result = _basic_extraction(text)
 
-        assert result["salary_min"] == 150000
-        assert result["salary_max"] == 200000
+        assert result["salary_min"] == 150000  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["salary_max"] == 200000  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_basic_extraction_extracts_employment_type_fulltime(self) -> None:
         """Extract Full-time employment type."""
         text = "This is a Full-time position"
         result = _basic_extraction(text)
 
-        assert result["employment_type"] == "Full-time"
+        assert result["employment_type"] == "Full-time"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_basic_extraction_extracts_employment_type_contract(self) -> None:
         """Extract Contract employment type."""
         text = "Contract role, 6 months initially"
         result = _basic_extraction(text)
 
-        assert result["employment_type"] == "Contract"
+        assert result["employment_type"] == "Contract"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_basic_extraction_extracts_employment_type_parttime(self) -> None:
         """Extract Part-time employment type."""
         text = "Part-time, 20 hours per week"
         result = _basic_extraction(text)
 
-        assert result["employment_type"] == "Part-time"
+        assert result["employment_type"] == "Part-time"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_basic_extraction_returns_empty_skills(self) -> None:
         """Basic extraction returns empty skills list (regex can't extract skills)."""
         text = "Senior Python Developer with 5+ years experience"
         result = _basic_extraction(text)
 
-        assert result["extracted_skills"] == []
+        assert result["extracted_skills"] == []  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_basic_extraction_returns_null_fields_when_not_found(self) -> None:
         """Basic extraction returns None for fields not found."""
         text = "Generic job posting"
         result = _basic_extraction(text)
 
-        assert result["job_title"] is None
-        assert result["company_name"] is None
-        assert result["location"] is None
-        assert result["culture_text"] is None
+        assert result["job_title"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["company_name"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["location"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["culture_text"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 # =============================================================================
@@ -465,7 +465,7 @@ class TestEdgeCases:
         result = await extract_job_data("", mock_llm)
 
         assert result is not None
-        assert result["extracted_skills"] == []
+        assert result["extracted_skills"] == []  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     @pytest.mark.asyncio
     async def test_extract_includes_description_snippet(
@@ -495,5 +495,7 @@ class TestEdgeCases:
         long_text = "x" * 600
         result = await extract_job_data(long_text, mock_llm)
 
-        assert len(result["description_snippet"]) == 503  # 500 + "..."
-        assert result["description_snippet"].endswith("...")
+        assert (
+            len(result["description_snippet"]) == 503
+        )  # 500 + "..."  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["description_snippet"].endswith("...")  # pyright: ignore[reportTypedDictNotRequiredAccess]

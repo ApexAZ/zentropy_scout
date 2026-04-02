@@ -74,11 +74,11 @@ class TestIntentClassification:
         }
 
         result = classify_intent(state)
-        intent = result["classified_intent"]
+        intent = result["classified_intent"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         assert intent is not None
-        assert intent["type"] == "list_jobs"
-        assert intent["requires_tools"] is True
+        assert intent["type"] == "list_jobs"  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert intent["requires_tools"] is True  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_classify_draft_materials_intent(self) -> None:
         """'Draft materials for this job' should classify as draft_materials."""
@@ -97,11 +97,13 @@ class TestIntentClassification:
         }
 
         result = classify_intent(state)
-        intent = result["classified_intent"]
+        intent = result["classified_intent"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         assert intent is not None
-        assert intent["type"] == "draft_materials"
-        assert intent["requires_tools"] is False  # Delegates to Ghostwriter sub-graph
+        assert intent["type"] == "draft_materials"  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert (
+            intent["requires_tools"] is False
+        )  # Delegates to Ghostwriter sub-graph  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_classify_onboarding_intent(self) -> None:
         """'Update my skills' should classify as onboarding_request."""
@@ -120,10 +122,10 @@ class TestIntentClassification:
         }
 
         result = classify_intent(state)
-        intent = result["classified_intent"]
+        intent = result["classified_intent"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         assert intent is not None
-        assert intent["type"] == "onboarding_request"
+        assert intent["type"] == "onboarding_request"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_classify_direct_question(self) -> None:
         """A general question should classify as direct_response."""
@@ -142,11 +144,11 @@ class TestIntentClassification:
         }
 
         result = classify_intent(state)
-        intent = result["classified_intent"]
+        intent = result["classified_intent"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         assert intent is not None
-        assert intent["type"] == "direct_question"
-        assert intent["requires_tools"] is False
+        assert intent["type"] == "direct_question"  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert intent["requires_tools"] is False  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_intent_has_confidence_score(self) -> None:
         """Classified intent should include confidence score."""
@@ -165,7 +167,7 @@ class TestIntentClassification:
         }
 
         result = classify_intent(state)
-        intent = result["classified_intent"]
+        intent = result["classified_intent"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         assert intent is not None
         assert "confidence" in intent
@@ -451,7 +453,7 @@ class TestAmbiguityResolution:
 
         result = request_clarification(state)
 
-        assert result["requires_human_input"] is True
+        assert result["requires_human_input"] is True  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_clarification_adds_message(self) -> None:
         """Clarification should add assistant message asking for clarification."""
@@ -476,8 +478,8 @@ class TestAmbiguityResolution:
 
         result = request_clarification(state)
 
-        assert len(result["messages"]) > 0
-        last_message = result["messages"][-1]
+        assert len(result["messages"]) > 0  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        last_message = result["messages"][-1]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert last_message["role"] == "assistant"
         # Should ask which job they mean
         assert "which" in last_message["content"].lower()
@@ -726,11 +728,11 @@ class TestInputTruncation:
         }
 
         result = classify_intent(state)
-        intent = result["classified_intent"]
+        intent = result["classified_intent"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         # Pattern is beyond 2000 chars — should NOT match list_jobs
         assert intent is not None
-        assert intent["type"] == "unknown"
+        assert intent["type"] == "unknown"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_classify_intent_matches_pattern_within_2000_chars(self) -> None:
         """classify_intent still matches patterns within the first 2000 chars."""
@@ -752,10 +754,10 @@ class TestInputTruncation:
         }
 
         result = classify_intent(state)
-        intent = result["classified_intent"]
+        intent = result["classified_intent"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         assert intent is not None
-        assert intent["type"] == "list_jobs"
+        assert intent["type"] == "list_jobs"  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 # =============================================================================
@@ -784,7 +786,7 @@ def _delegate_and_get_msg(message: str) -> str:
     """Run delegate_onboarding and return the response message string."""
     state = _make_state(message)
     result = delegate_onboarding(state)
-    return result["tool_results"][0]["result"]["message"]
+    return result["tool_results"][0]["result"]["message"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 class TestDelegateOnboarding:
@@ -838,8 +840,8 @@ class TestDelegateOnboarding:
         state = _make_state("add my skills")
         result = delegate_onboarding(state)
 
-        assert len(result["tool_results"]) == 1
-        tool_result = result["tool_results"][0]
+        assert len(result["tool_results"]) == 1  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        tool_result = result["tool_results"][0]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert tool_result["tool"] == "invoke_onboarding"
         assert tool_result["result"]["status"] == "redirected"
         assert tool_result["error"] is None
@@ -889,7 +891,7 @@ class TestDelegateGhostwriterExceptionHandling:
         with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
             result = await delegate_ghostwriter(state)
 
-        error_msg = result["tool_results"][0]["error"]
+        error_msg = result["tool_results"][0]["error"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert error_msg is not None
         assert "not found" in error_msg.lower()
 
@@ -903,7 +905,7 @@ class TestDelegateGhostwriterExceptionHandling:
         with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
             result = await delegate_ghostwriter(state)
 
-        error_msg = result["tool_results"][0]["error"]
+        error_msg = result["tool_results"][0]["error"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert error_msg is not None
         assert "persona_id is required" in error_msg
 
@@ -921,7 +923,7 @@ class TestDelegateGhostwriterExceptionHandling:
         with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
             result = await delegate_ghostwriter(state)
 
-        error_msg = result["tool_results"][0]["error"]
+        error_msg = result["tool_results"][0]["error"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert error_msg is not None
         assert "Cover letter generation failed due to missing data" in error_msg
 
@@ -937,7 +939,7 @@ class TestDelegateGhostwriterExceptionHandling:
         with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
             result = await delegate_ghostwriter(state)
 
-        error_msg = result["tool_results"][0]["error"]
+        error_msg = result["tool_results"][0]["error"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert error_msg is not None
         assert "try again" in error_msg.lower()
         # Should NOT leak the internal error message
@@ -963,6 +965,6 @@ class TestDelegateGhostwriterExceptionHandling:
         with patch(_CONTENT_GEN_SERVICE_PATH, return_value=mock_service):
             result = await delegate_ghostwriter(state)
 
-        tool_result = result["tool_results"][0]
+        tool_result = result["tool_results"][0]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert tool_result["result"] is None
         assert tool_result["error"] is not None
