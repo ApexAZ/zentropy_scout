@@ -75,7 +75,7 @@ Phase 4: Stragglers, CI Integration & Documentation
 
 ## Phase 2: Production Code Type Fixes
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Fix all pyright errors in `backend/app/` (production code). Higher priority than tests because type errors here can mask runtime bugs.*
 
@@ -91,10 +91,10 @@ Phase 4: Stragglers, CI Integration & Documentation
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 4 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). | `plan, security` | ⬜ |
+| 4 | **Security triage gate** — Spawn `security-triage` subagent (general-purpose, opus, foreground). | `plan, security` | ✅ |
 | 5 | **~~Fix reportIncompatibleMethodOverride in providers~~** — Resolved by pyrightconfig.json (pythonVersion + venvPath). All 10 errors in this category disappeared with proper type resolution. No code changes needed. | `plan, tdd, provider` | ✅ (config) |
-| 6 | **Fix remaining production code errors** — (a) `reportOptionalMemberAccess`: add None-guards before accessing attributes on optional values in services/api code. (b) `reportCallIssue`: fix function call signatures with wrong/missing params. (c) `reportArgumentType`: fix type mismatches in production code. (d) Any `reportAttributeAccessIssue` remaining after config. Files: `app/services/`, `app/api/v1/`, `app/schemas/`, `app/providers/`. ~20-40 errors. | `plan, tdd, api` | ⬜ |
-| 7 | **Phase gate — pyright zero on `app/`, full test suite, push** | `plan, commands` | ⬜ |
+| 6 | **Fix remaining production code errors** — 14 errors across 5 files fixed: pyright: ignore for TypedDict not-required-access (chat.py), pyright: ignore for untyped-dict→typed-SDK-param (openai_adapter.py), None guard for response.usage (openai_adapter.py), Color objects for ReportLab textColor (pdf_generation.py), list[Flowable] annotations (pdf_generation.py, cover_letter_pdf_generation.py), pyright: ignore for Persona→PersonaLike protocol mismatch (job_scoring_service.py). | `plan, tdd, api` | ✅ |
+| 7 | **Phase gate — pyright zero on `app/`, full test suite, push** | `plan, commands` | ✅ |
 
 #### Notes
 - **§5 resolved by config** — `reportIncompatibleMethodOverride` (10 errors) fully resolved by pyrightconfig.json. No code changes needed.
@@ -104,7 +104,7 @@ Phase 4: Stragglers, CI Integration & Documentation
 
 ## Phase 3: Test Code Type Fixes
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Fix the bulk of errors (~270) in `backend/tests/`. These are primarily TypedDict access violations and untyped dict literals passed to typed functions.*
 
@@ -120,11 +120,11 @@ Phase 4: Stragglers, CI Integration & Documentation
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 8 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ⬜ |
-| 9 | **Fix scoring test files (TypedDict + ArgumentType)** — Add type annotations to variables holding `ScoreResult` dicts. Add typed annotations to dict literals passed to scoring functions (`calculate_hard_skills_score`, etc.). Files: `test_scoring_flow.py` (18), `test_batch_scoring.py` (22), `test_hard_skills_match.py` (24), `test_job_scoring_service.py` (20), `test_score_correlation.py` (19), `test_score_scenarios.py` (9), `test_golden_set.py` (13). ~125 errors. | `plan, tdd` | ⬜ |
-| 10 | **Fix extraction & chat test files** — Add type annotations for `ExtractedJobData` access in `test_job_extraction.py` (40 errors). Add `ChatAgentState` annotations in `test_chat_agent.py` (27 errors). Fix `ClassifiedIntent` access patterns. ~67 errors. | `plan, tdd` | ⬜ |
-| 11 | **Fix embedding, persona, and remaining test files** — Fix errors in: `test_job_embedding_generation.py` (17), `test_persona_embedding_generation.py` (14), `test_persona_sync.py` (19), `test_credit_schemas.py` (14), `test_base_resume_selection.py` (9), `test_claude_adapter.py` (10), `test_openai_adapter.py` (9), plus any stragglers. ~90 errors. | `plan, tdd` | ⬜ |
-| 12 | **Phase gate — pyright zero on `tests/`, full test suite, push** | `plan, commands` | ⬜ |
+| 8 | **Security triage gate** — Spawn `security-triage` subagent. | `plan, security` | ✅ |
+| 9 | **Fix scoring test files (TypedDict + ArgumentType)** — Add type annotations to variables holding `ScoreResult` dicts. Add typed annotations to dict literals passed to scoring functions (`calculate_hard_skills_score`, etc.). Files: `test_scoring_flow.py` (18), `test_batch_scoring.py` (22), `test_hard_skills_match.py` (24), `test_job_scoring_service.py` (20), `test_score_correlation.py` (19), `test_score_scenarios.py` (9), `test_golden_set.py` (13). ~125 errors. **Actual: 122 errors — committed 237bb0d.** | `plan, tdd` | ✅ |
+| 10 | **Fix extraction & chat test files** — Add type annotations for `ExtractedJobData` access in `test_job_extraction.py` (40 errors). Add `ChatAgentState` annotations in `test_chat_agent.py` (27 errors). Fix `ClassifiedIntent` access patterns. ~67 errors. **Actual: 67 errors — committed 02a19e8.** | `plan, tdd` | ✅ |
+| 11 | **Fix embedding, persona, and remaining test files** — Fix errors in: `test_job_embedding_generation.py` (17), `test_persona_embedding_generation.py` (14), `test_persona_sync.py` (19), `test_credit_schemas.py` (14), `test_base_resume_selection.py` (9), `test_claude_adapter.py` (10), `test_openai_adapter.py` (9), plus any stragglers. ~90 errors. **Actual: 72 errors (claude/openai adapter tests already clean) — committed 34ff257.** | `plan, tdd` | ✅ |
+| 12 | **Phase gate — pyright zero on `tests/`, full test suite, push** | `plan, commands` | ✅ |
 
 #### Notes
 - **Fix strategy for TypedDict access (115 errors):** `ScoreResult(TypedDict, total=False)` makes all fields optional. Tests create dicts with all fields present, so pyright's complaint is technically correct but practically false. Fix by annotating test variables with explicit types or using `cast()`. Do NOT change `total=False` — it's intentional per the domain contract (partial results are valid).
@@ -204,3 +204,5 @@ Phase 4: Stragglers, CI Integration & Documentation
 | 2026-04-01 | Plan created — 4 phases, 16 tasks |
 | 2026-04-01 | §1 complete — post-mortem disproved cascade hypothesis (errors pre-date REQ-031/032) |
 | 2026-04-01 | §2 complete — pyrightconfig.json reduces 539 → 385. §5 resolved by config (method overrides). |
+| 2026-04-02 | §3, §4, §6 complete — prod code clean (0 errors on app/), pushed 0770ce8. Phase 2 complete. |
+| 2026-04-02 | §8-§12 complete — test code clean (0 errors on tests/). 4 commits: 237bb0d, 02a19e8, 34ff257, bd71824. Phase 3 complete. |
