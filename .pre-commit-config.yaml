@@ -61,6 +61,27 @@ repos:
         pass_filenames: false
         files: ^backend/app/
 
+  # Pyright - Python type checking, app/ only (runs on COMMIT, fast ~5s)
+  - repo: local
+    hooks:
+      - id: backend-pyright-commit
+        name: pyright (backend app/)
+        entry: bash -c 'cd backend && .venv/bin/python -m pyright app/'
+        language: system
+        pass_filenames: false
+        files: ^backend/app/
+
+  # Pyright - Python type checking, full suite (runs on PUSH only, ~15s)
+  - repo: local
+    hooks:
+      - id: backend-pyright-push
+        name: pyright (backend app/ + tests/)
+        entry: bash -c 'cd backend && .venv/bin/python -m pyright app/ tests/'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
   # Frontend ESLint - TypeScript/React linter (runs on COMMIT)
   - repo: local
     hooks:
@@ -116,5 +137,6 @@ repos:
 
 # Summary:
 # ON COMMIT: ruff lint/format, bandit security scan, gitleaks secret detection,
-#            mypy type check, ESLint, Prettier format check, TypeScript type check (fast)
-# ON PUSH: Full pytest + Vitest suites (comprehensive - all tests must pass)
+#            mypy type check, pyright type check (app/ only, fast),
+#            ESLint, Prettier format check, TypeScript type check (fast)
+# ON PUSH: pyright type check (app/ + tests/), full pytest + Vitest suites (comprehensive)

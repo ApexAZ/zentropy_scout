@@ -332,8 +332,8 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
 pre-commit run --all-files
 ```
 
-**On commit:** ruff (lint + format), bandit, gitleaks, mypy (backend type check), trailing whitespace, ESLint, Prettier, TypeScript type check.
-**On push:** Full pytest suite (backend) + Vitest suite (frontend). See `.pre-commit-config.yaml` for details.
+**On commit:** ruff (lint + format), bandit, gitleaks, mypy (backend type check), pyright (backend `app/`), trailing whitespace, ESLint, Prettier, TypeScript type check.
+**On push:** pyright (backend `app/ + tests/`), full pytest suite (backend) + Vitest suite (frontend). See `.pre-commit-config.yaml` for details.
 
 **IMPORTANT:** Never use `--no-verify` to bypass hooks. If tests fail, fix them before committing/pushing. "Pre-existing" failures are still your responsibility to fix.
 
@@ -349,6 +349,7 @@ Layered security scanning across local development and CI:
 | **SAST (fast)** | Bandit | Python security patterns (injection, secrets, weak crypto) | Pre-commit hook |
 | **DAST** | OWASP ZAP | Runtime API vulnerabilities (injection, auth, headers) | CI (push to main) |
 | **Code quality** | SonarCloud | Code smells, duplication, security hotspots, complexity | CI (post-push) |
+| **Type checking (Python)** | mypy + pyright | mypy: SQLAlchemy/Pydantic plugins; pyright: TypedDict/argument strictness | Pre-commit hook |
 | **Frontend lint** | ESLint + Prettier + TypeScript | React/TS lint, formatting, type safety | Pre-commit hook |
 | **Dependencies (Python)** | pip-audit | Known CVEs in Python packages (OSV database) | CI (GitHub Actions) |
 | **Dependencies (npm)** | npm audit | Known CVEs in Node.js packages (GitHub Advisory DB) | CI (GitHub Actions) |
@@ -461,6 +462,7 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 **Services Reorganization (REQ-031):** Complete. 9 phases, 30 tasks. 80 service files reorganized from flat `services/` into 8 domain subdirectories (scoring/, embedding/, generation/, rendering/, discovery/, billing/, admin/, onboarding/). All import paths updated, module docstrings standardized with Coordinates-with/Called-by sections.
 **Frontend JSDoc & Import Hygiene (REQ-032):** Complete. 2 phases, 12 tasks. 5 inverted import directions fixed (schemas/types extracted from components/ into lib/ helpers). Three-axis JSDoc headers (@coordinates-with) added to ~55 files in lib/, hooks/, types/.
 **Code quality:** SonarCloud at 0 issues, 0 duplication, 0 hotspots.
+**Pyright Compliance:** Complete. 539 → 0 pyright errors. pyrightconfig.json added, pyright added to pre-commit hooks (commit: `app/`, push: `app/ + tests/`). See `docs/plan/Archive/pyright_compliance_plan.md`.
 
 **IMPORTANT:** After completing ANY subtask, update the active plan file status (⬜ → ✅). See `zentropy-planner` skill. Discover plan files via `Glob "docs/plan/*_plan.md"` or ask the user which plan is in scope.
 
@@ -468,4 +470,4 @@ Rules discovered through mistakes. Format: `[category] Always/Never [action] bec
 
 ---
 
-*Last updated: 2026-03-31*
+*Last updated: 2026-04-02*

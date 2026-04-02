@@ -135,7 +135,7 @@ Phase 4: Stragglers, CI Integration & Documentation
 
 ## Phase 4: Verification, CI Integration & Documentation
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *Zero-error verification, add pyright to pre-commit, update project docs.*
 
@@ -150,9 +150,9 @@ Phase 4: Stragglers, CI Integration & Documentation
 #### Tasks
 | § | Task | Hints | Status |
 |---|------|-------|--------|
-| 13 | **Zero-error verification & straggler fixes** — (a) Run `pyright` with no filters — must show 0 errors. (b) Fix any stragglers found. (c) Run full pytest + vitest suite. (d) Update `docs/plan/pyright_postmortem.md` with final resolution summary. | `plan, lint, commands` | ⬜ |
-| 14 | **Add pyright to pre-commit hooks** — (a) Add `pyright` to dev dependencies in `backend/pyproject.toml`. (b) Add local hook to `.pre-commit-config.yaml`: runs `cd backend && .venv/bin/python -m pyright app/` at commit stage (scoped to `app/` for speed; full `app/ + tests/` at push stage). (c) Run `pre-commit run --all-files` to verify both mypy and pyright pass. (d) Keep mypy alongside pyright — complementary coverage (mypy has SQLAlchemy/Pydantic plugin support). | `plan, lint, commands` | ⬜ |
-| 15 | **Update documentation** — (a) Add pyright to "Security Tooling Stack" table in CLAUDE.md (or create "Type Checking" row). (b) Update CLAUDE.md "Current Status" section. (c) Archive this plan to `docs/plan/Archive/`. (d) Archive REQ-032 plan if not already archived. | `plan, docs` | ⬜ |
+| 13 | **Zero-error verification & straggler fixes** — (a) Run `pyright` with no filters — must show 0 errors. (b) Fix any stragglers found. (c) Run full pytest + vitest suite. (d) Update `docs/plan/pyright_postmortem.md` with final resolution summary. | `plan, lint, commands` | ✅ |
+| 14 | **Add pyright to pre-commit hooks** — (a) Add `pyright` to dev dependencies in `backend/pyproject.toml`. (b) Add local hook to `.pre-commit-config.yaml`: runs `cd backend && .venv/bin/python -m pyright app/` at commit stage (scoped to `app/` for speed; full `app/ + tests/` at push stage). (c) Run `pre-commit run --all-files` to verify both mypy and pyright pass. (d) Keep mypy alongside pyright — complementary coverage (mypy has SQLAlchemy/Pydantic plugin support). | `plan, lint, commands` | ✅ |
+| 15 | **Update documentation** — (a) Add pyright to "Security Tooling Stack" table in CLAUDE.md (or create "Type Checking" row). (b) Update CLAUDE.md "Current Status" section. (c) Archive this plan to `docs/plan/Archive/`. (d) Archive REQ-032 plan if not already archived. | `plan, docs` | ✅ |
 | 16 | **Phase gate — full quality gate + push** | `plan, commands` | ⬜ |
 
 ---
@@ -206,3 +206,4 @@ Phase 4: Stragglers, CI Integration & Documentation
 | 2026-04-01 | §2 complete — pyrightconfig.json reduces 539 → 385. §5 resolved by config (method overrides). |
 | 2026-04-02 | §3, §4, §6 complete — prod code clean (0 errors on app/), pushed 0770ce8. Phase 2 complete. |
 | 2026-04-02 | §8-§12 complete — test code clean (0 errors on tests/). 4 commits: 237bb0d, 02a19e8, 34ff257, bd71824. Phase 3 complete. |
+| 2026-04-02 | §13-§15 complete — postmortem updated with final summary, pyright added to pre-commit hooks, CLAUDE.md updated. Phase 4 complete except §16 gate push. |

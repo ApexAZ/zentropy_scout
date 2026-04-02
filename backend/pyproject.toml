@@ -73,6 +73,7 @@ dev = [
     # Linting & Formatting
     "ruff>=0.2.0",
     "mypy>=1.8.0",
+    "pyright>=1.1.400",
 
     # Security Linting
     "bandit>=1.9.3",
