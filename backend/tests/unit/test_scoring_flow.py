@@ -300,12 +300,12 @@ class TestScoringFlowService:
 
         score_result = build_filtered_score_result(filter_result)
 
-        assert score_result["job_posting_id"] == str(filter_result.job_id)
-        assert score_result["fit_score"] is None
-        assert score_result["stretch_score"] is None
-        assert score_result["explanation"] is None
+        assert score_result["job_posting_id"] == str(filter_result.job_id)  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["fit_score"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["stretch_score"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["explanation"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert (
-            score_result["filtered_reason"]
+            score_result["filtered_reason"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
             == "salary_below_minimum|remote_preference_not_met"
         )
 
@@ -320,11 +320,11 @@ class TestScoringFlowService:
             explanation="Strong technical match",
         )
 
-        assert score_result["job_posting_id"] == str(job_id)
-        assert score_result["fit_score"] == 85.5
-        assert score_result["stretch_score"] == 72.0
-        assert score_result["explanation"] == "Strong technical match"
-        assert score_result["filtered_reason"] is None
+        assert score_result["job_posting_id"] == str(job_id)  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["fit_score"] == 85.5  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["stretch_score"] == 72.0  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["explanation"] == "Strong technical match"  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["filtered_reason"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_build_scored_result_without_explanation(self) -> None:
         """build_scored_result should work without explanation."""
@@ -336,9 +336,9 @@ class TestScoringFlowService:
             stretch_score=60.0,
         )
 
-        assert score_result["fit_score"] == 90.0
-        assert score_result["explanation"] is None
-        assert score_result["filtered_reason"] is None
+        assert score_result["fit_score"] == 90.0  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["explanation"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert score_result["filtered_reason"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     @pytest.mark.parametrize(
         ("fit", "stretch", "match_msg"),
@@ -366,8 +366,8 @@ class TestScoringFlowService:
             fit_score=0.0,
             stretch_score=0.0,
         )
-        assert result_zero["fit_score"] == 0.0
-        assert result_zero["stretch_score"] == 0.0
+        assert result_zero["fit_score"] == 0.0  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result_zero["stretch_score"] == 0.0  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
         # Both at 100
         result_max = build_scored_result(
@@ -375,8 +375,8 @@ class TestScoringFlowService:
             fit_score=100.0,
             stretch_score=100.0,
         )
-        assert result_max["fit_score"] == 100.0
-        assert result_max["stretch_score"] == 100.0
+        assert result_max["fit_score"] == 100.0  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result_max["stretch_score"] == 100.0  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     def test_build_filtered_score_result_empty_reasons(self) -> None:
         """build_filtered_score_result should return None for empty reasons."""
@@ -390,4 +390,4 @@ class TestScoringFlowService:
         score_result = build_filtered_score_result(filter_result)
 
         # Should be None, not empty string
-        assert score_result["filtered_reason"] is None
+        assert score_result["filtered_reason"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]

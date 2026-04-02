@@ -27,7 +27,7 @@ class TestComputePearsonCorrelation:
         actual = [10, 20, 30, 40, 50]
         predicted = [10, 20, 30, 40, 50]
 
-        result = compute_pearson_correlation(actual, predicted)
+        result = compute_pearson_correlation(actual, predicted)  # pyright: ignore[reportArgumentType]
 
         assert result == pytest.approx(1.0, abs=0.001)
 
@@ -36,7 +36,7 @@ class TestComputePearsonCorrelation:
         actual = [10, 20, 30, 40, 50]
         predicted = [50, 40, 30, 20, 10]
 
-        result = compute_pearson_correlation(actual, predicted)
+        result = compute_pearson_correlation(actual, predicted)  # pyright: ignore[reportArgumentType]
 
         assert result == pytest.approx(-1.0, abs=0.001)
 
@@ -45,7 +45,7 @@ class TestComputePearsonCorrelation:
         actual = [1, 2, 3, 4, 5]
         predicted = [3, 1, 4, 2, 5]  # Partially correlated
 
-        result = compute_pearson_correlation(actual, predicted)
+        result = compute_pearson_correlation(actual, predicted)  # pyright: ignore[reportArgumentType]
 
         # With partially correlated data, result should be moderate
         # This specific data produces r=0.5 (weak positive)
@@ -56,7 +56,7 @@ class TestComputePearsonCorrelation:
         actual = [10, 20, 30, 40, 50]
         predicted = [12, 22, 28, 42, 48]  # Close but not perfect
 
-        result = compute_pearson_correlation(actual, predicted)
+        result = compute_pearson_correlation(actual, predicted)  # pyright: ignore[reportArgumentType]
 
         assert result > 0.95
 
@@ -65,7 +65,7 @@ class TestComputePearsonCorrelation:
         actual = [10, 20, 30, 40, 50]
         predicted = [100, 200, 300, 400, 500]  # Same pattern, 10x scale
 
-        result = compute_pearson_correlation(actual, predicted)
+        result = compute_pearson_correlation(actual, predicted)  # pyright: ignore[reportArgumentType]
 
         assert result == pytest.approx(1.0, abs=0.001)
 
@@ -136,7 +136,7 @@ class TestValidateScoresAgainstGoldenSet:
     def _create_golden_set(entries: list[dict]) -> GoldenSet:
         """Helper to create a golden set from entry dicts."""
         gs_entries = [
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id=e["id"],
                 persona_summary=e.get("persona_summary", "Test persona"),
                 job_summary=e.get("job_summary", "Test job"),
@@ -145,7 +145,7 @@ class TestValidateScoresAgainstGoldenSet:
             )
             for e in entries
         ]
-        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")
+        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")  # pyright: ignore[reportCallIssue]
         return GoldenSet(metadata=metadata, entries=gs_entries)
 
     def test_validation_passes_when_scores_match_closely(self) -> None:
@@ -169,7 +169,7 @@ class TestValidateScoresAgainstGoldenSet:
             "gs-005": {"fit": 68, "stretch": 52},
         }
 
-        result = validate_scores_against_golden_set(golden_set, algorithm_scores)
+        result = validate_scores_against_golden_set(golden_set, algorithm_scores)  # pyright: ignore[reportArgumentType]
 
         assert result.passed is True
         assert result.correlation.fit_correlation > 0.9
@@ -196,7 +196,7 @@ class TestValidateScoresAgainstGoldenSet:
             "gs-005": {"fit": 30, "stretch": 50},  # Inverted
         }
 
-        result = validate_scores_against_golden_set(golden_set, algorithm_scores)
+        result = validate_scores_against_golden_set(golden_set, algorithm_scores)  # pyright: ignore[reportArgumentType]
 
         assert result.passed is False
         # Inverted scores should produce negative correlation
@@ -205,7 +205,7 @@ class TestValidateScoresAgainstGoldenSet:
     def test_validation_uses_metadata_threshold(self) -> None:
         """Validation should use target threshold from golden set metadata."""
         entries = [
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id=f"gs-{i:03d}",
                 persona_summary=f"Persona {i}",
                 job_summary=f"Job {i}",
@@ -214,7 +214,7 @@ class TestValidateScoresAgainstGoldenSet:
             )
             for i in range(5)
         ]
-        metadata = GoldenSetMetadata(
+        metadata = GoldenSetMetadata(  # pyright: ignore[reportCallIssue]
             version="1.0.0",
             created_date="2026-02-04",
             target_correlation=0.9,  # Higher threshold
@@ -226,7 +226,7 @@ class TestValidateScoresAgainstGoldenSet:
             f"gs-{i:03d}": {"fit": 48 + i * 10, "stretch": 52 + i * 5} for i in range(5)
         }
 
-        result = validate_scores_against_golden_set(golden_set, algorithm_scores)
+        result = validate_scores_against_golden_set(golden_set, algorithm_scores)  # pyright: ignore[reportArgumentType]
 
         # Should use 0.9 threshold from metadata, not default 0.8
         assert result.target_threshold == 0.9
@@ -245,7 +245,7 @@ class TestValidateScoresAgainstGoldenSet:
             "gs-002": {"fit": 55, "stretch": 75},  # -5, +5
         }
 
-        result = validate_scores_against_golden_set(golden_set, algorithm_scores)
+        result = validate_scores_against_golden_set(golden_set, algorithm_scores)  # pyright: ignore[reportArgumentType]
 
         assert len(result.entry_results) == 2
         entry_1 = next(e for e in result.entry_results if e["id"] == "gs-001")
@@ -267,4 +267,4 @@ class TestValidateScoresAgainstGoldenSet:
         }
 
         with pytest.raises(ValueError, match="Missing.*gs-002"):
-            validate_scores_against_golden_set(golden_set, algorithm_scores)
+            validate_scores_against_golden_set(golden_set, algorithm_scores)  # pyright: ignore[reportArgumentType]

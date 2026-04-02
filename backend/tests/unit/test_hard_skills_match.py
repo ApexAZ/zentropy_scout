@@ -145,7 +145,7 @@ class TestCalculateHardSkillsScore:
         ]
         job_skills: list[dict] = []
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         assert score == 70.0
 
     def test_perfect_match_required_skills(self) -> None:
@@ -169,7 +169,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # Required: 2/2 = 100% → 80 points
         # Nice-to-have: none → 0 points
         # Total: 80
@@ -196,7 +196,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # Required: 1/1 = 100% → 80 points
         # Nice-to-have: 1/1 = 100% → 20 points
         # Total: 100
@@ -222,7 +222,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # Required: 1/2 = 50% → 40 points
         # Nice-to-have: none → 0 points
         # Total: 40
@@ -249,7 +249,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # Python: Familiar (1.5y) vs 5y → weight 0.475
         # SQL: Expert, no years → weight 1.0
         # Required weighted: (0.475 + 1.0) / 2 = 0.7375 → 59 points
@@ -281,7 +281,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # JS → javascript matches JavaScript → javascript
         # React.js → react matches ReactJS → react
         # Required: 2/2 = 100% → 80 points
@@ -308,7 +308,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # Only Hard skills counted: Python matched
         # Required hard: 1/1 = 100% → 80 points
         # Soft skills are separate component (§4.3)
@@ -334,7 +334,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # No required → 80 points (full credit)
         # Nice-to-have: 1/2 = 50% → 10 points
         # Total: 90
@@ -352,7 +352,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # Required: 0/1 = 0% → 0 points
         # Nice-to-have: none → 0 points
         # Total: 0
@@ -389,7 +389,7 @@ class TestCalculateHardSkillsScore:
             },
         ]
 
-        score = calculate_hard_skills_score(persona_skills, job_skills)
+        score = calculate_hard_skills_score(persona_skills, job_skills)  # pyright: ignore[reportArgumentType]
         # Python: Familiar (1.5y) vs 5y → weight ~0.475
         # SQL: Expert, no years → weight 1.0
         # Required weighted: (0.475 + 1.0) / 2 = 0.7375 → 59 points
@@ -407,7 +407,7 @@ class TestCalculateHardSkillsScore:
         job_skills: list[dict] = []
 
         with pytest.raises(ValueError, match="exceed maximum size"):
-            calculate_hard_skills_score(oversized_persona, job_skills)
+            calculate_hard_skills_score(oversized_persona, job_skills)  # pyright: ignore[reportArgumentType]
 
     def test_rejects_oversized_job_skills_list(self) -> None:
         """Raises ValueError if job_skills exceeds max size."""
@@ -424,4 +424,4 @@ class TestCalculateHardSkillsScore:
         ]
 
         with pytest.raises(ValueError, match="exceed maximum size"):
-            calculate_hard_skills_score(persona_skills, oversized_job)
+            calculate_hard_skills_score(persona_skills, oversized_job)  # pyright: ignore[reportArgumentType]

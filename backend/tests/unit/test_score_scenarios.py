@@ -244,7 +244,7 @@ class TestFitScoreScenarios:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -302,7 +302,7 @@ class TestFitScoreScenarios:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -361,7 +361,7 @@ class TestFitScoreScenarios:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -428,7 +428,7 @@ class TestFitScoreScenarios:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -503,7 +503,7 @@ class TestStretchScoreScenarios:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -565,7 +565,7 @@ class TestStretchScoreScenarios:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -630,7 +630,7 @@ class TestCombinedScenarios:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -689,7 +689,7 @@ class TestCombinedScenarios:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )

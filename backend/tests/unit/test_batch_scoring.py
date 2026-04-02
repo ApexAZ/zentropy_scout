@@ -250,7 +250,7 @@ class TestBatchScoringBasic:
 
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -268,7 +268,7 @@ class TestBatchScoringBasic:
 
         results = await batch_score_jobs(
             jobs=jobs,
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -288,7 +288,7 @@ class TestBatchScoringBasic:
 
         results = await batch_score_jobs(
             jobs=[],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -314,7 +314,7 @@ class TestBatchOptimization:
 
         await batch_score_jobs(
             jobs=jobs,
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -335,7 +335,7 @@ class TestBatchOptimization:
 
         results = await batch_score_jobs(
             jobs=jobs,
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -365,7 +365,7 @@ class TestBatchScoreCalculations:
 
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -387,7 +387,7 @@ class TestBatchScoreCalculations:
 
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -407,7 +407,7 @@ class TestBatchScoreCalculations:
 
         results = await batch_score_jobs(
             jobs=jobs,
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -425,7 +425,7 @@ class TestBatchScoreCalculations:
 
         results = await batch_score_jobs(
             jobs=jobs,
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -471,7 +471,7 @@ class TestBatchHardSkillsScoring:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[matching_job, non_matching_job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -512,7 +512,7 @@ class TestBatchExperienceScoring:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -541,7 +541,7 @@ class TestBatchExperienceScoring:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -591,7 +591,7 @@ class TestBatchStretchScoring:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[ml_job, web_job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -629,7 +629,7 @@ class TestBatchStretchScoring:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[step_up_job, lateral_job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -662,7 +662,7 @@ class TestBatchScoringEdgeCases:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -687,7 +687,7 @@ class TestBatchScoringEdgeCases:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -715,7 +715,7 @@ class TestBatchScoringEdgeCases:
         provider = MockEmbeddingProvider()
         results = await batch_score_jobs(
             jobs=[job],
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -745,7 +745,7 @@ class TestBatchScoringValidation:
         with pytest.raises(ValueError, match="persona_id.*mismatch"):
             await batch_score_jobs(
                 jobs=[job],
-                persona=persona,
+                persona=persona,  # pyright: ignore[reportArgumentType]
                 persona_embeddings=wrong_embeddings,
                 embedding_provider=provider,
             )
@@ -769,7 +769,7 @@ class TestBatchScoringValidation:
         with pytest.raises(ValueError, match=f"exceeds maximum of {_MAX_BATCH_SIZE}"):
             await batch_score_jobs(
                 jobs=jobs,
-                persona=persona,
+                persona=persona,  # pyright: ignore[reportArgumentType]
                 persona_embeddings=persona_embeddings,
                 embedding_provider=provider,
             )
@@ -794,7 +794,7 @@ class TestBatchScoringValidation:
         # Should not raise (we're under the limit)
         results = await batch_score_jobs(
             jobs=jobs,
-            persona=persona,
+            persona=persona,  # pyright: ignore[reportArgumentType]
             persona_embeddings=persona_embeddings,
             embedding_provider=provider,
         )
@@ -831,7 +831,7 @@ class TestBatchScoringEmbeddingValidation:
         with pytest.raises(ValueError, match="Embedding response count mismatch"):
             await batch_score_jobs(
                 jobs=jobs,
-                persona=persona,
+                persona=persona,  # pyright: ignore[reportArgumentType]
                 persona_embeddings=persona_embeddings,
                 embedding_provider=provider,
             )

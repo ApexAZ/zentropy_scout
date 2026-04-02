@@ -221,9 +221,9 @@ class TestScoreJob:
             )
             result = await svc.score_job(persona_id, job_id, user_id)
 
-        assert result["job_posting_id"] == str(job_id)
-        assert result["fit_score"] == 78
-        assert result["filtered_reason"] is None
+        assert result["job_posting_id"] == str(job_id)  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["fit_score"] == 78  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["filtered_reason"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
         mock_load_p.assert_called_once()
 
     @pytest.mark.asyncio
@@ -264,9 +264,9 @@ class TestScoreJob:
             svc = JobScoringService(mock_db, embedding_provider=AsyncMock())
             result = await svc.score_job(persona_id, job_id, user_id)
 
-        assert result["fit_score"] is None
-        assert result["stretch_score"] is None
-        assert "Salary below minimum" in (result["filtered_reason"] or "")
+        assert result["fit_score"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["stretch_score"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert "Salary below minimum" in (result["filtered_reason"] or "")  # pyright: ignore[reportTypedDictNotRequiredAccess]
         mock_batch.assert_not_called()
 
     @pytest.mark.asyncio
@@ -300,7 +300,7 @@ class TestScoreJob:
             )
             result = await svc.score_job(persona_id, job_id, user_id)
 
-        assert result["explanation"] == "Solid match."
+        assert result["explanation"] == "Solid match."  # pyright: ignore[reportTypedDictNotRequiredAccess]
         mock_llm.complete.assert_called_once()
 
     @pytest.mark.asyncio
@@ -331,8 +331,8 @@ class TestScoreJob:
             svc = JobScoringService(mock_db, embedding_provider=AsyncMock())
             result = await svc.score_job(persona_id, job_id, user_id)
 
-        assert result["explanation"] is not None
-        assert "low match" in result["explanation"].lower()
+        assert result["explanation"] is not None  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert "low match" in result["explanation"].lower()  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     @pytest.mark.asyncio
     async def test_raises_not_found_when_persona_missing(
@@ -414,7 +414,7 @@ class TestScoreBatch:
             results = await svc.score_batch(persona_id, job_ids, user_id)
 
         assert len(results) == 3
-        returned_ids = {r["job_posting_id"] for r in results}
+        returned_ids = {r["job_posting_id"] for r in results}  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert returned_ids == {str(jid) for jid in job_ids}
 
     @pytest.mark.asyncio
@@ -499,12 +499,14 @@ class TestScoreBatch:
             results = await svc.score_batch(persona_id, [pass_id, fail_id], user_id)
 
         assert len(results) == 2
-        scored_result = next(r for r in results if r["job_posting_id"] == str(pass_id))
+        scored_result = next(r for r in results if r["job_posting_id"] == str(pass_id))  # pyright: ignore[reportTypedDictNotRequiredAccess]
         filtered_result = next(
-            r for r in results if r["job_posting_id"] == str(fail_id)
+            r
+            for r in results
+            if r["job_posting_id"] == str(fail_id)  # pyright: ignore[reportTypedDictNotRequiredAccess]
         )
-        assert scored_result["fit_score"] == 80
-        assert filtered_result["fit_score"] is None
+        assert scored_result["fit_score"] == 80  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert filtered_result["fit_score"] is None  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
     @pytest.mark.asyncio
     async def test_passes_user_id_to_load_jobs_for_tenant_isolation(
@@ -598,7 +600,7 @@ class TestScoreBatch:
             results = await svc.score_batch(persona_id, job_ids, user_id)
 
         assert len(results) == 2
-        assert all(r["fit_score"] is None for r in results)
+        assert all(r["fit_score"] is None for r in results)  # pyright: ignore[reportTypedDictNotRequiredAccess]
         mock_batch.assert_not_called()
 
 
@@ -746,8 +748,8 @@ class TestRationaleGeneration:
             result = await svc.score_job(persona_id, job_id, user_id)
 
         # Should still return a result, just without LLM rationale
-        assert result["fit_score"] == 75
-        assert result["explanation"] is not None
+        assert result["fit_score"] == 75  # pyright: ignore[reportTypedDictNotRequiredAccess]
+        assert result["explanation"] is not None  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 # ---------------------------------------------------------------------------
@@ -789,7 +791,7 @@ class TestScoreDetailsAndPersistence:
             )
             result = await svc.score_job(persona_id, job_id, user_id)
 
-        details = result["score_details"]
+        details = result["score_details"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         assert details is not None
         assert "fit" in details
         assert "stretch" in details
@@ -915,7 +917,7 @@ class TestAutoDraft:
             result = await svc.score_job(persona_id, job_id, user_id)
 
         # Should still return normally — no Ghostwriter invocation
-        assert result["fit_score"] == 95
+        assert result["fit_score"] == 95  # pyright: ignore[reportTypedDictNotRequiredAccess]
 
 
 # ---------------------------------------------------------------------------

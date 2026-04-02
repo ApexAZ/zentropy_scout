@@ -29,7 +29,7 @@ class TestGoldenSetEntry:
 
     def test_entry_accepts_scores_at_boundaries(self) -> None:
         """Scores at 0 and 100 boundaries should be valid."""
-        entry_min = GoldenSetEntry(
+        entry_min = GoldenSetEntry(  # pyright: ignore[reportCallIssue]
             id="gs-003",
             persona_summary="Career changer with no tech experience",
             job_summary="Senior architect position",
@@ -39,7 +39,7 @@ class TestGoldenSetEntry:
         assert entry_min.human_fit_score == 0
         assert entry_min.human_stretch_score == 0
 
-        entry_max = GoldenSetEntry(
+        entry_max = GoldenSetEntry(  # pyright: ignore[reportCallIssue]
             id="gs-004",
             persona_summary="Perfect match candidate",
             job_summary="Exact role match",
@@ -52,7 +52,7 @@ class TestGoldenSetEntry:
     def test_entry_rejects_score_below_zero(self) -> None:
         """Scores below 0 should be rejected."""
         with pytest.raises(ValueError, match="greater than or equal to 0"):
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id="gs-005",
                 persona_summary="Test",
                 job_summary="Test",
@@ -63,7 +63,7 @@ class TestGoldenSetEntry:
     def test_entry_rejects_score_above_100(self) -> None:
         """Scores above 100 should be rejected."""
         with pytest.raises(ValueError, match="less than or equal to 100"):
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id="gs-006",
                 persona_summary="Test",
                 job_summary="Test",
@@ -74,7 +74,7 @@ class TestGoldenSetEntry:
     def test_entry_rejects_empty_id(self) -> None:
         """Empty ID should be rejected."""
         with pytest.raises(ValueError, match="at least 1 character"):
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id="",
                 persona_summary="Test",
                 job_summary="Test",
@@ -94,14 +94,14 @@ class TestGoldenSet:
     def test_golden_set_rejects_duplicate_ids(self) -> None:
         """Golden set should reject entries with duplicate IDs."""
         entries = [
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id="gs-001",
                 persona_summary="Persona 1",
                 job_summary="Job 1",
                 human_fit_score=50,
                 human_stretch_score=50,
             ),
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id="gs-001",  # Duplicate ID
                 persona_summary="Persona 2",
                 job_summary="Job 2",
@@ -109,7 +109,7 @@ class TestGoldenSet:
                 human_stretch_score=60,
             ),
         ]
-        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")
+        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")  # pyright: ignore[reportCallIssue]
 
         with pytest.raises(ValueError, match="Duplicate entry IDs"):
             GoldenSet(metadata=metadata, entries=entries)
@@ -117,14 +117,14 @@ class TestGoldenSet:
     def test_get_entry_returns_entry_when_id_exists(self) -> None:
         """Should be able to retrieve entry by ID."""
         entries = [
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id="gs-001",
                 persona_summary="Senior developer",
                 job_summary="Backend role",
                 human_fit_score=85,
                 human_stretch_score=40,
             ),
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id="gs-002",
                 persona_summary="Junior developer",
                 job_summary="Entry position",
@@ -132,7 +132,7 @@ class TestGoldenSet:
                 human_stretch_score=75,
             ),
         ]
-        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")
+        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")  # pyright: ignore[reportCallIssue]
         golden_set = GoldenSet(metadata=metadata, entries=entries)
 
         entry = golden_set.get_entry("gs-002")
@@ -143,7 +143,7 @@ class TestGoldenSet:
     def test_golden_set_get_entry_returns_none_for_missing(self) -> None:
         """Get entry should return None for non-existent ID."""
         entries = [
-            GoldenSetEntry(
+            GoldenSetEntry(  # pyright: ignore[reportCallIssue]
                 id="gs-001",
                 persona_summary="Test",
                 job_summary="Test",
@@ -151,7 +151,7 @@ class TestGoldenSet:
                 human_stretch_score=50,
             ),
         ]
-        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")
+        metadata = GoldenSetMetadata(version="1.0.0", created_date="2026-02-04")  # pyright: ignore[reportCallIssue]
         golden_set = GoldenSet(metadata=metadata, entries=entries)
 
         entry = golden_set.get_entry("gs-999")
