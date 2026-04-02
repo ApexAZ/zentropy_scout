@@ -222,7 +222,7 @@ class TestBuildLogisticsText:
         sample_persona: MockPersona,
     ) -> None:
         """Logistics text includes remote preference."""
-        result = build_logistics_text(sample_persona)
+        result = build_logistics_text(sample_persona)  # pyright: ignore[reportArgumentType]
 
         assert "Remote Only" in result
 
@@ -231,7 +231,7 @@ class TestBuildLogisticsText:
         sample_persona: MockPersona,
     ) -> None:
         """Logistics text includes location."""
-        result = build_logistics_text(sample_persona)
+        result = build_logistics_text(sample_persona)  # pyright: ignore[reportArgumentType]
 
         assert "San Francisco" in result
         assert "California" in result
@@ -242,7 +242,7 @@ class TestBuildLogisticsText:
         sample_persona: MockPersona,
     ) -> None:
         """Logistics text includes commutable cities."""
-        result = build_logistics_text(sample_persona)
+        result = build_logistics_text(sample_persona)  # pyright: ignore[reportArgumentType]
 
         assert "Oakland" in result
         assert "San Jose" in result
@@ -252,7 +252,7 @@ class TestBuildLogisticsText:
         sample_persona: MockPersona,
     ) -> None:
         """Logistics text includes industry exclusions."""
-        result = build_logistics_text(sample_persona)
+        result = build_logistics_text(sample_persona)  # pyright: ignore[reportArgumentType]
 
         assert "Defense" in result
         assert "Gambling" in result
@@ -260,7 +260,7 @@ class TestBuildLogisticsText:
     def test_handles_empty_commutable_cities(self) -> None:
         """Works when commutable_cities is empty."""
         persona = MockPersona(commutable_cities=[])
-        result = build_logistics_text(persona)
+        result = build_logistics_text(persona)  # pyright: ignore[reportArgumentType]
 
         # Should still have other fields
         assert "Remote preference" in result or "remote" in result.lower()
@@ -268,7 +268,7 @@ class TestBuildLogisticsText:
     def test_handles_empty_industry_exclusions(self) -> None:
         """Works when industry_exclusions is empty."""
         persona = MockPersona(industry_exclusions=[])
-        result = build_logistics_text(persona)
+        result = build_logistics_text(persona)  # pyright: ignore[reportArgumentType]
 
         # Should still have other fields
         assert "Remote preference" in result or "remote" in result.lower()
@@ -292,7 +292,7 @@ class TestGeneratePersonaEmbeddings:
             return_value=[[0.1] * 768],
         )
 
-        result = await generate_persona_embeddings(sample_persona, mock_embed)
+        result = await generate_persona_embeddings(sample_persona, mock_embed)  # pyright: ignore[reportArgumentType]
 
         assert result.hard_skills is not None
         assert result.soft_skills is not None
@@ -307,7 +307,7 @@ class TestGeneratePersonaEmbeddings:
         """Result includes the persona ID."""
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_persona_embeddings(sample_persona, mock_embed)
+        result = await generate_persona_embeddings(sample_persona, mock_embed)  # pyright: ignore[reportArgumentType]
 
         assert result.persona_id == sample_persona.id
 
@@ -319,7 +319,7 @@ class TestGeneratePersonaEmbeddings:
         """Version is set from persona.updated_at for staleness detection."""
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_persona_embeddings(sample_persona, mock_embed)
+        result = await generate_persona_embeddings(sample_persona, mock_embed)  # pyright: ignore[reportArgumentType]
 
         assert result.version == sample_persona.updated_at
 
@@ -335,7 +335,7 @@ class TestGeneratePersonaEmbeddings:
             captured_texts.append(text)
             return [[0.1] * 768]
 
-        await generate_persona_embeddings(sample_persona, capture_embed)
+        await generate_persona_embeddings(sample_persona, capture_embed)  # pyright: ignore[reportArgumentType]
 
         # First call should be hard skills
         hard_skills_text = captured_texts[0]
@@ -354,7 +354,7 @@ class TestGeneratePersonaEmbeddings:
             captured_texts.append(text)
             return [[0.1] * 768]
 
-        await generate_persona_embeddings(sample_persona, capture_embed)
+        await generate_persona_embeddings(sample_persona, capture_embed)  # pyright: ignore[reportArgumentType]
 
         # Second call should be soft skills
         soft_skills_text = captured_texts[1]
@@ -375,7 +375,7 @@ class TestGeneratePersonaEmbeddings:
             captured_texts.append(text)
             return [[0.1] * 768]
 
-        await generate_persona_embeddings(sample_persona, capture_embed)
+        await generate_persona_embeddings(sample_persona, capture_embed)  # pyright: ignore[reportArgumentType]
 
         # Third call should be logistics
         logistics_text = captured_texts[2]
@@ -390,7 +390,7 @@ class TestGeneratePersonaEmbeddings:
         """Result includes the source text used for embedding."""
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_persona_embeddings(sample_persona, mock_embed)
+        result = await generate_persona_embeddings(sample_persona, mock_embed)  # pyright: ignore[reportArgumentType]
 
         assert "Python" in result.hard_skills.source_text
         assert "Leadership" in result.soft_skills.source_text
@@ -402,7 +402,7 @@ class TestGeneratePersonaEmbeddings:
         persona = MockPersona(skills=[])
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_persona_embeddings(persona, mock_embed)
+        result = await generate_persona_embeddings(persona, mock_embed)  # pyright: ignore[reportArgumentType]
 
         # Should still generate embeddings (empty text is valid)
         assert result.hard_skills.source_text == ""

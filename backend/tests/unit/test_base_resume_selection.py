@@ -116,7 +116,7 @@ class TestSelectBaseResume:
         other = _make_resume(role_type="Product Manager", is_primary=True)
         resumes = [other, matching]
 
-        result = select_base_resume(resumes, "Software Engineer")
+        result = select_base_resume(resumes, "Software Engineer")  # pyright: ignore[reportArgumentType]
 
         assert result.base_resume_id == matching.id
         assert result.match_reason == "role_type_match"
@@ -127,7 +127,7 @@ class TestSelectBaseResume:
         other = _make_resume(role_type="Data Scientist")
         resumes = [primary, other]
 
-        result = select_base_resume(resumes, "Software Engineer")
+        result = select_base_resume(resumes, "Software Engineer")  # pyright: ignore[reportArgumentType]
 
         assert result.base_resume_id == primary.id
         assert result.match_reason == "primary_fallback"
@@ -138,7 +138,7 @@ class TestSelectBaseResume:
         matching = _make_resume(role_type="Software Engineer")
         resumes = [primary, matching]
 
-        result = select_base_resume(resumes, "Software Engineer")
+        result = select_base_resume(resumes, "Software Engineer")  # pyright: ignore[reportArgumentType]
 
         assert result.base_resume_id == matching.id
         assert result.match_reason == "role_type_match"
@@ -149,7 +149,7 @@ class TestSelectBaseResume:
         second = _make_resume(role_type="SDE")  # normalizes to software engineer
         resumes = [first, second]
 
-        result = select_base_resume(resumes, "Software Engineer")
+        result = select_base_resume(resumes, "Software Engineer")  # pyright: ignore[reportArgumentType]
 
         assert result.base_resume_id == first.id
 
@@ -159,7 +159,7 @@ class TestSelectBaseResume:
         resumes = [other]
 
         with pytest.raises(ValueError, match="No primary base resume found"):
-            select_base_resume(resumes, "Software Engineer")
+            select_base_resume(resumes, "Software Engineer")  # pyright: ignore[reportArgumentType]
 
     def test_raises_when_resume_list_empty(self) -> None:
         """Raises ValueError when resume list is empty."""
@@ -175,7 +175,7 @@ class TestSelectBaseResume:
         primary = _make_resume(role_type="Other", is_primary=True)
         resumes = [archived, primary]
 
-        result = select_base_resume(resumes, "Software Engineer")
+        result = select_base_resume(resumes, "Software Engineer")  # pyright: ignore[reportArgumentType]
 
         # Should NOT match archived resume even though role_type matches
         assert result.base_resume_id == primary.id
@@ -204,7 +204,7 @@ class TestSelectBaseResume:
         primary = _make_resume(role_type="Other", is_primary=True)
         resumes = [resume, primary]
 
-        result = select_base_resume(resumes, "Software Engineer")
+        result = select_base_resume(resumes, "Software Engineer")  # pyright: ignore[reportArgumentType]
 
         assert result.base_resume_id == resume.id
         assert result.match_reason == "role_type_match"
@@ -214,7 +214,7 @@ class TestSelectBaseResume:
         resume = _make_resume(role_type="software engineer")
         resumes = [resume]
 
-        result = select_base_resume(resumes, "SOFTWARE ENGINEER")
+        result = select_base_resume(resumes, "SOFTWARE ENGINEER")  # pyright: ignore[reportArgumentType]
 
         assert result.base_resume_id == resume.id
 
@@ -224,7 +224,7 @@ class TestSelectBaseResume:
         primary2 = _make_resume(role_type="Data Scientist", is_primary=True)
         resumes = [primary1, primary2]
 
-        result = select_base_resume(resumes, "Software Engineer")
+        result = select_base_resume(resumes, "Software Engineer")  # pyright: ignore[reportArgumentType]
 
         assert result.base_resume_id == primary1.id
         assert result.match_reason == "primary_fallback"

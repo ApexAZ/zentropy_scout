@@ -328,7 +328,7 @@ class TestResolveFlagSkipped:
         )
 
         resume_a = await db_session.get(BaseResume, _RESUME_A_ID)
-        assert resume_a.skills_emphasis == []
+        assert resume_a.skills_emphasis == []  # pyright: ignore[reportOptionalMemberAccess]
 
 
 # =============================================================================
@@ -364,8 +364,8 @@ class TestResolveFlagAddedToAll:
 
         resume_a = await db_session.get(BaseResume, _RESUME_A_ID)
         resume_b = await db_session.get(BaseResume, _RESUME_B_ID)
-        assert str(new_job_id) in resume_a.included_jobs
-        assert str(new_job_id) in resume_b.included_jobs
+        assert str(new_job_id) in resume_a.included_jobs  # pyright: ignore[reportOptionalMemberAccess]
+        assert str(new_job_id) in resume_b.included_jobs  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_skill_added_updates_all_resumes(
         self,
@@ -390,7 +390,7 @@ class TestResolveFlagAddedToAll:
         assert result.resumes_updated == 2
 
         resume_a = await db_session.get(BaseResume, _RESUME_A_ID)
-        assert str(_SKILL_ID) in resume_a.skills_emphasis
+        assert str(_SKILL_ID) in resume_a.skills_emphasis  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_education_added_updates_all_resumes(
         self,
@@ -415,7 +415,7 @@ class TestResolveFlagAddedToAll:
         assert result.resumes_updated == 2
 
         resume_a = await db_session.get(BaseResume, _RESUME_A_ID)
-        assert str(_EDUCATION_ID) in resume_a.included_education
+        assert str(_EDUCATION_ID) in resume_a.included_education  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_certification_added_updates_all_resumes(
         self,
@@ -440,7 +440,7 @@ class TestResolveFlagAddedToAll:
         assert result.resumes_updated == 2
 
         resume_b = await db_session.get(BaseResume, _RESUME_B_ID)
-        assert str(_CERT_ID) in resume_b.included_certifications
+        assert str(_CERT_ID) in resume_b.included_certifications  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_bullet_added_updates_job_bullet_selections(
         self,
@@ -467,8 +467,8 @@ class TestResolveFlagAddedToAll:
 
         resume_a = await db_session.get(BaseResume, _RESUME_A_ID)
         job_key = str(_JOB_ID)
-        assert job_key in resume_a.job_bullet_selections
-        assert str(_BULLET_ID) in resume_a.job_bullet_selections[job_key]
+        assert job_key in resume_a.job_bullet_selections  # pyright: ignore[reportOptionalMemberAccess]
+        assert str(_BULLET_ID) in resume_a.job_bullet_selections[job_key]  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_bullet_added_skips_resumes_without_job(
         self,
@@ -479,8 +479,8 @@ class TestResolveFlagAddedToAll:
         """bullet_added only updates resumes that include the bullet's parent job."""
         # Remove the job from resume_b
         resume_b = await db_session.get(BaseResume, _RESUME_B_ID)
-        resume_b.included_jobs = []
-        resume_b.job_bullet_selections = {}
+        resume_b.included_jobs = []  # pyright: ignore[reportOptionalMemberAccess]
+        resume_b.job_bullet_selections = {}  # pyright: ignore[reportOptionalMemberAccess]
         await db_session.commit()
 
         flag = await raise_change_flag(
@@ -501,7 +501,7 @@ class TestResolveFlagAddedToAll:
         assert result.resumes_updated == 1
 
         resume_b_refreshed = await db_session.get(BaseResume, _RESUME_B_ID)
-        assert resume_b_refreshed.job_bullet_selections == {}
+        assert resume_b_refreshed.job_bullet_selections == {}  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_skips_archived_resumes(
         self,
@@ -510,8 +510,8 @@ class TestResolveFlagAddedToAll:
     ):
         """Archived BaseResumes are not updated."""
         resume_b = await db_session.get(BaseResume, _RESUME_B_ID)
-        resume_b.status = "Archived"
-        resume_b.archived_at = datetime.now(UTC)
+        resume_b.status = "Archived"  # pyright: ignore[reportOptionalMemberAccess]
+        resume_b.archived_at = datetime.now(UTC)  # pyright: ignore[reportOptionalMemberAccess]
         await db_session.commit()
 
         flag = await raise_change_flag(
@@ -531,7 +531,7 @@ class TestResolveFlagAddedToAll:
         assert result.resumes_updated == 1
 
         resume_b_refreshed = await db_session.get(BaseResume, _RESUME_B_ID)
-        assert resume_b_refreshed.skills_emphasis == []
+        assert resume_b_refreshed.skills_emphasis == []  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_idempotent_no_duplicate_entries(
         self,
@@ -541,7 +541,7 @@ class TestResolveFlagAddedToAll:
         """Adding the same item twice does not create duplicates in the list."""
         # Pre-add the skill to resume_a
         resume_a = await db_session.get(BaseResume, _RESUME_A_ID)
-        resume_a.skills_emphasis = [str(_SKILL_ID)]
+        resume_a.skills_emphasis = [str(_SKILL_ID)]  # pyright: ignore[reportOptionalMemberAccess]
         await db_session.commit()
 
         flag = await raise_change_flag(
@@ -562,7 +562,7 @@ class TestResolveFlagAddedToAll:
         assert result.resumes_updated == 1
 
         resume_a_refreshed = await db_session.get(BaseResume, _RESUME_A_ID)
-        assert resume_a_refreshed.skills_emphasis.count(str(_SKILL_ID)) == 1
+        assert resume_a_refreshed.skills_emphasis.count(str(_SKILL_ID)) == 1  # pyright: ignore[reportOptionalMemberAccess]
 
 
 # =============================================================================
@@ -598,8 +598,8 @@ class TestResolveFlagAddedToSome:
 
         resume_a = await db_session.get(BaseResume, _RESUME_A_ID)
         resume_b = await db_session.get(BaseResume, _RESUME_B_ID)
-        assert str(_SKILL_ID) in resume_a.skills_emphasis
-        assert str(_SKILL_ID) not in resume_b.skills_emphasis
+        assert str(_SKILL_ID) in resume_a.skills_emphasis  # pyright: ignore[reportOptionalMemberAccess]
+        assert str(_SKILL_ID) not in resume_b.skills_emphasis  # pyright: ignore[reportOptionalMemberAccess]
 
     async def test_requires_target_resume_ids(
         self,

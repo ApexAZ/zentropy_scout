@@ -42,7 +42,7 @@ def _make_pack(**overrides: object) -> PackResponse:
         "amount_display": "$1.00",
     }
     defaults.update(overrides)
-    return PackResponse(**defaults)
+    return PackResponse(**defaults)  # pyright: ignore[reportArgumentType]
 
 
 def _make_purchase(**overrides: object) -> PurchaseResponse:
@@ -55,7 +55,7 @@ def _make_purchase(**overrides: object) -> PurchaseResponse:
         "created_at": _TEST_TIMESTAMP,
     }
     defaults.update(overrides)
-    return PurchaseResponse(**defaults)
+    return PurchaseResponse(**defaults)  # pyright: ignore[reportArgumentType]
 
 
 # =============================================================================

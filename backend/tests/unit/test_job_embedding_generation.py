@@ -122,7 +122,7 @@ class TestBuildRequirementsText:
         sample_required_skills: list[MockExtractedSkill],
     ) -> None:
         """Required skills with years show the years requirement."""
-        result = build_requirements_text(sample_required_skills, None, None)
+        result = build_requirements_text(sample_required_skills, None, None)  # pyright: ignore[reportArgumentType]
 
         assert "Python (5+ years)" in result
         assert "Kubernetes (3+ years)" in result
@@ -132,7 +132,7 @@ class TestBuildRequirementsText:
         sample_required_skills: list[MockExtractedSkill],
     ) -> None:
         """Required skills without years just show skill name."""
-        result = build_requirements_text(sample_required_skills, None, None)
+        result = build_requirements_text(sample_required_skills, None, None)  # pyright: ignore[reportArgumentType]
 
         # SQL has no years_requested, so it appears without parentheses
         assert "SQL" in result
@@ -146,7 +146,7 @@ class TestBuildRequirementsText:
     ) -> None:
         """Preferred skills are included in the text."""
         all_skills = sample_required_skills + sample_preferred_skills
-        result = build_requirements_text(all_skills, None, None)
+        result = build_requirements_text(all_skills, None, None)  # pyright: ignore[reportArgumentType]
 
         assert "Terraform" in result
         assert "Go" in result
@@ -157,7 +157,7 @@ class TestBuildRequirementsText:
     ) -> None:
         """Required and preferred are labeled separately."""
         result = build_requirements_text(
-            sample_job_posting.extracted_skills,
+            sample_job_posting.extracted_skills,  # pyright: ignore[reportArgumentType]
             sample_job_posting.years_experience_min,
             sample_job_posting.years_experience_max,
         )
@@ -171,7 +171,7 @@ class TestBuildRequirementsText:
     ) -> None:
         """Experience range is included in the text."""
         result = build_requirements_text(
-            sample_job_posting.extracted_skills,
+            sample_job_posting.extracted_skills,  # pyright: ignore[reportArgumentType]
             sample_job_posting.years_experience_min,
             sample_job_posting.years_experience_max,
         )
@@ -183,7 +183,7 @@ class TestBuildRequirementsText:
     def test_handles_missing_experience_range(self) -> None:
         """Works when experience range is not specified."""
         skills = [MockExtractedSkill("Python", "Hard", is_required=True)]
-        result = build_requirements_text(skills, None, None)
+        result = build_requirements_text(skills, None, None)  # pyright: ignore[reportArgumentType]
 
         # Should still produce output
         assert "Python" in result
@@ -201,14 +201,14 @@ class TestBuildRequirementsText:
         sample_required_skills: list[MockExtractedSkill],
     ) -> None:
         """Skills are joined with ' | ' separator."""
-        result = build_requirements_text(sample_required_skills, None, None)
+        result = build_requirements_text(sample_required_skills, None, None)  # pyright: ignore[reportArgumentType]
 
         assert " | " in result
 
     def test_no_preferred_shows_none(self) -> None:
         """When no preferred skills, shows 'None' for that section."""
         skills = [MockExtractedSkill("Python", "Hard", is_required=True)]
-        result = build_requirements_text(skills, 3, 5)
+        result = build_requirements_text(skills, 3, 5)  # pyright: ignore[reportArgumentType]
 
         assert "Preferred: None" in result or "Preferred:" in result
 
@@ -284,7 +284,7 @@ class TestGenerateJobEmbeddings:
         """Generates embeddings for requirements and culture."""
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_job_embeddings(sample_job_posting, mock_embed)
+        result = await generate_job_embeddings(sample_job_posting, mock_embed)  # pyright: ignore[reportArgumentType]
 
         assert result.requirements is not None
         assert result.culture is not None
@@ -299,7 +299,7 @@ class TestGenerateJobEmbeddings:
         """Result includes the job ID."""
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_job_embeddings(sample_job_posting, mock_embed)
+        result = await generate_job_embeddings(sample_job_posting, mock_embed)  # pyright: ignore[reportArgumentType]
 
         assert result.job_id == sample_job_posting.id
 
@@ -311,7 +311,7 @@ class TestGenerateJobEmbeddings:
         """Version is set from job.updated_at for staleness detection."""
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_job_embeddings(sample_job_posting, mock_embed)
+        result = await generate_job_embeddings(sample_job_posting, mock_embed)  # pyright: ignore[reportArgumentType]
 
         assert result.version == sample_job_posting.updated_at
 
@@ -327,7 +327,7 @@ class TestGenerateJobEmbeddings:
             captured_texts.append(text)
             return [[0.1] * 768]
 
-        await generate_job_embeddings(sample_job_posting, capture_embed)
+        await generate_job_embeddings(sample_job_posting, capture_embed)  # pyright: ignore[reportArgumentType]
 
         # First call should be requirements
         requirements_text = captured_texts[0]
@@ -347,7 +347,7 @@ class TestGenerateJobEmbeddings:
             captured_texts.append(text)
             return [[0.1] * 768]
 
-        await generate_job_embeddings(sample_job_posting, capture_embed)
+        await generate_job_embeddings(sample_job_posting, capture_embed)  # pyright: ignore[reportArgumentType]
 
         # Second call should be culture
         culture_text = captured_texts[1]
@@ -361,7 +361,7 @@ class TestGenerateJobEmbeddings:
         """Result includes the source text used for embedding."""
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_job_embeddings(sample_job_posting, mock_embed)
+        result = await generate_job_embeddings(sample_job_posting, mock_embed)  # pyright: ignore[reportArgumentType]
 
         assert "Python" in result.requirements.source_text
         assert "collaboration" in result.culture.source_text
@@ -375,7 +375,7 @@ class TestGenerateJobEmbeddings:
         )
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_job_embeddings(job, mock_embed)
+        result = await generate_job_embeddings(job, mock_embed)  # pyright: ignore[reportArgumentType]
 
         # Should still generate embeddings (empty requirements)
         assert result.requirements.source_text == ""
@@ -391,7 +391,7 @@ class TestGenerateJobEmbeddings:
         )
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_job_embeddings(job, mock_embed)
+        result = await generate_job_embeddings(job, mock_embed)  # pyright: ignore[reportArgumentType]
 
         # Culture should be neutral (zero vector)
         assert all(v == 0.0 for v in result.culture.vector)
@@ -408,7 +408,7 @@ class TestGenerateJobEmbeddings:
         )
         mock_embed = AsyncMock(return_value=[[0.1] * 768])
 
-        result = await generate_job_embeddings(job, mock_embed)
+        result = await generate_job_embeddings(job, mock_embed)  # pyright: ignore[reportArgumentType]
 
         # Culture should be neutral (zero vector)
         assert all(v == 0.0 for v in result.culture.vector)
