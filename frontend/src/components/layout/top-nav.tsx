@@ -99,7 +99,7 @@ function navLinkClasses(active: boolean, extra?: string): string {
 	return cn(
 		"flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors",
 		active
-			? "text-primary border-b-2 border-primary"
+			? "text-primary self-stretch"
 			: "rounded-md text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
 		extra,
 	);
@@ -134,7 +134,7 @@ export function TopNav({
 
 	return (
 		<header className="bg-background border-b">
-			<nav aria-label="Main navigation" className="flex h-14 items-center px-6">
+			<nav aria-label="Main navigation" className="flex h-16 items-center px-6">
 				{/* Brand */}
 				<Link
 					href="/dashboard"
@@ -157,8 +157,13 @@ export function TopNav({
 								aria-current={active ? "page" : undefined}
 								className={navLinkClasses(active)}
 							>
-								<Icon className="h-4 w-4" />
-								{label}
+								<span className="relative flex translate-y-[2px] items-center gap-2">
+									<Icon className="h-4 w-4" />
+									{label}
+									{active && (
+										<span className="bg-primary absolute right-0 bottom-[-4px] left-0 h-[2px]" />
+									)}
+								</span>
 								{badgeCount > 0 && (
 									<span
 										data-testid={badgeTestId}
