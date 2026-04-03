@@ -202,7 +202,10 @@ export function DataTable<TData>({
 	const hasCards = renderCard !== undefined;
 
 	return (
-		<div data-slot="data-table" className={cn(className)}>
+		<div
+			data-slot="data-table"
+			className={cn("flex flex-col gap-4", className)}
+		>
 			{/* Toolbar (render prop) */}
 			{toolbar && <div data-slot="data-table-toolbar">{toolbar(table)}</div>}
 
