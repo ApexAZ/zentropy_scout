@@ -67,6 +67,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FailedState, NotFoundState } from "@/components/ui/error-states";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { PageTitle, SectionHeading } from "@/components/ui/headings";
 import { Textarea } from "@/components/ui/textarea";
 import { OfferDetailsCard } from "./offer-details-card";
 import { OfferDetailsDialog } from "./offer-details-dialog";
@@ -396,7 +397,7 @@ export function ApplicationDetail({
 
 			{/* Header */}
 			<div data-testid="application-header" className="mt-4 space-y-2">
-				<h1 className="text-2xl font-bold">{snapshot.title}</h1>
+				<PageTitle>{snapshot.title}</PageTitle>
 				<p className="text-muted-foreground text-lg">{snapshot.company_name}</p>
 				<div className="flex items-center gap-2 text-sm">
 					<span className="text-muted-foreground">
@@ -458,7 +459,7 @@ export function ApplicationDetail({
 			<div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
 				{/* Documents Panel */}
 				<div data-testid="documents-panel" className="space-y-4">
-					<h2 className="text-lg font-semibold">Documents</h2>
+					<SectionHeading>Documents</SectionHeading>
 
 					{/* Resume */}
 					<Card>
@@ -582,7 +583,7 @@ export function ApplicationDetail({
 			{/* Notes Section */}
 			<div data-testid="notes-section" className="mt-6">
 				<div className="flex items-center justify-between">
-					<h2 className="text-lg font-semibold">Notes</h2>
+					<SectionHeading>Notes</SectionHeading>
 					{!editingNotes && (
 						<Button
 							variant="outline"

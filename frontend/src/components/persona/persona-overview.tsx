@@ -39,6 +39,11 @@ import type {
 	WorkHistory,
 } from "@/types/persona";
 
+import {
+	PageTitle,
+	SectionHeading,
+	SubHeading,
+} from "@/components/ui/headings";
 import { ChangeFlagsBanner } from "./change-flags-banner";
 
 // ---------------------------------------------------------------------------
@@ -125,7 +130,7 @@ function PersonaHeader({ persona }: Readonly<{ persona: Persona }>) {
 			{/* Left column: identity */}
 			<div className="space-y-1">
 				<div className="flex items-center justify-between">
-					<h2 className="text-lg font-semibold">{persona.full_name}</h2>
+					<SectionHeading>{persona.full_name}</SectionHeading>
 					<Link
 						href="/persona/basic-info"
 						className="text-primary text-xs font-medium hover:underline"
@@ -204,7 +209,7 @@ function SectionCard({
 			data-testid={`section-card-${sectionKey}`}
 		>
 			<div>
-				<h3 className="text-sm font-semibold">{title}</h3>
+				<SubHeading>{title}</SubHeading>
 				<p className="text-muted-foreground mt-1 text-sm">{summary}</p>
 			</div>
 			<Link
@@ -406,7 +411,7 @@ export function PersonaOverview({ persona }: Readonly<{ persona: Persona }>) {
 
 	return (
 		<div className="flex flex-1 flex-col gap-6" data-testid="persona-overview">
-			<h1 className="text-xl font-semibold">Your Professional Profile</h1>
+			<PageTitle>Your Professional Profile</PageTitle>
 
 			<PersonaHeader persona={persona} />
 

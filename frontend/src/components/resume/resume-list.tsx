@@ -44,6 +44,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PageTitle } from "@/components/ui/headings";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState, FailedState } from "@/components/ui/error-states";
 import type { ApiListResponse } from "@/types/api";
@@ -137,7 +138,7 @@ export function ResumeList() {
 	return (
 		<div data-testid="resume-list">
 			<div className="mb-6 flex items-center justify-between">
-				<h1 className="text-2xl font-bold">Your Resumes</h1>
+				<PageTitle>Your Resumes</PageTitle>
 				<Button onClick={() => router.push("/resumes/new")}>
 					<Plus className="mr-1 h-4 w-4" />
 					New Resume

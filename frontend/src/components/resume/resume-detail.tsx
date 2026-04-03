@@ -38,6 +38,7 @@ import { VariantsList } from "@/components/resume/variants-list";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FailedState } from "@/components/ui/error-states";
+import { PageTitle, SectionHeading } from "@/components/ui/headings";
 import { PdfViewer } from "@/components/ui/pdf-viewer";
 import { ReorderableList } from "@/components/ui/reorderable-list";
 
@@ -125,7 +126,7 @@ export function ResumeDetail({
 					Back to Resumes
 				</Link>
 				<div className="flex items-center gap-2">
-					<h1 className="text-2xl font-bold">{resume.name}</h1>
+					<PageTitle>{resume.name}</PageTitle>
 					<span
 						aria-label={`Status: ${resume.status}`}
 						className="bg-muted rounded px-2 py-0.5 text-xs font-medium"
@@ -233,7 +234,7 @@ export function ResumeDetail({
 			{/* PDF preview */}
 			{resume.rendered_at && (
 				<div className="mt-8">
-					<h2 className="mb-4 text-lg font-semibold">PDF Preview</h2>
+					<SectionHeading className="mb-4">PDF Preview</SectionHeading>
 					<div className="h-[600px] rounded-md border">
 						<PdfViewer src={downloadUrl} fileName={`${resume.name}.pdf`} />
 					</div>

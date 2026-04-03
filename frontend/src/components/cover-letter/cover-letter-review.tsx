@@ -41,6 +41,7 @@ import { showToast } from "@/lib/toast";
 import { AgentReasoning } from "@/components/ui/agent-reasoning";
 import { Button } from "@/components/ui/button";
 import { FailedState } from "@/components/ui/error-states";
+import { PageTitle, SubHeading } from "@/components/ui/headings";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { ApiListResponse, ApiResponse } from "@/types/api";
 import type { CoverLetter, ValidationIssue } from "@/types/application";
@@ -83,7 +84,7 @@ function StoriesUsed({
 }>) {
 	return (
 		<div data-testid="stories-used" className="mt-4">
-			<h2 className="mb-2 text-sm font-semibold">Stories Used</h2>
+			<SubHeading className="mb-2">Stories Used</SubHeading>
 			<ul className="space-y-1 pl-5">
 				{stories.map((story) => {
 					const skillNames = story.skills_demonstrated
@@ -359,7 +360,7 @@ export function CoverLetterReview({
 			{/* Header (hidden when embedded in unified review) */}
 			{!hideActions && (
 				<div className="mb-6 flex items-center gap-3">
-					<h1 className="text-xl font-semibold">{headerTitle}</h1>
+					<PageTitle>{headerTitle}</PageTitle>
 					<StatusBadge status={coverLetter.status} />
 				</div>
 			)}

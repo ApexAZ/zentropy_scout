@@ -22,6 +22,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
+import { PageTitle } from "@/components/ui/headings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApplicationsTable } from "./applications-table";
 import { OpportunitiesTable } from "./opportunities-table";
@@ -75,7 +76,7 @@ export function DashboardTabs() {
 
 	return (
 		<div data-testid="dashboard-tabs" className="flex flex-1 flex-col gap-6">
-			<h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+			<PageTitle>Dashboard</PageTitle>
 
 			<Tabs value={activeTab} onValueChange={handleTabChange}>
 				<TabsList>

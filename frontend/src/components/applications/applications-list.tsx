@@ -50,6 +50,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import { getSelectColumn } from "@/components/data-table/data-table-select-column";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { ToolbarSelect } from "@/components/data-table/toolbar-select";
+import { PageTitle } from "@/components/ui/headings";
 import { FailedState } from "@/components/ui/error-states";
 import type {
 	ApiListResponse,
@@ -358,7 +359,7 @@ export function ApplicationsList() {
 
 	return (
 		<div data-testid="applications-list">
-			<h1 className="mb-6 text-2xl font-semibold">Applications</h1>
+			<PageTitle className="mb-6">Applications</PageTitle>
 
 			<DataTable
 				columns={columns}

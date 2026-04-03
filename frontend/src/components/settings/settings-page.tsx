@@ -19,6 +19,7 @@
 
 import Link from "next/link";
 
+import { PageTitle } from "@/components/ui/headings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountSection } from "./account-section";
 import { AgentConfigurationSection } from "./agent-configuration-section";
@@ -40,7 +41,7 @@ export interface SettingsPageProps {
 export function SettingsPage({ personaId }: Readonly<SettingsPageProps>) {
 	return (
 		<div data-testid="settings-page" className="space-y-6">
-			<h1 className="text-2xl font-bold">Settings</h1>
+			<PageTitle>Settings</PageTitle>
 
 			{/* Account (REQ-013 §8.3a) */}
 			<Card data-testid="settings-account">
