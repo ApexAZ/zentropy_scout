@@ -14,10 +14,10 @@
  * - app/(public)/page.tsx: landing page composition
  */
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { ZentropyLogo } from "@/components/ui/zentropy-logo";
 
 export function LandingNav() {
 	return (
@@ -26,14 +26,7 @@ export function LandingNav() {
 			className="flex items-center justify-between px-6 py-4"
 		>
 			<Link href="/" aria-label="Zentropy Scout home">
-				<Image
-					data-testid="landing-logo"
-					src="/zentropy_logo.png"
-					alt="Zentropy Scout"
-					width={150}
-					height={36}
-					priority
-				/>
+				<ZentropyLogo data-testid="landing-logo" className="text-4xl" />
 			</Link>
 
 			<nav className="flex items-center gap-4" aria-label="Main">

@@ -22,7 +22,6 @@
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,6 +29,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { ZentropyLogo } from "@/components/ui/zentropy-logo";
 import {
 	Card,
 	CardContent,
@@ -176,13 +176,7 @@ export default function LoginPage() {
 		<main className="bg-muted/40 flex min-h-screen items-center justify-center p-4">
 			<Card className="w-full max-w-md">
 				<CardHeader className="flex flex-col items-center gap-2">
-					<Image
-						src="/zentropy_logo.png"
-						alt="Zentropy"
-						width={180}
-						height={60}
-						priority
-					/>
+					<ZentropyLogo className="text-6xl" />
 					<CardDescription>AI-Powered Job Assistant</CardDescription>
 				</CardHeader>
 

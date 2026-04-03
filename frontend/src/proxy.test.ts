@@ -87,7 +87,7 @@ describe("proxy", () => {
 	});
 
 	it.each([
-		"/zentropy_logo.png",
+		"/logo.png",
 		"/favicon.ico",
 		"/robots.txt",
 		"/next.svg",

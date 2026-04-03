@@ -30,7 +30,6 @@ import {
 	Shield,
 	User,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
@@ -40,6 +39,7 @@ import { useSession } from "@/lib/auth-provider";
 import { useChatPanel } from "@/lib/chat-panel-provider";
 import { formatBalance, getBalanceColorClass } from "@/lib/format-utils";
 import { cn } from "@/lib/utils";
+import { ZentropyLogo } from "@/components/ui/zentropy-logo";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -141,13 +141,7 @@ export function TopNav({
 					className="mr-6 flex items-center"
 					aria-label="Zentropy Scout home"
 				>
-					<Image
-						src="/zentropy_logo.png"
-						alt="Zentropy Scout"
-						width={150}
-						height={36}
-						priority
-					/>
+					<ZentropyLogo className="text-4xl" />
 				</Link>
 
 				{/* Primary nav links */}

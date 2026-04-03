@@ -20,6 +20,7 @@
  */
 
 import type { Metadata } from "next";
+import { Nunito_Sans } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-provider";
@@ -28,6 +29,13 @@ import { QueryProvider } from "@/lib/query-provider";
 import { SSEProvider } from "@/lib/sse-provider";
 
 import "./globals.css";
+
+const nunitoSans = Nunito_Sans({
+	weight: ["400", "700", "800", "900"],
+	subsets: ["latin"],
+	variable: "--font-logo",
+	display: "swap",
+});
 
 export const metadata: Metadata = {
 	title: "Zentropy Scout",
@@ -40,7 +48,11 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" className="dark" suppressHydrationWarning>
+		<html
+			lang="en"
+			className={`dark ${nunitoSans.variable}`}
+			suppressHydrationWarning
+		>
 			<body className="font-sans antialiased">
 				<AuthProvider>
 					<QueryProvider>
