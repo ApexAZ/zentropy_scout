@@ -21,14 +21,9 @@ const MUTED_LINK =
 
 export function LandingFooter() {
 	return (
-		<footer
-			data-testid="landing-footer"
-			className="border-t px-6 py-6 lg:px-16"
-		>
+		<footer data-testid="landing-footer" className="px-6 pt-2 pb-6 lg:px-16">
 			<div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-				<p className="text-muted-foreground text-sm">
-					&copy; 2026 Zentropy Scout
-				</p>
+				<p className="text-muted-foreground text-sm">&copy; 2026 Zentropy</p>
 				<nav className="flex items-center gap-4" aria-label="Footer">
 					<Link href="/login" className={MUTED_LINK}>
 						Sign In

@@ -19,12 +19,19 @@
 import { HeroSection } from "./components/hero-section";
 import { HowItWorks } from "./components/how-it-works";
 import { LandingFooter } from "./components/landing-footer";
+import { StarField } from "./components/star-field";
 
 export default function LandingPage() {
 	return (
-		<div data-testid="landing-page">
-			<HeroSection />
-			<HowItWorks />
+		<div
+			data-testid="landing-page"
+			className="mx-auto flex min-h-screen max-w-7xl flex-col"
+		>
+			<StarField />
+			<div className="flex-1">
+				<HeroSection />
+				<HowItWorks />
+			</div>
 			<LandingFooter />
 		</div>
 	);

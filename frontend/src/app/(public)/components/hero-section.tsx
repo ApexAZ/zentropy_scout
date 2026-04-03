@@ -30,7 +30,7 @@ export function HeroSection() {
 			aria-label="Hero"
 			className="flex flex-col gap-12 pt-[80px] pr-[110px] pl-[110px] lg:flex-row lg:items-start"
 		>
-			<div className="flex-[1] text-center lg:text-left">
+			<div className="flex-[2] text-center lg:text-left">
 				<ZentropyLogo data-testid="hero-logo" className="mb-8 block text-9xl" />
 				<h1 className="text-foreground text-4xl font-bold tracking-tight sm:text-5xl">
 					AI-Powered Job Search Assistant
@@ -39,7 +39,7 @@ export function HeroSection() {
 					Build your professional persona, find matching jobs, and generate
 					tailored resumes and cover letters — all powered by AI.
 				</p>
-				<div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:items-start">
+				<div className="mt-[37px] flex flex-col items-center gap-4 sm:flex-row lg:items-start">
 					<Button asChild size="lg">
 						<Link data-testid="hero-cta" href="/register">
 							Get Started Free
@@ -48,7 +48,7 @@ export function HeroSection() {
 					<Link
 						data-testid="hero-sign-in"
 						href="/login"
-						className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+						className="text-muted-foreground hover:text-foreground self-center text-sm transition-colors"
 					>
 						Already have an account? Sign in
 					</Link>
