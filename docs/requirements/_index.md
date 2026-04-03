@@ -36,7 +36,7 @@ PRD Section (Why) → Requirement (What) → Implementation (GitHub Issues)
 | §5 Architecture | [REQ-013](./REQ-013_authentication.md) Authentication & Account Management v0.1 | 🔴 Not Started |
 | §5 Architecture, §6 Data Strategy | [REQ-014](./REQ-014_multi_tenant.md) Multi-Tenant Data Isolation v0.1 | 🔴 Not Started |
 | §4.2 Scouter, §6 Data Strategy | [REQ-015](./REQ-015_shared_job_pool.md) Shared Job Pool v0.1 | 🔴 Not Started |
-| §7 Frontend Application | [REQ-033](./REQ-033_ui_design_system.md) UI Design System & Visual Redesign v0.1 | 🟡 In Progress |
+| §7 Frontend Application | [REQ-033](./REQ-033_ui_design_system.md) UI Design System & Visual Redesign v0.3 | 🟡 In Progress |
 
 ---
 
