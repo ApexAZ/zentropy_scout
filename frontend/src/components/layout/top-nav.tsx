@@ -66,7 +66,12 @@ interface NavItem {
 }
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-	{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+	{
+		href: "/applications",
+		label: "Applications",
+		icon: Briefcase,
+		badgeTestId: "active-applications-badge",
+	},
 	{
 		href: "/persona",
 		label: "Persona",
@@ -79,12 +84,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 		icon: FileText,
 		badgeTestId: "pending-reviews-badge",
 	},
-	{
-		href: "/applications",
-		label: "Applications",
-		icon: Briefcase,
-		badgeTestId: "active-applications-badge",
-	},
+	{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ];
 
 // ---------------------------------------------------------------------------
