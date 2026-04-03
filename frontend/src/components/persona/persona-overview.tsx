@@ -411,7 +411,7 @@ export function PersonaOverview({ persona }: Readonly<{ persona: Persona }>) {
 
 	return (
 		<div className="flex flex-1 flex-col gap-6" data-testid="persona-overview">
-			<PageTitle>Your Professional Profile</PageTitle>
+			<PageTitle>Professional Profile</PageTitle>
 
 			<PersonaHeader persona={persona} />
 

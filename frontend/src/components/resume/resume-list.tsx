@@ -138,7 +138,7 @@ export function ResumeList() {
 	return (
 		<div data-testid="resume-list">
 			<div className="mb-6 flex items-center justify-between">
-				<PageTitle>Your Resumes</PageTitle>
+				<PageTitle>Resumes</PageTitle>
 				<Button onClick={() => router.push("/resumes/new")}>
 					<Plus className="mr-1 h-4 w-4" />
 					New Resume
