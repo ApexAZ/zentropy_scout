@@ -39,7 +39,14 @@ interface Star {
 // Config
 // ---------------------------------------------------------------------------
 
-const STAR_COUNT = 300;
+const BASE_STAR_COUNT = 700;
+const BASE_AREA = 3840 * 2160;
+
+function getStarCount(): number {
+	if (typeof window === "undefined") return 0;
+	const area = window.innerWidth * window.innerHeight;
+	return Math.max(80, Math.round((area / BASE_AREA) * BASE_STAR_COUNT));
+}
 
 const COLORS = [
 	"var(--color-logo-accent)",
@@ -54,7 +61,7 @@ const COLORS = [
 
 export function StarField() {
 	const [stars] = useState<Star[]>(() =>
-		Array.from({ length: STAR_COUNT }, (_, i) => ({
+		Array.from({ length: getStarCount() }, (_, i) => ({
 			id: i,
 			x: Math.random() * 100,
 			y: Math.random() * 100,
