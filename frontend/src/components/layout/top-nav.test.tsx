@@ -131,7 +131,9 @@ describe("TopNav", () => {
 
 	it("renders brand logo", () => {
 		render(<TopNav />);
-		expect(screen.getByAltText("Zentropy Scout")).toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: "Zentropy Scout home" }),
+		).toBeInTheDocument();
 	});
 
 	it("renders navigation landmark", () => {

@@ -123,7 +123,9 @@ describe("AppShell", () => {
 			</AppShell>,
 		);
 
-		expect(screen.getByAltText("Zentropy Scout")).toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: "Zentropy Scout home" }),
+		).toBeInTheDocument();
 	});
 
 	// -------------------------------------------------------------------

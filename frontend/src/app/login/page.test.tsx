@@ -143,7 +143,7 @@ describe("LoginPage", () => {
 		it("renders the page heading", () => {
 			renderLogin();
 
-			expect(screen.getByAltText("Zentropy")).toBeInTheDocument();
+			expect(screen.getByLabelText("Zentropy")).toBeInTheDocument();
 		});
 
 		it("renders Google OAuth button with correct href", () => {

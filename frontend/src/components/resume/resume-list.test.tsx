@@ -256,14 +256,14 @@ describe("ResumeList", () => {
 	});
 
 	describe("page header", () => {
-		it("renders 'Your Resumes' heading", async () => {
+		it("renders 'Resumes' heading", async () => {
 			setupMockApi();
 
 			renderList();
 
 			await waitFor(() => {
 				expect(
-					screen.getByRole("heading", { name: "Your Resumes" }),
+					screen.getByRole("heading", { name: "Resumes" }),
 				).toBeInTheDocument();
 			});
 		});

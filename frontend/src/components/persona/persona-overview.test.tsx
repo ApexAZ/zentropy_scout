@@ -377,7 +377,7 @@ describe("PersonaOverview", () => {
 			await renderAndWait();
 
 			expect(
-				screen.getByRole("heading", { name: /your professional profile/i }),
+				screen.getByRole("heading", { name: /professional profile/i }),
 			).toBeInTheDocument();
 		});
 	});
@@ -688,7 +688,7 @@ describe("PersonaOverview", () => {
 
 			expect(
 				screen.getByRole("heading", {
-					name: /your professional profile/i,
+					name: /professional profile/i,
 				}),
 			).toBeInTheDocument();
 		});

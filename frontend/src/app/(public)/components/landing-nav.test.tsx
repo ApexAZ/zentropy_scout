@@ -56,7 +56,7 @@ describe("LandingNav", () => {
 	it("renders logo with alt text", () => {
 		render(<LandingNav />);
 		const logo = screen.getByTestId("landing-logo");
-		expect(logo).toHaveAttribute("alt", "Zentropy Scout");
+		expect(logo).toHaveAttribute("aria-label", "Zentropy");
 	});
 
 	it("renders Get Started CTA linking to /register", () => {
