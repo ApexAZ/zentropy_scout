@@ -16,10 +16,16 @@
  * - Next.js framework: route / (public landing page)
  */
 
+import dynamic from "next/dynamic";
+
 import { HeroSection } from "./components/hero-section";
 import { HowItWorks } from "./components/how-it-works";
 import { LandingFooter } from "./components/landing-footer";
-import { StarField } from "./components/star-field";
+
+const StarField = dynamic(
+	() => import("./components/star-field").then((m) => m.StarField),
+	{ ssr: false },
+);
 
 export default function LandingPage() {
 	return (

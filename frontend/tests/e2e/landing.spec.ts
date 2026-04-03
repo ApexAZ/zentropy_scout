@@ -19,7 +19,7 @@ import { expect, test } from "./base-test";
 
 const TID_LANDING_PAGE = "landing-page";
 const TID_HERO_CTA = "hero-cta";
-const TID_LANDING_NAV = "landing-nav";
+const TID_LANDING_FOOTER = "landing-footer";
 const TID_SETTINGS_LEGAL = "settings-legal";
 
 // ---------------------------------------------------------------------------
@@ -55,11 +55,11 @@ test.describe("Landing Page — Unauthenticated", () => {
 		await expect(page).toHaveURL(/\/register/, { timeout: 10_000 });
 	});
 
-	test("nav Sign In link navigates to login page", async ({ page }) => {
+	test("footer Sign In link navigates to login page", async ({ page }) => {
 		await page.goto("/");
 
 		const signInLink = page
-			.getByTestId(TID_LANDING_NAV)
+			.getByTestId(TID_LANDING_FOOTER)
 			.getByRole("link", { name: "Sign In" });
 		await expect(signInLink).toBeVisible();
 		await signInLink.click();
