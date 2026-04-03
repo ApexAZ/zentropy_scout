@@ -3,7 +3,7 @@
 **Created:** 2026-02-16
 **Last Updated:** 2026-03-27
 
-**Items:** 30 (11 completed, 19 pending)
+**Items:** 31 (11 completed, 20 pending)
 
 ---
 
@@ -1409,6 +1409,48 @@ Requires a new REQ document (REQ-030) before implementation.
 SonarCloud flagged `backend/app/api/v1/auth_oauth.py:oauth_callback()` with cognitive complexity 16 (limit 15). Appeared after commit acc0444 moved signup grant logic into the callback. Extract the signup credits block (~lines 261-269) or admin bootstrap block (~lines 271-281) into a helper function (`_maybe_grant_signup_credits()` or `_maybe_promote_admin()`) to reduce complexity below 15.
 
 **Key files:** `backend/app/api/v1/auth_oauth.py`
+
+---
+
+### 31. Job Source Adapter Implementation — Adzuna, The Muse, RemoteOK, USAJobs
+
+**Category:** Backend / API Integration
+**Added:** 2026-04-03
+**Priority:** P1 — Core job discovery pipeline. Without this, the Scouter only surfaces manually-submitted jobs.
+**Depends on:** #7 (Scouter Redesign ✅), REQ-016 (JobFetchService ✅)
+**Traces to:** REQ-007 §6.3, REQ-016 §1.4, REQ-003 §4.1
+
+The `JobFetchService` orchestration and all four source adapters are scaffolded but `fetch_jobs()` on each adapter returns `[]` — intentionally deferred. This PBI implements the actual API calls that feed the shared job pool automatically.
+
+**What needs to be built:**
+
+- **`fetch_jobs()` on all four adapters** — real HTTP calls replacing the stub:
+  - `AdzunaAdapter` — REST, 250 req/day free tier, API key auth
+  - `TheMuseAdapter` — REST, 3,600 req/hour, API key auth
+  - `RemoteOKAdapter` — REST, generous limits, no auth required
+  - `USAJobsAdapter` — REST, 200 req/day, `User-Agent` + email header auth
+- **`SearchParams` construction from persona** — translate `Persona.job_titles`, `Persona.skills`, `Persona.location_preferences`, `Persona.remote_preference`, `Persona.target_industries` into per-source query parameters
+- **Pagination** — fetch multiple pages up to a configurable max (avoid blowing daily rate limits)
+- **API key configuration** — env vars (`ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `THE_MUSE_API_KEY`, `USAJOBS_API_KEY`, `USAJOBS_EMAIL`) wired into adapter construction via `Settings`
+- **Per-source error handling** — 429 rate limit backoff, 5xx retries, partial failure (one source down shouldn't abort the others)
+- **Graceful degradation** — if a source's API key is not configured, skip it silently and log a warning
+
+**REQ:** [REQ-034](../requirements/REQ-034_job_source_adapters.md) — Job Source Adapter Implementation & AI-Driven Search Profiles
+
+**Key files (existing stubs to implement):**
+- `backend/app/adapters/sources/adzuna.py`
+- `backend/app/adapters/sources/remoteok.py`
+- `backend/app/adapters/sources/themuse.py`
+- `backend/app/adapters/sources/usajobs.py`
+- `backend/app/adapters/sources/base.py` — `SearchParams` construction logic
+- `backend/app/services/discovery/job_fetch_service.py` — `SearchParams` built from persona
+
+**Open questions (to resolve in REQ-034 discussion):**
+- How should AI be used to improve search relevance? (query expansion, keyword weighting, post-fetch re-ranking)
+- Should `SearchParams` be persona-driven (one search per persona's profile) or job-title-driven (one search per target role)?
+- How do we handle sources that don't support keyword search (RemoteOK is tag/category based)?
+- What's the right page depth per source given daily rate limits?
+- Should source adapters be user-configurable (opt in/out per source) or system-wide?
 
 ---
 
