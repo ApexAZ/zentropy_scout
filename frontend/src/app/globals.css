@@ -203,8 +203,19 @@
 }
 
 body {
+	font-family: var(--font-nunito, var(--font-sans));
 	font-size: 0.875rem; /* 14px — REQ-012 §13.1 */
+	font-weight: 500;
 	line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--font-nunito, var(--font-sans));
 }
 
 /* ============================================

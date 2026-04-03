@@ -46,7 +46,7 @@ export function AppShell({ children, ...navProps }: Readonly<AppShellProps>) {
 				<TopNav {...navProps} />
 
 				<div className="flex flex-1 overflow-hidden">
-					<main className="flex-1 overflow-auto">{children}</main>
+					<main className="flex-1 overflow-auto px-6 py-6">{children}</main>
 					<ChatSidebar />
 				</div>
 			</div>

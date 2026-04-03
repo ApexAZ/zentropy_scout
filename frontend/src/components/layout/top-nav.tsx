@@ -134,7 +134,7 @@ export function TopNav({
 
 	return (
 		<header className="bg-background border-b">
-			<nav aria-label="Main navigation" className="flex h-14 items-center px-4">
+			<nav aria-label="Main navigation" className="flex h-14 items-center px-6">
 				{/* Brand */}
 				<Link
 					href="/dashboard"

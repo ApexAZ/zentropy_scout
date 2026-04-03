@@ -31,9 +31,9 @@ import { SSEProvider } from "@/lib/sse-provider";
 import "./globals.css";
 
 const nunitoSans = Nunito_Sans({
-	weight: ["400", "700", "800", "900"],
+	weight: ["400", "500", "600", "700", "800", "900"],
 	subsets: ["latin"],
-	variable: "--font-logo",
+	variable: "--font-nunito",
 	display: "swap",
 });
 

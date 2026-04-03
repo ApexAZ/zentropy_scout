@@ -38,7 +38,7 @@ export function ZentropyLogo({ className, ...props }: ZentropyLogoProps) {
 		<span
 			className={cn("select-none", className)}
 			style={{
-				fontFamily: "var(--font-logo, var(--font-sans))",
+				fontFamily: "var(--font-nunito, var(--font-sans))",
 				letterSpacing: "0.05em",
 			}}
 			aria-label="Zentropy"
