@@ -69,7 +69,7 @@ export function StarField() {
 			color: COLORS[Math.floor(Math.random() * COLORS.length)],
 			duration: Math.random() * 5 + 6,
 			delay: Math.random() * 10,
-			peakOpacity: Math.random() * 0.3 + 0.18,
+			peakOpacity: Math.random() * 0.45 + 0.27,
 		})),
 	);
 
