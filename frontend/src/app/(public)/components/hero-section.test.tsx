@@ -13,6 +13,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // Mocks
 // ---------------------------------------------------------------------------
 
+vi.mock("./hero-showcase", () => ({
+	HeroShowcase: () => <div data-testid="hero-showcase" />,
+}));
+
 vi.mock("next/link", () => ({
 	default: function MockLink({
 		children,
@@ -46,6 +50,16 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("HeroSection", () => {
+	it("renders Zentropy logo", () => {
+		render(<HeroSection />);
+		expect(screen.getByTestId("hero-logo")).toBeInTheDocument();
+	});
+
+	it("renders feature showcase", () => {
+		render(<HeroSection />);
+		expect(screen.getByTestId("hero-showcase")).toBeInTheDocument();
+	});
+
 	it("CTA button links to /register", () => {
 		render(<HeroSection />);
 		const cta = screen.getByTestId("hero-cta");

@@ -9,6 +9,8 @@
  *
  * Coordinates with:
  * - components/ui/button.tsx: Button component for CTA
+ * - components/ui/zentropy-logo.tsx: shared wordmark
+ * - app/(public)/components/hero-showcase.tsx: right-side feature showcase
  *
  * Called by / Used by:
  * - app/(public)/page.tsx: landing page composition
@@ -17,17 +19,21 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { ZentropyLogo } from "@/components/ui/zentropy-logo";
+
+import { HeroShowcase } from "./hero-showcase";
 
 export function HeroSection() {
 	return (
 		<section
 			data-testid="hero-section"
 			aria-label="Hero"
-			className="flex flex-col items-center gap-12 px-6 py-16 lg:flex-row lg:justify-between lg:px-16 lg:py-24"
+			className="flex flex-col gap-12 pt-[80px] pr-[110px] pl-[110px] lg:flex-row lg:items-start"
 		>
-			<div className="max-w-xl text-center lg:text-left">
+			<div className="flex-[1] text-center lg:text-left">
+				<ZentropyLogo data-testid="hero-logo" className="mb-8 block text-9xl" />
 				<h1 className="text-foreground text-4xl font-bold tracking-tight sm:text-5xl">
-					Your AI-Powered Job Search Assistant
+					AI-Powered Job Search Assistant
 				</h1>
 				<p className="text-muted-foreground mt-4 text-lg">
 					Build your professional persona, find matching jobs, and generate
@@ -49,11 +55,9 @@ export function HeroSection() {
 				</div>
 			</div>
 
-			<div
-				data-testid="hero-graphic"
-				className="from-primary/20 via-card to-primary/10 h-64 w-full max-w-md rounded-2xl bg-gradient-to-br lg:h-72 lg:w-96"
-				aria-hidden="true"
-			/>
+			<div className="mt-[45px] lg:flex-[2]">
+				<HeroShowcase />
+			</div>
 		</section>
 	);
 }

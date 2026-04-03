@@ -57,11 +57,9 @@ describe("LandingPage", () => {
 		expect(screen.getByTestId("landing-page")).toBeInTheDocument();
 	});
 
-	it("renders all 5 landing sections", () => {
+	it("renders all 3 landing sections", () => {
 		render(<LandingPage />);
-		expect(screen.getByTestId("landing-nav")).toBeInTheDocument();
 		expect(screen.getByTestId("hero-section")).toBeInTheDocument();
-		expect(screen.getByTestId("feature-cards")).toBeInTheDocument();
 		expect(screen.getByTestId("how-it-works")).toBeInTheDocument();
 		expect(screen.getByTestId("landing-footer")).toBeInTheDocument();
 	});
