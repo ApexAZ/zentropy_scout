@@ -22,6 +22,7 @@ Models are organized by domain:
 - usage_reservation.py: UsageReservation (Tier 2 - pre-debit reservation holds)
 - stripe.py: StripePurchase (Tier 2 - Stripe checkout lifecycle)
 - admin_config.py: ModelRegistry, PricingConfig, TaskRoutingConfig, FundingPack, SystemConfig
+- search_profile.py: SearchProfile (Tier 2 - AI-generated search criteria per persona)
 """
 
 from app.models.account import Account
@@ -55,6 +56,7 @@ from app.models.persona_settings import (
 )
 from app.models.resume import BaseResume, JobVariant, ResumeFile, SubmittedResumePDF
 from app.models.resume_template import ResumeTemplate
+from app.models.search_profile import SearchProfile
 from app.models.session import Session
 from app.models.stripe import StripePurchase
 from app.models.usage import CreditTransaction, LLMUsageRecord
@@ -96,6 +98,8 @@ __all__ = [
     # Tier 2 - Job source preferences
     "UserSourcePreference",
     "PollingConfiguration",
+    # Tier 2 - AI-generated search criteria
+    "SearchProfile",
     # Tier 2 - Job posting
     "JobPosting",
     # Tier 2 - Per-user job relationship

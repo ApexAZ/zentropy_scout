@@ -11,6 +11,7 @@ Coordinates with:
   - models/persona_job.py — imports PersonaJob (TYPE_CHECKING)
   - models/persona_settings.py — imports CustomNonNegotiable, PersonaChangeFlag, PersonaEmbedding, VoiceProfile (TYPE_CHECKING)
   - models/resume.py — imports BaseResume, ResumeFile (TYPE_CHECKING)
+  - models/search_profile.py — imports SearchProfile (TYPE_CHECKING)
   - models/user.py — imports User (TYPE_CHECKING)
 
 Called by: widely imported (26+ files across core/, services/, api/v1/,
@@ -55,6 +56,7 @@ if TYPE_CHECKING:
         VoiceProfile,
     )
     from app.models.resume import BaseResume, ResumeFile
+    from app.models.search_profile import SearchProfile
     from app.models.user import User
 
 
@@ -371,6 +373,14 @@ class Persona(Base, TimestampMixin):
     )
     polling_configuration: Mapped["PollingConfiguration | None"] = relationship(
         "PollingConfiguration",
+        back_populates="persona",
+        uselist=False,
+        cascade=_CASCADE_ALL_DELETE_ORPHAN,
+    )
+
+    # Relationship to AI-generated search profile (one-to-one)
+    search_profile: Mapped["SearchProfile | None"] = relationship(
+        "SearchProfile",
         back_populates="persona",
         uselist=False,
         cascade=_CASCADE_ALL_DELETE_ORPHAN,
