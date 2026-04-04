@@ -13,16 +13,23 @@ Called by:
     RawJob, SearchParams)
 """
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
+
+# Valid remoteok tag format: alphanumeric with dots, underscores, hyphens (max 64 chars).
+_TAG_RE = re.compile(r"^[a-zA-Z0-9._-]{1,64}$")
+_MAX_REMOTEOK_TAGS = 10
+_MAX_DAYS_OLD = 90
 
 
 @dataclass
 class SearchParams:
     """Search parameters for job queries.
 
-    REQ-007 §6.3: Parameters passed to source adapters for job search.
+    REQ-007 §6.3, REQ-034 §5.1: Parameters passed to source adapters for job search.
 
     Attributes:
         keywords: Search terms for job titles, skills, etc.
@@ -30,6 +37,17 @@ class SearchParams:
         remote_only: If True, only return remote jobs.
         page: Page number for pagination (1-indexed).
         results_per_page: Number of results per page.
+        max_days_old: Maximum job age in days. Used by Adzuna and USAJobs as a
+            query parameter delta. Defaults to 7 on first poll (no prior poll).
+            Must be between 1 and 90 inclusive.
+        posted_after: Reference timestamp derived from max_days_old. Adapters
+            translate this into their own delta parameter format. Must be
+            timezone-aware to avoid silent UTC/local-time mismatches.
+        remoteok_tags: Pass-through tags for the RemoteOK adapter's ``?tag=``
+            query string. If None or empty, the adapter pulls all jobs. Each tag
+            must match ``[a-zA-Z0-9._-]{1,64}``; list length ≤ 10.
+            Callers must not mutate this list after construction — it is shared
+            across concurrent adapter calls.
     """
 
     keywords: list[str]
@@ -37,6 +55,35 @@ class SearchParams:
     remote_only: bool = False
     page: int = 1
     results_per_page: int = 25
+    max_days_old: int | None = None
+    posted_after: datetime | None = None
+    remoteok_tags: list[str] | None = None
+
+    def __post_init__(self) -> None:
+        """Validate field values at construction time.
+
+        Raises:
+            ValueError: If any field value violates its constraint.
+        """
+        if self.posted_after is not None and self.posted_after.tzinfo is None:
+            raise ValueError("posted_after must be timezone-aware")
+        if self.max_days_old is not None and not (
+            1 <= self.max_days_old <= _MAX_DAYS_OLD
+        ):
+            raise ValueError(
+                f"max_days_old must be between 1 and {_MAX_DAYS_OLD}, got {self.max_days_old}"
+            )
+        if self.remoteok_tags is not None:
+            if len(self.remoteok_tags) > _MAX_REMOTEOK_TAGS:
+                raise ValueError(
+                    f"remoteok_tags must contain at most {_MAX_REMOTEOK_TAGS} tags,"
+                    f" got {len(self.remoteok_tags)}"
+                )
+            for tag in self.remoteok_tags:
+                if not _TAG_RE.match(tag):
+                    raise ValueError(
+                        f"Invalid remoteok tag {tag!r}: must match [a-zA-Z0-9._-]{{1,64}}"
+                    )
 
 
 @dataclass
