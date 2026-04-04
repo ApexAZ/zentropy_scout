@@ -62,6 +62,7 @@ DEFAULT_GEMINI_ROUTING: dict[str, str] = {
     "resume_tailoring": DEFAULT_GEMINI_MODEL,
     "story_selection": DEFAULT_GEMINI_MODEL,
     "resume_parsing": "gemini-2.5-flash",
+    "search_profile_generation": DEFAULT_GEMINI_MODEL,
 }
 
 

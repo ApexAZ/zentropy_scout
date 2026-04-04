@@ -133,6 +133,13 @@ class TestClaudeAdapterGetModelForTask:
                 assert len(model) > 0
                 assert "claude" in model.lower()
 
+    def test_search_profile_generation_uses_cost_effective_model(self, config):
+        """SEARCH_PROFILE_GENERATION routes to Haiku — same cost tier as EXTRACTION."""
+        with patch("app.providers.llm.claude_adapter.AsyncAnthropic"):
+            adapter = ClaudeAdapter(config)
+            model = adapter.get_model_for_task(TaskType.SEARCH_PROFILE_GENERATION)
+            assert "haiku" in model.lower()
+
 
 class TestClaudeAdapterComplete:
     """Test ClaudeAdapter.complete() method."""

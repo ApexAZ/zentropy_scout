@@ -166,6 +166,14 @@ class TestGeminiAdapterGetModelForTask:
                 assert len(model) > 0
                 assert "gemini" in model.lower()
 
+    def test_search_profile_generation_uses_cost_effective_model(self, config):
+        """SEARCH_PROFILE_GENERATION routes to Flash — same cost tier as EXTRACTION."""
+        with patch("app.providers.llm.gemini_adapter.genai") as mock_genai:
+            mock_genai.Client.return_value = MagicMock()
+            adapter = GeminiAdapter(config)
+            model = adapter.get_model_for_task(TaskType.SEARCH_PROFILE_GENERATION)
+            assert "flash" in model.lower()
+
 
 class TestGeminiAdapterComplete:
     """Test GeminiAdapter.complete() method."""

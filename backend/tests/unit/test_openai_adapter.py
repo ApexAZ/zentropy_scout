@@ -142,6 +142,13 @@ class TestOpenAIAdapterGetModelForTask:
                 assert len(model) > 0
                 assert "gpt" in model.lower()
 
+    def test_search_profile_generation_uses_cost_effective_model(self, config):
+        """SEARCH_PROFILE_GENERATION routes to gpt-4o-mini — same cost tier as EXTRACTION."""
+        with patch("app.providers.llm.openai_adapter.AsyncOpenAI"):
+            adapter = OpenAIAdapter(config)
+            model = adapter.get_model_for_task(TaskType.SEARCH_PROFILE_GENERATION)
+            assert "mini" in model.lower()
+
 
 class TestOpenAIAdapterComplete:
     """Test OpenAIAdapter.complete() method."""

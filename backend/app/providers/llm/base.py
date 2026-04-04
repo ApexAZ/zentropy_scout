@@ -45,6 +45,7 @@ class TaskType(Enum):
     RESUME_TAILORING = "resume_tailoring"
     STORY_SELECTION = "story_selection"
     RESUME_PARSING = "resume_parsing"
+    SEARCH_PROFILE_GENERATION = "search_profile_generation"
 
 
 @dataclass
