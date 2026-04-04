@@ -121,6 +121,14 @@ class Settings(BaseSettings):
     rate_limit_embeddings: str = "5/minute"  # embedding regeneration
     rate_limit_enabled: bool = True  # Disable for testing
 
+    # Job Source Adapters (REQ-034 §10)
+    # All optional — if None, the corresponding adapter is skipped with a warning log
+    adzuna_app_id: str | None = None  # From developer.adzuna.com registration
+    adzuna_app_key: SecretStr | None = None  # From developer.adzuna.com registration
+    the_muse_api_key: SecretStr | None = None  # From themuse.com/developers/api/v2
+    usajobs_user_agent: str | None = None  # App name string, e.g. "ZentropyScout/1.0"
+    usajobs_email: str | None = None  # Email used at developer.usajobs.gov registration
+
     @property
     def database_url(self) -> str:
         """Async database URL for SQLAlchemy."""
