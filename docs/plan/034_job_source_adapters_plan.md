@@ -58,7 +58,7 @@ Phase 6: API Key Setup (guided registration, wire keys, smoke test)
 
 ## Phase 1: Foundation
 
-**Status:** ⬜ Incomplete
+**Status:** ✅ Complete
 
 *DB schema changes, SearchParams extensions, env vars, and TaskType seed data that all later
 phases depend on.*
@@ -82,7 +82,7 @@ phases depend on.*
 | 4 | **Extend `SearchParams` dataclass** — In `backend/app/adapters/sources/base.py`: add `max_days_old: int | None = None`, `posted_after: datetime | None = None`, `remoteok_tags: list[str] | None = None` fields per REQ-034 §5.1. All new fields have defaults — existing callers unchanged. Update existing tests. | `tdd, docs, plan` | ✅ |
 | 5 | **Add API key env vars to `config.py` + `.env.example`** — Add `adzuna_app_id: str | None = None`, `adzuna_app_key: str | None = None`, `the_muse_api_key: str | None = None`, `usajobs_user_agent: str | None = None`, `usajobs_email: str | None = None` to `Settings` in `backend/app/core/config.py` per REQ-034 §10. Update `.env.example` with commented-out entries and registration URLs as inline comments. | `docs, plan` | ✅ |
 | 6 | **Add `SEARCH_PROFILE_GENERATION` TaskType + seed migration** — Locate `TaskType` enum in the backend. Add `SEARCH_PROFILE_GENERATION` variant. Create Alembic data migration inserting a `task_routing_config` row for this task type, routing to Gemini Flash (same tier as `EXTRACTION`). Test that task routing resolves to expected model. | `db, provider, tdd, docs, plan` | ✅ |
-| 7 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + vitest + Playwright + lint + typecheck). Fix regressions. Commit plan update. Push. | `plan, commands` | ⬜ |
+| 7 | **Phase gate — full test suite + push** — Run test-runner in Full mode (pytest + vitest + Playwright + lint + typecheck). Fix regressions. Commit plan update. Push. | `plan, commands` | ✅ |
 
 ---
 
