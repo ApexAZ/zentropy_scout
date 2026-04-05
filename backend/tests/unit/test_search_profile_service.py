@@ -1,25 +1,61 @@
-"""Tests for SearchProfileService — fingerprint, staleness, and mark_stale.
+"""Tests for SearchProfileService — fingerprint, staleness, mark_stale, and generate_profile.
 
-REQ-034 §4.4: Verifies compute_fingerprint is deterministic and changes on
+REQ-034 §4.3-§4.4: Verifies compute_fingerprint is deterministic and changes on
 material field updates but not on non-material fields. Verifies check_staleness
-and mark_stale against a live PostgreSQL session.
+and mark_stale against a live PostgreSQL session. Verifies generate_profile JSON
+parsing, error propagation, and stub-mode (provider=None) behavior.
 """
 
+import json
 import uuid
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.persona import Persona
+from app.providers.errors import ProviderError
 from app.repositories.search_profile_repository import SearchProfileRepository
 from app.schemas.search_profile import SearchProfileCreate
 from app.services.discovery.search_profile_service import (
+    SearchProfileGenerationError,
     check_staleness,
     compute_fingerprint,
+    generate_profile,
     mark_stale,
 )
 
 _STORED_FINGERPRINT = "a" * 64  # Valid 64-char fingerprint used in DB fixtures
 _WRONG_FINGERPRINT = "stale" * 16  # 80-char string that never matches a real SHA-256
+
+# Valid LLM response for generate_profile tests
+_VALID_RESPONSE = json.dumps(
+    {
+        "fit_searches": [
+            {
+                "label": "Senior Backend Engineer",
+                "keywords": ["python", "fastapi"],
+                "titles": ["Senior Backend Engineer"],
+                "remoteok_tags": ["python"],
+                "location": None,
+            }
+        ],
+        "stretch_searches": [
+            {
+                "label": "Engineering Manager",
+                "keywords": ["engineering manager"],
+                "titles": ["Engineering Manager"],
+                "remoteok_tags": ["manager"],
+                "location": None,
+            }
+        ],
+    }
+)
+
+# Patch target for SearchProfileRepository.upsert in generate_profile tests
+_REPO_UPSERT = (
+    "app.services.discovery.search_profile_service.SearchProfileRepository.upsert"
+)
 
 # ---------------------------------------------------------------------------
 # Fake helpers — plain Python objects to avoid SQLAlchemy instrumentation
@@ -38,6 +74,7 @@ class _FakePersona:
 
     def __init__(self, **kwargs: object) -> None:
         defaults: dict[str, object] = {
+            "id": uuid.uuid4(),
             "skills": [_FakeSkill("Python"), _FakeSkill("FastAPI")],
             "target_roles": ["Backend Engineer", "Staff Engineer"],
             "target_skills": ["System Design", "Distributed Systems"],
@@ -50,6 +87,7 @@ class _FakePersona:
             "bio": "Experienced engineer.",
             "summary": "Summary text.",
             "display_name": "Test User",
+            "current_role": "Senior Backend Engineer",
         }
         defaults.update(kwargs)
         for k, v in defaults.items():
@@ -290,3 +328,154 @@ class TestMarkStale:
         )
         assert profile is not None
         assert profile.is_stale is True
+
+
+# =============================================================================
+# generate_profile helpers
+# =============================================================================
+
+
+def _make_capture_upsert() -> tuple[dict[str, object], AsyncMock]:
+    """Return a (captured, mock) pair for patching SearchProfileRepository.upsert.
+
+    The mock captures the SearchProfileCreate data passed to upsert so tests
+    can assert on it without a real database session.
+    """
+    captured: dict[str, object] = {}
+
+    async def _capture(_db: object, _persona_id: object, data: object) -> MagicMock:
+        captured["data"] = data
+        return MagicMock()
+
+    return captured, AsyncMock(side_effect=_capture)
+
+
+def _make_mock_provider(content: str = _VALID_RESPONSE) -> AsyncMock:
+    """Return a mock LLMProvider whose complete() returns the given content."""
+    mock_provider = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.content = content
+    mock_provider.complete.return_value = mock_response
+    return mock_provider
+
+
+# =============================================================================
+# generate_profile (AI generation — provider mocked)
+# =============================================================================
+
+
+class TestGenerateProfile:
+    """Tests for generate_profile(db, persona, provider) -> SearchProfile."""
+
+    async def test_provider_none_creates_profile_with_empty_buckets(self) -> None:
+        """provider=None (stub mode) creates a profile with empty fit/stretch buckets."""
+        persona = _make_persona()
+        captured, mock_upsert = _make_capture_upsert()
+        with patch(_REPO_UPSERT, mock_upsert):
+            result = await generate_profile(
+                db=MagicMock(),
+                persona=persona,
+                provider=None,  # type: ignore[arg-type]
+            )
+        assert result is not None
+        data = captured["data"]
+        assert data.fit_searches == []  # type: ignore[union-attr]
+        assert data.stretch_searches == []  # type: ignore[union-attr]
+        assert data.is_stale is False  # type: ignore[union-attr]
+        assert data.generated_at is not None  # type: ignore[union-attr]
+
+    async def test_valid_json_populates_fit_searches(self) -> None:
+        """Valid LLM JSON populates fit_searches with parsed SearchBucketSchema objects."""
+        persona = _make_persona()
+        captured, mock_upsert = _make_capture_upsert()
+        with patch(_REPO_UPSERT, mock_upsert):
+            await generate_profile(
+                db=MagicMock(),
+                persona=persona,
+                provider=_make_mock_provider(),  # type: ignore[arg-type]
+            )
+        data = captured["data"]
+        assert len(data.fit_searches) == 1  # type: ignore[union-attr]
+        assert data.fit_searches[0].label == "Senior Backend Engineer"  # type: ignore[union-attr]
+
+    async def test_valid_json_populates_stretch_searches(self) -> None:
+        """Valid LLM JSON populates stretch_searches with parsed SearchBucketSchema objects."""
+        persona = _make_persona()
+        captured, mock_upsert = _make_capture_upsert()
+        with patch(_REPO_UPSERT, mock_upsert):
+            await generate_profile(
+                db=MagicMock(),
+                persona=persona,
+                provider=_make_mock_provider(),  # type: ignore[arg-type]
+            )
+        data = captured["data"]
+        assert len(data.stretch_searches) == 1  # type: ignore[union-attr]
+        assert data.stretch_searches[0].label == "Engineering Manager"  # type: ignore[union-attr]
+
+    async def test_stores_current_fingerprint(self) -> None:
+        """Generated profile stores the current persona fingerprint."""
+        persona = _make_persona()
+        expected_fp = compute_fingerprint(persona)
+        captured, mock_upsert = _make_capture_upsert()
+        with patch(_REPO_UPSERT, mock_upsert):
+            await generate_profile(
+                db=MagicMock(),
+                persona=persona,
+                provider=_make_mock_provider(),  # type: ignore[arg-type]
+            )
+        assert captured["data"].persona_fingerprint == expected_fp  # type: ignore[union-attr]
+
+    async def test_provider_error_raises_generation_error(self) -> None:
+        """ProviderError from the LLM raises SearchProfileGenerationError."""
+        persona = _make_persona()
+        mock_provider = AsyncMock()
+        mock_provider.complete.side_effect = ProviderError("LLM unavailable")
+        with (
+            patch(_REPO_UPSERT, new_callable=AsyncMock),
+            pytest.raises(SearchProfileGenerationError),
+        ):
+            await generate_profile(
+                db=MagicMock(),
+                persona=persona,
+                provider=mock_provider,  # type: ignore[arg-type]
+            )
+
+    async def test_empty_content_raises_generation_error(self) -> None:
+        """Empty LLM response content raises SearchProfileGenerationError."""
+        persona = _make_persona()
+        with (
+            patch(_REPO_UPSERT, new_callable=AsyncMock),
+            pytest.raises(SearchProfileGenerationError),
+        ):
+            await generate_profile(
+                db=MagicMock(),
+                persona=persona,
+                provider=_make_mock_provider(content=None),  # type: ignore[arg-type]
+            )
+
+    async def test_invalid_json_raises_generation_error(self) -> None:
+        """Non-JSON LLM response raises SearchProfileGenerationError."""
+        persona = _make_persona()
+        with (
+            patch(_REPO_UPSERT, new_callable=AsyncMock),
+            pytest.raises(SearchProfileGenerationError),
+        ):
+            await generate_profile(
+                db=MagicMock(),
+                persona=persona,
+                provider=_make_mock_provider(content="not valid json"),  # type: ignore[arg-type]
+            )
+
+    async def test_sets_is_stale_false_on_generation(self) -> None:
+        """Generated profile has is_stale=False and generated_at set."""
+        persona = _make_persona()
+        captured, mock_upsert = _make_capture_upsert()
+        with patch(_REPO_UPSERT, mock_upsert):
+            await generate_profile(
+                db=MagicMock(),
+                persona=persona,
+                provider=_make_mock_provider(),  # type: ignore[arg-type]
+            )
+        data = captured["data"]
+        assert data.is_stale is False  # type: ignore[union-attr]
+        assert data.generated_at is not None  # type: ignore[union-attr]
