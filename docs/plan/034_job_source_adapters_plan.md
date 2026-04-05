@@ -88,7 +88,7 @@ phases depend on.*
 
 ## Phase 2: SearchProfile Backend
 
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 
 *New `SearchProfile` entity — SQLAlchemy model, repository, service (AI generation + staleness
 detection), persona update hook, and API endpoints.*
@@ -113,7 +113,7 @@ detection), persona update hook, and API endpoints.*
 | 5 | **`SearchProfileService` — AI generation** — Add `generate_profile(db, persona, provider) -> SearchProfile` to `SearchProfileService` per REQ-034 §4.3. Use `TaskType.SEARCH_PROFILE_GENERATION` + `MeteredLLMProvider`. Build prompt from persona snapshot (titles, skills, target_roles, target_skills, stretch_appetite, location, remote_preference). Parse JSON response into `fit_searches` + `stretch_searches` arrays of `SearchBucket` objects including `remoteok_tags`. On LLM failure: raise `ServiceError`. Unit tests: mock provider returns valid JSON → profile populated; mock provider raises → `ServiceError` propagated. | `provider, tdd, security, docs, plan` | ✅ |
 | 6 | **Staleness hook on persona update** — In the service/handler that processes `PATCH /personas/{id}`, add post-update call to `SearchProfileService.check_staleness()`. If fingerprint differs → call `mark_stale()`. Integration tests: PATCH a fingerprint-relevant field → `is_stale` becomes True. PATCH a non-material field (e.g., bio) → no staleness change. | `api, tdd, docs, plan` | ✅ |
 | 7 | **SearchProfile API endpoints** — New router at `backend/app/api/v1/search_profiles.py`. Three endpoints per REQ-034 §4.5: `GET /search-profiles/{persona_id}` (returns profile or 404), `POST /search-profiles/{persona_id}/generate` (triggers AI generation, returns profile), `PATCH /search-profiles/{persona_id}` (update buckets / set `approved_at`). Wire into main router. Endpoint tests for each. | `api, tdd, security, docs, plan` | ✅ |
-| 8 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions. Commit plan update. Push. | `plan, commands` | ⬜ |
+| 8 | **Phase gate — full test suite + push** — Run test-runner in Full mode. Fix regressions. Commit plan update. Push. | `plan, commands` | ✅ |
 
 ---
 

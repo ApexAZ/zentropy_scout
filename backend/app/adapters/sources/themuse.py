@@ -30,7 +30,7 @@ class TheMuseAdapter(JobSourceAdapter):
         """Return 'The Muse' as the canonical source name."""
         return "The Muse"
 
-    async def fetch_jobs(self, _params: SearchParams) -> list[RawJob]:
+    async def fetch_jobs(self, _params: SearchParams) -> list[RawJob]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Fetch jobs from The Muse API.
 
         Args:

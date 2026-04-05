@@ -155,7 +155,7 @@ class MockLLMProvider(LLMProvider):
         for word in content.split():
             yield word + " "
 
-    def get_model_for_task(self, _task: TaskType) -> str:
+    def get_model_for_task(self, _task: TaskType) -> str:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Return 'mock-model' for any task.
 
         Args:

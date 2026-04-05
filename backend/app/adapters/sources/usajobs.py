@@ -30,7 +30,7 @@ class USAJobsAdapter(JobSourceAdapter):
         """Return 'USAJobs' as the canonical source name."""
         return "USAJobs"
 
-    async def fetch_jobs(self, _params: SearchParams) -> list[RawJob]:
+    async def fetch_jobs(self, _params: SearchParams) -> list[RawJob]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Fetch jobs from USAJobs API.
 
         Args:

@@ -30,7 +30,7 @@ class RemoteOKAdapter(JobSourceAdapter):
         """Return 'RemoteOK' as the canonical source name."""
         return "RemoteOK"
 
-    async def fetch_jobs(self, _params: SearchParams) -> list[RawJob]:
+    async def fetch_jobs(self, _params: SearchParams) -> list[RawJob]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Fetch jobs from RemoteOK API.
 
         Args:

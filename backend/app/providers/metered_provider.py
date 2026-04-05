@@ -126,7 +126,7 @@ class MeteredLLMProvider(LLMProvider):
             )
         return adapter, model
 
-    async def complete(
+    async def complete(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         messages: list[LLMMessage],
         task: TaskType,

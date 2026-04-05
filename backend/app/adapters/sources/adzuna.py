@@ -30,7 +30,7 @@ class AdzunaAdapter(JobSourceAdapter):
         """Return 'Adzuna' as the canonical source name."""
         return "Adzuna"
 
-    async def fetch_jobs(self, _params: SearchParams) -> list[RawJob]:
+    async def fetch_jobs(self, _params: SearchParams) -> list[RawJob]:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Fetch jobs from Adzuna API.
 
         Args:

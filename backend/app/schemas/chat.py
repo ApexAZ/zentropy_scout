@@ -95,7 +95,7 @@ class ChatTokenEvent(SSEEvent):
         text: The token text to append.
     """
 
-    type: Literal["chat_token"] = "chat_token"
+    type: Literal["chat_token"] = "chat_token"  # pyright: ignore[reportIncompatibleVariableOverride]
     text: str = Field(..., description="Token text to append to message")
 
 
@@ -109,7 +109,7 @@ class ChatDoneEvent(SSEEvent):
         message_id: UUID of the completed message.
     """
 
-    type: Literal["chat_done"] = "chat_done"
+    type: Literal["chat_done"] = "chat_done"  # pyright: ignore[reportIncompatibleVariableOverride]
     message_id: str = Field(..., description="UUID of completed message")
 
 
@@ -124,7 +124,7 @@ class ToolStartEvent(SSEEvent):
         args: Arguments passed to the tool.
     """
 
-    type: Literal["tool_start"] = "tool_start"
+    type: Literal["tool_start"] = "tool_start"  # pyright: ignore[reportIncompatibleVariableOverride]
     tool: str = Field(..., description="Tool name being called")
     args: dict[str, Any] = Field(default_factory=dict, description="Tool arguments")
 
@@ -142,7 +142,7 @@ class ToolResultEvent(SSEEvent):
         error: Optional error message on failure.
     """
 
-    type: Literal["tool_result"] = "tool_result"
+    type: Literal["tool_result"] = "tool_result"  # pyright: ignore[reportIncompatibleVariableOverride]
     tool: str = Field(..., description="Tool name that completed")
     success: bool = Field(..., description="Whether tool succeeded")
     result: dict[str, Any] | None = Field(
@@ -163,7 +163,7 @@ class DataChangedEvent(SSEEvent):
         action: What happened: created, updated, or deleted.
     """
 
-    type: Literal["data_changed"] = "data_changed"
+    type: Literal["data_changed"] = "data_changed"  # pyright: ignore[reportIncompatibleVariableOverride]
     resource: str = Field(..., description="Resource type (e.g., job-posting)")
     id: str = Field(..., description="UUID of changed resource")
     action: Literal["created", "updated", "deleted"] = Field(
@@ -180,4 +180,4 @@ class HeartbeatEvent(SSEEvent):
         type: Always "heartbeat".
     """
 
-    type: Literal["heartbeat"] = "heartbeat"
+    type: Literal["heartbeat"] = "heartbeat"  # pyright: ignore[reportIncompatibleVariableOverride]
