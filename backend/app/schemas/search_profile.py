@@ -3,7 +3,10 @@
 REQ-034 §4.2, §4.5: Request/response models for the search_profiles resource.
 SearchBucketSchema validates the JSONB bucket shape stored in fit_searches and
 stretch_searches. SearchProfileRead covers GET/POST responses; SearchProfileCreate
-and SearchProfileUpdate cover internal creation and PATCH requests.
+and SearchProfileUpdate cover internal creation and repository updates; and
+SearchProfileApiUpdate is the user-facing PATCH request schema (user-settable
+fields only — internal fields excluded to prevent client manipulation of
+is_stale, persona_fingerprint, and generated_at).
 
 Coordinates with:
   - (no internal app imports — standalone Pydantic schemas)
@@ -11,6 +14,7 @@ Coordinates with:
 Called by / Used by:
   - api/v1/search_profiles.py: endpoint response/request models
   - services/discovery/search_profile_service.py: parsing LLM output into SearchBucket objects
+  - repositories/search_profile_repository.py: CRUD update schema
 """
 
 import uuid
@@ -129,10 +133,11 @@ class SearchProfileCreate(BaseModel):
 
 
 class SearchProfileUpdate(BaseModel):
-    """Partial update model for PATCH /search-profiles/{persona_id}.
+    """Internal partial update model for repository-level PATCH operations.
 
-    REQ-034 §4.5: All fields are optional — only provided fields are updated.
-    Used for user-driven bucket edits and setting approved_at on approval.
+    REQ-034 §4.5: All fields are optional — only non-None fields are applied.
+    Used by services and repository directly. NOT exposed as a request schema at
+    the API layer — use ``SearchProfileApiUpdate`` for user-facing PATCH requests.
 
     Attributes:
         fit_searches: Replacement fit-role search buckets (None = no change).
@@ -154,4 +159,29 @@ class SearchProfileUpdate(BaseModel):
     persona_fingerprint: str | None = Field(default=None, max_length=_MAX_FINGERPRINT)
     is_stale: bool | None = None
     generated_at: datetime | None = None
+    approved_at: datetime | None = None
+
+
+class SearchProfileApiUpdate(BaseModel):
+    """User-facing PATCH request schema for /search-profiles/{persona_id}.
+
+    REQ-034 §4.5: Exposes only the three user-settable fields. Internal system
+    fields (is_stale, persona_fingerprint, generated_at) are intentionally
+    excluded to prevent clients from forging fingerprints or bypassing the
+    staleness lifecycle.
+
+    Attributes:
+        fit_searches: Replacement fit-role search buckets (None = no change).
+        stretch_searches: Replacement stretch-role search buckets (None = no change).
+        approved_at: Set to approve the profile; None = no change.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    fit_searches: list[SearchBucketSchema] | None = Field(
+        default=None, max_length=_MAX_BUCKETS
+    )
+    stretch_searches: list[SearchBucketSchema] | None = Field(
+        default=None, max_length=_MAX_BUCKETS
+    )
     approved_at: datetime | None = None

@@ -5,7 +5,7 @@ REQ-006 §5.1: URL structure with /api/v1 prefix.
 All v1 endpoint routers are included here.
 
 Coordinates with:
-  - All 21 api/v1/ router modules (admin through webhooks)
+  - All 22 api/v1/ router modules (admin through webhooks)
 
 Called by: main.py.
 """
@@ -31,6 +31,7 @@ from app.api.v1 import (
     personas,
     refresh,
     resume_templates,
+    search_profiles,
     usage,
     user_source_preferences,
     webhooks,
@@ -53,6 +54,9 @@ router.include_router(auth_oauth.router, prefix=_AUTH_PREFIX, tags=["auth"])
 # =============================================================================
 
 router.include_router(personas.router, prefix="/personas", tags=["personas"])
+router.include_router(
+    search_profiles.router, prefix="/search-profiles", tags=["search-profiles"]
+)
 router.include_router(
     job_postings.router, prefix="/job-postings", tags=["job-postings"]
 )

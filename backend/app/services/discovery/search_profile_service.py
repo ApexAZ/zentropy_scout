@@ -74,6 +74,13 @@ _MAX_LLM_RESPONSE_BYTES = 50_000
 _MAX_SKILL_NAME_LEN = 100
 """Per-element cap for skill names before sanitization (matches _MAX_KEYWORD_LEN in SearchBucketSchema)."""
 
+_MAX_ROLE_LEN = 200
+"""Per-element cap for target_roles and target_skills items before sanitization.
+
+Mirrors SearchBucketSchema._MAX_TITLE_LEN (200). Prevents oversized list items
+from inflating the LLM prompt beyond token limits or enabling prompt stuffing.
+"""
+
 _SYSTEM_PROMPT = """\
 You are a job search strategist. Given a professional's persona, generate structured \
 job search criteria split into fit roles (roles the user can perform now, based on \
@@ -123,10 +130,11 @@ def _build_generate_prompt(persona: Persona) -> str:
         or "None listed"
     )
     target_roles_str = (
-        ", ".join(sanitize_llm_input(r) for r in persona.target_roles) or _NOT_SPECIFIED
+        ", ".join(sanitize_llm_input(r[:_MAX_ROLE_LEN]) for r in persona.target_roles)
+        or _NOT_SPECIFIED
     )
     target_skills_str = (
-        ", ".join(sanitize_llm_input(s) for s in persona.target_skills)
+        ", ".join(sanitize_llm_input(s[:_MAX_ROLE_LEN]) for s in persona.target_skills)
         or _NOT_SPECIFIED
     )
     current_role_str = sanitize_llm_input(persona.current_role or _NOT_SPECIFIED)

@@ -1,7 +1,9 @@
 """Tests for SearchProfile Pydantic schemas.
 
 REQ-034 §4.2, §4.5: Verifies SearchBucketSchema shape validation, and
-SearchProfileRead/Create/Update schema construction and field constraints.
+SearchProfileRead/Create/Update/ApiUpdate schema construction and field
+constraints. Specifically verifies that SearchProfileApiUpdate rejects
+internal system fields (is_stale, persona_fingerprint, generated_at).
 """
 
 import uuid
@@ -12,6 +14,7 @@ from pydantic import ValidationError
 
 from app.schemas.search_profile import (
     SearchBucketSchema,
+    SearchProfileApiUpdate,
     SearchProfileCreate,
     SearchProfileRead,
     SearchProfileUpdate,
@@ -406,3 +409,44 @@ class TestSearchProfileUpdateSizeConstraints:
         ]
         with pytest.raises(ValidationError):
             SearchProfileUpdate(fit_searches=buckets)
+
+
+# =============================================================================
+# SearchProfileApiUpdate
+# =============================================================================
+
+
+class TestSearchProfileApiUpdate:
+    """SearchProfileApiUpdate — user-facing PATCH schema (3 fields only)."""
+
+    def test_empty_api_update_is_valid(self) -> None:
+        """All fields optional — empty update is valid (no-op PATCH)."""
+        update = SearchProfileApiUpdate()
+        assert update.fit_searches is None
+        assert update.stretch_searches is None
+        assert update.approved_at is None
+
+    def test_api_update_accepts_user_settable_fields(self) -> None:
+        """fit_searches, stretch_searches, and approved_at are accepted."""
+        bucket = SearchBucketSchema(**_make_bucket())
+        update = SearchProfileApiUpdate(
+            fit_searches=[bucket],
+            approved_at=_NOW,
+        )
+        assert len(update.fit_searches) == 1  # type: ignore[arg-type]
+        assert update.approved_at == _NOW
+
+    def test_api_update_rejects_is_stale(self) -> None:
+        """is_stale is an internal field — rejected by extra='forbid'."""
+        with pytest.raises(ValidationError):
+            SearchProfileApiUpdate(is_stale=False)  # type: ignore[call-arg]
+
+    def test_api_update_rejects_persona_fingerprint(self) -> None:
+        """persona_fingerprint is an internal field — rejected by extra='forbid'."""
+        with pytest.raises(ValidationError):
+            SearchProfileApiUpdate(persona_fingerprint="a" * 64)  # type: ignore[call-arg]
+
+    def test_api_update_rejects_generated_at(self) -> None:
+        """generated_at is an internal field — rejected by extra='forbid'."""
+        with pytest.raises(ValidationError):
+            SearchProfileApiUpdate(generated_at=_NOW)  # type: ignore[call-arg]
