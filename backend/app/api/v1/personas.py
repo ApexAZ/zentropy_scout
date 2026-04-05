@@ -30,6 +30,7 @@ Coordinates with:
   - core/rate_limiting.py (limiter)
   - core/responses.py (DataResponse, ListResponse, PaginationMeta)
   - models/persona.py (Persona)
+  - services/discovery/search_profile_service.py (mark_stale — staleness hook)
 
 Called by: api/v1/router.py.
 """
@@ -49,6 +50,7 @@ from app.core.errors import ConflictError, NotFoundError
 from app.core.rate_limiting import limiter
 from app.core.responses import DataResponse, ListResponse, PaginationMeta
 from app.models.persona import Persona
+from app.services.discovery.search_profile_service import mark_stale
 
 _MAX_SUMMARY_LENGTH = 10000
 """Safety bound on professional summary text length."""
@@ -58,6 +60,30 @@ _MAX_JSONB_LIST_LENGTH = 200
 
 _MAX_JSONB_ITEM_LENGTH = 500
 """Safety bound on individual string items within JSONB lists."""
+
+_MATERIAL_FIELDS: frozenset[str] = frozenset(
+    {
+        "target_roles",
+        "target_skills",
+        "stretch_appetite",
+        "remote_preference",
+        # These three expand the "location_preferences" group from REQ-034 §4.4.
+        # Note: home_state and home_country are NOT in compute_fingerprint,
+        # so they are intentionally excluded here.
+        "home_city",
+        "commutable_cities",
+        "relocation_cities",
+    }
+)
+"""Persona columns that affect the SearchProfile fingerprint (REQ-034 §4.4).
+
+When any of these columns is included in a PATCH, the SearchProfile is marked
+stale so the user is prompted to regenerate their search criteria.
+
+Note: ``skills`` (the relationship table) is intentionally absent — skill
+changes route through ``POST/DELETE /personas/{id}/skills``, not this PATCH
+endpoint, so they never appear in update_data and cannot be intercepted here.
+"""
 
 BoundedStr = Annotated[
     str, StringConstraints(min_length=1, max_length=_MAX_JSONB_ITEM_LENGTH)
@@ -398,13 +424,18 @@ async def update_persona(
 
     persona.updated_at = datetime.now(UTC)
 
+    # REQ-034 §4.4: Stage the staleness write before commit so both changes
+    # land in the same transaction — persona update + is_stale=True are atomic.
+    # mark_stale() calls flush() internally; the outer commit() finalises both.
+    if update_data.keys() & _MATERIAL_FIELDS:
+        await mark_stale(db, persona.id)
+
     try:
         await db.commit()
     except IntegrityError as exc:
         await _handle_integrity_error(db, exc)
 
     await db.refresh(persona)
-
     return DataResponse(data=_persona_to_dict(persona))
 
 
