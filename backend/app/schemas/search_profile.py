@@ -61,9 +61,9 @@ class SearchBucketSchema(BaseModel):
     titles: list[Annotated[str, Field(max_length=_MAX_TITLE_LEN)]] = Field(
         max_length=_MAX_LIST_ITEMS
     )
-    remoteok_tags: list[Annotated[str, Field(max_length=_MAX_TAG_LEN)]] = Field(
-        max_length=_MAX_LIST_ITEMS
-    )
+    remoteok_tags: list[
+        Annotated[str, Field(min_length=1, max_length=_MAX_TAG_LEN)]
+    ] = Field(max_length=_MAX_LIST_ITEMS)
     location: str | None = Field(default=None, max_length=_MAX_LOCATION)
 
 

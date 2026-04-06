@@ -133,13 +133,14 @@ class JobFetchService:
         self,
         enabled_sources: list[str],
         polling_frequency: str = "daily",
+        search_params_list: list[SearchParams] | None = None,
     ) -> PollResult:
         """Execute a full poll cycle.
 
         REQ-016 §6.2: Single entry point for the job discovery pipeline.
 
         Pipeline:
-            1. Fetch from all enabled sources (parallel)
+            1. Fetch from all enabled sources (parallel, once per search bucket)
             2. Merge results into flat list
             3. Resolve source IDs and partition new vs existing
             4. Enrich new jobs (extraction + ghost scoring)
@@ -149,14 +150,23 @@ class JobFetchService:
         Args:
             enabled_sources: Source names to fetch from.
             polling_frequency: "twice_daily", "daily", or "weekly".
+            search_params_list: Per-bucket SearchParams built from the persona's
+                SearchProfile. When None (no approved profile), falls back to a
+                single fetch with empty keywords and ``results_per_page=25``.
 
         Returns:
             PollResult with all processed jobs and metadata.
         """
-        # Step 1: Fetch from all sources
-        source_results, error_sources = await self.fetch_from_sources(
-            enabled_sources,
-        )
+        # Step 1: Fetch from all sources (once per search bucket)
+        if search_params_list:
+            source_results, error_sources = await self._fetch_all_buckets(
+                enabled_sources, search_params_list
+            )
+        else:
+            # Fallback: no approved SearchProfile yet — single fetch with basic params
+            source_results, error_sources = await self.fetch_from_sources(
+                enabled_sources
+            )
 
         # Step 2: Merge into flat list
         merged_jobs = merge_results(source_results)
@@ -192,6 +202,7 @@ class JobFetchService:
     async def fetch_from_sources(
         self,
         enabled_sources: list[str],
+        params: SearchParams | None = None,
     ) -> tuple[dict[str, list[dict[str, Any]]], list[str]]:
         """Fetch jobs from all enabled sources in parallel.
 
@@ -200,6 +211,8 @@ class JobFetchService:
 
         Args:
             enabled_sources: Source names to query.
+            params: SearchParams to pass to each adapter. When None, a
+                minimal default (empty keywords) is used.
 
         Returns:
             (source_results, error_sources) where source_results maps
@@ -218,11 +231,10 @@ class JobFetchService:
         if not adapters:
             return {}, []
 
-        params = SearchParams(
-            keywords=["software", "engineer"],
-            remote_only=False,
-            results_per_page=25,
-        )
+        if params is None:
+            # WHY: Fallback used when no approved SearchProfile exists yet —
+            # returns an empty keyword set rather than a hardcoded stub.
+            params = SearchParams(keywords=[], results_per_page=25)
 
         # Parallel fetch — return_exceptions so one failure doesn't cancel all
         names = list(adapters.keys())
@@ -275,6 +287,34 @@ class JobFetchService:
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    async def _fetch_all_buckets(
+        self,
+        enabled_sources: list[str],
+        search_params_list: list[SearchParams],
+    ) -> tuple[dict[str, list[dict[str, Any]]], list[str]]:
+        """Fetch from all enabled sources for each search bucket, merging results.
+
+        Called by run_poll when a SearchProfile is available. Keeps run_poll's
+        main pipeline flat by isolating the per-bucket fan-out logic.
+
+        Args:
+            enabled_sources: Source names to query.
+            search_params_list: Per-bucket SearchParams to dispatch in sequence.
+
+        Returns:
+            (merged_source_results, deduped_error_sources) across all buckets.
+        """
+        all_source_results: dict[str, list[dict[str, Any]]] = {}
+        error_sources_set: set[str] = set()
+        for params in search_params_list:
+            bucket_results, bucket_errors = await self.fetch_from_sources(
+                enabled_sources, params=params
+            )
+            for source_name, jobs in bucket_results.items():
+                all_source_results.setdefault(source_name, []).extend(jobs)
+            error_sources_set.update(bucket_errors)
+        return all_source_results, list(error_sources_set)
 
     async def _partition_jobs(
         self,

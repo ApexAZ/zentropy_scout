@@ -9,6 +9,7 @@ detects drift. generate_profile calls the LLM once to derive fit/stretch search
 criteria from the persona and upserts the result.
 
 Coordinates with:
+  - adapters/sources/base.py: SearchParams (build_search_params return type)
   - repositories/search_profile_repository.py: get_by_persona_id, upsert
   - models/persona.py: Persona fields used in fingerprint and prompt
   - models/search_profile.py: SearchProfile.persona_fingerprint, is_stale
@@ -19,16 +20,19 @@ Coordinates with:
 Called by:
   - api/v1/personas.py: PATCH /personas/{id} staleness hook (§2.6)
   - api/v1/search_profiles.py: POST /search-profiles/{id}/generate (§2.7)
+  - services/discovery/job_fetch_service.py: build_search_params for bucket-based SearchParams
 """
 
 import hashlib
 import json
 import logging
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from math import ceil
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters.sources.base import _MAX_REMOTEOK_TAGS, _TAG_RE, SearchParams
 from app.core.errors import APIError
 from app.core.llm_sanitization import sanitize_llm_input
 from app.models.persona import Persona
@@ -330,4 +334,85 @@ async def generate_profile(
             is_stale=False,
             generated_at=datetime.now(UTC),
         ),
+    )
+
+
+# =============================================================================
+# SearchParams construction
+# =============================================================================
+
+_FIRST_POLL_DAYS: int = 7
+"""Seed window (days) for a persona's first poll (no prior last_poll_at)."""
+
+_MAX_POLL_DAYS: int = 90
+"""Hard ceiling on max_days_old — matches SearchParams validation constraint."""
+
+
+def build_search_params(
+    bucket: SearchBucketSchema,
+    persona: Persona,
+    last_poll_at: datetime | None,
+    *,
+    results_per_page: int = 50,
+) -> SearchParams:
+    """Build SearchParams from a SearchBucket, Persona, and prior poll timestamp.
+
+    REQ-034 §5.2: Constructs the SearchParams that drive a single adapter poll
+    for one search bucket.
+
+    Delta calculation (REQ-034 §5.2):
+        days = max(1, ceil((now - last_poll_at).total_seconds() / 86400) + 1)
+        The +1 adds a one-day buffer to avoid missing jobs at the boundary.
+        Capped at 90 days to satisfy SearchParams.max_days_old validation.
+        First poll (last_poll_at is None) → max_days_old = 7 (seed window).
+
+    Args:
+        bucket: SearchBucket with keywords, titles, remoteok_tags, and optional
+            location override.
+        persona: Persona ORM instance — provides remote_preference and home_city
+            fallback for location.
+        last_poll_at: UTC timestamp of the last successful poll; None on first poll.
+        results_per_page: Number of results to request per source page (default 50).
+
+    Returns:
+        SearchParams ready for dispatch to source adapters.
+    """
+    now = datetime.now(UTC)
+
+    # Delta calculation per REQ-034 §5.2
+    if last_poll_at is None:
+        max_days_old = _FIRST_POLL_DAYS
+    else:
+        days = max(1, ceil((now - last_poll_at).total_seconds() / 86400) + 1)
+        max_days_old = min(days, _MAX_POLL_DAYS)
+
+    posted_after = now - timedelta(days=max_days_old)
+
+    # keywords = bucket.keywords + bucket.titles (per REQ-034 §5.2)
+    keywords = list(bucket.keywords) + list(bucket.titles)
+
+    # location: bucket override (validated by schema), fallback to persona.home_city.
+    # Clamp persona.home_city to 120 chars to mirror SearchBucketSchema._MAX_LOCATION
+    # and prevent unbounded strings from reaching adapter query builders.
+    raw_location = bucket.location if bucket.location is not None else persona.home_city
+    location = raw_location[:120] if raw_location else None
+
+    # remote_only: True only for "Remote Only" persona preference
+    remote_only = persona.remote_preference == "Remote Only"
+
+    # Filter bucket tags to those matching SearchParams validation pattern (_TAG_RE),
+    # then cap at the SearchParams maximum (_MAX_REMOTEOK_TAGS).
+    # WHY import: using the same constants as SearchParams avoids silent divergence
+    # if the pattern or cap ever changes in adapters/sources/base.py.
+    valid_tags = [t for t in bucket.remoteok_tags if _TAG_RE.match(t)]
+    remoteok_tags = valid_tags[:_MAX_REMOTEOK_TAGS] if valid_tags else None
+
+    return SearchParams(
+        keywords=keywords,
+        location=location,
+        remote_only=remote_only,
+        results_per_page=results_per_page,
+        max_days_old=max_days_old,
+        posted_after=posted_after,
+        remoteok_tags=remoteok_tags,
     )

@@ -8,6 +8,7 @@ parsing, error propagation, and stub-mode (provider=None) behavior.
 
 import json
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,9 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.persona import Persona
 from app.providers.errors import ProviderError
 from app.repositories.search_profile_repository import SearchProfileRepository
-from app.schemas.search_profile import SearchProfileCreate
+from app.schemas.search_profile import SearchBucketSchema, SearchProfileCreate
 from app.services.discovery.search_profile_service import (
     SearchProfileGenerationError,
+    build_search_params,
     check_staleness,
     compute_fingerprint,
     generate_profile,
@@ -480,3 +482,195 @@ class TestGenerateProfile:
         data = captured["data"]
         assert data.is_stale is False  # type: ignore[union-attr]
         assert data.generated_at is not None  # type: ignore[union-attr]
+
+
+# =============================================================================
+# build_search_params — delta calculation and SearchParams construction
+# =============================================================================
+
+
+class TestBuildSearchParams:
+    """Tests for build_search_params(bucket, persona, last_poll_at).
+
+    REQ-034 §5.2: SearchParams construction from a SearchBucket.
+    """
+
+    def _make_bucket(self, **overrides: object) -> SearchBucketSchema:
+        """Build a SearchBucketSchema with sensible defaults."""
+        defaults: dict[str, object] = {
+            "label": "Senior Backend Engineer",
+            "keywords": ["python", "fastapi"],
+            "titles": ["Senior Backend Engineer", "Staff Engineer"],
+            "remoteok_tags": ["python", "backend"],
+            "location": None,
+        }
+        defaults.update(overrides)
+        return SearchBucketSchema(**defaults)  # type: ignore[arg-type]
+
+    # -- delta calculation ---------------------------------------------------
+
+    def test_first_poll_uses_7_day_seed(self) -> None:
+        """First poll (last_poll_at=None) seeds max_days_old=7."""
+        bucket = self._make_bucket()
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.max_days_old == 7
+
+    def test_recent_poll_calculates_delta(self) -> None:
+        """2.5-day-old last_poll_at → ceil(2.5)+1 = 4.
+
+        Uses 2 days + 12 hours to avoid the epsilon rounding at exact day
+        boundaries. ceil(2.5) = 3, +1 = 4.
+        """
+        two_and_half_days_ago = datetime.now(UTC) - timedelta(days=2, hours=12)
+        bucket = self._make_bucket()
+        persona = _make_persona()
+        result = build_search_params(
+            bucket, persona, last_poll_at=two_and_half_days_ago
+        )  # type: ignore[arg-type]
+
+        assert result.max_days_old == 4
+
+    def test_same_day_poll_returns_2(self) -> None:
+        """A poll from seconds ago → ceil(~0)+1 = 2 (practical minimum for any past poll).
+
+        The max(1, ...) guard only fires for zero-duration deltas. Any positive
+        delta gives ceil(x) >= 1, so ceil(x)+1 >= 2.
+        """
+        seconds_ago = datetime.now(UTC) - timedelta(seconds=30)
+        bucket = self._make_bucket()
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=seconds_ago)  # type: ignore[arg-type]
+
+        assert result.max_days_old == 2
+
+    def test_delta_capped_at_90_days(self) -> None:
+        """Last poll 120 days ago → max_days_old capped at 90."""
+        very_old = datetime.now(UTC) - timedelta(days=120)
+        bucket = self._make_bucket()
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=very_old)  # type: ignore[arg-type]
+
+        assert result.max_days_old == 90
+
+    def test_delta_boundary_at_88_days_returns_90(self) -> None:
+        """88-day-old poll → ceil(88+ε)+1 = 90, which hits the _MAX_POLL_DAYS cap exactly.
+
+        ceil(88 + epsilon) = 89, then 89+1 = 90 = _MAX_POLL_DAYS. This verifies the cap
+        is inclusive and that the +1 buffer causes the boundary to sit at 88 days, not 89.
+        """
+        eighty_eight_days_ago = datetime.now(UTC) - timedelta(days=88)
+        bucket = self._make_bucket()
+        persona = _make_persona()
+        result = build_search_params(
+            bucket, persona, last_poll_at=eighty_eight_days_ago
+        )  # type: ignore[arg-type]
+
+        assert result.max_days_old == 90
+
+    # -- field construction --------------------------------------------------
+
+    def test_keywords_concatenates_bucket_keywords_and_titles(self) -> None:
+        """keywords = bucket.keywords + bucket.titles (per REQ-034 §5.2)."""
+        bucket = self._make_bucket(
+            keywords=["python", "fastapi"],
+            titles=["Senior Backend Engineer"],
+        )
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.keywords == ["python", "fastapi", "Senior Backend Engineer"]
+
+    def test_location_uses_bucket_location_when_present(self) -> None:
+        """bucket.location overrides persona.home_city when set."""
+        bucket = self._make_bucket(location="Austin, TX")
+        persona = _make_persona(home_city="San Francisco, CA")
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.location == "Austin, TX"
+
+    def test_location_falls_back_to_persona_home_city_when_bucket_none(self) -> None:
+        """None bucket.location falls back to persona.home_city."""
+        bucket = self._make_bucket(location=None)
+        persona = _make_persona(home_city="Chicago, IL")
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.location == "Chicago, IL"
+
+    def test_remote_only_when_preference_is_remote_only(self) -> None:
+        """remote_only=True when persona.remote_preference == 'Remote Only'."""
+        bucket = self._make_bucket()
+        persona = _make_persona(remote_preference="Remote Only")
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.remote_only is True
+
+    def test_remote_only_false_for_other_preferences(self) -> None:
+        """remote_only=False when persona.remote_preference is not 'Remote Only'."""
+        bucket = self._make_bucket()
+        persona = _make_persona(remote_preference="Hybrid OK")
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.remote_only is False
+
+    def test_remoteok_tags_from_bucket(self) -> None:
+        """Valid remoteok_tags from the bucket are passed through."""
+        bucket = self._make_bucket(remoteok_tags=["python", "backend"])
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.remoteok_tags == ["python", "backend"]
+
+    def test_invalid_remoteok_tags_filtered_out(self) -> None:
+        """Tags with spaces or invalid characters are excluded from SearchParams."""
+        bucket = self._make_bucket(
+            remoteok_tags=["python", "product manager"]  # space is invalid
+        )
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.remoteok_tags == ["python"]
+
+    def test_all_invalid_remoteok_tags_returns_none(self) -> None:
+        """When all tags fail validation, remoteok_tags is None (no tag filter)."""
+        bucket = self._make_bucket(remoteok_tags=["has space", "also!invalid"])
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.remoteok_tags is None
+
+    def test_empty_remoteok_tags_returns_none(self) -> None:
+        """Empty remoteok_tags list produces None (no tag filter applied)."""
+        bucket = self._make_bucket(remoteok_tags=[])
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.remoteok_tags is None
+
+    def test_posted_after_is_utc(self) -> None:
+        """posted_after is always a timezone-aware UTC datetime."""
+        bucket = self._make_bucket()
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.posted_after is not None
+        assert result.posted_after.tzinfo == UTC
+
+    def test_default_results_per_page_is_50(self) -> None:
+        """results_per_page defaults to 50 per REQ-034 §5.2."""
+        bucket = self._make_bucket()
+        persona = _make_persona()
+        result = build_search_params(bucket, persona, last_poll_at=None)  # type: ignore[arg-type]
+
+        assert result.results_per_page == 50
+
+    def test_custom_results_per_page_respected(self) -> None:
+        """Caller-supplied results_per_page is passed through."""
+        bucket = self._make_bucket()
+        persona = _make_persona()
+        result = build_search_params(  # type: ignore[arg-type]
+            bucket, persona, last_poll_at=None, results_per_page=100
+        )
+
+        assert result.results_per_page == 100
