@@ -113,6 +113,10 @@ class PersonaJob(Base, TimestampMixin):
         server_default=text("'pool'"),
         nullable=False,
     )
+    search_bucket: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+    )
 
     # Timestamps
     discovered_at: Mapped[datetime] = mapped_column(
@@ -136,6 +140,10 @@ class PersonaJob(Base, TimestampMixin):
         CheckConstraint(
             "discovery_method IN ('scouter', 'manual', 'pool')",
             name="ck_persona_jobs_discovery_method",
+        ),
+        CheckConstraint(
+            "search_bucket IN ('fit', 'stretch', 'manual', 'pool') OR search_bucket IS NULL",
+            name="ck_persona_jobs_search_bucket",
         ),
         CheckConstraint(
             "fit_score >= 0 AND fit_score <= 100 OR fit_score IS NULL",

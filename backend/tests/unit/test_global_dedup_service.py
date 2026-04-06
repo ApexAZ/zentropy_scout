@@ -695,3 +695,132 @@ class TestDiscoveryMethod:
             discovery_method="manual",
         )
         assert outcome.persona_job.discovery_method == "manual"
+
+
+class TestSearchBucketPropagation:
+    """search_bucket is threaded through to the created PersonaJob."""
+
+    async def test_fit_bucket_propagates_to_persona_job(
+        self,
+        db_session: AsyncSession,
+        source_linkedin: JobSource,
+        persona_a: Persona,
+        user_a: User,
+    ) -> None:
+        """search_bucket='fit' is set on the created PersonaJob."""
+        job_data = _make_job_data(
+            source_linkedin.id,
+            job_title="Staff Engineer",
+            company_name="FitCo",
+            description="Build systems at FitCo.",
+            description_hash=hashlib.sha256(b"Build systems at FitCo.").hexdigest(),
+        )
+        outcome = await deduplicate_and_save(
+            db_session,
+            job_data=job_data,
+            persona_id=persona_a.id,
+            user_id=user_a.id,
+            search_bucket="fit",
+        )
+        assert outcome.persona_job.search_bucket == "fit"
+
+    async def test_stretch_bucket_propagates_to_persona_job(
+        self,
+        db_session: AsyncSession,
+        source_linkedin: JobSource,
+        persona_a: Persona,
+        user_a: User,
+    ) -> None:
+        """search_bucket='stretch' is set on the created PersonaJob."""
+        job_data = _make_job_data(
+            source_linkedin.id,
+            job_title="VP Engineering",
+            company_name="StretchCo",
+            description="Lead engineering at StretchCo.",
+            description_hash=hashlib.sha256(
+                b"Lead engineering at StretchCo."
+            ).hexdigest(),
+        )
+        outcome = await deduplicate_and_save(
+            db_session,
+            job_data=job_data,
+            persona_id=persona_a.id,
+            user_id=user_a.id,
+            search_bucket="stretch",
+        )
+        assert outcome.persona_job.search_bucket == "stretch"
+
+    async def test_manual_bucket_propagates_to_persona_job(
+        self,
+        db_session: AsyncSession,
+        source_linkedin: JobSource,
+        persona_a: Persona,
+        user_a: User,
+    ) -> None:
+        """search_bucket='manual' is set on the created PersonaJob."""
+        job_data = _make_job_data(
+            source_linkedin.id,
+            job_title="Product Manager",
+            company_name="ManualCo",
+            description="Drive product at ManualCo.",
+            description_hash=hashlib.sha256(b"Drive product at ManualCo.").hexdigest(),
+        )
+        outcome = await deduplicate_and_save(
+            db_session,
+            job_data=job_data,
+            persona_id=persona_a.id,
+            user_id=user_a.id,
+            search_bucket="manual",
+        )
+        assert outcome.persona_job.search_bucket == "manual"
+
+    async def test_pool_bucket_propagates_to_persona_job(
+        self,
+        db_session: AsyncSession,
+        source_linkedin: JobSource,
+        persona_a: Persona,
+        user_a: User,
+    ) -> None:
+        """search_bucket='pool' is set on the created PersonaJob."""
+        job_data = _make_job_data(
+            source_linkedin.id,
+            job_title="DevOps Engineer",
+            company_name="PoolCo",
+            description="Automate pipelines at PoolCo.",
+            description_hash=hashlib.sha256(
+                b"Automate pipelines at PoolCo."
+            ).hexdigest(),
+        )
+        outcome = await deduplicate_and_save(
+            db_session,
+            job_data=job_data,
+            persona_id=persona_a.id,
+            user_id=user_a.id,
+            search_bucket="pool",
+        )
+        assert outcome.persona_job.search_bucket == "pool"
+
+    async def test_none_bucket_sets_null_on_persona_job(
+        self,
+        db_session: AsyncSession,
+        source_linkedin: JobSource,
+        persona_a: Persona,
+        user_a: User,
+    ) -> None:
+        """search_bucket=None (default) stores NULL on the PersonaJob."""
+        job_data = _make_job_data(
+            source_linkedin.id,
+            job_title="Backend Developer",
+            company_name="NullBucketCo",
+            description="Code things at NullBucketCo.",
+            description_hash=hashlib.sha256(
+                b"Code things at NullBucketCo."
+            ).hexdigest(),
+        )
+        outcome = await deduplicate_and_save(
+            db_session,
+            job_data=job_data,
+            persona_id=persona_a.id,
+            user_id=user_a.id,
+        )
+        assert outcome.persona_job.search_bucket is None

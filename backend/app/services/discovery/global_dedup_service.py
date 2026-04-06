@@ -107,6 +107,7 @@ async def deduplicate_and_save(
     persona_id: uuid.UUID,
     user_id: uuid.UUID,
     discovery_method: Literal["scouter", "manual", "pool"] = "scouter",
+    search_bucket: Literal["fit", "stretch", "manual", "pool"] | None = None,
 ) -> DeduplicationOutcome:
     """Run the global dedup pipeline and save to shared pool.
 
@@ -124,6 +125,8 @@ async def deduplicate_and_save(
         persona_id: UUID of the discovering persona.
         user_id: UUID of the authenticated user (ownership check).
         discovery_method: How the job was discovered.
+        search_bucket: Search bucket that surfaced this job (fit/stretch/manual/pool).
+            None for legacy jobs or when bucket context is unavailable.
 
     Returns:
         DeduplicationOutcome with action, job posting, persona link,
@@ -146,7 +149,7 @@ async def deduplicate_and_save(
             await _maybe_lift_quarantine(db, existing, discovery_method)
 
             persona_job = await _create_or_get_link(
-                db, persona_id, existing.id, user_id, discovery_method
+                db, persona_id, existing.id, user_id, discovery_method, search_bucket
             )
             return DeduplicationOutcome(
                 action="update_existing",
@@ -169,7 +172,7 @@ async def deduplicate_and_save(
         await _maybe_lift_quarantine(db, existing, discovery_method)
 
         persona_job = await _create_or_get_link(
-            db, persona_id, existing.id, user_id, discovery_method
+            db, persona_id, existing.id, user_id, discovery_method, search_bucket
         )
         return DeduplicationOutcome(
             action="add_to_also_found_on",
@@ -190,7 +193,7 @@ async def deduplicate_and_save(
         repost_jp = await _create_repost(db, job_data, matched_job)
 
         persona_job = await _create_or_get_link(
-            db, persona_id, repost_jp.id, user_id, discovery_method
+            db, persona_id, repost_jp.id, user_id, discovery_method, search_bucket
         )
         return DeduplicationOutcome(
             action="create_linked_repost",
@@ -204,7 +207,7 @@ async def deduplicate_and_save(
     job_posting = await _create_with_conflict_recovery(db, job_data)
 
     persona_job = await _create_or_get_link(
-        db, persona_id, job_posting.id, user_id, discovery_method
+        db, persona_id, job_posting.id, user_id, discovery_method, search_bucket
     )
     return DeduplicationOutcome(
         action="create_new",
@@ -391,6 +394,7 @@ async def _create_or_get_link(
     job_posting_id: uuid.UUID,
     user_id: uuid.UUID,
     discovery_method: Literal["scouter", "manual", "pool"],
+    search_bucket: Literal["fit", "stretch", "manual", "pool"] | None = None,
 ) -> PersonaJob:
     """Create persona_jobs link, or return existing if already linked.
 
@@ -415,6 +419,7 @@ async def _create_or_get_link(
                 job_posting_id=job_posting_id,
                 discovery_method=discovery_method,
                 user_id=user_id,
+                search_bucket=search_bucket,
             )
         if persona_job is None:
             logger.warning("Persona %s not owned by user %s", persona_id, user_id)

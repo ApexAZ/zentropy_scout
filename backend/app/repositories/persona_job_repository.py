@@ -13,7 +13,7 @@ services/discovery/global_dedup_service.py, api/v1/job_postings.py.
 
 import uuid
 from datetime import datetime
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from sqlalchemy import select, update
 from sqlalchemy.engine import CursorResult
@@ -30,6 +30,7 @@ from app.models.persona_job import PersonaJob
 # - job_posting_id: FK, set at creation (changing would break the link)
 # - created_at/updated_at: server-managed timestamps
 # - discovered_at: set at creation, immutable
+# - search_bucket: set at discovery time only; reflects originating search bucket context
 _UPDATABLE_FIELDS: frozenset[str] = frozenset(
     {
         "status",
@@ -181,6 +182,7 @@ class PersonaJobRepository:
         stretch_score: int | None = None,
         failed_non_negotiables: list | None = None,
         score_details: dict | None = None,
+        search_bucket: Literal["fit", "stretch", "manual", "pool"] | None = None,
     ) -> PersonaJob | None:
         """Create a new PersonaJob link.
 
@@ -201,6 +203,8 @@ class PersonaJobRepository:
             stretch_score: Initial stretch score (0-100 or None).
             failed_non_negotiables: List of failed non-negotiable criteria.
             score_details: Detailed scoring breakdown.
+            search_bucket: Search bucket that surfaced this job (fit/stretch/manual/pool).
+                None for legacy jobs or when bucket context is unavailable.
 
         Returns:
             Created PersonaJob with database-generated fields populated,
@@ -229,6 +233,7 @@ class PersonaJobRepository:
             stretch_score=stretch_score,
             failed_non_negotiables=failed_non_negotiables,
             score_details=score_details,
+            search_bucket=search_bucket,
         )
         db.add(persona_job)
         await db.flush()
