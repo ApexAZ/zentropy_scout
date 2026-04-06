@@ -379,10 +379,10 @@ def _make_search_params(
     )
 
 
-def _make_adzuna_mock_client(
+def _make_async_http_client_mock(
     side_effect_or_return: Any,
 ) -> AsyncMock:
-    """Build a mock httpx AsyncClient context manager.
+    """Build a mock httpx AsyncClient context manager for adapter tests.
 
     Args:
         side_effect_or_return: A list of responses for sequential calls,
@@ -444,7 +444,9 @@ class TestAdzunaFetchJobs:
 
         adapter = AdzunaAdapter()
         page_data = {"results": [_make_adzuna_job("1"), _make_adzuna_job("2")]}
-        mock_client = _make_adzuna_mock_client(_make_http_response(json_body=page_data))
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=page_data)
+        )
 
         params = _make_search_params(keywords=["python"], results_per_page=25)
         with (
@@ -467,7 +469,7 @@ class TestAdzunaFetchJobs:
         adapter = AdzunaAdapter()
         page1 = {"results": [_make_adzuna_job("1"), _make_adzuna_job("2")]}
         page2 = {"results": []}
-        mock_client = _make_adzuna_mock_client(
+        mock_client = _make_async_http_client_mock(
             [_make_http_response(json_body=page1), _make_http_response(json_body=page2)]
         )
 
@@ -492,7 +494,7 @@ class TestAdzunaFetchJobs:
         adapter = AdzunaAdapter()
         page1 = {"results": [_make_adzuna_job(str(i)) for i in range(3)]}
         page2 = {"results": [_make_adzuna_job("99")]}
-        mock_client = _make_adzuna_mock_client(
+        mock_client = _make_async_http_client_mock(
             [_make_http_response(json_body=page1), _make_http_response(json_body=page2)]
         )
 
@@ -515,7 +517,7 @@ class TestAdzunaFetchJobs:
         from app.adapters.sources.adzuna import AdzunaAdapter
 
         adapter = AdzunaAdapter()
-        mock_client = _make_adzuna_mock_client(
+        mock_client = _make_async_http_client_mock(
             _make_http_response(json_body={"results": []})
         )
 
@@ -537,7 +539,7 @@ class TestAdzunaFetchJobs:
         from app.adapters.sources.adzuna import AdzunaAdapter
 
         adapter = AdzunaAdapter()
-        mock_client = _make_adzuna_mock_client(
+        mock_client = _make_async_http_client_mock(
             _make_http_response(json_body={"results": []})
         )
 
@@ -559,7 +561,7 @@ class TestAdzunaFetchJobs:
         from app.adapters.sources.adzuna import AdzunaAdapter
 
         adapter = AdzunaAdapter()
-        mock_client = _make_adzuna_mock_client(
+        mock_client = _make_async_http_client_mock(
             _make_http_response(json_body={"results": []})
         )
 
@@ -584,7 +586,7 @@ class TestAdzunaFetchJobs:
         from app.services.discovery.scouter_errors import SourceError, SourceErrorType
 
         adapter = AdzunaAdapter()
-        mock_client = _make_adzuna_mock_client(
+        mock_client = _make_async_http_client_mock(
             _make_http_response(status_code=429, headers={"Retry-After": "60"})
         )
 
@@ -611,7 +613,7 @@ class TestAdzunaFetchJobs:
         from app.services.discovery.scouter_errors import SourceError, SourceErrorType
 
         adapter = AdzunaAdapter()
-        mock_client = _make_adzuna_mock_client(_make_http_response(status_code=500))
+        mock_client = _make_async_http_client_mock(_make_http_response(status_code=500))
 
         params = _make_search_params(keywords=["python"])
         with (
@@ -635,13 +637,369 @@ class TestAdzunaFetchJobs:
         from app.services.discovery.scouter_errors import SourceError, SourceErrorType
 
         adapter = AdzunaAdapter()
-        mock_client = _make_adzuna_mock_client(httpx.TimeoutException("timed out"))
+        mock_client = _make_async_http_client_mock(httpx.TimeoutException("timed out"))
 
         params = _make_search_params(keywords=["python"])
         with (
             patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
             patch(
                 "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.TIMEOUT
+
+
+# =============================================================================
+# The Muse fetch_jobs() Tests (REQ-034 §5.3)
+# =============================================================================
+
+
+def _make_muse_job(job_id: int = 1, title: str = "Python Developer") -> dict[str, Any]:
+    """Build a minimal The Muse API job result dict."""
+    return {
+        "id": job_id,
+        "name": title,
+        "company": {"name": "Test Corp"},
+        "contents": "Do things",
+        "refs": {"landing_page": f"https://www.themuse.com/jobs/{job_id}"},
+        "locations": [{"name": "Remote"}],
+    }
+
+
+def _make_muse_response(
+    jobs: list[dict[str, Any]],
+    page_count: int = 1,
+) -> dict[str, Any]:
+    """Build a The Muse paginated response envelope."""
+    return {"results": jobs, "page_count": page_count, "total": len(jobs)}
+
+
+def _muse_settings_mock(api_key: str | None = "test-muse-key") -> MagicMock:
+    """Build a settings mock with optional The Muse API key (SecretStr pattern)."""
+    s = MagicMock()
+    if api_key is not None:
+        k = MagicMock()
+        k.get_secret_value.return_value = api_key
+        s.the_muse_api_key = k
+    else:
+        s.the_muse_api_key = None
+    return s
+
+
+class TestTheMuseFetchJobs:
+    """Tests for TheMuseAdapter.fetch_jobs() per REQ-034 §5.3.
+
+    Uses AsyncMock to mock httpx.AsyncClient — no network calls.
+    """
+
+    async def test_makes_unauthenticated_request_when_api_key_missing(self) -> None:
+        """fetch_jobs omits api_key param (unauthenticated tier) when key is None."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_muse_response([], page_count=1))
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch(
+                "app.adapters.sources.themuse.settings",
+                _muse_settings_mock(api_key=None),
+            ),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert result == []
+        call_kwargs = mock_client.get.call_args
+        assert "api_key" not in call_kwargs.kwargs.get("params", {})
+
+    async def test_includes_api_key_in_request_when_configured(self) -> None:
+        """fetch_jobs includes api_key query param when the_muse_api_key is set."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_muse_response([], page_count=1))
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch(
+                "app.adapters.sources.themuse.settings",
+                _muse_settings_mock(api_key="my-key"),
+            ),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["api_key"] == "my-key"
+
+    async def test_single_page_returns_keyword_matching_jobs(self) -> None:
+        """fetch_jobs returns normalized jobs whose titles match keywords."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        jobs = [
+            _make_muse_job(1, "Python Developer"),
+            _make_muse_job(2, "Python Engineer"),
+        ]
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_muse_response(jobs, page_count=1))
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 2
+        assert result[0].external_id == "1"
+        assert result[1].external_id == "2"
+
+    async def test_keyword_filter_discards_non_matching_jobs(self) -> None:
+        """fetch_jobs discards jobs whose titles don't contain any keyword."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        jobs = [
+            _make_muse_job(1, "Python Developer"),
+            _make_muse_job(2, "Marketing Manager"),
+            _make_muse_job(3, "Senior Python Engineer"),
+        ]
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_muse_response(jobs, page_count=1))
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 2
+        assert {r.external_id for r in result} == {"1", "3"}
+
+    async def test_keyword_filter_is_case_insensitive(self) -> None:
+        """fetch_jobs keyword filter matches regardless of case."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        jobs = [
+            _make_muse_job(1, "PYTHON DEVELOPER"),
+            _make_muse_job(2, "Python Engineer"),
+            _make_muse_job(3, "Accountant"),
+        ]
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_muse_response(jobs, page_count=1))
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 2
+
+    async def test_keyword_filter_matches_any_keyword(self) -> None:
+        """fetch_jobs keeps job if ANY keyword in params.keywords matches title."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        jobs = [
+            _make_muse_job(1, "Python Developer"),
+            _make_muse_job(2, "Java Engineer"),
+            _make_muse_job(3, "Project Manager"),
+        ]
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_muse_response(jobs, page_count=1))
+        )
+
+        params = _make_search_params(keywords=["python", "java"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 2
+        assert {r.external_id for r in result} == {"1", "2"}
+
+    async def test_pagination_fetches_all_pages_until_page_count(self) -> None:
+        """fetch_jobs paginates through all pages (0-indexed) until page >= page_count."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        page0_jobs = [_make_muse_job(i, "Python Dev") for i in range(1, 4)]
+        page1_jobs = [_make_muse_job(i, "Python Dev") for i in range(4, 7)]
+        mock_client = _make_async_http_client_mock(
+            [
+                _make_http_response(
+                    json_body=_make_muse_response(page0_jobs, page_count=2)
+                ),
+                _make_http_response(
+                    json_body=_make_muse_response(page1_jobs, page_count=2)
+                ),
+            ]
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 6
+        assert mock_client.get.call_count == 2
+
+    async def test_pagination_stops_when_page_count_reached(self) -> None:
+        """fetch_jobs stops after the last page (page_count=1 means only page 0)."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(
+                json_body=_make_muse_response(
+                    [_make_muse_job(1, "Python Dev")], page_count=1
+                )
+            )
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 1
+        assert mock_client.get.call_count == 1
+
+    async def test_pagination_stops_early_when_results_empty(self) -> None:
+        """fetch_jobs stops early when results list is empty before page_count reached."""
+        from app.adapters.sources.themuse import TheMuseAdapter
+
+        adapter = TheMuseAdapter()
+        # page_count=5 but first page returns no results — should stop after one call
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_muse_response([], page_count=5))
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert result == []
+        assert mock_client.get.call_count == 1
+
+    async def test_raises_source_error_with_retry_after_on_429(self) -> None:
+        """fetch_jobs raises SourceError(RATE_LIMITED) with retry_after on 429."""
+        import pytest
+
+        from app.adapters.sources.themuse import TheMuseAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = TheMuseAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(status_code=429, headers={"Retry-After": "30"})
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.RATE_LIMITED
+        assert exc_info.value.rate_limit_info is not None
+        assert exc_info.value.rate_limit_info.retry_after_seconds == 30
+
+    async def test_raises_source_error_on_500(self) -> None:
+        """fetch_jobs raises SourceError(API_DOWN) on HTTP 500."""
+        import pytest
+
+        from app.adapters.sources.themuse import TheMuseAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = TheMuseAdapter()
+        mock_client = _make_async_http_client_mock(_make_http_response(status_code=500))
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.API_DOWN
+
+    async def test_raises_source_error_on_timeout(self) -> None:
+        """fetch_jobs raises SourceError(TIMEOUT) on httpx.TimeoutException."""
+        import httpx
+        import pytest
+
+        from app.adapters.sources.themuse import TheMuseAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = TheMuseAdapter()
+        mock_client = _make_async_http_client_mock(httpx.TimeoutException("timed out"))
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.themuse.settings", _muse_settings_mock()),
+            patch(
+                "app.adapters.sources.themuse.httpx.AsyncClient",
                 return_value=mock_client,
             ),
             pytest.raises(SourceError) as exc_info,
