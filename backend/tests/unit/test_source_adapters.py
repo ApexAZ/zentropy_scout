@@ -1,12 +1,17 @@
 """Tests for job source adapters.
 
 REQ-007 §6.3: Source Adapters
+REQ-034 §5.3: fetch_jobs() implementations for Adzuna, The Muse, RemoteOK, USAJobs
 
 Tests verify:
 - Adapter factory
 - Concrete adapters (Adzuna, RemoteOK, TheMuse, USAJobs)
 - Normalization to common schema
+- fetch_jobs() pagination, delta params, error handling, credential-missing skip
 """
+
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # =============================================================================
 # Adapter Factory Tests (§6.3)
@@ -324,3 +329,323 @@ class TestAdapterNormalizeMissingRequiredKeys:
 
         with pytest.raises(KeyError):
             adapter.normalize(incomplete_response)
+
+
+# =============================================================================
+# Adzuna fetch_jobs() Tests (REQ-034 §5.3)
+# =============================================================================
+
+
+def _make_adzuna_job(job_id: str = "123", title: str = "Python Dev") -> dict[str, Any]:
+    """Build a minimal Adzuna API job result dict."""
+    return {
+        "id": job_id,
+        "title": title,
+        "company": {"display_name": "Test Corp"},
+        "description": "Do things",
+        "redirect_url": f"https://adzuna.com/jobs/{job_id}",
+    }
+
+
+def _make_http_response(
+    status_code: int = 200,
+    json_body: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+) -> MagicMock:
+    """Build a mock httpx Response."""
+    resp = MagicMock()
+    resp.status_code = status_code
+    resp.headers = headers or {}
+    resp.json.return_value = json_body or {}
+    return resp
+
+
+def _make_search_params(
+    keywords: list[str],
+    location: str | None = None,
+    remote_only: bool = False,
+    results_per_page: int = 25,
+    max_days_old: int | None = None,
+) -> Any:
+    """Build a SearchParams for adapter fetch_jobs() tests."""
+    from app.adapters.sources.base import SearchParams
+
+    return SearchParams(
+        keywords=keywords,
+        location=location,
+        remote_only=remote_only,
+        results_per_page=results_per_page,
+        max_days_old=max_days_old,
+    )
+
+
+def _make_adzuna_mock_client(
+    side_effect_or_return: Any,
+) -> AsyncMock:
+    """Build a mock httpx AsyncClient context manager.
+
+    Args:
+        side_effect_or_return: A list of responses for sequential calls,
+            a single response object for a constant return value, or an
+            Exception instance to be raised on get(). Exception-raising
+            paths can also be constructed inline for clarity.
+    """
+    mock_client = AsyncMock()
+    if isinstance(side_effect_or_return, (BaseException, list)):
+        mock_client.get = AsyncMock(side_effect=side_effect_or_return)
+    else:
+        mock_client.get = AsyncMock(return_value=side_effect_or_return)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    return mock_client
+
+
+def _adzuna_settings_mock(
+    app_id: str | None = "test-app-id",
+    app_key: str | None = "test-app-key",
+) -> MagicMock:
+    """Build a settings mock with Adzuna credentials."""
+    s = MagicMock()
+    s.adzuna_app_id = app_id
+    if app_key is not None:
+        k = MagicMock()
+        k.get_secret_value.return_value = app_key
+        s.adzuna_app_key = k
+    else:
+        s.adzuna_app_key = None
+    return s
+
+
+class TestAdzunaFetchJobs:
+    """Tests for AdzunaAdapter.fetch_jobs() per REQ-034 §5.3.
+
+    Uses AsyncMock to mock httpx.AsyncClient — no network calls.
+    """
+
+    async def test_returns_empty_list_when_credentials_missing(self) -> None:
+        """fetch_jobs returns [] without making HTTP calls when creds are None."""
+        from app.adapters.sources.adzuna import AdzunaAdapter
+
+        adapter = AdzunaAdapter()
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.adzuna.settings") as mock_settings,
+            patch("app.adapters.sources.adzuna.httpx") as mock_httpx,
+        ):
+            mock_settings.adzuna_app_id = None
+            mock_settings.adzuna_app_key = None
+            result = await adapter.fetch_jobs(params)
+        assert result == []
+        mock_httpx.AsyncClient.assert_not_called()
+
+    async def test_single_page_returns_normalized_jobs(self) -> None:
+        """fetch_jobs returns normalized jobs when page has fewer than results_per_page."""
+        from app.adapters.sources.adzuna import AdzunaAdapter
+
+        adapter = AdzunaAdapter()
+        page_data = {"results": [_make_adzuna_job("1"), _make_adzuna_job("2")]}
+        mock_client = _make_adzuna_mock_client(_make_http_response(json_body=page_data))
+
+        params = _make_search_params(keywords=["python"], results_per_page=25)
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 2
+        assert result[0].external_id == "1"
+        assert result[1].external_id == "2"
+
+    async def test_pagination_continues_on_full_page(self) -> None:
+        """fetch_jobs fetches page 2 when page 1 returns exactly results_per_page results."""
+        from app.adapters.sources.adzuna import AdzunaAdapter
+
+        adapter = AdzunaAdapter()
+        page1 = {"results": [_make_adzuna_job("1"), _make_adzuna_job("2")]}
+        page2 = {"results": []}
+        mock_client = _make_adzuna_mock_client(
+            [_make_http_response(json_body=page1), _make_http_response(json_body=page2)]
+        )
+
+        params = _make_search_params(keywords=["python"], results_per_page=2)
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            patch("app.adapters.sources.adzuna.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 2
+        assert mock_client.get.call_count == 2
+
+    async def test_pagination_stops_on_partial_page(self) -> None:
+        """fetch_jobs stops after page returning fewer results than results_per_page."""
+        from app.adapters.sources.adzuna import AdzunaAdapter
+
+        adapter = AdzunaAdapter()
+        page1 = {"results": [_make_adzuna_job(str(i)) for i in range(3)]}
+        page2 = {"results": [_make_adzuna_job("99")]}
+        mock_client = _make_adzuna_mock_client(
+            [_make_http_response(json_body=page1), _make_http_response(json_body=page2)]
+        )
+
+        params = _make_search_params(keywords=["python"], results_per_page=3)
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            patch("app.adapters.sources.adzuna.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 4  # 3 from page 1 + 1 from page 2
+        assert mock_client.get.call_count == 2
+
+    async def test_includes_max_days_old_in_query_params(self) -> None:
+        """fetch_jobs passes max_days_old as query param when set."""
+        from app.adapters.sources.adzuna import AdzunaAdapter
+
+        adapter = AdzunaAdapter()
+        mock_client = _make_adzuna_mock_client(
+            _make_http_response(json_body={"results": []})
+        )
+
+        params = _make_search_params(keywords=["python"], max_days_old=7)
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["max_days_old"] == 7
+
+    async def test_uses_remote_where_when_remote_only(self) -> None:
+        """fetch_jobs sets where=remote when params.remote_only is True."""
+        from app.adapters.sources.adzuna import AdzunaAdapter
+
+        adapter = AdzunaAdapter()
+        mock_client = _make_adzuna_mock_client(
+            _make_http_response(json_body={"results": []})
+        )
+
+        params = _make_search_params(keywords=["python"], remote_only=True)
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["where"] == "remote"
+
+    async def test_uses_location_where_when_not_remote_only(self) -> None:
+        """fetch_jobs sets where=location when location is set and not remote_only."""
+        from app.adapters.sources.adzuna import AdzunaAdapter
+
+        adapter = AdzunaAdapter()
+        mock_client = _make_adzuna_mock_client(
+            _make_http_response(json_body={"results": []})
+        )
+
+        params = _make_search_params(keywords=["python"], location="San Francisco")
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["where"] == "San Francisco"
+
+    async def test_raises_source_error_with_retry_after_on_429(self) -> None:
+        """fetch_jobs raises SourceError(RATE_LIMITED) with retry_after seconds on 429."""
+        import pytest
+
+        from app.adapters.sources.adzuna import AdzunaAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = AdzunaAdapter()
+        mock_client = _make_adzuna_mock_client(
+            _make_http_response(status_code=429, headers={"Retry-After": "60"})
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.RATE_LIMITED
+        assert exc_info.value.rate_limit_info is not None
+        assert exc_info.value.rate_limit_info.retry_after_seconds == 60
+
+    async def test_raises_source_error_on_500(self) -> None:
+        """fetch_jobs raises SourceError(API_DOWN) on HTTP 500."""
+        import pytest
+
+        from app.adapters.sources.adzuna import AdzunaAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = AdzunaAdapter()
+        mock_client = _make_adzuna_mock_client(_make_http_response(status_code=500))
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.API_DOWN
+
+    async def test_raises_source_error_on_timeout(self) -> None:
+        """fetch_jobs raises SourceError(TIMEOUT) on httpx.TimeoutException."""
+        import httpx
+        import pytest
+
+        from app.adapters.sources.adzuna import AdzunaAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = AdzunaAdapter()
+        mock_client = _make_adzuna_mock_client(httpx.TimeoutException("timed out"))
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch("app.adapters.sources.adzuna.settings", _adzuna_settings_mock()),
+            patch(
+                "app.adapters.sources.adzuna.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.TIMEOUT

@@ -23,6 +23,9 @@ from typing import Any
 _TAG_RE = re.compile(r"^[a-zA-Z0-9._-]{1,64}$")
 _MAX_REMOTEOK_TAGS = 10
 _MAX_DAYS_OLD = 90
+_MIN_RESULTS_PER_PAGE = (
+    1  # Prevents infinite pagination loop when termination checks len < N
+)
 
 
 @dataclass
@@ -72,6 +75,11 @@ class SearchParams:
         ):
             raise ValueError(
                 f"max_days_old must be between 1 and {_MAX_DAYS_OLD}, got {self.max_days_old}"
+            )
+        if self.results_per_page < _MIN_RESULTS_PER_PAGE:
+            raise ValueError(
+                f"results_per_page must be at least {_MIN_RESULTS_PER_PAGE},"
+                f" got {self.results_per_page}"
             )
         if self.remoteok_tags is not None:
             if len(self.remoteok_tags) > _MAX_REMOTEOK_TAGS:
