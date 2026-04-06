@@ -78,7 +78,7 @@ class TestAbstractEnforcement:
             async def stream(self, _messages, _task, **_kwargs):  # type: ignore[override]
                 yield ""
 
-            def get_model_for_task(self, _task: TaskType) -> str:
+            def get_model_for_task(self, _task: TaskType) -> str:  # pyright: ignore[reportIncompatibleMethodOverride]
                 return "test"
 
         with pytest.raises(TypeError, match="provider_name"):
@@ -89,7 +89,7 @@ class TestAbstractEnforcement:
         from app.providers.embedding.base import EmbeddingProvider
 
         class IncompleteEmbedding(EmbeddingProvider):
-            async def embed(self, _texts: list[str]) -> EmbeddingResult: ...
+            async def embed(self, _texts: list[str]) -> EmbeddingResult: ...  # pyright: ignore[reportIncompatibleMethodOverride]
 
             @property
             def dimensions(self) -> int:

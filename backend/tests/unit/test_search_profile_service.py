@@ -8,6 +8,7 @@ parsing, error propagation, and stub-mode (provider=None) behavior.
 
 import json
 import uuid
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -101,12 +102,12 @@ class _FakeProfile:
         self.persona_fingerprint = fingerprint
 
 
-def _make_skill(name: str) -> _FakeSkill:
+def _make_skill(name: str) -> Any:
     """Build a fake skill object with the given skill_name."""
     return _FakeSkill(name)
 
 
-def _make_persona(**overrides: object) -> _FakePersona:
+def _make_persona(**overrides: object) -> Any:
     """Build a fake Persona-like object with fingerprint fields set."""
     return _FakePersona(**overrides)
 

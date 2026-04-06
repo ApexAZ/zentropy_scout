@@ -7,6 +7,7 @@ exercise the real schema including UNIQUE constraints and JSONB storage.
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -42,7 +43,7 @@ _STRETCH_BUCKET = SearchBucketSchema(
 
 def _make_create(persona_id: uuid.UUID, **overrides: object) -> SearchProfileCreate:
     """Build a minimal valid SearchProfileCreate for a given persona."""
-    defaults: dict[str, object] = {
+    defaults: dict[str, Any] = {
         "persona_id": persona_id,
         "fit_searches": [_FIT_BUCKET],
         "stretch_searches": [_STRETCH_BUCKET],

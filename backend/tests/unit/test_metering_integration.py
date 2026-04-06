@@ -72,7 +72,7 @@ class _HaikuMockProvider(MockLLMProvider):
     def provider_name(self) -> str:
         return _CLAUDE_PROVIDER
 
-    async def complete(
+    async def complete(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         messages: list[LLMMessage],
         task: TaskType,
@@ -100,7 +100,7 @@ class _FailingMockProvider(MockLLMProvider):
     def provider_name(self) -> str:
         return _CLAUDE_PROVIDER
 
-    async def complete(
+    async def complete(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         _messages: list[LLMMessage],
         _task: TaskType,
