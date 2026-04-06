@@ -1007,3 +1007,344 @@ class TestTheMuseFetchJobs:
             await adapter.fetch_jobs(params)
 
         assert exc_info.value.error_type == SourceErrorType.TIMEOUT
+
+
+# =============================================================================
+# RemoteOK fetch_jobs() Tests (REQ-034 §5.3)
+# =============================================================================
+
+
+def _make_remoteok_api_job(
+    job_id: str = "rok-1",
+    position: str = "Backend Engineer",
+) -> dict[str, Any]:
+    """Build a minimal RemoteOK API job dict."""
+    return {
+        "id": job_id,
+        "position": position,
+        "company": "Remote Corp",
+        "description": "Build distributed systems",
+        "url": f"https://remoteok.com/remote-jobs/{job_id}",
+    }
+
+
+def _make_remoteok_api_response(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Build a RemoteOK API response list with metadata object at index 0.
+
+    The real RemoteOK API prepends a legal/metadata notice at index 0.
+    RemoteOKAdapter.fetch_jobs() skips this object and processes indices 1+.
+    """
+    metadata: dict[str, Any] = {
+        "legal": "RemoteOK Terms",
+        "apiVersion": "11",
+        "url": "https://remoteok.com/api",
+    }
+    return [metadata, *jobs]
+
+
+class TestRemoteOKFetchJobs:
+    """Tests for RemoteOKAdapter.fetch_jobs() per REQ-034 §5.3.
+
+    Uses AsyncMock to mock httpx.AsyncClient — no network calls.
+    RemoteOK requires no credentials: no settings mock needed.
+    """
+
+    async def test_skips_metadata_at_index_zero_and_returns_jobs(self) -> None:
+        """fetch_jobs skips index-0 metadata object and returns remaining jobs."""
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+
+        adapter = RemoteOKAdapter()
+        jobs = [_make_remoteok_api_job("1"), _make_remoteok_api_job("2")]
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_remoteok_api_response(jobs))
+        )
+
+        params = _make_search_params(keywords=["backend"])
+        with patch(
+            "app.adapters.sources.remoteok.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 2
+        assert result[0].external_id == "1"
+        assert result[1].external_id == "2"
+
+    async def test_makes_single_http_call_no_pagination(self) -> None:
+        """fetch_jobs makes exactly one GET call (no pagination)."""
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(
+                json_body=_make_remoteok_api_response(
+                    [_make_remoteok_api_job("1"), _make_remoteok_api_job("2")]
+                )
+            )
+        )
+
+        params = _make_search_params(keywords=["backend"])
+        with patch(
+            "app.adapters.sources.remoteok.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert mock_client.get.call_count == 1
+
+    async def test_appends_tag_param_when_remoteok_tags_set(self) -> None:
+        """fetch_jobs passes first remoteok_tag as ?tag= query param."""
+        from app.adapters.sources.base import SearchParams
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_remoteok_api_response([]))
+        )
+
+        params = SearchParams(keywords=["python"], remoteok_tags=["python", "backend"])
+        with patch(
+            "app.adapters.sources.remoteok.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["tag"] == "python"
+
+    async def test_omits_tag_param_when_remoteok_tags_empty(self) -> None:
+        """fetch_jobs omits ?tag when remoteok_tags is an empty list."""
+        from app.adapters.sources.base import SearchParams
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_remoteok_api_response([]))
+        )
+
+        params = SearchParams(keywords=["python"], remoteok_tags=[])
+        with patch(
+            "app.adapters.sources.remoteok.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert "tag" not in call_kwargs.kwargs.get("params", {})
+
+    async def test_omits_tag_param_when_remoteok_tags_none(self) -> None:
+        """fetch_jobs omits ?tag when remoteok_tags is None."""
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_remoteok_api_response([]))
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with patch(
+            "app.adapters.sources.remoteok.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert "tag" not in call_kwargs.kwargs.get("params", {})
+
+    async def test_returns_empty_list_when_no_jobs_after_metadata(self) -> None:
+        """fetch_jobs returns [] when response contains only the metadata object."""
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_remoteok_api_response([]))
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with patch(
+            "app.adapters.sources.remoteok.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert result == []
+
+    async def test_skips_malformed_jobs_and_continues(self) -> None:
+        """fetch_jobs skips jobs where normalize() raises KeyError and processes remaining."""
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+
+        adapter = RemoteOKAdapter()
+        # Missing 'position' field will cause KeyError in normalize()
+        bad_job: dict[str, Any] = {
+            "id": "bad",
+            "company": "Bad Corp",
+            "description": "No title",
+            "url": "https://remoteok.com/remote-jobs/bad",
+        }
+        good_job = _make_remoteok_api_job("good")
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(
+                json_body=_make_remoteok_api_response([bad_job, good_job])
+            )
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with patch(
+            "app.adapters.sources.remoteok.httpx.AsyncClient",
+            return_value=mock_client,
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 1
+        assert result[0].external_id == "good"
+
+    async def test_raises_source_error_with_retry_after_on_429(self) -> None:
+        """fetch_jobs raises SourceError(RATE_LIMITED) with retry_after seconds on 429."""
+        import pytest
+
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(status_code=429, headers={"Retry-After": "120"})
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch(
+                "app.adapters.sources.remoteok.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.RATE_LIMITED
+        assert exc_info.value.rate_limit_info is not None
+        assert exc_info.value.rate_limit_info.retry_after_seconds == 120
+
+    async def test_raises_source_error_on_429_without_retry_after_header(self) -> None:
+        """fetch_jobs raises SourceError(RATE_LIMITED) with rate_limit_info=None when header absent."""
+        import pytest
+
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = RemoteOKAdapter()
+        # 429 with no Retry-After header
+        mock_client = _make_async_http_client_mock(_make_http_response(status_code=429))
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch(
+                "app.adapters.sources.remoteok.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.RATE_LIMITED
+        assert exc_info.value.rate_limit_info is None
+
+    async def test_raises_source_error_on_429_with_non_integer_retry_after(
+        self,
+    ) -> None:
+        """fetch_jobs raises SourceError(RATE_LIMITED) with rate_limit_info=None on HTTP-date Retry-After."""
+        import pytest
+
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = RemoteOKAdapter()
+        # Non-integer Retry-After (HTTP-date format) — ValueError guard should yield rate_limit_info=None
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(
+                status_code=429,
+                headers={"Retry-After": "Fri, 01 Jan 2027 00:00:00 GMT"},
+            )
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch(
+                "app.adapters.sources.remoteok.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.RATE_LIMITED
+        assert exc_info.value.rate_limit_info is None
+
+    async def test_raises_source_error_on_500(self) -> None:
+        """fetch_jobs raises SourceError(API_DOWN) on HTTP 500."""
+        import pytest
+
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(_make_http_response(status_code=500))
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch(
+                "app.adapters.sources.remoteok.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.API_DOWN
+
+    async def test_raises_source_error_on_timeout(self) -> None:
+        """fetch_jobs raises SourceError(TIMEOUT) on httpx.TimeoutException."""
+        import httpx
+        import pytest
+
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(httpx.TimeoutException("timed out"))
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch(
+                "app.adapters.sources.remoteok.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.TIMEOUT
+
+    async def test_raises_source_error_on_network_error(self) -> None:
+        """fetch_jobs raises SourceError(NETWORK_ERROR) on httpx.RequestError."""
+        import httpx
+        import pytest
+
+        from app.adapters.sources.remoteok import RemoteOKAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = RemoteOKAdapter()
+        mock_client = _make_async_http_client_mock(
+            httpx.ConnectError("connection refused")
+        )
+
+        params = _make_search_params(keywords=["python"])
+        with (
+            patch(
+                "app.adapters.sources.remoteok.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.NETWORK_ERROR
