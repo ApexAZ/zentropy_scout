@@ -1348,3 +1348,498 @@ class TestRemoteOKFetchJobs:
             await adapter.fetch_jobs(params)
 
         assert exc_info.value.error_type == SourceErrorType.NETWORK_ERROR
+
+
+# =============================================================================
+# USAJobs fetch_jobs() Tests (REQ-034 §5.3)
+# =============================================================================
+
+
+def _make_usajobs_api_item(
+    job_id: str = "usa-1",
+    title: str = "IT Specialist",
+) -> dict[str, Any]:
+    """Build a minimal USAJobs SearchResultItem dict."""
+    return {
+        "MatchedObjectId": job_id,
+        "MatchedObjectDescriptor": {
+            "PositionTitle": title,
+            "OrganizationName": "Department of Example",
+            "UserArea": {"Details": {"JobSummary": "Do IT things."}},
+            "PositionLocation": [{"LocationName": "Washington, DC"}],
+            "PositionRemuneration": [],
+            "ApplyURI": [f"https://www.usajobs.gov/job/{job_id}"],
+        },
+    }
+
+
+def _make_usajobs_api_response(
+    items: list[dict[str, Any]],
+    number_of_pages: int = 1,
+) -> dict[str, Any]:
+    """Build a USAJobs API response envelope with given items and page count."""
+    return {
+        "SearchResult": {
+            "SearchResultItems": items,
+            "UserArea": {"NumberOfPages": number_of_pages},
+        }
+    }
+
+
+def _usajobs_settings_mock(
+    user_agent: str | None = "ZentropScout/1.0",
+    email: str | None = "test@example.com",
+) -> MagicMock:
+    """Build a settings mock with USAJobs credentials."""
+    s = MagicMock()
+    s.usajobs_user_agent = user_agent
+    s.usajobs_email = email
+    return s
+
+
+class TestUSAJobsFetchJobs:
+    """Tests for USAJobsAdapter.fetch_jobs() per REQ-034 §5.3.
+
+    Uses AsyncMock to mock httpx.AsyncClient — no network calls.
+    """
+
+    async def test_returns_empty_list_when_user_agent_missing(self) -> None:
+        """fetch_jobs returns [] without HTTP calls when usajobs_user_agent is None."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings") as mock_settings,
+            patch("app.adapters.sources.usajobs.httpx") as mock_httpx,
+        ):
+            mock_settings.usajobs_user_agent = None
+            mock_settings.usajobs_email = "test@example.com"
+            result = await adapter.fetch_jobs(params)
+        assert result == []
+        mock_httpx.AsyncClient.assert_not_called()
+
+    async def test_returns_empty_list_when_email_missing(self) -> None:
+        """fetch_jobs returns [] without HTTP calls when usajobs_email is None."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings") as mock_settings,
+            patch("app.adapters.sources.usajobs.httpx") as mock_httpx,
+        ):
+            mock_settings.usajobs_user_agent = "ZentropScout/1.0"
+            mock_settings.usajobs_email = None
+            result = await adapter.fetch_jobs(params)
+        assert result == []
+        mock_httpx.AsyncClient.assert_not_called()
+
+    async def test_single_page_returns_normalized_jobs(self) -> None:
+        """fetch_jobs returns normalized jobs from a single-page response."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        items = [_make_usajobs_api_item("usa-1"), _make_usajobs_api_item("usa-2")]
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(
+                json_body=_make_usajobs_api_response(items, number_of_pages=1)
+            )
+        )
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 2
+        assert result[0].external_id == "usa-1"
+        assert result[1].external_id == "usa-2"
+
+    async def test_sends_correct_auth_headers(self) -> None:
+        """fetch_jobs passes required USAJobs auth headers on every request."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_usajobs_api_response([]))
+        )
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        headers = call_kwargs.kwargs["headers"]
+        assert headers["Authorization"] == "USAJOBS-DEMO-TOKEN"
+        assert headers["User-Agent"] == "ZentropScout/1.0"
+        assert headers["Email-Address"] == "test@example.com"
+        assert headers["Host"] == "data.usajobs.gov"
+
+    async def test_pagination_fetches_all_pages_up_to_number_of_pages(self) -> None:
+        """fetch_jobs paginates through all pages reported by NumberOfPages."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        responses = [
+            _make_http_response(
+                json_body=_make_usajobs_api_response(
+                    [_make_usajobs_api_item(f"usa-{i}")], number_of_pages=3
+                )
+            )
+            for i in range(1, 4)
+        ]
+        mock_client = _make_async_http_client_mock(responses)
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert mock_client.get.call_count == 3
+        assert len(result) == 3
+
+    async def test_pagination_hard_caps_at_20_pages(self) -> None:
+        """fetch_jobs stops at 20 pages even when NumberOfPages exceeds 20."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        responses = [
+            _make_http_response(
+                json_body=_make_usajobs_api_response(
+                    [_make_usajobs_api_item(f"usa-{i}")], number_of_pages=25
+                )
+            )
+            for i in range(25)
+        ]
+        mock_client = _make_async_http_client_mock(responses)
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert mock_client.get.call_count == 20
+        assert len(result) == 20
+
+    async def test_sends_date_posted_param_when_max_days_old_set(self) -> None:
+        """fetch_jobs sends DatePosted query param when max_days_old is set."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_usajobs_api_response([]))
+        )
+
+        params = _make_search_params(keywords=["IT"], max_days_old=7)
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["DatePosted"] == 7
+
+    async def test_omits_date_posted_param_when_max_days_old_is_none(self) -> None:
+        """fetch_jobs omits DatePosted when max_days_old is None."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_usajobs_api_response([]))
+        )
+
+        params = _make_search_params(keywords=["IT"])  # max_days_old defaults to None
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert "DatePosted" not in call_kwargs.kwargs.get("params", {})
+
+    async def test_sends_remote_indicator_when_remote_only(self) -> None:
+        """fetch_jobs sends RemoteIndicator=True when params.remote_only is True."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_usajobs_api_response([]))
+        )
+
+        params = _make_search_params(keywords=["IT"], remote_only=True)
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["RemoteIndicator"] == "True"
+        assert "LocationName" not in call_kwargs.kwargs["params"]
+
+    async def test_sends_location_name_when_location_set_and_not_remote(self) -> None:
+        """fetch_jobs sends LocationName when location set and remote_only is False."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_usajobs_api_response([]))
+        )
+
+        params = _make_search_params(keywords=["IT"], location="Washington, DC")
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["LocationName"] == "Washington, DC"
+        assert "RemoteIndicator" not in call_kwargs.kwargs["params"]
+
+    async def test_results_per_page_capped_at_500(self) -> None:
+        """fetch_jobs caps ResultsPerPage at 500 regardless of params.results_per_page."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(json_body=_make_usajobs_api_response([]))
+        )
+
+        params = _make_search_params(keywords=["IT"], results_per_page=1000)
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            await adapter.fetch_jobs(params)
+
+        call_kwargs = mock_client.get.call_args
+        assert call_kwargs.kwargs["params"]["ResultsPerPage"] == 500
+
+    async def test_skips_malformed_jobs_and_continues(self) -> None:
+        """fetch_jobs skips items where normalize() raises and processes remaining."""
+        from app.adapters.sources.usajobs import USAJobsAdapter
+
+        adapter = USAJobsAdapter()
+        # Missing 'MatchedObjectId' will cause KeyError in normalize()
+        bad_item: dict[str, Any] = {
+            "MatchedObjectDescriptor": {
+                "PositionTitle": "IT Specialist",
+                "OrganizationName": "Bad Agency",
+            }
+        }
+        good_item = _make_usajobs_api_item("usa-good")
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(
+                json_body=_make_usajobs_api_response([bad_item, good_item])
+            )
+        )
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+        ):
+            result = await adapter.fetch_jobs(params)
+
+        assert len(result) == 1
+        assert result[0].external_id == "usa-good"
+
+    async def test_raises_source_error_with_retry_after_on_429(self) -> None:
+        """fetch_jobs raises SourceError(RATE_LIMITED) with retry_after on 429."""
+        import pytest
+
+        from app.adapters.sources.usajobs import USAJobsAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(status_code=429, headers={"Retry-After": "60"})
+        )
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.RATE_LIMITED
+        assert exc_info.value.rate_limit_info is not None
+        assert exc_info.value.rate_limit_info.retry_after_seconds == 60
+
+    async def test_raises_source_error_on_429_without_retry_after_header(self) -> None:
+        """fetch_jobs raises SourceError(RATE_LIMITED) with rate_limit_info=None when header absent."""
+        import pytest
+
+        from app.adapters.sources.usajobs import USAJobsAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(status_code=429, headers={})
+        )
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.RATE_LIMITED
+        assert exc_info.value.rate_limit_info is None
+
+    async def test_raises_source_error_on_429_with_non_integer_retry_after(
+        self,
+    ) -> None:
+        """fetch_jobs raises SourceError(RATE_LIMITED) with rate_limit_info=None for HTTP-date header."""
+        import pytest
+
+        from app.adapters.sources.usajobs import USAJobsAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            _make_http_response(
+                status_code=429,
+                headers={"Retry-After": "Wed, 21 Oct 2025 07:28:00 GMT"},
+            )
+        )
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.RATE_LIMITED
+        assert exc_info.value.rate_limit_info is None
+
+    async def test_raises_source_error_on_500(self) -> None:
+        """fetch_jobs raises SourceError(API_DOWN) on HTTP 500."""
+        import pytest
+
+        from app.adapters.sources.usajobs import USAJobsAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(_make_http_response(status_code=500))
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.API_DOWN
+
+    async def test_raises_source_error_on_timeout(self) -> None:
+        """fetch_jobs raises SourceError(TIMEOUT) on httpx.TimeoutException."""
+        import httpx
+        import pytest
+
+        from app.adapters.sources.usajobs import USAJobsAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(httpx.TimeoutException("timed out"))
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.TIMEOUT
+
+    async def test_raises_source_error_on_network_error(self) -> None:
+        """fetch_jobs raises SourceError(NETWORK_ERROR) on httpx.RequestError."""
+        import httpx
+        import pytest
+
+        from app.adapters.sources.usajobs import USAJobsAdapter
+        from app.services.discovery.scouter_errors import SourceError, SourceErrorType
+
+        adapter = USAJobsAdapter()
+        mock_client = _make_async_http_client_mock(
+            httpx.ConnectError("connection refused")
+        )
+
+        params = _make_search_params(keywords=["IT"])
+        with (
+            patch("app.adapters.sources.usajobs.settings", _usajobs_settings_mock()),
+            patch(
+                "app.adapters.sources.usajobs.httpx.AsyncClient",
+                return_value=mock_client,
+            ),
+            pytest.raises(SourceError) as exc_info,
+        ):
+            await adapter.fetch_jobs(params)
+
+        assert exc_info.value.error_type == SourceErrorType.NETWORK_ERROR
