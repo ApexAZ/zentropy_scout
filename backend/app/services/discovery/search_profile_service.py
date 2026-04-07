@@ -312,7 +312,7 @@ async def generate_profile(
             SearchBucketSchema.model_validate(b)
             for b in data.get("stretch_searches", [])
         ]
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         logger.error(
             "Unparseable LLM JSON for search profile generation (persona %s): %s",
             persona.id,
