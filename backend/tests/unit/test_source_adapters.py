@@ -349,7 +349,7 @@ def _make_adzuna_job(job_id: str = "123", title: str = "Python Dev") -> dict[str
 
 def _make_http_response(
     status_code: int = 200,
-    json_body: dict[str, Any] | None = None,
+    json_body: dict[str, Any] | list[dict[str, Any]] | None = None,
     headers: dict[str, str] | None = None,
 ) -> MagicMock:
     """Build a mock httpx Response."""
