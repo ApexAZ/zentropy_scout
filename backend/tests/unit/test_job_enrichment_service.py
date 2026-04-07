@@ -3,11 +3,14 @@
 REQ-016 §6.3: Enriches raw job postings with extracted skills and ghost detection.
 """
 
+import json
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.providers.errors import ProviderError
+from app.providers.llm.base import LLMProvider
 from app.services.discovery.job_enrichment_service import JobEnrichmentService
 
 _GHOST_SCORE_MOCK_TARGET = (
@@ -244,3 +247,143 @@ class TestEnrichJobs:
         """Empty job list returns empty list."""
         result = await JobEnrichmentService.enrich_jobs([])
         assert result == []
+
+    async def test_enrich_jobs_uses_provider_for_extraction(
+        self, mock_ghost_signals: MagicMock
+    ):
+        """enrich_jobs passes provider through to skill extraction."""
+        mock_response = MagicMock()
+        mock_response.content = json.dumps(
+            {
+                "required_skills": ["Go"],
+                "preferred_skills": [],
+                "culture_text": None,
+            }
+        )
+        mock_provider = AsyncMock(spec=LLMProvider)
+        mock_provider.complete = AsyncMock(return_value=mock_response)
+        jobs: list[dict[str, Any]] = [
+            {"external_id": "ext-001", "description": "Build microservices in Go"}
+        ]
+
+        with patch(
+            _GHOST_SCORE_MOCK_TARGET,
+            new_callable=AsyncMock,
+            return_value=mock_ghost_signals,
+        ):
+            result = await JobEnrichmentService.enrich_jobs(
+                jobs, provider=mock_provider
+            )
+
+        assert result[0]["required_skills"] == ["Go"]
+
+
+# ---------------------------------------------------------------------------
+# extract_skills_and_culture — LLM path
+# ---------------------------------------------------------------------------
+
+
+class TestExtractSkillsAndCultureWithProvider:
+    """Tests for LLM skill extraction when a provider is supplied (REQ-034 §8)."""
+
+    async def test_provider_none_returns_empty_extraction(self):
+        """No provider → empty extraction returned without LLM call."""
+        result = await JobEnrichmentService.extract_skills_and_culture(
+            "Build APIs with Python",
+            provider=None,
+        )
+        assert result["required_skills"] == []
+        assert result["preferred_skills"] == []
+        assert result["culture_text"] is None
+
+    async def test_valid_json_populates_skills_and_culture(self):
+        """Valid LLM JSON response populates all three extraction fields."""
+        mock_response = MagicMock()
+        mock_response.content = json.dumps(
+            {
+                "required_skills": ["Python", "FastAPI"],
+                "preferred_skills": ["Docker"],
+                "culture_text": "Collaborative team",
+            }
+        )
+        mock_provider = AsyncMock(spec=LLMProvider)
+        mock_provider.complete = AsyncMock(return_value=mock_response)
+
+        result = await JobEnrichmentService.extract_skills_and_culture(
+            "Build APIs with Python, FastAPI",
+            provider=mock_provider,
+        )
+
+        assert result["required_skills"] == ["Python", "FastAPI"]
+        assert result["preferred_skills"] == ["Docker"]
+        assert result["culture_text"] == "Collaborative team"
+
+    async def test_provider_error_returns_empty_extraction(self):
+        """ProviderError → empty extraction returned without raising (non-blocking)."""
+        mock_provider = AsyncMock(spec=LLMProvider)
+        mock_provider.complete = AsyncMock(side_effect=ProviderError("LLM down"))
+
+        result = await JobEnrichmentService.extract_skills_and_culture(
+            "Build APIs with Python",
+            provider=mock_provider,
+        )
+
+        assert result["required_skills"] == []
+        assert result["preferred_skills"] == []
+        assert result["culture_text"] is None
+
+    async def test_invalid_json_returns_empty_extraction(self):
+        """Non-JSON LLM response → empty extraction returned without raising."""
+        mock_response = MagicMock()
+        mock_response.content = "not valid json {{ garbage }}"
+        mock_provider = AsyncMock(spec=LLMProvider)
+        mock_provider.complete = AsyncMock(return_value=mock_response)
+
+        result = await JobEnrichmentService.extract_skills_and_culture(
+            "Build APIs with Python",
+            provider=mock_provider,
+        )
+
+        assert result["required_skills"] == []
+        assert result["preferred_skills"] == []
+        assert result["culture_text"] is None
+
+    async def test_none_content_returns_empty_extraction(self):
+        """LLM response.content = None → empty extraction returned without raising."""
+        mock_response = MagicMock()
+        mock_response.content = None
+        mock_provider = AsyncMock(spec=LLMProvider)
+        mock_provider.complete = AsyncMock(return_value=mock_response)
+
+        result = await JobEnrichmentService.extract_skills_and_culture(
+            "Build APIs with Python",
+            provider=mock_provider,
+        )
+
+        assert result["required_skills"] == []
+        assert result["preferred_skills"] == []
+        assert result["culture_text"] is None
+
+    async def test_complete_called_with_extraction_task_type(self):
+        """provider.complete is called with TaskType.EXTRACTION for model routing."""
+        from app.providers.llm.base import TaskType
+
+        mock_response = MagicMock()
+        mock_response.content = json.dumps(
+            {
+                "required_skills": [],
+                "preferred_skills": [],
+                "culture_text": None,
+            }
+        )
+        mock_provider = AsyncMock(spec=LLMProvider)
+        mock_provider.complete = AsyncMock(return_value=mock_response)
+
+        await JobEnrichmentService.extract_skills_and_culture(
+            "Backend role",
+            provider=mock_provider,
+        )
+
+        mock_provider.complete.assert_called_once()
+        call_kwargs = mock_provider.complete.call_args
+        assert call_kwargs.kwargs.get("task") == TaskType.EXTRACTION
