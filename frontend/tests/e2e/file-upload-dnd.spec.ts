@@ -116,7 +116,7 @@ test.describe("File Upload DnD", () => {
 		});
 
 		// Auto-advance to step 2 after successful upload + 1.5s delay
-		await expect(page.getByText("Step 2 of 11")).toBeVisible({
+		await expect(page.getByText("Step 2 of 12")).toBeVisible({
 			timeout: 5000,
 		});
 	});

@@ -115,6 +115,29 @@ export const test = base.extend({
 			});
 		});
 
+		// JobSearchSection search profile (GET/PATCH /search-profiles/*)
+		// Returns a minimal valid SearchProfile so settings page renders.
+		await page.route(/\/api\/v1\/search-profiles/, async (route) => {
+			await route.fulfill({
+				status: 200,
+				contentType: "application/json",
+				body: JSON.stringify({
+					data: {
+						id: "sp-base",
+						persona_id: "base-persona",
+						fit_searches: [],
+						stretch_searches: [],
+						persona_fingerprint: "fp-base",
+						is_stale: false,
+						generated_at: null,
+						approved_at: null,
+						created_at: "2026-01-01T00:00:00Z",
+						updated_at: "2026-01-01T00:00:00Z",
+					},
+				}),
+			});
+		});
+
 		// eslint-disable-next-line react-hooks/rules-of-hooks -- Playwright fixture, not a React hook
 		await use(page);
 	},

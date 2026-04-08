@@ -1,7 +1,7 @@
 /**
- * E2E tests for the 11-step onboarding flow.
+ * E2E tests for the 12-step onboarding flow.
  *
- * REQ-012 §6: New user onboarding wizard.
+ * REQ-012 §6, REQ-034 §9.1: New user onboarding wizard.
  * All API calls are mocked via Playwright's page.route() — no real backend.
  */
 
@@ -61,7 +61,7 @@ test.describe("Onboarding Gate", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Happy Path", () => {
-	test("completes full onboarding from step 1 through step 11", async ({
+	test("completes full onboarding from step 1 through step 12", async ({
 		page,
 	}) => {
 		test.slow();
@@ -70,12 +70,12 @@ test.describe("Happy Path", () => {
 		await page.goto("/onboarding");
 
 		// ---- Step 1: Resume Upload (skip) ----
-		await expect(page.getByText("Step 1 of 11")).toBeVisible();
+		await expect(page.getByText("Step 1 of 12")).toBeVisible();
 		await expect(page.getByTestId("drop-zone")).toBeVisible();
 		await page.getByText(SKIP_MANUAL_ENTRY).click();
 
 		// ---- Step 2: Basic Info ----
-		await expect(page.getByText("Step 2 of 11")).toBeVisible();
+		await expect(page.getByText("Step 2 of 12")).toBeVisible();
 		await page.getByLabel("Full Name").fill("Jane Doe");
 		await page.getByLabel("Email").fill("jane@example.com");
 		await page.getByLabel("Phone").fill("+1 555-123-4567");
@@ -85,7 +85,7 @@ test.describe("Happy Path", () => {
 		await page.getByTestId("submit-button").click();
 
 		// ---- Step 3: Work History (add 1 job + 1 bullet) ----
-		await expect(page.getByText("Step 3 of 11")).toBeVisible();
+		await expect(page.getByText("Step 3 of 12")).toBeVisible();
 		await page.getByRole("button", { name: "Add a job" }).click();
 		await page.getByLabel("Job Title").fill("Senior Engineer");
 		await page.getByLabel("Company Name").fill("Acme Corp");
@@ -136,7 +136,7 @@ test.describe("Happy Path", () => {
 		await page.getByTestId("next-button").click();
 
 		// ---- Step 4: Education (skip via shell Skip button) ----
-		await expect(page.getByText("Step 4 of 11")).toBeVisible();
+		await expect(page.getByText("Step 4 of 12")).toBeVisible();
 		// Education is skippable — use shell Skip button
 		await page
 			.locator(ONBOARDING_NAV)
@@ -144,7 +144,7 @@ test.describe("Happy Path", () => {
 			.click();
 
 		// ---- Step 5: Skills (add 1 skill with all 6 required fields) ----
-		await expect(page.getByText("Step 5 of 11")).toBeVisible();
+		await expect(page.getByText("Step 5 of 12")).toBeVisible();
 		await page.getByRole("button", { name: "Add skill" }).click();
 		await page.getByLabel("Skill Name").fill("TypeScript");
 		// Skill type radio
@@ -165,14 +165,14 @@ test.describe("Happy Path", () => {
 		await page.getByTestId("next-button").click();
 
 		// ---- Step 6: Certifications (skip) ----
-		await expect(page.getByText("Step 6 of 11")).toBeVisible();
+		await expect(page.getByText("Step 6 of 12")).toBeVisible();
 		await page
 			.locator(ONBOARDING_NAV)
 			.getByRole("button", { name: "Skip" })
 			.click();
 
 		// ---- Step 7: Achievement Stories (add 3 stories) ----
-		await expect(page.getByText("Step 7 of 11")).toBeVisible();
+		await expect(page.getByText("Step 7 of 12")).toBeVisible();
 
 		for (let i = 1; i <= 3; i++) {
 			await page.getByRole("button", { name: "Add story" }).click();
@@ -190,7 +190,7 @@ test.describe("Happy Path", () => {
 		await page.getByTestId("next-button").click();
 
 		// ---- Step 8: Non-Negotiables ----
-		await expect(page.getByText("Step 8 of 11")).toBeVisible();
+		await expect(page.getByText("Step 8 of 12")).toBeVisible();
 		// Select "Remote Only" to simplify the form
 		await page.getByLabel("Remote Only").check();
 		// Check "Prefer not to set" for salary
@@ -198,21 +198,27 @@ test.describe("Happy Path", () => {
 		await page.getByTestId("submit-button").click();
 
 		// ---- Step 9: Growth Targets (pre-filled from persona data) ----
-		await expect(page.getByText("Step 9 of 11")).toBeVisible();
+		await expect(page.getByText("Step 9 of 12")).toBeVisible();
 		// Form is pre-filled with target_roles, target_skills, stretch_appetite
 		// from persona mock data — just submit
 		await page.getByTestId("submit-button").click();
 
-		// ---- Step 10: Voice Profile ----
-		await expect(page.getByText("Step 10 of 11")).toBeVisible();
+		// ---- Step 10: Search Criteria (auto-generated) ----
+		await expect(page.getByText("Step 10 of 12")).toBeVisible();
+		// Profile loads automatically; approve it
+		await expect(page.getByText("Your Job Search Criteria")).toBeVisible();
+		await page.getByTestId("approve-button").click();
+
+		// ---- Step 11: Voice Profile ----
+		await expect(page.getByText("Step 11 of 12")).toBeVisible();
 		// No voice profile exists, so we're in edit mode
 		await page.getByLabel("Tone").fill("Direct and confident");
 		await page.getByLabel("Style").fill("Short sentences, active voice");
 		await page.getByLabel("Vocabulary").fill("Technical when relevant");
 		await page.getByTestId("submit-button").click();
 
-		// ---- Step 11: Review (final step) ----
-		await expect(page.getByText("Step 11 of 11")).toBeVisible();
+		// ---- Step 12: Review (final step) ----
+		await expect(page.getByText("Step 12 of 12")).toBeVisible();
 		// Set up state for review fetches
 		controller.state.workHistoryCount = 2;
 		controller.state.skillCount = 3;
@@ -245,7 +251,7 @@ test.describe("Step-Level", () => {
 		await page.goto("/onboarding");
 
 		await page.getByText(SKIP_MANUAL_ENTRY).click();
-		await expect(page.getByText("Step 2 of 11")).toBeVisible();
+		await expect(page.getByText("Step 2 of 12")).toBeVisible();
 		await expect(page.getByText("Basic Information")).toBeVisible();
 	});
 
@@ -266,7 +272,7 @@ test.describe("Step-Level", () => {
 		});
 
 		// Should show success and auto-advance to step 2
-		await expect(page.getByText("Step 2 of 11")).toBeVisible({
+		await expect(page.getByText("Step 2 of 12")).toBeVisible({
 			timeout: 5000,
 		});
 	});
@@ -280,7 +286,7 @@ test.describe("Step-Level", () => {
 
 		// Skip to step 2
 		await page.getByText(SKIP_MANUAL_ENTRY).click();
-		await expect(page.getByText("Step 2 of 11")).toBeVisible();
+		await expect(page.getByText("Step 2 of 12")).toBeVisible();
 
 		// Touch then clear the Full Name field to trigger validation
 		await page.getByLabel("Full Name").click();
@@ -310,7 +316,7 @@ test.describe("Step-Level", () => {
 		await page.getByLabel("Country").fill("USA");
 		await page.getByTestId("submit-button").click();
 
-		await expect(page.getByText("Step 3 of 11")).toBeVisible();
+		await expect(page.getByText("Step 3 of 12")).toBeVisible();
 
 		// Next should be disabled with no entries
 		await expect(page.getByTestId("next-button")).toBeDisabled();
@@ -322,14 +328,14 @@ test.describe("Step-Level", () => {
 		await page.goto("/onboarding");
 
 		// Wait for checkpoint to load — should resume at education step
-		await expect(page.getByText("Step 4 of 11")).toBeVisible();
+		await expect(page.getByText("Step 4 of 12")).toBeVisible();
 
 		// Skip button should be available (education is skippable)
 		await page
 			.locator(ONBOARDING_NAV)
 			.getByRole("button", { name: "Skip" })
 			.click();
-		await expect(page.getByText("Step 5 of 11")).toBeVisible();
+		await expect(page.getByText("Step 5 of 12")).toBeVisible();
 	});
 
 	test("Step 6: can skip certifications step", async ({ page }) => {
@@ -337,35 +343,35 @@ test.describe("Step-Level", () => {
 		controller.state.onboardingStep = "certifications";
 		await page.goto("/onboarding");
 
-		await expect(page.getByText("Step 6 of 11")).toBeVisible();
+		await expect(page.getByText("Step 6 of 12")).toBeVisible();
 
 		await page
 			.locator(ONBOARDING_NAV)
 			.getByRole("button", { name: "Skip" })
 			.click();
-		await expect(page.getByText("Step 7 of 11")).toBeVisible();
+		await expect(page.getByText("Step 7 of 12")).toBeVisible();
 	});
 
-	test("Step 10: shows review card when voice profile exists", async ({
+	test("Step 11: shows review card when voice profile exists", async ({
 		page,
 	}) => {
 		const controller = await setupMidFlowMocks(page, "growth-targets");
 		controller.state.onboardingStep = "voice-profile";
 		await page.goto("/onboarding");
 
-		await expect(page.getByText("Step 10 of 11")).toBeVisible();
+		await expect(page.getByText("Step 11 of 12")).toBeVisible();
 		// Voice profile data exists, so review card should appear
 		await expect(page.getByTestId("voice-profile-review")).toBeVisible();
 		await expect(page.getByText("Looks good!")).toBeVisible();
 		await expect(page.getByText("Let me edit")).toBeVisible();
 	});
 
-	test("Step 11: displays all 10 review sections", async ({ page }) => {
+	test("Step 12: displays all 10 review sections", async ({ page }) => {
 		const controller = await setupMidFlowMocks(page, "voice-profile");
 		controller.state.onboardingStep = "review";
 		await page.goto("/onboarding");
 
-		await expect(page.getByText("Step 11 of 11")).toBeVisible();
+		await expect(page.getByText("Step 12 of 12")).toBeVisible();
 
 		// All 10 sections should be present
 		const sectionKeys = [
@@ -388,7 +394,7 @@ test.describe("Step-Level", () => {
 });
 
 // ---------------------------------------------------------------------------
-// D. Review Completion (Step 11 — final step)
+// D. Review Completion (Step 12 — final step)
 // ---------------------------------------------------------------------------
 
 test.describe("Review Completion", () => {
@@ -399,7 +405,7 @@ test.describe("Review Completion", () => {
 		controller.state.onboardingStep = "review";
 		await page.goto("/onboarding");
 
-		await expect(page.getByText("Step 11 of 11")).toBeVisible();
+		await expect(page.getByText("Step 12 of 12")).toBeVisible();
 
 		// Click "Complete Onboarding" — triggers PATCH persona + redirect
 		await page.getByTestId("confirm-button").click();
@@ -428,7 +434,7 @@ test.describe("Checkpoint Resume", () => {
 		// Provider should detect mid-flow and show a resume prompt
 		// The exact UI depends on the provider — we check that the step counter
 		// shows the resumed step (step 5 for "skills")
-		await expect(page.getByText("Step 5 of 11")).toBeVisible();
+		await expect(page.getByText("Step 5 of 12")).toBeVisible();
 	});
 
 	test("resumes at correct step after checkpoint load", async ({ page }) => {
@@ -446,7 +452,7 @@ test.describe("Checkpoint Resume", () => {
 		await page.goto("/onboarding");
 
 		// Should resume at step 8 (non-negotiables)
-		await expect(page.getByText("Step 8 of 11")).toBeVisible();
+		await expect(page.getByText("Step 8 of 12")).toBeVisible();
 		await expect(page.getByText("Non-Negotiables")).toBeVisible();
 	});
 });
@@ -460,14 +466,14 @@ test.describe("Navigation", () => {
 		await setupNewOnboardingMocks(page);
 		await page.goto("/onboarding");
 
-		// Step 1: progress should be ~9% (1/11)
+		// Step 1: progress should be ~8% (1/12)
 		const progressBar = page.locator('[role="progressbar"]');
 		await expect(progressBar).toBeVisible();
 		const step1Value = await progressBar.getAttribute("aria-valuenow");
 
 		// Skip to step 2
 		await page.getByText(SKIP_MANUAL_ENTRY).click();
-		await expect(page.getByText("Step 2 of 11")).toBeVisible();
+		await expect(page.getByText("Step 2 of 12")).toBeVisible();
 
 		// Progress should have increased
 		const step2Value = await progressBar.getAttribute("aria-valuenow");
@@ -478,7 +484,7 @@ test.describe("Navigation", () => {
 		await setupNewOnboardingMocks(page);
 		await page.goto("/onboarding");
 
-		await expect(page.getByText("Step 1 of 11")).toBeVisible();
+		await expect(page.getByText("Step 1 of 12")).toBeVisible();
 
 		// Shell's onBack is undefined at step 1, so Back button should not be visible
 		const shellNav = page.locator(ONBOARDING_NAV);

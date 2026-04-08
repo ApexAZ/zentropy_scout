@@ -17,6 +17,7 @@ import {
 	jobSourcesList,
 	onboardedPersonaList,
 	patchPreferenceResponse,
+	searchProfileResponse,
 	userSourcePreferencesList,
 } from "../fixtures/settings-mock-data";
 
@@ -49,7 +50,7 @@ export class SettingsMockController {
 		// /auth/me is handled by the base-test fixture (base-test.ts).
 		// Single regex intercepts all /api/v1/ endpoints we need to mock.
 		await page.route(
-			/\/api\/v1\/(personas|job-sources|user-source-preferences)/,
+			/\/api\/v1\/(personas|job-sources|user-source-preferences|search-profiles)/,
 			async (route) => this.handleRoute(route),
 		);
 	}
@@ -72,6 +73,11 @@ export class SettingsMockController {
 		// ---- Job sources ----
 		if (path.endsWith("/job-sources") && method === "GET") {
 			return this.json(route, jobSourcesList());
+		}
+
+		// ---- Search profiles (for JobSearchSection) ----
+		if (path.includes("/search-profiles")) {
+			return this.json(route, searchProfileResponse());
 		}
 
 		// ---- User source preferences ----

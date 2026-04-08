@@ -2,7 +2,7 @@
  * Stateful Playwright route mock controller for onboarding E2E tests.
  *
  * Uses page.route() to intercept API calls. Mock state is mutable so
- * responses evolve as the user progresses through the 11-step onboarding
+ * responses evolve as the user progresses through the 12-step onboarding
  * (e.g., after Step 2 submits basic info, later GETs return that data).
  */
 
@@ -39,6 +39,7 @@ import {
 	postStoryResponse,
 	postWorkHistoryResponse,
 	resumeParseResponse,
+	searchProfileResponse,
 	skillsList,
 	uploadResumeResponse,
 	voiceProfileResponse,
@@ -404,6 +405,22 @@ export class OnboardingMockController {
 			}
 			return this.json(route, this.emptyList());
 		});
+
+		// ---- Search Profile (Step 10 — search-criteria) ----
+		await page.route(
+			`**/api/v1/search-profiles/${PERSONA_ID}/**`,
+			async (route) => {
+				// POST .../generate → return search profile
+				return this.json(route, searchProfileResponse());
+			},
+		);
+		await page.route(
+			`**/api/v1/search-profiles/${PERSONA_ID}`,
+			async (route) => {
+				// GET → fetch profile, PATCH → update profile
+				return this.json(route, searchProfileResponse());
+			},
+		);
 	}
 
 	// -----------------------------------------------------------------------

@@ -1,12 +1,14 @@
 /**
  * Mock data factories for settings page E2E tests.
  *
- * Provides job sources, user source preferences, and an onboarded persona
- * matching backend models (job_source.py, user_source_preference.py).
+ * Provides job sources, user source preferences, search profiles,
+ * and an onboarded persona matching backend models
+ * (job_source.py, user_source_preference.py, search_profile.py).
  */
 
-import type { ApiListResponse, PaginationMeta } from "@/types/api";
+import type { ApiListResponse, ApiResponse, PaginationMeta } from "@/types/api";
 import type { Persona } from "@/types/persona";
+import type { SearchProfile } from "@/types/search-profile";
 import type { JobSource, UserSourcePreference } from "@/types/source";
 
 import { PERSONA_ID } from "./onboarding-mock-data";
@@ -184,4 +186,42 @@ export function patchPreferenceResponse(
 		USER_SOURCE_PREFERENCES.find((p) => p.id === preferenceId) ??
 		USER_SOURCE_PREFERENCES[0];
 	return { data: { ...pref, ...overrides } };
+}
+
+// ---------------------------------------------------------------------------
+// Search Profile (for JobSearchSection)
+// ---------------------------------------------------------------------------
+
+const SEARCH_PROFILE: SearchProfile = {
+	id: "sp-001",
+	persona_id: PERSONA_ID,
+	fit_searches: [
+		{
+			label: "Senior Engineer",
+			keywords: ["backend", "distributed systems"],
+			titles: ["Senior Software Engineer", "Staff Engineer"],
+			remoteok_tags: [],
+			location: null,
+		},
+	],
+	stretch_searches: [
+		{
+			label: "Engineering Manager",
+			keywords: ["team leadership", "mentoring"],
+			titles: ["Engineering Manager", "Tech Lead Manager"],
+			remoteok_tags: [],
+			location: null,
+		},
+	],
+	persona_fingerprint: "fp-v1-abc123",
+	is_stale: false,
+	generated_at: NOW,
+	approved_at: NOW,
+	created_at: NOW,
+	updated_at: NOW,
+};
+
+/** SearchProfile response for JobSearchSection. */
+export function searchProfileResponse(): ApiResponse<SearchProfile> {
+	return { data: { ...SEARCH_PROFILE } };
 }

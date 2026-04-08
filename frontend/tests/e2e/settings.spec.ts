@@ -28,7 +28,7 @@ test.describe("Settings Page Layout", () => {
 
 		// Five section cards
 		await expect(page.getByTestId("settings-account")).toBeVisible();
-		await expect(page.getByTestId("settings-job-sources")).toBeVisible();
+		await expect(page.getByTestId("settings-job-search")).toBeVisible();
 		await expect(
 			page.getByTestId("settings-agent-configuration"),
 		).toBeVisible();

@@ -116,7 +116,10 @@ test.describe("Account Settings", () => {
 				res.request().method() === "PATCH",
 		);
 
-		await page.getByRole("button", { name: "Save" }).click();
+		await page
+			.getByTestId(TID_ACCOUNT)
+			.getByRole("button", { name: "Save" })
+			.click();
 
 		const response = await patchPromise;
 		expect(response.status()).toBe(200);

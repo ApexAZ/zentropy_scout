@@ -19,6 +19,7 @@ import type {
 	WorkHistory,
 } from "@/types/persona";
 import type { BaseResume, ResumeFile } from "@/types/resume";
+import type { SearchProfile } from "@/types/search-profile";
 
 // ---------------------------------------------------------------------------
 // Consistent IDs
@@ -602,4 +603,42 @@ export function emptyChangeFlagsList(): ApiListResponse<never> {
 
 export function emptyChatMessages(): ApiListResponse<never> {
 	return { data: [], meta: listMeta(0) };
+}
+
+// ---------------------------------------------------------------------------
+// Search Profile (Step 10 — search-criteria)
+// ---------------------------------------------------------------------------
+
+const SEARCH_PROFILE: SearchProfile = {
+	id: "sp-001",
+	persona_id: PERSONA_ID,
+	fit_searches: [
+		{
+			label: "Senior Engineer",
+			keywords: ["backend", "distributed systems"],
+			titles: ["Senior Software Engineer", "Staff Engineer"],
+			remoteok_tags: [],
+			location: null,
+		},
+	],
+	stretch_searches: [
+		{
+			label: "Engineering Manager",
+			keywords: ["team leadership", "mentoring"],
+			titles: ["Engineering Manager", "Tech Lead Manager"],
+			remoteok_tags: [],
+			location: null,
+		},
+	],
+	persona_fingerprint: "fp-v1-abc123",
+	is_stale: false,
+	generated_at: NOW,
+	approved_at: NOW,
+	created_at: NOW,
+	updated_at: NOW,
+};
+
+/** Full search profile response for search-criteria step. */
+export function searchProfileResponse(): ApiResponse<SearchProfile> {
+	return { data: { ...SEARCH_PROFILE } };
 }
