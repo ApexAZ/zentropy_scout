@@ -1,9 +1,10 @@
 /**
  * Tests for the SettingsPage component (§11.1).
  *
- * REQ-012 §12.1: Settings page layout with Account, Job Sources,
- * Agent Configuration, and About sections.
+ * REQ-012 §12.1: Settings page layout with Account, Agent Configuration,
+ * and About sections.
  * REQ-024 §5.4: Legal section with ToS and Privacy links.
+ * REQ-034 §9.2: Job Search section with search criteria, poll schedule, sources.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -42,9 +43,9 @@ vi.mock("./agent-configuration-section", () => ({
 	),
 }));
 
-vi.mock("./job-sources-section", () => ({
-	JobSourcesSection: ({ personaId }: { personaId: string }) => (
-		<div data-testid="mock-job-sources-section" data-persona-id={personaId} />
+vi.mock("./job-search-section", () => ({
+	JobSearchSection: ({ personaId }: { personaId: string }) => (
+		<div data-testid="mock-job-search-section" data-persona-id={personaId} />
 	),
 }));
 
@@ -56,7 +57,7 @@ import { SettingsPage } from "./settings-page";
 
 const PAGE_TESTID = "settings-page";
 const ACCOUNT_TESTID = "settings-account";
-const JOB_SOURCES_TESTID = "settings-job-sources";
+const JOB_SEARCH_TESTID = "settings-job-search";
 const AGENT_CONFIG_TESTID = "settings-agent-configuration";
 const ABOUT_TESTID = "settings-about";
 const LEGAL_TESTID = "settings-legal";
@@ -83,11 +84,11 @@ describe("SettingsPage", () => {
 		).toBeInTheDocument();
 	});
 
-	it("renders Job Sources section with title", () => {
+	it("renders Job Search section with title", () => {
 		render(<SettingsPage personaId={PERSONA_ID} />);
-		const section = screen.getByTestId(JOB_SOURCES_TESTID);
+		const section = screen.getByTestId(JOB_SEARCH_TESTID);
 		expect(section).toBeInTheDocument();
-		expect(section).toHaveTextContent("Job Sources");
+		expect(section).toHaveTextContent("Job Search");
 	});
 
 	it("renders Agent Configuration section with title", () => {
@@ -104,9 +105,9 @@ describe("SettingsPage", () => {
 		expect(section).toHaveTextContent("About");
 	});
 
-	it("renders JobSourcesSection in the Job Sources card", () => {
+	it("renders JobSearchSection in the Job Search card", () => {
 		render(<SettingsPage personaId={PERSONA_ID} />);
-		const mockChild = screen.getByTestId("mock-job-sources-section");
+		const mockChild = screen.getByTestId("mock-job-search-section");
 		expect(mockChild).toBeInTheDocument();
 		expect(mockChild).toHaveAttribute("data-persona-id", PERSONA_ID);
 	});

@@ -23,7 +23,7 @@
  * - types/source.ts: JobSource, UserSourcePreference types
  *
  * Called by / Used by:
- * - components/settings/settings-page.tsx: Job Sources card in settings layout
+ * - components/settings/job-search-section.tsx: embedded in Job Search settings card
  */
 
 import { useCallback, useMemo } from "react";

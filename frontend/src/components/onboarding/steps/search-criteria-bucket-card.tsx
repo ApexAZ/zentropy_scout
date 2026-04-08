@@ -16,6 +16,8 @@
  *
  * Called by / Used by:
  * - components/onboarding/steps/search-criteria-step.tsx: onboarding step 10
+ * - hooks/use-search-criteria-editing.ts: updateBucket helper for settings editing
+ * - components/settings/job-search-section.tsx: BucketCard in Job Search settings card
  */
 
 import { X } from "lucide-react";

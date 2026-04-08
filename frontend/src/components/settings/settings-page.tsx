@@ -1,17 +1,18 @@
 /**
- * @fileoverview Settings page layout with account, job sources, agent config, and about/legal sections.
+ * @fileoverview Settings page layout with account, job search, agent config, and about/legal sections.
  *
  * Layer: component
  * Feature: shared
  *
- * REQ-012 §12.1: Settings page with Account, Job Sources, Agent Configuration, and About.
+ * REQ-012 §12.1: Settings page with Account, Agent Configuration, and About.
  * REQ-024 §5.4: Legal section with ToS and Privacy placeholder links.
+ * REQ-034 §9.2: Job Search section with search criteria, poll schedule, and source toggles.
  *
  * Coordinates with:
  * - components/ui/card.tsx: Card, CardContent, CardHeader, CardTitle for section cards
  * - components/settings/account-section.tsx: AccountSection for account management
  * - components/settings/agent-configuration-section.tsx: AgentConfigurationSection for routing display
- * - components/settings/job-sources-section.tsx: JobSourcesSection for source preferences
+ * - components/settings/job-search-section.tsx: JobSearchSection for search criteria, poll schedule, sources
  *
  * Called by / Used by:
  * - app/(main)/settings/page.tsx: settings route page
@@ -21,9 +22,10 @@ import Link from "next/link";
 
 import { PageTitle } from "@/components/ui/headings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { AccountSection } from "./account-section";
 import { AgentConfigurationSection } from "./agent-configuration-section";
-import { JobSourcesSection } from "./job-sources-section";
+import { JobSearchSection } from "./job-search-section";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,13 +55,13 @@ export function SettingsPage({ personaId }: Readonly<SettingsPageProps>) {
 				</CardContent>
 			</Card>
 
-			{/* Job Sources */}
-			<Card data-testid="settings-job-sources">
+			{/* Job Search (REQ-034 §9.2) */}
+			<Card data-testid="settings-job-search">
 				<CardHeader>
-					<CardTitle>Job Sources</CardTitle>
+					<CardTitle>Job Search</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<JobSourcesSection personaId={personaId} />
+					<JobSearchSection personaId={personaId} />
 				</CardContent>
 			</Card>
 
