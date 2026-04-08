@@ -66,6 +66,10 @@ export const queryKeys = {
 	sourcePreferences: (personaId: string) =>
 		[PERSONAS, personaId, "source-preferences"] as const,
 
+	// Sub-entity keys (nested under persona for prefix invalidation — search profile)
+	searchProfile: (personaId: string) =>
+		[PERSONAS, personaId, "search-profile"] as const,
+
 	// Sub-entity keys (nested under application for prefix invalidation)
 	timelineEvents: (applicationId: string) =>
 		["applications", applicationId, "timeline"] as const,
