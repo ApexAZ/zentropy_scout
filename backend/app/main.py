@@ -7,6 +7,7 @@ This module creates and configures the FastAPI application, including:
 - API v1 router mounting
 - Health check endpoint
 - Pool surfacing background worker (REQ-015 §7)
+- Poll scheduler background worker (REQ-034 §7.2)
 
 Coordinates with:
   - api/v1/router.py — imports v1_router for API route mounting
@@ -18,6 +19,7 @@ Coordinates with:
   - core/responses.py — imports ErrorDetail, ErrorResponse for error formatting
   - services/billing/reservation_sweep.py — imports ReservationSweepWorker for lifespan
   - services/discovery/pool_surfacing_worker.py — imports PoolSurfacingWorker for lifespan
+  - services/discovery/poll_scheduler_worker.py — imports PollSchedulerWorker for lifespan
 
 Called by: uvicorn (entry point: ``uvicorn app.main:app``).
 """
@@ -41,6 +43,7 @@ from app.core.null_byte_middleware import NullByteMiddleware
 from app.core.rate_limiting import limiter, rate_limit_exceeded_handler
 from app.core.responses import ErrorDetail, ErrorResponse
 from app.services.billing.reservation_sweep import ReservationSweepWorker
+from app.services.discovery.poll_scheduler_worker import PollSchedulerWorker
 from app.services.discovery.pool_surfacing_worker import PoolSurfacingWorker
 
 logger = structlog.get_logger()
@@ -196,7 +199,8 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     REQ-015 §7.1: Starts the pool surfacing worker on startup.
     REQ-030 §11.1: Starts the reservation sweep worker on startup.
-    Both are stopped gracefully on shutdown.
+    REQ-034 §7.2: Starts the poll scheduler worker on startup.
+    All are stopped gracefully on shutdown.
     """
     surfacing_worker = PoolSurfacingWorker(async_session_factory)
     app.state.surfacing_worker = surfacing_worker
@@ -206,9 +210,14 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.sweep_worker = sweep_worker
     sweep_worker.start()
 
+    poll_scheduler_worker = PollSchedulerWorker(async_session_factory)
+    app.state.poll_scheduler_worker = poll_scheduler_worker
+    poll_scheduler_worker.start()
+
     try:
         yield
     finally:
+        await poll_scheduler_worker.stop()
         await sweep_worker.stop()
         await surfacing_worker.stop()
 
