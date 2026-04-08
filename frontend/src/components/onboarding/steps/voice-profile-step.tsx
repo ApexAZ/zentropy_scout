@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * @fileoverview Voice profile step for onboarding wizard (Step 10).
+ * @fileoverview Voice profile step for onboarding wizard (Step 11).
  *
  * Layer: component
  * Feature: persona
@@ -25,7 +25,7 @@
  * - types/persona.ts: VoiceProfile type for entity data
  *
  * Called by / Used by:
- * - app/onboarding/page.tsx: onboarding step 10 component
+ * - app/onboarding/page.tsx: onboarding step 11 component
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -172,7 +172,7 @@ function ReviewCard({
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 10: Voice Profile.
+ * Onboarding Step 11: Voice Profile.
  *
  * If an agent-derived profile exists, shows a review card. Otherwise,
  * shows an editable form. User can toggle to edit mode from review.

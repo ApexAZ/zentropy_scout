@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * @fileoverview Onboarding wizard page with 11-step persona builder.
+ * @fileoverview Onboarding wizard page with 12-step persona builder.
  *
  * Layer: page
  * Feature: persona
  *
- * REQ-019 §7.1: 11-step onboarding wizard. Wraps all step components
+ * REQ-019 §7.1, REQ-034 §9.1: 12-step onboarding wizard. Wraps all step components
  * in OnboardingProvider and OnboardingShell, routing to the correct
  * step based on provider state.
  *
  * Coordinates with:
  * - lib/onboarding-provider.tsx: OnboardingProvider context + useOnboarding hook
  * - components/onboarding/onboarding-shell.tsx: step shell with progress and navigation
- * - components/onboarding/steps/: 11 step components (resume-upload through review)
+ * - components/onboarding/steps/: 12 step components (resume-upload through review)
  *
  * Called by / Used by:
  * - Next.js framework: route /onboarding
@@ -29,6 +29,7 @@ import { GrowthTargetsStep } from "@/components/onboarding/steps/growth-targets-
 import { NonNegotiablesStep } from "@/components/onboarding/steps/non-negotiables-step";
 import { ResumeUploadStep } from "@/components/onboarding/steps/resume-upload-step";
 import { ReviewStep } from "@/components/onboarding/steps/review-step";
+import { SearchCriteriaStep } from "@/components/onboarding/steps/search-criteria-step";
 import { SkillsStep } from "@/components/onboarding/steps/skills-step";
 import { StoryStep } from "@/components/onboarding/steps/story-step";
 import { VoiceProfileStep } from "@/components/onboarding/steps/voice-profile-step";
@@ -58,8 +59,10 @@ function StepRouter() {
 		case 9:
 			return <GrowthTargetsStep />;
 		case 10:
-			return <VoiceProfileStep />;
+			return <SearchCriteriaStep />;
 		case 11:
+			return <VoiceProfileStep />;
+		case 12:
 			return <ReviewStep />;
 		default:
 			return null;

@@ -1,7 +1,7 @@
 /**
  * Tests for the OnboardingProvider state management.
  *
- * REQ-019 §7: 11-step wizard with checkpoint/resume behavior.
+ * REQ-019 §7, REQ-034 §9.1: 12-step wizard with checkpoint/resume behavior.
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -325,14 +325,14 @@ describe("OnboardingProvider", () => {
 			const { result } = renderUseOnboarding();
 
 			await waitFor(() => {
-				expect(result.current.currentStep).toBe(11);
+				expect(result.current.currentStep).toBe(12);
 			});
 
 			act(() => {
 				result.current.next();
 			});
 
-			expect(result.current.currentStep).toBe(11);
+			expect(result.current.currentStep).toBe(12);
 		});
 
 		it("back() goes to the previous step", async () => {
@@ -456,7 +456,7 @@ describe("OnboardingProvider", () => {
 				result.current.goToStep(99);
 			});
 
-			expect(result.current.currentStep).toBe(11);
+			expect(result.current.currentStep).toBe(12);
 
 			act(() => {
 				result.current.goToStep(-5);
@@ -641,14 +641,14 @@ describe("OnboardingProvider", () => {
 			mocks.mockApiGet.mockResolvedValue(makeListResponse([makePersona()]));
 		});
 
-		it("totalSteps is always 11", async () => {
+		it("totalSteps is always 12", async () => {
 			const { result } = renderUseOnboarding();
 
 			await waitFor(() => {
 				expect(result.current.isLoadingCheckpoint).toBe(false);
 			});
 
-			expect(result.current.totalSteps).toBe(11);
+			expect(result.current.totalSteps).toBe(12);
 		});
 
 		it("stepName matches current step definition", async () => {

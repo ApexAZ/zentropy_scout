@@ -1,5 +1,5 @@
 /**
- * Tests for the voice profile step component (onboarding Step 10).
+ * Tests for the voice profile step component (onboarding Step 11).
  *
  * REQ-012 §6.3.10: Agent-derived voice profile review card with
  * per-field inline editing. Two modes: "review" (read-only card with

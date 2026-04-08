@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * @fileoverview Review step for onboarding wizard (Step 11 — final step).
+ * @fileoverview Review step for onboarding wizard (Step 12 — final step).
  *
  * Layer: component
  * Feature: persona
@@ -20,7 +20,7 @@
  * - types/persona.ts: AchievementStory, Certification, Education, Persona, Skill, VoiceProfile, WorkHistory types for review display
  *
  * Called by / Used by:
- * - app/onboarding/page.tsx: onboarding step 11 component
+ * - app/onboarding/page.tsx: onboarding step 12 component
  */
 
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
@@ -68,7 +68,7 @@ const SECTION_DEFS: readonly SectionDef[] = [
 	{ key: "achievement-stories", title: "Achievement Stories", editStep: 7 },
 	{ key: "non-negotiables", title: "Non-Negotiables", editStep: 8 },
 	{ key: "growth-targets", title: "Growth Targets", editStep: 9 },
-	{ key: "voice-profile", title: "Voice Profile", editStep: 10 },
+	{ key: "voice-profile", title: "Voice Profile", editStep: 11 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -330,7 +330,7 @@ function VoiceProfileContent({
 // ---------------------------------------------------------------------------
 
 /**
- * Onboarding Step 11: Review (final step).
+ * Onboarding Step 12: Review (final step).
  *
  * Displays a read-only summary of the full persona in collapsible sections.
  * Each section links back to its edit step. "Complete Onboarding" finalizes

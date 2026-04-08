@@ -6,7 +6,7 @@
  * Layer: context-provider
  * Feature: persona
  *
- * REQ-019 §7: 11-step wizard with checkpoint/resume behavior.
+ * REQ-019 §7, REQ-034 §9.1: 12-step wizard with checkpoint/resume behavior.
  * Manages current step, persisted step position, resume prompts,
  * and parsed resume data for form pre-population.
  *
@@ -94,7 +94,7 @@ function isValidUUID(value: string): boolean {
 export type ResumePromptType = "welcome-back" | "expired";
 
 interface OnboardingState {
-	/** Current step number (1-11). Defaults to 1. */
+	/** Current step number (1-12). Defaults to 1. */
 	currentStep: number;
 	/** Persona ID for PATCH calls. Null until persona is created/loaded. */
 	personaId: string | null;
@@ -186,9 +186,9 @@ function onboardingReducer(
 // ---------------------------------------------------------------------------
 
 interface OnboardingContextValue {
-	/** Current step number (1-11). */
+	/** Current step number (1-12). */
 	currentStep: number;
-	/** Total number of steps (always 11). */
+	/** Total number of steps (always 12). */
 	totalSteps: number;
 	/** Human-readable name of the current step. */
 	stepName: string;

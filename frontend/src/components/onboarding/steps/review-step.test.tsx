@@ -1,5 +1,5 @@
 /**
- * Tests for the review step component (onboarding Step 11 — final step).
+ * Tests for the review step component (onboarding Step 12 — final step).
  *
  * REQ-019 §7.1: Structured summary with collapsible sections for all
  * persona areas. Each section has an "Edit" link back to the relevant step.
@@ -558,12 +558,12 @@ describe("ReviewStep", () => {
 			expect(mocks.mockGoToStep).toHaveBeenCalledWith(9);
 		});
 
-		it("Edit on Voice Profile navigates to step 10", async () => {
+		it("Edit on Voice Profile navigates to step 11", async () => {
 			const user = await renderAndWait();
 
 			await user.click(screen.getByTestId("edit-voice-profile"));
 
-			expect(mocks.mockGoToStep).toHaveBeenCalledWith(10);
+			expect(mocks.mockGoToStep).toHaveBeenCalledWith(11);
 		});
 	});
 
