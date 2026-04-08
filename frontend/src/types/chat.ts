@@ -45,6 +45,9 @@ export interface ToolExecution {
 // Structured chat cards (REQ-012 §5.3)
 // ---------------------------------------------------------------------------
 
+/** Valid search bucket values for job discovery origin. */
+export type SearchBucketType = "fit" | "stretch" | "manual" | "pool";
+
 /** Data for a compact job card displayed inline in chat. */
 export interface JobCardData {
 	/** Job posting ID (for action callbacks). */
@@ -69,6 +72,11 @@ export interface JobCardData {
 	salaryCurrency: string | null;
 	/** Whether the user has favorited this posting. */
 	isFavorite: boolean;
+	/**
+	 * Search bucket that surfaced this job (REQ-034 §9.3).
+	 * When present, overrides the score-based fit/stretch decision rule.
+	 */
+	searchBucket?: SearchBucketType | null;
 }
 
 /** Data for a score summary card displayed inline in chat. */
