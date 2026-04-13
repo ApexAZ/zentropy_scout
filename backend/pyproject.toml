@@ -20,7 +20,7 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.25",
     "asyncpg>=0.29.0",
     "alembic>=1.13.0",
-    "pgvector>=0.2.4",
+    "pgvector>=0.4.2",
 
     # LLM Providers
     "anthropic>=0.18.0",
