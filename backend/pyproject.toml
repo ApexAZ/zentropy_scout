@@ -34,7 +34,7 @@ dependencies = [
     # PDF Generation & Extraction
     "reportlab>=4.1.0",
     "pdfplumber>=0.11.0",  # PDF text extraction for resume parsing (REQ-019 §6)
-    "markdown-it-py>=3.0.0",  # Markdown → AST parsing for export (REQ-025 §5)
+    "markdown-it-py>=4.0.0",  # Markdown → AST parsing for export (REQ-025 §5)
 
     # Document Export
     "python-docx>=1.0.0",  # DOCX generation for resume export (REQ-025 §5.3)
