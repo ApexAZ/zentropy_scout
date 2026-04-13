@@ -37,7 +37,7 @@ dependencies = [
     "markdown-it-py>=3.0.0",  # Markdown → AST parsing for export (REQ-025 §5)
 
     # Document Export
-    "python-docx>=1.0.0",  # DOCX generation for resume export (REQ-025 §5.3)
+    "python-docx>=1.2.0",  # DOCX generation for resume export (REQ-025 §5.3)
 
     # HTTP Client
     "httpx>=0.27.0",
