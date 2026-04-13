@@ -28,7 +28,7 @@ dependencies = [
     "google-genai>=1.0.0",
 
     # Agent Framework
-    "langgraph>=0.0.40",
+    "langgraph>=1.1.6",
     "langgraph-checkpoint-postgres>=3.0.0",
 
     # PDF Generation & Extraction
