@@ -1,9 +1,9 @@
 # Zentropy Scout — Feature Backlog
 
 **Created:** 2026-02-16
-**Last Updated:** 2026-03-27
+**Last Updated:** 2026-04-21
 
-**Items:** 31 (11 completed, 20 pending)
+**Items:** 32 (11 completed, 21 pending)
 
 ---
 
@@ -1451,6 +1451,52 @@ The `JobFetchService` orchestration and all four source adapters are scaffolded 
 - How do we handle sources that don't support keyword search (RemoteOK is tag/category based)?
 - What's the right page depth per source given daily rate limits?
 - Should source adapters be user-configurable (opt in/out per source) or system-wide?
+
+---
+
+### 32. Add Fuzzer & Write Harnesses for Untrusted-Input Code Paths
+
+**Category:** Security / Testing
+**Added:** 2026-04-21
+
+Add a formal fuzzing tier to the existing security stack (SonarQube + Semgrep SAST, ZAP DAST) to cover the gap those tools don't reach: edge-case input handling in isolated code units. Fuzzing complements the existing tools rather than replacing any of them — SAST reads source, DAST probes the running app over HTTP, fuzzing drives many-input iterations directly at specific functions to surface crashes, hangs, and unexpected exceptions.
+
+**Motivation:** Zentropy Scout processes user-provided content at several sensitive boundaries (resume parsing, job content ingestion from heterogeneous sources, prompt construction, auth token handling). These are exactly the code shapes where fuzzing pays off — pure-ish functions that transform untrusted input and have enough branching that edge cases are hard to enumerate by hand. ZAP covers HTTP-level probing; SAST catches known pattern anti-patterns; neither will exercise a parser with a million mutated inputs the way a fuzzer will.
+
+**Approach:**
+
+- **Primary tool: Jazzer.js** — coverage-guided fuzzing for the Node/TypeScript backend. Instruments the target, generates mutated inputs, keeps inputs that reach new code paths. State of the art for JS fuzzing.
+- **Lighter-weight starter: fast-check** — property-based testing in JS/TS. Lower setup cost, good for pure-function targets (validators, transforms, score calculators). Useful entry point before committing to full Jazzer.js setup.
+- **Harnesses are small (5–20 lines each)** — each harness bridges the fuzzer engine to a specific target function, declaring what exceptions are "expected" (e.g., `SyntaxError` from a parser on bad input) vs. what indicates a real bug.
+- **Seed corpus** — provide a small set of known-valid inputs for each target to accelerate mutation-based discovery.
+
+**Candidate fuzz targets (in rough priority order):**
+
+1. **Resume parsing pipeline** — PDF/text extraction + downstream field normalization. High-value: malformed PDFs are a real edge-case source, and parser crashes here break onboarding.
+2. **Job content ingestion / sanitization** — content coming from Adzuna, The Muse, RemoteOK, USAJobs adapters. External data, heterogeneous shapes, worth fuzzing any normalization layer.
+3. **Auth token handling** — JWT parsing, OAuth callback parameter parsing. Security-sensitive; crashes here can mean auth bypass or DoS.
+4. **Prompt construction / templating** — any code path that interpolates user input into LLM prompts. Fuzzing can surface prompt-injection-adjacent edge cases and broken escapes.
+5. **URL/query-param parsing** — bookmarklet capture, job URL handling. Low priority but cheap to cover.
+
+**Division of labor (Claude + Brian):**
+
+- Claude writes the Jazzer.js / fast-check harnesses for identified targets.
+- Claude suggests seed corpora and Jazzer config.
+- Brian runs the fuzzer locally or in CI (fuzzing is time-bound, not compute-smart — needs hours of real execution).
+- Brian brings crash cases back to Claude for triage (input + stack trace → explanation + fix).
+
+**Relationship to existing stack:**
+
+- **SonarQube / Semgrep** (SAST) — reads source, finds pattern-based issues. No overlap with fuzzer output.
+- **ZAP** (DAST) — HTTP-level probing with curated attack payloads. Fuzzing-adjacent but operates at a different layer (app-wide via network) than fuzzer (function-level direct calls).
+- **Fuzzer** — function-level, many-input, coverage-guided. Finds crashes and edge cases the other tools structurally can't reach.
+
+**Open questions:**
+
+- CI integration — run Jazzer.js in a dedicated long-running job (GitHub Actions scheduled workflow) rather than on every PR, since useful runs are measured in hours not seconds.
+- Corpus management — store seed corpus and crash reproducers in-repo or externally?
+- Python side (backend resume parsing touches Python via pdfplumber) — Atheris is the Python equivalent if fuzzing the Python pipeline directly becomes desirable. Deferred unless Jazzer.js-level coverage of the Node surface proves insufficient.
+- Whether to adopt OSS-Fuzz if the project ever becomes a candidate (Google's continuous fuzzing service for qualifying open-source projects).
 
 ---
 
