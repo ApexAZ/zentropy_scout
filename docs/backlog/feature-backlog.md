@@ -1481,12 +1481,48 @@ Add a formal fuzzing tier to the existing security stack (SonarQube + Semgrep SA
 4. **Prompt construction / templating** — any code path in `backend/app/prompts/` that interpolates user input into LLM prompts. Fuzzing can surface prompt-injection-adjacent edge cases and broken escapes.
 5. **URL / query-param parsing** — bookmarklet capture (REQ-023 / item #23), job URL handling. Low priority but cheap to cover.
 
+**How to approach implementation (read this before starting):**
+
+The mechanical part — writing Hypothesis tests — is the smaller half of the work. The larger half is **identifying each target's invariants**: the properties that must always hold regardless of input. The tests just enforce the invariants once they're written down. Don't skip to the tests.
+
+**The core design question for each target** is: *which exceptions are "allowed" (domain-valid rejections) vs. "forbidden" (crashes or contract violations)?* Writing this down forces clarity about the function's contract. Everything else flows from that answer.
+
+**Step-by-step workflow:**
+
+1. Read `backend/tests/unit/test_llm_sanitization_fuzz.py` to internalize the existing Hypothesis pattern used in this repo (it's the only existing fuzz file — follow its conventions).
+2. Pick the highest-priority unstarted target from the list below.
+3. Read the target file + its immediate callers + its return type. Ask: what does every caller assume about the output? What exceptions do callers handle? What do they NOT handle?
+4. Draft a list of candidate invariants, split into "allowed exceptions" and "forbidden behaviors." Flag ambiguous ones for the user to confirm before writing tests (threat-model calls like "is `MemoryError` on a 2GB input acceptable?" belong to the user, not to Claude).
+5. Once invariants are agreed, write the Hypothesis harness: strategies that generate plausible + adversarial inputs, properties that assert the invariants, `@example(...)` decorators seeding any known-interesting cases.
+6. Run locally (`pytest backend/tests/fuzz/...` — fast, no special CI setup). Hypothesis will shrink any counterexample to a minimal reproducer.
+7. For every crash Hypothesis finds: triage the reproducer (why does this input break the contract?), propose a fix, and add the minimized input as an `@example` so the test locks in the regression.
+8. Commit per-target (one target = one subtask = one commit).
+
+**Example invariants by target** (to anchor the mental model — not exhaustive):
+
+- **Resume parser (`ResumeParsingService`):**
+  - Allowed: `ValueError`, `ParseError` on malformed input.
+  - Forbidden: `KeyError`, `IndexError`, `AttributeError`, `TypeError` (those mean a crash, not a rejection).
+  - Forbidden: returning `None` or a partially-populated object. If it returns, the result has at minimum a `raw_text` field.
+  - Forbidden: unbounded runtime on adversarial input.
+- **Source adapters (`AdzunaAdapter`, etc.):**
+  - Allowed: rejecting a malformed API response with a defined adapter error.
+  - Forbidden: producing a `JobPosting` with missing required fields.
+  - Forbidden: returning salary values that are `NaN`, negative, or where `min > max`.
+  - Forbidden: Unicode corruption through normalization (input → normalize → round-trip should not mangle valid titles).
+- **JWT / auth token handling:**
+  - Forbidden: authenticating a token with a tampered signature (must raise, never return partial claims).
+  - Forbidden: accepting a token missing `iat` (we already enforce this — lock it in with a property test).
+  - Forbidden: accepting an expired token.
+  - Allowed: any `InvalidTokenError` subclass on malformed input.
+
 **Division of labor (Claude + Brian):**
 
-- Claude writes the Hypothesis strategies and property tests for identified targets, following the existing `test_llm_sanitization_fuzz.py` pattern.
-- Claude suggests seeded examples and shrinking hints.
-- Brian reviews and merges; tests run automatically on every PR.
-- If Hypothesis surfaces a crash, Claude triages the minimized reproducer and proposes the fix.
+- Brian picks the target and adjudicates ambiguous invariants (threat-model calls).
+- Claude reads the target, drafts invariants, writes the Hypothesis harness following the existing pattern.
+- Brian reviews and runs the tests (Hypothesis runs are seconds-to-minutes, no dedicated CI).
+- If Hypothesis surfaces a crash, Claude triages the minimized reproducer and proposes the fix; Brian reviews.
+- Commit per-target.
 
 **Relationship to existing stack:**
 
