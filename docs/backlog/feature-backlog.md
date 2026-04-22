@@ -1463,40 +1463,42 @@ Add a formal fuzzing tier to the existing security stack (SonarQube + Semgrep SA
 
 **Motivation:** Zentropy Scout processes user-provided content at several sensitive boundaries (resume parsing, job content ingestion from heterogeneous sources, prompt construction, auth token handling). These are exactly the code shapes where fuzzing pays off — pure-ish functions that transform untrusted input and have enough branching that edge cases are hard to enumerate by hand. ZAP covers HTTP-level probing; SAST catches known pattern anti-patterns; neither will exercise a parser with a million mutated inputs the way a fuzzer will.
 
+**Stack context:** Zentropy Scout is Python (FastAPI) backend + Next.js frontend. The highest-value fuzz targets — resume parsing, job ingestion adapters, auth token handling, prompt construction — all live server-side in Python. Tool choices below reflect that.
+
 **Approach:**
 
-- **Primary tool: Jazzer.js** — coverage-guided fuzzing for the Node/TypeScript backend. Instruments the target, generates mutated inputs, keeps inputs that reach new code paths. State of the art for JS fuzzing.
-- **Lighter-weight starter: fast-check** — property-based testing in JS/TS. Lower setup cost, good for pure-function targets (validators, transforms, score calculators). Useful entry point before committing to full Jazzer.js setup.
-- **Harnesses are small (5–20 lines each)** — each harness bridges the fuzzer engine to a specific target function, declaring what exceptions are "expected" (e.g., `SyntaxError` from a parser on bad input) vs. what indicates a real bug.
-- **Seed corpus** — provide a small set of known-valid inputs for each target to accelerate mutation-based discovery.
+- **Primary tool: Hypothesis** (property-based testing, already installed). One existing usage at `backend/tests/unit/test_llm_sanitization_fuzz.py` covers the sanitization pipeline; the work here is expanding that pattern to additional targets, not adopting a new tool. Harnesses are pytest files — you declare properties ("for all inputs of shape X, the parser should not raise anything other than `ValueError`") and Hypothesis generates randomized inputs hunting for counterexamples. Runs on every PR as part of the normal pytest suite. No new CI infrastructure needed.
+- **Atheris (coverage-guided mutation fuzzing) — deferred.** Google's Python port of libFuzzer would find deeper bugs than Hypothesis (coverage-guided mutation vs. strategy-based generation), but at a real cost: a long-running CI job separate from the PR suite, binary corpus/reproducer management, a libFuzzer-style mental model, and some maintenance risk (Atheris's release cadence has been slow, particularly around new Python versions). The payoff shape suits high-volume public-API parsers more than our threat model (occasional user-uploaded PDFs and scraped job listings). Revisit if (a) Hypothesis plateaus after broad coverage expansion and real crashes still seem likely, or (b) the project becomes eligible for **OSS-Fuzz**, which runs Atheris harnesses as a free Google-operated service and removes most of the CI cost.
+- **Frontend (fast-check) — not worth it.** Minimal pure-function logic in the Next.js client justifies the overhead; real validation lives server-side.
+- **Harnesses are small (5–20 lines each)** — each Hypothesis strategy + test pair bridges generated input to a specific target function, declaring what exceptions are "expected" (e.g., `ValueError` from a parser on bad input) vs. what indicates a real bug.
+- **Seed examples** — use `@example(...)` decorators or load sanitized real inputs (resumes, scraped postings, tokens) as fixtures to anchor Hypothesis's search.
 
-**Candidate fuzz targets (in rough priority order):**
+**Candidate fuzz targets (in rough priority order, all Python):**
 
-1. **Resume parsing pipeline** — PDF/text extraction + downstream field normalization. High-value: malformed PDFs are a real edge-case source, and parser crashes here break onboarding.
-2. **Job content ingestion / sanitization** — content coming from Adzuna, The Muse, RemoteOK, USAJobs adapters. External data, heterogeneous shapes, worth fuzzing any normalization layer.
-3. **Auth token handling** — JWT parsing, OAuth callback parameter parsing. Security-sensitive; crashes here can mean auth bypass or DoS.
-4. **Prompt construction / templating** — any code path that interpolates user input into LLM prompts. Fuzzing can surface prompt-injection-adjacent edge cases and broken escapes.
-5. **URL/query-param parsing** — bookmarklet capture, job URL handling. Low priority but cheap to cover.
+1. **Resume parsing pipeline** — pdfplumber extraction + downstream field normalization + Gemini-backed `ResumeParsingService` at `backend/app/services/rendering/resume_parsing_service.py`. High-value: malformed PDFs are a real edge-case source, and parser crashes here break onboarding.
+2. **Job content ingestion / sanitization** — content coming from `AdzunaAdapter`, `TheMuseAdapter`, `RemoteOKAdapter`, `USAJobsAdapter` (`backend/app/adapters/sources/`). External data, heterogeneous shapes, worth fuzzing any normalization layer in `base.py` or the per-source adapters.
+3. **Auth token handling** — JWT parsing, OAuth callback parameter parsing (Google, LinkedIn), magic link token decoding. Security-sensitive; crashes here can mean auth bypass or DoS. Related to the cognitive-complexity backlog item on `oauth_callback()` (#30).
+4. **Prompt construction / templating** — any code path in `backend/app/prompts/` that interpolates user input into LLM prompts. Fuzzing can surface prompt-injection-adjacent edge cases and broken escapes.
+5. **URL / query-param parsing** — bookmarklet capture (REQ-023 / item #23), job URL handling. Low priority but cheap to cover.
 
 **Division of labor (Claude + Brian):**
 
-- Claude writes the Jazzer.js / fast-check harnesses for identified targets.
-- Claude suggests seed corpora and Jazzer config.
-- Brian runs the fuzzer locally or in CI (fuzzing is time-bound, not compute-smart — needs hours of real execution).
-- Brian brings crash cases back to Claude for triage (input + stack trace → explanation + fix).
+- Claude writes the Hypothesis strategies and property tests for identified targets, following the existing `test_llm_sanitization_fuzz.py` pattern.
+- Claude suggests seeded examples and shrinking hints.
+- Brian reviews and merges; tests run automatically on every PR.
+- If Hypothesis surfaces a crash, Claude triages the minimized reproducer and proposes the fix.
 
 **Relationship to existing stack:**
 
-- **SonarQube / Semgrep** (SAST) — reads source, finds pattern-based issues. No overlap with fuzzer output.
-- **ZAP** (DAST) — HTTP-level probing with curated attack payloads. Fuzzing-adjacent but operates at a different layer (app-wide via network) than fuzzer (function-level direct calls).
-- **Fuzzer** — function-level, many-input, coverage-guided. Finds crashes and edge cases the other tools structurally can't reach.
+- **SonarQube / Semgrep** (SAST) — reads source, finds pattern-based issues. No overlap with property tests.
+- **ZAP** (DAST) — HTTP-level probing with curated attack payloads against the running app. Operates at a different layer (app-wide via network) than property tests (function-level direct calls into Python code).
+- **Hypothesis** — function-level, many-input, property-driven. Finds crashes and invariant violations the other tools structurally can't reach.
 
 **Open questions:**
 
-- CI integration — run Jazzer.js in a dedicated long-running job (GitHub Actions scheduled workflow) rather than on every PR, since useful runs are measured in hours not seconds.
-- Corpus management — store seed corpus and crash reproducers in-repo or externally?
-- Python side (backend resume parsing touches Python via pdfplumber) — Atheris is the Python equivalent if fuzzing the Python pipeline directly becomes desirable. Deferred unless Jazzer.js-level coverage of the Node surface proves insufficient.
-- Whether to adopt OSS-Fuzz if the project ever becomes a candidate (Google's continuous fuzzing service for qualifying open-source projects).
+- Corpus / example management — store anchor examples inline with `@example(...)` decorators or load from `backend/tests/fuzz/corpus/` fixtures?
+- Which targets warrant a database-backed fixture (real sanitized resumes) vs. synthetic-only strategies?
+- If a target's input is too complex for Hypothesis strategies to hit meaningfully (deeply nested PDFs, for example), that's the signal to revisit Atheris for that specific surface rather than adopting it wholesale.
 
 ---
 
